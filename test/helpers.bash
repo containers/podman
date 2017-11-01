@@ -9,17 +9,9 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 # Root directory of the repository.
 CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
-# Path of the crio binary.
-CRIO_BINARY=${CRIO_BINARY:-${CRIO_ROOT}/cri-o/bin/crio}
-# Path of the crictl binary.
-CRICTL_PATH=$(command -v crictl || true)
-CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
-# Path to kpod binary.
 KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/bin/kpod}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
-# Path of the pause binary.
-PAUSE_BINARY=${PAUSE_BINARY:-${CRIO_ROOT}/cri-o/bin/pause}
 # Path of the default seccomp profile.
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
 # Name of the default apparmor profile.
@@ -92,7 +84,6 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
 fi
-CRIO_SOCKET="$TESTDIR/crio.sock"
 CRIO_CONFIG="$TESTDIR/crio.conf"
 CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
 CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
@@ -214,140 +205,6 @@ function retry() {
 # Waits until the given crio becomes reachable.
 function wait_until_reachable() {
 	retry 15 1 crictl status
-}
-
-# Start crio.
-function start_crio() {
-	if [[ -n "$1" ]]; then
-		seccomp="$1"
-	else
-		seccomp="$SECCOMP_PROFILE"
-	fi
-
-	if [[ -n "$2" ]]; then
-		apparmor="$2"
-	else
-		apparmor="$APPARMOR_PROFILE"
-	fi
-
-	# Don't forget: bin2img, copyimg, and crio have their own default drivers, so if you override any, you probably need to override them all
-	if ! [ "$3" = "--no-pause-image" ] ; then
-		"$BIN2IMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --source-binary "$PAUSE_BINARY"
-	fi
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/redis:alpine --import-from=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-# TODO: remove the code below for copying redis:alpine in using a canonical reference once
-#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete and we can
-#       copy the image using a tagged reference and then subsequently find the image without
-#       having to explicitly record the canonical reference as one of the image's names
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --import-from=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=mrunalp/oom --import-from=dir:"$ARTIFACTS_PATH"/oom-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/mrunalp/image-volume-test --import-from=dir:"$ARTIFACTS_PATH"/image-volume-test-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/busybox:latest --import-from=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=docker.io/library/runcom/stderr-test:latest --import-from=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json
-	"$CRIO_BINARY" ${DEFAULT_MOUNTS_OPTS} ${HOOKS_OPTS} --conmon "$CONMON_BINARY" --listen "$CRIO_SOCKET" --cgroup-manager "$CGROUP_MANAGER" --registry "docker.io" --runtime "$RUNTIME_BINARY" --root "$TESTDIR/crio" --runroot "$TESTDIR/crio-run" $STORAGE_OPTIONS --seccomp-profile "$seccomp" --apparmor-profile "$apparmor" --cni-config-dir "$CRIO_CNI_CONFIG" --cni-plugin-dir "$CRIO_CNI_PLUGIN" --signature-policy "$INTEGRATION_ROOT"/policy.json --image-volumes "$IMAGE_VOLUMES" --pids-limit "$PIDS_LIMIT" --log-size-max "$LOG_SIZE_MAX_LIMIT" --config /dev/null config >$CRIO_CONFIG
-
-	# Prepare the CNI configuration files, we're running with non host networking by default
-	if [[ -n "$4" ]]; then
-		netfunc="$4"
-	else
-		netfunc="prepare_network_conf"
-	fi
-	${netfunc} $POD_CIDR
-
-	"$CRIO_BINARY" --log-level debug --config "$CRIO_CONFIG" & CRIO_PID=$!
-	wait_until_reachable
-
-	run crictl inspecti redis:alpine
-	if [ "$status" -ne 0 ] ; then
-		crictl pull redis:alpine
-	fi
-	REDIS_IMAGEID=$(crictl inspecti redis:alpine | head -1 | sed -e "s/ID: //g")
-	run crictl inspecti redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b
-	if [ "$status" -ne 0 ] ; then
-		crictl pull redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b
-	fi
-	REDIS_IMAGEID_DIGESTED=$(crictl inspecti redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b | head -1 | sed -e "s/ID: //g")
-	run crictl inspecti mrunalp/oom
-	if [ "$status" -ne 0 ] ; then
-		  crictl pull mrunalp/oom
-	fi
-	OOM_IMAGEID=$(crictl inspecti mrunalp/oom | head -1 | sed -e "s/ID: //g")
-	run crioctl image status --id=runcom/stderr-test
-	if [ "$status" -ne 0 ] ; then
-		crictl pull runcom/stderr-test:latest
-	fi
-	STDERR_IMAGEID=$(crictl inspecti runcom/stderr-test | head -1 | sed -e "s/ID: //g")
-	run crictl inspecti busybox
-	if [ "$status" -ne 0 ] ; then
-		crictl pull busybox:latest
-	fi
-	BUSYBOX_IMAGEID=$(crictl inspecti busybox | head -1 | sed -e "s/ID: //g")
-	run crictl inspecti mrunalp/image-volume-test
-	if [ "$status" -ne 0 ] ; then
-		  crictl pull mrunalp/image-volume-test:latest
-	fi
-	VOLUME_IMAGEID=$(crictl inspecti mrunalp/image-volume-test | head -1 | sed -e "s/ID: //g")
-}
-
-function cleanup_ctrs() {
-	run crictl ps --quiet
-	if [ "$status" -eq 0 ]; then
-		if [ "$output" != "" ]; then
-			printf '%s\n' "$output" | while IFS= read -r line
-			do
-			   crictl stop "$line"
-			   crictl rm "$line"
-			done
-		fi
-	fi
-	rm -f /run/hookscheck
-}
-
-function cleanup_images() {
-	run crictl images --quiet
-	if [ "$status" -eq 0 ]; then
-		if [ "$output" != "" ]; then
-			printf '%s\n' "$output" | while IFS= read -r line
-			do
-			   crictl rmi "$line"
-			done
-		fi
-	fi
-}
-
-function cleanup_pods() {
-	run crictl sandboxes --quiet
-	if [ "$status" -eq 0 ]; then
-		if [ "$output" != "" ]; then
-			printf '%s\n' "$output" | while IFS= read -r line
-			do
-			   crictl stops "$line"
-			   crictl rms "$line"
-			done
-		fi
-	fi
-}
-
-# Stop crio.
-function stop_crio() {
-	if [ "$CRIO_PID" != "" ]; then
-		kill "$CRIO_PID" >/dev/null 2>&1
-		wait "$CRIO_PID"
-		rm -f "$CRIO_CONFIG"
-	fi
-
-	cleanup_network_conf
-}
-
-function restart_crio() {
-	if [ "$CRIO_PID" != "" ]; then
-		kill "$CRIO_PID" >/dev/null 2>&1
-		wait "$CRIO_PID"
-		start_crio
-	else
-		echo "you must start crio first"
-		exit 1
-	fi
 }
 
 function cleanup_test() {

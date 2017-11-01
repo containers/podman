@@ -9,6 +9,7 @@ function teardown() {
 }
 
 @test "remove a stopped container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -32,6 +33,7 @@ function teardown() {
 }
 
 @test "refuse to remove a running container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -53,6 +55,7 @@ function teardown() {
 }
 
 @test "remove a created container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -70,6 +73,7 @@ function teardown() {
 }
 
 @test "remove a running container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"

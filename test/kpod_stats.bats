@@ -7,6 +7,7 @@ function teardown() {
 }
 
 @test "stats single output" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -28,6 +29,7 @@ function teardown() {
 }
 
 @test "stats does not output stopped container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -46,6 +48,7 @@ function teardown() {
 }
 
 @test "stats outputs stopped container with all flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -64,6 +67,7 @@ function teardown() {
 }
 
 @test "stats output only id" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -86,6 +90,7 @@ function teardown() {
 }
 
 @test "stats streaming output" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"

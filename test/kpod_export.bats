@@ -9,6 +9,7 @@ function teardown() {
 }
 
 @test "kpod export output flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"

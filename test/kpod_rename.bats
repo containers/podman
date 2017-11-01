@@ -9,6 +9,7 @@ function teardown() {
 }
 
 @test "kpod rename successful" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
     echo "$output"

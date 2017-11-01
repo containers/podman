@@ -9,6 +9,7 @@ function teardown() {
 }
 
 @test "display logs for container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -30,6 +31,7 @@ function teardown() {
 }
 
 @test "tail three lines of logs for container" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -53,6 +55,7 @@ function teardown() {
 }
 
 @test "display logs for container since a given time" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"

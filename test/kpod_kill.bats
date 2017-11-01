@@ -19,6 +19,7 @@ function start_sleep_container () {
 }
 
 @test "kill a running container by id" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     ctr_id=$( start_sleep_container )
@@ -35,6 +36,7 @@ function start_sleep_container () {
 }
 
 @test "kill a running container by id with TERM" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     ctr_id=$( start_sleep_container )
@@ -51,6 +53,7 @@ function start_sleep_container () {
 }
 
 @test "kill a running container by name" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     ctr_id=$( start_sleep_container )
@@ -68,6 +71,7 @@ function start_sleep_container () {
 }
 
 @test "kill a running container by id with a bogus signal" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     ctr_id=$( start_sleep_container )

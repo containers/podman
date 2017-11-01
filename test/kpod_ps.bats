@@ -11,6 +11,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps default" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -35,6 +36,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps all flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -58,6 +60,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps size flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -81,6 +84,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps quiet flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -104,6 +108,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps latest flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -127,6 +132,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps last flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -150,6 +156,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps no-trunc flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -170,6 +177,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps namespace flag" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -192,6 +200,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps namespace flag and format flag = json" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -212,6 +221,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps without namespace flag and format flag = json" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -231,6 +241,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps format flag = go template" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -251,6 +262,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps filter flag - ancestor" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -271,6 +283,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps filter flag - id" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
@@ -292,6 +305,7 @@ IMAGE="redis:alpine"
 }
 
 @test "kpod ps filter flag - status" {
+    skip "Test needs to be converted to kpod run"
     start_crio
     run crioctl pod run --config "$TESTDATA"/sandbox_config.json
     echo "$output"
