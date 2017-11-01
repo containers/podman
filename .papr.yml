@@ -1,0 +1,29 @@
+branches:
+  - master
+  - auto
+  - try
+
+host:
+  distro: fedora/26/atomic
+
+required: true
+
+tests:
+    # lint needs to be added still ... doesnt work
+    - make install.tools
+    - make gofmt
+    - make .gitvalidation
+    - make
+
+packages:
+    - git
+    - iptables
+    - runc
+    - golang
+    - golang-github-cpuguy83-go-md2man
+    - libseccomp-devel 
+    - gpgme-devel
+    - device-mapper-devel
+    - libassuan-devel
+    - glibc-static 
+    - glib2-devel
