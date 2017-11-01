@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"syscall"
@@ -46,6 +47,8 @@ var (
 	// DirTransport is the transport for pushing and pulling
 	// images to and from a directory
 	DirTransport = "dir"
+	// TransportNames are the supported transports in string form
+	TransportNames = [...]string{DefaultRegistry, DockerArchive, OCIArchive, "ostree:", "dir:"}
 )
 
 // CopyOptions contains the options given when pushing or pulling images
@@ -92,6 +95,262 @@ type imageDecomposeStruct struct {
 	registry    string
 	hasRegistry bool
 	transport   string
+}
+
+func (k *Image) assembleFqName() string {
+	return fmt.Sprintf("%s/%s:%s", k.Registry, k.ImageName, k.Tag)
+}
+
+func (k *Image) assembleFqNameTransport() string {
+	return fmt.Sprintf("%s%s/%s:%s", k.Transport, k.Registry, k.ImageName, k.Tag)
+}
+
+//Image describes basic attributes of an image
+type Image struct {
+	Name           string
+	ID             string
+	fqname         string
+	hasImageLocal  bool
+	runtime        *Runtime
+	Registry       string
+	ImageName      string
+	Tag            string
+	HasRegistry    bool
+	Transport      string
+	beenDecomposed bool
+	PullName       string
+}
+
+// NewImage creates a new image object based on its name
+func (r *Runtime) NewImage(name string) Image {
+	return Image{
+		Name:    name,
+		runtime: r,
+	}
+}
+
+// GetImageID returns the image ID of the image
+func (k *Image) GetImageID() (string, error) {
+	if k.ID != "" {
+		return k.ID, nil
+	}
+	image, _ := k.GetFQName()
+	img, err := k.runtime.GetImage(image)
+	if err != nil {
+		return "", err
+	}
+	return img.ID, nil
+}
+
+// GetFQName returns the fully qualified image name if it can be determined
+func (k *Image) GetFQName() (string, error) {
+	// Check if the fqname has already been found
+	if k.fqname != "" {
+		return k.fqname, nil
+	}
+	if err := k.Decompose(); err != nil {
+		return "", err
+	}
+	k.fqname = k.assembleFqName()
+	return k.fqname, nil
+}
+
+func (k *Image) findImageOnRegistry() error {
+	searchRegistries, err := GetRegistries()
+
+	if err != nil {
+		return errors.Wrapf(err, " the image name '%s' is incomplete.", k.Name)
+	}
+
+	for _, searchRegistry := range searchRegistries {
+		k.Registry = searchRegistry
+		err = k.GetManifest()
+		if err == nil {
+			k.fqname = k.assembleFqName()
+			return nil
+
+		}
+	}
+	return errors.Errorf("unable to find image on any configured registries")
+
+}
+
+// GetManifest tries to GET an images manifest, returns nil on success and err on failure
+func (k *Image) GetManifest() error {
+	pullRef, err := alltransports.ParseImageName(k.assembleFqNameTransport())
+	if err != nil {
+		return errors.Errorf("unable to parse1 '%s'", k.assembleFqName())
+	}
+	imageSource, err := pullRef.NewImageSource(nil)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create new image source")
+	}
+	_, _, err = imageSource.GetManifest()
+	if err == nil {
+		return nil
+	}
+	return err
+}
+
+//Decompose breaks up an image name into its parts
+func (k *Image) Decompose() error {
+	if k.beenDecomposed {
+		return nil
+	}
+	k.beenDecomposed = true
+	k.Transport = "docker://"
+	decomposeName := k.Name
+	for _, transport := range TransportNames {
+		if strings.HasPrefix(k.Name, transport) {
+			k.Transport = transport
+			decomposeName = strings.Replace(k.Name, transport, "", -1)
+			break
+		}
+	}
+	if k.Transport == "dir:" {
+		return nil
+	}
+	var imageError = fmt.Sprintf("unable to parse '%s'\n", decomposeName)
+	imgRef, err := reference.Parse(decomposeName)
+	if err != nil {
+		return errors.Wrapf(err, imageError)
+	}
+	tagged, isTagged := imgRef.(reference.NamedTagged)
+	k.Tag = "latest"
+	if isTagged {
+		k.Tag = tagged.Tag()
+	}
+	k.HasRegistry = true
+	registry := reference.Domain(imgRef.(reference.Named))
+	if registry == "" {
+		k.HasRegistry = false
+	}
+	k.ImageName = reference.Path(imgRef.(reference.Named))
+
+	// account for image names with directories in them like
+	// umohnani/get-started:part1
+	if k.HasRegistry {
+		k.Registry = registry
+		k.fqname = k.assembleFqName()
+		k.PullName = k.assembleFqName()
+
+		registries, err := getRegistries()
+		if err != nil {
+			return nil
+		}
+		if StringInSlice(k.Registry, registries) {
+			return nil
+		}
+		// We need to check if the registry name is legit
+		_, err = net.LookupAddr(k.Registry)
+		if err == nil {
+			return nil
+		}
+		// Combine the Registry and Image Name together and blank out the Registry Name
+		k.ImageName = fmt.Sprintf("%s/%s", k.Registry, k.ImageName)
+		k.Registry = ""
+
+	}
+	// No Registry means we check the globals registries configuration file
+	// and assemble a list of candidate sources to try
+	//searchRegistries, err := GetRegistries()
+	err = k.findImageOnRegistry()
+	k.PullName = k.assembleFqName()
+	if err != nil {
+		return errors.Wrapf(err, " the image name '%s' is incomplete.", k.Name)
+	}
+	return nil
+}
+
+// HasImageLocal returns a bool true if the image is already pulled
+func (k *Image) HasImageLocal() bool {
+	_, err := k.runtime.GetImage(k.Name)
+	if err == nil {
+		return true
+	}
+	fqname, _ := k.GetFQName()
+
+	_, err = k.runtime.GetImage(fqname)
+	if err == nil {
+		return true
+	}
+	return false
+}
+
+// HasLatest determines if we have the latest image local
+func (k *Image) HasLatest() (bool, error) {
+	if !k.HasImageLocal() {
+		return false, nil
+	}
+	fqname, err := k.GetFQName()
+	if err != nil {
+		return false, err
+	}
+	pullRef, err := alltransports.ParseImageName(fqname)
+	if err != nil {
+		return false, err
+	}
+	_, _, err = pullRef.(types.ImageSource).GetManifest()
+	if err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// Pull is a wrapper function to pull and image
+func (k *Image) Pull() error {
+	// If the image hasn't been decomposed yet
+	if !k.beenDecomposed {
+		err := k.Decompose()
+		if err != nil {
+			return err
+		}
+	}
+	k.runtime.PullImage(k.PullName, CopyOptions{Writer: os.Stdout, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
+	return nil
+}
+
+// GetRegistries gets the searchable registries from the global registration file.
+func GetRegistries() ([]string, error) {
+	registryConfigPath := ""
+	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
+	if len(envOverride) > 0 {
+		registryConfigPath = envOverride
+	}
+	searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+	if err != nil {
+		return nil, errors.Errorf("unable to parse the registries.conf file")
+	}
+	return searchRegistries, nil
+}
+
+// GetInsecureRegistries obtains the list of inseure registries from the global registration file.
+func GetInsecureRegistries() ([]string, error) {
+	registryConfigPath := ""
+	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
+	if len(envOverride) > 0 {
+		registryConfigPath = envOverride
+	}
+	registries, err := sysregistries.GetInsecureRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+	if err != nil {
+		return nil, errors.Errorf("unable to parse the registries.conf file")
+	}
+	return registries, nil
+}
+
+// getRegistries returns both searchable and insecure registries from the global conf file.
+func getRegistries() ([]string, error) {
+	var r []string
+	registries, err := GetRegistries()
+	if err != nil {
+		return r, err
+	}
+	insecureRegistries, err := GetInsecureRegistries()
+	if err != nil {
+		return r, err
+	}
+	r = append(registries, insecureRegistries...)
+	return r, nil
 }
 
 // ImageFilter is a function to determine whether an image is included in
