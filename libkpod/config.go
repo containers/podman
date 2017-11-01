@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/projectatomic/libpod/oci"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 

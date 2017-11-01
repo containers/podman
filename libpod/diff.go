@@ -2,7 +2,7 @@ package libpod
 
 import (
 	"github.com/containers/storage/pkg/archive"
-	"github.com/kubernetes-incubator/cri-o/libpod/layers"
+	"github.com/projectatomic/libpod/libpod/layers"
 	"github.com/pkg/errors"
 )
 

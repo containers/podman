@@ -2,8 +2,8 @@ package libkpod
 
 import (
 	"github.com/docker/docker/pkg/signal"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/projectatomic/libpod/oci"
+	"github.com/projectatomic/libpod/utils"
 	"github.com/pkg/errors"
 	"os"
 	"syscall"

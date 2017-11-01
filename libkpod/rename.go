@@ -7,8 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/kubernetes-incubator/cri-o/oci"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	"github.com/projectatomic/libpod/oci"
+	"github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 

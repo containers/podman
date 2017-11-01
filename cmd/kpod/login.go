@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/pkg/docker/config"
-	"github.com/kubernetes-incubator/cri-o/libpod/common"
+	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"

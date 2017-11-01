@@ -11,7 +11,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/projectatomic/libpod/oci"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"

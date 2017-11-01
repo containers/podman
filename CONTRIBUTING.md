@@ -1,4 +1,4 @@
-# Contributing to CRI-O
+# Contributing to Libpod
 
 We'd love to have you join the community! Below summarizes the processes
 that we follow.
@@ -13,7 +13,7 @@ that we follow.
 ## Reporting Issues
 
 Before reporting an issue, check our backlog of
-[open issues](https://github.com/kubernetes-incubator/cri-o/issues)
+[open issues](https://github.com/projectatomic/libpod/issues)
 to see if someone else has already reported it. If so, feel free to add
 your scenario, or additional information, to the discussion. Or simply
 "subscribe" to it to be notified when it is updated.
@@ -120,9 +120,9 @@ IRC group on `irc.freenode.net` called `cri-o`
 that has been setup.
 
 For discussions around issues/bugs and features, you can use the github
-[issues](https://github.com/kubernetes-incubator/cri-o/issues)
+[issues](https://github.com/projectatomic/libpod/issues)
 and
-[PRs](https://github.com/kubernetes-incubator/cri-o/pulls)
+[PRs](https://github.com/projectatomic/libpod/pulls)
 tracking system.
 
 <!--

@@ -1,7 +1,7 @@
 package libkpod
 
 import (
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/projectatomic/libpod/oci"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )

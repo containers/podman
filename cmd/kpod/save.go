@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/kubernetes-incubator/cri-o/libpod"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"

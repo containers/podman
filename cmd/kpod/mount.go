@@ -4,7 +4,7 @@ import (
 	js "encoding/json"
 	"fmt"
 
-	of "github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
+	of "github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

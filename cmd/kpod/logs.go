@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-incubator/cri-o/libkpod"
+	"github.com/projectatomic/libpod/libkpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

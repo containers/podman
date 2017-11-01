@@ -9,9 +9,8 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
-	"github.com/kubernetes-incubator/cri-o/libkpod"
-	"github.com/kubernetes-incubator/cri-o/libpod"
-	"github.com/kubernetes-incubator/cri-o/server"
+	"github.com/projectatomic/libpod/libkpod"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -19,6 +18,8 @@ import (
 var (
 	stores = make(map[storage.Store]struct{})
 )
+
+const CrioConfigPath = "/etc/crio/crio.conf"
 
 func getStore(c *libkpod.Config) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
@@ -65,8 +66,8 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	var configFile string
 	if c.GlobalIsSet("config") {
 		configFile = c.GlobalString("config")
-	} else if _, err := os.Stat(server.CrioConfigPath); err == nil {
-		configFile = server.CrioConfigPath
+	} else if _, err := os.Stat(CrioConfigPath); err == nil {
+		configFile = CrioConfigPath
 	}
 	// load and merge the configfile from the commandline or use
 	// the default crio config file

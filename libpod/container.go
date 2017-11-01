@@ -10,7 +10,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/stringid"
-	crioAnnotations "github.com/kubernetes-incubator/cri-o/pkg/annotations"
+	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -2,7 +2,7 @@ package libpod
 
 import (
 	"github.com/docker/docker/pkg/truncindex"
-	"github.com/kubernetes-incubator/cri-o/pkg/registrar"
+	"github.com/projectatomic/libpod/pkg/registrar"
 	"github.com/pkg/errors"
 )
 

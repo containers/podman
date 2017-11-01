@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/kubernetes-incubator/cri-o/oci"
+	"github.com/projectatomic/libpod/oci"
 	"github.com/opencontainers/runc/libcontainer"
 )
 

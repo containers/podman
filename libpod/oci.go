@@ -18,7 +18,7 @@ import (
 
 	// TODO import these functions into libpod and remove the import
 	// Trying to keep libpod from depending on CRI-O code
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/projectatomic/libpod/utils"
 )
 
 // OCI code is undergoing heavy rewrite

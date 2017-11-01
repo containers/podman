@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/docker/docker/pkg/system"
-	"github.com/kubernetes-incubator/cri-o/cmd/kpod/formats"
+	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
