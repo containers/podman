@@ -1,0 +1,67 @@
+{
+	"metadata": {
+		"name": "podsandbox1-redis"
+	},
+	"image": {
+		"image": "redis:alpine"
+	},
+	"args": [
+                "docker-entrypoint.sh",
+                "redis-server"
+	],
+	"mounts": [
+		{
+			"container_path": "%CPATH%",
+			"host_path": "%HPATH%"
+		}
+	],
+	"working_dir": "/data",
+	"envs": [
+		{
+			"key": "PATH",
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		},
+		{
+			"key": "TERM",
+			"value": "xterm"
+		},
+		{
+			"key": "REDIS_VERSION",
+			"value": "3.2.3"
+		},
+		{
+			"key": "REDIS_DOWNLOAD_URL",
+			"value": "http://download.redis.io/releases/redis-3.2.3.tar.gz"
+		},
+		{
+			"key": "REDIS_DOWNLOAD_SHA1",
+			"value": "92d6d93ef2efc91e595c8bf578bf72baff397507"
+		}
+	],
+	"labels": {
+		"tier": "backend"
+	},
+	"annotations": {
+		"pod": "podsandbox1"
+	},
+	"readonly_rootfs": false,
+	"log_path": "",
+	"stdin": false,
+	"stdin_once": false,
+	"tty": false,
+	"linux": {
+		"resources": {
+			"cpu_period": 10000,
+			"cpu_quota": 20000,
+			"cpu_shares": 512,
+			"oom_score_adj": 30
+		},
+		"security_context": {
+			"capabilities": {
+				"add_capabilities": [
+					"sys_admin"
+				]
+			}
+		}
+	}
+}

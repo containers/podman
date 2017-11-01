@@ -1,0 +1,79 @@
+---
+
+- name: stat the expected cri-o directory
+  stat:
+    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+  register: dir_stat
+
+- name: expect cri-o to be cloned already
+  fail:
+    msg: "Expected cri-o to be cloned at {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o but it wasn't!"
+  when: not dir_stat.stat.exists
+
+- name: install cri-o tools
+  make:
+    target: install.tools
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+
+- name: build cri-o
+  make:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+
+- name: install cri-o
+  make:
+    target: install
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+
+- name: install cri-o systemd files
+  make:
+    target: install.systemd
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+
+- name: install cri-o config
+  make:
+    target: install.config
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+
+- name: install configs
+  copy:
+    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+  with_items:
+    - src: contrib/cni/10-crio-bridge.conf
+      dest: /etc/cni/net.d/10-crio-bridge.conf
+    - src: contrib/cni/99-loopback.conf
+      dest: /etc/cni/net.d/99-loopback.conf
+    - src: test/redhat_sigstore.yaml
+      dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
+
+- name: run with overlay
+  replace:
+    regexp: 'storage_driver = ""'
+    replace: 'storage_driver = "overlay"'
+    name: /etc/crio/crio.conf
+    backup: yes
+
+- name: run with systemd cgroup manager
+  replace:
+    regexp: 'cgroup_manager = "cgroupfs"'
+    replace: 'cgroup_manager = "systemd"'
+    name: /etc/crio/crio.conf
+    backup: yes
+
+- name: add docker.io default registry
+  lineinfile:
+    dest: /etc/crio/crio.conf
+    line: '"docker.io"'
+    insertafter: 'registries = \['
+    regexp: 'docker\.io'
+    state: present
+
+- name: add overlay storage opts on RHEL/CentOS
+  lineinfile:
+    dest: /etc/crio/crio.conf
+    line: '"overlay.override_kernel_check=1"'
+    insertafter: 'storage_option = \['
+    regexp: 'overlay\.override_kernel_check=1'
+    state: present
+  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'

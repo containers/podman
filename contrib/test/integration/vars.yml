@@ -1,0 +1,8 @@
+---
+
+# For results.yml Paths use rsync 'source' conventions
+artifacts: "/tmp/artifacts"  # Base-directory for collection
+crio_integration_filepath: "{{ artifacts }}/testout.txt"
+crio_node_e2e_filepath: "{{ artifacts }}/junit_01.xml"
+result_dest_basedir: '{{ lookup("env","WORKSPACE") |
+                         default(playbook_dir, True) }}/artifacts'

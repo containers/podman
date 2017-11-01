@@ -1,0 +1,50 @@
+---
+
+- name: clone plugins source repo
+  git:
+    repo: "https://github.com/containernetworking/plugins.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
+    version: "dcf7368eeab15e2affc6256f0bb1e84dd46a34de"
+
+- name: build plugins
+  command: "./build.sh"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
+
+- name: install plugins
+  copy:
+    src: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins/bin/{{ item }}"
+    dest: "/opt/cni/bin"
+    mode: "o=rwx,g=rx,o=rx"
+    remote_src: yes
+  with_items:
+    - bridge
+    - dhcp
+    - flannel
+    - host-local
+    - ipvlan
+    - loopback
+    - macvlan
+    - ptp
+    - sample
+    - tuning
+    - vlan
+
+- name: clone runcom plugins source repo
+  git:
+    repo: "https://github.com/runcom/plugins.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
+    version: "custom-bridge"
+    force: yes
+
+- name: build plugins
+  command: "./build.sh"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
+
+- name: install custom bridge
+  copy:
+    src: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins/bin/bridge"
+    dest: "/opt/cni/bin/bridge-custom"
+    mode: "o=rwx,g=rx,o=rx"
+    remote_src: yes

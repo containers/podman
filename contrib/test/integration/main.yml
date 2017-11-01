@@ -1,0 +1,58 @@
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - setup
+  tasks:
+    - name: set up the system
+      include: system.yml
+
+    - name: install Golang tools
+      include: golang.yml
+
+    - name: clone build and install bats
+      include: "build/bats.yml"
+
+    - name: clone build and install cri-tools
+      include: "build/cri-tools.yml"
+
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+
+    - name: clone build and install runc
+      include: "build/runc.yml"
+
+    - name: clone build and install networking plugins
+      include: "build/plugins.yml"
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - integration
+    - e2e
+  tasks:
+    - name: clone build and install cri-o
+      include: "build/cri-o.yml"
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - integration
+  tasks:
+    - name: run cri-o integration tests
+      include: test.yml
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - e2e
+  tasks:
+    - name: run k8s e2e tests
+      include: e2e.yml

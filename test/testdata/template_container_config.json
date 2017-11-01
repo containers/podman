@@ -1,0 +1,68 @@
+{
+	"metadata": {
+		"name": "${NAME}",
+		"attempt": 1
+	},
+	"image": {
+		"image": "${IMAGE}"
+	},
+	"command": ${COMMAND},
+	"args": [],
+	"working_dir": "/",
+	"envs": [
+		{
+			"key": "PATH",
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		},
+		{
+			"key": "TERM",
+			"value": "xterm"
+		},
+		{
+			"key": "TESTDIR",
+			"value": "test/dir1"
+		},
+		{
+			"key": "TESTFILE",
+			"value": "test/file1"
+		}
+	],
+	"labels": {
+		"type": "small",
+		"batch": "no"
+	},
+	"annotations": {
+		"owner": "dragon",
+		"daemon": "crio"
+	},
+	"privileged": true,
+	"log_path": "",
+	"stdin": false,
+	"stdin_once": false,
+	"tty": false,
+	"linux": {
+		"resources": {
+			"cpu_period": 10000,
+			"cpu_quota": 20000,
+			"cpu_shares": 512,
+			"oom_score_adj": 30
+		},
+		"security_context": {
+			"readonly_rootfs": false,
+			"selinux_options": {
+				"user": "system_u",
+				"role": "system_r",
+				"type": "svirt_lxc_net_t",
+				"level": "s0:c4,c5"
+			},
+			"capabilities": {
+				"add_capabilities": [
+					"setuid",
+					"setgid"
+				],
+				"drop_capabilities": [
+				]
+			}
+		}
+	}
+}

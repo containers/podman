@@ -1,0 +1,23 @@
+---
+
+- name: clone runc source repo
+  git:
+    repo: "https://github.com/opencontainers/runc.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+    version: "84a082bfef6f932de921437815355186db37aeb1"
+
+- name: build runc
+  make:
+    params: BUILDTAGS="seccomp selinux"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+
+- name: install runc
+  make:
+    target: "install"
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+
+- name: link runc
+  file:
+    src: /usr/local/sbin/runc
+    dest: /usr/bin/runc
+    state: link

@@ -1,0 +1,57 @@
+---
+
+- name: enable and start CRI-O
+  systemd:
+    name: crio
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: update the server address for the custom cluster
+  lineinfile:
+    dest: /usr/local/bin/createcluster.sh
+    line: "export {{ item }}={{ ansible_eth0.ipv4.address }}"
+    regexp: "^export {{ item }}="
+    state: present
+  with_items:
+    - DNS_SERVER_IP
+    - API_HOST
+    - API_HOST_IP
+
+- name: enable and start the custom cluster
+  systemd:
+    name: customcluster.service
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: wait for the cluster to be running
+  command: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/bin/kubectl get service kubernetes --namespace default"
+  register: kube_poll
+  until: kube_poll | succeeded
+  retries: 100
+  delay: 30
+
+- name: ensure directory exists for e2e reports
+  file:
+    path: "{{ artifacts }}"
+    state: directory
+
+- name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
+  set_fact:
+    e2e_shell_cmd: >
+        /usr/bin/go run hack/e2e.go
+            --test
+            --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                        --ginkgo.focus=\[Conformance\]
+                        --report-dir={{ artifacts }}"
+            &> {{ artifacts }}/e2e.log
+  # Fix vim syntax hilighting: "
+
+- name: disable SELinux
+  command: setenforce 0
+
+- name: run e2e tests
+  shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"

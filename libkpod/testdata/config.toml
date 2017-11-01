@@ -1,0 +1,28 @@
+[crio]
+  root = "/var/lib/containers/storage"
+  runroot = "/var/run/containers/storage"
+  storage_driver = "overlay2"
+  log_dir = "/var/log/crio/pods"
+  file_locking = true
+  [crio.runtime]
+    runtime = "/usr/bin/runc"
+    runtime_untrusted_workload = ""
+    default_workload_trust = "trusted"
+    conmon = "/usr/local/libexec/crio/conmon"
+    conmon_env = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
+    selinux = true
+    seccomp_profile = "/etc/crio/seccomp.json"
+    apparmor_profile = "crio-default"
+    cgroup_manager = "cgroupfs"
+    hooks_dir_path = "/usr/share/containers/oci/hooks.d"
+    pids_limit = 2048
+    container_exits_dir = "/var/run/kpod/exits"
+  [crio.image]
+    default_transport = "docker://"
+    pause_image = "kubernetes/pause"
+    pause_command = "/pause"
+    signature_policy = ""
+    image_volumes = "mkdir"
+  [crio.network]
+    network_dir = "/etc/cni/net.d/"
+    plugin_dir = "/opt/cni/bin/"

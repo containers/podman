@@ -1,0 +1,51 @@
+---
+
+- name: fetch Golang
+  unarchive:
+    remote_src: yes
+    src: https://storage.googleapis.com/golang/go1.8.4.linux-amd64.tar.gz
+    dest: /usr/local
+
+- name: link go toolchain
+  file:
+    src: "/usr/local/go/bin/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+  with_items:
+    - go
+    - gofmt
+    - godoc
+
+- name: ensure user profile exists
+  file:
+    path: "{{ ansible_user_dir }}/.profile"
+    state: touch
+
+- name: set up PATH for Go toolchain and built binaries
+  lineinfile:
+    dest: "{{ ansible_user_dir }}/.profile"
+    line: 'PATH={{ ansible_env.PATH }}:{{ ansible_env.GOPATH }}/bin:/usr/local/go/bin'
+    regexp: '^PATH='
+    state: present
+
+- name: set up directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ ansible_env.GOPATH }}/src/github.com/containernetworking"
+    - "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator"
+    - "{{ ansible_env.GOPATH }}/src/github.com/k8s.io"
+    - "{{ ansible_env.GOPATH }}/src/github.com/sstephenson"
+    - "{{ ansible_env.GOPATH }}/src/github.com/opencontainers"
+
+- name: install Go tools and dependencies
+  shell: /usr/bin/go get -u "github.com/{{ item }}"
+  with_items:
+    - tools/godep
+    - onsi/ginkgo/ginkgo
+    - onsi/gomega
+    - cloudflare/cfssl/cmd/...
+    - jteeuwen/go-bindata/go-bindata
+    - vbatts/git-validation
+    - cpuguy83/go-md2man

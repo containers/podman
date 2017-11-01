@@ -1,0 +1,17 @@
+---
+
+- name: clone bats source repo
+  git:
+    repo: "https://github.com/sstephenson/bats.git"
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/sstephenson/bats"
+
+- name: install bats
+  command: "./install.sh /usr/local"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/sstephenson/bats"
+
+- name: link bats
+  file:
+    src: /usr/local/bin/bats
+    dest: /usr/bin/bats
+    state: link

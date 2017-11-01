@@ -1,0 +1,564 @@
+#! /bin/bash
+
+: ${PROG:=$(basename ${BASH_SOURCE})}
+
+__kpod_list_images() {
+    COMPREPLY=($(compgen -W "$(kpod images -q)" -- $cur))
+}
+
+__kpod_list_containers() {
+    COMPREPLY=($(compgen -W "$(kpod ps -aq)" -- $cur))
+}
+
+_kpod_diff() {
+    local options_with_args="
+     --format
+     "
+    local boolean_options="
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_export() {
+    local options_with_args="
+     --output
+     -o
+     "
+    local boolean_options="
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_history() {
+    local options_with_args="
+     --format
+     "
+    local boolean_options="
+     --human -H
+     --no-trunc
+     --quiet -q
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_info() {
+    local boolean_options="
+     --help
+     -h
+     --debug
+     "
+    local options_with_args="
+    --format
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_images() {
+    local boolean_options="
+     --help
+     -h
+     --quiet
+     -q
+     --noheading
+     -n
+     --no-trunc
+     --digests
+     --filter
+     -f
+     "
+    local options_with_args="
+    --format
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_kpod_inspect() {
+    local boolean_options="
+     --help
+     -h
+     "
+    local options_with_args="
+    --format
+     -f
+     --type
+     -t
+     --size
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+_kpod_kill() {
+     local options_with_args="
+     --signal -s
+     "
+     local boolean_options="
+     --help
+     -h"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_logs() {
+     local options_with_args="
+     --since
+     --tail
+     "
+     local boolean_options="
+     --follow
+     -f
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
+_kpod_pull() {
+    local options_with_args="
+    --authfile
+    --creds
+    --cert-dir
+    --signature-policy
+    "
+    local boolean_options="
+    --all-tags -a
+    --quiet
+    -q
+    --tls-verify
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_unmount() {
+    _kpod_umount $@
+}
+
+_kpod_umount() {
+    local boolean_options="
+    --help
+    -h
+ "
+    local options_with_args="
+ "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_kpod_mount() {
+    local boolean_options="
+    --help
+    -h
+    --notruncate
+ "
+
+    local options_with_args="
+    --label
+    --format
+ "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_kpod_push() {
+    local boolean_options="
+    --disable-compression
+    -D
+    --quiet
+    -q
+    --remove-signatures
+    --tls-verify
+  "
+
+    local options_with_args="
+    --authfile
+    --cert-dir
+    --creds
+    --sign-by
+    --signature-policy
+  "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_kpod_rename() {
+    local boolean_options="
+    --help
+    -h
+ "
+    local options_with_args="
+ "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
+_kpod_rm() {
+    local boolean_options="
+    --force
+    -f
+    "
+
+    local options_with_args="
+    "
+
+    local all_options="$options_with_args $boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
+_kpod_rmi() {
+    local boolean_options="
+     --help
+     -h
+     --force
+     -f
+  "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
+_kpod_stats() {
+    local boolean_options="
+     --help
+     --all
+     -a
+     --no-stream
+     --format
+    "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_containers
+            ;;
+    esac
+}
+
+kpod_tag() {
+    local options_with_args="
+    "
+    local boolean_options="
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_version() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_save() {
+     local options_with_args="
+     --output -o
+     --format
+     "
+     local boolean_options="
+     --quiet -q
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_export() {
+     local options_with_args="
+     --output -o
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_pause() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_ps() {
+     local options_with_args="
+     --filter -f
+     --format
+     --last -n
+     "
+     local boolean_options="
+     --all -a
+     --latest -l
+     --no-trunc
+     --quiet -q
+     --size -s
+     --namespace --ns
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_stop() {
+     local options_with_args="
+     --timeout -t
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_unpause() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+
+_kpod_wait() {
+     local options_with_args=""
+     local boolean_options="--help -h"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_complete_() {
+    local options_with_args=$1
+    local boolean_options="$2 -h --help"
+
+    case "$prev" in
+	$options_with_args)
+	    return
+	    ;;
+    esac
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
+	    ;;
+    esac
+}
+
+_kpod_load() {
+    local options_with_args="
+    --input -i
+    --signature-policy
+    "
+    local boolean_options="
+    --quiet -q
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_login() {
+     local options_with_args="
+     --username
+     -u
+     --password
+     -p
+     --authfile
+     "
+     local boolean_options="
+     --help
+     -h
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_logout() {
+     local options_with_args="
+     --authfile
+     "
+     local boolean_options="
+     --all
+     -a
+     --help
+     -h
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
+_kpod_kpod() {
+     local options_with_args="
+           --config -c
+           --root
+           --runroot
+           --storage-driver
+           --storage-opt
+           --log-level
+    "
+     local boolean_options="
+           --help -h
+           --version -v
+     "
+     commands="
+    diff
+    export
+    history
+    images
+    info
+    inspect
+    kill
+    load
+    login
+    logout
+    logs
+    mount
+    pause
+    ps
+    pull
+    push
+    rename
+    rm
+    rmi
+    save
+    stats
+    stop
+    tag
+    umount
+    unmount
+    unpause
+    version
+    wait
+     "
+
+     case "$prev" in
+	 $main_options_with_args_glob )
+	     return
+	     ;;
+     esac
+
+     case "$cur" in
+	 -*)
+	     COMPREPLY=( $( compgen -W "$boolean_options $options_with_args" -- "$cur" ) )
+	     ;;
+	 *)
+	     COMPREPLY=( $( compgen -W "${commands[*]} help" -- "$cur" ) )
+	     ;;
+     esac
+}
+
+_cli_bash_autocomplete() {
+     local cur opts base
+
+     COMPREPLY=()
+     cur="${COMP_WORDS[COMP_CWORD]}"
+     COMPREPLY=()
+     local cur prev words cword
+
+     _get_comp_words_by_ref -n : cur prev words cword
+
+     local command=${PROG} cpos=0
+     local counter=1
+     counter=1
+     while [ $counter -lt $cword ]; do
+	 case "!${words[$counter]}" in
+	     *)
+		 command=$(echo "${words[$counter]}" | sed 's/-/_/g')
+		 cpos=$counter
+		 (( cpos++ ))
+		 break
+		 ;;
+	 esac
+	 (( counter++ ))
+     done
+
+     local completions_func=_kpod_${command}
+     declare -F $completions_func >/dev/null && $completions_func
+
+     eval "$previous_extglob_setting"
+     return 0
+}
+
+complete -F _cli_bash_autocomplete $PROG

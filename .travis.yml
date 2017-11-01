@@ -1,0 +1,62 @@
+language: go
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
+  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext
+
+install:
+  - make install.tools
+  - OSTREE_VERSION=v2017.9
+  - git clone https://github.com/ostreedev/ostree ${TRAVIS_BUILD_DIR}/ostree
+  - pushd ${TRAVIS_BUILD_DIR}/ostree
+  -   git checkout $OSTREE_VERSION
+  -   ./autogen.sh --prefix=/usr/local
+  -   make all
+  -   sudo make install
+  - popd
+
+before_script:
+  - export PATH=$HOME/gopath/bin:$PATH
+  - export LD_LIBRARY_PATH=/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+jobs:
+  include:
+    - stage: Build and Verify
+      script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make testunit
+        - make docs
+        - make
+      go: 1.8.x
+    - stage: Build and Verify
+      script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make testunit
+        - make docs
+        - make
+      go: 1.9.x
+    - script:
+        - make .gitvalidation
+        - make gofmt
+        - make lint
+        - make testunit
+        - make docs
+        - make
+      go: tip
+    - stage: Integration Test
+      script:
+        - make integration
+      go: 1.8.x
+
+notifications:
+  irc: "chat.freenode.net#cri-o"

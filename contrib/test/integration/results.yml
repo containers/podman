@@ -1,0 +1,62 @@
+---
+# vim-syntax: ansible
+
+- hosts: '{{ hosts | default("all") }}'
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  vars:
+    _result_filepaths: []  # do not use
+    _dstfnbuff: []  # do not use
+  tasks:
+    - name: The crio_integration_filepath is required
+      tags:
+          - integration
+      set_fact:
+       _result_filepaths: "{{ _result_filepaths + [crio_integration_filepath] }}"
+
+    - name: The crio_node_e2e_filepath is required
+      tags:
+          - e2e
+      set_fact:
+       _result_filepaths: "{{ _result_filepaths + [crio_node_e2e_filepath] }}"
+
+    - name: Verify expectations
+      assert:
+        that:
+          - 'result_dest_basedir | default(False, True)'
+          - '_result_filepaths | default(False, True)'
+          - '_dstfnbuff == []'
+          - 'results_fetched is undefined'
+
+    - name: Results directory exists
+      file:
+          path: "{{ result_dest_basedir }}"
+          state: directory
+      delegate_to: localhost
+
+    - name: destination file paths are buffered for overwrite-checking and jUnit conversion
+      set_fact:
+          _dstfnbuff: >
+              {{ _dstfnbuff |
+                 union( [result_dest_basedir ~ "/" ~ inventory_hostname ~ "/" ~ item | basename] ) }}
+      with_items: '{{ _result_filepaths }}'
+
+    - name: Overwriting existing results assumed very very bad
+      fail:
+          msg: "Cowardly refusing to overwrite {{ item }}"
+      when: item | exists
+      delegate_to: localhost
+      with_items: '{{ _dstfnbuff }}'
+
+    # fetch module doesn't support directories
+    - name: Retrieve results from all hosts
+      synchronize:
+          checksum: True  # Don't rely on date/time being in sync
+          archive: False  # Don't bother with permissions or times
+          copy_links: True  # We want files, not links to files
+          recursive: True
+          mode: pull
+          dest: '{{ result_dest_basedir }}/{{ inventory_hostname }}/'  # must end in /
+          src: '{{ item }}'
+      register: results_fetched
+      with_items: '{{ _result_filepaths }}'

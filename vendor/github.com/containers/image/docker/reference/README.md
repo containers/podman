@@ -1,0 +1,2 @@
+This is a copy of github.com/docker/distribution/reference as of commit fb0bebc4b64e3881cc52a2478d749845ed76d2a8,
+except that ParseAnyReferenceWithSet has been removed to drop the dependency on github.com/docker/distribution/digestset.
