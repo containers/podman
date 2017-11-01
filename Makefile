@@ -62,9 +62,6 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch "$(GOPATH)/.gopathok"
 
-.bindir:
-	mkdir -p "$(GOPKGDIR)/bin/"
-
 lint: .gopathok
 	@echo "checking lint"
 	@./.tool/lint
@@ -117,7 +114,7 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: .bindir conmon kpod
+binaries: conmon kpod
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
