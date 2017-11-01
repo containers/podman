@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/docker/docker/pkg/term"
-	"github.com/kubernetes-incubator/cri-o/utils"
+	"github.com/projectatomic/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
