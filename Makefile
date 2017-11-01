@@ -63,7 +63,7 @@ endif
 	touch "$(GOPATH)/.gopathok"
 
 .bindir:
-	mkdir -p bin/
+	mkdir -p "$(GOPKGDIR)/bin/"
 
 lint: .gopathok
 	@echo "checking lint"
@@ -157,10 +157,7 @@ install.completions:
 	install ${SELINUXOPT} -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
 
 uninstall:
-	rm -f $(BINDIR)/crio
-	rm -f $(BINDIR)/crioctl
 	rm -f $(LIBEXECDIR)/crio/conmon
-	rm -f $(LIBEXECDIR)/crio/pause
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man8/$$(basename $${i}); \
 	done

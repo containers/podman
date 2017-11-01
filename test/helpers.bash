@@ -9,11 +9,11 @@ TESTDATA="${INTEGRATION_ROOT}/testdata"
 # Root directory of the repository.
 CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
 
-KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/cri-o/bin/kpod}
+KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/libpod/bin/kpod}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/cri-o/bin/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/libpod/bin/conmon}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/cri-o/seccomp.json}
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/libpod/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
@@ -33,13 +33,13 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 # Path of apparmor parameters file.
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the bin2img binary.
-BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/cri-o/test/bin2img/bin2img}
+BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/libpod/test/bin2img/bin2img}
 # Path of the copyimg binary.
-COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/cri-o/test/copyimg/copyimg}
+COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/libpod/test/copyimg/copyimg}
 # Path of tests artifacts.
-ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/cri-o/.artifacts}
+ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/libpod/.artifacts}
 # Path of the checkseccomp binary.
-CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/cri-o/test/checkseccomp/checkseccomp}
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/libpod/test/checkseccomp/checkseccomp}
 # XXX: This is hardcoded inside cri-o at the moment.
 DEFAULT_LOG_PATH=/var/log/crio/pods
 # Cgroup manager to be used
@@ -158,23 +158,6 @@ if ! [ -d "$ARTIFACTS_PATH"/image-volume-test-image ]; then
         exit 1
     fi
 fi
-# Run crio using the binary specified by $CRIO_BINARY.
-# This must ONLY be run on engines created with `start_crio`.
-function crio() {
-	"$CRIO_BINARY" --listen "$CRIO_SOCKET" "$@"
-}
-
-# DEPRECATED
-OCIC_BINARY=${OCIC_BINARY:-${CRIO_ROOT}/cri-o/bin/crioctl}
-# Run crioctl using the binary specified by $OCIC_BINARY.
-function crioctl() {
-	"$OCIC_BINARY" --connect "$CRIO_SOCKET" "$@"
-}
-
-# Run crictl using the binary specified by $CRICTL_BINARY.
-function crictl() {
-	"$CRICTL_BINARY" -r "$CRIO_SOCKET" -i "$CRIO_SOCKET" "$@"
-}
 
 # Communicate with Docker on the host machine.
 # Should rarely use this.
