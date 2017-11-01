@@ -4,13 +4,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 )
 
-func getAllLabels(cli *cli.Context) (map[string]string, error) {
+func getAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 	var labelValues []string
 	labels := make(map[string]string)
-	labelValues, labelErr := readKVStrings(cli.StringSlice("label-file"), cli.StringSlice("label"))
+	labelValues, labelErr := readKVStrings(labelFile, inputLabels)
 	if labelErr != nil {
 		return labels, errors.Wrapf(labelErr, "unable to process labels from --label and label-file")
 	}
@@ -18,7 +17,7 @@ func getAllLabels(cli *cli.Context) (map[string]string, error) {
 	if len(labelValues) > 0 {
 		for _, i := range labelValues {
 			spliti := strings.Split(i, "=")
-			if len(spliti) > 1 {
+			if len(spliti) < 2 {
 				return labels, errors.Errorf("labels must be in KEY=VALUE format: %s is invalid", i)
 			}
 			labels[spliti[0]] = spliti[1]
@@ -27,14 +26,21 @@ func getAllLabels(cli *cli.Context) (map[string]string, error) {
 	return labels, nil
 }
 
-func getAllEnvironmentVariables(cli *cli.Context) ([]string, error) {
-	env, err := readKVStrings(cli.StringSlice("env-file"), cli.StringSlice("env"))
+func getAllEnvironmentVariables(envFiles, envInput []string) ([]string, error) {
+	env, err := readKVStrings(envFiles, envInput)
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "unable to process variables from --env and --env-file")
 	}
 	// Add default environment variables if nothing defined
 	if len(env) == 0 {
 		env = append(env, defaultEnvVariables...)
+	}
+	// Each environment variable must be in the K=V format
+	for _,i := range env{
+		spliti := strings.Split(i, "=")
+		if len(spliti) != 2 {
+			return env, errors.Errorf("environment variables must be in the format KEY=VALUE: %s is invalid", i)
+		}
 	}
 	return env, nil
 }
