@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "podsandbox1-exit-test"
+	},
+	"image": {
+		"image": "docker://mrunalp/exit_test:latest"
+	},
+	"args": [
+                "/exit_test"
+	],
+	"envs": [
+		{
+			"key": "PATH",
+			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		}
+	],
+	"readonly_rootfs": true,
+	"log_path": "",
+	"stdin": false,
+	"stdin_once": false,
+	"tty": false
+}

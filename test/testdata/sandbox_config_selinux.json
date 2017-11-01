@@ -1,0 +1,48 @@
+{
+	"metadata": {
+		"name": "podsandbox1",
+		"uid": "redhat-test-crio",
+		"namespace": "redhat.test.crio",
+		"attempt": 1
+	},
+	"hostname": "crioctl_host",
+	"log_directory": "",
+	"dns_config": {
+		"searches": [
+			"8.8.8.8"
+		]
+	},
+	"port_mappings": [],
+	"resources": {
+		"cpu": {
+			"limits": 3,
+			"requests": 2
+		},
+		"memory": {
+			"limits": 50000000,
+			"requests": 2000000
+		}
+	},
+	"labels": {
+		"group": "test"
+	},
+	"annotations": {
+		"owner": "hmeng",
+		"security.alpha.kubernetes.io/sysctls": "kernel.shm_rmid_forced=1,net.ipv4.ip_local_port_range=1024 65000",
+		"security.alpha.kubernetes.io/unsafe-sysctls": "kernel.msgmax=8192" ,
+		"security.alpha.kubernetes.io/seccomp/pod": "unconfined"
+	},
+	"linux": {
+		"cgroup_parent": "/Burstable/pod_123-456",
+		"security_context": {
+			"namespace_options": {
+				"host_network": false,
+				"host_pid": false,
+				"host_ipc": false
+			},
+			"selinux_options": {
+				"level": "s0"
+			}
+		}
+	}
+}
