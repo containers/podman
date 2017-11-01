@@ -49,6 +49,9 @@ has the capability to debug pods/images created by crio.
 
 ## COMMANDS
 
+### create
+create a new container
+
 ### diff
 Inspect changes on a container or image's filesystem
 
@@ -105,6 +108,9 @@ Remove one or more containers
 
 ### rmi
 Removes one or more locally stored images
+
+### run
+Run a command in a new container
 
 ### save
 Save an image to docker-archive or oci

@@ -22,7 +22,6 @@ type ContainerFilter func(*Container) bool
 func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (ctr *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}

@@ -15,6 +15,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
+	"github.com/docker/docker/pkg/term"
+	"k8s.io/client-go/tools/remotecommand"
+
 )
 
 // ContainerState represents the current state of a container
@@ -391,8 +394,32 @@ func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
 
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
-func (c *Container) Attach(stdin, tty bool) (string, error) {
-	return "", ErrNotImplemented
+func (c *Container) Attach(noStdin bool, keys string) error {
+	// Check the validity of the provided keys first
+	var err error
+	detachKeys := []byte{}
+	if len(keys) > 0 {
+		detachKeys, err = term.ToBytes(keys)
+		if err != nil {
+			return errors.Wrapf(err, "invalid detach keys")
+		}
+	}
+	cStatus := c.state.State
+
+	if !(cStatus == ContainerStateRunning || cStatus == ContainerStateCreated) {
+		return errors.Errorf("%s is not created or running", c.Name())
+	}
+	resize := make(chan remotecommand.TerminalSize)
+	defer close(resize)
+	err = c.attachContainerSocket(resize, noStdin, detachKeys)
+	if err != nil {
+		return err
+	}
+	// TODO
+	// Re-enable this when mheon is done wth it
+	//c.ContainerStateToDisk(c)
+
+	return nil
 }
 
 // Mount mounts a container's filesystem on the host

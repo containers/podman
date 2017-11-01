@@ -31,6 +31,7 @@ func main() {
 	app.Version = v
 
 	app.Commands = []cli.Command{
+		createCommand,
 		diffCommand,
 		exportCommand,
 		historyCommand,
@@ -50,6 +51,7 @@ func main() {
 		renameCommand,
 		rmCommand,
 		rmiCommand,
+		runCommand,
 		saveCommand,
 		statsCommand,
 		stopCommand,
@@ -91,6 +93,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "config, c",
 			Usage: "path of a config file detailing container server configuration options",
+		},
+		cli.StringFlag{
+			Name:  "conmon",
+			Usage: "path of the conmon binary",
 		},
 		cli.StringFlag{
 			Name:  "log-level",
