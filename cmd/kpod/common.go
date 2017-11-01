@@ -19,7 +19,7 @@ var (
 	stores = make(map[storage.Store]struct{})
 )
 
-const CrioConfigPath = "/etc/crio/crio.conf"
+const crioConfigPath = "/etc/crio/crio.conf"
 
 func getStore(c *libkpod.Config) (storage.Store, error) {
 	options := storage.DefaultStoreOptions
@@ -66,8 +66,8 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	var configFile string
 	if c.GlobalIsSet("config") {
 		configFile = c.GlobalString("config")
-	} else if _, err := os.Stat(CrioConfigPath); err == nil {
-		configFile = CrioConfigPath
+	} else if _, err := os.Stat(crioConfigPath); err == nil {
+		configFile = crioConfigPath
 	}
 	// load and merge the configfile from the commandline or use
 	// the default crio config file
