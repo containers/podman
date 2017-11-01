@@ -69,7 +69,7 @@ lint: .gopathok
 gofmt:
 	@./hack/verify-gofmt.sh
 
-conmon:
+bin/conmon:
 	$(MAKE) -C $@
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
@@ -81,7 +81,7 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
+bin/kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
 	$(GO) build $(LDFLAGS_KPOD) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/kpod
 
 clean:
@@ -89,7 +89,7 @@ ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
 endif
 	rm -rf _output
-	rm -f docs/*.1 docs/*.5 docs/*.8
+	rm -f docs/*.1
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -114,19 +114,13 @@ testunit:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: conmon kpod
+binaries: bin/conmon bin/kpod
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.1: docs/%.1.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
-
-docs/%.5: docs/%.5.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
-
-docs/%.8: docs/%.8.md .gopathok
 	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
 docs: $(MANPAGES)
@@ -139,11 +133,7 @@ install.bin:
 
 install.man:
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man8
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 $(filter %.8,$(MANPAGES)) -t $(MANDIR)/man8
 
 install.config:
 	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_CRIO)/seccomp.json
@@ -156,13 +146,7 @@ install.completions:
 uninstall:
 	rm -f $(LIBEXECDIR)/crio/conmon
 	for i in $(filter %.1,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man8/$$(basename $${i}); \
-	done
-	for i in $(filter %.5,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man5/$$(basename $${i}); \
-	done
-	for i in $(filter %.8,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man8/$$(basename $${i}); \
+		rm -f $(MANDIR)/man1/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
