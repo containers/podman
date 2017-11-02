@@ -2,8 +2,8 @@ package libpod
 
 import (
 	"github.com/docker/docker/pkg/truncindex"
-	"github.com/projectatomic/libpod/pkg/registrar"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/registrar"
 )
 
 // An InMemoryState is a purely in-memory state store

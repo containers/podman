@@ -9,11 +9,11 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/docker/go-units"
+	digest "github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
-	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 

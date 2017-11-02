@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/docker/docker/pkg/signal"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
 )
 

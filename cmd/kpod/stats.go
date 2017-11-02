@@ -11,9 +11,9 @@ import (
 	"github.com/docker/go-units"
 
 	tm "github.com/buger/goterm"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libkpod"
 	"github.com/projectatomic/libpod/oci"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 

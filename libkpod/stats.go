@@ -7,8 +7,8 @@ import (
 
 	"strings"
 
-	"github.com/projectatomic/libpod/oci"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/projectatomic/libpod/oci"
 )
 
 // ContainerStats contains the statistics information for a running container

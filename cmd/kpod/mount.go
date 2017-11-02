@@ -4,8 +4,8 @@ import (
 	js "encoding/json"
 	"fmt"
 
-	of "github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/pkg/errors"
+	of "github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/urfave/cli"
 )
 

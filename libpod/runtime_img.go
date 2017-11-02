@@ -23,10 +23,10 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/projectatomic/libpod/libpod/common"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/common"
 )
 
 // Runtime API

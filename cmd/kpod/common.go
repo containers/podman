@@ -9,9 +9,9 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libkpod"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 

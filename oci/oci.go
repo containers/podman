@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/projectatomic/libpod/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"

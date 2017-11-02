@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/projectatomic/libpod/oci"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/oci"
 	"golang.org/x/net/context"
 )
 

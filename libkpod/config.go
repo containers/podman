@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"github.com/projectatomic/libpod/oci"
 	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/projectatomic/libpod/oci"
 )
 
 // Default paths if none are specified
