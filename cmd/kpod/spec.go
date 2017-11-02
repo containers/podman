@@ -15,84 +15,84 @@ import (
 
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
-	spec := config.GetDefaultLinuxSpec()
-	spec.Process.Cwd = config.workDir
-	spec.Process.Args = config.command
+	configSpec := config.GetDefaultLinuxSpec()
+	configSpec.Process.Cwd = config.workDir
+	configSpec.Process.Args = config.command
 
-	spec.Process.Terminal = config.tty
+	configSpec.Process.Terminal = config.tty
 
 	// User and Group must go together
-	spec.Process.User.UID = config.user
-	spec.Process.User.GID = config.group
-	spec.Process.User.AdditionalGids = config.groupAdd
+	configSpec.Process.User.UID = config.user
+	configSpec.Process.User.GID = config.group
+	configSpec.Process.User.AdditionalGids = config.groupAdd
 
-	spec.Process.Env = config.env
+	configSpec.Process.Env = config.env
 
 	//TODO
 	// Need examples of capacity additions so I can load that properly
 
-	spec.Root.Readonly = config.readOnlyRootfs
-	spec.Hostname = config.hostname
+	configSpec.Root.Readonly = config.readOnlyRootfs
+	configSpec.Hostname = config.hostname
 
 	// BIND MOUNTS
-	spec.Mounts = append(spec.Mounts, config.GetVolumeMounts()...)
+	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)
 
 	// TMPFS MOUNTS
-	spec.Mounts = append(spec.Mounts, config.GetTmpfsMounts()...)
+	configSpec.Mounts = append(configSpec.Mounts, config.GetTmpfsMounts()...)
 
 	// RESOURCES - MEMORY
-	spec.Linux.Sysctl = config.sysctl
+	configSpec.Linux.Sysctl = config.sysctl
 
 	if config.resources.memory != 0 {
-		spec.Linux.Resources.Memory.Limit = &config.resources.memory
+		configSpec.Linux.Resources.Memory.Limit = &config.resources.memory
 	}
 	if config.resources.memoryReservation != 0 {
-		spec.Linux.Resources.Memory.Reservation = &config.resources.memoryReservation
+		configSpec.Linux.Resources.Memory.Reservation = &config.resources.memoryReservation
 	}
 	if config.resources.memorySwap != 0 {
-		spec.Linux.Resources.Memory.Swap = &config.resources.memorySwap
+		configSpec.Linux.Resources.Memory.Swap = &config.resources.memorySwap
 	}
 	if config.resources.kernelMemory != 0 {
-		spec.Linux.Resources.Memory.Kernel = &config.resources.kernelMemory
+		configSpec.Linux.Resources.Memory.Kernel = &config.resources.kernelMemory
 	}
 	if config.resources.memorySwapiness != 0 {
-		spec.Linux.Resources.Memory.Swappiness = &config.resources.memorySwapiness
+		configSpec.Linux.Resources.Memory.Swappiness = &config.resources.memorySwapiness
 	}
 	if config.resources.disableOomKiller {
-		spec.Linux.Resources.Memory.DisableOOMKiller = &config.resources.disableOomKiller
+		configSpec.Linux.Resources.Memory.DisableOOMKiller = &config.resources.disableOomKiller
 	}
 
 	// RESOURCES - CPU
 
 	if config.resources.cpuShares != 0 {
-		spec.Linux.Resources.CPU.Shares = &config.resources.cpuShares
+		configSpec.Linux.Resources.CPU.Shares = &config.resources.cpuShares
 	}
 	if config.resources.cpuQuota != 0 {
-		spec.Linux.Resources.CPU.Quota = &config.resources.cpuQuota
+		configSpec.Linux.Resources.CPU.Quota = &config.resources.cpuQuota
 	}
 	if config.resources.cpuPeriod != 0 {
-		spec.Linux.Resources.CPU.Period = &config.resources.cpuPeriod
+		configSpec.Linux.Resources.CPU.Period = &config.resources.cpuPeriod
 	}
 	if config.resources.cpuRtRuntime != 0 {
-		spec.Linux.Resources.CPU.RealtimeRuntime = &config.resources.cpuRtRuntime
+		configSpec.Linux.Resources.CPU.RealtimeRuntime = &config.resources.cpuRtRuntime
 	}
 	if config.resources.cpuRtPeriod != 0 {
-		spec.Linux.Resources.CPU.RealtimePeriod = &config.resources.cpuRtPeriod
+		configSpec.Linux.Resources.CPU.RealtimePeriod = &config.resources.cpuRtPeriod
 	}
 	if config.resources.cpus != "" {
-		spec.Linux.Resources.CPU.Cpus = config.resources.cpus
+		configSpec.Linux.Resources.CPU.Cpus = config.resources.cpus
 	}
 	if config.resources.cpusetMems != "" {
-		spec.Linux.Resources.CPU.Mems = config.resources.cpusetMems
+		configSpec.Linux.Resources.CPU.Mems = config.resources.cpusetMems
 	}
 
 	// RESOURCES - PIDS
 	if config.resources.pidsLimit != 0 {
-		spec.Linux.Resources.Pids.Limit = config.resources.pidsLimit
+		configSpec.Linux.Resources.Pids.Limit = config.resources.pidsLimit
 	}
 
 	/*
-				Capabilities: &spec.LinuxCapabilities{
+				Capabilities: &configSpec.LinuxCapabilities{
 				// Rlimits []PosixRlimit // Where does this come from
 				// Type string
 				// Hard uint64
@@ -102,13 +102,13 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				OOMScoreAdj: &config.resources.oomScoreAdj,
 				// Selinuxlabel
 			},
-			Hooks: &spec.Hooks{},
+			Hooks: &configSpec.Hooks{},
 			//Annotations
-				Resources: &spec.LinuxResources{
+				Resources: &configSpec.LinuxResources{
 					Devices: config.GetDefaultDevices(),
 					BlockIO: &blkio,
 					//HugepageLimits:
-					Network: &spec.LinuxNetwork{
+					Network: &configSpec.LinuxNetwork{
 					// ClassID *uint32
 					// Priorites []LinuxInterfacePriority
 					},
@@ -116,7 +116,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				//CgroupsPath:
 				//Namespaces: []LinuxNamespace
 				//Devices
-				Seccomp: &spec.LinuxSeccomp{
+				Seccomp: &configSpec.LinuxSeccomp{
 				// DefaultAction:
 				// Architectures
 				// Syscalls:
@@ -129,7 +129,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			},
 		}
 	*/
-	return &spec, nil
+	return &configSpec, nil
 }
 
 func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
