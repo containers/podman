@@ -11,7 +11,6 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	ann "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 )
 
@@ -464,7 +463,7 @@ func (c *createConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func (c *createConfig) GetContainerCreateOptions(cli *cli.Context) ([]libpod.CtrCreateOption, error) {
+func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 
 	// Uncomment after talking to mheon about unimplemented funcs

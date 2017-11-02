@@ -170,7 +170,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	options, err := createConfig.GetContainerCreateOptions(c)
+	options, err := createConfig.GetContainerCreateOptions()
 	if err != nil {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
