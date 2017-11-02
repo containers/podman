@@ -55,6 +55,7 @@ jobs:
       go: tip
     - stage: Integration Test
       script:
+        - make all
         - make integration
       go: 1.8.x
 
