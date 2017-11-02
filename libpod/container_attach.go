@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/docker/docker/pkg/term"
-	"github.com/projectatomic/libpod/utils"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"

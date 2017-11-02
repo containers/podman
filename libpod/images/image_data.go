@@ -9,10 +9,10 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	"github.com/projectatomic/libpod/libpod/driver"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/driver"
 )
 
 // Data handles the data used when inspecting a container

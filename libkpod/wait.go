@@ -1,8 +1,8 @@
 package libkpod
 
 import (
-	"github.com/projectatomic/libpod/oci"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/oci"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

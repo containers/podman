@@ -8,9 +8,9 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

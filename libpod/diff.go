@@ -2,8 +2,8 @@ package libpod
 
 import (
 	"github.com/containers/storage/pkg/archive"
-	"github.com/projectatomic/libpod/libpod/layers"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/layers"
 )
 
 // GetDiff returns the differences between the two images, layers, or containers

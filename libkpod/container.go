@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	cstorage "github.com/containers/storage"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libkpod/sandbox"
 	"github.com/projectatomic/libpod/oci"
 	"github.com/projectatomic/libpod/pkg/registrar"
-	"github.com/pkg/errors"
 )
 
 // GetStorageContainer searches for a container with the given name or ID in the given store

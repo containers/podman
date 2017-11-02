@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
 )
 

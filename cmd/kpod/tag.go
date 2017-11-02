@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 

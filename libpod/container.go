@@ -10,14 +10,13 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/stringid"
-	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
+	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
-	"github.com/docker/docker/pkg/term"
 	"k8s.io/client-go/tools/remotecommand"
-
 )
 
 // ContainerState represents the current state of a container
