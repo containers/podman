@@ -36,6 +36,7 @@ func main() {
 		exportCommand,
 		historyCommand,
 		imagesCommand,
+		importCommand,
 		infoCommand,
 		inspectCommand,
 		killCommand,
