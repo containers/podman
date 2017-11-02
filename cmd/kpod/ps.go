@@ -15,10 +15,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/fields"
 
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libkpod"
 	"github.com/projectatomic/libpod/oci"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 

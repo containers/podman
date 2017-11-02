@@ -2,9 +2,9 @@ package libkpod
 
 import (
 	"github.com/docker/docker/pkg/signal"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/oci"
 	"github.com/projectatomic/libpod/utils"
-	"github.com/pkg/errors"
 	"os"
 	"syscall"
 )

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
 	"os"
 )

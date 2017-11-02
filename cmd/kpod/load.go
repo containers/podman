@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 

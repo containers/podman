@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/docker/go-units"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )

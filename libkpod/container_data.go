@@ -8,12 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 
-	"github.com/projectatomic/libpod/libpod/driver"
-	"github.com/projectatomic/libpod/libpod/images"
-	"github.com/projectatomic/libpod/oci"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/libpod/images"
+	"github.com/projectatomic/libpod/oci"
 )
 
 // ContainerData handles the data used when inspecting a container

@@ -8,9 +8,9 @@ import (
 
 	"github.com/containers/image/types"
 	units "github.com/docker/go-units"
-	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/urfave/cli"
 )
 

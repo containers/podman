@@ -4,8 +4,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

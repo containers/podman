@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/projectatomic/libpod/libpod"
-	ann "github.com/projectatomic/libpod/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
+	ann "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
