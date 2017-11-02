@@ -711,6 +711,30 @@ _kpod_history() {
     esac
 }
 
+
+_kpod_import() {
+    local options_with_args="
+	--change
+	-c
+	--message
+	-m
+     "
+    local boolean_options="
+	--help
+	-h
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __kpod_list_images
+            ;;
+    esac
+}
+
 _kpod_info() {
     local boolean_options="
      --help
@@ -1402,6 +1426,7 @@ _kpod_kpod() {
     export
     history
     images
+    import
     info
     inspect
     kill
