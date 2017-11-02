@@ -36,7 +36,7 @@ func getAllEnvironmentVariables(envFiles, envInput []string) ([]string, error) {
 		env = append(env, defaultEnvVariables...)
 	}
 	// Each environment variable must be in the K=V format
-	for _,i := range env{
+	for _, i := range env {
 		spliti := strings.Split(i, "=")
 		if len(spliti) != 2 {
 			return env, errors.Errorf("environment variables must be in the format KEY=VALUE: %s is invalid", i)

@@ -1,10 +1,10 @@
 package libpod
 
-
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
+
 var (
 	sliceData = []string{"one", "two", "three", "four"}
 )
