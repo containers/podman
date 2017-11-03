@@ -118,7 +118,7 @@ type Image struct {
 	Name           string
 	ID             string
 	fqname         string
-	hasImageLocal  bool
+	hasImageLocal  bool //nolint
 	runtime        *Runtime
 	Registry       string
 	ImageName      string
@@ -359,10 +359,7 @@ func (k *Image) HasLatest() (bool, error) {
 		return false, err
 	}
 	_, _, err = pullRef.(types.ImageSource).GetManifest()
-	if err != nil {
-		return false, err
-	}
-	return false, nil
+	return false, err
 }
 
 // Pull is a wrapper function to pull and image
@@ -1155,7 +1152,8 @@ func ParseImageNames(names []string) (tags, digests []string, err error) {
 	return tags, digests, nil
 }
 
-func annotations(manifest []byte, manifestType string) map[string]string {
+// Remove nolint when used
+func annotations(manifest []byte, manifestType string) map[string]string { //nolint
 	annotations := make(map[string]string)
 	switch manifestType {
 	case ociv1.MediaTypeImageManifest:

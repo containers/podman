@@ -223,6 +223,7 @@ func (r *Runtime) removeMultipleContainers(containers []storage.Container) error
 }
 
 // ContainerConfigToDisk saves a container's nonvolatile configuration to disk
-func (r *Runtime) containerConfigToDisk(ctr *Container) error {
+// remove nolint when implemented
+func (r *Runtime) containerConfigToDisk(ctr *Container) error { //nolint
 	return ErrNotImplemented
 }

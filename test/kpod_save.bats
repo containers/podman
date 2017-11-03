@@ -12,10 +12,10 @@ function teardown() {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar
@@ -24,10 +24,10 @@ function teardown() {
 @test "kpod save oci flag" {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar --format oci-archive $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} save -o alpine.tar --format oci-archive $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar
 }
@@ -36,10 +36,10 @@ function teardown() {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} save > alpine.tar $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} save > alpine.tar $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar
@@ -49,10 +49,10 @@ function teardown() {
 	run ${KPOD_BINARY} ${KPOD_OPTIONS} pull $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} save -q -o alpine.tar $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} save -q -o alpine.tar $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
+	run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} rmi $IMAGE
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -f alpine.tar

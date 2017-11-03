@@ -1,5 +1,6 @@
 GO ?= go
-EPOCH_TEST_COMMIT ?= 2b74391
+EPOCH_TEST_COMMIT ?= 5cfd7a3
+HEAD ?= HEAD
 PROJECT := github.com/projectatomic/libpod
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
@@ -40,6 +41,8 @@ BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo
 KPOD_LDFLAGS := -X main.kpodVersion=${KPOD_VERSION}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
 LDFLAGS_KPOD := -ldflags '${BASE_LDFLAGS} ${KPOD_LDFLAGS}'
+
+BOX="fedora_atomic"
 
 all: binaries docs
 
@@ -114,6 +117,9 @@ testunit:
 localintegration: test-binaries
 	bash -i ./test/test_runner.sh ${TESTFLAGS}
 
+vagrant-check:
+	BOX=$(BOX) sh ./vagrant.sh
+
 binaries: conmon kpod
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
@@ -151,13 +157,8 @@ uninstall:
 	done
 
 .PHONY: .gitvalidation
-# When this is running in travis, it will only check the travis commit range
 .gitvalidation: .gopathok
-ifeq ($(TRAVIS),true)
-	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -q -run DCO,short-subject,dangling-whitespace
-else
-	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..HEAD
-endif
+	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 

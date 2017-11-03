@@ -256,18 +256,18 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 
 // updateContainerStatus retrieves the current status of the container from the
 // runtime
-func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
+// remove nolint when implemented
+func (r *OCIRuntime) updateContainerStatus(ctr *Container) error { //nolint
 	return ErrNotImplemented
 }
 
 // startContainer starts the given container
-func (r *OCIRuntime) startContainer(ctr *Container) error {
+// remove nolint when function is complete
+func (r *OCIRuntime) startContainer(ctr *Container) error { //nolint
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", ctr.ID()); err != nil {
-		return err
-	}
+	err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", ctr.ID())
 
 	// TODO record start time in container struct
 
-	return nil
+	return err
 }

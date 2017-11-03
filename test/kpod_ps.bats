@@ -5,7 +5,7 @@ load helpers
 IMAGE="redis:alpine"
 
 @test "kpod ps with no containers" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -27,7 +27,7 @@ IMAGE="redis:alpine"
     run crioctl ctr start --id "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -48,10 +48,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps --all
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps --all
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -72,10 +72,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -s
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -s
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --size
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --size
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -96,10 +96,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --quiet
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --quiet
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -120,10 +120,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps --latest
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps --latest
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -l
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -l
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -144,10 +144,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps --last 2
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps --last 2
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -n 2
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -n 2
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -168,7 +168,7 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --no-trunc
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --no-trunc
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -188,10 +188,10 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --ns
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --ns
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps --all --namespace
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps --all --namespace
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -253,7 +253,7 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --format "table {{.ID}} {{.Image}} {{.Labels}}"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --format "table {{.ID}} {{.Image}} {{.Labels}}"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -274,7 +274,7 @@ IMAGE="redis:alpine"
     run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter ancestor=${IMAGE}
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter ancestor=${IMAGE}
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -296,7 +296,7 @@ IMAGE="redis:alpine"
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter id="$ctr_id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter id="$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -318,7 +318,7 @@ IMAGE="redis:alpine"
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter status=running
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a --filter status=running
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs

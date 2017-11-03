@@ -13,8 +13,14 @@ required: true
 timeout: 45m
 
 tests:
-  # mount yum repos to inherit injected mirrors from PAPR
-  - docker run --net=host --privileged -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
-    -v /tmp:/tmp -v /var/tmp:/var/tmp
-    -v $PWD:/code registry.fedoraproject.org/fedora:26 sh -c
-    "cp -fv /etc/yum.repos.d{.host/*.repo,} && /code/.papr.sh"
+  - CRIO_ROOT=/var/tmp/checkout KPOD_BINARY=/usr/bin/kpod CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
+
+---
+
+inherit: true
+host:
+  distro: centos/7/atomic/alpha
+  specs:
+     ram: 8192
+
+context: centos/7/atomic/alpha

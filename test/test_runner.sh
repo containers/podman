@@ -12,7 +12,11 @@ function execute() {
 }
 
 # Tests to run. Defaults to all.
-TESTS=${@:-.}
+if [[ -z "${TESTS}" ]]; then
+	TESTS=${@:-.}
+else
+	TESTS=$TESTS
+fi
 
 # Run the tests.
 execute time bats --tap $TESTS
