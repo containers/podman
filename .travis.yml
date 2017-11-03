@@ -25,6 +25,10 @@ before_script:
   - export PATH=$HOME/gopath/bin:$PATH
   - export LD_LIBRARY_PATH=/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
+env:
+    global:
+        - TRAVIS=1
+
 jobs:
   include:
     - stage: Build and Verify

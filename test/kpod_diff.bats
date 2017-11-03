@@ -9,13 +9,13 @@ function teardown() {
 }
 
 @test "test diff of image and parent" {
-    run ${KPOD_BINARY} $KPOD_OPTIONS pull $IMAGE
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS pull $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS diff $IMAGE
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS diff $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -27,14 +27,14 @@ function teardown() {
 }
 
 @test "test diff with json output" {
-    run ${KPOD_BINARY} $KPOD_OPTIONS pull $IMAGE
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS pull $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
-    # run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} diff --format json $IMAGE | python -m json.tool"
-    run ${KPOD_BINARY} $KPOD_OPTIONS diff --format json $IMAGE
+    # run bash -c bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} diff --format json $IMAGE | python -m json.tool"
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS diff --format json $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rmi $IMAGE
     echo "$output"
     [ "$status" -eq 0 ]
 }

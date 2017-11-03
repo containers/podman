@@ -27,7 +27,7 @@ function teardown() {
     echo "$output"
     id="$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$id"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_pods
@@ -52,7 +52,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     ctr_name=$(python -c 'import json; import sys; print json.load(sys.stdin)["crio_annotations"]["io.kubernetes.cri-o.Name"]' <<< "$output")
     echo container name is \""$ctr_name"\"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$ctr_name"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$ctr_name"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_pods

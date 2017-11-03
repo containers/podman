@@ -7,13 +7,21 @@ INTEGRATION_ROOT=$(dirname "$(readlink -f "$BASH_SOURCE")")
 TESTDATA="${INTEGRATION_ROOT}/testdata"
 
 # Root directory of the repository.
-CRIO_ROOT=${CRIO_ROOT:-$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
+if [[ ! -z "$CRIO_ROOT" ]]; then
+    CRIO_ROOT=${CRIO_ROOT}
+elif [[ ! -z "$TRAVIS" ]]; then
+    CRIO_ROOT="/go/src/github.com/projectatomic/libpod"
+elif [[ ! -z "$PAPR" ]]; then
+    CRIO_ROOT="/var/tmp/checkout"
+else
+    CRIO_ROOT=$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
+fi
 
-KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/libpod/bin/kpod}
+KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/bin/kpod}
 # Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/libpod/bin/conmon}
+CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
 # Path of the default seccomp profile.
-SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/libpod/seccomp.json}
+SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
 # Runtime
@@ -33,13 +41,13 @@ BOOT_CONFIG_FILE_PATH=${BOOT_CONFIG_FILE_PATH:-/boot/config-`uname -r`}
 # Path of apparmor parameters file.
 APPARMOR_PARAMETERS_FILE_PATH=${APPARMOR_PARAMETERS_FILE_PATH:-/sys/module/apparmor/parameters/enabled}
 # Path of the bin2img binary.
-BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/libpod/test/bin2img/bin2img}
+BIN2IMG_BINARY=${BIN2IMG_BINARY:-${CRIO_ROOT}/test/bin2img/bin2img}
 # Path of the copyimg binary.
-COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/libpod/test/copyimg/copyimg}
+COPYIMG_BINARY=${COPYIMG_BINARY:-${CRIO_ROOT}/test/copyimg/copyimg}
 # Path of tests artifacts.
-ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/libpod/.artifacts}
+ARTIFACTS_PATH=${ARTIFACTS_PATH:-${CRIO_ROOT}/.artifacts}
 # Path of the checkseccomp binary.
-CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/libpod/test/checkseccomp/checkseccomp}
+CHECKSECCOMP_BINARY=${CHECKSECCOMP_BINARY:-${CRIO_ROOT}/test/checkseccomp/checkseccomp}
 # XXX: This is hardcoded inside cri-o at the moment.
 DEFAULT_LOG_PATH=/var/log/crio/pods
 # Cgroup manager to be used
@@ -51,7 +59,12 @@ PIDS_LIMIT=${PIDS_LIMIT:-1024}
 # Log size max limit
 LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 
-TESTDIR=$(mktemp -d)
+if [[ ! -d "/test.dir" ]]; then
+    mkdir /test.dir
+fi
+
+TESTDIR=$(mktemp -p /test.dir -d)
+#mount -t tmpfs tmpfs ${TESTDIR}
 
 # kpod pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"

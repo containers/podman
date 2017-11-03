@@ -9,9 +9,7 @@ function teardown() {
 ALPINE="docker.io/library/alpine:latest"
 
 @test "create a container based on local image" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
-    echo "$output"
-    [ "$status" -eq 0 ]
+    ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
     run ${KPOD_BINARY} ${KPOD_OPTIONS} create docker.io/library/busybox:latest ls
     echo "$output"
     [ "$status" -eq 0 ]
