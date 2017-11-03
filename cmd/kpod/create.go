@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/docker/go-units"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
@@ -55,58 +58,62 @@ type createResourceConfig struct {
 }
 
 type createConfig struct {
-	args           []string
-	capAdd         []string // cap-add
-	capDrop        []string // cap-drop
-	cidFile        string
-	cgroupParent   string // cgroup-parent
-	command        []string
-	detach         bool         // detach
-	devices        []*pb.Device // device
-	dnsOpt         []string     //dns-opt
-	dnsSearch      []string     //dns-search
-	dnsServers     []string     //dns
-	entrypoint     string       //entrypoint
-	env            []string     //env
-	expose         []string     //expose
-	groupAdd       []uint32     // group-add
-	hostname       string       //hostname
-	image          string
-	interactive    bool              //interactive
-	ip6Address     string            //ipv6
-	ipAddress      string            //ip
-	labels         map[string]string //label
-	linkLocalIP    []string          // link-local-ip
-	logDriver      string            // log-driver
-	logDriverOpt   []string          // log-opt
-	macAddress     string            //mac-address
-	name           string            //name
-	network        string            //network
-	networkAlias   []string          //network-alias
-	nsIPC          string            // ipc
-	nsNet          string            //net
-	nsPID          string            //pid
-	nsUser         string
-	pod            string   //pod
-	privileged     bool     //privileged
-	publish        []string //publish
-	publishAll     bool     //publish-all
-	readOnlyRootfs bool     //read-only
-	resources      createResourceConfig
-	rm             bool              //rm
-	securityOpts   []string          //security-opt
-	sigProxy       bool              //sig-proxy
-	stopSignal     string            // stop-signal
-	stopTimeout    int64             // stop-timeout
-	storageOpts    []string          //storage-opt
-	sysctl         map[string]string //sysctl
-	tmpfs          []string          // tmpfs
-	tty            bool              //tty
-	user           uint32            //user
-	group          uint32            // group
-	volumes        []string          //volume
-	volumesFrom    []string          //volumes-from
-	workDir        string            //workdir
+	args               []string
+	capAdd             []string // cap-add
+	capDrop            []string // cap-drop
+	cidFile            string
+	cgroupParent       string // cgroup-parent
+	command            []string
+	detach             bool         // detach
+	devices            []*pb.Device // device
+	dnsOpt             []string     //dns-opt
+	dnsSearch          []string     //dns-search
+	dnsServers         []string     //dns
+	entrypoint         string       //entrypoint
+	env                []string     //env
+	expose             []string     //expose
+	groupAdd           []uint32     // group-add
+	hostname           string       //hostname
+	image              string
+	interactive        bool              //interactive
+	ip6Address         string            //ipv6
+	ipAddress          string            //ip
+	labels             map[string]string //label
+	linkLocalIP        []string          // link-local-ip
+	logDriver          string            // log-driver
+	logDriverOpt       []string          // log-opt
+	macAddress         string            //mac-address
+	name               string            //name
+	network            string            //network
+	networkAlias       []string          //network-alias
+	nsIPC              string            // ipc
+	nsNet              string            //net
+	nsPID              string            //pid
+	nsUser             string
+	pod                string   //pod
+	privileged         bool     //privileged
+	publish            []string //publish
+	publishAll         bool     //publish-all
+	readOnlyRootfs     bool     //read-only
+	resources          createResourceConfig
+	rm                 bool              //rm
+	sigProxy           bool              //sig-proxy
+	stopSignal         string            // stop-signal
+	stopTimeout        int64             // stop-timeout
+	storageOpts        []string          //storage-opt
+	sysctl             map[string]string //sysctl
+	tmpfs              []string          // tmpfs
+	tty                bool              //tty
+	user               uint32            //user
+	group              uint32            // group
+	volumes            []string          //volume
+	volumesFrom        []string          //volumes-from
+	workDir            string            //workdir
+	mountLabel         string            //SecurityOpts
+	processLabel       string            //SecurityOpts
+	noNewPrivileges    bool              //SecurityOpts
+	apparmorProfile    string            //SecurityOpts
+	seccompProfilePath string            //SecurityOpts
 }
 
 var createDescription = "Creates a new container from the given image or" +
@@ -169,6 +176,7 @@ func createCmd(c *cli.Context) error {
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
+	options = append(options, libpod.WithSELinuxMountLabel(createConfig.mountLabel))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -181,6 +189,49 @@ func createCmd(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+const seccompDefaultPath = "/etc/crio/seccomp.json"
+
+func parseSecurityOpt(config *createConfig, securityOpts []string) error {
+	var (
+		labelOpts []string
+		err       error
+	)
+
+	for _, opt := range securityOpts {
+		if opt == "no-new-privileges" {
+			config.noNewPrivileges = true
+		} else {
+			con := strings.SplitN(opt, "=", 2)
+			if len(con) != 2 {
+				return fmt.Errorf("Invalid --security-opt 1: %q", opt)
+			}
+
+			switch con[0] {
+			case "label":
+				labelOpts = append(labelOpts, con[1])
+			case "apparmor":
+				config.apparmorProfile = con[1]
+			case "seccomp":
+				config.seccompProfilePath = con[1]
+			default:
+				return fmt.Errorf("Invalid --security-opt 2: %q", opt)
+			}
+		}
+	}
+
+	if config.seccompProfilePath == "" {
+		if _, err := os.Stat(seccompDefaultPath); err != nil {
+			if !os.IsNotExist(err) {
+				return errors.Wrapf(err, "can't check if %q exists", seccompDefaultPath)
+			}
+		} else {
+			config.seccompProfilePath = seccompDefaultPath
+		}
+	}
+	config.processLabel, config.mountLabel, err = label.InitLabels(labelOpts)
+	return err
 }
 
 // Parses CLI options related to container creation into a config which can be
@@ -323,20 +374,25 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			pidsLimit: c.Int64("pids-limit"),
 			ulimit:    c.StringSlice("ulimit"),
 		},
-		rm:           c.Bool("rm"),
-		securityOpts: c.StringSlice("security-opt"),
-		sigProxy:     c.Bool("sig-proxy"),
-		stopSignal:   c.String("stop-signal"),
-		stopTimeout:  c.Int64("stop-timeout"),
-		storageOpts:  c.StringSlice("storage-opt"),
-		sysctl:       sysctl,
-		tmpfs:        c.StringSlice("tmpfs"),
-		tty:          c.Bool("tty"),
-		user:         uid,
-		group:        gid,
-		volumes:      c.StringSlice("volume"),
-		volumesFrom:  c.StringSlice("volumes-from"),
-		workDir:      c.String("workdir"),
+		rm:          c.Bool("rm"),
+		sigProxy:    c.Bool("sig-proxy"),
+		stopSignal:  c.String("stop-signal"),
+		stopTimeout: c.Int64("stop-timeout"),
+		storageOpts: c.StringSlice("storage-opt"),
+		sysctl:      sysctl,
+		tmpfs:       c.StringSlice("tmpfs"),
+		tty:         c.Bool("tty"),
+		user:        uid,
+		group:       gid,
+		volumes:     c.StringSlice("volume"),
+		volumesFrom: c.StringSlice("volumes-from"),
+		workDir:     c.String("workdir"),
+	}
+
+	if !config.privileged {
+		if err := parseSecurityOpt(config, c.StringSlice("security-opt")); err != nil {
+			return nil, err
+		}
 	}
 
 	return config, nil

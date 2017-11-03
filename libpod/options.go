@@ -255,6 +255,18 @@ func WithRootFSFromPath(path string) CtrCreateOption {
 	}
 }
 
+// WithSELinuxMountLabel sets the mount label for SELinux
+func WithSELinuxMountLabel(mountLabel string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.MountLabel = mountLabel
+		return nil
+	}
+}
+
 // WithRootFSFromImage sets up a fresh root filesystem using the given image
 // If useImageConfig is specified, image volumes, environment variables, and
 // other configuration from the image will be added to the config
