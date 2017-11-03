@@ -5,7 +5,7 @@ export GOPATH=$HOME/gopath
 export PATH=$HOME/gopath/bin:$PATH
 export GOSRC=$HOME/gopath/src/github.com/projectatomic/libpod
 
-(mkdir -p /code && cp -a * .??* /code)
+[ -d /code ] || (mkdir -p /code && cp -a * .??* /code)
 (mkdir -p $GOSRC && cd /code && cp -r . $GOSRC)
 
 # PAPR adds a merge commit, for testing, which fails the

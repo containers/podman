@@ -1,9 +1,13 @@
+---
+
 branches:
   - master
   # The two below are for homu bot
   # ref. https://github.com/projectatomic/papr#more-details-about-project-atomic-ci-services
   - auto
   - try
+
+context: 'Fedora 26 Cloud'
 
 host:
   distro: fedora/26/cloud
@@ -12,29 +16,47 @@ host:
 
 required: true
 
-packages:
-    -  bats
-    -  btrfs-progs-devel
-    -  bzip2
-    -  device-mapper-devel
-    -  findutils
-    -  git
-    -  glib2-devel
-    -  glibc-static
-    -  gnupg
-    -  golang
-    -  golang-github-cpuguy83-go-md2man
-    -  gpgme-devel
-    -  iptables
-    -  libassuan-devel
-    -  libseccomp-devel
-    -  libselinux-devel
-    -  libselinux-utils
-    -  make
-    -  ostree-devel
-    -  runc
-    -  which
+env:
+    PACKAGES: >
+        bats
+        btrfs-progs-devel
+        bzip2
+        device-mapper-devel
+        findutils
+        git
+        glib2-devel
+        gnupg
+        golang
+        gpgme-devel
+        libassuan-devel
+        libseccomp-devel
+        libselinux-devel
+        skopeo-containers
+        runc
+        make
+        ostree-devel
+        python
+        which
 
 tests:
+    - dnf install -y $PACKAGES device-mapper-devel
     - dnf update -y &> dnf_update_output
     - ./.papr.sh
+
+---
+
+inherit: true
+context: 'Fedora 26 Atomic'
+host:
+  distro: fedora/26/atomic
+packages:
+tests:
+    - docker run -d --name container --net=host --privileged
+      -e PACKAGES="$PACKAGES"
+      -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
+      -v /tmp:/tmp -v /var/tmp:/var/tmp
+      -v $PWD:/code registry.fedoraproject.org/fedora:26
+      sleep 2h  # default papr timeout
+    - docker exec container bash -c 'cp -fv /etc/yum.repos.d{.host/*.repo,}'
+    - docker exec container bash -c 'dnf install -y $PACKAGES'
+    - docker exec container bash -c '/code/.papr.sh'
