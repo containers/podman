@@ -95,6 +95,7 @@ type containerConfig struct {
 	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
+	MountLabel      string `json:"MountLabel,omitempty"`
 	UseImageConfig  bool   `json:"useImageConfig"`
 	// Whether to keep container STDIN open
 	Stdin bool
@@ -223,8 +224,7 @@ func (c *Container) setupImageRootfs() error {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
-	// TODO SELinux mount label
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, "")
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}

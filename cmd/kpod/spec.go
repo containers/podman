@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -91,16 +93,30 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		configSpec.Linux.Resources.Pids.Limit = config.resources.pidsLimit
 	}
 
+	// SECURITY OPTS
+	configSpec.Process.NoNewPrivileges = config.noNewPrivileges
+	configSpec.Process.ApparmorProfile = config.apparmorProfile
+	configSpec.Process.SelinuxLabel = config.processLabel
+	configSpec.Linux.MountLabel = config.mountLabel
+	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {
+		seccompProfile, err := ioutil.ReadFile(config.seccompProfilePath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.seccompProfilePath)
+		}
+		var seccompConfig spec.LinuxSeccomp
+		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
+			return nil, errors.Wrapf(err, "decoding seccomp profile (%s) failed", config.seccompProfilePath)
+		}
+		configSpec.Linux.Seccomp = &seccompConfig
+	}
+
 	/*
 				Capabilities: &configSpec.LinuxCapabilities{
 				// Rlimits []PosixRlimit // Where does this come from
 				// Type string
 				// Hard uint64
 				// Limit uint64
-				// NoNewPrivileges bool // No user input for this
-				// ApparmorProfile string // No user input for this
 				OOMScoreAdj: &config.resources.oomScoreAdj,
-				// Selinuxlabel
 			},
 			Hooks: &configSpec.Hooks{},
 			//Annotations
@@ -116,7 +132,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				//CgroupsPath:
 				//Namespaces: []LinuxNamespace
 				//Devices
-				Seccomp: &configSpec.LinuxSeccomp{
 				// DefaultAction:
 				// Architectures
 				// Syscalls:
