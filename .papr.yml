@@ -1,18 +1,40 @@
 branches:
   - master
+  # The two below are for homu bot
+  # ref. https://github.com/projectatomic/papr#more-details-about-project-atomic-ci-services
   - auto
   - try
 
 host:
-  distro: fedora/26/atomic
+  distro: fedora/26/cloud
   specs:
      ram: 8192
 
 required: true
 
+packages:
+    -  bats
+    -  btrfs-progs-devel
+    -  bzip2
+    -  device-mapper-devel
+    -  findutils
+    -  git
+    -  glib2-devel
+    -  glibc-static
+    -  gnupg
+    -  golang
+    -  golang-github-cpuguy83-go-md2man
+    -  gpgme-devel
+    -  iptables
+    -  libassuan-devel
+    -  libseccomp-devel
+    -  libselinux-devel
+    -  libselinux-utils
+    -  make
+    -  ostree-devel
+    -  runc
+    -  which
+
 tests:
-  # mount yum repos to inherit injected mirrors from PAPR
-  - docker run --net=host --privileged -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
-    -v /tmp:/tmp -v /var/tmp:/var/tmp
-    -v $PWD:/code registry.fedoraproject.org/fedora:26 sh -c
-    "cp -fv /etc/yum.repos.d{.host/*.repo,} && /code/.papr.sh"
+    - dnf update -y &> dnf_update_output
+    - ./.papr.sh

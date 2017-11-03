@@ -5,28 +5,8 @@ export GOPATH=$HOME/gopath
 export PATH=$HOME/gopath/bin:$PATH
 export GOSRC=$HOME/gopath/src/github.com/projectatomic/libpod
 
+(mkdir -p /code && cp -a * .??* /code)
 (mkdir -p $GOSRC && cd /code && cp -r . $GOSRC)
-
-dnf install -y \
-  bats \
-  btrfs-progs-devel \
-  bzip2 \
-  device-mapper-devel \
-  findutils \
-  git \
-  glib2-devel \
-  gnupg \
-  golang \
-  gpgme-devel \
-  libassuan-devel \
-  libseccomp-devel \
-  libselinux-devel \
-  skopeo-containers \
-  runc \
-  make \
-  ostree-devel \
-  python \
-  which
 
 # PAPR adds a merge commit, for testing, which fails the
 # short-commit-subject validation test, so tell git-validate.sh to only check
