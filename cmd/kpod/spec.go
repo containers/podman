@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/docker/docker/daemon/caps"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -14,6 +15,25 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/sys/unix"
 )
+
+func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
+	var err error
+	var caplist []string
+	if config.privileged {
+		caplist = caps.GetAllCapabilities()
+	} else {
+		caplist, err = caps.TweakCapabilities(defaultCapabilities(), config.capAdd, config.capDrop)
+		if err != nil {
+			return err
+		}
+	}
+
+	configSpec.Process.Capabilities.Bounding = caplist
+	configSpec.Process.Capabilities.Permitted = caplist
+	configSpec.Process.Capabilities.Inheritable = caplist
+	configSpec.Process.Capabilities.Effective = caplist
+	return nil
+}
 
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
@@ -29,9 +49,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	configSpec.Process.User.AdditionalGids = config.groupAdd
 
 	configSpec.Process.Env = config.env
-
-	//TODO
-	// Need examples of capacity additions so I can load that properly
 
 	configSpec.Root.Readonly = config.readOnlyRootfs
 	configSpec.Hostname = config.hostname
@@ -110,8 +127,12 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		configSpec.Linux.Seccomp = &seccompConfig
 	}
 
+	// HANDLE CAPABILITIES
+	if err := setupCapabilities(config, &configSpec); err != nil {
+		return nil, err
+	}
+
 	/*
-				Capabilities: &configSpec.LinuxCapabilities{
 				// Rlimits []PosixRlimit // Where does this come from
 				// Type string
 				// Hard uint64

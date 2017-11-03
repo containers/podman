@@ -36,3 +36,23 @@ ALPINE="docker.io/library/alpine:latest"
     [ "$status" -eq 0 ]
 
 }
+
+@test "run selinux test" {
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status
+    echo "$output"
+    [ "$status" -eq 0 ]
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add sys_admin ${ALPINE} cat /proc/self/status
+    echo "$output"
+    [ "$status" -eq 0 ]
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop all ${ALPINE} cat /proc/self/status
+    echo "$output"
+    [ "$status" -eq 0 ]
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop setuid ${ALPINE} cat /proc/self/status
+    echo "$output"
+    [ "$status" -eq 0 ]
+
+}
