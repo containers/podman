@@ -1,5 +1,5 @@
 GO ?= go
-EPOCH_TEST_COMMIT ?= 1cc5a27
+EPOCH_TEST_COMMIT ?= 2b74391
 PROJECT := github.com/projectatomic/libpod
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
