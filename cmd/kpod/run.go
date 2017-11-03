@@ -69,6 +69,7 @@ func runCmd(c *cli.Context) error {
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
+	options = append(options, libpod.WithSELinuxMountLabel(createConfig.mountLabel))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
