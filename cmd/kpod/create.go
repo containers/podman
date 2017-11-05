@@ -170,7 +170,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	options, err := createConfig.GetContainerCreateOptions(c)
+	options, err := createConfig.GetContainerCreateOptions()
 	if err != nil {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
@@ -252,13 +252,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	}
 
 	// LABEL VARIABLES
-	labels, err := getAllLabels(c)
+	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("labels"))
 	if err != nil {
 		return &createConfig{}, errors.Wrapf(err, "unable to process labels")
 	}
 	// ENVIRONMENT VARIABLES
-	// TODO where should env variables be verified to be x=y format
-	env, err := getAllEnvironmentVariables(c)
+	env, err := getAllEnvironmentVariables(c.StringSlice("env-file"), c.StringSlice("env"))
 	if err != nil {
 		return &createConfig{}, errors.Wrapf(err, "unable to process environment variables")
 	}

@@ -63,7 +63,7 @@ func runCmd(c *cli.Context) error {
 	}
 	logrus.Debug("imageID is ", imageID)
 
-	options, err := createConfig.GetContainerCreateOptions(c)
+	options, err := createConfig.GetContainerCreateOptions()
 	if err != nil {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
