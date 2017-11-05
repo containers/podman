@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"github.com/docker/docker/daemon/caps"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	ann "github.com/projectatomic/libpod/pkg/annotations"
@@ -21,7 +21,7 @@ func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 	if config.privileged {
 		caplist = caps.GetAllCapabilities()
 	} else {
-		caplist, err = caps.TweakCapabilities(defaultCapabilities(), config.capAdd, config.capDrop)
+		caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.capAdd, config.capDrop)
 		if err != nil {
 			return err
 		}
@@ -36,84 +36,82 @@ func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
-	configSpec := config.GetDefaultLinuxSpec()
-	configSpec.Process.Cwd = config.workDir
-	configSpec.Process.Args = config.command
-
-	configSpec.Process.Terminal = config.tty
-
+	g := generate.New()
+	g.SetProcessCwd(config.workDir)
+	g.SetProcessArgs(config.command)
+	g.SetProcessTerminal(config.tty)
 	// User and Group must go together
-	configSpec.Process.User.UID = config.user
-	configSpec.Process.User.GID = config.group
-	configSpec.Process.User.AdditionalGids = config.groupAdd
+	g.SetProcessUID(config.user)
+	g.SetProcessGID(config.group)
+	for _, gid := range config.groupAdd {
+		g.AddProcessAdditionalGid(gid)
+	}
+	for key, val := range config.GetAnnotations() {
+		g.AddAnnotation(key, val)
+	}
+	g.SetRootReadonly(config.readOnlyRootfs)
+	g.SetHostname(config.hostname)
 
-	configSpec.Process.Env = config.env
-
-	configSpec.Root.Readonly = config.readOnlyRootfs
-	configSpec.Hostname = config.hostname
-
-	// BIND MOUNTS
-	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)
-
-	// TMPFS MOUNTS
-	configSpec.Mounts = append(configSpec.Mounts, config.GetTmpfsMounts()...)
+	for _, sysctl := range config.sysctl {
+		s := strings.SplitN(sysctl, "=", 2)
+		g.AddLinuxSysctl(s[0], s[1])
+	}
 
 	// RESOURCES - MEMORY
-	configSpec.Linux.Sysctl = config.sysctl
-
 	if config.resources.memory != 0 {
-		configSpec.Linux.Resources.Memory.Limit = &config.resources.memory
+		g.SetLinuxResourcesMemoryLimit(config.resources.memory)
 	}
 	if config.resources.memoryReservation != 0 {
-		configSpec.Linux.Resources.Memory.Reservation = &config.resources.memoryReservation
+		g.SetLinuxResourcesMemoryReservation(config.resources.memoryReservation)
 	}
 	if config.resources.memorySwap != 0 {
-		configSpec.Linux.Resources.Memory.Swap = &config.resources.memorySwap
+		g.SetLinuxResourcesMemorySwap(config.resources.memorySwap)
 	}
 	if config.resources.kernelMemory != 0 {
-		configSpec.Linux.Resources.Memory.Kernel = &config.resources.kernelMemory
+		g.SetLinuxResourcesMemoryKernel(config.resources.kernelMemory)
 	}
 	if config.resources.memorySwapiness != 0 {
-		configSpec.Linux.Resources.Memory.Swappiness = &config.resources.memorySwapiness
+		g.SetLinuxResourcesMemorySwappiness(config.resources.memorySwapiness)
 	}
-	if config.resources.disableOomKiller {
-		configSpec.Linux.Resources.Memory.DisableOOMKiller = &config.resources.disableOomKiller
-	}
+	g.SetLinuxResourcesMemoryDisableOOMKiller(config.resources.disableOomKiller)
 
 	// RESOURCES - CPU
 
 	if config.resources.cpuShares != 0 {
-		configSpec.Linux.Resources.CPU.Shares = &config.resources.cpuShares
+		g.SetLinuxResourcesCPUShares(config.resources.cpuShares)
 	}
 	if config.resources.cpuQuota != 0 {
-		configSpec.Linux.Resources.CPU.Quota = &config.resources.cpuQuota
+		g.SetLinuxResourcesCPUQuota(config.resources.cpuQuota)
 	}
 	if config.resources.cpuPeriod != 0 {
-		configSpec.Linux.Resources.CPU.Period = &config.resources.cpuPeriod
+		g.SetLinuxResourcesCPUPeriod(config.resources.cpuPeriod)
 	}
 	if config.resources.cpuRtRuntime != 0 {
-		configSpec.Linux.Resources.CPU.RealtimeRuntime = &config.resources.cpuRtRuntime
+		g.SetLinuxResourcesCPURealtimeRuntime(config.resources.cpuRtRuntime)
 	}
 	if config.resources.cpuRtPeriod != 0 {
-		configSpec.Linux.Resources.CPU.RealtimePeriod = &config.resources.cpuRtPeriod
+		g.SetLinuxResourcesCPURealtimePeriod(config.resources.cpuRtPeriod)
 	}
 	if config.resources.cpus != "" {
-		configSpec.Linux.Resources.CPU.Cpus = config.resources.cpus
+		g.SetLinuxResourcesCPUCpus(config.resources.cpus)
 	}
 	if config.resources.cpusetMems != "" {
-		configSpec.Linux.Resources.CPU.Mems = config.resources.cpusetMems
-	}
-
-	// RESOURCES - PIDS
-	if config.resources.pidsLimit != 0 {
-		configSpec.Linux.Resources.Pids.Limit = config.resources.pidsLimit
+		g.SetLinuxResourcesCPUMems(config.resources.cpusetMems)
 	}
 
 	// SECURITY OPTS
-	configSpec.Process.NoNewPrivileges = config.noNewPrivileges
-	configSpec.Process.ApparmorProfile = config.apparmorProfile
-	configSpec.Process.SelinuxLabel = config.processLabel
-	configSpec.Linux.MountLabel = config.mountLabel
+	g.SetProcessNoNewPrivileges(config.noNewPrivileges)
+	g.SetProcessApparmorProfile(config.apparmorProfile)
+	g.SetProcessSelinuxLabel(config.processLabel)
+	g.SetLinuxMountLabel(config.mountLabel)
+
+	// RESOURCES - PIDS
+	if config.resources.pidsLimit != 0 {
+		g.SetLinuxResourcesPidsLimit(config.resources.pidsLimit)
+	}
+
+	configSpec := g.Spec()
+
 	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {
 		seccompProfile, err := ioutil.ReadFile(config.seccompProfilePath)
 		if err != nil {
@@ -126,8 +124,16 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		configSpec.Linux.Seccomp = &seccompConfig
 	}
 
+	configSpec.Process.Env = config.env
+
+	// BIND MOUNTS
+	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)
+
+	// TMPFS MOUNTS
+	configSpec.Mounts = append(configSpec.Mounts, config.GetTmpfsMounts()...)
+
 	// HANDLE CAPABILITIES
-	if err := setupCapabilities(config, &configSpec); err != nil {
+	if err := setupCapabilities(config, configSpec); err != nil {
 		return nil, err
 	}
 
@@ -159,12 +165,11 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				// RootfsPropagation
 				// MaskedPaths
 				// ReadonlyPaths:
-				// MountLabel
 				// IntelRdt
 			},
 		}
 	*/
-	return &configSpec, nil
+	return configSpec, nil
 }
 
 func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
@@ -216,184 +221,6 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 	}
 
 	return bio, nil
-}
-
-func (c *createConfig) GetDefaultMounts() []spec.Mount {
-	// Default to 64K default per man page
-	shmSize := "65536k"
-	if c.resources.shmSize != "" {
-		shmSize = c.resources.shmSize
-	}
-	return []spec.Mount{
-		{
-			Destination: "/proc",
-			Type:        "proc",
-			Source:      "proc",
-			Options:     []string{"nosuid", "noexec", "nodev"},
-		},
-		{
-			Destination: "/dev",
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     []string{"nosuid", "strictatime", "mode=755", "size=65536k"},
-		},
-		{
-			Destination: "/dev/pts",
-			Type:        "devpts",
-			Source:      "devpts",
-			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620", "gid=5"},
-		},
-		{
-			Destination: "/sys",
-			Type:        "sysfs",
-			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-		},
-		{
-			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"ro", "nosuid", "noexec", "nodev"},
-		},
-		{
-			Destination: "/dev/mqueue",
-			Type:        "mqueue",
-			Source:      "mqueue",
-			Options:     []string{"nosuid", "noexec", "nodev"},
-		},
-		{
-			Destination: "/dev/shm",
-			Type:        "tmpfs",
-			Source:      "shm",
-			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777", fmt.Sprintf("size=%s", shmSize)},
-		},
-	}
-}
-
-func iPtr(i int64) *int64 { return &i }
-
-func (c *createConfig) GetDefaultDevices() []spec.LinuxDeviceCgroup {
-	return []spec.LinuxDeviceCgroup{
-		{
-			Allow:  false,
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(1),
-			Minor:  iPtr(5),
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(1),
-			Minor:  iPtr(3),
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(1),
-			Minor:  iPtr(9),
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(1),
-			Minor:  iPtr(8),
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(5),
-			Minor:  iPtr(0),
-			Access: "rwm",
-		},
-		{
-			Allow:  true,
-			Type:   "c",
-			Major:  iPtr(5),
-			Minor:  iPtr(1),
-			Access: "rwm",
-		},
-		{
-			Allow:  false,
-			Type:   "c",
-			Major:  iPtr(10),
-			Minor:  iPtr(229),
-			Access: "rwm",
-		},
-	}
-}
-
-func defaultCapabilities() []string {
-	return []string{
-		"CAP_CHOWN",
-		"CAP_DAC_OVERRIDE",
-		"CAP_FSETID",
-		"CAP_FOWNER",
-		"CAP_MKNOD",
-		"CAP_NET_RAW",
-		"CAP_SETGID",
-		"CAP_SETUID",
-		"CAP_SETFCAP",
-		"CAP_SETPCAP",
-		"CAP_NET_BIND_SERVICE",
-		"CAP_SYS_CHROOT",
-		"CAP_KILL",
-		"CAP_AUDIT_WRITE",
-	}
-}
-
-func (c *createConfig) GetDefaultLinuxSpec() spec.Spec {
-	s := spec.Spec{
-		Version: spec.Version,
-		Root:    &spec.Root{},
-	}
-	s.Annotations = c.GetAnnotations()
-	s.Mounts = c.GetDefaultMounts()
-	s.Process = &spec.Process{
-		Capabilities: &spec.LinuxCapabilities{
-			Bounding:    defaultCapabilities(),
-			Permitted:   defaultCapabilities(),
-			Inheritable: defaultCapabilities(),
-			Effective:   defaultCapabilities(),
-		},
-	}
-	s.Linux = &spec.Linux{
-		MaskedPaths: []string{
-			"/proc/kcore",
-			"/proc/latency_stats",
-			"/proc/timer_list",
-			"/proc/timer_stats",
-			"/proc/sched_debug",
-		},
-		ReadonlyPaths: []string{
-			"/proc/asound",
-			"/proc/bus",
-			"/proc/fs",
-			"/proc/irq",
-			"/proc/sys",
-			"/proc/sysrq-trigger",
-		},
-		Namespaces: []spec.LinuxNamespace{
-			{Type: "mount"},
-			{Type: "network"},
-			{Type: "uts"},
-			{Type: "pid"},
-			{Type: "ipc"},
-		},
-		Devices: []spec.LinuxDevice{},
-		Resources: &spec.LinuxResources{
-			Devices: c.GetDefaultDevices(),
-		},
-	}
-
-	return s
 }
 
 // GetAnnotations returns the all the annotations for the container
