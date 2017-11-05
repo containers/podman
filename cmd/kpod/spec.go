@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/daemon/caps"
+	"github.com/docker/docker/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -110,6 +111,19 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		g.SetLinuxResourcesPidsLimit(config.resources.pidsLimit)
 	}
 
+	for _, i := range config.tmpfs {
+		options := []string{"rw", "noexec", "nosuid", "nodev", "size=65536k"}
+		spliti := strings.SplitN(i, ":", 2)
+		if len(spliti) > 1 {
+			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
+				return nil, err
+			}
+			options = strings.Split(spliti[1], ",")
+		}
+		// Default options if nothing passed
+		g.AddTmpfsMount(spliti[0], options)
+	}
+
 	configSpec := g.Spec()
 
 	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {
@@ -128,9 +142,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 
 	// BIND MOUNTS
 	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)
-
-	// TMPFS MOUNTS
-	configSpec.Mounts = append(configSpec.Mounts, config.GetTmpfsMounts()...)
 
 	// HANDLE CAPABILITIES
 	if err := setupCapabilities(config, configSpec); err != nil {
