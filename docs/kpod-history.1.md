@@ -80,18 +80,18 @@ b676ca55e4f2c   9 weeks ago
 # kpod history --format json debian
 [
     {
-        "id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
-        "created": "2017-07-24T16:52:55.195062314Z",
-        "createdBy": "/bin/sh -c #(nop)  CMD [\"bash\"]",
-        "size": 0,
-        "comment": ""
+	"id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
+	"created": "2017-07-24T16:52:55.195062314Z",
+	"createdBy": "/bin/sh -c #(nop)  CMD [\"bash\"]",
+	"size": 0,
+	"comment": ""
     },
     {
-        "id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
-        "created": "2017-07-24T16:52:54.898893387Z",
-        "createdBy": "/bin/sh -c #(nop) ADD file:ebba725fb97cea45d0b1b35ccc8144e766fcfc9a78530465c23b0c4674b14042 in / ",
-        "size": 45142935,
-        "comment": ""
+	"id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
+	"created": "2017-07-24T16:52:54.898893387Z",
+	"createdBy": "/bin/sh -c #(nop) ADD file:ebba725fb97cea45d0b1b35ccc8144e766fcfc9a78530465c23b0c4674b14042 in / ",
+	"size": 45142935,
+	"comment": ""
     }
 ]
 ```
