@@ -21,7 +21,7 @@ ALPINE="docker.io/library/alpine:latest"
 
 @test "run selinux test" {
 
-    if [ ! -e /usr/sbin/selinuxenabled ] || /usr/sbin/selinuxenabled; then
+    if [ ! -e /usr/sbin/selinuxenabled ] || [ ! /usr/sbin/selinuxenabled ]; then
         skip "SELinux not enabled"
     fi
 
@@ -31,13 +31,13 @@ ALPINE="docker.io/library/alpine:latest"
     [ "$status" -eq 0 ]
     [ "$output" != "${firstLabel}" ]
 
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --security-opt label:level=s0:c1,c2 ${ALPINE} cat /proc/self/attr/current | grep s0:c1,c2"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -t -i --security-opt label=level:s0:c1,c2 ${ALPINE} cat /proc/self/attr/current | grep s0:c1,c2"
     echo "$output"
     [ "$status" -eq 0 ]
 
 }
 
-@test "run selinux test" {
+@test "run capabilities test" {
 
     run ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status
     echo "$output"
