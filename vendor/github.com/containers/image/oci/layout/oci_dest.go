@@ -27,12 +27,23 @@ func newImageDestination(ref ociReference) (types.ImageDestination, error) {
 	if ref.image == "" {
 		return nil, errors.Errorf("cannot save image with empty image.ref.name")
 	}
-	index := imgspecv1.Index{
-		Versioned: imgspec.Versioned{
-			SchemaVersion: 2,
-		},
+
+	var index *imgspecv1.Index
+	if indexExists(ref) {
+		var err error
+		index, err = ref.getIndex()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		index = &imgspecv1.Index{
+			Versioned: imgspec.Versioned{
+				SchemaVersion: 2,
+			},
+		}
 	}
-	return &ociImageDestination{ref: ref, index: index}, nil
+
+	return &ociImageDestination{ref: ref, index: *index}, nil
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -191,23 +202,20 @@ func (d *ociImageDestination) PutManifest(m []byte) error {
 		Architecture: runtime.GOARCH,
 		OS:           runtime.GOOS,
 	}
-	d.index.Manifests = append(d.index.Manifests, desc)
+	d.addManifest(&desc)
 
 	return nil
 }
 
-func ensureDirectoryExists(path string) error {
-	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return err
+func (d *ociImageDestination) addManifest(desc *imgspecv1.Descriptor) {
+	for i, manifest := range d.index.Manifests {
+		if manifest.Annotations["org.opencontainers.image.ref.name"] == desc.Annotations["org.opencontainers.image.ref.name"] {
+			// TODO Should there first be a cleanup based on the descriptor we are going to replace?
+			d.index.Manifests[i] = *desc
+			return
 		}
 	}
-	return nil
-}
-
-// ensureParentDirectoryExists ensures the parent of the supplied path exists.
-func ensureParentDirectoryExists(path string) error {
-	return ensureDirectoryExists(filepath.Dir(path))
+	d.index.Manifests = append(d.index.Manifests, *desc)
 }
 
 func (d *ociImageDestination) PutSignatures(signatures [][]byte) error {
@@ -230,4 +238,31 @@ func (d *ociImageDestination) Commit() error {
 		return err
 	}
 	return ioutil.WriteFile(d.ref.indexPath(), indexJSON, 0644)
+}
+
+func ensureDirectoryExists(path string) error {
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ensureParentDirectoryExists ensures the parent of the supplied path exists.
+func ensureParentDirectoryExists(path string) error {
+	return ensureDirectoryExists(filepath.Dir(path))
+}
+
+// indexExists checks whether the index location specified in the OCI reference exists.
+// The implementation is opinionated, since in case of unexpected errors false is returned
+func indexExists(ref ociReference) bool {
+	_, err := os.Stat(ref.indexPath())
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

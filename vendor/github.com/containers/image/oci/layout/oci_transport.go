@@ -189,14 +189,25 @@ func (ref ociReference) NewImage(ctx *types.SystemContext) (types.Image, error) 
 	return image.FromSource(src)
 }
 
-func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
+// getIndex returns a pointer to the index references by this ociReference. If an error occurs opening an index nil is returned together
+// with an error.
+func (ref ociReference) getIndex() (*imgspecv1.Index, error) {
 	indexJSON, err := os.Open(ref.indexPath())
 	if err != nil {
-		return imgspecv1.Descriptor{}, err
+		return nil, err
 	}
 	defer indexJSON.Close()
-	index := imgspecv1.Index{}
-	if err := json.NewDecoder(indexJSON).Decode(&index); err != nil {
+
+	index := &imgspecv1.Index{}
+	if err := json.NewDecoder(indexJSON).Decode(index); err != nil {
+		return nil, err
+	}
+	return index, nil
+}
+
+func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
+	index, err := ref.getIndex()
+	if err != nil {
 		return imgspecv1.Descriptor{}, err
 	}
 

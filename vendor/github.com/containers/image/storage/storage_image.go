@@ -1,3 +1,5 @@
+// +build !containers_image_storage_stub
+
 package storage
 
 import (
