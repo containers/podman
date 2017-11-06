@@ -44,7 +44,7 @@ libpod is currently in active development.
 | [kpod-inspect(1)](/docs/kpod-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
 | [kpod-kill(1)](/docs/kpod-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
 | [kpod-load(1)](/docs/kpod-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
-| [kpod-login(1)](/docs/kpod-login.1.md)               | Login to a container registry	                                           |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
+| [kpod-login(1)](/docs/kpod-login.1.md)               | Login to a container registry						   |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [kpod-logout(1)](/docs/kpod-logout.1.md)             | Logout of a container registry                                            |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [kpod-logs(1)](/docs/kpod-logs.1.md)                 | Display the logs of a container                                           ||
 | [kpod-mount(1)](/docs/kpod-mount.1.md)               | Mount a working container's root filesystem                               ||
@@ -160,8 +160,8 @@ As with other Go projects, KPOD must be cloned into a directory structure like:
 GOPATH
 └── src
     └── github.com
-        └── projectatomic
-            └── libpod
+	└── projectatomic
+	    └── libpod
 ```
 
 First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`).
