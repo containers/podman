@@ -60,3 +60,34 @@ ALPINE="docker.io/library/alpine:latest"
     [ "$status" -eq 0 ]
 
 }
+
+@test "run environment test" {
+
+    ${KPOD_BINARY} ${KPOD_OPTIONS} pull ${ALPINE}
+
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO=BAR ${ALPINE} printenv FOO | tr -d '\r'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ $output = "BAR" ]
+
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env PATH="/bin" ${ALPINE} printenv PATH | tr -d '\r'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ $output = "/bin" ]
+
+    run bash -c "export FOO=BAR; ${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv FOO | tr -d '\r'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "BAR" ]
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv
+    echo "$output"
+    [ "$status" -ne 0 ]
+
+#    We don't currently set the hostname in containers, since we are not setting up
+#    networking.  As soon as kpod run gets network support we need to uncomment this
+#    test.
+#    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} sh -c printenv | grep HOSTNAME"
+#    echo "$output"
+#    [ "$status" -eq 0 ]
+}

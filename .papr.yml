@@ -19,8 +19,8 @@ tests:
 
 inherit: true
 host:
-  distro: centos/7/atomic/alpha
+  distro: centos/7/atomic/smoketested
   specs:
      ram: 8192
 
-context: centos/7/atomic/alpha
+context: centos/7/atomic/smoketested

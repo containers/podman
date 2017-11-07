@@ -52,6 +52,9 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 	g.SetRootReadonly(config.readOnlyRootfs)
 	g.SetHostname(config.hostname)
+	if config.hostname != "" {
+		g.AddProcessEnv("HOSTNAME", config.hostname)
+	}
 
 	for _, sysctl := range config.sysctl {
 		s := strings.SplitN(sysctl, "=", 2)
@@ -124,6 +127,10 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		g.AddTmpfsMount(spliti[0], options)
 	}
 
+	for name, val := range config.env {
+		g.AddProcessEnv(name, val)
+	}
+
 	configSpec := g.Spec()
 
 	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {
@@ -137,8 +144,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		}
 		configSpec.Linux.Seccomp = &seccompConfig
 	}
-
-	configSpec.Process.Env = config.env
 
 	// BIND MOUNTS
 	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)

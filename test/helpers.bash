@@ -14,7 +14,7 @@ elif [[ ! -z "$TRAVIS" ]]; then
 elif [[ ! -z "$PAPR" ]]; then
     CRIO_ROOT="/var/tmp/checkout"
 else
-    CRIO_ROOT=$(cd "$INTEGRATION_ROOT/../.."; pwd -P)}
+    CRIO_ROOT=$(cd "$INTEGRATION_ROOT/.."; pwd -P)
 fi
 
 KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/bin/kpod}

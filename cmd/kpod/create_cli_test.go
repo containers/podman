@@ -68,32 +68,3 @@ func TestGetAllLabelsFile(t *testing.T) {
 	result, _ := getAllLabels(fileLabels, Var1)
 	assert.Equal(t, len(result), 3)
 }
-
-func TestGetAllEnvironmentVariables(t *testing.T) {
-	fileEnvs := []string{}
-	result, _ := getAllEnvironmentVariables(fileEnvs, Var1)
-	assert.Equal(t, len(result), 2)
-}
-
-func TestGetAllEnvironmentVariablesBadKeyValue(t *testing.T) {
-	inEnvs := []string{"ONE1", "TWO=2"}
-	fileEnvs := []string{}
-	_, err := getAllEnvironmentVariables(fileEnvs, inEnvs)
-	assert.Error(t, err, assert.AnError)
-}
-
-func TestGetAllEnvironmentVariablesBadEnvFile(t *testing.T) {
-	fileEnvs := []string{"/foobar5001/be"}
-	_, err := getAllEnvironmentVariables(fileEnvs, Var1)
-	assert.Error(t, err, assert.AnError)
-}
-
-func TestGetAllEnvironmentVariablesFile(t *testing.T) {
-	content := []byte("THREE=3")
-	tFile, err := createTmpFile(content)
-	defer os.Remove(tFile)
-	assert.NoError(t, err)
-	fileEnvs := []string{tFile}
-	result, _ := getAllEnvironmentVariables(fileEnvs, Var1)
-	assert.Equal(t, len(result), 3)
-}
