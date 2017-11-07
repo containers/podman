@@ -91,6 +91,9 @@ func saveCmd(c *cli.Context) error {
 	for _, image := range args {
 		dest := dst + ":" + image
 		if err := runtime.PushImage(image, dest, saveOpts); err != nil {
+			if err2 := os.Remove(output); err2 != nil {
+				logrus.Errorf("error deleting %q: %v", output, err)
+			}
 			return errors.Wrapf(err, "unable to save %q", image)
 		}
 	}
