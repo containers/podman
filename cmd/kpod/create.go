@@ -123,12 +123,13 @@ var createDescription = "Creates a new container from the given image or" +
 	" will be created with the initial state 'created'."
 
 var createCommand = cli.Command{
-	Name:        "create",
-	Usage:       "create but do not start a container",
-	Description: createDescription,
-	Flags:       createFlags,
-	Action:      createCmd,
-	ArgsUsage:   "IMAGE [COMMAND [ARG...]]",
+	Name:           "create",
+	Usage:          "create but do not start a container",
+	Description:    createDescription,
+	Flags:          createFlags,
+	Action:         createCmd,
+	ArgsUsage:      "IMAGE [COMMAND [ARG...]]",
+	SkipArgReorder: true,
 }
 
 func createCmd(c *cli.Context) error {
