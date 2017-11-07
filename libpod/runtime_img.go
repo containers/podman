@@ -409,8 +409,7 @@ func getRegistriesToTry(image string, store storage.Store) ([]*pullStruct, error
 		}
 		searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
 		if err != nil {
-			fmt.Println(err)
-			return nil, errors.Errorf("unable to parse the registries.conf file and"+
+			return nil, errors.Wrapf(err, "unable to parse the registries.conf file and"+
 				" the image name '%s' is incomplete.", imageName)
 		}
 		for _, searchRegistry := range searchRegistries {
@@ -587,9 +586,13 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
 	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, &options.DockerRegistryOptions, nil, options.SigningOptions, options.AuthFile)
 
 	for _, imageInfo := range pullStructs {
-		fmt.Printf("Trying to pull %s...\n", imageInfo.image)
+		if options.Writer != nil {
+			io.WriteString(options.Writer, fmt.Sprintf("Trying to pull %s...\n", imageInfo.image))
+		}
 		if err = cp.Image(policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
-			fmt.Println("Failed")
+			if options.Writer != nil {
+				io.WriteString(options.Writer, "Failed\n")
+			}
 		} else {
 			return nil
 		}
