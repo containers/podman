@@ -236,25 +236,6 @@ func WithNoPivotRoot(noPivot bool) RuntimeOption {
 
 // Container Creation Options
 
-// WithRootFSFromPath uses the given path as a container's root filesystem
-// No further setup is performed on this path
-func WithRootFSFromPath(path string) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
-			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
-		}
-
-		ctr.config.RootfsDir = path
-		ctr.config.RootfsFromImage = false
-
-		return nil
-	}
-}
-
 // WithSELinuxMountLabel sets the mount label for SELinux
 func WithSELinuxMountLabel(mountLabel string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -277,14 +258,13 @@ func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) 
 			return ErrCtrFinalized
 		}
 
-		if ctr.config.RootfsDir != "" || ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
+		if ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
 			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
 		}
 
 		ctr.config.RootfsImageID = imageID
 		ctr.config.RootfsImageName = imageName
 		ctr.config.UseImageConfig = useImageConfig
-		ctr.config.RootfsFromImage = true
 
 		return nil
 	}

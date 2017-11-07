@@ -32,6 +32,12 @@ func NewInMemoryState() (State, error) {
 	return state, nil
 }
 
+// Close the state before shutdown
+// This is a no-op as we have no backing disk
+func (s *InMemoryState) Close() error {
+	return nil
+}
+
 // Container retrieves a container from its full ID
 func (s *InMemoryState) Container(id string) (*Container, error) {
 	if id == "" {

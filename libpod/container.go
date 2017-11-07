@@ -87,21 +87,17 @@ type containerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
-	// RootfsFromImage indicates whether the container uses a root
-	// filesystem from an image, or from a user-provided directory
-	RootfsFromImage bool
-	// Directory used as a root filesystem if not configured with an image
-	RootfsDir string `json:"rootfsDir,omitempty"`
 	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
-	MountLabel      string `json:"MountLabel,omitempty"`
 	UseImageConfig  bool   `json:"useImageConfig"`
-	// Whether to keep container STDIN open
-	Stdin bool
+	// SELinux mount label for root filesystem
+	MountLabel      string `json:"MountLabel,omitempty"`
 	// Static directory for container content that will persist across
 	// reboot
 	StaticDir string `json:"staticDir"`
+	// Whether to keep container STDIN open
+	Stdin bool
 	// Pod the container belongs to
 	Pod string `json:"pod,omitempty"`
 	// Labels is a set of key-value pairs providing additional information
@@ -207,18 +203,6 @@ func (c *Container) setupStorage() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Configured state to have storage set up", c.ID())
 	}
 
-	// If we're configured to use a directory, perform that setup
-	if !c.config.RootfsFromImage {
-		// TODO implement directory-based root filesystems
-		return ErrNotImplemented
-	}
-
-	// Not using a directory, so call into containers/storage
-	return c.setupImageRootfs()
-}
-
-// Set up an image as root filesystem using containers/storage
-func (c *Container) setupImageRootfs() error {
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
 	if c.config.RootfsImageID == "" || c.config.RootfsImageName == "" {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
@@ -248,16 +232,6 @@ func (c *Container) teardownStorage() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
-	if !c.config.RootfsFromImage {
-		// TODO implement directory-based root filesystems
-		return ErrNotImplemented
-	}
-
-	return c.teardownImageRootfs()
-}
-
-// Completely remove image-based root filesystem for a container
-func (c *Container) teardownImageRootfs() error {
 	if c.state.Mounted {
 		if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
 			return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
@@ -286,33 +260,25 @@ func (c *Container) Create() (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	// If using containers/storage, mount the container
-	if !c.config.RootfsFromImage {
-		// TODO implement directory-based root filesystems
-		if !c.state.Mounted {
-			return ErrNotImplemented
-		}
-	} else {
-		mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
-		if err != nil {
-			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
-		}
-		c.state.Mounted = true
-		c.state.Mountpoint = mountPoint
-
-		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
-
-		defer func() {
-			if err != nil {
-				if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
-					logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
-				}
-
-				c.state.Mounted = false
-				c.state.Mountpoint = ""
-			}
-		}()
+	mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
 	}
+	c.state.Mounted = true
+	c.state.Mountpoint = mountPoint
+
+	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
+	defer func() {
+		if err != nil {
+			if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
+				logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
+			}
+
+			c.state.Mounted = false
+			c.state.Mountpoint = ""
+		}
+	}()
 
 	// Make the OCI runtime spec we will use
 	c.runningSpec = new(spec.Spec)
