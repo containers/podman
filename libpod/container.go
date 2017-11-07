@@ -92,7 +92,7 @@ type containerConfig struct {
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	UseImageConfig  bool   `json:"useImageConfig"`
 	// SELinux mount label for root filesystem
-	MountLabel      string `json:"MountLabel,omitempty"`
+	MountLabel string `json:"MountLabel,omitempty"`
 	// Static directory for container content that will persist across
 	// reboot
 	StaticDir string `json:"staticDir"`

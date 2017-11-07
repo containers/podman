@@ -7,12 +7,14 @@ import (
 	"os"
 
 	"github.com/containers/storage"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	// Use SQLite backend for sql package
+	_ "github.com/mattn/go-sqlite3"
 )
 
-// SqlState is a state implementation backed by a persistent SQLite3 database
+// SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
 	db       *sql.DB
 	specsDir string
@@ -22,7 +24,7 @@ type SQLState struct {
 }
 
 // NewSqlState initializes a SQL-backed state, created the database if necessary
-func NewSqlState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, error) {
+func NewSQLState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, error) {
 	state := new(SQLState)
 
 	state.runtime = runtime
@@ -85,8 +87,7 @@ func (s *SQLState) Close() error {
 
 	s.valid = false
 
-	err := s.db.Close()
-	if err != nil {
+	if err := s.db.Close(); err != nil {
 		return errors.Wrapf(err, "error closing database")
 	}
 
@@ -427,6 +428,7 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 	return ErrNotImplemented
 }
 
+// AllPods retrieves all pods presently in the state
 func (s *SQLState) AllPods() ([]*Pod, error) {
 	return nil, ErrNotImplemented
 }

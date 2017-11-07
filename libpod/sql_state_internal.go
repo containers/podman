@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	// Use SQLite backend for sql package
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // Performs database setup including by not limited to initializing tables in
