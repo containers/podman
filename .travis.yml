@@ -9,6 +9,9 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
   - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext
+# Needed to get kpod build testing working, lsm5 working
+#  - sudo apt-add-repository -y ppa:projectatomic/ppa
+#  - sudo apt-get -qq install buildah
 
 install:
   - make install.tools
