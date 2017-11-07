@@ -15,7 +15,7 @@ If a user wants to copy contents out of a container or into a container, they
 can execute a few simple commands.
 
 You can copy from the container's file system to the local machine or the
-reverse, from the local filesystem to the container. 
+reverse, from the local filesystem to the container.
 
 If you want to copy the /etc/foobar directory out of a container and onto /tmp
 on the host, you could execute the following commands:
