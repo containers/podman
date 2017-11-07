@@ -4,7 +4,7 @@ branches:
   - try
 
 host:
-  distro: fedora/26/atomic
+  distro: Fedora-Atomic-26
   specs:
      ram: 8192
 
@@ -12,6 +12,9 @@ required: true
 
 tests:
   # mount yum repos to inherit injected mirrors from PAPR
+  - sestatus
+  - cat /proc/cmdline
+  - cat /etc/selinux/config
   - docker run --net=host --privileged -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
     -v /tmp:/tmp -v /var/tmp:/var/tmp
     -v $PWD:/code registry.fedoraproject.org/fedora:26 sh -c
