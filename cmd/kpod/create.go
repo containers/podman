@@ -27,7 +27,10 @@ const (
 )
 
 var (
-	defaultEnvVariables = []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "TERM=xterm"}
+	defaultEnvVariables = map[string]string{
+		"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		"TERM": "xterm",
+	}
 )
 
 type createResourceConfig struct {
@@ -64,16 +67,16 @@ type createConfig struct {
 	cidFile            string
 	cgroupParent       string // cgroup-parent
 	command            []string
-	detach             bool         // detach
-	devices            []*pb.Device // device
-	dnsOpt             []string     //dns-opt
-	dnsSearch          []string     //dns-search
-	dnsServers         []string     //dns
-	entrypoint         string       //entrypoint
-	env                []string     //env
-	expose             []string     //expose
-	groupAdd           []uint32     // group-add
-	hostname           string       //hostname
+	detach             bool              // detach
+	devices            []*pb.Device      // device
+	dnsOpt             []string          //dns-opt
+	dnsSearch          []string          //dns-search
+	dnsServers         []string          //dns
+	entrypoint         string            //entrypoint
+	env                map[string]string //env
+	expose             []string          //expose
+	groupAdd           []uint32          // group-add
+	hostname           string            //hostname
 	image              string
 	interactive        bool              //interactive
 	ip6Address         string            //ipv6
@@ -264,8 +267,8 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		return &createConfig{}, errors.Wrapf(err, "unable to process labels")
 	}
 	// ENVIRONMENT VARIABLES
-	env, err := getAllEnvironmentVariables(c.StringSlice("env-file"), c.StringSlice("env"))
-	if err != nil {
+	env := defaultEnvVariables
+	if err := readKVStrings(env, c.StringSlice("env-file"), c.StringSlice("env")); err != nil {
 		return &createConfig{}, errors.Wrapf(err, "unable to process environment variables")
 	}
 
@@ -338,7 +341,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		dnsServers:     c.StringSlice("dns"),
 		entrypoint:     c.String("entrypoint"),
 		env:            env,
-		expose:         c.StringSlice("env"),
+		expose:         c.StringSlice("expose"),
 		groupAdd:       groupAdd,
 		hostname:       c.String("hostname"),
 		image:          image,
