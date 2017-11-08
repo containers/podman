@@ -242,11 +242,11 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	var blkioWeight uint16
 	var uid, gid uint32
 
-	image := c.Args()[0]
-
 	if len(c.Args()) < 1 {
 		return nil, errors.Errorf("image name or ID is required")
 	}
+	image := c.Args()[0]
+
 	if len(c.Args()) > 1 {
 		command = c.Args()[1:]
 	}
