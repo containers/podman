@@ -112,7 +112,7 @@ testunit:
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 localintegration: test-binaries
-	./test/test_runner.sh ${TESTFLAGS}
+	bash -i ./test/test_runner.sh ${TESTFLAGS}
 
 binaries: conmon kpod
 

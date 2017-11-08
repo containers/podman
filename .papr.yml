@@ -10,6 +10,8 @@ host:
 
 required: true
 
+timeout: 45m
+
 tests:
   # mount yum repos to inherit injected mirrors from PAPR
   - docker run --net=host --privileged -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
