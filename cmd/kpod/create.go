@@ -312,6 +312,14 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		blkioWeight = uint16(u)
 	}
 
+	// Because we cannot do a non-terminal attach, we need to set tty to true
+	// if detach is not false
+	// TODO Allow non-terminal attach
+	tty := c.Bool("tty")
+	if !c.Bool("detach") && !tty {
+		tty = true
+	}
+
 	config := &createConfig{
 		capAdd:         c.StringSlice("cap-add"),
 		capDrop:        c.StringSlice("cap-drop"),
@@ -380,7 +388,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		storageOpts: c.StringSlice("storage-opt"),
 		sysctl:      sysctl,
 		tmpfs:       c.StringSlice("tmpfs"),
-		tty:         c.Bool("tty"),
+		tty:         tty,
 		user:        uid,
 		group:       gid,
 		volumes:     c.StringSlice("volume"),

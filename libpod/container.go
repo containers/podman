@@ -393,7 +393,7 @@ func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
 
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
-func (c *Container) Attach(noStdin bool, keys string) error {
+func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
 	// Check the validity of the provided keys first
 	var err error
 	detachKeys := []byte{}
@@ -410,7 +410,7 @@ func (c *Container) Attach(noStdin bool, keys string) error {
 	}
 	resize := make(chan remotecommand.TerminalSize)
 	defer close(resize)
-	err = c.attachContainerSocket(resize, noStdin, detachKeys)
+	err = c.attachContainerSocket(resize, noStdin, detachKeys, attached)
 	if err != nil {
 		return err
 	}
