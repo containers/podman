@@ -12,12 +12,13 @@ import (
 var runDescription = "Runs a command in a new container from the given image"
 
 var runCommand = cli.Command{
-	Name:        "run",
-	Usage:       "run a command in a new container",
-	Description: runDescription,
-	Flags:       createFlags,
-	Action:      runCmd,
-	ArgsUsage:   "IMAGE [COMMAND [ARG...]]",
+	Name:           "run",
+	Usage:          "run a command in a new container",
+	Description:    runDescription,
+	Flags:          createFlags,
+	Action:         runCmd,
+	ArgsUsage:      "IMAGE [COMMAND [ARG...]]",
+	SkipArgReorder: true,
 }
 
 func runCmd(c *cli.Context) error {
