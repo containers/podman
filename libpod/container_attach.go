@@ -25,7 +25,7 @@ const (
 )
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte) error {
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte, attached chan<- bool) error {
 	inputStream := os.Stdin
 	outputStream := os.Stdout
 	errorStream := os.Stderr
@@ -70,6 +70,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
 	}
 	defer conn.Close()
+
+	// signal back that the connection was made
+	attached <- true
 
 	receiveStdoutError := make(chan error)
 	if outputStream != nil || errorStream != nil {
