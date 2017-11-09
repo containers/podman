@@ -97,7 +97,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if err != nil {
 			// Don't forcibly shut down
 			// We could be opening a store in use by another libpod
-			_, err2 := runtime.store.Shutdown(false)
+			_, err2 := store.Shutdown(false)
 			if err2 != nil {
 				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
 			}
