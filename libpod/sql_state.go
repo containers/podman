@@ -418,7 +418,8 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		ctr.state.Mountpoint,
 		timeToSQL(ctr.state.StartedTime),
 		timeToSQL(ctr.state.FinishedTime),
-		ctr.state.ExitCode)
+		ctr.state.ExitCode,
+		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
 	}
