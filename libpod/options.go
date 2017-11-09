@@ -94,6 +94,20 @@ func WithSignaturePolicy(path string) RuntimeOption {
 	}
 }
 
+// WithInMemoryState specifies that the runtime will be backed by an in-memory
+// state only, and state will not persist after the runtime is shut down
+func WithInMemoryState() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.InMemoryState = true
+
+		return nil
+	}
+}
+
 // WithOCIRuntime specifies an OCI runtime to use for running containers
 func WithOCIRuntime(runtimePath string) RuntimeOption {
 	return func(rt *Runtime) error {

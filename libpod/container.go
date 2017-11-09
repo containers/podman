@@ -150,10 +150,9 @@ func (c *Container) State() (ContainerState, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	// TODO uncomment when working
-	// if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-	// 	return ContainerStateUnknown, err
-	// }
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return ContainerStateUnknown, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
 
 	return c.state.State, nil
 }
@@ -252,6 +251,10 @@ func (c *Container) Create() (err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
@@ -308,8 +311,11 @@ func (c *Container) Create() (err error) {
 
 	logrus.Debugf("Created container %s in runc", c.ID())
 
-	// TODO should flush this state to disk here
 	c.state.State = ContainerStateCreated
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
 
 	return nil
 }
@@ -318,6 +324,10 @@ func (c *Container) Create() (err error) {
 func (c *Container) Start() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
 
 	if !c.valid {
 		return ErrCtrRemoved
@@ -334,9 +344,12 @@ func (c *Container) Start() error {
 
 	logrus.Debugf("Started container %s", c.ID())
 
-	// TODO should flush state to disk here
 	c.state.StartedTime = time.Now()
 	c.state.State = ContainerStateRunning
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
 
 	return nil
 }
@@ -360,6 +373,25 @@ func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
 func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+
+	if !c.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+	}
+
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+	}
+
+	// TODO is it valid to attach to a frozen container?
+	if c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created, running, or stopped containers")
+	}
+
 	// Check the validity of the provided keys first
 	var err error
 	detachKeys := []byte{}
@@ -369,25 +401,12 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 			return errors.Wrapf(err, "invalid detach keys")
 		}
 	}
-	cStatus := c.state.State
 
-	if !(cStatus == ContainerStateRunning || cStatus == ContainerStateCreated) {
-		return errors.Errorf("%s is not created or running", c.Name())
-	}
 	resize := make(chan remotecommand.TerminalSize)
 	defer close(resize)
+
 	err = c.attachContainerSocket(resize, noStdin, detachKeys, attached)
-
 	return err
-
-	// TODO
-	// Re-enable this when mheon is done wth it
-	//if err != nil {
-	//	return err
-	//}
-	//c.ContainerStateToDisk(c)
-
-	//return err
 }
 
 // Mount mounts a container's filesystem on the host
@@ -414,10 +433,6 @@ func (c *Container) Export(path string) error {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-// If the container was not created from an image (for example,
-// WithRootFSFromPath will create a container from a directory on the system),
-// a new base image will be created from the contents of the container's
-// filesystem
 func (c *Container) Commit() (*storage.Image, error) {
 	return nil, ErrNotImplemented
 }

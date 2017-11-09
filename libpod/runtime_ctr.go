@@ -95,17 +95,21 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 		return ErrCtrRemoved
 	}
 
-	// TODO check container status and unmount storage
-	// TODO check that no other containers depend on this container's
-	// namespaces
-	status, err := c.State()
-	if err != nil {
+	// Update the container to get current state
+	if err := r.state.UpdateContainer(c); err != nil {
 		return err
 	}
 
-	// A container cannot be removed if it is running
-	if status == ContainerStateRunning {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running", c.ID())
+	// Check that the container's in a good state to be removed
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateCreated ||
+		c.state.State == ContainerStateStopped) {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running or paused", c.ID())
+	}
+
+	// Stop the container's storage
+	if err := c.teardownStorage(); err != nil {
+		return err
 	}
 
 	if err := r.state.RemoveContainer(c); err != nil {

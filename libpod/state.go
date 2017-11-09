@@ -21,6 +21,10 @@ type State interface {
 	// The container will only be removed from the state, not from the pod
 	// which the container belongs to
 	RemoveContainer(ctr *Container) error
+	// UpdateContainer updates a container's state from the backing store
+	UpdateContainer(ctr *Container) error
+	// SaveContainer saves a container's current state to the backing store
+	SaveContainer(ctr *Container) error
 	// Retrieves all containers presently in state
 	AllContainers() ([]*Container, error)
 

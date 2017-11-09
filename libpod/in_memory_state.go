@@ -153,6 +153,21 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	return nil
 }
 
+// UpdateContainer updates a container's state
+// As all state is in-memory, no update will be required
+// As such this is a no-op
+func (s *InMemoryState) UpdateContainer(ctr *Container) error {
+	return nil
+}
+
+// SaveContainer saves a container's state
+// As all state is in-memory, any changes are always reflected as soon as they
+// are made
+// As such this is a no-op
+func (s *InMemoryState) SaveContainer(ctr *Container) error {
+	return nil
+}
+
 // AllContainers retrieves all containers from the state
 func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	ctrs := make([]*Container, 0, len(s.containers))

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 
 	is "github.com/containers/image/storage"
@@ -35,6 +36,7 @@ type RuntimeConfig struct {
 	InsecureRegistries    []string
 	Registries            []string
 	SignaturePolicyPath   string
+	InMemoryState         bool
 	RuntimePath           string
 	ConmonPath            string
 	ConmonEnvVars         []string
@@ -52,6 +54,7 @@ var (
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: "docker://",
+		InMemoryState:         false,
 		RuntimePath:           "/usr/bin/runc",
 		ConmonPath:            "/usr/local/libexec/crio/conmon",
 		ConmonEnvVars: []string{
@@ -114,13 +117,6 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
 	}
 
-	// Set up the state
-	state, err := NewInMemoryState()
-	if err != nil {
-		return nil, err
-	}
-	runtime.state = state
-
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime("runc", runtime.config.RuntimePath,
 		runtime.config.ConmonPath, runtime.config.ConmonEnvVars,
@@ -147,6 +143,34 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, errors.Wrapf(err, "error creating runtime temporary files directory %s",
 				runtime.config.TmpDir)
 		}
+	}
+
+	// Set up the state
+	if runtime.config.InMemoryState {
+		state, err := NewInMemoryState()
+		if err != nil {
+			return nil, err
+		}
+		runtime.state = state
+	} else {
+		dbPath := filepath.Join(runtime.config.StaticDir, "state.sql")
+		lockPath := filepath.Join(runtime.config.TmpDir, "state.lck")
+		specsDir := filepath.Join(runtime.config.StaticDir, "ocispec")
+
+		// Make a directory to hold JSON versions of container OCI specs
+		if err := os.MkdirAll(specsDir, 0755); err != nil {
+			// The directory is allowed to exist
+			if !os.IsExist(err) {
+				return nil, errors.Wrapf(err, "error creating runtime OCI specs directory %s",
+					specsDir)
+			}
+		}
+
+		state, err := NewSQLState(dbPath, lockPath, specsDir, runtime)
+		if err != nil {
+			return nil, err
+		}
+		runtime.state = state
 	}
 
 	// Mark the runtime as valid - ready to be used, cannot be modified
@@ -188,5 +212,10 @@ func (r *Runtime) Shutdown(force bool) error {
 	r.valid = false
 
 	_, err := r.store.Shutdown(force)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// TODO: Should always call this even if store.Shutdown failed
+	return r.state.Close()
 }

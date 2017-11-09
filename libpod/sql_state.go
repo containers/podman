@@ -23,7 +23,7 @@ type SQLState struct {
 	valid    bool
 }
 
-// NewSqlState initializes a SQL-backed state, created the database if necessary
+// NewSQLState initializes a SQL-backed state, created the database if necessary
 func NewSQLState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, error) {
 	state := new(SQLState)
 
@@ -295,6 +295,141 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	return nil
 }
 
+// UpdateContainer updates a container's state from the database
+func (s *SQLState) UpdateContainer(ctr *Container) error {
+	const query = `SELECT State,
+                              ConfigPath,
+                              RunDir,
+                              Mountpoint,
+                              StartedTime,
+                              FinishedTime,
+                              ExitCode
+                       FROM containerState WHERE ID=?;`
+
+	var (
+		state              int
+		configPath         string
+		runDir             string
+		mountpoint         string
+		startedTimeString  string
+		finishedTimeString string
+		exitCode           int32
+	)
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	row := s.db.QueryRow(query, ctr.ID())
+	err := row.Scan(
+		&state,
+		&configPath,
+		&runDir,
+		&mountpoint,
+		&startedTimeString,
+		&finishedTimeString,
+		&exitCode)
+	if err != nil {
+		// The container may not exist in the database
+		if err == sql.ErrNoRows {
+			// Assume that the container was removed by another process
+			// As such make it invalid
+			ctr.valid = false
+
+			return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in database", ctr.ID())
+		}
+
+		return errors.Wrapf(err, "error parsing database state for container %s", ctr.ID())
+	}
+
+	newState := new(containerRuntimeInfo)
+	newState.State = ContainerState(state)
+	newState.ConfigPath = configPath
+	newState.RunDir = runDir
+	newState.Mountpoint = mountpoint
+	newState.ExitCode = exitCode
+
+	if newState.Mountpoint != "" {
+		newState.Mounted = true
+	}
+
+	startedTime, err := timeFromSQL(startedTimeString)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing container %s started time", ctr.ID())
+	}
+	newState.StartedTime = startedTime
+
+	finishedTime, err := timeFromSQL(finishedTimeString)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing container %s finished time", ctr.ID())
+	}
+	newState.FinishedTime = finishedTime
+
+	// New state compiled successfully, swap it into the current state
+	ctr.state = newState
+
+	return nil
+}
+
+// SaveContainer updates a container's state in the database
+func (s *SQLState) SaveContainer(ctr *Container) error {
+	const update = `UPDATE containerState SET
+                          State=?,
+                          ConfigPath=?,
+                          RunDir=?,
+                          Mountpoint=?,
+                          StartedTime=?,
+                          FinishedTime=?,
+                          ExitCode=?
+                       WHERE Id=?;`
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to add container %s: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	// Add container state to the database
+	_, err = tx.Exec(update,
+		ctr.state.State,
+		ctr.state.ConfigPath,
+		ctr.state.RunDir,
+		ctr.state.Mountpoint,
+		timeToSQL(ctr.state.StartedTime),
+		timeToSQL(ctr.state.FinishedTime),
+		ctr.state.ExitCode)
+	if err != nil {
+		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing transaction to update container %s", ctr.ID())
+	}
+
+	return nil
+}
+
 // RemoveContainer removes the container from the state
 func (s *SQLState) RemoveContainer(ctr *Container) error {
 	const (
@@ -304,9 +439,6 @@ func (s *SQLState) RemoveContainer(ctr *Container) error {
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	ctr.lock.Lock()
-	defer ctr.lock.Unlock()
 
 	if !s.valid {
 		return ErrDBClosed
