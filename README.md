@@ -5,12 +5,12 @@
 
 ## What is the scope of this project?
 
-libpod is meant to provide an library for applications lookint the user the Container Pod concept popularized by Kubernetes.
+libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
 libpod also contains a tool kpod, which allows you to manage Pods, Containers, and Container Images.
 
 At a high level, we expect the scope of libpod/kpod to the following functionalities:
 
-* Support multiple image formats including the existing Docker image format
+* Support multiple image formats including the existing Docker/OCI image formats
 * Support for multiple means to download images including trust & image verification
 * Container image management (managing image layers, overlay filesystems, etc)
 * Container and POD process lifecycle management
