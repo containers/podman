@@ -26,6 +26,9 @@ has the capability to debug pods/images created by crio.
 **--config value, -c**=**"config.file"**
    Path of a config file detailing container server configuration options
 
+**--cpu-profile**
+   Path to where the cpu performance results should be written
+
 **--log-level**
    log messages above specified level: debug, info, warn, error (default), fatal or panic
 

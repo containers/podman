@@ -1410,6 +1410,7 @@ _kpod_logout() {
 _kpod_kpod() {
      local options_with_args="
            --config -c
+           --cpu-profile
            --root
            --runroot
            --storage-driver
