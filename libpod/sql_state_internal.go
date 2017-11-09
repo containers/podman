@@ -46,7 +46,7 @@ func prepareDB(db *sql.DB) (err error) {
             UseImageConfig INTEGER NOT NULL,
             CHECK (Stdin IN (0, 1)),
             CHECK (UseImageConfig IN (0, 1)),
-            CHECK (StopSignal>0)
+            CHECK (StopSignal>=0)
         );
         `
 
