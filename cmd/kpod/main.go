@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -15,6 +17,7 @@ var kpodVersion = ""
 
 func main() {
 	debug := false
+	cpuProfile := false
 
 	if reexec.Init() {
 		return
@@ -77,12 +80,23 @@ func main() {
 			debug = true
 
 		}
-
+		if c.GlobalIsSet("cpu-profile") {
+			f, err := os.Create(c.GlobalString("cpu-profile"))
+			if err != nil {
+				return errors.Wrapf(err, "unable to create cpu profiling file %s",
+					c.GlobalString("cpu-profile"))
+			}
+			cpuProfile = true
+			pprof.StartCPUProfile(f)
+		}
 		return nil
 	}
 	app.After = func(*cli.Context) error {
 		// called by Run() when the command handler succeeds
 		shutdownStores()
+		if cpuProfile {
+			pprof.StopCPUProfile()
+		}
 		return nil
 	}
 	cli.OsExiter = func(code int) {
@@ -98,6 +112,10 @@ func main() {
 		cli.StringFlag{
 			Name:  "conmon",
 			Usage: "path of the conmon binary",
+		},
+		cli.StringFlag{
+			Name:  "cpu-profile",
+			Usage: "path for the cpu profiling results",
 		},
 		cli.StringFlag{
 			Name:  "log-level",
