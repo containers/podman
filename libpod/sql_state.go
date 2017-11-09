@@ -104,10 +104,10 @@ func (s *SQLState) Container(id string) (*Container, error) {
                               containerState.StartedTime,
                               containerState.FinishedTime,
                               containerState.ExitCode
-                      FROM containers
-                      INNER JOIN
-                          containerState ON containers.Id = containerState.Id
-                      WHERE containers.Id=?;`
+                       FROM containers
+                       INNER JOIN
+                           containerState ON containers.Id = containerState.Id
+                       WHERE containers.Id=?;`
 
 	if !s.valid {
 		return nil, ErrDBClosed
@@ -133,10 +133,10 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
                               containerState.StartedTime,
                               containerState.FinishedTime,
                               containerState.ExitCode
-                      FROM containers
-                      INNER JOIN
-                          containerState ON containers.Id = containerState.Id
-                      WHERE (containers.Id LIKE ?) OR containers.Name=?;`
+                       FROM containers
+                       INNER JOIN
+                           containerState ON containers.Id = containerState.Id
+                       WHERE (containers.Id LIKE ?) OR containers.Name=?;`
 
 	if !s.valid {
 		return nil, ErrDBClosed

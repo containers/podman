@@ -32,7 +32,7 @@ func prepareDB(db *sql.DB) (err error) {
 
 	// Create a table for unchanging container data
 	const createCtr = `
-        CREATE TABLE IF NOT EXIST containers(
+        CREATE TABLE IF NOT EXISTS containers(
             Id TEXT NOT NULL PRIMARY KEY,
             Name TEXT NOT NULL UNIQUE,
             MountLabel TEXT NOT NULL,
@@ -40,7 +40,7 @@ func prepareDB(db *sql.DB) (err error) {
             Stdin INTEGER NOT NULL,
             LabelsJSON TEXT NOT NULL,
             StopSignal INTEGER NOT NULL,
-            CreatedTime TEXT NOT NULL
+            CreatedTime TEXT NOT NULL,
             RootfsImageID TEXT NOT NULL,
             RootfsImageName TEXT NOT NULL,
             UseImageConfig INTEGER NOT NULL,
@@ -52,7 +52,7 @@ func prepareDB(db *sql.DB) (err error) {
 
 	// Create a table for changing container state
 	const createCtrState = `
-        CREATE TABLE IF NOT EXIST containerState(
+        CREATE TABLE IF NOT EXISTS containerState(
             Id TEXT NOT NULL PRIMARY KEY,
             State INTEGER NOT NULL,
             ConfigPath TEXT NOT NULL,
