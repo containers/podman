@@ -83,7 +83,7 @@ func runCmd(c *cli.Context) error {
 	}
 
 	logrus.Debug("new container created ", ctr.ID())
-	if err := ctr.Create(); err != nil {
+	if err := ctr.Init(); err != nil {
 		return err
 	}
 	logrus.Debug("container storage created for %q", ctr.ID())

@@ -246,8 +246,8 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
-// Create creates a container in the OCI runtime
-func (c *Container) Create() (err error) {
+// Init creates a container in the OCI runtime
+func (c *Container) Init() (err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
