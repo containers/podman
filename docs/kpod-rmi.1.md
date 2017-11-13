@@ -13,6 +13,9 @@ Removes one or more locally stored images.
 
 ## OPTIONS
 
+**-all**, **-a**
+
+Remove all of the locally storage images
 **--force, -f**
 
 Executing this command will stop all containers that are using the image and remove them from the system
@@ -24,6 +27,8 @@ kpod rmi imageID
 kpod rmi --force imageID
 
 kpod rmi imageID1 imageID2 imageID3
+
+kpod rmi -a -f
 
 ## SEE ALSO
 kpod(1)
