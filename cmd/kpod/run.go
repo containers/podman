@@ -22,6 +22,7 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
+	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -37,8 +38,8 @@ func runCmd(c *cli.Context) error {
 	}
 
 	createImage := runtime.NewImage(createConfig.image)
-
-	if !createImage.HasImageLocal() {
+	createImage.LocalName, _ = createImage.GetLocalImageName()
+	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
 		fmt.Printf("Trying to pull %s...", createImage.PullName)
@@ -52,7 +53,11 @@ func runCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 	logrus.Debug("spec is ", runtimeSpec)
 
-	imageName, err := createImage.GetFQName()
+	if createImage.LocalName != "" {
+		imageName = createImage.LocalName
+	} else {
+		imageName, err = createImage.GetFQName()
+	}
 	if err != nil {
 		return err
 	}

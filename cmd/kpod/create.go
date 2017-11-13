@@ -135,6 +135,7 @@ var createCommand = cli.Command{
 func createCmd(c *cli.Context) error {
 	// TODO should allow user to create based off a directory on the host not just image
 	// Need CLI support for this
+	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -151,7 +152,8 @@ func createCmd(c *cli.Context) error {
 
 	// Deal with the image after all the args have been checked
 	createImage := runtime.NewImage(createConfig.image)
-	if !createImage.HasImageLocal() {
+	createImage.LocalName, _ = createImage.GetLocalImageName()
+	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
 		fmt.Printf("Trying to pull %s...", createImage.PullName)
@@ -163,7 +165,11 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 	defer runtime.Shutdown(false)
-	imageName, err := createImage.GetFQName()
+	if createImage.LocalName != "" {
+		imageName = createImage.LocalName
+	} else {
+		imageName, err = createImage.GetFQName()
+	}
 	if err != nil {
 		return err
 	}

@@ -127,6 +127,7 @@ type Image struct {
 	Transport      string
 	beenDecomposed bool
 	PullName       string
+	LocalName      string
 }
 
 // NewImage creates a new image object based on its name
@@ -139,9 +140,21 @@ func (r *Runtime) NewImage(name string) Image {
 
 // GetImageID returns the image ID of the image
 func (k *Image) GetImageID() (string, error) {
+	// If the ID field is already populated, then
+	// return it.
 	if k.ID != "" {
 		return k.ID, nil
 	}
+	// If we have the name of the image locally, then
+	// get the image and returns its ID
+	if k.LocalName != "" {
+		img, err := k.runtime.GetImage(k.LocalName)
+		if err == nil {
+			return img.ID, nil
+		}
+	}
+	// If neither the ID is known and no local name
+	// is know, we search it out.
 	image, _ := k.GetFQName()
 	img, err := k.runtime.GetImage(image)
 	if err != nil {
@@ -270,26 +283,73 @@ func (k *Image) Decompose() error {
 	return nil
 }
 
-// HasImageLocal returns a bool true if the image is already pulled
-func (k *Image) HasImageLocal() bool {
+func getTags(nameInput string) (reference.NamedTagged, bool, error) {
+	inputRef, err := reference.Parse(nameInput)
+	if err != nil {
+		return nil, false, errors.Wrapf(err, "unable to obtain tag from input name")
+	}
+	tagged, isTagged := inputRef.(reference.NamedTagged)
+
+	return tagged, isTagged, nil
+}
+
+// GetLocalImageName returns  the name of the image if it is local.
+// It will return an empty string and error if not found.
+func (k *Image) GetLocalImageName() (string, error) {
 	_, err := k.runtime.GetImage(k.Name)
-	if err == nil {
-		return true
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to obtain local image")
+	}
+	localImages, err := k.runtime.GetImages(&ImageFilterParams{})
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to obtain local image")
+	}
+	_, isTagged, err := getTags(k.Name)
+	if err != nil {
+		return "", err
+	}
+	for _, image := range localImages {
+		for _, name := range image.Names {
+			imgRef, err := reference.Parse(name)
+			if err != nil {
+				continue
+			}
+			var imageName string
+			imageNameOnly := reference.Path(imgRef.(reference.Named))
+			if isTagged {
+				imageNameTag, _, err := getTags(name)
+				if err != nil {
+					continue
+				}
+				imageName = fmt.Sprintf("%s:%s", imageNameOnly, imageNameTag.Tag())
+			} else {
+				imageName = imageNameOnly
+			}
+
+			if imageName == k.Name {
+				return name, nil
+			}
+			imageSplit := strings.Split(imageName, "/")
+			baseName := imageSplit[len(imageSplit)-1]
+			if baseName == k.Name {
+				return name, nil
+			}
+		}
 	}
 	fqname, _ := k.GetFQName()
-
-	_, err = k.runtime.GetImage(fqname)
-	if err == nil {
-		return true
-	}
-	return false
+	return fqname, nil
 }
 
 // HasLatest determines if we have the latest image local
 func (k *Image) HasLatest() (bool, error) {
-	if !k.HasImageLocal() {
+	localName, err := k.GetLocalImageName()
+	if err != nil {
+		return false, err
+	}
+	if localName == "" {
 		return false, nil
 	}
+
 	fqname, err := k.GetFQName()
 	if err != nil {
 		return false, err
