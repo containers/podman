@@ -4,6 +4,10 @@ load helpers
 
 IMAGE="redis:alpine"
 
+function setup() {
+    copy_images
+}
+
 function teardown() {
     cleanup_test
 }

@@ -8,6 +8,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "mount" {
     skip "Test needs to be converted to kpod run"
     start_crio

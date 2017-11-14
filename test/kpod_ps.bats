@@ -3,6 +3,10 @@
 load helpers
 
 IMAGE="redis:alpine"
+function setup() {
+    copy_images
+}
+
 
 @test "kpod ps with no containers" {
     run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps

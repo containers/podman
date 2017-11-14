@@ -2,19 +2,18 @@
 
 load helpers
 
-ALPINE="docker.io/library/alpine:latest"
+function setup() {
+    copy_images
+}
 
 @test "run a container based on local image" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run docker.io/library/busybox:latest ls
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run $BB ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "run a container based on a remote image" {
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} ls
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run ${BB_GLIBC} ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
