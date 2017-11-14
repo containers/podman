@@ -1,8 +1,10 @@
 package libpod
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // WriteFile writes a provided string to a provided path
@@ -31,4 +33,12 @@ func StringInSlice(s string, sl []string) bool {
 		}
 	}
 	return false
+}
+
+// FuncTimer helps measure the execution time of a function
+// For debug purposes, do not leave in code
+// used like defer FuncTimer("foo")
+func FuncTimer(funcName string) {
+	elapsed := time.Since(time.Now())
+	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
 }
