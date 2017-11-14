@@ -1238,6 +1238,8 @@ _kpod_rmi() {
      -h
      --force
      -f
+     -a
+     --all
   "
 
     case "$cur" in
