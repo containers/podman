@@ -32,12 +32,6 @@ import (
 
 // Runtime API
 
-const (
-	// DefaultRegistry is a prefix that we apply to an image name
-	// to check docker hub first for the image
-	DefaultRegistry = "docker://"
-)
-
 var (
 	// DockerArchive is the transport we prepend to an image name
 	// when saving to docker-archive
@@ -49,7 +43,7 @@ var (
 	// images to and from a directory
 	DirTransport = "dir"
 	// TransportNames are the supported transports in string form
-	TransportNames = [...]string{DefaultRegistry, DockerArchive, OCIArchive, "ostree:", "dir:"}
+	TransportNames = [...]string{DefaultTransport, DockerArchive, OCIArchive, "ostree:", "dir:"}
 	// TarballTransport is the transport for importing a tar archive
 	// and creating a filesystem image
 	TarballTransport = "tarball"
@@ -249,7 +243,7 @@ func (k *Image) Decompose() error {
 		return nil
 	}
 	k.beenDecomposed = true
-	k.Transport = "docker://"
+	k.Transport = k.runtime.config.ImageDefaultTransport
 	decomposeName := k.Name
 	for _, transport := range TransportNames {
 		if strings.HasPrefix(k.Name, transport) {
@@ -460,7 +454,7 @@ func (ips imageDecomposeStruct) returnFQName() string {
 	return fmt.Sprintf("%s%s/%s:%s", ips.transport, ips.registry, ips.imageName, ips.tag)
 }
 
-func getRegistriesToTry(image string, store storage.Store) ([]*pullStruct, error) {
+func getRegistriesToTry(image string, store storage.Store, defaultTransport string) ([]*pullStruct, error) {
 	var pStructs []*pullStruct
 	var imageError = fmt.Sprintf("unable to parse '%s'\n", image)
 	imgRef, err := reference.Parse(image)
@@ -483,7 +477,7 @@ func getRegistriesToTry(image string, store storage.Store) ([]*pullStruct, error
 		tag,
 		registry,
 		hasDomain,
-		"docker://",
+		defaultTransport,
 	}
 	if pImage.hasRegistry {
 		// If input has a registry, we have to assume they included an image
@@ -651,7 +645,7 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
 	srcRef, err := alltransports.ParseImageName(imgName)
 	if err != nil {
 		// could be trying to pull from registry with short name
-		pullStructs, err = getRegistriesToTry(imgName, r.store)
+		pullStructs, err = getRegistriesToTry(imgName, r.store, r.config.ImageDefaultTransport)
 		if err != nil {
 			return errors.Wrap(err, "error getting default registries to try")
 		}
@@ -703,7 +697,20 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 	// Get the destination Image Reference
 	dest, err := alltransports.ParseImageName(destination)
 	if err != nil {
-		return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
+		if hasTransport(destination) {
+			return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
+		}
+		// Try adding the images default transport
+		destination2 := r.config.ImageDefaultTransport + destination
+		dest, err = alltransports.ParseImageName(destination2)
+		if err != nil {
+			// One last try with docker:// as the transport
+			destination2 = DefaultTransport + destination
+			dest, err = alltransports.ParseImageName(destination2)
+			if err != nil {
+				return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
+			}
+		}
 	}
 
 	signaturePolicyPath := r.config.SignaturePolicyPath
