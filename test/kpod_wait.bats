@@ -3,6 +3,9 @@
 load helpers
 
 IMAGE="redis:alpine"
+function setup() {
+    copy_images
+}
 
 # Returns the POD ID
 function pod_run_from_template(){

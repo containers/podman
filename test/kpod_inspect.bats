@@ -2,22 +2,19 @@
 
 load helpers
 
-IMAGE="docker.io/library/busybox:latest"
-
 function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "kpod inspect image" {
-    ${KPOD_BINARY} $KPOD_OPTIONS pull ${IMAGE}
-    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect ${IMAGE} | python -m json.tool"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rmi ${IMAGE}
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect ${ALPINE} | python -m json.tool"
     echo "$output"
     [ "$status" -eq 0 ]
 }
-
 
 @test "kpod inspect non-existent container" {
     run ${KPOD_BINARY} $KPOD_OPTIONS inspect 14rcole/non-existent
@@ -26,27 +23,20 @@ function teardown() {
 }
 
 @test "kpod inspect with format" {
-    ${KPOD_BINARY} $KPOD_OPTIONS pull ${IMAGE}
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS inspect --format {{.ID}} ${IMAGE}
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS inspect --format {{.ID}} ${ALPINE}
     echo "$output"
     [ "$status" -eq 0 ]
     inspectOutput="$output"
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS images --no-trunc --quiet ${IMAGE}
+    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS images --no-trunc --quiet ${ALPINE}
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "$inspectOutput" ]
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rmi ${IMAGE}
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "kpod inspect specified type" {
-    ${KPOD_BINARY} $KPOD_OPTIONS pull ${IMAGE}
-    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect --type image ${IMAGE} | python -m json.tool"
-    echo "$output"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rmi ${IMAGE}
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect --type image ${ALPINE} | python -m json.tool"
     echo "$output"
     [ "$status" -eq 0 ]
 }

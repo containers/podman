@@ -3,9 +3,12 @@
 load helpers
 
 IMAGE="redis:alpine"
-
 function teardown() {
     cleanup_test
+}
+
+function setup() {
+    copy_images
 }
 
 @test "kpod export output flag" {

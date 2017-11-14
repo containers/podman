@@ -6,6 +6,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "stop a bogus container" {
     run ${KPOD_BINARY} ${KPOD_OPTIONS} stop foobar
     echo "$output"

@@ -2,21 +2,22 @@
 
 load helpers
 
+function setup() {
+    copy_images
+}
+
 function teardown() {
     cleanup_test
 }
 
-ALPINE="docker.io/library/alpine:latest"
-
 @test "create a container based on local image" {
-    ${KPOD_BINARY} ${KPOD_OPTIONS} pull docker.io/library/busybox:latest
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} create docker.io/library/busybox:latest ls
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "create a container based on a remote image" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} create ${ALPINE} ls
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} create ${BB_GLIBC} ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
