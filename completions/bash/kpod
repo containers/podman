@@ -1346,6 +1346,7 @@ _kpod_unpause() {
      "
      local boolean_options=""
      _complete_ "$options_with_args" "$boolean_options"
+}
 
 _kpod_wait() {
      local options_with_args=""
