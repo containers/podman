@@ -53,6 +53,9 @@ LOG_SIZE_MAX_LIMIT=${LOG_SIZE_MAX_LIMIT:--1}
 
 TESTDIR=$(mktemp -d)
 
+# Untar temp storage into $TESTDIR
+tar xf storage.tar.gz -C $TESTDIR
+
 # kpod pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
 
@@ -90,7 +93,7 @@ CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
-KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY}"
+KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --storage-opt=overlay.imagestore=$TESTDIR/storage --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY}"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
