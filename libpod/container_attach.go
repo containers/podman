@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"net"
 	"os"
@@ -25,7 +26,7 @@ const (
 )
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte) error {
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte, attached chan<- bool) error {
 	inputStream := os.Stdin
 	outputStream := os.Stdout
 	errorStream := os.Stderr
@@ -38,12 +39,14 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		return errors.Errorf("no tty available for %s", c.ID())
 	}
 
-	oldTermState, err := term.SaveState(inputStream.Fd())
-	if err != nil {
-		return errors.Wrapf(err, "unable to save terminal state")
-	}
+	if terminal.IsTerminal(int(inputStream.Fd())) {
+		oldTermState, err := term.SaveState(inputStream.Fd())
+		if err != nil {
+			return errors.Wrapf(err, "unable to save terminal state")
+		}
 
-	defer term.RestoreTerminal(inputStream.Fd(), oldTermState)
+		defer term.RestoreTerminal(inputStream.Fd(), oldTermState)
+	}
 
 	// Put both input and output into raw
 	if !noStdIn {
@@ -70,6 +73,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
 	}
 	defer conn.Close()
+
+	// signal back that the connection was made
+	attached <- true
 
 	receiveStdoutError := make(chan error)
 	if outputStream != nil || errorStream != nil {
