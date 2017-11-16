@@ -9,20 +9,20 @@ function teardown() {
 }
 
 @test "kpod export output flag" {
-    skip "Test needs to be converted to kpod run"
+    skip "Test needs to be converted to kpod run bash -c"
     start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
+    run bash -c crioctl pod run bash -c --config "$TESTDATA"/sandbox_config.json
     echo "$output"
     [ "$status" -eq 0 ]
     pod_id="$output"
-    run crioctl image pull "$IMAGE"
+    run bash -c crioctl image pull "$IMAGE"
     echo "$output"
     [ "$status" -eq 0 ]
-    run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+    run bash -c crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} export -o container.tar "$ctr_id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} export -o container.tar "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs

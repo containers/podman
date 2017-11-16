@@ -22,17 +22,17 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} mount $ctr_id
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} mount $ctr_id
     echo "$output"
     echo ${KPOD_BINARY} ${KPOD_OPTIONS} mount $ctr_id
     [ "$status" -eq 0 ]
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} mount --notruncate | grep $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
     echo "$output"
     [ "$status" -eq 0 ]
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} mount $ctr_id
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} mount $ctr_id
     echo "$output"
     [ "$status" -eq 0 ]
     root="$output"
@@ -40,7 +40,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     touch $root/foobar
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs

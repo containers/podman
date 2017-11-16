@@ -525,7 +525,7 @@ func GetImageService(store storage.Store, defaultTransport string, insecureRegis
 	is := &imageService{
 		store:                 store,
 		defaultTransport:      defaultTransport,
-		indexConfigs:          make(map[string]*indexInfo, 0),
+		indexConfigs:          make(map[string]*indexInfo),
 		insecureRegistryCIDRs: make([]*net.IPNet, 0),
 		registries:            cleanRegistries,
 	}

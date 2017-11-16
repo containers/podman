@@ -411,14 +411,17 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 	resize := make(chan remotecommand.TerminalSize)
 	defer close(resize)
 	err = c.attachContainerSocket(resize, noStdin, detachKeys, attached)
-	if err != nil {
-		return err
-	}
+
+	return err
+
 	// TODO
 	// Re-enable this when mheon is done wth it
+	//if err != nil {
+	//	return err
+	//}
 	//c.ContainerStateToDisk(c)
 
-	return nil
+	//return err
 }
 
 // Mount mounts a container's filesystem on the host

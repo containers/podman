@@ -27,7 +27,7 @@ function start_sleep_container () {
     ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a
     ${KPOD_BINARY} ${KPOD_OPTIONS} logs "$ctr_id"
     crioctl ctr status --id "$ctr_id"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} kill "$ctr_id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} kill "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -44,7 +44,7 @@ function start_sleep_container () {
     ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a
     ${KPOD_BINARY} ${KPOD_OPTIONS} logs "$ctr_id"
     crioctl ctr status --id "$ctr_id"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} kill -s TERM "$ctr_id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} kill -s TERM "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -62,7 +62,7 @@ function start_sleep_container () {
     ${KPOD_BINARY} ${KPOD_OPTIONS} logs "$ctr_id"
     crioctl ctr status --id "$ctr_id"
     ${KPOD_BINARY} ${KPOD_OPTIONS} ps -a
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} kill "k8s_container999_podsandbox1_redhat.test.crio_redhat-test-crio_1"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} kill "k8s_container999_podsandbox1_redhat.test.crio_redhat-test-crio_1"
     echo "$output"
     [ "$status" -eq 0 ]
     cleanup_ctrs
@@ -78,7 +78,7 @@ function start_sleep_container () {
     crioctl ctr status --id "$ctr_id"
     ${KPOD_BINARY} ${KPOD_OPTIONS} logs "$ctr_id"
     crioctl ctr status --id "$ctr_id"
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} kill -s foobar "$ctr_id"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} kill -s foobar "$ctr_id"
     echo "$output"
     [ "$status" -ne 0 ]
     cleanup_ctrs
