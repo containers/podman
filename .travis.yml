@@ -55,5 +55,6 @@ jobs:
         - make integration
       go: 1.8.x
 
-notifications:
-  irc: "chat.freenode.net#cri-o"
+# Turn off notifications until we have our own channel (After rename)
+# notifications:
+#  irc: "chat.freenode.net#cri-o"
