@@ -110,11 +110,7 @@ func boolToSQL(b bool) int {
 
 // Convert a bool from SQL-readable format
 func boolFromSQL(i int) bool {
-	if i == 0 {
-		return false
-	}
-
-	return true
+	return i != 0
 }
 
 // Convert a time.Time into SQL-readable format
@@ -208,7 +204,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	}
 
 	labels := make(map[string]string)
-	if err := json.Unmarshal([]byte(labelsJSON), labels); err != nil {
+	if err := json.Unmarshal([]byte(labelsJSON), &labels); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s labels JSON", id)
 	}
 	ctr.config.Labels = labels
