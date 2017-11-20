@@ -90,3 +90,20 @@ function setup() {
 #    echo "$output"
 #    [ "$status" -eq 0 ]
 }
+
+IMAGE="docker.io/library/fedora:latest"
+
+@test "run limits test" {
+
+    ${KPOD_BINARY} ${KPOD_OPTIONS} pull ${IMAGE}
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched
+    echo $output
+    [ "$status" -eq 0 ]
+
+    run bash -c "export FOO=BAR; ${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit nofile=2048:2048 ${IMAGE} ulimit -n | tr -d '\r'"
+    echo $output
+    [ "$status" -eq 0 ]
+    [ "$output" = 2048 ]
+
+}
