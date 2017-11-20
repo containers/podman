@@ -109,6 +109,10 @@ func (s *SQLState) Container(id string) (*Container, error) {
                            containerState ON containers.Id = containerState.Id
                        WHERE containers.Id=?;`
 
+	if id == "" {
+		return nil, ErrEmptyID
+	}
+
 	if !s.valid {
 		return nil, ErrDBClosed
 	}
@@ -137,6 +141,10 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
                        WHERE (containers.Id LIKE ?) OR containers.Name=?;`
+
+	if idOrName == "" {
+		return nil, ErrEmptyID
+	}
 
 	if !s.valid {
 		return nil, ErrDBClosed
@@ -177,6 +185,10 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
 // It accepts a full ID
 func (s *SQLState) HasContainer(id string) (bool, error) {
 	const query = "SELECT 1 FROM containers WHERE Id=?;"
+
+	if id == "" {
+		return false, ErrEmptyID
+	}
 
 	if !s.valid {
 		return false, ErrDBClosed
@@ -225,23 +237,6 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
 	}
 
-	// Save the container's runtime spec to disk
-	specJSON, err := json.Marshal(ctr.config.Spec)
-	if err != nil {
-		return errors.Wrapf(err, "error marshalling container %s spec to JSON", ctr.ID())
-	}
-	specPath := getSpecPath(s.specsDir, ctr.ID())
-	if err := ioutil.WriteFile(specPath, specJSON, 0750); err != nil {
-		return errors.Wrapf(err, "error saving container %s spec JSON to disk", ctr.ID())
-	}
-	defer func() {
-		if err != nil {
-			if err2 := os.Remove(specPath); err2 != nil {
-				logrus.Errorf("Error removing container %s JSON spec from state: %v", ctr.ID(), err2)
-			}
-		}
-	}()
-
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -287,6 +282,23 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}
+
+	// Save the container's runtime spec to disk
+	specJSON, err := json.Marshal(ctr.config.Spec)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s spec to JSON", ctr.ID())
+	}
+	specPath := getSpecPath(s.specsDir, ctr.ID())
+	if err := ioutil.WriteFile(specPath, specJSON, 0750); err != nil {
+		return errors.Wrapf(err, "error saving container %s spec JSON to disk", ctr.ID())
+	}
+	defer func() {
+		if err != nil {
+			if err2 := os.Remove(specPath); err2 != nil {
+				logrus.Errorf("Error removing container %s JSON spec from state: %v", ctr.ID(), err2)
+			}
+		}
+	}()
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to add container %s", ctr.ID())
@@ -411,7 +423,7 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 	}()
 
 	// Add container state to the database
-	_, err = tx.Exec(update,
+	result, err := tx.Exec(update,
 		ctr.state.State,
 		ctr.state.ConfigPath,
 		ctr.state.RunDir,
@@ -422,6 +434,13 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving number of rows modified by update of container %s", ctr.ID())
+	}
+	if rows == 0 {
+		return ErrNoSuchCtr
 	}
 
 	if err := tx.Commit(); err != nil {
