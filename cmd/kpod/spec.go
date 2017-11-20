@@ -55,6 +55,7 @@ func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g := generate.New()
+	g.AddCgroupsMount("ro")
 	g.SetProcessCwd(config.workDir)
 	g.SetProcessArgs(config.command)
 	g.SetProcessTerminal(config.tty)
