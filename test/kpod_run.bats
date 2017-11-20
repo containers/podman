@@ -101,9 +101,18 @@ IMAGE="docker.io/library/fedora:latest"
     echo $output
     [ "$status" -eq 0 ]
 
-    run bash -c "export FOO=BAR; ${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit nofile=2048:2048 ${IMAGE} ulimit -n | tr -d '\r'"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit nofile=2048:2048 ${IMAGE} ulimit -n | tr -d '\r'"
     echo $output
     [ "$status" -eq 0 ]
     [ "$output" = 2048 ]
+
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --oom-kill-disable=true ${IMAGE} echo memory-hog"
+    echo $output
+    [ "$status" -eq 0 ]
+
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --oom-score-adj=100 ${IMAGE} cat /proc/self/oom_score_adj | tr -d '\r'"
+    echo $output
+    [ "$status" -eq 0 ]
+    [ "$output" = 100 ]
 
 }
