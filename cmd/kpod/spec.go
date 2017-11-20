@@ -96,6 +96,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		g.SetLinuxResourcesMemorySwappiness(config.resources.memorySwapiness)
 	}
 	g.SetLinuxResourcesMemoryDisableOOMKiller(config.resources.disableOomKiller)
+	g.SetProcessOOMScoreAdj(config.resources.oomScoreAdj)
 
 	// RESOURCES - CPU
 
@@ -176,7 +177,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	/*
-			OOMScoreAdj: &config.resources.oomScoreAdj,
 			Hooks: &configSpec.Hooks{},
 			//Annotations
 				Resources: &configSpec.LinuxResources{
