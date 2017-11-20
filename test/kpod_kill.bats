@@ -6,6 +6,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 function start_sleep_container () {
     pod_id=$(crioctl pod run --config "$TESTDATA"/sandbox_config.json)
     ctr_id=$(crioctl ctr create --config "$TESTDATA"/container_config_sleep.json --pod "$pod_id")

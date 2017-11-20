@@ -2,8 +2,6 @@
 
 load helpers
 
-IMAGE="alpine:latest"
-
 function teardown() {
   cleanup_test
 }

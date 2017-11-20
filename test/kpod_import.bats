@@ -8,6 +8,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "kpod import with source and reference" {
     skip "Test needs to be converted to kpod run bash -c"
     start_crio

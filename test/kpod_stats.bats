@@ -6,6 +6,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "stats single output" {
     skip "Test needs to be converted to kpod run"
     start_crio

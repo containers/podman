@@ -8,6 +8,10 @@ function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "kpod rename successful" {
     skip "Test needs to be converted to kpod run"
     start_crio
