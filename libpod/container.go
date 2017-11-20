@@ -67,7 +67,7 @@ type containerRuntimeInfo struct {
 	RunDir string `json:"runDir,omitempty"`
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
-	Mounted bool `json:"-"`
+	Mounted bool `json:"mounted,omitempty"`
 	// MountPoint contains the path to the container's mounted storage
 	Mountpoint string `json:"mountPoint,omitempty"`
 	// StartedTime is the time the container was started
