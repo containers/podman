@@ -2,6 +2,10 @@ package libpod
 
 // State is a storage backend for libpod's current state
 type State interface {
+	// Close performs any pre-exit cleanup (e.g. closing database
+	// connections) that may be required
+	Close() error
+
 	// Accepts full ID of container
 	Container(id string) (*Container, error)
 	// Accepts full or partial IDs (as long as they are unique) and names
@@ -17,6 +21,10 @@ type State interface {
 	// The container will only be removed from the state, not from the pod
 	// which the container belongs to
 	RemoveContainer(ctr *Container) error
+	// UpdateContainer updates a container's state from the backing store
+	UpdateContainer(ctr *Container) error
+	// SaveContainer saves a container's current state to the backing store
+	SaveContainer(ctr *Container) error
 	// Retrieves all containers presently in state
 	AllContainers() ([]*Container, error)
 

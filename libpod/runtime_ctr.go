@@ -19,14 +19,14 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (ctr *Container, err error) {
+func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}
 
-	ctr, err = newContainer(spec)
+	ctr, err := newContainer(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (ctr
 		}
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && ctr.pod != nil {
 			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
 				logrus.Errorf("Error removing partially-created container from pod %s: %s", ctr.pod.ID(), err2)
 			}
@@ -95,17 +95,21 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 		return ErrCtrRemoved
 	}
 
-	// TODO check container status and unmount storage
-	// TODO check that no other containers depend on this container's
-	// namespaces
-	status, err := c.State()
-	if err != nil {
+	// Update the container to get current state
+	if err := r.state.UpdateContainer(c); err != nil {
 		return err
 	}
 
-	// A container cannot be removed if it is running
-	if status == ContainerStateRunning {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running", c.ID())
+	// Check that the container's in a good state to be removed
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateCreated ||
+		c.state.State == ContainerStateStopped) {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running or paused", c.ID())
+	}
+
+	// Stop the container's storage
+	if err := c.teardownStorage(); err != nil {
+		return err
 	}
 
 	if err := r.state.RemoveContainer(c); err != nil {

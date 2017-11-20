@@ -56,6 +56,10 @@ var (
 	// further operations can be performed on it
 	ErrPodRemoved = errors.New("pod has already been removed")
 
+	// ErrDBClosed indicates that the connection to the state database has
+	// already been closed
+	ErrDBClosed = errors.New("database connection already closed")
+
 	// ErrNotImplemented indicates that the requested functionality is not
 	// yet present
 	ErrNotImplemented = errors.New("not yet implemented")

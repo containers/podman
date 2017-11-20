@@ -32,6 +32,12 @@ func NewInMemoryState() (State, error) {
 	return state, nil
 }
 
+// Close the state before shutdown
+// This is a no-op as we have no backing disk
+func (s *InMemoryState) Close() error {
+	return nil
+}
+
 // Container retrieves a container from its full ID
 func (s *InMemoryState) Container(id string) (*Container, error) {
 	if id == "" {
@@ -144,6 +150,21 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	delete(s.containers, ctr.ID())
 	s.ctrNameIndex.Release(ctr.Name())
 
+	return nil
+}
+
+// UpdateContainer updates a container's state
+// As all state is in-memory, no update will be required
+// As such this is a no-op
+func (s *InMemoryState) UpdateContainer(ctr *Container) error {
+	return nil
+}
+
+// SaveContainer saves a container's state
+// As all state is in-memory, any changes are always reflected as soon as they
+// are made
+// As such this is a no-op
+func (s *InMemoryState) SaveContainer(ctr *Container) error {
 	return nil
 }
 
