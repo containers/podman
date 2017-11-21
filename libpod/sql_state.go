@@ -103,7 +103,9 @@ func (s *SQLState) Container(id string) (*Container, error) {
                               containerState.MountPoint,
                               containerState.StartedTime,
                               containerState.FinishedTime,
-                              containerState.ExitCode
+                              containerState.ExitCode,
+                              containerState.OomKilled,
+                              containerState.Pid
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -136,7 +138,9 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
                               containerState.MountPoint,
                               containerState.StartedTime,
                               containerState.FinishedTime,
-                              containerState.ExitCode
+                              containerState.ExitCode,
+                              containerState.OomKilled,
+                              containerState.Pid
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -220,7 +224,7 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 	)
 
@@ -278,7 +282,9 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		ctr.state.Mountpoint,
 		timeToSQL(ctr.state.StartedTime),
 		timeToSQL(ctr.state.FinishedTime),
-		ctr.state.ExitCode)
+		ctr.state.ExitCode,
+		boolToSQL(ctr.state.OOMKilled),
+		ctr.state.PID)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}
@@ -315,7 +321,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               Mountpoint,
                               StartedTime,
                               FinishedTime,
-                              ExitCode
+                              ExitCode,
+                              OomKilled,
+                              Pid
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -326,6 +334,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		startedTimeString  string
 		finishedTimeString string
 		exitCode           int32
+		oomKilled          int
+		pid                int
 	)
 
 	if !s.valid {
@@ -344,7 +354,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&mountpoint,
 		&startedTimeString,
 		&finishedTimeString,
-		&exitCode)
+		&exitCode,
+		&oomKilled,
+		&pid)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -364,6 +376,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	newState.RunDir = runDir
 	newState.Mountpoint = mountpoint
 	newState.ExitCode = exitCode
+	newState.OOMKilled = boolFromSQL(oomKilled)
+	newState.PID = pid
 
 	if newState.Mountpoint != "" {
 		newState.Mounted = true
@@ -396,7 +410,9 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
                           Mountpoint=?,
                           StartedTime=?,
                           FinishedTime=?,
-                          ExitCode=?
+                          ExitCode=?,
+                          OomKilled=?,
+                          Pid=?
                        WHERE Id=?;`
 
 	s.lock.Lock()
@@ -431,6 +447,8 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		timeToSQL(ctr.state.StartedTime),
 		timeToSQL(ctr.state.FinishedTime),
 		ctr.state.ExitCode,
+		boolToSQL(ctr.state.OOMKilled),
+		ctr.state.PID,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
@@ -521,7 +539,9 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
                               containerState.MountPoint,
                               containerState.StartedTime,
                               containerState.FinishedTime,
-                              containerState.ExitCode
+                              containerState.ExitCode,
+                              containerState.OomKilled,
+                              containerState.Pid
                       FROM containers
                       INNER JOIN
                           containerState ON containers.Id = containerState.Id;`
