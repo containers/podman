@@ -34,7 +34,7 @@ func rmCmd(c *cli.Context) error {
 
 	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "Could not get runtime")
+		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
