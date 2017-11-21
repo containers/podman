@@ -3,12 +3,15 @@ package libpod
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -469,7 +472,40 @@ func (c *Container) Unpause() error {
 // Export exports a container's root filesystem as a tar archive
 // The archive will be saved as a file at the given path
 func (c *Container) Export(path string) error {
-	return ErrNotImplemented
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	mountPoint := c.state.Mountpoint
+	if !c.state.Mounted {
+		mount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
+		if err != nil {
+			return errors.Wrapf(err, "error mounting container %q", c.ID())
+		}
+		mountPoint = mount
+		defer func() {
+			if err := c.runtime.store.Unmount(c.ID()); err != nil {
+				logrus.Errorf("error unmounting container %q: %v", c.ID(), err)
+			}
+		}()
+	}
+
+	input, err := archive.Tar(mountPoint, archive.Uncompressed)
+	if err != nil {
+		return errors.Wrapf(err, "error reading container directory %q", c.ID())
+	}
+
+	outFile, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "error creating file %q", path)
+	}
+	defer outFile.Close()
+
+	_, err = io.Copy(outFile, input)
+	return err
 }
 
 // Commit commits the changes between a container and its image, creating a new
