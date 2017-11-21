@@ -4,9 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -30,40 +28,31 @@ var (
 
 // saveCmd saves the image to either docker-archive or oci
 func rmCmd(c *cli.Context) error {
-	args := c.Args()
-	if len(args) == 0 {
-		return errors.Errorf("specify one or more containers to remove")
-	}
 	if err := validateFlags(c, rmFlags); err != nil {
 		return err
 	}
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "Could not get runtime")
 	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not get container server")
-	}
-	defer server.Shutdown()
-	err = server.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
-	force := c.Bool("force")
+	defer runtime.Shutdown(false)
 
-	for _, container := range c.Args() {
-		id, err2 := server.Remove(context.Background(), container, force)
-		if err2 != nil {
-			if err == nil {
-				err = err2
-			} else {
-				err = errors.Wrapf(err, "%v.  Stop the container before attempting removal or use -f\n", err2)
-			}
-		} else {
-			fmt.Println(id)
-		}
+	args := c.Args()
+	if len(args) == 0 {
+		return errors.Errorf("specify one or more containers to remove")
 	}
-	return err
+
+	for _, container := range args {
+		ctr, err := runtime.LookupContainer(container)
+		if err != nil {
+			return errors.Wrapf(err, "error looking up container", container)
+		}
+		err = runtime.RemoveContainer(ctr, c.Bool("force"))
+		if err != nil {
+			return errors.Wrapf(err, "error removing container %q", ctr.ID())
+		}
+		fmt.Println(ctr.ID())
+	}
+	return nil
 }
