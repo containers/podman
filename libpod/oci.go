@@ -139,7 +139,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
 	// TODO container log location should be configurable
 	// The default also likely shouldn't be this
-	args = append(args, "-l", filepath.Join(ctr.config.StaticDir, "ctr.log"))
+	args = append(args, "-l", ctr.logPath())
 	args = append(args, "--exit-dir", r.exitsDir)
 	args = append(args, "--socket-dir-path", r.socketsDir)
 	if ctr.config.Spec.Process.Terminal {
