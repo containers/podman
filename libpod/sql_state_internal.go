@@ -61,7 +61,10 @@ func prepareDB(db *sql.DB) (err error) {
             StartedTime TEXT NUT NULL,
             FinishedTime TEXT NOT NULL,
             ExitCode INTEGER NOT NULL,
+            OomKilled INTEGER NOT NULL,
+            Pid INTEGER NOT NULL,
             CHECK (State>0),
+            CHECK (OomKilled IN (0, 1)),
             FOREIGN KEY (Id) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
         );
         `
@@ -149,6 +152,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 		startedTimeString  string
 		finishedTimeString string
 		exitCode           int32
+		oomKilled          int
+		pid                int
 	)
 
 	err := row.Scan(
@@ -169,7 +174,9 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 		&mountpoint,
 		&startedTimeString,
 		&finishedTimeString,
-		&exitCode)
+		&exitCode,
+		&oomKilled,
+		&pid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -197,6 +204,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	ctr.state.RunDir = runDir
 	ctr.state.Mountpoint = mountpoint
 	ctr.state.ExitCode = exitCode
+	ctr.state.OOMKilled = boolFromSQL(oomKilled)
+	ctr.state.PID = pid
 
 	// TODO should we store this in the database separately instead?
 	if ctr.state.Mountpoint != "" {
