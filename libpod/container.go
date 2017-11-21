@@ -76,6 +76,11 @@ type containerRuntimeInfo struct {
 	FinishedTime time.Time `json:"finishedTime,omitempty"`
 	// ExitCode is the exit code returned when the container stopped
 	ExitCode int32 `json:"exitCode,omitempty"`
+	// OOMKilled indicates that the container was killed as it ran out of
+	// memory
+	OOMKilled bool `json:"oomKilled,omitempty"`
+	// PID is the PID of a running container
+	PID int `json:"pid,omitempty"`
 
 	// TODO: Save information about image used in container if one is used
 }
@@ -129,10 +134,10 @@ func (c *Container) Name() string {
 // The spec returned is the one used to create the container. The running
 // spec may differ slightly as mounts are added based on the image
 func (c *Container) Spec() *spec.Spec {
-	spec := new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(spec)
+	returnSpec := new(spec.Spec)
+	deepcopier.Copy(c.config.Spec).To(returnSpec)
 
-	return spec
+	return returnSpec
 }
 
 // Labels returns the container's labels
@@ -145,16 +150,37 @@ func (c *Container) Labels() map[string]string {
 	return labels
 }
 
+// LogPath returns the path to the container's log file
+// This file will only be present after Init() is called to create the container
+// in runc
+func (c *Container) LogPath() string {
+	// TODO store this in state and allow overriding
+	return c.logPath()
+}
+
 // State returns the current state of the container
 func (c *Container) State() (ContainerState, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if err := c.runtime.state.UpdateContainer(c); err != nil {
-		return ContainerStateUnknown, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if err := c.syncContainer(); err != nil {
+		return ContainerStateUnknown, err
 	}
 
 	return c.state.State, nil
+}
+
+// PID returns the PID of the container
+// An error is returned if the container is not running
+func (c *Container) PID() (int, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return -1, err
+	}
+
+	return c.state.PID, nil
 }
 
 // The path to the container's root filesystem - where the OCI spec will be
@@ -163,9 +189,40 @@ func (c *Container) bundlePath() string {
 	return c.state.RunDir
 }
 
+// The path to the container's logs file
+func (c *Container) logPath() string {
+	return filepath.Join(c.config.StaticDir, "ctr.log")
+}
+
 // Retrieves the path of the container's attach socket
 func (c *Container) attachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
+}
+
+// Sync this container with on-disk state and runc status
+// Should only be called with container lock held
+func (c *Container) syncContainer() error {
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return err
+	}
+
+	// If runc knows about the container, update its status in runc
+	// And then save back to disk
+	if (c.state.State != ContainerStateUnknown) &&
+		(c.state.State != ContainerStateConfigured) {
+		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+			return err
+		}
+		if err := c.runtime.state.SaveContainer(c); err != nil {
+			return err
+		}
+	}
+
+	if !c.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+	}
+
+	return nil
 }
 
 // Make a new container
@@ -191,9 +248,6 @@ func newContainer(rspec *spec.Spec) (*Container, error) {
 
 // Create container root filesystem for use
 func (c *Container) setupStorage() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
@@ -220,9 +274,6 @@ func (c *Container) setupStorage() error {
 
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
@@ -251,12 +302,8 @@ func (c *Container) Init() (err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if err := c.runtime.state.UpdateContainer(c); err != nil {
-		return errors.Wrapf(err, "error updating container %s state", c.ID())
-	}
-
-	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+	if err := c.syncContainer(); err != nil {
+		return err
 	}
 
 	if c.state.State != ContainerStateConfigured {
@@ -325,12 +372,8 @@ func (c *Container) Start() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if err := c.runtime.state.UpdateContainer(c); err != nil {
-		return errors.Wrapf(err, "error updating container %s state", c.ID())
-	}
-
-	if !c.valid {
-		return ErrCtrRemoved
+	if err := c.syncContainer(); err != nil {
+		return err
 	}
 
 	// Container must be created or stopped to be started
@@ -344,8 +387,10 @@ func (c *Container) Start() error {
 
 	logrus.Debugf("Started container %s", c.ID())
 
-	c.state.StartedTime = time.Now()
-	c.state.State = ContainerStateRunning
+	// Update container's state as it should be ContainerStateRunning now
+	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		return err
+	}
 
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error saving container %s state", c.ID())
@@ -373,12 +418,8 @@ func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
 func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
-	if err := c.runtime.state.UpdateContainer(c); err != nil {
-		return errors.Wrapf(err, "error updating container %s state", c.ID())
-	}
-
-	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+	if err := c.syncContainer(); err != nil {
+		return err
 	}
 
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {

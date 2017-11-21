@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	// TODO import these functions into libpod and remove the import
 	// Trying to keep libpod from depending on CRI-O code
@@ -136,7 +139,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
 	// TODO container log location should be configurable
 	// The default also likely shouldn't be this
-	args = append(args, "-l", filepath.Join(ctr.config.StaticDir, "ctr.log"))
+	args = append(args, "-l", ctr.logPath())
 	args = append(args, "--exit-dir", r.exitsDir)
 	args = append(args, "--socket-dir-path", r.socketsDir)
 	if ctr.config.Spec.Process.Terminal {
@@ -255,19 +258,90 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 }
 
 // updateContainerStatus retrieves the current status of the container from the
-// runtime
-// remove nolint when implemented
-func (r *OCIRuntime) updateContainerStatus(ctr *Container) error { //nolint
-	return ErrNotImplemented
+// runtime. It updates the container's state but does not save it.
+func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
+	state := new(spec.State)
+
+	out, err := exec.Command(r.path, "state", ctr.ID()).CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
+	}
+
+	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
+		return errors.Wrapf(err, "error decoding container status for container %s", ctr.ID())
+	}
+
+	ctr.state.PID = state.Pid
+
+	switch state.Status {
+	case "created":
+		ctr.state.State = ContainerStateCreated
+	case "paused":
+		ctr.state.State = ContainerStatePaused
+	case "running":
+		ctr.state.State = ContainerStateRunning
+	case "stopped":
+		ctr.state.State = ContainerStateStopped
+	default:
+		return errors.Wrapf(ErrInternal, "unrecognized status returned by runc for container %s: %s",
+			ctr.ID(), state.Status)
+	}
+
+	if ctr.state.State == ContainerStateStopped {
+		exitFile := filepath.Join(r.exitsDir, ctr.ID())
+		var fi os.FileInfo
+		err = kwait.ExponentialBackoff(
+			kwait.Backoff{
+				Duration: 500 * time.Millisecond,
+				Factor:   1.2,
+				Steps:    6,
+			},
+			func() (bool, error) {
+				var err error
+				fi, err = os.Stat(exitFile)
+				if err != nil {
+					// wait longer
+					return false, nil
+				}
+				return true, nil
+			})
+		if err != nil {
+			ctr.state.ExitCode = -1
+			ctr.state.FinishedTime = time.Now()
+			return errors.Wrapf(err, "no exit file for container %s found", ctr.ID())
+		}
+
+		ctr.state.FinishedTime = getFinishedTime(fi)
+		statusCodeStr, err := ioutil.ReadFile(exitFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read exit file for container %s", ctr.ID())
+		}
+		statusCode, err := strconv.Atoi(string(statusCodeStr))
+		if err != nil {
+			return errors.Wrapf(err, "error convertaing exit status code for container %s to int",
+				ctr.ID())
+		}
+		ctr.state.ExitCode = int32(statusCode)
+
+		oomFilePath := filepath.Join(ctr.bundlePath(), "oom")
+		if _, err = os.Stat(oomFilePath); err == nil {
+			ctr.state.OOMKilled = true
+		}
+
+	}
+
+	return nil
 }
 
 // startContainer starts the given container
-// remove nolint when function is complete
-func (r *OCIRuntime) startContainer(ctr *Container) error { //nolint
+// Sets time the container was started, but does not save it.
+func (r *OCIRuntime) startContainer(ctr *Container) error {
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", ctr.ID())
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "start", ctr.ID()); err != nil {
+		return err
+	}
 
-	// TODO record start time in container struct
+	ctr.state.StartedTime = time.Now()
 
-	return err
+	return nil
 }

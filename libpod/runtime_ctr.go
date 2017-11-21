@@ -91,12 +91,8 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 		return ErrRuntimeStopped
 	}
 
-	if !c.valid {
-		return ErrCtrRemoved
-	}
-
 	// Update the container to get current state
-	if err := r.state.UpdateContainer(c); err != nil {
+	if err := c.syncContainer(); err != nil {
 		return err
 	}
 
@@ -224,10 +220,4 @@ func (r *Runtime) removeMultipleContainers(containers []storage.Container) error
 		}
 	}
 	return nil
-}
-
-// ContainerConfigToDisk saves a container's nonvolatile configuration to disk
-// remove nolint when implemented
-func (r *Runtime) containerConfigToDisk(ctr *Container) error { //nolint
-	return ErrNotImplemented
 }
