@@ -150,6 +150,14 @@ func (c *Container) Labels() map[string]string {
 	return labels
 }
 
+// LogPath returns the path to the container's log file
+// This file will only be present after Init() is called to create the container
+// in runc
+func (c *Container) LogPath() string {
+	// TODO store this in state and allow overriding
+	return c.logPath()
+}
+
 // State returns the current state of the container
 func (c *Container) State() (ContainerState, error) {
 	c.lock.Lock()
@@ -179,6 +187,11 @@ func (c *Container) PID() (int, error) {
 // placed, amongst other things
 func (c *Container) bundlePath() string {
 	return c.state.RunDir
+}
+
+// The path to the container's logs file
+func (c *Container) logPath() string {
+	return filepath.Join(c.config.StaticDir, "ctr.log")
 }
 
 // Retrieves the path of the container's attach socket
