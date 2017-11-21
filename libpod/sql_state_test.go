@@ -33,6 +33,7 @@ func getTestContainer(id, name string) *Container {
 			RunDir:     "/does/not/exist/tmp/",
 			Mounted:    true,
 			Mountpoint: "/does/not/exist/tmp/" + id,
+			PID:        1234,
 		},
 		valid: true,
 	}
