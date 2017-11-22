@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -61,6 +62,7 @@ type createResourceConfig struct {
 }
 
 type createConfig struct {
+	runtime            *libpod.Runtime
 	args               []string
 	capAdd             []string // cap-add
 	capDrop            []string // cap-drop
@@ -90,8 +92,8 @@ type createConfig struct {
 	network            string            //network
 	networkAlias       []string          //network-alias
 	nsIPC              string            // ipc
-	nsNet              string            //net
-	nsPID              string            //pid
+	nsNET              string            //net
+	pidMode            container.PidMode //pid
 	nsUser             string
 	pod                string   //pod
 	privileged         bool     //privileged
@@ -329,8 +331,13 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	if !c.Bool("detach") && !tty {
 		tty = true
 	}
+	pidMode := container.PidMode(c.String("pid"))
+	if !pidMode.Valid() {
+		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
+	}
 
 	config := &createConfig{
+		runtime:        runtime,
 		capAdd:         c.StringSlice("cap-add"),
 		capDrop:        c.StringSlice("cap-drop"),
 		cgroupParent:   c.String("cgroup-parent"),
@@ -357,8 +364,8 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		network:        c.String("network"),
 		networkAlias:   c.StringSlice("network-alias"),
 		nsIPC:          c.String("ipc"),
-		nsNet:          c.String("net"),
-		nsPID:          c.String("pid"),
+		nsNET:          c.String("net"),
+		pidMode:        pidMode,
 		pod:            c.String("pod"),
 		privileged:     c.Bool("privileged"),
 		publish:        c.StringSlice("publish"),
