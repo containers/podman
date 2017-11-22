@@ -183,6 +183,18 @@ func (c *Container) PID() (int, error) {
 	return c.state.PID, nil
 }
 
+// MountPoint returns the mount point of the continer
+func (c *Container) MountPoint() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+
+	return c.state.Mountpoint, nil
+}
+
 // The path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
@@ -452,8 +464,63 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 
 // Mount mounts a container's filesystem on the host
 // The path where the container has been mounted is returned
-func (c *Container) Mount() (string, error) {
-	return "", ErrNotImplemented
+func (c *Container) Mount(label string) (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return "", err
+	}
+
+	// return mountpoint if container already mounted
+	if c.state.Mounted {
+		return c.state.Mountpoint, nil
+	}
+
+	mountLabel := label
+	if label == "" {
+		mountLabel = c.config.MountLabel
+	}
+	mountPoint, err := c.runtime.store.Mount(c.ID(), mountLabel)
+	if err != nil {
+		return "", err
+	}
+	c.state.Mountpoint = mountPoint
+	c.state.Mounted = true
+	c.config.MountLabel = mountLabel
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return "", errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+
+	return mountPoint, nil
+}
+
+// Unmount unmounts a container's filesystem on the host
+func (c *Container) Unmount() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+	}
+
+	if !c.state.Mounted {
+		return nil
+	}
+
+	err := c.runtime.store.Unmount(c.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error unmounting container %q", c.ID())
+	}
+	c.state.Mountpoint = ""
+	c.state.Mounted = false
+
+	return c.runtime.state.SaveContainer(c)
 }
 
 // Pause pauses a container
