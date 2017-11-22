@@ -17,6 +17,12 @@ var (
 )
 
 func umountCmd(c *cli.Context) error {
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.Shutdown(false)
+
 	args := c.Args()
 	if len(args) == 0 {
 		return errors.Errorf("container ID must be specified")
@@ -24,18 +30,11 @@ func umountCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments specified")
 	}
-	config, err := getConfig(c)
+
+	ctr, err := runtime.LookupContainer(args[0])
 	if err != nil {
-		return errors.Wrapf(err, "Could not get config")
-	}
-	store, err := getStore(config)
-	if err != nil {
-		return err
+		return errors.Wrapf(err, "error looking up container %q", args[0])
 	}
 
-	err = store.Unmount(args[0])
-	if err != nil {
-		return errors.Wrapf(err, "error unmounting container %q", args[0])
-	}
-	return nil
+	return ctr.Unmount()
 }
