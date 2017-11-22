@@ -17,6 +17,33 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator) {
+	if !config.privileged {
+		for _, mp := range []string{
+			"/proc/kcore",
+			"/proc/latency_stats",
+			"/proc/timer_list",
+			"/proc/timer_stats",
+			"/proc/sched_debug",
+			"/proc/scsi",
+			"/sys/firmware",
+		} {
+			g.AddLinuxMaskedPaths(mp)
+		}
+
+		for _, rp := range []string{
+			"/proc/asound",
+			"/proc/bus",
+			"/proc/fs",
+			"/proc/irq",
+			"/proc/sys",
+			"/proc/sysrq-trigger",
+		} {
+			g.AddLinuxReadonlyPaths(rp)
+		}
+	}
+}
+
 func addRlimits(config *createConfig, g *generate.Generator) error {
 	var (
 		ul  *units.Ulimit
@@ -127,6 +154,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g.SetProcessApparmorProfile(config.apparmorProfile)
 	g.SetProcessSelinuxLabel(config.processLabel)
 	g.SetLinuxMountLabel(config.mountLabel)
+	blockAccessToKernelFilesystems(config, &g)
 
 	// RESOURCES - PIDS
 	if config.resources.pidsLimit != 0 {
