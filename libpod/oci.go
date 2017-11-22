@@ -345,3 +345,13 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 
 	return nil
 }
+
+// pauseContainer pauses the given container
+func (r *OCIRuntime) pauseContainer(ctr *Container) error {
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "pause", ctr.ID())
+}
+
+// unpauseContainer unpauses the given container
+func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "resume", ctr.ID())
+}

@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
-	"github.com/urfave/cli"
 	"os"
+
+	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -24,35 +24,35 @@ var (
 )
 
 func unpauseCmd(c *cli.Context) error {
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.Shutdown(false)
+
 	args := c.Args()
 	if len(args) < 1 {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
-	config, err := getConfig(c)
-	if err != nil {
-		return errors.Wrapf(err, "could not get config")
-	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not get container server")
-	}
-	defer server.Shutdown()
-	if err := server.Update(); err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
 	var lastError error
-	for _, container := range c.Args() {
-		cid, err := server.ContainerUnpause(container)
+	for _, arg := range args {
+		ctr, err := runtime.LookupContainer(arg)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "failed to unpause container %v", container)
+			lastError = errors.Wrapf(err, "error looking up container %q", arg)
+			continue
+		}
+		if err = ctr.Unpause(); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to unpause container %v", ctr.ID())
 		} else {
-			fmt.Println(cid)
+			fmt.Println(ctr.ID())
 		}
 	}
-
 	return lastError
 }
