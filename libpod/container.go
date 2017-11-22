@@ -536,12 +536,63 @@ func (c *Container) Unmount() error {
 
 // Pause pauses a container
 func (c *Container) Pause() error {
-	return ErrNotImplemented
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "%q is already paused", c.ID())
+	}
+	if c.state.State != ContainerStateRunning && c.state.State != ContainerStateCreated {
+		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running/created, can't pause", c.state.State)
+	}
+	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Paused container %s", c.ID())
+
+	// Update container's state as it should be ContainerStatePaused now
+	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		return err
+	}
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+	return nil
 }
 
 // Unpause unpauses a container
 func (c *Container) Unpause() error {
-	return ErrNotImplemented
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State != ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "%q is not paused, can't unpause", c.ID())
+	}
+	if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Unpaused container %s", c.ID())
+
+	// Update container's state as it should be ContainerStateRunning now
+	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		return err
+	}
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+	return nil
 }
 
 // Export exports a container's root filesystem as a tar archive
