@@ -544,7 +544,8 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
                               containerState.Pid
                       FROM containers
                       INNER JOIN
-                          containerState ON containers.Id = containerState.Id;`
+                          containerState ON containers.Id = containerState.Id
+                      ORDER BY containers.CreatedTime DESC;`
 
 	if !s.valid {
 		return nil, ErrDBClosed

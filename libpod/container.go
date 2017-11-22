@@ -46,7 +46,7 @@ const (
 
 // Container is a single OCI container
 type Container struct {
-	config *containerConfig
+	config *ContainerConfig
 
 	pod         *Pod
 	runningSpec *spec.Spec
@@ -59,7 +59,7 @@ type Container struct {
 	runtime *Runtime
 }
 
-// containerState contains the current state of the container
+// containerRuntimeInfo contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
 type containerRuntimeInfo struct {
 	// The current state of the running container
@@ -88,10 +88,10 @@ type containerRuntimeInfo struct {
 	// TODO: Save information about image used in container if one is used
 }
 
-// containerConfig contains all information that was used to create the
+// ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
-type containerConfig struct {
+type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
@@ -151,6 +151,14 @@ func (c *Container) Labels() map[string]string {
 	}
 
 	return labels
+}
+
+// Config returns the configuration used to create the container
+func (c *Container) Config() *ContainerConfig {
+	returnConfig := new(ContainerConfig)
+	deepcopier.Copy(c.config).To(returnConfig)
+
+	return returnConfig
 }
 
 // LogPath returns the path to the container's log file
@@ -235,7 +243,7 @@ func newContainer(rspec *spec.Spec) (*Container, error) {
 	}
 
 	ctr := new(Container)
-	ctr.config = new(containerConfig)
+	ctr.config = new(ContainerConfig)
 	ctr.state = new(containerRuntimeInfo)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()

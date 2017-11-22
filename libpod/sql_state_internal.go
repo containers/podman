@@ -186,7 +186,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	}
 
 	ctr := new(Container)
-	ctr.config = new(containerConfig)
+	ctr.config = new(ContainerConfig)
 	ctr.state = new(containerRuntimeInfo)
 
 	ctr.config.ID = id
