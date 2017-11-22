@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -42,6 +43,28 @@ func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator)
 			g.AddLinuxReadonlyPaths(rp)
 		}
 	}
+}
+
+func addPidNS(config *createConfig, g *generate.Generator) error {
+	pidMode := config.pidMode
+	if pidMode.IsHost() {
+		return g.RemoveLinuxNamespace("pid")
+	}
+	if pidMode.IsContainer() {
+		ctr, err := config.runtime.LookupContainer(pidMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", pidMode.Container())
+		}
+		pid, err := ctr.PID()
+		if err != nil {
+			return errors.Wrapf(err, "Failed to get pid of container %q", pidMode.Container())
+		}
+		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", pid)
+		if err := g.AddOrReplaceLinuxNamespace(libpod.PIDNamespace, pidNsPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func addRlimits(config *createConfig, g *generate.Generator) error {
@@ -179,6 +202,10 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	if err := addRlimits(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addPidNS(config, &g); err != nil {
 		return nil, err
 	}
 
