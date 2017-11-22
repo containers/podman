@@ -142,8 +142,8 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	if config.resources.kernelMemory != 0 {
 		g.SetLinuxResourcesMemoryKernel(config.resources.kernelMemory)
 	}
-	if config.resources.memorySwapiness != 0 {
-		g.SetLinuxResourcesMemorySwappiness(config.resources.memorySwapiness)
+	if config.resources.memorySwappiness != -1 {
+		g.SetLinuxResourcesMemorySwappiness(uint64(config.resources.memorySwappiness))
 	}
 	g.SetLinuxResourcesMemoryDisableOOMKiller(config.resources.disableOomKiller)
 	g.SetProcessOOMScoreAdj(config.resources.oomScoreAdj)
@@ -263,9 +263,9 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 	bio := spec.LinuxBlockIO{}
 	bio.Weight = &c.resources.blkioWeight
-	if len(c.resources.blkioDevice) > 0 {
+	if len(c.resources.blkioWeightDevice) > 0 {
 		var lwds []spec.LinuxWeightDevice
-		for _, i := range c.resources.blkioDevice {
+		for _, i := range c.resources.blkioWeightDevice {
 			wd, err := validateweightDevice(i)
 			if err != nil {
 				return bio, errors.Wrapf(err, "invalid values for blkio-weight-device")
@@ -293,19 +293,19 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 		}
 		bio.ThrottleWriteBpsDevice = writeBpds
 	}
-	if len(c.resources.deviceReadIops) > 0 {
-		readIops, err := makeThrottleArray(c.resources.deviceReadIops)
+	if len(c.resources.deviceReadIOps) > 0 {
+		readIOps, err := makeThrottleArray(c.resources.deviceReadIOps)
 		if err != nil {
 			return bio, err
 		}
-		bio.ThrottleReadIOPSDevice = readIops
+		bio.ThrottleReadIOPSDevice = readIOps
 	}
-	if len(c.resources.deviceWriteIops) > 0 {
-		writeIops, err := makeThrottleArray(c.resources.deviceWriteIops)
+	if len(c.resources.deviceWriteIOps) > 0 {
+		writeIOps, err := makeThrottleArray(c.resources.deviceWriteIOps)
 		if err != nil {
 			return bio, err
 		}
-		bio.ThrottleWriteIOPSDevice = writeIops
+		bio.ThrottleWriteIOPSDevice = writeIOps
 	}
 
 	return bio, nil

@@ -35,8 +35,8 @@ var (
 )
 
 type createResourceConfig struct {
-	blkioDevice       []string // blkio-weight-device
 	blkioWeight       uint16   // blkio-weight
+	blkioWeightDevice []string // blkio-weight-device
 	cpuPeriod         uint64   // cpu-period
 	cpuQuota          int64    // cpu-quota
 	cpuRtPeriod       uint64   // cpu-rt-period
@@ -46,15 +46,15 @@ type createResourceConfig struct {
 	cpusetCpus        string
 	cpusetMems        string   // cpuset-mems
 	deviceReadBps     []string // device-read-bps
-	deviceReadIops    []string // device-read-iops
+	deviceReadIOps    []string // device-read-iops
 	deviceWriteBps    []string // device-write-bps
-	deviceWriteIops   []string // device-write-iops
+	deviceWriteIOps   []string // device-write-iops
 	disableOomKiller  bool     // oom-kill-disable
 	kernelMemory      int64    // kernel-memory
 	memory            int64    //memory
 	memoryReservation int64    // memory-reservation
 	memorySwap        int64    //memory-swap
-	memorySwapiness   uint64   // memory-swappiness
+	memorySwappiness  int      // memory-swappiness
 	oomScoreAdj       int      //oom-score-adj
 	pidsLimit         int64    // pids-limit
 	shmSize           string
@@ -373,7 +373,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		readOnlyRootfs: c.Bool("read-only"),
 		resources: createResourceConfig{
 			blkioWeight:       blkioWeight,
-			blkioDevice:       c.StringSlice("blkio-weight-device"),
+			blkioWeightDevice: c.StringSlice("blkio-weight-device"),
 			cpuShares:         c.Uint64("cpu-shares"),
 			cpuPeriod:         c.Uint64("cpu-period"),
 			cpusetCpus:        c.String("cpu-period"),
@@ -383,15 +383,15 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			cpuRtRuntime:      c.Int64("cpu-rt-runtime"),
 			cpus:              c.String("cpus"),
 			deviceReadBps:     c.StringSlice("device-read-bps"),
-			deviceReadIops:    c.StringSlice("device-read-iops"),
+			deviceReadIOps:    c.StringSlice("device-read-iops"),
 			deviceWriteBps:    c.StringSlice("device-write-bps"),
-			deviceWriteIops:   c.StringSlice("device-write-iops"),
+			deviceWriteIOps:   c.StringSlice("device-write-iops"),
 			disableOomKiller:  c.Bool("oom-kill-disable"),
 			shmSize:           c.String("shm-size"),
 			memory:            memoryLimit,
 			memoryReservation: memoryReservation,
 			memorySwap:        memorySwap,
-			memorySwapiness:   c.Uint64("memory-swapiness"),
+			memorySwappiness:  c.Int("memory-swappiness"),
 			kernelMemory:      memoryKernel,
 			oomScoreAdj:       c.Int("oom-score-adj"),
 
@@ -418,6 +418,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			return nil, err
 		}
 	}
-
+	warnings, err := verifyContainerResources(config, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, warning := range warnings {
+		fmt.Fprintln(os.Stderr, warning)
+	}
 	return config, nil
 }
