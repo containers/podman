@@ -42,7 +42,7 @@ var (
 	}
 )
 
-// MountOutputParams stores info about each layer
+// jsonMountPoint stores info about each container
 type jsonMountPoint struct {
 	ID         string   `json:"id"`
 	Names      []string `json:"names"`
@@ -50,6 +50,16 @@ type jsonMountPoint struct {
 }
 
 func mountCmd(c *cli.Context) error {
+	if err := validateFlags(c, mountFlags); err != nil {
+		return err
+	}
+
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.Shutdown(false)
+
 	formats := map[string]bool{
 		"":            true,
 		of.JSONString: true,
@@ -64,49 +74,43 @@ func mountCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments specified")
 	}
-	if err := validateFlags(c, mountFlags); err != nil {
-		return err
-	}
-	config, err := getConfig(c)
-	if err != nil {
-		return errors.Wrapf(err, "Could not get config")
-	}
-	store, err := getStore(config)
-	if err != nil {
-		return errors.Wrapf(err, "error getting store")
-	}
+
 	if len(args) == 1 {
 		if json {
 			return errors.Wrapf(err, "json option can not be used with a container id")
 		}
-		mountPoint, err := store.Mount(args[0], c.String("label"))
+		ctr, err := runtime.LookupContainer(args[0])
 		if err != nil {
-			return errors.Wrapf(err, "error finding container %q", args[0])
+			return errors.Wrapf(err, "error looking up container %q", args[0])
+		}
+		mountPoint, err := ctr.Mount(c.String("label"))
+		if err != nil {
+			return errors.Wrapf(err, "error mounting container %q", ctr.ID())
 		}
 		fmt.Printf("%s\n", mountPoint)
 	} else {
 		jsonMountPoints := []jsonMountPoint{}
-		containers, err2 := store.Containers()
+		containers, err2 := runtime.GetContainers()
 		if err2 != nil {
 			return errors.Wrapf(err2, "error reading list of all containers")
 		}
 		for _, container := range containers {
-			layer, err := store.Layer(container.LayerID)
+			mountPoint, err := container.MountPoint()
 			if err != nil {
-				return errors.Wrapf(err, "error finding layer %q for container %q", container.LayerID, container.ID)
+				return errors.Wrapf(err, "error getting mountpoint for %q", container.ID())
 			}
-			if layer.MountPoint == "" {
+			if mountPoint == "" {
 				continue
 			}
 			if json {
-				jsonMountPoints = append(jsonMountPoints, jsonMountPoint{ID: container.ID, Names: container.Names, MountPoint: layer.MountPoint})
+				jsonMountPoints = append(jsonMountPoints, jsonMountPoint{ID: container.ID(), Names: []string{container.Name()}, MountPoint: mountPoint})
 				continue
 			}
 
 			if c.Bool("notruncate") {
-				fmt.Printf("%-64s %s\n", container.ID, layer.MountPoint)
+				fmt.Printf("%-64s %s\n", container.ID(), mountPoint)
 			} else {
-				fmt.Printf("%-12.12s %s\n", container.ID, layer.MountPoint)
+				fmt.Printf("%-12.12s %s\n", container.ID(), mountPoint)
 			}
 		}
 		if json {
