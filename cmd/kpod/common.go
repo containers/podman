@@ -326,6 +326,7 @@ var createFlags = []cli.Flag{
 	cli.Int64Flag{
 		Name:  "memory-swappiness",
 		Usage: "Tune container memory swappiness (0 to 100) (default -1)",
+		Value: -1,
 	},
 	cli.StringFlag{
 		Name:  "name",
