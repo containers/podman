@@ -2,12 +2,21 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
+
+type logOptions struct {
+	details   bool
+	follow    bool
+	sinceTime time.Time
+	tail      uint64
+}
 
 var (
 	logsFlags = []cli.Flag{
@@ -42,46 +51,71 @@ var (
 )
 
 func logsCmd(c *cli.Context) error {
+	if err := validateFlags(c, logsFlags); err != nil {
+		return err
+	}
+
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.Shutdown(false)
+
 	args := c.Args()
 	if len(args) != 1 {
 		return errors.Errorf("'kpod logs' requires exactly one container name/ID")
 	}
-	if err := validateFlags(c, logsFlags); err != nil {
-		return err
-	}
-	container := c.Args().First()
-	var opts libkpod.LogOptions
-	opts.Details = c.Bool("details")
-	opts.Follow = c.Bool("follow")
-	opts.SinceTime = time.Time{}
+
+	sinceTime := time.Time{}
 	if c.IsSet("since") {
 		// parse time, error out if something is wrong
 		since, err := time.Parse("2006-01-02T15:04:05.999999999-07:00", c.String("since"))
 		if err != nil {
 			return errors.Wrapf(err, "could not parse time: %q", c.String("since"))
 		}
-		opts.SinceTime = since
+		sinceTime = since
 	}
-	opts.Tail = c.Uint64("tail")
 
-	config, err := getConfig(c)
-	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+	opts := logOptions{
+		details:   c.Bool("details"),
+		follow:    c.Bool("follow"),
+		sinceTime: sinceTime,
+		tail:      c.Uint64("tail"),
 	}
-	server, err := libkpod.New(config)
+
+	ctr, err := runtime.LookupContainer(args[0])
 	if err != nil {
-		return errors.Wrapf(err, "could not create container server")
+		return err
 	}
-	defer server.Shutdown()
-	err = server.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
+
 	logs := make(chan string)
 	go func() {
-		err = server.GetLogs(container, logs, opts)
+		err = getLogs(ctr, logs, opts)
 	}()
 	printLogs(logs)
+	return err
+}
+
+// getLogs returns the logs of a container from the log file
+// log file is created when the container is started/ran
+func getLogs(container *libpod.Container, logChan chan string, opts logOptions) error {
+	defer close(logChan)
+
+	seekInfo := &tail.SeekInfo{Offset: 0, Whence: 0}
+	if opts.tail > 0 {
+		// seek to correct position in log files
+		seekInfo.Offset = int64(opts.tail)
+		seekInfo.Whence = 2
+	}
+
+	t, err := tail.TailFile(container.LogPath(), tail.Config{Follow: opts.follow, ReOpen: false, Location: seekInfo})
+	for line := range t.Lines {
+		if since, err := logSinceTime(opts.sinceTime, line.Text); err != nil || !since {
+			continue
+		}
+		logMessage := line.Text[secondSpaceIndex(line.Text):]
+		logChan <- logMessage
+	}
 	return err
 }
 
@@ -89,4 +123,31 @@ func printLogs(logs chan string) {
 	for line := range logs {
 		fmt.Println(line)
 	}
+}
+
+// returns true if the time stamps of the logs are equal to or after the
+// timestamp comparing to
+func logSinceTime(sinceTime time.Time, logStr string) (bool, error) {
+	timestamp := strings.Split(logStr, " ")[0]
+	logTime, err := time.Parse("2006-01-02T15:04:05.999999999-07:00", timestamp)
+	if err != nil {
+		return false, err
+	}
+	return logTime.After(sinceTime) || logTime.Equal(sinceTime), nil
+}
+
+// secondSpaceIndex returns the index of the second space in a string
+// In a line of the logs, the first two tokens are a timestamp and stdout/stderr,
+// followed by the message itself.  This allows us to get the index of the message
+// and avoid sending the other information back to the caller of GetLogs()
+func secondSpaceIndex(line string) int {
+	index := strings.Index(line, " ")
+	if index == -1 {
+		return 0
+	}
+	index = strings.Index(line[index:], " ")
+	if index == -1 {
+		return 0
+	}
+	return index
 }
