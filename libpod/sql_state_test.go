@@ -15,7 +15,7 @@ import (
 
 func getTestContainer(id, name string) *Container {
 	ctr := &Container{
-		config: &containerConfig{
+		config: &ContainerConfig{
 			ID:              id,
 			Name:            name,
 			RootfsImageID:   id,
@@ -518,4 +518,15 @@ func TestGetAllContainersTwoContainers(t *testing.T) {
 	ctrs, err := state.AllContainers()
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(ctrs))
+
+	// Containers should be ordered by creation time
+
+	// Use assert.EqualValues if the test fails to pretty print diff
+	// between actual and expected
+	if !testContainersEqual(testCtr2, ctrs[0]) {
+		assert.EqualValues(t, testCtr2, ctrs[0])
+	}
+	if !testContainersEqual(testCtr1, ctrs[1]) {
+		assert.EqualValues(t, testCtr1, ctrs[1])
+	}
 }
