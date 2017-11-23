@@ -106,7 +106,7 @@ type ContainerConfig struct {
 	// reboot
 	StaticDir string `json:"staticDir"`
 	// Whether to keep container STDIN open
-	Stdin bool
+	Stdin bool `json:"stdin,omitempty"`
 	// Pod the container belongs to
 	Pod string `json:"pod,omitempty"`
 	// Labels is a set of key-value pairs providing additional information
@@ -381,6 +381,7 @@ func (c *Container) teardownStorage() error {
 		}
 
 		c.state.Mounted = false
+		c.state.Mountpoint = ""
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -474,6 +475,29 @@ func (c *Container) Start() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
+	// If the container isn't mounted, mount it
+	if !c.state.Mounted {
+		mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+		}
+		c.state.Mounted = true
+		c.state.Mountpoint = mountPoint
+
+		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
+		defer func() {
+			if err != nil {
+				if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
+					logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
+				}
+
+				c.state.Mounted = false
+				c.state.Mountpoint = ""
+			}
+		}()
+	}
+
 	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
 		return err
 	}
@@ -492,14 +516,63 @@ func (c *Container) Start() error {
 	return nil
 }
 
-// Stop stops a container
-func (c *Container) Stop() error {
-	return ErrNotImplemented
+// Stop uses the container's requested stop signal (or SIGTERM if no signal was
+// specified) to stop the container, and if it has not stopped after the given
+// timeout (in seconds), uses SIGKILL to attempt to forcibly stop the container
+// If timeout is 0, SIGKILL will be used immediately
+func (c *Container) Stop(timeout int64) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+	}
+
+	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
+		return err
+	}
+
+	// Sync the container's state to pick up return code
+	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		return err
+	}
+
+	// Also unmount storage
+	if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
+		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+	}
+	c.state.Mountpoint = ""
+	c.state.Mounted = false
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+
+	return nil
 }
 
 // Kill sends a signal to a container
 func (c *Container) Kill(signal uint) error {
-	return ErrNotImplemented
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only kill created, running, or stopped containers")
+	}
+
+	return c.runtime.ociRuntime.killContainer(c, signal)
 }
 
 // Exec starts a new process inside the container
@@ -513,10 +586,6 @@ func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
 func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
 	if err := c.syncContainer(); err != nil {
 		return err
-	}
-
-	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
 	// TODO is it valid to attach to a frozen container?

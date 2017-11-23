@@ -7,6 +7,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const ctrRemoveTimeout = 10
+
 // Contains the public Runtime API for containers
 
 // A CtrCreateOption is a functional option which alters the Container created
@@ -97,7 +99,11 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	}
 
 	// Check that the container's in a good state to be removed
-	if !(c.state.State == ContainerStateConfigured ||
+	if c.state.State == ContainerStateRunning && force {
+		if err := r.ociRuntime.stopContainer(c, ctrRemoveTimeout); err != nil {
+			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
+		}
+	} else if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running or paused", c.ID())
@@ -110,6 +116,11 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 
 	if err := r.state.RemoveContainer(c); err != nil {
 		return errors.Wrapf(err, "error removing container from state")
+	}
+
+	// Delete the container
+	if err := r.ociRuntime.deleteContainer(c); err != nil {
+		return errors.Wrapf(err, "error removing container %s from runc", c.ID())
 	}
 
 	// Set container as invalid so it can no longer be used

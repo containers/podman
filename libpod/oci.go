@@ -34,6 +34,9 @@ const (
 
 	// ContainerCreateTimeout represents the value of container creating timeout
 	ContainerCreateTimeout = 240 * time.Second
+
+	// Timeout before declaring that runc has failed to kill a given container
+	killContainerTimeout = 5 * time.Second
 )
 
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into
@@ -109,10 +112,39 @@ func createUnitName(prefix string, name string) string {
 	return fmt.Sprintf("%s-%s.scope", prefix, name)
 }
 
+// Wait for a container which has been sent a signal to stop
+func waitContainerStop(ctr *Container, timeout time.Duration) error {
+	done := make(chan struct{})
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				// Check if the process is still around
+				err := unix.Kill(ctr.state.PID, 0)
+				if err == unix.ESRCH {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		close(chControl)
+		return errors.Errorf("container %s did not die within timeout", ctr.ID())
+	}
+}
+
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error {
+func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 
 	parentPipe, childPipe, err := newPipe()
@@ -221,8 +253,13 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) error 
 		return err
 	}
 
-	// TODO should do a defer r.deleteContainer(ctr) here if err != nil
-	// Need deleteContainer to be working first, though...
+	defer func() {
+		if err != nil {
+			if err2 := r.deleteContainer(ctr); err2 != nil {
+				logrus.Errorf("Error removing container %s from runc after creation failed", ctr.ID())
+			}
+		}
+	}()
 
 	// Wait to get container pid from conmon
 	type syncStruct struct {
@@ -344,6 +381,65 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 	ctr.state.StartedTime = time.Now()
 
 	return nil
+}
+
+// killContainer sends the given signal to the given container
+func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", ctr.ID(), fmt.Sprintf("%d", signal)); err != nil {
+		return errors.Wrapf(err, "error sending signal to container %s", ctr.ID())
+	}
+
+	return nil
+}
+
+// stopContainer stops a container, first using its given stop signal (or
+// SIGTERM if no signal was specified), then using SIGKILL
+// Timeout is given in seconds. If timeout is 0, the container will be
+// immediately kill with SIGKILL
+// Does not set finished time for container, assumes you will run updateStatus
+// after to pull the exit code
+func (r *OCIRuntime) stopContainer(ctr *Container, timeout int64) error {
+	// Ping the container to see if it's alive
+	// If it's not, it's already stopped, return
+	err := unix.Kill(ctr.state.PID, 0)
+	if err == unix.ESRCH {
+		return nil
+	}
+
+	stopSignal := ctr.config.StopSignal
+	if stopSignal == 0 {
+		stopSignal = uint(syscall.SIGTERM)
+	}
+
+	if timeout > 0 {
+		if err := r.killContainer(ctr, stopSignal); err != nil {
+			return err
+		}
+
+		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
+			logrus.Warnf("Timed out stopping container %s, resorting to SIGKILL", ctr.ID())
+		} else {
+			// No error, the container is dead
+			return nil
+		}
+	}
+
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+		return errors.Wrapf(err, "error sending SIGKILL to container %s", ctr.ID())
+	}
+
+	// Give runc a few seconds to make it happen
+	if err := waitContainerStop(ctr, killContainerTimeout); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// deleteContainer deletes a container from runc
+func (r *OCIRuntime) deleteContainer(ctr *Container) error {
+	_, err := utils.ExecCmd(r.path, "delete", "--force", ctr.ID())
+	return err
 }
 
 // pauseContainer pauses the given container

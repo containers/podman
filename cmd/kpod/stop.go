@@ -5,9 +5,8 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -47,29 +46,32 @@ func stopCmd(c *cli.Context) error {
 		return err
 	}
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "could not get runtime")
 	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not get container server")
-	}
-	defer server.Shutdown()
-	err = server.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
+	defer runtime.Shutdown(false)
+
+	logrus.Debugf("Stopping containers with timeout %d", stopTimeout)
+
 	var lastError error
 	for _, container := range c.Args() {
-		cid, err := server.ContainerStop(context.Background(), container, stopTimeout)
+		ctr, err := runtime.LookupContainer(container)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
 			lastError = errors.Wrapf(err, "failed to stop container %v", container)
+			continue
+		}
+
+		if err := ctr.Stop(stopTimeout); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to stop container %v", container)
 		} else {
-			fmt.Println(cid)
+			fmt.Println(ctr.ID())
 		}
 	}
 

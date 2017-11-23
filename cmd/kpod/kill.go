@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"syscall"
 
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
 )
 
@@ -38,36 +38,42 @@ func killCmd(c *cli.Context) error {
 	if err := validateFlags(c, killFlags); err != nil {
 		return err
 	}
-	config, err := getConfig(c)
+
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "could not get runtime")
 	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not get container server")
+	defer runtime.Shutdown(false)
+
+	var killSignal uint = uint(syscall.SIGTERM)
+	if c.String("signal") != "" {
+		// Check if the signalString provided by the user is valid
+		// Invalid signals will return err
+		sysSignal, err := signal.ParseSignal(c.String("signal"))
+		if err != nil {
+			return err
+		}
+		killSignal = uint(sysSignal)
 	}
-	killSignal := c.String("signal")
-	// Check if the signalString provided by the user is valid
-	// Invalid signals will return err
-	sysSignal, err := signal.ParseSignal(killSignal)
-	if err != nil {
-		return err
-	}
-	defer server.Shutdown()
-	err = server.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
+
 	var lastError error
 	for _, container := range c.Args() {
-		id, err := server.ContainerKill(container, sysSignal)
+		ctr, err := runtime.LookupContainer(container)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "unable to kill %v", container)
+			lastError = errors.Wrapf(err, "unable to find container %v", container)
+			continue
+		}
+
+		if err := ctr.Kill(killSignal); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find container %v", container)
 		} else {
-			fmt.Println(id)
+			fmt.Println(ctr.ID())
 		}
 	}
 	return lastError
