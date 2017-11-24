@@ -8,11 +8,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-type exportOptions struct {
-	output    string
-	container string
-}
-
 var (
 	exportFlags = []cli.Flag{
 		cli.StringFlag{
