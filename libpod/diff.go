@@ -43,11 +43,3 @@ func (r *Runtime) getLayerID(id string) (string, error) {
 	}
 	return toLayer, nil
 }
-
-func (r *Runtime) getLayerParent(layerID string) (string, error) { //nolint
-	layer, err := r.store.Layer(layerID)
-	if err != nil {
-		return "", err
-	}
-	return layer.Parent, nil
-}

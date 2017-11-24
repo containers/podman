@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -112,7 +111,6 @@ type Image struct {
 	Name           string
 	ID             string
 	fqname         string
-	hasImageLocal  bool //nolint
 	runtime        *Runtime
 	Registry       string
 	ImageName      string
@@ -1190,21 +1188,6 @@ func ParseImageNames(names []string) (tags, digests []string, err error) {
 		}
 	}
 	return tags, digests, nil
-}
-
-// Remove nolint when used
-func annotations(manifest []byte, manifestType string) map[string]string { //nolint
-	annotations := make(map[string]string)
-	switch manifestType {
-	case ociv1.MediaTypeImageManifest:
-		var m ociv1.Manifest
-		if err := json.Unmarshal(manifest, &m); err == nil {
-			for k, v := range m.Annotations {
-				annotations[k] = v
-			}
-		}
-	}
-	return annotations
 }
 
 func findImageInSlice(images []storage.Image, ref string) (storage.Image, error) {
