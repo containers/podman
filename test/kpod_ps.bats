@@ -7,6 +7,10 @@ function setup() {
     copy_images
 }
 
+function teardown() {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f `${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q`"
+    cleanup_test
+}
 
 @test "kpod ps with no containers" {
     run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps

@@ -3,6 +3,7 @@
 load helpers
 
 function teardown() {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f `${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q`"
     cleanup_test
 }
 
@@ -11,54 +12,30 @@ function setup() {
 }
 
 @test "stop a bogus container" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop foobar
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} stop foobar"
     echo "$output"
     [ "$status" -eq 1 ]
 }
 
 @test "stop a running container by id" {
-    skip "Test needs to be converted to kpod run"
-    start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
-    echo "$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -d ${ALPINE} sleep 9999"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr start --id "$ctr_id"
-    echo "$output"
-    id="$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps"
     [ "$status" -eq 0 ]
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$id"
-    echo "$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} stop $ctr_id"
     [ "$status" -eq 0 ]
-    cleanup_pods
-    stop_crio
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps"
+    [ "$status" -eq 0 ]
 }
 
 @test "stop a running container by name" {
-    skip "Test needs to be converted to kpod run"
-    start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
-    echo "$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --name test1 -d ${ALPINE} sleep 9999"
     [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
-    echo "$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
-    run crioctl ctr start --id "$ctr_id"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} stop test1"
     [ "$status" -eq 0 ]
-    run crioctl ctr inspect --id "$ctr_id"
-    echo "$output"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps"
     [ "$status" -eq 0 ]
-    ctr_name=$(python -c 'import json; import sys; print json.load(sys.stdin)["crio_annotations"]["io.kubernetes.cri-o.Name"]' <<< "$output")
-    echo container name is \""$ctr_name"\"
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} stop "$ctr_name"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    cleanup_pods
-    stop_crio
 }

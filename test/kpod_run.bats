@@ -2,6 +2,11 @@
 
 load helpers
 
+function teardown() {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f `${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q`"
+    cleanup_test
+}
+
 function setup() {
     copy_images
 }
