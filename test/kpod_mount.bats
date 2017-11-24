@@ -5,6 +5,7 @@ load helpers
 IMAGE="redis:alpine"
 
 function teardown() {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f `${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q`"
     cleanup_test
 }
 
@@ -33,9 +34,6 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} unmount $ctr_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }

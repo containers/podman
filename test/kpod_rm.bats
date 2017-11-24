@@ -6,6 +6,11 @@ function setup() {
     copy_images
 }
 
+function teardown() {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f `${KPOD_BINARY} ${KPOD_OPTIONS} ps -a -q`"
+    cleanup_test
+}
+
 @test "remove a stopped container" {
     run ${KPOD_BINARY} $KPOD_OPTIONS run -d ${ALPINE} ls
     echo "$output"
@@ -37,7 +42,6 @@ function setup() {
 }
 
 @test "remove a running container" {
-    skip "Skipping until kpod stop is implemented"
     run ${KPOD_BINARY} $KPOD_OPTIONS run -d ${ALPINE} sleep 15
     echo "$output"
     [ "$status" -eq 0 ]
@@ -58,7 +62,6 @@ function setup() {
 }
 
 @test "remove all containers with one running" {
-    skip "Skipping until kpod stop is implemented"
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls -l
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB whoami
