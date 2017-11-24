@@ -25,6 +25,7 @@ type Runtime struct {
 	storageService *storageService
 	imageContext   *types.SystemContext
 	ociRuntime     *OCIRuntime
+	locksDir       string
 	valid          bool
 	lock           sync.RWMutex
 }
@@ -136,6 +137,17 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		}
 	}
 
+	// Make a directory to hold container lockfiles
+	lockPath := filepath.Join(runtime.config.StaticDir, "lock")
+	if err := os.MkdirAll(lockPath, 0755); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating runtime lockfiles directory %s",
+				lockPath)
+		}
+	}
+	runtime.locksDir = lockPath
+
 	// Make the per-boot files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
@@ -166,7 +178,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			}
 		}
 
-		state, err := NewSQLState(dbPath, lockPath, specsDir, runtime)
+		state, err := NewSQLState(dbPath, lockPath, specsDir, runtime.locksDir, runtime)
 		if err != nil {
 			return nil, err
 		}

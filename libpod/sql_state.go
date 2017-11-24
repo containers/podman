@@ -22,13 +22,14 @@ const DBSchema = 2
 type SQLState struct {
 	db       *sql.DB
 	specsDir string
+	locksDir string
 	runtime  *Runtime
 	lock     storage.Locker
 	valid    bool
 }
 
 // NewSQLState initializes a SQL-backed state, created the database if necessary
-func NewSQLState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, error) {
+func NewSQLState(dbPath, lockPath, specsDir, locksDir string, runtime *Runtime) (State, error) {
 	state := new(SQLState)
 
 	state.runtime = runtime
@@ -48,6 +49,15 @@ func NewSQLState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, er
 		}
 	}
 	state.specsDir = specsDir
+
+	// Make the directory that will hold container lockfiles
+	if err := os.MkdirAll(locksDir, 0750); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "error creating lockfiles dir %s", locksDir)
+		}
+	}
+	state.locksDir = locksDir
 
 	// Acquire the lock while we open the database and perform initial setup
 	state.lock.Lock()
@@ -130,7 +140,7 @@ func (s *SQLState) Container(id string) (*Container, error) {
 
 	row := s.db.QueryRow(query, id)
 
-	ctr, err := ctrFromScannable(row, s.runtime, s.specsDir)
+	ctr, err := ctrFromScannable(row, s.runtime, s.specsDir, s.locksDir)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving container %s from database", id)
 	}
@@ -177,7 +187,7 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
 		}
 
 		var err error
-		ctr, err = ctrFromScannable(rows, s.runtime, s.specsDir)
+		ctr, err = ctrFromScannable(rows, s.runtime, s.specsDir, s.locksDir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving container %s from database", idOrName)
 		}
@@ -576,7 +586,7 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
 	containers := []*Container{}
 
 	for rows.Next() {
-		ctr, err := ctrFromScannable(rows, s.runtime, s.specsDir)
+		ctr, err := ctrFromScannable(rows, s.runtime, s.specsDir, s.locksDir)
 		if err != nil {
 			return nil, err
 		}

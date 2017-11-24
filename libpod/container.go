@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"syscall"
 	"time"
 
@@ -61,9 +60,8 @@ type Container struct {
 
 	state *containerRuntimeInfo
 
-	// TODO move to storage.Locker from sync.Mutex
 	valid   bool
-	lock    sync.Mutex
+	lock    storage.Locker
 	runtime *Runtime
 }
 
@@ -340,7 +338,7 @@ func (c *Container) syncContainer() error {
 }
 
 // Make a new container
-func newContainer(rspec *spec.Spec) (*Container, error) {
+func newContainer(rspec *spec.Spec, logDir string) (*Container, error) {
 	if rspec == nil {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
@@ -356,6 +354,20 @@ func newContainer(rspec *spec.Spec) (*Container, error) {
 	deepcopier.Copy(rspec).To(ctr.config.Spec)
 
 	ctr.config.CreatedTime = time.Now()
+
+	// Path our lock file will reside at
+	lockPath := filepath.Join(logDir, ctr.config.ID)
+	// Ensure there is no conflict - file does not exist
+	_, err := os.Stat(lockPath)
+	if err == nil || !os.IsNotExist(err) {
+		return nil, errors.Wrapf(ErrCtrExists, "lockfile for container ID %s already exists", ctr.config.ID)
+	}
+	// Grab a lockfile at the given path
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating lockfile for new container")
+	}
+	ctr.lock = lock
 
 	return ctr, nil
 }
@@ -807,8 +819,8 @@ func (c *Container) mountStorage() (err error) {
 		}
 	}()
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	if err := c.save(); err != nil {
+		return err
 	}
 
 	return nil
@@ -847,8 +859,8 @@ func (c *Container) cleanupStorage() error {
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	if err := c.save(); err != nil {
+		return err
 	}
 
 	return nil

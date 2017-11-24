@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -266,7 +268,7 @@ type scannable interface {
 }
 
 // Read a single container from a single row result in the database
-func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Container, error) {
+func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, locksDir string) (*Container, error) {
 	var (
 		id                 string
 		name               string
@@ -383,6 +385,19 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 
 	ctr.valid = true
 	ctr.runtime = runtime
+
+	// Ensure the lockfile exists
+	lockPath := filepath.Join(locksDir, id)
+	_, err = os.Stat(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error performing stat on container %s lockfile", id)
+	}
+	// Open and set the lockfile
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving lockfile for container %s", id)
+	}
+	ctr.lock = lock
 
 	// Retrieve the spec from disk
 	ociSpec := new(spec.Spec)
