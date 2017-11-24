@@ -1213,6 +1213,8 @@ _kpod_run() {
 
 _kpod_rm() {
     local boolean_options="
+    --all
+    -a
     --force
     -f
     "
