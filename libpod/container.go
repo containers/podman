@@ -19,6 +19,7 @@ import (
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -638,4 +639,36 @@ func (c *Container) Export(path string) error {
 // image
 func (c *Container) Commit() (*storage.Image, error) {
 	return nil, ErrNotImplemented
+}
+
+// Wait blocks on a container to exit and returns its exit code
+func (c *Container) Wait() (int32, error) {
+	err := wait.PollImmediateInfinite(1,
+		func() (bool, error) {
+			stopped, err := c.isStopped()
+			if err != nil {
+				return false, err
+			}
+			if !stopped {
+				return false, nil
+			} else { // nolint
+				return true, nil // nolint
+			} // nolint
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	exitCode := c.state.ExitCode
+	return exitCode, nil
+}
+
+func (c *Container) isStopped() (bool, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	err := c.syncContainer()
+	if err != nil {
+		return true, err
+	}
+	return c.state.State == ContainerStateStopped, nil
 }

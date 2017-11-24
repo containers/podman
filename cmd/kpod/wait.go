@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/urfave/cli"
 )
 
@@ -31,23 +30,23 @@ func waitCmd(c *cli.Context) error {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
-	config, err := getConfig(c)
+	runtime, err := getRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "error creating libpod runtime")
+	}
+	defer runtime.Shutdown(false)
+
 	if err != nil {
 		return errors.Wrapf(err, "could not get config")
-	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not get container server")
-	}
-	defer server.Shutdown()
-	err = server.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
 	}
 
 	var lastError error
 	for _, container := range c.Args() {
-		returnCode, err := server.ContainerWait(container)
+		ctr, err := runtime.LookupContainer(container)
+		if err != nil {
+			return errors.Wrapf(err, "unable to find container %s", container)
+		}
+		returnCode, err := ctr.Wait()
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
