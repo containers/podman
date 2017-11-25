@@ -28,10 +28,10 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 	runtime, err := getRuntime(c)
-
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
+	defer runtime.Shutdown(false)
 
 	createConfig, err := parseCreateOpts(c, runtime)
 	if err != nil {
@@ -51,7 +51,6 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	defer runtime.Shutdown(false)
 	logrus.Debug("spec is ", runtimeSpec)
 
 	if createImage.LocalName != "" {

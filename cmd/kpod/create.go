@@ -149,6 +149,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
+	defer runtime.Shutdown(false)
 
 	createConfig, err := parseCreateOpts(c, runtime)
 	if err != nil {
@@ -169,7 +170,6 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	defer runtime.Shutdown(false)
 	if createImage.LocalName != "" {
 		imageName = createImage.LocalName
 	} else {
