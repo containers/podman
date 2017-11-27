@@ -18,19 +18,20 @@ import (
 )
 
 type imagesTemplateParams struct {
-	ID        string
-	Name      string
-	Digest    digest.Digest
-	CreatedAt string
-	Size      string
+	Repository string
+	Tag        string
+	ID         string
+	Digest     digest.Digest
+	Created    string
+	Size       string
 }
 
 type imagesJSONParams struct {
-	ID        string        `json:"id"`
-	Name      []string      `json:"names"`
-	Digest    digest.Digest `json:"digest"`
-	CreatedAt time.Time     `json:"created"`
-	Size      int64         `json:"size"`
+	ID      string        `json:"id"`
+	Name    []string      `json:"names"`
+	Digest  digest.Digest `json:"digest"`
+	Created time.Time     `json:"created"`
+	Size    int64         `json:"size"`
 }
 
 type imagesOptions struct {
@@ -139,14 +140,14 @@ func genImagesFormat(quiet, noHeading, digests bool) (format string) {
 	if quiet {
 		return formats.IDString
 	}
-	format = "table {{.ID}}\t{{.Name}}\t"
+	format = "table {{.Repository}}\t{{.Tag}}\t"
 	if noHeading {
-		format = "{{.ID}}\t{{.Name}}\t"
+		format = "{{.Repository}}\t{{.Tag}}\t"
 	}
 	if digests {
 		format += "{{.Digest}}\t"
 	}
-	format += "{{.CreatedAt}}\t{{.Size}}\t"
+	format += "{{.ID}}\t{{.Created}}\t{{.Size}}\t"
 	return
 }
 
@@ -172,7 +173,7 @@ func (i *imagesTemplateParams) headerMap() map[string]string {
 	for i := 0; i < v.NumField(); i++ {
 		key := v.Type().Field(i).Name
 		value := key
-		if value == "ID" || value == "Name" {
+		if value == "ID" {
 			value = "Image" + value
 		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
@@ -191,14 +192,19 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, o
 		}
 		createdTime := img.Created
 
-		imageID := img.ID
+		imageID := "sha256:" + img.ID
 		if !opts.noTrunc {
-			imageID = imageID[:idTruncLength]
+			imageID = img.ID[:idTruncLength]
 		}
 
-		imageName := "<none>"
+		repository := "<none>"
+		tag := "<none>"
 		if len(img.Names) > 0 {
-			imageName = img.Names[0]
+			arr := strings.Split(img.Names[0], ":")
+			repository = arr[0]
+			if len(arr) == 2 {
+				tag = arr[1]
+			}
 		}
 
 		info, imageDigest, size, _ := runtime.InfoAndDigestAndSize(*img)
@@ -207,11 +213,12 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, o
 		}
 
 		params := imagesTemplateParams{
-			ID:        imageID,
-			Name:      imageName,
-			Digest:    imageDigest,
-			CreatedAt: units.HumanDuration(time.Since((createdTime))) + " ago",
-			Size:      units.HumanSize(float64(size)),
+			Repository: repository,
+			Tag:        tag,
+			ID:         imageID,
+			Digest:     imageDigest,
+			Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
+			Size:       units.HumanSize(float64(size)),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
@@ -229,11 +236,11 @@ func getImagesJSONOutput(runtime *libpod.Runtime, images []*storage.Image) (imag
 		}
 
 		params := imagesJSONParams{
-			ID:        img.ID,
-			Name:      img.Names,
-			Digest:    imageDigest,
-			CreatedAt: createdTime,
-			Size:      size,
+			ID:      img.ID,
+			Name:    img.Names,
+			Digest:  imageDigest,
+			Created: createdTime,
+			Size:    size,
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
