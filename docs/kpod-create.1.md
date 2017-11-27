@@ -484,26 +484,18 @@ standard input.
      **host**: use the host's UTS namespace inside the container.
      Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
-**-v**|**--volume**[=*[[HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
+**-v**|**--volume**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, kpod
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the kpod
-   container. If 'HOST-DIR' is omitted,  kpod automatically creates the new
-   volume on the host.  The `OPTIONS` are a comma delimited list and can be:
+   container. The `OPTIONS` are a comma delimited list and can be:
 
    * [rw|ro]
    * [z|Z]
    * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
-can be an absolute path or a `name` value. A `name` value must start with an
-alphanumeric character, followed by `a-z0-9`, `_` (underscore), `.` (period) or
-`-` (hyphen). An absolute path starts with a `/` (forward slash).
-
-If you supply a `HOST-DIR` that is an absolute path,  kpod bind-mounts to the
-path you specify. If you supply a `name`, kpod creates a named volume by that
-`name`. For example, you can specify either `/foo` or `foo` for a `HOST-DIR`
-value. If you supply the `/foo` value, kpod creates a bind-mount. If you
-supply the `foo` specification, kpod creates a named volume.
+must be an absolute path as well. kpod bind-mounts the `HOST-DIR` to the
+path you specify. For example, if you supply the `/foo` value, kpod creates a bind-mount.
 
 You can specify multiple  **-v** options to mount one or more mounts to a
 container. To use these same mounts in other containers, specify the
