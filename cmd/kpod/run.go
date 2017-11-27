@@ -54,6 +54,18 @@ func runCmd(c *cli.Context) error {
 	logrus.Debug("spec is ", runtimeSpec)
 
 	if createImage.LocalName != "" {
+		nameIsID, err := runtime.IsImageID(createImage.LocalName)
+		if err != nil {
+			return err
+		}
+		if nameIsID {
+			// If the input from the user is an ID, then we need to get the image
+			// name for cstorage
+			createImage.LocalName, err = createImage.GetNameByID()
+			if err != nil {
+				return err
+			}
+		}
 		imageName = createImage.LocalName
 	} else {
 		imageName, err = createImage.GetFQName()
