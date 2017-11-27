@@ -2,60 +2,28 @@
 
 load helpers
 
-IMAGE="alpine:latest"
-
-function teardown() {
-    cleanup_test
-}
-
 function setup() {
     copy_images
 }
 
 @test "remove a stopped container" {
-    skip "Test needs to be converted to kpod run"
-    start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crioctl ctr create --config "$TESTDATA"/container_config.json --pod "$pod_id"
+    run ${KPOD_BINARY} $KPOD_OPTIONS run -d ${ALPINE} ls
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr start --id "$ctr_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run crioctl ctr stop --id "$ctr_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
     run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rm "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    cleanup_pods
-    stop_crio
 }
 
 @test "refuse to remove a running container" {
-    skip "Test needs to be converted to kpod run"
-    start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    run ${KPOD_BINARY} $KPOD_OPTIONS run -d ${ALPINE} sleep 15
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr start --id "$ctr_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
-    run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rm "$ctr_id"
+    run bash ${KPOD_BINARY} $KPOD_OPTIONS rm "$ctr_id"
     echo "$output"
     [ "$status" -ne 0 ]
-    cleanup_ctrs
-    cleanup_pods
-    stop_crio
 }
 
 @test "remove a created container" {
@@ -69,22 +37,33 @@ function setup() {
 }
 
 @test "remove a running container" {
-    skip "Test needs to be converted to kpod run"
-    start_crio
-    run crioctl pod run --config "$TESTDATA"/sandbox_config.json
-    echo "$output"
-    [ "$status" -eq 0 ]
-    pod_id="$output"
-    run crioctl ctr create --config "$TESTDATA"/container_redis.json --pod "$pod_id"
+    skip "Skipping until kpod stop is implemented"
+    run ${KPOD_BINARY} $KPOD_OPTIONS run -d ${ALPINE} sleep 15
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run crioctl ctr start --id "$ctr_id"
-    echo "$output"
-    [ "$status" -eq 0 ]
     run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rm -f "$ctr_id"
     echo "$output"
-    [ "$status" -eq 0 ]
-    cleanup_pods
-    stop_crio
+    [ "$status" -eq 1 ]
+}
+
+@test "remove all containers" {
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls -l
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB true
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB whoami
+    run ${KPOD_BINARY} $KPOD_OPTIONS rm -a
+    echo "$output"
+    [ "$status" -eq 1 ]
+}
+
+@test "remove all containers with one running" {
+    skip "Skipping until kpod stop is implemented"
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls -l
+    ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB whoami
+    ${KPOD_BINARY} ${KPOD_OPTIONS} run -d ${ALPINE} sleep 30
+    run ${KPOD_BINARY} $KPOD_OPTIONS rm -a -f
+    echo "$output"
+    [ "$status" -eq 1 ]
 }

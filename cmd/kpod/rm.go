@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 
@@ -12,6 +14,10 @@ var (
 		cli.BoolFlag{
 			Name:  "force, f",
 			Usage: "Force removal of a running container.  The default is false",
+		},
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "Remove all containers",
 		},
 	}
 	rmDescription = "Remove one or more containers"
@@ -39,20 +45,45 @@ func rmCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) == 0 {
+	if len(args) == 0 && !c.Bool("all") {
 		return errors.Errorf("specify one or more containers to remove")
 	}
 
-	for _, container := range args {
-		ctr, err := runtime.LookupContainer(container)
+	var delContainers []*libpod.Container
+	var lastError error
+	if c.Bool("all") {
+		delContainers, err = runtime.GetContainers()
 		if err != nil {
-			return errors.Wrapf(err, "error looking up container", container)
+			return errors.Wrapf(err, "unable to get container list")
 		}
-		err = runtime.RemoveContainer(ctr, c.Bool("force"))
-		if err != nil {
-			return errors.Wrapf(err, "error removing container %q", ctr.ID())
+	} else {
+		for _, i := range args {
+			container, err := runtime.LookupContainer(i)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				lastError = errors.Wrapf(err, "unable to find container %s", i)
+				continue
+			}
+			delContainers = append(delContainers, container)
 		}
-		fmt.Println(ctr.ID())
 	}
-	return nil
+	for _, container := range delContainers {
+		if err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to find container %s", container.ID())
+			continue
+		}
+		err = runtime.RemoveContainer(container, c.Bool("force"))
+		if err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to delete container %v", container.ID())
+		} else {
+			fmt.Println(container.ID())
+		}
+	}
+	return lastError
 }
