@@ -314,8 +314,8 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 // GetAnnotations returns the all the annotations for the container
 func (c *createConfig) GetAnnotations() map[string]string {
 	a := getDefaultAnnotations()
-	// TODO
-	// Which annotations do we want added by default
+	// TODO - Which annotations do we want added by default
+	// TODO - This should be added to the DB long term
 	if c.tty {
 		a["io.kubernetes.cri-o.TTY"] = "true"
 	}

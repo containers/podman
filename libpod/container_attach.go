@@ -7,7 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
+	//"strconv"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
@@ -31,13 +31,17 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	outputStream := os.Stdout
 	errorStream := os.Stderr
 	defer inputStream.Close()
-	tty, err := strconv.ParseBool(c.runningSpec.Annotations["io.kubernetes.cri-o.TTY"])
-	if err != nil {
-		return errors.Wrapf(err, "unable to parse annotations in %s", c.ID)
-	}
-	if !tty {
-		return errors.Errorf("no tty available for %s", c.ID())
-	}
+
+	// TODO Renable this when tty/terminal discussion is had.
+	/*
+		tty, err := strconv.ParseBool(c.runningSpec.Annotations["io.kubernetes.cri-o.TTY"])
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse annotations in %s", c.ID)
+		}
+		if !tty {
+			return errors.Errorf("no tty available for %s", c.ID())
+		}
+	*/
 
 	if terminal.IsTerminal(int(inputStream.Fd())) {
 		oldTermState, err := term.SaveState(inputStream.Fd())
