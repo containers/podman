@@ -9,7 +9,8 @@ find_files() {
       \( \
         -wholename '*/vendor/*' \
       \) -prune \
-    \) -name '*.go'
+    \) -name '*.go' \
+    -not \( -wholename './_output/*' \)
 }
 
 GOFMT="gofmt -s"
