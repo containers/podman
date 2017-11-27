@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/image/docker"
@@ -28,6 +29,14 @@ var (
 		cli.StringFlag{
 			Name:  "authfile",
 			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+		},
+		cli.StringFlag{
+			Name:  "cert-dir",
+			Usage: "Pathname of a directory containing TLS certificates and keys",
+		},
+		cli.BoolTFlag{
+			Name:  "tls-verify",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 	loginDescription = "Login to a container registry on a specified server."
@@ -63,6 +72,10 @@ func loginCmd(c *cli.Context) error {
 	username, password, err := getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
+	}
+	sc.DockerInsecureSkipTLSVerify = !c.BoolT("tls-verify")
+	if c.String("cert-dir") != "" {
+		sc.DockerCertPath = filepath.Join(c.String("cert-dir"), server)
 	}
 
 	if err = docker.CheckAuth(context.TODO(), sc, username, password, server); err == nil {
