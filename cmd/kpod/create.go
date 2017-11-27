@@ -355,6 +355,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
 	}
 
+	if c.Bool("detach") && c.Bool("rm") {
+		return nil, errors.Errorf("--rm and --detach can not be specified together")
+	}
+
 	config := &createConfig{
 		runtime:        runtime,
 		capAdd:         c.StringSlice("cap-add"),
