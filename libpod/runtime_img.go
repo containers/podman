@@ -138,6 +138,36 @@ func (r *Runtime) NewImage(name string) Image {
 	}
 }
 
+// IsImageID determines if the input is a valid image ID.
+// The input can be a full or partial image ID
+func (r *Runtime) IsImageID(input string) (bool, error) {
+	images, err := r.GetImages(&ImageFilterParams{})
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to get images")
+	}
+	for _, image := range images {
+		if strings.HasPrefix(image.ID, input) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// GetNameByID returns the name of the image when supplied
+// the full or partion ID
+func (k *Image) GetNameByID() (string, error) {
+	images, err := k.runtime.GetImages(&ImageFilterParams{})
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get images")
+	}
+	for _, image := range images {
+		if strings.HasPrefix(image.ID, k.Name) {
+			return image.Names[0], nil
+		}
+	}
+	return "", errors.Errorf("unable to determine image for %s", k.Name)
+}
+
 // GetImageID returns the image ID of the image
 func (k *Image) GetImageID() (string, error) {
 	// If the ID field is already populated, then
@@ -309,6 +339,9 @@ func (k *Image) GetLocalImageName() (string, error) {
 		return "", err
 	}
 	for _, image := range localImages {
+		if strings.HasPrefix(image.ID, k.Name) {
+			return image.ID, nil
+		}
 		for _, name := range image.Names {
 			imgRef, err := reference.Parse(name)
 			if err != nil {
