@@ -268,7 +268,7 @@ type scannable interface {
 }
 
 // Read a single container from a single row result in the database
-func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, locksDir string) (*Container, error) {
+func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir string) (*Container, error) {
 	var (
 		id                 string
 		name               string
@@ -387,7 +387,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, locksDir
 	ctr.runtime = runtime
 
 	// Ensure the lockfile exists
-	lockPath := filepath.Join(locksDir, id)
+	lockPath := filepath.Join(lockDir, id)
 	_, err = os.Stat(lockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error performing stat on container %s lockfile", id)

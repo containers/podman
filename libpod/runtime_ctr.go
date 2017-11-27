@@ -30,7 +30,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *
 		return nil, ErrRuntimeStopped
 	}
 
-	ctr, err := newContainer(spec, r.locksDir)
+	ctr, err := newContainer(spec, r.lockDir)
 	if err != nil {
 		return nil, err
 	}

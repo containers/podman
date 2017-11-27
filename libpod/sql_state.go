@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -22,24 +21,16 @@ const DBSchema = 2
 type SQLState struct {
 	db       *sql.DB
 	specsDir string
-	locksDir string
+	lockDir  string
 	runtime  *Runtime
-	lock     storage.Locker
 	valid    bool
 }
 
 // NewSQLState initializes a SQL-backed state, created the database if necessary
-func NewSQLState(dbPath, lockPath, specsDir, locksDir string, runtime *Runtime) (State, error) {
+func NewSQLState(dbPath, specsDir, lockDir string, runtime *Runtime) (State, error) {
 	state := new(SQLState)
 
 	state.runtime = runtime
-
-	// Make our lock file
-	lock, err := storage.GetLockfile(lockPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating lockfile for state")
-	}
-	state.lock = lock
 
 	// Make the directory that will hold JSON copies of container runtime specs
 	if err := os.MkdirAll(specsDir, 0750); err != nil {
@@ -51,17 +42,13 @@ func NewSQLState(dbPath, lockPath, specsDir, locksDir string, runtime *Runtime) 
 	state.specsDir = specsDir
 
 	// Make the directory that will hold container lockfiles
-	if err := os.MkdirAll(locksDir, 0750); err != nil {
+	if err := os.MkdirAll(lockDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating lockfiles dir %s", locksDir)
+			return nil, errors.Wrapf(err, "error creating lockfiles dir %s", lockDir)
 		}
 	}
-	state.locksDir = locksDir
-
-	// Acquire the lock while we open the database and perform initial setup
-	state.lock.Lock()
-	defer state.lock.Unlock()
+	state.lockDir = lockDir
 
 	// TODO add a separate temporary database for per-boot container
 	// state
@@ -97,9 +84,6 @@ func NewSQLState(dbPath, lockPath, specsDir, locksDir string, runtime *Runtime) 
 
 // Close the state's database connection
 func (s *SQLState) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if !s.valid {
 		return ErrDBClosed
 	}
@@ -140,7 +124,7 @@ func (s *SQLState) Container(id string) (*Container, error) {
 
 	row := s.db.QueryRow(query, id)
 
-	ctr, err := ctrFromScannable(row, s.runtime, s.specsDir, s.locksDir)
+	ctr, err := ctrFromScannable(row, s.runtime, s.specsDir, s.lockDir)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving container %s from database", id)
 	}
@@ -187,7 +171,7 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
 		}
 
 		var err error
-		ctr, err = ctrFromScannable(rows, s.runtime, s.specsDir, s.locksDir)
+		ctr, err = ctrFromScannable(rows, s.runtime, s.specsDir, s.lockDir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving container %s from database", idOrName)
 		}
@@ -259,9 +243,6 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
 	}
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -441,9 +422,6 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
                           Pid=?
                        WHERE Id=?;`
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if !s.valid {
 		return ErrDBClosed
 	}
@@ -500,9 +478,6 @@ func (s *SQLState) RemoveContainer(ctr *Container) error {
 		removeCtr   = "DELETE FROM containers WHERE Id=?;"
 		removeState = "DELETE FROM containerState WHERE ID=?;"
 	)
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
 
 	if !s.valid {
 		return ErrDBClosed
@@ -586,7 +561,7 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
 	containers := []*Container{}
 
 	for rows.Next() {
-		ctr, err := ctrFromScannable(rows, s.runtime, s.specsDir, s.locksDir)
+		ctr, err := ctrFromScannable(rows, s.runtime, s.specsDir, s.lockDir)
 		if err != nil {
 			return nil, err
 		}

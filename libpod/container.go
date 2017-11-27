@@ -338,7 +338,7 @@ func (c *Container) syncContainer() error {
 }
 
 // Make a new container
-func newContainer(rspec *spec.Spec, logDir string) (*Container, error) {
+func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	if rspec == nil {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
@@ -356,7 +356,7 @@ func newContainer(rspec *spec.Spec, logDir string) (*Container, error) {
 	ctr.config.CreatedTime = time.Now()
 
 	// Path our lock file will reside at
-	lockPath := filepath.Join(logDir, ctr.config.ID)
+	lockPath := filepath.Join(lockDir, ctr.config.ID)
 	// Ensure there is no conflict - file does not exist
 	_, err := os.Stat(lockPath)
 	if err == nil || !os.IsNotExist(err) {
