@@ -16,7 +16,7 @@ import (
 
 const (
 	createdByTruncLength = 45
-	idTruncLength        = 13
+	idTruncLength        = 12
 )
 
 // historyTemplateParams stores info about each layer
