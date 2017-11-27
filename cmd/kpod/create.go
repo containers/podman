@@ -11,6 +11,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
@@ -205,6 +206,12 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	logrus.Debug("new container created ", ctr.ID())
+	if err := ctr.Init(); err != nil {
+		return err
+	}
+	logrus.Debug("container storage created for %q", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		libpod.WriteFile(ctr.ID(), c.String("cidfile"))
