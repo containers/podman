@@ -29,7 +29,10 @@ function teardown() {
     ctr_id="$output"
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} pause $ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} unpause $ctr_id"
+    echo "$output"
+    [ "$status" -eq 0 ]
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
