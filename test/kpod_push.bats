@@ -72,3 +72,15 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "kpod push without transport" {
+    run ${KPOD_BINARY} $KPOD_OPTIONS pull "$ALPINE"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    # TODO: The following should fail until a registry is running in Travis CI.
+    run ${KPOD_BINARY} $KPOD_OPTIONS push "$ALPINE" localhost:5000/my-alpine
+    echo "$output"
+    [ "$status" -ne 0 ]
+    run ${KPOD_BINARY} $KPOD_OPTIONS rmi "$ALPINE"
+    echo "$output"
+}

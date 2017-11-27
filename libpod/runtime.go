@@ -53,7 +53,7 @@ var (
 	defaultRuntimeConfig = RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		ImageDefaultTransport: "docker://",
+		ImageDefaultTransport: DefaultTransport,
 		InMemoryState:         false,
 		RuntimePath:           "/usr/bin/runc",
 		ConmonPath:            "/usr/local/libexec/crio/conmon",

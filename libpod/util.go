@@ -4,7 +4,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+)
+
+// Runtime API constants
+const (
+	// DefaultTransport is a prefix that we apply to an image name
+	// to check docker hub first for the image
+	DefaultTransport = "docker://"
 )
 
 // WriteFile writes a provided string to a provided path
@@ -41,4 +49,9 @@ func StringInSlice(s string, sl []string) bool {
 func FuncTimer(funcName string) {
 	elapsed := time.Since(time.Now())
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
+}
+
+// hasTransport determines if the image string contains '://', returns bool
+func hasTransport(image string) bool {
+	return strings.Contains(image, "://")
 }
