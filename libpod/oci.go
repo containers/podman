@@ -169,8 +169,6 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
-	// TODO container log location should be configurable
-	// The default also likely shouldn't be this
 	args = append(args, "-l", ctr.logPath())
 	args = append(args, "--exit-dir", r.exitsDir)
 	args = append(args, "--socket-dir-path", r.socketsDir)
@@ -190,7 +188,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	}).Debugf("running conmon: %s", r.conmonPath)
 
 	cmd := exec.Command(r.conmonPath, args...)
-	cmd.Dir = ctr.state.RunDir
+	cmd.Dir = ctr.bundlePath()
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}

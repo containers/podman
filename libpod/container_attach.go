@@ -53,7 +53,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		term.SetRawTerminal(inputStream.Fd())
 	}
 
-	controlPath := filepath.Join(c.state.RunDir, "ctl")
+	controlPath := filepath.Join(c.bundlePath(), "ctl")
 	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open container ctl file: %v")
