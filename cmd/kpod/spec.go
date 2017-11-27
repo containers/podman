@@ -300,6 +300,16 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
 	configSpec.Mounts = append(configSpec.Mounts, mounts...)
+	for _, mount := range configSpec.Mounts {
+		for _, opt := range mount.Options {
+			switch opt {
+			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+				if err := g.SetLinuxRootPropagation(opt); err != nil {
+					return nil, errors.Wrapf(err, "error setting root propagation for %q", mount.Destination)
+				}
+			}
+		}
+	}
 
 	// HANDLE CAPABILITIES
 	if err := setupCapabilities(config, configSpec); err != nil {
@@ -442,24 +452,25 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 			options = strings.Split(spliti[2], ",")
 		}
 		options = append(options, "rbind")
-		// var foundrw, foundro,
-		var foundz, foundZ bool
+		var foundrw, foundro, foundz, foundZ bool
+		var rootProp string
 		for _, opt := range options {
 			switch opt {
-			// case "rw":
-			// 	foundrw = true
-			// case "ro":
-			// 	foundro = true
+			case "rw":
+				foundrw = true
+			case "ro":
+				foundro = true
 			case "z":
 				foundz = true
 			case "Z":
 				foundZ = true
+			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+				rootProp = opt
 			}
 		}
-		// if !foundro && !foundrw {
-		// 	// rw option is default
-		// 	options = append(options, "rw")
-		// }
+		if !foundrw && !foundro {
+			options = append(options, "rw")
+		}
 		if foundz {
 			if err := label.Relabel(spliti[0], c.mountLabel, true); err != nil {
 				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
@@ -469,6 +480,9 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 			if err := label.Relabel(spliti[0], c.mountLabel, false); err != nil {
 				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
 			}
+		}
+		if rootProp == "" {
+			options = append(options, "rprivate")
 		}
 
 		m = append(m, spec.Mount{

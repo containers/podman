@@ -122,16 +122,13 @@ IMAGE="docker.io/library/fedora:latest"
 }
 
 @test "kpod run with volume flag" {
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime'"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test ${BB} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime'"
     echo $output
     [ "$status" -eq 0 ]
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:ro ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test ro,relatime'"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:ro ${BB} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test ro,relatime'"
     echo $output
     [ "$status" -eq 0 ]
-    #run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:shared ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime shared:'"
-    #echo $output
-    #[ "$status" -eq 0 ]
-    #run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:rslave ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime master:'"
-    #echo $output
-    #[ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:shared ${BB} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime shared:'"
+    echo $output
+    [ "$status" -eq 0 ]
 }
