@@ -118,6 +118,9 @@ Run a command in a new container
 ### save
 Save an image to docker-archive or oci
 
+## start
+Starts one or more containers
+
 ### stats
 Display a live stream of one or more containers' resource usage statistics
 
