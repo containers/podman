@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	cp "github.com/containers/image/copy"
-	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 )
@@ -45,15 +44,6 @@ func GetSystemContext(signaturePolicyPath, authFilePath string) *types.SystemCon
 	return sc
 }
 
-// CopyStringStringMap deep copies a map[string]string and returns the result
-func CopyStringStringMap(m map[string]string) map[string]string {
-	n := map[string]string{}
-	for k, v := range m {
-		n[k] = v
-	}
-	return n
-}
-
 // IsTrue determines whether the given string equals "true"
 func IsTrue(str string) bool {
 	return str == "true"
@@ -67,15 +57,6 @@ func IsFalse(str string) bool {
 // IsValidBool determines whether the given string equals "true" or "false"
 func IsValidBool(str string) bool {
 	return IsTrue(str) || IsFalse(str)
-}
-
-// GetPolicyContext creates a signature policy context for the given signature policy path
-func GetPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
 }
 
 // ParseRegistryCreds takes a credentials string in the form USERNAME:PASSWORD

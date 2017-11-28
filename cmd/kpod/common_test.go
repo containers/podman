@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os/exec"
 	"os/user"
 	"testing"
 
@@ -39,13 +38,4 @@ func skipTestIfNotRoot(t *testing.T) {
 	} else if u.Uid != "0" {
 		t.Skip("tests will fail unless run as root")
 	}
-}
-
-func pullTestImage(name string) error {
-	cmd := exec.Command("crioctl", "image", "pull", name)
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
 }
