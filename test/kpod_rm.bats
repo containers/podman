@@ -48,7 +48,7 @@ function teardown() {
     ctr_id="$output"
     run bash -c ${KPOD_BINARY} $KPOD_OPTIONS rm -f "$ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
 }
 
 @test "remove all containers" {
@@ -58,7 +58,7 @@ function teardown() {
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB whoami
     run ${KPOD_BINARY} $KPOD_OPTIONS rm -a
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
 }
 
 @test "remove all containers with one running" {
@@ -68,5 +68,5 @@ function teardown() {
     ${KPOD_BINARY} ${KPOD_OPTIONS} run -d ${ALPINE} sleep 30
     run ${KPOD_BINARY} $KPOD_OPTIONS rm -a -f
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
 }

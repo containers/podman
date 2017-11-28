@@ -3,7 +3,7 @@
 load helpers
 
 function teardown() {
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f -a"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm --force --all"
     cleanup_test
 }
 
