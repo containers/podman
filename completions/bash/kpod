@@ -682,6 +682,21 @@ _kpod_diff() {
     esac
 }
 
+_kpod_exec() {
+    local options_with_args="
+    -e
+    --env
+    --user
+    -u
+     "
+    local boolean_options="
+    --privileged
+    --tty
+    -t
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+}
 _kpod_export() {
     local options_with_args="
      --output
@@ -1437,6 +1452,7 @@ _kpod_kpod() {
     attach
     create
     diff
+    exec
     export
     history
     images

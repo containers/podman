@@ -61,6 +61,9 @@ create a new container
 ### diff
 Inspect changes on a container or image's filesystem
 
+## exec
+Execute a command in a running container.
+
 ### export
 Export container's filesystem contents as a tar archive
 

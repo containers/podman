@@ -37,6 +37,7 @@ libpod is currently in active development.
 | [kpod-attach(1)](/docs/kpod-attach.1.md)             | Attach to a running container.
 | [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Instead of providing a `kpod cp` command, the man page `kpod-cp` describes how to use the `kpod mount` command to have even more flexibility and functionality.||
 | [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
+| [kpod-exec(1)](/docs/kpod-exec.1.md)                 | Execute a command in a running container.
 | [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [kpod-history(1)](/docs/kpod-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
 | [kpod-images(1)](/docs/kpod-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|

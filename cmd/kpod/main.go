@@ -37,6 +37,7 @@ func main() {
 		attachCommand,
 		createCommand,
 		diffCommand,
+		execCommand,
 		exportCommand,
 		historyCommand,
 		imagesCommand,
