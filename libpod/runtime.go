@@ -211,6 +211,20 @@ func (r *Runtime) Shutdown(force bool) error {
 
 	r.valid = false
 
+	// Shutdown all containers if --force is given
+	if force {
+		ctrs, err := r.state.AllContainers()
+		if err !=nil {
+			logrus.Errorf("Error retrieving containers from database: %v", err)
+		} else {
+			for _, ctr := range ctrs {
+				if err := ctr.Stop(ctrRemoveTimeout); err != nil {
+					logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
+				}
+			}
+		}
+	}
+
 	_, err := r.store.Shutdown(force)
 	if err != nil {
 		return err
