@@ -516,9 +516,9 @@ func (c *Container) Start() error {
 	return nil
 }
 
-// Stop uses the container's requested stop signal (or SIGTERM if no signal was
-// specified) to stop the container, and if it has not stopped after the given
-// timeout (in seconds), uses SIGKILL to attempt to forcibly stop the container
+// Stop uses the container's stop signal (or SIGTERM if no signal was specified)
+// to stop the container, and if it has not stopped after the given timeout (in
+// seconds), uses SIGKILL to attempt to forcibly stop the container.
 // If timeout is 0, SIGKILL will be used immediately
 func (c *Container) Stop(timeout int64) error {
 	c.lock.Lock()
