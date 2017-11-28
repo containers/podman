@@ -15,9 +15,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/fields"
 
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libkpod"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/oci"
 	"github.com/urfave/cli"
 )
@@ -144,17 +146,18 @@ func psCmd(c *cli.Context) error {
 	if err := validateFlags(c, psFlags); err != nil {
 		return err
 	}
-	config, err := getConfig(c)
+
+	// latest, and last are mutually exclusive.
+	if c.Int("last") >= 0 && c.Bool("latest") {
+		return errors.Errorf("last and latest are mutually exclusive")
+	}
+
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	server, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "error creating server")
-	}
-	if err := server.Update(); err != nil {
-		return errors.Wrapf(err, "error updating list of containers")
-	}
+
+	defer runtime.Shutdown(false)
 
 	if len(c.Args()) > 0 {
 		return errors.Errorf("too many arguments, ps takes no arguments")
@@ -177,38 +180,128 @@ func psCmd(c *cli.Context) error {
 		namespace: c.Bool("namespace"),
 	}
 
-	// all, latest, and last are mutually exclusive. Only one flag can be used at a time
-	exclusiveOpts := 0
-	if opts.last >= 0 {
-		exclusiveOpts++
-	}
-	if opts.latest {
-		exclusiveOpts++
-	}
-	if opts.all {
-		exclusiveOpts++
-	}
-	if exclusiveOpts > 1 {
-		return errors.Errorf("Last, latest and all are mutually exclusive")
+	var filterFuncs []libpod.ContainerFilter
+	// When we are dealing with latest or last=n, we need to
+	// get all containers.
+	if !opts.all && !opts.latest && opts.last < 1 {
+		// only get running containers
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == libpod.ContainerStateRunning
+		})
 	}
 
-	containers, err := server.ListContainers()
-	if err != nil {
-		return errors.Wrapf(err, "error getting containers from server")
-	}
-	var params *FilterParamsPS
 	if opts.filter != "" {
-		params, err = parseFilter(opts.filter, containers)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing filter")
+		filters := strings.Split(opts.filter, ",")
+		for _, f := range filters {
+			filterSplit := strings.Split(f, "=")
+			if len(filterSplit) < 2 {
+				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+			}
+			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], runtime)
+			if err != nil {
+				return errors.Wrapf(err, "invalid filter")
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
 		}
-	} else {
-		params = nil
 	}
 
-	containerList := getContainersMatchingFilter(containers, params, server)
+	containers, err := runtime.GetContainers(filterFuncs...)
+	var outputContainers []*libpod.Container
+	if opts.latest && len(containers) > 0 {
+		outputContainers = append(outputContainers, containers[0])
+	} else if opts.last > 0 && opts.last <= len(containers) {
+		outputContainers = append(outputContainers, containers[:opts.last]...)
+	} else {
+		outputContainers = containers
+	}
 
-	return generatePsOutput(containerList, server, opts)
+	return generatePsOutput(outputContainers, opts)
+}
+
+func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(container *libpod.Container) bool, error) {
+	switch filter {
+	case "id":
+		return func(c *libpod.Container) bool {
+			return c.ID() == filterValue
+		}, nil
+	case "label":
+		return func(c *libpod.Container) bool {
+			for _, label := range c.Labels() {
+				if label == filterValue {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "name":
+		return func(c *libpod.Container) bool {
+			return c.Name() == filterValue
+		}, nil
+	case "exited":
+		exitCode, err := strconv.ParseInt(filterValue, 10, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "exited code out of range %q", filterValue)
+		}
+		return func(c *libpod.Container) bool {
+			ec, err := c.ExitCode()
+			if ec == int32(exitCode) && err == nil {
+				return true
+			}
+			return false
+		}, nil
+	case "status":
+		if !libpod.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
+			return nil, errors.Errorf("%s is not a valid status", filterValue)
+		}
+		return func(c *libpod.Container) bool {
+			status, err := c.State()
+			if err != nil {
+				return false
+			}
+			return status.String() == filterValue
+		}, nil
+	case "ancestor":
+		// This needs to refine to match docker
+		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
+		return func(c *libpod.Container) bool {
+			containerConfig := c.Config()
+			if containerConfig.RootfsImageID == filterValue || containerConfig.RootfsImageName == filterValue {
+				return true
+			}
+			return false
+		}, nil
+	case "before":
+		ctr, err := runtime.LookupContainer(filterValue)
+		if err != nil {
+			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
+		}
+		containerConfig := ctr.Config()
+		createTime := containerConfig.CreatedTime
+		return func(c *libpod.Container) bool {
+			cc := c.Config()
+			return createTime.After(cc.CreatedTime)
+		}, nil
+	case "since":
+		ctr, err := runtime.LookupContainer(filterValue)
+		if err != nil {
+			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
+		}
+		containerConfig := ctr.Config()
+		createTime := containerConfig.CreatedTime
+		return func(c *libpod.Container) bool {
+			cc := c.Config()
+			return createTime.Before(cc.CreatedTime)
+		}, nil
+	case "volume":
+		//- volume=(<volume-name>|<mount-point-destination>)
+		return func(c *libpod.Container) bool {
+			containerConfig := c.Config()
+			//TODO We need to still lookup against volumes too
+			return containerConfig.MountLabel == filterValue
+		}, nil
+	}
+	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
 
 // generate the template based on conditions given
@@ -280,36 +373,59 @@ func getContainers(containers []*libkpod.ContainerData, opts psOptions) []*libkp
 }
 
 // getTemplateOutput returns the modified container information
-func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psOutput []psTemplateParams) {
+func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemplateParams, error) {
+	var psOutput []psTemplateParams
 	var status string
 	for _, ctr := range containers {
-		ctrID := ctr.ID
-		runningFor := units.HumanDuration(time.Since(ctr.State.Created))
+		ctrID := ctr.ID()
+		conConfig := ctr.Config()
+		conState, err := ctr.State()
+		if err != nil {
+			return psOutput, errors.Wrapf(err, "unable to obtain container state")
+		}
+		exitCode, err := ctr.ExitCode()
+		if err != nil {
+			return psOutput, errors.Wrapf(err, "unable to obtain container exit code")
+		}
+		pid, err := ctr.PID()
+		if err != nil {
+			return psOutput, errors.Wrapf(err, "unable to obtain container pid")
+		}
+		runningFor := units.HumanDuration(time.Since(conConfig.CreatedTime))
 		createdAt := runningFor + " ago"
-		command := getStrFromSquareBrackets(ctr.ImageCreatedBy)
-		imageName := ctr.FromImage
-		mounts := getMounts(ctr.Mounts, opts.noTrunc)
-		ports := getPorts(ctr.Config.ExposedPorts)
-		size := units.HumanSize(float64(ctr.SizeRootFs))
-		labels := getLabels(ctr.Labels)
+		imageName := conConfig.RootfsImageName
 
-		ns := getNamespaces(ctr.State.Pid)
+		// TODO We currently dont have the ability to get many of
+		// these data items.  Uncomment as progress is made
 
-		switch ctr.State.Status {
-		case oci.ContainerStateStopped:
-			status = "Exited (" + strconv.FormatInt(int64(ctr.State.ExitCode), 10) + ") " + runningFor + " ago"
-		case oci.ContainerStateRunning:
+		//command := getStrFromSquareBrackets(ctr.ImageCreatedBy)
+		command := strings.Join(ctr.Spec().Process.Args, " ")
+		//mounts := getMounts(ctr.Mounts, opts.noTrunc)
+		//ports := getPorts(ctr.Config.ExposedPorts)
+		//size := units.HumanSize(float64(ctr.SizeRootFs))
+		labels := formatLabels(ctr.Labels())
+		ns := getNamespaces(pid)
+
+		switch conState {
+		case libpod.ContainerStateStopped:
+			status = fmt.Sprintf("Exited (%d) %s ago", exitCode, runningFor)
+		case libpod.ContainerStateRunning:
 			status = "Up " + runningFor + " ago"
-		case oci.ContainerStatePaused:
+		case libpod.ContainerStatePaused:
 			status = "Paused"
-		default:
+		case libpod.ContainerStateCreated:
 			status = "Created"
+		default:
+			status = "Dead"
 		}
 
 		if !opts.noTrunc {
-			ctrID = ctr.ID[:idTruncLength]
-			imageName = getImageName(ctr.FromImage)
+			ctrID = ctr.ID()[:idTruncLength]
+			imageName = conConfig.RootfsImageName
 		}
+
+		// TODO We currently dont have the ability to get many of
+		// these data items.  Uncomment as progress is made
 
 		params := psTemplateParams{
 			ID:         ctrID,
@@ -318,23 +434,23 @@ func getTemplateOutput(containers []*libkpod.ContainerData, opts psOptions) (psO
 			CreatedAt:  createdAt,
 			RunningFor: runningFor,
 			Status:     status,
-			Ports:      ports,
-			Size:       size,
-			Names:      ctr.Name,
-			Labels:     labels,
-			Mounts:     mounts,
-			PID:        ctr.State.Pid,
-			Cgroup:     ns.Cgroup,
-			IPC:        ns.IPC,
-			MNT:        ns.MNT,
-			NET:        ns.NET,
-			PIDNS:      ns.PID,
-			User:       ns.User,
-			UTS:        ns.UTS,
+			//Ports:      ports,
+			//Size:       size,
+			Names:  ctr.Name(),
+			Labels: labels,
+			//Mounts:     mounts,
+			PID:    pid,
+			Cgroup: ns.Cgroup,
+			IPC:    ns.IPC,
+			MNT:    ns.MNT,
+			NET:    ns.NET,
+			PIDNS:  ns.PID,
+			User:   ns.User,
+			UTS:    ns.UTS,
 		}
 		psOutput = append(psOutput, params)
 	}
-	return
+	return psOutput, nil
 }
 
 func getNamespaces(pid int) *namespace {
@@ -368,50 +484,64 @@ func getNamespaceInfo(path string) (string, error) {
 }
 
 // getJSONOutput returns the container info in its raw form
-func getJSONOutput(containers []*libkpod.ContainerData, nSpace bool) (psOutput []psJSONParams) {
+func getJSONOutput(containers []*libpod.Container, nSpace bool) ([]psJSONParams, error) {
+	var psOutput []psJSONParams
 	var ns *namespace
 	for _, ctr := range containers {
-		if nSpace {
-			ns = getNamespaces(ctr.State.Pid)
+		pid, err := ctr.PID()
+		if err != nil {
+			return psOutput, errors.Wrapf(err, "unable to obtain container pid")
 		}
-
+		if nSpace {
+			ns = getNamespaces(pid)
+		}
+		cc := ctr.Config()
+		conState, err := ctr.State()
+		if err != nil {
+			return psOutput, errors.Wrapf(err, "unable to obtain container state for JSON output")
+		}
 		params := psJSONParams{
-			ID:               ctr.ID,
-			Image:            ctr.FromImage,
-			ImageID:          ctr.FromImageID,
-			Command:          getStrFromSquareBrackets(ctr.ImageCreatedBy),
-			CreatedAt:        ctr.State.Created,
-			RunningFor:       time.Since(ctr.State.Created),
-			Status:           ctr.State.Status,
-			Ports:            ctr.Config.ExposedPorts,
-			Size:             ctr.SizeRootFs,
-			Names:            ctr.Name,
-			Labels:           ctr.Labels,
-			Mounts:           ctr.Mounts,
-			ContainerRunning: ctr.State.Status == oci.ContainerStateRunning,
+			// TODO When we have ability to obtain the commented out data, we need
+			// TODO to add it
+			ID:      ctr.ID(),
+			Image:   cc.RootfsImageName,
+			ImageID: cc.RootfsImageID,
+			//Command:          getStrFromSquareBrackets(ctr.ImageCreatedBy),
+			Command:    strings.Join(ctr.Spec().Process.Args, " "),
+			CreatedAt:  cc.CreatedTime,
+			RunningFor: time.Since(cc.CreatedTime),
+			Status:     conState.String(),
+			//Ports:            cc.Spec.Linux.Resources.Network.
+			//Size:             ctr.SizeRootFs,
+			Names:            cc.Name,
+			Labels:           cc.Labels,
+			Mounts:           cc.Spec.Mounts,
+			ContainerRunning: conState.String() == oci.ContainerStateRunning,
 			Namespaces:       ns,
 		}
 		psOutput = append(psOutput, params)
 	}
-	return
+	return psOutput, nil
 }
 
-func generatePsOutput(containers []*libkpod.ContainerData, server *libkpod.ContainerServer, opts psOptions) error {
-	containersOutput := getContainers(containers, opts)
-	// In the case of JSON, we want to continue so we at least pass
-	// {} --valid JSON-- to the consumer
-	if len(containersOutput) == 0 && opts.format != formats.JSONString {
+func generatePsOutput(containers []*libpod.Container, opts psOptions) error {
+	if len(containers) == 0 && opts.format != formats.JSONString {
 		return nil
 	}
-
 	var out formats.Writer
 
 	switch opts.format {
 	case formats.JSONString:
-		psOutput := getJSONOutput(containersOutput, opts.namespace)
+		psOutput, err := getJSONOutput(containers, opts.namespace)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create JSON for output")
+		}
 		out = formats.JSONStructArray{Output: psToGeneric([]psTemplateParams{}, psOutput)}
 	default:
-		psOutput := getTemplateOutput(containersOutput, opts)
+		psOutput, err := getTemplateOutput(containers, opts)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create output")
+		}
 		out = formats.StdoutTemplateArray{Output: psToGeneric(psOutput, []psJSONParams{}), Template: opts.format, Fields: psOutput[0].headerMap()}
 	}
 
@@ -440,7 +570,7 @@ func getImageName(img string) string {
 }
 
 // getLabels converts the labels to a string of the form "key=value, key2=value2"
-func getLabels(labels fields.Set) string {
+func formatLabels(labels map[string]string) string {
 	var arr []string
 	if len(labels) > 0 {
 		for key, val := range labels {

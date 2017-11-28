@@ -124,6 +124,26 @@ type ContainerConfig struct {
 	// TODO allow overriding of log path
 }
 
+// ContainerStater returns a string representation for users
+// of a container state
+func (t ContainerState) String() string {
+	switch t {
+	case ContainerStateUnknown:
+		return "unknown"
+	case ContainerStateConfigured:
+		return "configured"
+	case ContainerStateCreated:
+		return "created"
+	case ContainerStateRunning:
+		return "running"
+	case ContainerStateStopped:
+		return "exited"
+	case ContainerStatePaused:
+		return "paused"
+	}
+	return ""
+}
+
 // ID returns the container's ID
 func (c *Container) ID() string {
 	return c.config.ID
@@ -170,6 +190,59 @@ func (c *Container) LogPath() string {
 	return c.logPath()
 }
 
+// ExitCode returns the exit code of the container as
+// an int32
+func (c *Container) ExitCode() (int32, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+	return c.state.ExitCode, nil
+}
+
+// Mounted returns a bool as to if the container's storage
+// is mounted
+func (c *Container) Mounted() (bool, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return false, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+	return c.state.Mounted, nil
+}
+
+// Mountpoint returns the path to the container's mounted
+// storage as a string
+func (c *Container) Mountpoint() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+	return c.state.Mountpoint, nil
+}
+
+// StartedTime is the time the container was started
+func (c *Container) StartedTime() (time.Time, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+	return c.state.StartedTime, nil
+}
+
+// FinishedTime is the time the container was stopped
+func (c *Container) FinishedTime() (time.Time, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+	return c.state.FinishedTime, nil
+}
+
 // State returns the current state of the container
 func (c *Container) State() (ContainerState, error) {
 	c.lock.Lock()
@@ -178,7 +251,6 @@ func (c *Container) State() (ContainerState, error) {
 	if err := c.syncContainer(); err != nil {
 		return ContainerStateUnknown, err
 	}
-
 	return c.state.State, nil
 }
 
@@ -199,11 +271,9 @@ func (c *Container) PID() (int, error) {
 func (c *Container) MountPoint() (string, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	if err := c.runtime.state.UpdateContainer(c); err != nil {
+	if err := c.syncContainer(); err != nil {
 		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
 	}
-
 	return c.state.Mountpoint, nil
 }
 
@@ -229,7 +299,6 @@ func (c *Container) syncContainer() error {
 	if err := c.runtime.state.UpdateContainer(c); err != nil {
 		return err
 	}
-
 	// If runc knows about the container, update its status in runc
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
