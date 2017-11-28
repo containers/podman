@@ -136,5 +136,8 @@ func runCmd(c *cli.Context) error {
 		fmt.Printf("%s\n", ctr.ID())
 	}
 	wg.Wait()
+	if createConfig.rm {
+		return runtime.RemoveContainer(ctr, true)
+	}
 	return nil
 }
