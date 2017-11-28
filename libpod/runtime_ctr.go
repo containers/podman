@@ -103,6 +103,11 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 		if err := r.ociRuntime.stopContainer(c, ctrRemoveTimeout); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
+
+		// Need to update container state to make sure we know it's stopped
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	} else if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped) {
