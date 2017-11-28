@@ -218,7 +218,7 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, o
 			ID:         imageID,
 			Digest:     imageDigest,
 			Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
-			Size:       units.HumanSize(float64(size)),
+			Size:       units.HumanSizeWithPrecision(float64(size), 3),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
