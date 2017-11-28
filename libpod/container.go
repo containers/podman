@@ -141,7 +141,7 @@ func (t ContainerState) String() string {
 	case ContainerStatePaused:
 		return "paused"
 	}
-	return ""
+	return "bad state"
 }
 
 // ID returns the container's ID
@@ -566,10 +566,8 @@ func (c *Container) Kill(signal uint) error {
 		return err
 	}
 
-	if c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only kill created, running, or stopped containers")
+	if c.state.State != ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
 	}
 
 	return c.runtime.ociRuntime.killContainer(c, signal)

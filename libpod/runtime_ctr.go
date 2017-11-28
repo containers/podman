@@ -106,7 +106,7 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	} else if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped) {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is running or paused", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
 	// Stop the container's storage
