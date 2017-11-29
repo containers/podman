@@ -798,19 +798,26 @@ func (r *Runtime) RemoveImage(image *storage.Image, force bool) (string, error) 
 		return "", ErrRuntimeStopped
 	}
 
-	containersWithImage, err := r.getContainersWithImage(image.ID)
+	// Get all containers, filter to only those using the image, and remove those containers
+	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return "", errors.Wrapf(err, "error getting containers for image %q", image.ID)
+		return "", err
 	}
-	if len(containersWithImage) > 0 && len(image.Names) <= 1 {
+	imageCtrs := []*Container{}
+	for _, ctr := range ctrs {
+		if ctr.config.RootfsImageID == image.ID {
+			imageCtrs = append(imageCtrs, ctr)
+		}
+	}
+	if len(imageCtrs) > 0 && len(image.Names) <= 1 {
 		if force {
-			if err := r.removeMultipleContainers(containersWithImage); err != nil {
-				return "", err
+			for _, ctr := range imageCtrs {
+				if err := r.removeContainer(ctr, true); err != nil {
+					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
+				}
 			}
 		} else {
-			for _, ctr := range containersWithImage {
-				return "", fmt.Errorf("Could not remove image %q (must force) - container %q is using its reference image", image.ID, ctr.ImageID)
-			}
+			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
 		}
 	}
 
