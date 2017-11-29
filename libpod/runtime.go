@@ -61,7 +61,7 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:  "cgroupfs",
-		StaticDir:      "/var/lib/libpod",
+		StaticDir:      filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:         "/var/run/libpod",
 		SelinuxEnabled: false,
 		PidsLimit:      1024,

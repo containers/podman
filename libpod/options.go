@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -43,6 +44,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		rt.config.StorageConfig.RunRoot = config.RunRoot
 		rt.config.StorageConfig.GraphRoot = config.GraphRoot
 		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
+		rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
 
 		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
 		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
