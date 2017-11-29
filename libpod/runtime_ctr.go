@@ -103,6 +103,10 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return err
 	}
 
+	if c.state.State == ContainerStatePaused {
+		return errors.Wrapf("container %s is paused, cannot remove until unpaused", c.ID())
+	}
+
 	// Check that the container's in a good state to be removed
 	if c.state.State == ContainerStateRunning && force {
 		if err := r.ociRuntime.stopContainer(c, ctrRemoveTimeout); err != nil {
