@@ -69,7 +69,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *
 	}()
 
 	if err := r.state.AddContainer(ctr); err != nil {
-		// TODO: Might be worth making an effort to detect duplicate IDs
+		// TODO: Might be worth making an effort to detect duplicate IDs and names
 		// We can recover from that by generating a new ID for the
 		// container
 		return nil, errors.Wrapf(err, "error adding new container to state")
