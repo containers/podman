@@ -161,6 +161,7 @@ function wait_until_reachable() {
 }
 
 function cleanup_test() {
+	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm --force --all"
 	rm -rf "$TESTDIR"
 }
 

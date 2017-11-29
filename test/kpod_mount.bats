@@ -5,7 +5,6 @@ load helpers
 IMAGE="redis:alpine"
 
 function teardown() {
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f -a"
     cleanup_test
 }
 
