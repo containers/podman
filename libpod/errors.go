@@ -59,6 +59,9 @@ var (
 	// ErrDBClosed indicates that the connection to the state database has
 	// already been closed
 	ErrDBClosed = errors.New("database connection already closed")
+	// ErrDBBadConfig indicates that the database has a different schema or
+	// was created by a libpod with a different config
+	ErrDBBadConfig = errors.New("database configuration mismatch")
 
 	// ErrNotImplemented indicates that the requested functionality is not
 	// yet present
