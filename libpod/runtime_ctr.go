@@ -104,7 +104,7 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	}
 
 	if c.state.State == ContainerStatePaused {
-		return errors.Wrapf("container %s is paused, cannot remove until unpaused", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
 	}
 
 	// Check that the container's in a good state to be removed
