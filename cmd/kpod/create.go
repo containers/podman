@@ -343,6 +343,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		blkioWeight = uint16(u)
 	}
 
+	if err = parseVolumes(c.StringSlice("volume")); err != nil {
+		return nil, err
+	}
+
 	// Because we cannot do a non-terminal attach, we need to set tty to true
 	// if detach is not false
 	// TODO Allow non-terminal attach

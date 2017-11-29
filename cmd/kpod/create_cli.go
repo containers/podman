@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/pkg/sysinfo"
@@ -38,6 +39,71 @@ func convertStringSliceToMap(strSlice []string, delimiter string) (map[string]st
 func addWarning(warnings []string, msg string) []string {
 	logrus.Warn(msg)
 	return append(warnings, msg)
+}
+
+func parseVolumes(volumes []string) error {
+	if len(volumes) == 0 {
+		return nil
+	}
+	for _, volume := range volumes {
+		arr := strings.SplitN(volume, ":", 3)
+		if len(arr) < 2 {
+			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir:[option]", volume)
+		}
+		if err := validateVolumeHostDir(arr[0]); err != nil {
+			return err
+		}
+		if err := validateVolumeCtrDir(arr[1]); err != nil {
+			return err
+		}
+		if len(arr) > 2 {
+			if err := validateVolumeOpts(arr[2]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func validateVolumeHostDir(hostDir string) error {
+	if _, err := os.Stat(hostDir); err != nil {
+		return errors.Wrapf(err, "error checking path %q", hostDir)
+	}
+	return nil
+}
+
+func validateVolumeCtrDir(ctrDir string) error {
+	if ctrDir[0] != '/' {
+		return errors.Errorf("invalid container directory path %q", ctrDir)
+	}
+	return nil
+}
+
+func validateVolumeOpts(option string) error {
+	var foundRootPropagation, foundRWRO, foundLabelChange int
+	options := strings.Split(option, ",")
+	for _, opt := range options {
+		switch opt {
+		case "rw", "ro":
+			if foundRWRO > 1 {
+				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", option)
+			}
+			foundRWRO++
+		case "z", "Z":
+			if foundLabelChange > 1 {
+				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
+			}
+			foundLabelChange++
+		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
+			if foundRootPropagation > 1 {
+				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", option)
+			}
+			foundRootPropagation++
+		default:
+			return errors.Errorf("invalid option type %q", option)
+		}
+	}
+	return nil
 }
 
 func verifyContainerResources(config *createConfig, update bool) ([]string, error) {

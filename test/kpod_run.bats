@@ -120,3 +120,18 @@ IMAGE="docker.io/library/fedora:latest"
     [ "$output" = 100 ]
 
 }
+
+@test "kpod run with volume flag" {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime'"
+    echo $output
+    [ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:ro ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test ro,relatime'"
+    echo $output
+    [ "$status" -eq 0 ]
+    #run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:shared ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime shared:'"
+    #echo $output
+    #[ "$status" -eq 0 ]
+    #run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -v ${MOUNT_PATH}:/run/test:rslave ${FEDORA_MINIMAL} cat /proc/self/mountinfo | grep '${MOUNT_PATH} /run/test rw,relatime master:'"
+    #echo $output
+    #[ "$status" -eq 0 ]
+}

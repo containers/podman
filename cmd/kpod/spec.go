@@ -11,6 +11,7 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	ann "github.com/projectatomic/libpod/pkg/annotations"
@@ -224,7 +225,11 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = append(configSpec.Mounts, config.GetVolumeMounts()...)
+	mounts, err := config.GetVolumeMounts()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting volume mounts")
+	}
+	configSpec.Mounts = append(configSpec.Mounts, mounts...)
 
 	// HANDLE CAPABILITIES
 	if err := setupCapabilities(config, configSpec); err != nil {
@@ -357,7 +362,7 @@ func getDefaultAnnotations() map[string]string {
 }
 
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
-func (c *createConfig) GetVolumeMounts() []spec.Mount {
+func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 	var m []spec.Mount
 	var options []string
 	for _, i := range c.volumes {
@@ -366,8 +371,36 @@ func (c *createConfig) GetVolumeMounts() []spec.Mount {
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		// always add rbind bc mount ignores the bind filesystem when mounting
 		options = append(options, "rbind")
+		// var foundrw, foundro,
+		var foundz, foundZ bool
+		for _, opt := range options {
+			switch opt {
+			// case "rw":
+			// 	foundrw = true
+			// case "ro":
+			// 	foundro = true
+			case "z":
+				foundz = true
+			case "Z":
+				foundZ = true
+			}
+		}
+		// if !foundro && !foundrw {
+		// 	// rw option is default
+		// 	options = append(options, "rw")
+		// }
+		if foundz {
+			if err := label.Relabel(spliti[0], c.mountLabel, true); err != nil {
+				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
+			}
+		}
+		if foundZ {
+			if err := label.Relabel(spliti[0], c.mountLabel, false); err != nil {
+				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
+			}
+		}
+
 		m = append(m, spec.Mount{
 			Destination: spliti[1],
 			Type:        string(TypeBind),
@@ -375,7 +408,7 @@ func (c *createConfig) GetVolumeMounts() []spec.Mount {
 			Options:     options,
 		})
 	}
-	return m
+	return m, nil
 }
 
 //GetTmpfsMounts takes user provided input for tmpfs mounts and creates Mount structs
