@@ -7,7 +7,6 @@ function setup() {
 }
 
 function teardown() {
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm --force --all"
     cleanup_test
 }
 
