@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 )
@@ -102,7 +103,11 @@ func getEmptyState() (s State, p string, err error) {
 	dbPath := filepath.Join(tmpDir, "db.sql")
 	lockPath := filepath.Join(tmpDir, "db.lck")
 
-	state, err := NewSQLState(dbPath, lockPath, tmpDir, nil)
+	runtime := new(Runtime)
+	runtime.config = new(RuntimeConfig)
+	runtime.config.StorageConfig = storage.StoreOptions{}
+
+	state, err := NewSQLState(dbPath, lockPath, tmpDir, runtime)
 	if err != nil {
 		return nil, "", err
 	}

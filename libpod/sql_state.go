@@ -14,6 +14,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// DBSchema is the current DB schema version
+// Increments every time a change is made to the database's tables
+const DBSchema = 1
+
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
 	db       *sql.DB
@@ -66,6 +70,11 @@ func NewSQLState(dbPath, lockPath, specsDir string, runtime *Runtime) (State, er
 
 	// Prepare database
 	if err := prepareDB(db); err != nil {
+		return nil, err
+	}
+
+	// Ensure that the database matches our config
+	if err := checkDB(db, runtime); err != nil {
 		return nil, err
 	}
 

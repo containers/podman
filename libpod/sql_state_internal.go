@@ -15,6 +15,137 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Checks that the DB configuration matches the runtime's configuration
+func checkDB(db *sql.DB, r *Runtime) (err error) {
+	// Create a table to hold runtime information
+	// TODO: Include UID/GID mappings
+	const runtimeTable = `
+        CREATE TABLE runtime(
+            Id INTEGER NOT NULL PRIMARY KEY,
+            SchemaVersion INTEGER NOT NULL,
+            StaticDir TEXT NOT NULL,
+            TmpDir TEXT NOT NULL,
+            RunRoot TEXT NOT NULL,
+            GraphRoot TEXT NOT NULL,
+            GraphDriverName TEXT NOT NULL,
+            CHECK (Id=0)
+        );
+        `
+	const fillRuntimeTable = `INSERT INTO runtime VALUES (
+            ?, ?, ?, ?, ?, ?, ?
+        );`
+
+	const selectRuntimeTable = `SELECT SchemaVersion,
+                                           StaticDir,
+                                           TmpDir,
+                                           RunRoot,
+                                           GraphRoot,
+                                           GraphDriverName
+                                    FROM runtime WHERE id=0;`
+
+	const checkRuntimeExists = "SELECT name FROM sqlite_master WHERE type='table' AND name='runtime';"
+
+	tx, err := db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to check runtime table: %v", err2)
+			}
+		}
+
+	}()
+
+	row := tx.QueryRow(checkRuntimeExists)
+	var table string
+	if err := row.Scan(&table); err != nil {
+		// There is no runtime table
+		// Create and populate the runtime table
+		if err == sql.ErrNoRows {
+			if _, err := tx.Exec(runtimeTable); err != nil {
+				return errors.Wrapf(err, "error creating runtime table in database")
+			}
+
+			_, err := tx.Exec(fillRuntimeTable,
+				0,
+				DBSchema,
+				r.config.StaticDir,
+				r.config.TmpDir,
+				r.config.StorageConfig.RunRoot,
+				r.config.StorageConfig.GraphRoot,
+				r.config.StorageConfig.GraphDriverName)
+			if err != nil {
+				return errors.Wrapf(err, "error populating runtime table in database")
+			}
+
+			if err := tx.Commit(); err != nil {
+				return errors.Wrapf(err, "error committing runtime table transaction in database")
+			}
+
+			return nil
+		}
+
+		return errors.Wrapf(err, "error checking for presence of runtime table in database")
+	}
+
+	// There is a runtime table
+	// Retrieve its contents
+	var (
+		schemaVersion   int
+		staticDir       string
+		tmpDir          string
+		runRoot         string
+		graphRoot       string
+		graphDriverName string
+	)
+
+	row = tx.QueryRow(selectRuntimeTable)
+	err = row.Scan(
+		&schemaVersion,
+		&staticDir,
+		&tmpDir,
+		&runRoot,
+		&graphRoot,
+		&graphDriverName)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving runtime information from database")
+	}
+
+	// Compare the information in the database against our runtime config
+	if schemaVersion != DBSchema {
+		return errors.Wrapf(ErrDBBadConfig, "database schema version %d does not match our schema version %d",
+			schemaVersion, DBSchema)
+	}
+	if staticDir != r.config.StaticDir {
+		return errors.Wrapf(ErrDBBadConfig, "database static directory %s does not match our static directory %s",
+			staticDir, r.config.StaticDir)
+	}
+	if tmpDir != r.config.TmpDir {
+		return errors.Wrapf(ErrDBBadConfig, "database temp directory %s does not match our temp directory %s",
+			tmpDir, r.config.TmpDir)
+	}
+	if runRoot != r.config.StorageConfig.RunRoot {
+		return errors.Wrapf(ErrDBBadConfig, "database runroot directory %s does not match our runroot directory %s",
+			runRoot, r.config.StorageConfig.RunRoot)
+	}
+	if graphRoot != r.config.StorageConfig.GraphRoot {
+		return errors.Wrapf(ErrDBBadConfig, "database graph root directory %s does not match our graph root directory %s",
+			graphRoot, r.config.StorageConfig.GraphRoot)
+	}
+	if graphDriverName != r.config.StorageConfig.GraphDriverName {
+		return errors.Wrapf(ErrDBBadConfig, "database runroot directory %s does not match our runroot directory %s",
+			graphDriverName, r.config.StorageConfig.GraphDriverName)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing runtime table transaction in database")
+	}
+
+	return nil
+}
+
 // Performs database setup including by not limited to initializing tables in
 // the database
 func prepareDB(db *sql.DB) (err error) {
