@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
@@ -208,18 +207,18 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, o
 			}
 		}
 
-		info, imageDigest, size, _ := runtime.InfoAndDigestAndSize(*img)
-		if info != nil {
-			createdTime = info.Created
+		imgData, _ := runtime.GetImageInspectInfo(*img)
+		if imgData != nil {
+			createdTime = *imgData.Created
 		}
 
 		params := imagesTemplateParams{
 			Repository: repository,
 			Tag:        tag,
 			ID:         imageID,
-			Digest:     imageDigest,
+			Digest:     imgData.Digest,
 			Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
-			Size:       units.HumanSizeWithPrecision(float64(size), 3),
+			Size:       units.HumanSizeWithPrecision(float64(imgData.Size), 3),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
@@ -231,17 +230,17 @@ func getImagesJSONOutput(runtime *libpod.Runtime, images []*storage.Image) (imag
 	for _, img := range images {
 		createdTime := img.Created
 
-		info, imageDigest, size, _ := runtime.InfoAndDigestAndSize(*img)
-		if info != nil {
-			createdTime = info.Created
+		imgData, _ := runtime.GetImageInspectInfo(*img)
+		if imgData != nil {
+			createdTime = *imgData.Created
 		}
 
 		params := imagesJSONParams{
 			ID:      img.ID,
 			Name:    img.Names,
-			Digest:  imageDigest,
+			Digest:  imgData.Digest,
 			Created: createdTime,
-			Size:    size,
+			Size:    imgData.Size,
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
@@ -274,7 +273,7 @@ func generateImagesOutput(runtime *libpod.Runtime, images []*storage.Image, opts
 func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) libpod.ImageFilter {
 	switch filterType {
 	case "label":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.Label == "" {
 				return true
 			}
@@ -291,21 +290,21 @@ func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) l
 			return false
 		}
 	case "before-image":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.BeforeImage.IsZero() {
 				return true
 			}
 			return info.Created.Before(params.BeforeImage)
 		}
 	case "since-image":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.SinceImage.IsZero() {
 				return true
 			}
 			return info.Created.After(params.SinceImage)
 		}
 	case "dangling":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.Dangling == "" {
 				return true
 			}
@@ -318,14 +317,14 @@ func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) l
 			return false
 		}
 	case "reference":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.ReferencePattern == "" {
 				return true
 			}
 			return libpod.MatchesReference(params.ImageName, params.ReferencePattern)
 		}
 	case "image-input":
-		return func(image *storage.Image, info *types.ImageInspectInfo) bool {
+		return func(image *storage.Image, info *libpod.ImageData) bool {
 			if params == nil || params.ImageInput == "" {
 				return true
 			}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -36,91 +37,92 @@ var (
 )
 
 type createResourceConfig struct {
-	blkioWeight       uint16   // blkio-weight
-	blkioWeightDevice []string // blkio-weight-device
-	cpuPeriod         uint64   // cpu-period
-	cpuQuota          int64    // cpu-quota
-	cpuRtPeriod       uint64   // cpu-rt-period
-	cpuRtRuntime      int64    // cpu-rt-runtime
-	cpuShares         uint64   // cpu-shares
-	cpus              string   // cpus
-	cpusetCpus        string
-	cpusetMems        string   // cpuset-mems
-	deviceReadBps     []string // device-read-bps
-	deviceReadIOps    []string // device-read-iops
-	deviceWriteBps    []string // device-write-bps
-	deviceWriteIOps   []string // device-write-iops
-	disableOomKiller  bool     // oom-kill-disable
-	kernelMemory      int64    // kernel-memory
-	memory            int64    //memory
-	memoryReservation int64    // memory-reservation
-	memorySwap        int64    //memory-swap
-	memorySwappiness  int      // memory-swappiness
-	oomScoreAdj       int      //oom-score-adj
-	pidsLimit         int64    // pids-limit
-	shmSize           string
-	ulimit            []string //ulimit
+	BlkioWeight       uint16   // blkio-weight
+	BlkioWeightDevice []string // blkio-weight-device
+	CpuPeriod         uint64   // cpu-period
+	CpuQuota          int64    // cpu-quota
+	CpuRtPeriod       uint64   // cpu-rt-period
+	CpuRtRuntime      int64    // cpu-rt-runtime
+	CpuShares         uint64   // cpu-shares
+	Cpus              string   // cpus
+	CpusetCpus        string
+	CpusetMems        string   // cpuset-mems
+	DeviceReadBps     []string // device-read-bps
+	DeviceReadIOps    []string // device-read-iops
+	DeviceWriteBps    []string // device-write-bps
+	DeviceWriteIOps   []string // device-write-iops
+	DisableOomKiller  bool     // oom-kill-disable
+	KernelMemory      int64    // kernel-memory
+	Memory            int64    //memory
+	MemoryReservation int64    // memory-reservation
+	MemorySwap        int64    //memory-swap
+	MemorySwappiness  int      // memory-swappiness
+	OomScoreAdj       int      //oom-score-adj
+	PidsLimit         int64    // pids-limit
+	ShmSize           string
+	Ulimit            []string //ulimit
 }
 
 type createConfig struct {
-	runtime            *libpod.Runtime
-	args               []string
-	capAdd             []string // cap-add
-	capDrop            []string // cap-drop
-	cidFile            string
-	cgroupParent       string // cgroup-parent
-	command            []string
-	detach             bool              // detach
-	devices            []*pb.Device      // device
-	dnsOpt             []string          //dns-opt
-	dnsSearch          []string          //dns-search
-	dnsServers         []string          //dns
-	entrypoint         string            //entrypoint
-	env                map[string]string //env
-	expose             []string          //expose
-	groupAdd           []uint32          // group-add
-	hostname           string            //hostname
-	image              string
-	interactive        bool                  //interactive
-	ipcMode            container.IpcMode     //ipc
-	ip6Address         string                //ipv6
-	ipAddress          string                //ip
-	labels             map[string]string     //label
-	linkLocalIP        []string              // link-local-ip
-	logDriver          string                // log-driver
-	logDriverOpt       []string              // log-opt
-	macAddress         string                //mac-address
-	name               string                //name
-	netMode            container.NetworkMode //net
-	network            string                //network
-	networkAlias       []string              //network-alias
-	pidMode            container.PidMode     //pid
-	nsUser             string
-	pod                string   //pod
-	privileged         bool     //privileged
-	publish            []string //publish
-	publishAll         bool     //publish-all
-	readOnlyRootfs     bool     //read-only
-	resources          createResourceConfig
-	rm                 bool //rm
-	shmDir             string
-	sigProxy           bool              //sig-proxy
-	stopSignal         string            // stop-signal
-	stopTimeout        int64             // stop-timeout
-	storageOpts        []string          //storage-opt
-	sysctl             map[string]string //sysctl
-	tmpfs              []string          // tmpfs
-	tty                bool              //tty
-	user               uint32            //user
-	group              uint32            // group
-	utsMode            container.UTSMode //uts
-	volumes            []string          //volume
-	workDir            string            //workdir
-	mountLabel         string            //SecurityOpts
-	processLabel       string            //SecurityOpts
-	noNewPrivileges    bool              //SecurityOpts
-	apparmorProfile    string            //SecurityOpts
-	seccompProfilePath string            //SecurityOpts
+	Runtime            *libpod.Runtime
+	Args               []string
+	CapAdd             []string // cap-add
+	CapDrop            []string // cap-drop
+	CidFile            string
+	CgroupParent       string // cgroup-parent
+	Command            []string
+	Detach             bool              // detach
+	Devices            []*pb.Device      // device
+	DnsOpt             []string          //dns-opt
+	DnsSearch          []string          //dns-search
+	DnsServers         []string          //dns
+	Entrypoint         string            //entrypoint
+	Env                map[string]string //env
+	Expose             []string          //expose
+	GroupAdd           []uint32          // group-add
+	Hostname           string            //hostname
+	Image              string
+	Interactive        bool                  //interactive
+	IpcMode            container.IpcMode     //ipc
+	Ip6Address         string                //ipv6
+	IpAddress          string                //ip
+	Labels             map[string]string     //label
+	LinkLocalIP        []string              // link-local-ip
+	LogDriver          string                // log-driver
+	LogDriverOpt       []string              // log-opt
+	MacAddress         string                //mac-address
+	Name               string                //name
+	NetMode            container.NetworkMode //net
+	Network            string                //network
+	NetworkAlias       []string              //network-alias
+	PidMode            container.PidMode     //pid
+	NsUser             string
+	Pod                string   //pod
+	Privileged         bool     //privileged
+	Publish            []string //publish
+	PublishAll         bool     //publish-all
+	ReadOnlyRootfs     bool     //read-only
+	Resources          createResourceConfig
+	Rm                 bool //rm
+	ShmDir             string
+	SigProxy           bool              //sig-proxy
+	StopSignal         string            // stop-signal
+	StopTimeout        int64             // stop-timeout
+	StorageOpts        []string          //storage-opt
+	Sysctl             map[string]string //sysctl
+	Tmpfs              []string          // tmpfs
+	Tty                bool              //tty
+	User               uint32            //user
+	Group              uint32            // group
+	UtsMode            container.UTSMode //uts
+	Volumes            []string          //volume
+	WorkDir            string            //workdir
+	MountLabel         string            //SecurityOpts
+	ProcessLabel       string            //SecurityOpts
+	NoNewPrivileges    bool              //SecurityOpts
+	ApparmorProfile    string            //SecurityOpts
+	SeccompProfilePath string            //SecurityOpts
+	SecurityOpts       []string
 }
 
 var createDescription = "Creates a new container from the given image or" +
@@ -160,7 +162,7 @@ func createCmd(c *cli.Context) error {
 	}
 
 	// Deal with the image after all the args have been checked
-	createImage := runtime.NewImage(createConfig.image)
+	createImage := runtime.NewImage(createConfig.Image)
 	createImage.LocalName, _ = createImage.GetLocalImageName()
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
@@ -203,10 +205,18 @@ func createCmd(c *cli.Context) error {
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
-	options = append(options, libpod.WithSELinuxLabels(createConfig.processLabel, createConfig.mountLabel))
-	options = append(options, libpod.WithShmDir(createConfig.shmDir))
+	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
+	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
+		return err
+	}
+
+	createConfigJSON, err := json.Marshal(createConfig)
+	if err != nil {
+		return err
+	}
+	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
 		return err
 	}
 
@@ -229,29 +239,29 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 		err       error
 	)
 
-	if config.pidMode.IsHost() {
+	if config.PidMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.pidMode.IsContainer() {
-		ctr, err := config.runtime.LookupContainer(config.pidMode.Container())
+	} else if config.PidMode.IsContainer() {
+		ctr, err := config.Runtime.LookupContainer(config.PidMode.Container())
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.pidMode.Container())
+			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
 		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
 	}
 
-	if config.ipcMode.IsHost() {
+	if config.IpcMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
-	} else if config.ipcMode.IsContainer() {
-		ctr, err := config.runtime.LookupContainer(config.ipcMode.Container())
+	} else if config.IpcMode.IsContainer() {
+		ctr, err := config.Runtime.LookupContainer(config.IpcMode.Container())
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.ipcMode.Container())
+			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
 		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
 	}
 
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
-			config.noNewPrivileges = true
+			config.NoNewPrivileges = true
 		} else {
 			con := strings.SplitN(opt, "=", 2)
 			if len(con) != 2 {
@@ -262,25 +272,25 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 			case "label":
 				labelOpts = append(labelOpts, con[1])
 			case "apparmor":
-				config.apparmorProfile = con[1]
+				config.ApparmorProfile = con[1]
 			case "seccomp":
-				config.seccompProfilePath = con[1]
+				config.SeccompProfilePath = con[1]
 			default:
 				return fmt.Errorf("Invalid --security-opt 2: %q", opt)
 			}
 		}
 	}
 
-	if config.seccompProfilePath == "" {
+	if config.SeccompProfilePath == "" {
 		if _, err := os.Stat(seccompDefaultPath); err != nil {
 			if !os.IsNotExist(err) {
 				return errors.Wrapf(err, "can't check if %q exists", seccompDefaultPath)
 			}
 		} else {
-			config.seccompProfilePath = seccompDefaultPath
+			config.SeccompProfilePath = seccompDefaultPath
 		}
 	}
-	config.processLabel, config.mountLabel, err = label.InitLabels(labelOpts)
+	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
 	return err
 }
 
@@ -403,88 +413,89 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	}
 
 	config := &createConfig{
-		runtime:        runtime,
-		capAdd:         c.StringSlice("cap-add"),
-		capDrop:        c.StringSlice("cap-drop"),
-		cgroupParent:   c.String("cgroup-parent"),
-		command:        command,
-		detach:         c.Bool("detach"),
-		dnsOpt:         c.StringSlice("dns-opt"),
-		dnsSearch:      c.StringSlice("dns-search"),
-		dnsServers:     c.StringSlice("dns"),
-		entrypoint:     c.String("entrypoint"),
-		env:            env,
-		expose:         c.StringSlice("expose"),
-		groupAdd:       groupAdd,
-		hostname:       c.String("hostname"),
-		image:          image,
-		interactive:    c.Bool("interactive"),
-		ip6Address:     c.String("ipv6"),
-		ipAddress:      c.String("ip"),
-		labels:         labels,
-		linkLocalIP:    c.StringSlice("link-local-ip"),
-		logDriver:      c.String("log-driver"),
-		logDriverOpt:   c.StringSlice("log-opt"),
-		macAddress:     c.String("mac-address"),
-		name:           c.String("name"),
-		network:        c.String("network"),
-		networkAlias:   c.StringSlice("network-alias"),
-		ipcMode:        ipcMode,
-		netMode:        container.NetworkMode(c.String("network")),
-		utsMode:        utsMode,
-		pidMode:        pidMode,
-		pod:            c.String("pod"),
-		privileged:     c.Bool("privileged"),
-		publish:        c.StringSlice("publish"),
-		publishAll:     c.Bool("publish-all"),
-		readOnlyRootfs: c.Bool("read-only"),
-		resources: createResourceConfig{
-			blkioWeight:       blkioWeight,
-			blkioWeightDevice: c.StringSlice("blkio-weight-device"),
-			cpuShares:         c.Uint64("cpu-shares"),
-			cpuPeriod:         c.Uint64("cpu-period"),
-			cpusetCpus:        c.String("cpu-period"),
-			cpusetMems:        c.String("cpuset-mems"),
-			cpuQuota:          c.Int64("cpu-quota"),
-			cpuRtPeriod:       c.Uint64("cpu-rt-period"),
-			cpuRtRuntime:      c.Int64("cpu-rt-runtime"),
-			cpus:              c.String("cpus"),
-			deviceReadBps:     c.StringSlice("device-read-bps"),
-			deviceReadIOps:    c.StringSlice("device-read-iops"),
-			deviceWriteBps:    c.StringSlice("device-write-bps"),
-			deviceWriteIOps:   c.StringSlice("device-write-iops"),
-			disableOomKiller:  c.Bool("oom-kill-disable"),
-			shmSize:           c.String("shm-size"),
-			memory:            memoryLimit,
-			memoryReservation: memoryReservation,
-			memorySwap:        memorySwap,
-			memorySwappiness:  c.Int("memory-swappiness"),
-			kernelMemory:      memoryKernel,
-			oomScoreAdj:       c.Int("oom-score-adj"),
+		Runtime:        runtime,
+		CapAdd:         c.StringSlice("cap-add"),
+		CapDrop:        c.StringSlice("cap-drop"),
+		CgroupParent:   c.String("cgroup-parent"),
+		Command:        command,
+		Detach:         c.Bool("detach"),
+		DnsOpt:         c.StringSlice("dns-opt"),
+		DnsSearch:      c.StringSlice("dns-search"),
+		DnsServers:     c.StringSlice("dns"),
+		Entrypoint:     c.String("entrypoint"),
+		Env:            env,
+		Expose:         c.StringSlice("expose"),
+		GroupAdd:       groupAdd,
+		Hostname:       c.String("hostname"),
+		Image:          image,
+		Interactive:    c.Bool("interactive"),
+		Ip6Address:     c.String("ipv6"),
+		IpAddress:      c.String("ip"),
+		Labels:         labels,
+		LinkLocalIP:    c.StringSlice("link-local-ip"),
+		LogDriver:      c.String("log-driver"),
+		LogDriverOpt:   c.StringSlice("log-opt"),
+		MacAddress:     c.String("mac-address"),
+		Name:           c.String("name"),
+		Network:        c.String("network"),
+		NetworkAlias:   c.StringSlice("network-alias"),
+		IpcMode:        ipcMode,
+		NetMode:        container.NetworkMode(c.String("network")),
+		UtsMode:        utsMode,
+		PidMode:        pidMode,
+		Pod:            c.String("pod"),
+		Privileged:     c.Bool("privileged"),
+		Publish:        c.StringSlice("publish"),
+		PublishAll:     c.Bool("publish-all"),
+		ReadOnlyRootfs: c.Bool("read-only"),
+		Resources: createResourceConfig{
+			BlkioWeight:       blkioWeight,
+			BlkioWeightDevice: c.StringSlice("blkio-weight-device"),
+			CpuShares:         c.Uint64("cpu-shares"),
+			CpuPeriod:         c.Uint64("cpu-period"),
+			CpusetCpus:        c.String("cpu-period"),
+			CpusetMems:        c.String("cpuset-mems"),
+			CpuQuota:          c.Int64("cpu-quota"),
+			CpuRtPeriod:       c.Uint64("cpu-rt-period"),
+			CpuRtRuntime:      c.Int64("cpu-rt-runtime"),
+			Cpus:              c.String("cpus"),
+			DeviceReadBps:     c.StringSlice("device-read-bps"),
+			DeviceReadIOps:    c.StringSlice("device-read-iops"),
+			DeviceWriteBps:    c.StringSlice("device-write-bps"),
+			DeviceWriteIOps:   c.StringSlice("device-write-iops"),
+			DisableOomKiller:  c.Bool("oom-kill-disable"),
+			ShmSize:           c.String("shm-size"),
+			Memory:            memoryLimit,
+			MemoryReservation: memoryReservation,
+			MemorySwap:        memorySwap,
+			MemorySwappiness:  c.Int("memory-swappiness"),
+			KernelMemory:      memoryKernel,
+			OomScoreAdj:       c.Int("oom-score-adj"),
 
-			pidsLimit: c.Int64("pids-limit"),
-			ulimit:    c.StringSlice("ulimit"),
+			PidsLimit: c.Int64("pids-limit"),
+			Ulimit:    c.StringSlice("ulimit"),
 		},
-		rm:          c.Bool("rm"),
-		shmDir:      shmDir,
-		sigProxy:    c.Bool("sig-proxy"),
-		stopSignal:  c.String("stop-signal"),
-		stopTimeout: c.Int64("stop-timeout"),
-		storageOpts: c.StringSlice("storage-opt"),
-		sysctl:      sysctl,
-		tmpfs:       c.StringSlice("tmpfs"),
-		tty:         tty,
-		user:        uid,
-		group:       gid,
-		volumes:     c.StringSlice("volume"),
-		workDir:     c.String("workdir"),
+		Rm:          c.Bool("rm"),
+		ShmDir:      shmDir,
+		SigProxy:    c.Bool("sig-proxy"),
+		StopSignal:  c.String("stop-signal"),
+		StopTimeout: c.Int64("stop-timeout"),
+		StorageOpts: c.StringSlice("storage-opt"),
+		Sysctl:      sysctl,
+		Tmpfs:       c.StringSlice("tmpfs"),
+		Tty:         tty,
+		User:        uid,
+		Group:       gid,
+		Volumes:     c.StringSlice("volume"),
+		WorkDir:     c.String("workdir"),
 	}
 
-	if !config.privileged {
+	if !config.Privileged {
 		if err := parseSecurityOpt(config, c.StringSlice("security-opt")); err != nil {
 			return nil, err
 		}
 	}
+	config.SecurityOpts = c.StringSlice("security-opt")
 	warnings, err := verifyContainerResources(config, false)
 	if err != nil {
 		return nil, err

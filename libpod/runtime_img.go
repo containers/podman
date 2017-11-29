@@ -20,15 +20,14 @@ import (
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
-	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/libpod/driver"
 )
 
 // Runtime API
@@ -452,7 +451,7 @@ func getRegistries() ([]string, error) {
 // ImageFilter is a function to determine whether an image is included in
 // command output. Images to be outputted are tested using the function. A true
 // return will include the image, a false return will exclude it.
-type ImageFilter func(*storage.Image, *types.ImageInspectInfo) bool
+type ImageFilter func(*storage.Image, *ImageData) bool
 
 func (ips imageDecomposeStruct) returnFQName() string {
 	return fmt.Sprintf("%s%s/%s:%s", ips.transport, ips.registry, ips.imageName, ips.tag)
@@ -1032,7 +1031,7 @@ func (r *Runtime) ImportImage(path string, options CopyOptions) error {
 }
 
 // GetImageInspectInfo returns the inspect information of an image
-func (r *Runtime) GetImageInspectInfo(image storage.Image) (*types.ImageInspectInfo, error) {
+func (r *Runtime) GetImageInspectInfo(image storage.Image) (*ImageData, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -1042,12 +1041,25 @@ func (r *Runtime) GetImageInspectInfo(image storage.Image) (*types.ImageInspectI
 	return r.getImageInspectInfo(image)
 }
 
-func (r *Runtime) getImageInspectInfo(image storage.Image) (*types.ImageInspectInfo, error) {
-	img, err := r.getImageRef(image.ID)
+func (r *Runtime) getImageInspectInfo(image storage.Image) (*ImageData, error) {
+	imgRef, err := r.getImageRef("@" + image.ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error reading image %q", image.ID)
 	}
-	return img.Inspect()
+
+	layer, err := r.store.Layer(image.TopLayer)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading information about layer %q", image.TopLayer)
+	}
+	size, err := r.store.DiffSize(layer.Parent, layer.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error determining size of layer %q", layer.ID)
+	}
+	driverData, err := driver.GetDriverData(r.store, layer.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting graph driver info %q", image.ID)
+	}
+	return getImageData(image, imgRef, size, driverData)
 }
 
 // ParseImageFilter takes a set of images and a filter string as input, and returns the libpod.ImageFilterParams struct
@@ -1093,7 +1105,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 				if err != nil {
 					return nil, err
 				}
-				params.BeforeImage = info.Created
+				params.BeforeImage = *info.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s", pair[0])
 			}
@@ -1103,7 +1115,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 				if err != nil {
 					return nil, err
 				}
-				params.SinceImage = info.Created
+				params.SinceImage = *info.Created
 			} else {
 				return nil, fmt.Errorf("no such id: %s``", pair[0])
 			}
@@ -1114,43 +1126,6 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 		}
 	}
 	return &params, nil
-}
-
-// InfoAndDigestAndSize returns the inspection info and size of the image in the given
-// store and the digest of its manifest, if it has one, or "" if it doesn't.
-func (r *Runtime) InfoAndDigestAndSize(img storage.Image) (*types.ImageInspectInfo, digest.Digest, int64, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	if !r.valid {
-		return nil, "", -1, ErrRuntimeStopped
-	}
-
-	imgRef, err := r.getImageRef("@" + img.ID)
-	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
-	}
-	return infoAndDigestAndSize(imgRef)
-}
-
-func infoAndDigestAndSize(imgRef types.Image) (*types.ImageInspectInfo, digest.Digest, int64, error) {
-	imgSize, err := imgRef.Size()
-	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error reading size of image %q", transports.ImageName(imgRef.Reference()))
-	}
-	manifest, _, err := imgRef.Manifest()
-	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error reading manifest for image %q", transports.ImageName(imgRef.Reference()))
-	}
-	manifestDigest := digest.Digest("")
-	if len(manifest) > 0 {
-		manifestDigest = digest.Canonical.FromBytes(manifest)
-	}
-	info, err := imgRef.Inspect()
-	if err != nil {
-		return nil, "", -1, errors.Wrapf(err, "error inspecting image %q", transports.ImageName(imgRef.Reference()))
-	}
-	return info, manifestDigest, imgSize, nil
 }
 
 // MatchesID returns true if argID is a full or partial match for id

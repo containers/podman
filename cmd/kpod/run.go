@@ -39,7 +39,7 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	createImage := runtime.NewImage(createConfig.image)
+	createImage := runtime.NewImage(createConfig.Image)
 	createImage.LocalName, _ = createImage.GetLocalImageName()
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
@@ -89,8 +89,8 @@ func runCmd(c *cli.Context) error {
 
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
-	options = append(options, libpod.WithSELinuxLabels(createConfig.processLabel, createConfig.mountLabel))
-	options = append(options, libpod.WithShmDir(createConfig.shmDir))
+	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
+	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func runCmd(c *cli.Context) error {
 	// to finish before exiting main
 	var wg sync.WaitGroup
 
-	if !createConfig.detach {
+	if !createConfig.Detach {
 		// We increment the wg counter because we need to do the attach
 		wg.Add(1)
 		// Attach to the running container
@@ -133,13 +133,13 @@ func runCmd(c *cli.Context) error {
 	if err := ctr.Start(); err != nil {
 		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
 	}
-	if createConfig.detach {
+	if createConfig.Detach {
 		fmt.Printf("%s\n", ctr.ID())
 		return nil
 	}
 	wg.Wait()
 
-	if createConfig.rm {
+	if createConfig.Rm {
 		return runtime.RemoveContainer(ctr, true)
 	}
 	return ctr.CleanupStorage()
