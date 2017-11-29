@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -86,6 +85,12 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	return r.removeContainer(c, force)
+}
+
+// Internal function to remove a container
+// Locks the container, but does not lock the runtime
+func (r *Runtime) removeContainer(c *Container, force bool) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -209,31 +214,4 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error
 	}
 
 	return ctrsFiltered, nil
-}
-
-// getContainersWithImage returns a list of containers referencing imageID
-func (r *Runtime) getContainersWithImage(imageID string) ([]storage.Container, error) {
-	var matchingContainers []storage.Container
-	containers, err := r.store.Containers()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, ctr := range containers {
-		if ctr.ImageID == imageID {
-			matchingContainers = append(matchingContainers, ctr)
-		}
-	}
-	return matchingContainers, nil
-}
-
-// removeMultipleContainers deletes a list of containers from the store
-// TODO refactor this to remove libpod Containers
-func (r *Runtime) removeMultipleContainers(containers []storage.Container) error {
-	for _, ctr := range containers {
-		if err := r.store.DeleteContainer(ctr.ID); err != nil {
-			return errors.Wrapf(err, "could not remove container %q", ctr)
-		}
-	}
-	return nil
 }
