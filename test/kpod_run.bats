@@ -11,13 +11,13 @@ function setup() {
 }
 
 @test "run a container based on local image" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run $BB ls
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run $BB ls"
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "run a container based on a remote image" {
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run ${BB_GLIBC} ls
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run ${BB_GLIBC} ls"
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -27,11 +27,11 @@ function setup() {
         skip "SELinux not enabled"
     fi
 
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} cat /proc/self/attr/current
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} cat /proc/self/attr/current"
     echo "$output"
     firstLabel=$output
 
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} cat /proc/self/attr/current
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run ${ALPINE} cat /proc/self/attr/current"
     echo "$output"
     [ "$output" != "${firstLabel}" ]
 }
@@ -46,19 +46,19 @@ function setup() {
 }
 
 @test "run capabilities test" {
-    run  bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status
+    run  bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status"
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add sys_admin ${ALPINE} cat /proc/self/status
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-add sys_admin ${ALPINE} cat /proc/self/status"
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop all ${ALPINE} cat /proc/self/status
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop all ${ALPINE} cat /proc/self/status"
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop setuid ${ALPINE} cat /proc/self/status
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --cap-drop setuid ${ALPINE} cat /proc/self/status"
     echo "$output"
     [ "$status" -eq 0 ]
 
@@ -83,7 +83,7 @@ function setup() {
     [ "$status" -eq 0 ]
     [ "$output" = "BAR" ]
 
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv"
     echo "$output"
     [ "$status" -ne 0 ]
 
@@ -99,9 +99,9 @@ IMAGE="docker.io/library/fedora:latest"
 
 @test "run limits test" {
 
-    ${KPOD_BINARY} ${KPOD_OPTIONS} pull ${IMAGE}
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} pull ${IMAGE}"
 
-    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched"
     echo $output
     [ "$status" -eq 0 ]
 

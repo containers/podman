@@ -7,7 +7,7 @@ function teardown() {
 }
 
 @test "kpod version test" {
-	run bash -c ${KPOD_BINARY} version
+	run bash -c "${KPOD_BINARY} version"
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
