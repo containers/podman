@@ -280,7 +280,7 @@ func (c *Container) MountPoint() (string, error) {
 // The path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
-	return c.state.RunDir
+	return c.config.StaticDir
 }
 
 // The path to the container's logs file
