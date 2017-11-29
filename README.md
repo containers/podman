@@ -56,6 +56,7 @@ libpod is currently in active development.
 | [kpod-rm(1)](/docs/kpod-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [kpod-rmi(1)](/docs/kpod-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
 | [kpod-save(1)](/docs/kpod-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
+| [kpod-start(1)](/docs/kpod-start.1.md)               | Starts one or more containers
 | [kpod-stats(1)](/docs/kpod-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics||
 | [kpod-stop(1)](/docs/kpod-stop.1.md)                 | Stops one or more running containers                                      ||
 | [kpod-tag(1)](/docs/kpod-tag.1.md)                   | Add an additional name to a local image                                   |[![...](/docs/play.png)](https://asciinema.org/a/133803)|

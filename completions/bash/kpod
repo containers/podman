@@ -1334,6 +1334,20 @@ _kpod_ps() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_kpod_start() {
+     local options_with_args="
+     --detach-keys
+     "
+
+     local boolean_options="
+     -h
+     --help
+     -a
+     --attach
+     -i
+     --interactive"
+     _complete_ "$options_with_args" "$boolean_options"
+}
 _kpod_stop() {
      local options_with_args="
      --timeout -t
@@ -1450,6 +1464,7 @@ _kpod_kpod() {
     rmi
     run
     save
+    start
     stats
     stop
     tag
