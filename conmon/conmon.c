@@ -109,6 +109,7 @@ static bool opt_systemd_cgroup = false;
 static bool opt_no_pivot = false;
 static char *opt_exec_process_spec = NULL;
 static bool opt_exec = false;
+static bool opt_detach = false;
 static char *opt_log_path = NULL;
 static char *opt_exit_dir = NULL;
 static int opt_timeout = 0;
@@ -126,6 +127,7 @@ static GOptionEntry opt_entries[] =
   { "pidfile", 'p', 0, G_OPTION_ARG_STRING, &opt_pid_file, "PID file", NULL },
   { "systemd-cgroup", 's', 0, G_OPTION_ARG_NONE, &opt_systemd_cgroup, "Enable systemd cgroup manager", NULL },
   { "exec", 'e', 0, G_OPTION_ARG_NONE, &opt_exec, "Exec a command in a running container", NULL },
+  { "detach", 'd', 0, G_OPTION_ARG_NONE, &opt_detach, "When execing into the container do so in detached mode", NULL },
   { "exec-process-spec", 0, 0, G_OPTION_ARG_STRING, &opt_exec_process_spec, "Path to the process spec for exec", NULL },
   { "exit-dir", 0, 0, G_OPTION_ARG_STRING, &opt_exit_dir, "Path to the directory where exit files are written", NULL },
   { "log-path", 'l', 0, G_OPTION_ARG_STRING, &opt_log_path, "Log file path", NULL },
@@ -1259,10 +1261,17 @@ int main(int argc, char *argv[])
 			 NULL);
 
 	if (opt_exec) {
-		add_argv(runtime_argv,
-			 "exec", "-d",
+		if (opt_detach) {
+			add_argv(runtime_argv,
+			 "exec", "-d"
 			 "--pid-file", opt_pid_file,
 			 NULL);
+		} else {
+			add_argv(runtime_argv,
+			 "exec",
+			 "--pid-file", opt_pid_file,
+			 NULL);
+		}
         } else {
 		add_argv(runtime_argv,
 			 "create",
