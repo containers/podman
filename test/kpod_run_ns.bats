@@ -30,3 +30,21 @@ function setup() {
     echo $output
     [ "$status" -ne 0 ]
 }
+
+@test "run ipcns test" {
+
+    ${KPOD_BINARY} ${KPOD_OPTIONS} pull ${ALPINE}
+
+    tmp=$(mktemp /dev/shm/foo.XXXXX)
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --ipc=host ${ALPINE} ls $tmp
+    echo $output
+    out=$(echo $output | tr -d '\r')
+    [ "$status" -eq 0 ]
+    [ $out !=  $tmp ]
+
+    rm -f $tmp
+
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run --ipc=badpid ${ALPINE} sh -c 'echo $$'
+    echo $output
+    [ "$status" -ne 0 ]
+}

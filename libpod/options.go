@@ -21,7 +21,7 @@ const (
 	// MountNamespace represents the mount namespace
 	MountNamespace = "mount"
 	// NetNamespace represents the network namespace
-	NetNamespace = "net"
+	NetNamespace = "network"
 	// PIDNamespace represents the PID namespace
 	PIDNamespace = "pid"
 	// UserNamespace represents the user namespace
@@ -252,13 +252,26 @@ func WithNoPivotRoot(noPivot bool) RuntimeOption {
 
 // Container Creation Options
 
-// WithSELinuxMountLabel sets the mount label for SELinux
-func WithSELinuxMountLabel(mountLabel string) CtrCreateOption {
+// WithShmDir sets the directory that should be mounted on /dev/shm
+func WithShmDir(dir string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
 
+		ctr.config.ShmDir = dir
+		return nil
+	}
+}
+
+// WithSELinuxLabels sets the mount label for SELinux
+func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.ProcessLabel = processLabel
 		ctr.config.MountLabel = mountLabel
 		return nil
 	}

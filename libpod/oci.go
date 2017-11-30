@@ -37,6 +37,11 @@ const (
 
 	// Timeout before declaring that runc has failed to kill a given container
 	killContainerTimeout = 5 * time.Second
+	// DefaultShmSize is the default shm size
+	DefaultShmSize = 64 * 1024 * 1024
+	// NsRunDir is the default directory in which running network namespaces
+	// are stored
+	NsRunDir = "/var/run/netns"
 )
 
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into

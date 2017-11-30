@@ -85,9 +85,11 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
+
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
-	options = append(options, libpod.WithSELinuxMountLabel(createConfig.mountLabel))
+	options = append(options, libpod.WithSELinuxLabels(createConfig.processLabel, createConfig.mountLabel))
+	options = append(options, libpod.WithShmDir(createConfig.shmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -130,14 +132,14 @@ func runCmd(c *cli.Context) error {
 	if err := ctr.Start(); err != nil {
 		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
 	}
-	logrus.Debug("started container ", ctr.ID())
-
 	if createConfig.detach {
 		fmt.Printf("%s\n", ctr.ID())
+		return nil
 	}
 	wg.Wait()
+
 	if createConfig.rm {
 		return runtime.RemoveContainer(ctr, true)
 	}
-	return nil
+	return ctr.CleanupStorage()
 }
