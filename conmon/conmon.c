@@ -296,7 +296,6 @@ const char *stdpipe_name(stdpipe_t pipe)
 static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen)
 {
 	char tsbuf[TSBUFLEN];
-	static stdpipe_t trailing_line = NO_PIPE;
 	writev_buffer_t bufv = {0};
 	static int64_t bytes_written = 0;
 	int64_t bytes_to_be_written = 0;
@@ -313,35 +312,22 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 	while (buflen > 0) {
 		const char *line_end = NULL;
 		ptrdiff_t line_len = 0;
-		bool insert_newline = FALSE;
-		bool insert_timestamp = FALSE;
+		bool partial = FALSE;
 
 		/* Find the end of the line, or alternatively the end of the buffer. */
 		line_end = memchr(buf, '\n', buflen);
-		if (line_end == NULL)
+		if (line_end == NULL) {
 			line_end = &buf[buflen-1];
+			partial = TRUE;
+		}
 		line_len = line_end - buf + 1;
 
-		bytes_to_be_written = line_len;
-		if (trailing_line != pipe) {
-			/*
-			 * Write the (timestamp, stream) tuple if there isn't any trailing
-			 * output from the previous line (or if there is trailing output but
-			 * the current buffer being printed is from a different pipe).
-			 */
-			insert_timestamp = TRUE;
-			bytes_to_be_written += (TSBUFLEN - 1);
-			/*
-			 * If there was a trailing line from a different pipe, prepend a
-			 * newline to split it properly. This technically breaks the flow
-			 * of the previous line (adding a newline in the log where there
-			 * wasn't one output) but without modifying the file in a
-			 * non-append-only way there's not much we can do.
-			 */
-			if (trailing_line != NO_PIPE) {
-				insert_newline = TRUE;
-				bytes_to_be_written += 1;
-			}
+		/* This is line_len bytes + TSBUFLEN - 1 + 2 (- 1 is for ignoring \0). */
+		bytes_to_be_written = line_len + TSBUFLEN + 1;
+
+		/* If partial, then we add a \n */
+		if (partial) {
+			bytes_to_be_written += 1;
 		}
 
 		/*
@@ -351,8 +337,6 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 		 */
 		if ((opt_log_size_max > 0) && (bytes_written + bytes_to_be_written) > opt_log_size_max) {
 			ninfo("Creating new log file");
-			insert_newline = FALSE;
-			insert_timestamp = TRUE;
 			bytes_written = 0;
 
 			/* Close the existing fd */
@@ -370,18 +354,21 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 			fd = log_fd;
 		}
 
-		/* Output a newline */
-		if (insert_newline) {
-			if (writev_buffer_append_segment(fd, &bufv, "\n", -1) < 0) {
-				nwarn("failed to write newline to log");
-				goto next;
-			}
+		/* Output the timestamp */
+		if (writev_buffer_append_segment(fd, &bufv, tsbuf, -1) < 0) {
+			nwarn("failed to write (timestamp, stream) to log");
+			goto next;
 		}
 
-		/* Output a timestamp */
-		if (insert_timestamp) {
-			if (writev_buffer_append_segment(fd, &bufv, tsbuf, -1) < 0) {
-				nwarn("failed to write (timestamp, stream) to log");
+		/* Output log tag for partial or newline */
+		if (partial) {
+			if (writev_buffer_append_segment(fd, &bufv, "P ", -1) < 0) {
+				nwarn("failed to write partial log tag");
+				goto next;
+			}
+		} else {
+			if (writev_buffer_append_segment(fd, &bufv, "F ", -1) < 0) {
+				nwarn("failed to write end log tag");
 				goto next;
 			}
 		}
@@ -392,11 +379,15 @@ static int write_k8s_log(int fd, stdpipe_t pipe, const char *buf, ssize_t buflen
 			goto next;
 		}
 
+		/* Output a newline for partial */
+		if (partial) {
+			if (writev_buffer_append_segment(fd, &bufv, "\n", -1) < 0) {
+				nwarn("failed to write newline to log");
+				goto next;
+			}
+		}
+
 		bytes_written += bytes_to_be_written;
-
-		/* If we did not output a full line, then we are a trailing_line. */
-		trailing_line = (*line_end == '\n') ? NO_PIPE : pipe;
-
 next:
 		/* Update the head of the buffer remaining to output. */
 		buf += line_len;
