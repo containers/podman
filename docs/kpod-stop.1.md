@@ -19,6 +19,10 @@ is issued to the container. The default is 10 seconds.
 
 Timeout to wait before forcibly stopping the container
 
+**--all, -a**
+
+Stop all running containers.  This does not include paused containers.
+
 
 ## EXAMPLE
 
@@ -26,7 +30,11 @@ kpod stop mywebserver
 
 kpod stop 860a4b23
 
+kpod stop mywebserver 860a4b23
+
 kpod stop --timeout 2 860a4b23
+
+kpod stop -a
 
 ## SEE ALSO
 kpod(1), kpod-rm(1)

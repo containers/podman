@@ -1352,7 +1352,9 @@ _kpod_stop() {
      local options_with_args="
      --timeout -t
      "
-     local boolean_options=""
+     local boolean_options="
+     --all
+     -a"
      _complete_ "$options_with_args" "$boolean_options"
 }
 
