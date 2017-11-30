@@ -250,6 +250,21 @@ func WithNoPivotRoot(noPivot bool) RuntimeOption {
 	}
 }
 
+// WithCNIDirs sets the CNI configuration and network plugin directories used by
+// the CNI network plugins
+func WithCNIDirs(cniConfigDir, cniPluginDir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.CNIConfigDir = cniConfigDir
+		rt.config.CNIPluginDir = cniPluginDir
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm
