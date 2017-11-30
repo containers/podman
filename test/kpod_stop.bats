@@ -38,3 +38,12 @@ function setup() {
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} ps"
     [ "$status" -eq 0 ]
 }
+
+@test "stop all containers" {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --name test1 -d ${ALPINE} sleep 9999"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --name test2 -d ${ALPINE} sleep 9999"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --name test3 -d ${ALPINE} sleep 9999"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} stop -a -t 1"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
