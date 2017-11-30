@@ -8,6 +8,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -26,6 +27,7 @@ type Runtime struct {
 	imageContext   *types.SystemContext
 	ociRuntime     *OCIRuntime
 	lockDir        string
+	netPlugin      ocicni.CNIPlugin
 	valid          bool
 	lock           sync.RWMutex
 }
@@ -48,6 +50,8 @@ type RuntimeConfig struct {
 	PidsLimit             int64
 	MaxLogSize            int64
 	NoPivotRoot           bool
+	CNIConfigDir          string
+	CNIPluginDir          string
 }
 
 var (
@@ -68,6 +72,8 @@ var (
 		PidsLimit:      1024,
 		MaxLogSize:     -1,
 		NoPivotRoot:    false,
+		CNIConfigDir:   "/etc/cni/net.d/",
+		CNIPluginDir:   "/opt/cni/bin/",
 	}
 )
 
@@ -156,6 +162,15 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 				runtime.config.TmpDir)
 		}
 	}
+
+	// Set up the CNI net plugin
+	netPlugin, err := ocicni.InitCNI(runtime.config.CNIConfigDir, runtime.config.CNIPluginDir)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error configuring CNI network plugin")
+	}
+	runtime.netPlugin = netPlugin
+
+	// TODO: iptables/firewalld integration to ensure rules are in place for forwarding
 
 	// Set up the state
 	if runtime.config.InMemoryState {
