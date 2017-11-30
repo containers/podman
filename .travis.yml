@@ -33,7 +33,6 @@ jobs:
   include:
     - stage: Build and Verify
       script:
-        - make .gitvalidation
         - make gofmt
         - make lint
         - make testunit
@@ -42,7 +41,6 @@ jobs:
       go: 1.8.x
     - stage: Build and Verify
       script:
-        - make .gitvalidation
         - make gofmt
         - make lint
         - make testunit
