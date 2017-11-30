@@ -81,20 +81,20 @@ type createConfig struct {
 	groupAdd           []uint32          // group-add
 	hostname           string            //hostname
 	image              string
-	interactive        bool              //interactive
-	ip6Address         string            //ipv6
-	ipAddress          string            //ip
-	labels             map[string]string //label
-	linkLocalIP        []string          // link-local-ip
-	logDriver          string            // log-driver
-	logDriverOpt       []string          // log-opt
-	macAddress         string            //mac-address
-	name               string            //name
-	network            string            //network
-	networkAlias       []string          //network-alias
-	nsIPC              string            // ipc
-	nsNET              string            //net
-	pidMode            container.PidMode //pid
+	interactive        bool                  //interactive
+	ipcMode            container.IpcMode     //ipc
+	ip6Address         string                //ipv6
+	ipAddress          string                //ip
+	labels             map[string]string     //label
+	linkLocalIP        []string              // link-local-ip
+	logDriver          string                // log-driver
+	logDriverOpt       []string              // log-opt
+	macAddress         string                //mac-address
+	name               string                //name
+	netMode            container.NetworkMode //net
+	network            string                //network
+	networkAlias       []string              //network-alias
+	pidMode            container.PidMode     //pid
 	nsUser             string
 	pod                string   //pod
 	privileged         bool     //privileged
@@ -102,7 +102,8 @@ type createConfig struct {
 	publishAll         bool     //publish-all
 	readOnlyRootfs     bool     //read-only
 	resources          createResourceConfig
-	rm                 bool              //rm
+	rm                 bool //rm
+	shmDir             string
 	sigProxy           bool              //sig-proxy
 	stopSignal         string            // stop-signal
 	stopTimeout        int64             // stop-timeout
@@ -112,6 +113,7 @@ type createConfig struct {
 	tty                bool              //tty
 	user               uint32            //user
 	group              uint32            // group
+	utsMode            container.UTSMode //uts
 	volumes            []string          //volume
 	volumesFrom        []string          //volumes-from
 	workDir            string            //workdir
@@ -201,7 +203,8 @@ func createCmd(c *cli.Context) error {
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
-	options = append(options, libpod.WithSELinuxMountLabel(createConfig.mountLabel))
+	options = append(options, libpod.WithSELinuxLabels(createConfig.processLabel, createConfig.mountLabel))
+	options = append(options, libpod.WithShmDir(createConfig.shmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -229,6 +232,26 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 		labelOpts []string
 		err       error
 	)
+
+	if config.pidMode.IsHost() {
+		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+	} else if config.pidMode.IsContainer() {
+		ctr, err := config.runtime.LookupContainer(config.pidMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", config.pidMode.Container())
+		}
+		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+	}
+
+	if config.ipcMode.IsHost() {
+		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+	} else if config.ipcMode.IsContainer() {
+		ctr, err := config.runtime.LookupContainer(config.ipcMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", config.ipcMode.Container())
+		}
+		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+	}
 
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
@@ -354,6 +377,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	if !c.Bool("detach") && !tty {
 		tty = true
 	}
+
 	pidMode := container.PidMode(c.String("pid"))
 	if !pidMode.Valid() {
 		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
@@ -361,6 +385,25 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 
 	if c.Bool("detach") && c.Bool("rm") {
 		return nil, errors.Errorf("--rm and --detach can not be specified together")
+	}
+
+	utsMode := container.UTSMode(c.String("uts"))
+	if !utsMode.Valid() {
+		return nil, errors.Errorf("--uts %q is not valid", c.String("uts"))
+	}
+	ipcMode := container.IpcMode(c.String("ipc"))
+	if !ipcMode.Valid() {
+		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
+	}
+	shmDir := ""
+	if ipcMode.IsHost() {
+		shmDir = "/dev/shm"
+	} else if ipcMode.IsContainer() {
+		ctr, err := runtime.LookupContainer(ipcMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", ipcMode.Container())
+		}
+		shmDir = ctr.ShmDir()
 	}
 
 	config := &createConfig{
@@ -390,8 +433,9 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		name:           c.String("name"),
 		network:        c.String("network"),
 		networkAlias:   c.StringSlice("network-alias"),
-		nsIPC:          c.String("ipc"),
-		nsNET:          c.String("net"),
+		ipcMode:        ipcMode,
+		netMode:        container.NetworkMode(c.String("network")),
+		utsMode:        utsMode,
 		pidMode:        pidMode,
 		pod:            c.String("pod"),
 		privileged:     c.Bool("privileged"),
@@ -426,6 +470,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			ulimit:    c.StringSlice("ulimit"),
 		},
 		rm:          c.Bool("rm"),
+		shmDir:      shmDir,
 		sigProxy:    c.Bool("sig-proxy"),
 		stopSignal:  c.String("stop-signal"),
 		stopTimeout: c.Int64("stop-timeout"),

@@ -16,7 +16,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 1
+const DBSchema = 2
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -230,7 +230,7 @@ func (s *SQLState) HasContainer(id string) (bool, error) {
 func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	const (
 		addCtr = `INSERT INTO containers VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -265,11 +265,18 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		}
 	}()
 
+	mounts, err := json.Marshal(ctr.config.Mounts)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s monunts to JSON", ctr.ID())
+	}
 	// Add static container information
 	_, err = tx.Exec(addCtr,
 		ctr.ID(),
 		ctr.Name(),
+		ctr.config.ProcessLabel,
 		ctr.config.MountLabel,
+		string(mounts),
+		ctr.config.ShmDir,
 		ctr.config.StaticDir,
 		boolToSQL(ctr.config.Stdin),
 		string(labelsJSON),

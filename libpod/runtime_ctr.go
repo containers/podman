@@ -1,6 +1,9 @@
 package libpod
 
 import (
+	"os"
+	"path/filepath"
+
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -53,6 +56,16 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *
 			}
 		}
 	}()
+
+	if ctr.config.ShmDir == "" {
+		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
+		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
+			if !os.IsExist(err) {
+				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)
+			}
+		}
+		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
+	}
 
 	// If the container is in a pod, add it to the pod
 	if ctr.pod != nil {
