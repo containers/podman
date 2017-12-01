@@ -34,7 +34,7 @@ libpod is currently in active development.
 | Command                                              | Description                                                               | Demo|
 | ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
 | [kpod(1)](/docs/kpod.1.md)                           | Simple management tool for pods and images                                ||
-| [kpod-attach(1)](/docs/kpod-attach.1.md)             | Instead of providing a `kpod attach` command, the man page `kpod-attach` describes how to use the `kpod logs` and `kpod exec` commands to achieve the same goals as `kpod attach`.||
+| [kpod-attach(1)](/docs/kpod-attach.1.md)             | Attach to a running container.
 | [kpod-cp(1)](/docs/kpod-cp.1.md)                     | Instead of providing a `kpod cp` command, the man page `kpod-cp` describes how to use the `kpod mount` command to have even more flexibility and functionality.||
 | [kpod-diff(1)](/docs/kpod-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
 | [kpod-export(1)](/docs/kpod-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
