@@ -407,8 +407,54 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
+// Refresh refreshes the container's state after a restart
+func (c *Container) refresh() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if !c.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s has been removed from the state", c.ID())
+	}
+
+	// We need to get the container's temporary directory from c/storage
+	// It was lost in the reboot and must be recreated
+	dir, err := c.runtime.storageService.GetRunDir(c.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
+	}
+	c.state.RunDir = dir
+
+	// The container is no longer mounted
+	c.state.Mounted = false
+	c.state.Mountpoint = ""
+
+	// The container is no longe running
+	c.state.PID = 0
+
+	// Check the container's state. If it's not created in runc yet, we're
+	// done
+	if c.state.State == ContainerStateConfigured {
+		if err := c.runtime.state.SaveContainer(c); err != nil {
+			return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
+		}
+
+		return nil
+	}
+
+	// The container must be recreated in runc
+	if err := c.init(); err != nil {
+		return err
+	}
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
+	}
+
+	return nil
+}
+
 // Init creates a container in the OCI runtime
-func (c *Container) Init() (err error) {
+func (c *Container) Init() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -420,7 +466,12 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	// Mount storage for the container
+	return c.init()
+}
+
+// Creates container in OCI runtime
+// Internal only - does not lock or check state
+func (c *Container) init() (err error) {
 	if err := c.mountStorage(); err != nil {
 		return err
 	}
@@ -436,6 +487,17 @@ func (c *Container) Init() (err error) {
 
 	// Save the OCI spec to disk
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	// If the OCI spec already exists, replace it
+	if _, err := os.Stat(jsonPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
+		}
+	} else {
+		// No error, the spec exists. Remove so we can replace.
+		if err := os.Remove(jsonPath); err != nil {
+			return errors.Wrapf(err, "error replacing spec of container %s", c.ID())
+		}
+	}
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
