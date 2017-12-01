@@ -34,6 +34,7 @@ func main() {
 	app.Version = v
 
 	app.Commands = []cli.Command{
+		attachCommand,
 		createCommand,
 		diffCommand,
 		exportCommand,

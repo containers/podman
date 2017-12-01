@@ -653,6 +653,17 @@ __kpod_images() {
 	__kpod_q images $images_args | awk "$awk_script" | grep -v '<none>$'
 }
 
+_kpod_attach() {
+     local options_with_args="
+     --detach-keys
+     "
+     local boolean_options="
+     --help
+     -h
+     --no-stdin"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_diff() {
     local options_with_args="
      --format
@@ -1443,6 +1454,7 @@ _kpod_kpod() {
            --version -v
      "
      commands="
+    attach
     create
     diff
     export

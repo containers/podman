@@ -1,31 +1,40 @@
 % kpod(1) kpod-attach - See the output of pid 1 of a container or enter the container
 % Dan Walsh
-# kpod-attach "1" "September 2017" "kpod"
+# kpod-attach "1" "December 2017" "kpod"
 
 ## NAME
 kpod-attach - Attach to a running container
 
-## Description
+## SYNOPSIS
+**kpod attach [OPTIONS] CONTAINER**
 
-We chose not to implement the `attach` feature in `kpod` even though the upstream Docker
-project has it. The upstream project has had lots of issues with attaching to running
-processes that we did not want to replicate. The `kpod exec` and `kpod log` commands
-offer you the same functionality far more dependably.
+## DESCRIPTION
+The attach command allows you to attach to a running container using the container's ID
+or name, either to view its ongoing output or to control it interactively.
 
-**Reasons to attach to the primary PID of a container:**
+You can detach from the container (and leave it running) using a configurable key sequence. The default
+sequence is CTRL-p CTRL-q. You configure the key sequence using the --detach-keys option
 
+## OPTIONS
+**--detach-keys**
+Override the key sequence for detaching a container. Format is a single character [a-Z] or
+ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _.
 
-1) Executing commands inside of the container
+**--no-stdin**
+Do not attach STDIN. The default is false.
 
-  We recommend that you use `kpod exec` to execute a command within a container
+## EXAMPLES ##
 
-  `kpod exec CONTAINERID /bin/sh`
-
-2) Viewing the output stream of the primary process in the container
-
-  We recommend that you use `kpod logs` to see the output from the container
-
-  `kpod logs CONTAINERID`
-
+```
+kpod attach foobar
+[root@localhost /]#
+```
+```
+kpod attach 1234
+[root@localhost /]#
+```
+```
+kpod attach --no-stdin foobar
+```
 ## SEE ALSO
-kpod(1), kpod-exec(1), kpod-logs(1)
+kpod(1), kpod-exec(1), kpod-run(1)

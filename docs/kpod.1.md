@@ -52,6 +52,9 @@ has the capability to debug pods/images created by crio.
 
 ## COMMANDS
 
+### attach
+Attach to a running container
+
 ### create
 create a new container
 
