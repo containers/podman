@@ -49,7 +49,7 @@ func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator)
 func addPidNS(config *createConfig, g *generate.Generator) error {
 	pidMode := config.pidMode
 	if pidMode.IsHost() {
-		return g.RemoveLinuxNamespace("pid")
+		return g.RemoveLinuxNamespace(libpod.PIDNamespace)
 	}
 	if pidMode.IsContainer() {
 		ctr, err := config.runtime.LookupContainer(pidMode.Container())
@@ -65,6 +65,65 @@ func addPidNS(config *createConfig, g *generate.Generator) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func addNetNS(config *createConfig, g *generate.Generator) error {
+	netMode := config.netMode
+	if netMode.IsHost() {
+		return g.RemoveLinuxNamespace(libpod.NetNamespace)
+	}
+	if netMode.IsNone() {
+		return libpod.ErrNotImplemented
+	}
+	if netMode.IsBridge() {
+		return libpod.ErrNotImplemented
+	}
+	if netMode.IsContainer() {
+		ctr, err := config.runtime.LookupContainer(netMode.ConnectedContainer())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", netMode.ConnectedContainer())
+		}
+		pid, err := ctr.PID()
+		if err != nil {
+			return errors.Wrapf(err, "Failed to get pid of container %q", netMode.ConnectedContainer())
+		}
+		nsPath := fmt.Sprintf("/proc/%d/ns/net", pid)
+		if err := g.AddOrReplaceLinuxNamespace(libpod.NetNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addUTSNS(config *createConfig, g *generate.Generator) error {
+	utsMode := config.utsMode
+	if utsMode.IsHost() {
+		return g.RemoveLinuxNamespace(libpod.UTSNamespace)
+	}
+	return nil
+}
+
+func addIpcNS(config *createConfig, g *generate.Generator) error {
+	ipcMode := config.ipcMode
+	if ipcMode.IsHost() {
+		return g.RemoveLinuxNamespace(libpod.IPCNamespace)
+	}
+	if ipcMode.IsContainer() {
+		ctr, err := config.runtime.LookupContainer(ipcMode.Container())
+		if err != nil {
+			return errors.Wrapf(err, "container %q not found", ipcMode.Container())
+		}
+		pid, err := ctr.PID()
+		if err != nil {
+			return errors.Wrapf(err, "Failed to get pid of container %q", ipcMode.Container())
+		}
+		nsPath := fmt.Sprintf("/proc/%d/ns/ipc", pid)
+		if err := g.AddOrReplaceLinuxNamespace(libpod.IPCNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -210,6 +269,17 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		return nil, err
 	}
 
+	if err := addNetNS(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addUTSNS(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addIpcNS(config, &g); err != nil {
+		return nil, err
+	}
 	configSpec := g.Spec()
 
 	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {

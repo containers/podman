@@ -7,19 +7,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
+	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -86,7 +92,6 @@ type containerRuntimeInfo struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
-
 	// TODO: Save information about image used in container if one is used
 }
 
@@ -101,8 +106,12 @@ type ContainerConfig struct {
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	UseImageConfig  bool   `json:"useImageConfig"`
+	// SELinux process label for container
+	ProcessLabel string `json:"ProcessLabel,omitempty"`
 	// SELinux mount label for root filesystem
 	MountLabel string `json:"MountLabel,omitempty"`
+	// Src path to be mounted on /dev/shm in container
+	ShmDir string `json:"ShmDir,omitempty"`
 	// Static directory for container content that will persist across
 	// reboot
 	StaticDir string `json:"staticDir"`
@@ -113,6 +122,8 @@ type ContainerConfig struct {
 	// Labels is a set of key-value pairs providing additional information
 	// about a container
 	Labels map[string]string `json:"labels,omitempty"`
+	// Mounts list contains all additional mounts by the container runtime.
+	Mounts []string
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// Shared namespaces with container
@@ -120,7 +131,6 @@ type ContainerConfig struct {
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
-
 	// TODO save log location here and pass into OCI code
 	// TODO allow overriding of log path
 }
@@ -153,6 +163,16 @@ func (c *Container) ID() string {
 // Name returns the container's name
 func (c *Container) Name() string {
 	return c.config.Name
+}
+
+// ShmDir returns the sources path to be mounted on /dev/shm in container
+func (c *Container) ShmDir() string {
+	return c.config.ShmDir
+}
+
+// ProcessLabel returns the selinux ProcessLabel of the container
+func (c *Container) ProcessLabel() string {
+	return c.config.ProcessLabel
 }
 
 // Spec returns the container's OCI runtime spec
@@ -307,7 +327,7 @@ func (c *Container) syncContainer() error {
 		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
 			return err
 		}
-		if err := c.runtime.state.SaveContainer(c); err != nil {
+		if err := c.save(); err != nil {
 			return err
 		}
 	}
@@ -376,13 +396,8 @@ func (c *Container) teardownStorage() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
-	if c.state.Mounted {
-		if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
-			return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
-		}
-
-		c.state.Mounted = false
-		c.state.Mountpoint = ""
+	if err := c.cleanupStorage(); err != nil {
+		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -426,8 +441,10 @@ func (c *Container) Init() (err error) {
 	}()
 
 	// Make the OCI runtime spec we will use
-	c.runningSpec = new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(c.runningSpec)
+	g := generate.NewFromSpec(c.config.Spec)
+	// Mount ShmDir from host into container
+	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
+	c.runningSpec = g.Spec()
 	c.runningSpec.Root.Path = c.state.Mountpoint
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
 	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
@@ -455,11 +472,7 @@ func (c *Container) Init() (err error) {
 
 	c.state.State = ContainerStateCreated
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
-	}
-
-	return nil
+	return c.save()
 }
 
 // Start starts a container
@@ -469,6 +482,19 @@ func (c *Container) Start() error {
 
 	if err := c.syncContainer(); err != nil {
 		return err
+	}
+
+	mounted, err := mount.Mounted(c.config.ShmDir)
+	if err != nil {
+		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
+	}
+
+	if !mounted {
+		shmOptions := "mode=1777,size=" + strconv.Itoa(DefaultShmSize)
+		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
+			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
+			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+		}
 	}
 
 	// Container must be created or stopped to be started
@@ -510,11 +536,7 @@ func (c *Container) Start() error {
 		return err
 	}
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
-	}
-
-	return nil
+	return c.save()
 }
 
 // Stop uses the container's stop signal (or SIGTERM if no signal was specified)
@@ -544,18 +566,7 @@ func (c *Container) Stop(timeout int64) error {
 		return err
 	}
 
-	// Also unmount storage
-	if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
-		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
-	}
-	c.state.Mountpoint = ""
-	c.state.Mounted = false
-
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
-	}
-
-	return nil
+	return c.cleanupStorage()
 }
 
 // Kill sends a signal to a container
@@ -638,8 +649,8 @@ func (c *Container) Mount(label string) (string, error) {
 	c.state.Mounted = true
 	c.config.MountLabel = mountLabel
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return "", errors.Wrapf(err, "error saving container %s state", c.ID())
+	if err := c.save(); err != nil {
+		return "", err
 	}
 
 	return mountPoint, nil
@@ -669,7 +680,7 @@ func (c *Container) Unmount() error {
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
-	return c.runtime.state.SaveContainer(c)
+	return c.save()
 }
 
 // Pause pauses a container
@@ -698,10 +709,7 @@ func (c *Container) Pause() error {
 		return err
 	}
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
-	}
-	return nil
+	return c.save()
 }
 
 // Unpause unpauses a container
@@ -727,10 +735,7 @@ func (c *Container) Unpause() error {
 		return err
 	}
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
-	}
-	return nil
+	return c.save()
 }
 
 // Export exports a container's root filesystem as a tar archive
@@ -808,4 +813,49 @@ func (c *Container) isStopped() (bool, error) {
 		return true, err
 	}
 	return c.state.State == ContainerStateStopped, nil
+}
+
+// nil container state to the database
+func (c *Container) save() error {
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+	return nil
+}
+
+// CleanupStorage unmounts all mount points in container and cleans up container storage
+func (c *Container) CleanupStorage() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+	return c.cleanupStorage()
+}
+
+func (c *Container) cleanupStorage() error {
+
+	if c.state.Mounted {
+		for _, mount := range c.config.Mounts {
+			if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
+				if err != syscall.EINVAL {
+					logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+				}
+			}
+		}
+		c.config.Mounts = []string{}
+
+		// Also unmount storage
+		if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
+			return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+		}
+	}
+
+	c.state.Mountpoint = ""
+	c.state.Mounted = false
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+	return nil
 }

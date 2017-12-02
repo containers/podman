@@ -166,7 +166,10 @@ func prepareDB(db *sql.DB) (err error) {
         CREATE TABLE IF NOT EXISTS containers(
             Id TEXT NOT NULL PRIMARY KEY,
             Name TEXT NOT NULL UNIQUE,
+            ProcessLabel TEXT NOT NULL,
             MountLabel TEXT NOT NULL,
+            Mounts TEXT NOT NULL,
+            ShmDir TEXT NOT NULL,
             StaticDir TEXT NOT NULL,
             Stdin INTEGER NOT NULL,
             LabelsJSON TEXT NOT NULL,
@@ -267,7 +270,10 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	var (
 		id                 string
 		name               string
+		processLabel       string
 		mountLabel         string
+		mounts             string
+		shmDir             string
 		staticDir          string
 		stdin              int
 		labelsJSON         string
@@ -290,7 +296,10 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	err := row.Scan(
 		&id,
 		&name,
+		&processLabel,
 		&mountLabel,
+		&mounts,
+		&shmDir,
 		&staticDir,
 		&stdin,
 		&labelsJSON,
@@ -325,7 +334,12 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string) (*Contai
 	ctr.config.RootfsImageID = rootfsImageID
 	ctr.config.RootfsImageName = rootfsImageName
 	ctr.config.UseImageConfig = boolFromSQL(useImageConfig)
+	ctr.config.ProcessLabel = processLabel
 	ctr.config.MountLabel = mountLabel
+	if err := json.Unmarshal([]byte(mounts), &ctr.config.Mounts); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s mounts JSON", id)
+	}
+	ctr.config.ShmDir = shmDir
 	ctr.config.StaticDir = staticDir
 	ctr.config.Stdin = boolFromSQL(stdin)
 	ctr.config.StopSignal = stopSignal
