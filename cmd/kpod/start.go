@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
@@ -80,6 +81,10 @@ func startCmd(c *cli.Context) error {
 			}
 			lastError = errors.Wrapf(err, "unable to find container %s", container)
 			continue
+		}
+
+		if err := ctr.Init(); err != nil && errors.Cause(err) != libpod.ErrCtrExists {
+			return err
 		}
 
 		// We can only be interactive if both the config and the command-line say so
