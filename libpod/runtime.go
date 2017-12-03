@@ -225,11 +225,16 @@ func (r *Runtime) Shutdown(force bool) error {
 		}
 	}
 
-	_, err := r.store.Shutdown(force)
-	if err != nil {
-		return err
+	var lastError error
+	if _, err := r.store.Shutdown(force); err != nil {
+		lastError = errors.Wrapf(err, "Error shutting down container storage")
+	}
+	if err := r.state.Close(); err != nil {
+		if lastError != nil {
+			logrus.Errorf("%v", lastError)
+		}
+		lastError = err
 	}
 
-	// TODO: Should always call this even if store.Shutdown failed
-	return r.state.Close()
+	return lastError
 }
