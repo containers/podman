@@ -598,11 +598,9 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 		return err
 	}
 
-	// TODO is it valid to attach to a frozen container?
-	if c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created, running, or stopped containers")
+	if c.state.State != ContainerStateCreated &&
+		c.state.State != ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
 	// Check the validity of the provided keys first
