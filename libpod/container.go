@@ -420,25 +420,10 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
-	if err != nil {
-		return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+	// Mount storage for the container
+	if err := c.mountStorage(); err != nil {
+		return err
 	}
-	c.state.Mounted = true
-	c.state.Mountpoint = mountPoint
-
-	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
-
-	defer func() {
-		if err != nil {
-			if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
-				logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
-			}
-
-			c.state.Mounted = false
-			c.state.Mountpoint = ""
-		}
-	}()
 
 	// Make the OCI runtime spec we will use
 	g := generate.NewFromSpec(c.config.Spec)
@@ -484,45 +469,14 @@ func (c *Container) Start() error {
 		return err
 	}
 
-	mounted, err := mount.Mounted(c.config.ShmDir)
-	if err != nil {
-		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
-	}
-
-	if !mounted {
-		shmOptions := "mode=1777,size=" + strconv.Itoa(DefaultShmSize)
-		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
-			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
-			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
-		}
-	}
-
 	// Container must be created or stopped to be started
 	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
-	// If the container isn't mounted, mount it
-	if !c.state.Mounted {
-		mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
-		if err != nil {
-			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
-		}
-		c.state.Mounted = true
-		c.state.Mountpoint = mountPoint
-
-		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
-
-		defer func() {
-			if err != nil {
-				if err2 := c.runtime.storageService.StopContainer(c.ID()); err2 != nil {
-					logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err2)
-				}
-
-				c.state.Mounted = false
-				c.state.Mountpoint = ""
-			}
-		}()
+	// Mount storage for the container
+	if err := c.mountStorage(); err != nil {
+		return err
 	}
 
 	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
@@ -669,18 +623,7 @@ func (c *Container) Unmount() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
-	if !c.state.Mounted {
-		return nil
-	}
-
-	err := c.runtime.store.Unmount(c.ID())
-	if err != nil {
-		return errors.Wrapf(err, "error unmounting container %q", c.ID())
-	}
-	c.state.Mountpoint = ""
-	c.state.Mounted = false
-
-	return c.save()
+	return c.cleanupStorage()
 }
 
 // Pause pauses a container
@@ -815,11 +758,61 @@ func (c *Container) isStopped() (bool, error) {
 	return c.state.State == ContainerStateStopped, nil
 }
 
-// nil container state to the database
+// save container state to the database
 func (c *Container) save() error {
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error saving container %s state", c.ID())
 	}
+	return nil
+}
+
+// mountStorage sets up the container's root filesystem
+// It mounts the image and any other requested mounts
+// TODO: Add ability to override mount label so we can use this for Mount() too
+// TODO: Can we use this for export? Copying SHM into the export might not be
+// good
+func (c *Container) mountStorage() (err error) {
+	// Container already mounted, nothing to do
+	if c.state.Mounted {
+		return nil
+	}
+
+	// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
+
+	mounted, err := mount.Mounted(c.config.ShmDir)
+	if err != nil {
+		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
+	}
+
+	if !mounted {
+		shmOptions := "mode=1777,size=" + strconv.Itoa(DefaultShmSize)
+		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
+			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
+			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+		}
+	}
+
+	mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+	}
+	c.state.Mounted = true
+	c.state.Mountpoint = mountPoint
+
+	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error unmounting storage for container %s: %v", c.ID(), err)
+			}
+		}
+	}()
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error saving container %s state", c.ID())
+	}
+
 	return nil
 }
 
@@ -833,22 +826,24 @@ func (c *Container) CleanupStorage() error {
 	return c.cleanupStorage()
 }
 
+// cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
+	if !c.state.Mounted {
+		// Already unmounted, do nothing
+		return nil
+	}
 
-	if c.state.Mounted {
-		for _, mount := range c.config.Mounts {
-			if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
-				if err != syscall.EINVAL {
-					logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
-				}
+	for _, mount := range c.config.Mounts {
+		if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
+			if err != syscall.EINVAL {
+				logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 			}
 		}
-		c.config.Mounts = []string{}
+	}
 
-		// Also unmount storage
-		if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
-			return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
-		}
+	// Also unmount storage
+	if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
+		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
 	}
 
 	c.state.Mountpoint = ""
@@ -857,5 +852,6 @@ func (c *Container) cleanupStorage() error {
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error saving container %s state", c.ID())
 	}
+
 	return nil
 }
