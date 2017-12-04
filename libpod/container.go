@@ -819,11 +819,7 @@ func (c *Container) mountStorage() (err error) {
 		}
 	}()
 
-	if err := c.save(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.save()
 }
 
 // CleanupStorage unmounts all mount points in container and cleans up container storage
@@ -859,9 +855,5 @@ func (c *Container) cleanupStorage() error {
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
-	if err := c.save(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.save()
 }
