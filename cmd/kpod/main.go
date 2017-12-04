@@ -53,7 +53,6 @@ func main() {
 		psCommand,
 		pullCommand,
 		pushCommand,
-		renameCommand,
 		rmCommand,
 		rmiCommand,
 		runCommand,

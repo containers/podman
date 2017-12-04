@@ -931,26 +931,6 @@ _kpod_push() {
     esac
 }
 
-_kpod_rename() {
-    local boolean_options="
-    --help
-    -h
- "
-    local options_with_args="
- "
-
-    local all_options="$options_with_args $boolean_options"
-
-    case "$cur" in
-        -*)
-            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
-            ;;
-        *)
-            __kpod_list_containers
-            ;;
-    esac
-}
-
 _kpod_container_run() {
 	local options_with_args="
 		--add-host
