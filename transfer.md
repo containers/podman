@@ -53,7 +53,6 @@ There are other equivalents for these tools
 | `docker ps`     | [`kpod ps`](./docs/kpod-ps.1.md)          |
 | `docker pull`   | [`kpod pull`](./docs/kpod-pull.1.md)      |
 | `docker push`   | [`kpod push`](./docs/kpod-push.1.md)      |
-| `docker rename` | [`kpod rename`](./docs/kpod-rename.1.md)  |
 | `docker rm`     | [`kpod rm`](./docs/kpod-rm.1.md)          |
 | `docker rmi`    | [`kpod rmi`](./docs/kpod-rmi.1.md)        |
 | `docker run`    | [`kpod run`](./docs/kpod-run.1.md)        |
