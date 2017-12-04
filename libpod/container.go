@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/daemon/caps"
@@ -54,6 +55,9 @@ const (
 	// name of the directory holding the artifacts
 	artifactsDir = "artifacts"
 )
+
+// CGroupParent is the prefix to a cgroup path in libpod
+var CGroupParent = "/libpod_parent"
 
 // Container is a single OCI container
 type Container struct {
@@ -577,7 +581,7 @@ func (c *Container) Init() (err error) {
 
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion
-	if err := c.runtime.ociRuntime.createContainer(c, "/libpod_parent"); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c, CGroupParent); err != nil {
 		return err
 	}
 
@@ -1043,4 +1047,9 @@ func (c *Container) cleanupStorage() error {
 	c.state.Mounted = false
 
 	return c.save()
+}
+
+// CGroupPath returns a cgroups "path" for a given container.
+func (c *Container) CGroupPath() cgroups.Path {
+	return cgroups.StaticPath(filepath.Join(CGroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
 }

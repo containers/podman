@@ -1,34 +1,28 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
+	"reflect"
 	"strings"
-	"text/template"
 	"time"
 
-	"github.com/docker/go-units"
-
 	tm "github.com/buger/goterm"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libkpod"
-	"github.com/projectatomic/libpod/oci"
+	"github.com/projectatomic/libpod/cmd/kpod/formats"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 
-var printf func(format string, a ...interface{}) (n int, err error)
-var println func(a ...interface{}) (n int, err error)
-
 type statsOutputParams struct {
-	Container string
-	ID        string
-	CPUPerc   string
-	MemUsage  string
-	MemPerc   string
-	NetIO     string
-	BlockIO   string
-	PIDs      uint64
+	Container string `json:"name"`
+	ID        string `json:"id"`
+	CPUPerc   string `json:"cpu_percent"`
+	MemUsage  string `json:"mem_usage"`
+	MemPerc   string `json:"mem_percent"`
+	NetIO     string `json:"netio"`
+	BlockIO   string `json:"blocki"`
+	PIDS      uint64 `json:"pids"`
 }
 
 var (
@@ -46,8 +40,8 @@ var (
 			Usage: "pretty-print container statistics using a Go template",
 		},
 		cli.BoolFlag{
-			Name:  "json",
-			Usage: "output container statistics in json format",
+			Name:  "no-reset",
+			Usage: "disable resetting the screen between intervals",
 		},
 	}
 
@@ -66,49 +60,45 @@ func statsCmd(c *cli.Context) error {
 	if err := validateFlags(c, statsFlags); err != nil {
 		return err
 	}
-	config, err := getConfig(c)
+
+	runtime, err := getRuntime(c)
 	if err != nil {
-		return errors.Wrapf(err, "could not read config")
+		return errors.Wrapf(err, "could not get runtime")
 	}
-	containerServer, err := libkpod.New(config)
-	if err != nil {
-		return errors.Wrapf(err, "could not create container server")
-	}
-	defer containerServer.Shutdown()
-	err = containerServer.Update()
-	if err != nil {
-		return errors.Wrapf(err, "could not update list of containers")
-	}
+	defer runtime.Shutdown(false)
+
 	times := -1
 	if c.Bool("no-stream") {
 		times = 1
 	}
-	statsChan := make(chan []*libkpod.ContainerStats)
-	// iterate over the channel until it is closed
-	go func() {
-		// print using goterm
-		printf = tm.Printf
-		println = tm.Println
-		for stats := range statsChan {
-			// Continually refresh statistics
-			tm.Clear()
-			tm.MoveCursor(1, 1)
-			outputStats(stats, c.String("format"), c.Bool("json"))
-			tm.Flush()
-			time.Sleep(time.Second)
-		}
-	}()
-	return getStats(containerServer, c.Args(), c.Bool("all"), statsChan, times)
-}
 
-func getStats(server *libkpod.ContainerServer, args []string, all bool, statsChan chan []*libkpod.ContainerStats, times int) error {
-	ctrs, err := server.ListContainers(isRunning, ctrInList(args))
-	if err != nil {
-		return err
+	var format string
+	var ctrs []*libpod.Container
+	var containerFunc func() ([]*libpod.Container, error)
+	all := c.Bool("all")
+
+	if c.IsSet("format") {
+		format = c.String("format")
+	} else {
+		format = genStatsFormat()
 	}
-	containerStats := map[string]*libkpod.ContainerStats{}
+
+	if len(c.Args()) > 0 {
+		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.Args()) }
+	} else if all {
+		containerFunc = runtime.GetAllContainers
+	} else {
+		containerFunc = runtime.GetRunningContainers
+	}
+
+	ctrs, err = containerFunc()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get list of containers")
+	}
+
+	containerStats := map[string]*libpod.ContainerStats{}
 	for _, ctr := range ctrs {
-		initialStats, err := server.GetContainerStats(ctr, &libkpod.ContainerStats{})
+		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
 			return err
 		}
@@ -120,17 +110,17 @@ func getStats(server *libkpod.ContainerServer, args []string, all bool, statsCha
 		step = 0
 	}
 	for i := 0; i < times; i += step {
-		reportStats := []*libkpod.ContainerStats{}
+		reportStats := []*libpod.ContainerStats{}
 		for _, ctr := range ctrs {
 			id := ctr.ID()
 			if _, ok := containerStats[ctr.ID()]; !ok {
-				initialStats, err := server.GetContainerStats(ctr, &libkpod.ContainerStats{})
+				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 				if err != nil {
 					return err
 				}
 				containerStats[id] = initialStats
 			}
-			stats, err := server.GetContainerStats(ctr, containerStats[id])
+			stats, err := ctr.GetContainerStats(containerStats[id])
 			if err != nil {
 				return err
 			}
@@ -138,48 +128,75 @@ func getStats(server *libkpod.ContainerServer, args []string, all bool, statsCha
 			containerStats[id] = stats
 			reportStats = append(reportStats, stats)
 		}
-		statsChan <- reportStats
-
-		err := server.Update()
+		ctrs, err = containerFunc()
 		if err != nil {
 			return err
 		}
-		ctrs, err = server.ListContainers(isRunning, ctrInList(args))
-		if err != nil {
-			return err
+		if strings.ToLower(format) != formats.JSONString && !c.Bool("no-reset") {
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
 		}
+		outputStats(reportStats, format)
+		time.Sleep(time.Second)
 	}
 	return nil
 }
 
-func outputStats(stats []*libkpod.ContainerStats, format string, json bool) error {
-	if format == "" {
-		outputStatsHeader()
-	}
-	if json {
-		return outputStatsAsJSON(stats)
-	}
-	var err error
+func outputStats(stats []*libpod.ContainerStats, format string) error {
+	var out formats.Writer
+	var outputStats []statsOutputParams
 	for _, s := range stats {
-		if format == "" {
-			outputStatsUsingFormatString(s)
-		} else {
-			params := getStatsOutputParams(s)
-			err2 := outputStatsUsingTemplate(format, params)
-			if err2 != nil {
-				err = errors.Wrapf(err, err2.Error())
-			}
-		}
+		outputStats = append(outputStats, getStatsOutputParams(s))
 	}
-	return err
+	if len(outputStats) == 0 {
+		return nil
+	}
+	if strings.ToLower(format) == formats.JSONString {
+		out = formats.JSONStructArray{Output: statsToGeneric(outputStats, []statsOutputParams{})}
+	} else {
+		out = formats.StdoutTemplateArray{Output: statsToGeneric(outputStats, []statsOutputParams{}), Template: format, Fields: outputStats[0].headerMap()}
+	}
+	return formats.Writer(out).Out()
 }
 
-func outputStatsHeader() {
-	printf("%-64s %-16s %-32s %-16s %-24s %-24s %s\n", "CONTAINER", "CPU %", "MEM USAGE / MEM LIMIT", "MEM %", "NET I/O", "BLOCK I/O", "PIDS")
+func genStatsFormat() (format string) {
+	return "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}"
 }
 
-func outputStatsUsingFormatString(stats *libkpod.ContainerStats) {
-	printf("%-64s %-16s %-32s %-16s %-24s %-24s %d\n", stats.Container, floatToPercentString(stats.CPU), combineHumanValues(stats.MemUsage, stats.MemLimit), floatToPercentString(stats.MemPerc), combineHumanValues(stats.NetInput, stats.NetOutput), combineHumanValues(stats.BlockInput, stats.BlockOutput), stats.PIDs)
+// imagesToGeneric creates an empty array of interfaces for output
+func statsToGeneric(templParams []statsOutputParams, JSONParams []statsOutputParams) (genericParams []interface{}) {
+	if len(templParams) > 0 {
+		for _, v := range templParams {
+			genericParams = append(genericParams, interface{}(v))
+		}
+		return
+	}
+	for _, v := range JSONParams {
+		genericParams = append(genericParams, interface{}(v))
+	}
+	return
+}
+
+// generate the header based on the template provided
+func (i *statsOutputParams) headerMap() map[string]string {
+	v := reflect.Indirect(reflect.ValueOf(i))
+	values := make(map[string]string)
+
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Type().Field(i).Name
+		value := key
+		switch value {
+		case "CPUPerc":
+			value = "CPU%"
+		case "MemUsage":
+			value = "MemUsage/Limit"
+		case "MemPerc":
+			value = "Mem%"
+		}
+		values[key] = strings.ToUpper(splitCamelCase(value))
+	}
+	return values
 }
 
 func combineHumanValues(a, b uint64) string {
@@ -187,59 +204,23 @@ func combineHumanValues(a, b uint64) string {
 }
 
 func floatToPercentString(f float64) string {
-	return fmt.Sprintf("%.2f %s", f, "%")
+	strippedFloat, err := libpod.RemoveScientificNotationFromFloat(f)
+	if err != nil {
+		// If things go bazinga, return a safe value
+		return "0.00 %"
+	}
+	return fmt.Sprintf("%.2f", strippedFloat) + "%"
 }
 
-func getStatsOutputParams(stats *libkpod.ContainerStats) statsOutputParams {
+func getStatsOutputParams(stats *libpod.ContainerStats) statsOutputParams {
 	return statsOutputParams{
-		Container: stats.Container,
-		ID:        stats.Container,
+		Container: stats.ContainerID[:12],
+		ID:        stats.ContainerID,
 		CPUPerc:   floatToPercentString(stats.CPU),
 		MemUsage:  combineHumanValues(stats.MemUsage, stats.MemLimit),
 		MemPerc:   floatToPercentString(stats.MemPerc),
 		NetIO:     combineHumanValues(stats.NetInput, stats.NetOutput),
 		BlockIO:   combineHumanValues(stats.BlockInput, stats.BlockOutput),
-		PIDs:      stats.PIDs,
-	}
-}
-
-func outputStatsUsingTemplate(format string, params statsOutputParams) error {
-	tmpl, err := template.New("stats").Parse(format)
-	if err != nil {
-		return errors.Wrapf(err, "template parsing error")
-	}
-
-	err = tmpl.Execute(os.Stdout, params)
-	if err != nil {
-		return err
-	}
-	println()
-	return nil
-}
-
-func outputStatsAsJSON(stats []*libkpod.ContainerStats) error {
-	s, err := json.Marshal(stats)
-	if err != nil {
-		return err
-	}
-	println(s)
-	return nil
-}
-
-func isRunning(ctr *oci.Container) bool {
-	return ctr.State().Status == "running"
-}
-
-func ctrInList(idsOrNames []string) func(ctr *oci.Container) bool {
-	if len(idsOrNames) == 0 {
-		return func(*oci.Container) bool { return true }
-	}
-	return func(ctr *oci.Container) bool {
-		for _, idOrName := range idsOrNames {
-			if strings.HasPrefix(ctr.ID(), idOrName) || strings.HasSuffix(ctr.Name(), idOrName) {
-				return true
-			}
-		}
-		return false
+		PIDS:      stats.PIDs,
 	}
 }

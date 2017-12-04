@@ -232,3 +232,31 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error
 
 	return ctrsFiltered, nil
 }
+
+// GetAllContainers is a helper function for GetContainers
+func (r *Runtime) GetAllContainers() ([]*Container, error) {
+	return r.state.AllContainers()
+}
+
+// GetRunningContainers is a helper function for GetContainers
+func (r *Runtime) GetRunningContainers() ([]*Container, error) {
+	running := func(c *Container) bool {
+		state, _ := c.State()
+		return state == ContainerStateRunning
+	}
+	return r.GetContainers(running)
+}
+
+// GetContainersByList is a helper function for GetContainers
+// which takes a []string of container IDs or names
+func (r *Runtime) GetContainersByList(containers []string) ([]*Container, error) {
+	var ctrs []*Container
+	for _, inputContainer := range containers {
+		ctr, err := r.LookupContainer(inputContainer)
+		if err != nil {
+			return ctrs, errors.Wrapf(err, "unable to lookup container %s", inputContainer)
+		}
+		ctrs = append(ctrs, ctr)
+	}
+	return ctrs, nil
+}
