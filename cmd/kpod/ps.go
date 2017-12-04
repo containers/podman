@@ -11,14 +11,12 @@ import (
 
 	"github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 
 	"k8s.io/apimachinery/pkg/fields"
 
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
-	"github.com/projectatomic/libpod/libkpod"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/oci"
 	"github.com/urfave/cli"
@@ -350,29 +348,6 @@ func (p *psTemplateParams) headerMap() map[string]string {
 	return values
 }
 
-// getContainers gets the containers that match the flags given
-func getContainers(containers []*libkpod.ContainerData, opts psOptions) []*libkpod.ContainerData {
-	var containersOutput []*libkpod.ContainerData
-	if opts.last >= 0 && opts.last < len(containers) {
-		for i := 0; i < opts.last; i++ {
-			containersOutput = append(containersOutput, containers[i])
-		}
-		return containersOutput
-	}
-	if opts.latest {
-		return []*libkpod.ContainerData{containers[0]}
-	}
-	if opts.all || opts.last >= len(containers) {
-		return containers
-	}
-	for _, ctr := range containers {
-		if ctr.State.Status == oci.ContainerStateRunning {
-			containersOutput = append(containersOutput, ctr)
-		}
-	}
-	return containersOutput
-}
-
 // getTemplateOutput returns the modified container information
 func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemplateParams, error) {
 	var psOutput []psTemplateParams
@@ -683,114 +658,4 @@ func findContainer(containers []*oci.Container, ref string) (*oci.Container, err
 		}
 	}
 	return nil, errors.Errorf("could not find container")
-}
-
-// matchesFilter checks if a container matches all the filter parameters
-func matchesFilter(ctrData *libkpod.ContainerData, params *FilterParamsPS) bool {
-	if params == nil {
-		return true
-	}
-	if params.id != "" && !matchesID(ctrData, params.id) {
-		return false
-	}
-	if params.name != "" && !matchesName(ctrData, params.name) {
-		return false
-	}
-	if !params.before.IsZero() && !matchesBeforeContainer(ctrData, params.before) {
-		return false
-	}
-	if !params.since.IsZero() && !matchesSinceContainer(ctrData, params.since) {
-		return false
-	}
-	if params.exited > 0 && !matchesExited(ctrData, params.exited) {
-		return false
-	}
-	if params.status != "" && !matchesStatus(ctrData, params.status) {
-		return false
-	}
-	if params.ancestor != "" && !matchesAncestor(ctrData, params.ancestor) {
-		return false
-	}
-	if params.label != "" && !matchesLabel(ctrData, params.label) {
-		return false
-	}
-	if params.volume != "" && !matchesVolume(ctrData, params.volume) {
-		return false
-	}
-	return true
-}
-
-// GetContainersMatchingFilter returns a slice of all the containers that match the provided filter parameters
-func getContainersMatchingFilter(containers []*oci.Container, filter *FilterParamsPS, server *libkpod.ContainerServer) []*libkpod.ContainerData {
-	var filteredCtrs []*libkpod.ContainerData
-	for _, ctr := range containers {
-		ctrData, err := server.GetContainerData(ctr.ID(), true)
-		if err != nil {
-			logrus.Warn("unable to get container data for matched container")
-		}
-		if filter == nil || matchesFilter(ctrData, filter) {
-			filteredCtrs = append(filteredCtrs, ctrData)
-		}
-	}
-	return filteredCtrs
-}
-
-// matchesID returns true if the id's match
-func matchesID(ctrData *libkpod.ContainerData, id string) bool {
-	return strings.HasPrefix(ctrData.ID, id)
-}
-
-// matchesBeforeContainer returns true if the container was created before the filter image
-func matchesBeforeContainer(ctrData *libkpod.ContainerData, beforeTime time.Time) bool {
-	return ctrData.State.Created.Before(beforeTime)
-}
-
-// matchesSincecontainer returns true if the container was created since the filter image
-func matchesSinceContainer(ctrData *libkpod.ContainerData, sinceTime time.Time) bool {
-	return ctrData.State.Created.After(sinceTime)
-}
-
-// matchesLabel returns true if the container label matches that of the filter label
-func matchesLabel(ctrData *libkpod.ContainerData, label string) bool {
-	pair := strings.SplitN(label, "=", 2)
-	if val, ok := ctrData.Labels[pair[0]]; ok {
-		if len(pair) == 2 && val == pair[1] {
-			return true
-		}
-		if len(pair) == 1 {
-			return true
-		}
-		return false
-	}
-	return false
-}
-
-// matchesName returns true if the names are identical
-func matchesName(ctrData *libkpod.ContainerData, name string) bool {
-	return ctrData.Name == name
-}
-
-// matchesExited returns true if the exit codes are identical
-func matchesExited(ctrData *libkpod.ContainerData, exited int32) bool {
-	return ctrData.State.ExitCode == exited
-}
-
-// matchesStatus returns true if the container status matches that of filter status
-func matchesStatus(ctrData *libkpod.ContainerData, status string) bool {
-	return ctrData.State.Status == status
-}
-
-// matchesAncestor returns true if filter ancestor is in container image name
-func matchesAncestor(ctrData *libkpod.ContainerData, ancestor string) bool {
-	return strings.Contains(ctrData.FromImage, ancestor)
-}
-
-// matchesVolue returns true if the volume mounted or path to volue of the container matches that of filter volume
-func matchesVolume(ctrData *libkpod.ContainerData, volume string) bool {
-	for _, vol := range ctrData.Mounts {
-		if strings.Contains(vol.Source, volume) {
-			return true
-		}
-	}
-	return false
 }
