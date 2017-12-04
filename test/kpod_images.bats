@@ -40,3 +40,9 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "kpod images short options" {
+    run  ${KPOD_BINARY} ${KPOD_OPTIONS} images -qn
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

@@ -120,3 +120,12 @@ function teardown() {
     [ "$status" -eq 0 ]
     run ${KPOD_BINARY} ${KPOD_OPTIONS} stop $ctr_id
 }
+
+@test "kpod ps short options" {
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} run -d ${ALPINE} sleep 99
+    ctr_id="$output"
+    run bash -c ${KPOD_BINARY} ${KPOD_OPTIONS} ps -aqs
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} stop $ctr_id
+}

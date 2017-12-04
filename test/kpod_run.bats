@@ -16,6 +16,12 @@ function setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "run a container based on local image with short options" {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -dt $BB ls"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
+
 @test "run a container based on a remote image" {
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run ${BB_GLIBC} ls"
     echo "$output"
@@ -65,25 +71,22 @@ function setup() {
 }
 
 @test "run environment test" {
-
-    ${KPOD_BINARY} ${KPOD_OPTIONS} pull ${ALPINE}
-
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO=BAR ${ALPINE} printenv FOO | tr -d '\r'"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --env FOO=BAR ${ALPINE} printenv FOO | tr -d '\r'"
     echo "$output"
     [ "$status" -eq 0 ]
     [ $output = "BAR" ]
 
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env PATH="/bin" ${ALPINE} printenv PATH | tr -d '\r'"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --env PATH="/bin" ${ALPINE} printenv PATH | tr -d '\r'"
     echo "$output"
     [ "$status" -eq 0 ]
     [ $output = "/bin" ]
 
-    run bash -c "export FOO=BAR; ${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv FOO | tr -d '\r'"
+    run bash -c "export FOO=BAR; ${KPOD_BINARY} ${KPOD_OPTIONS} run --env FOO ${ALPINE} printenv FOO | tr -d '\r'"
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "BAR" ]
 
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -env FOO ${ALPINE} printenv"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run --env FOO ${ALPINE} printenv"
     echo "$output"
     [ "$status" -ne 0 ]
 

@@ -71,12 +71,13 @@ var (
 	historyDescription = "Displays the history of an image. The information can be printed out in an easy to read, " +
 		"or user specified format, and can be truncated."
 	historyCommand = cli.Command{
-		Name:        "history",
-		Usage:       "Show history of a specified image",
-		Description: historyDescription,
-		Flags:       historyFlags,
-		Action:      historyCmd,
-		ArgsUsage:   "",
+		Name:                   "history",
+		Usage:                  "Show history of a specified image",
+		Description:            historyDescription,
+		Flags:                  historyFlags,
+		Action:                 historyCmd,
+		ArgsUsage:              "",
+		UseShortOptionHandling: true,
 	}
 )
 

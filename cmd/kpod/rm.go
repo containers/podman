@@ -25,10 +25,11 @@ var (
 		Name: "rm",
 		Usage: fmt.Sprintf(`kpod rm will remove one or more containers from the host.  The container name or ID can be used.
 							This does not remove images.  Running containers will not be removed without the -f option.`),
-		Description: rmDescription,
-		Flags:       rmFlags,
-		Action:      rmCmd,
-		ArgsUsage:   "",
+		Description:            rmDescription,
+		Flags:                  rmFlags,
+		Action:                 rmCmd,
+		ArgsUsage:              "",
+		UseShortOptionHandling: true,
 	}
 )
 
