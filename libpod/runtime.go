@@ -175,7 +175,19 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
+	// This check must be locked to prevent races
+	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
 	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
+	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error acquiring runtime init lock")
+	}
+	// Acquire the lock and hold it until we return
+	// This ensures that no two processes will be in runtime.refresh at once
+	// TODO: we can't close the FD in this lock, so we should keep it around
+	// and use it to lock important operations
+	aliveLock.Lock()
+	defer aliveLock.Unlock()
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
 		// If the file doesn't exist, we need to refresh the state
@@ -260,9 +272,6 @@ func (r *Runtime) Shutdown(force bool) error {
 // Reconfigures the runtime after a reboot
 // Refreshes the state, recreating temporary files
 // Does not check validity as the runtime is not valid until after this has run
-// TODO: there's a potential race here, where multiple libpods could be in this
-// function before the runtime ready file is created
-// This probably doesn't matter as the actual container operations are locked
 func (r *Runtime) refresh(alivePath string) error {
 	// We need to refresh the state of all containers
 	ctrs, err := r.state.AllContainers()

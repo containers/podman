@@ -413,7 +413,7 @@ func (c *Container) refresh() error {
 	defer c.lock.Unlock()
 
 	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s has been removed from the state", c.ID())
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
 	}
 
 	// We need to get the container's temporary directory from c/storage
