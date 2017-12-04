@@ -211,10 +211,6 @@ func createCmd(c *cli.Context) error {
 	}
 
 	logrus.Debug("new container created ", ctr.ID())
-	if err := ctr.Init(); err != nil {
-		return err
-	}
-	logrus.Debug("container storage created for %q", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		libpod.WriteFile(ctr.ID(), c.String("cidfile"))

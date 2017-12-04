@@ -23,7 +23,7 @@ function teardown() {
 }
 
 @test "pause a created container by id" {
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
@@ -33,7 +33,7 @@ function teardown() {
     run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} unpause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm $ctr_id"
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm -f $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }
