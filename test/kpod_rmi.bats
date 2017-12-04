@@ -43,10 +43,10 @@ function pullImages() {
 	[ "$status" -eq 0 ]
 }
 
-@test "kpod rmi all images forceably" {
+@test "kpod rmi all images forceably with short options" {
 	pullImages
 	${KPOD_BINARY} $KPOD_OPTIONS create ${IMAGE1} ls
-	run ${KPOD_BINARY} $KPOD_OPTIONS rmi -a -f
+	run ${KPOD_BINARY} $KPOD_OPTIONS rmi -af
 	echo "$output"
 	[ "$status" -eq 0 ]
 }

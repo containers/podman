@@ -45,3 +45,9 @@ function setup() {
 	echo "$output"
 	[ "$status" -eq 0 ]
 }
+
+@test "kpod history short options" {
+	run ${KPOD_BINARY} ${KPOD_OPTIONS} history -qH $ALPINE
+	echo "$output"
+	[ "$status" -eq 0 ]
+}

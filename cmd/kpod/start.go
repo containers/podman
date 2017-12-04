@@ -34,12 +34,13 @@ var (
 `
 
 	startCommand = cli.Command{
-		Name:        "start",
-		Usage:       "Start one or more containers",
-		Description: startDescription,
-		Flags:       startFlags,
-		Action:      startCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:                   "start",
+		Usage:                  "Start one or more containers",
+		Description:            startDescription,
+		Flags:                  startFlags,
+		Action:                 startCmd,
+		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
+		UseShortOptionHandling: true,
 	}
 )
 
