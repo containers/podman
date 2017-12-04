@@ -133,12 +133,13 @@ var (
 	}
 	psDescription = "Prints out information about the containers"
 	psCommand     = cli.Command{
-		Name:        "ps",
-		Usage:       "List containers",
-		Description: psDescription,
-		Flags:       psFlags,
-		Action:      psCmd,
-		ArgsUsage:   "",
+		Name:                   "ps",
+		Usage:                  "List containers",
+		Description:            psDescription,
+		Flags:                  psFlags,
+		Action:                 psCmd,
+		ArgsUsage:              "",
+		UseShortOptionHandling: true,
 	}
 )
 

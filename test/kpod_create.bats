@@ -21,3 +21,9 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "ensure short options" {
+    run ${KPOD_BINARY} ${KPOD_OPTIONS} create -dt ${BB_GLIBC} ls
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

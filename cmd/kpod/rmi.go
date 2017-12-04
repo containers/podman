@@ -27,6 +27,7 @@ var (
 		Action:      rmiCmd,
 		ArgsUsage:   "IMAGE-NAME-OR-ID [...]",
 		Flags:       rmiFlags,
+		UseShortOptionHandling: true,
 	}
 )
 

@@ -60,12 +60,12 @@ function teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "remove all containers with one running" {
+@test "remove all containers with one running with short options" {
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB ls -l
     ${KPOD_BINARY} ${KPOD_OPTIONS} create $BB whoami
     ${KPOD_BINARY} ${KPOD_OPTIONS} run -d ${ALPINE} sleep 30
-    run ${KPOD_BINARY} $KPOD_OPTIONS rm -a -f
+    run ${KPOD_BINARY} $KPOD_OPTIONS rm -af
     echo "$output"
     [ "$status" -eq 0 ]
 }
