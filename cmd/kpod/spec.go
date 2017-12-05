@@ -526,7 +526,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithStdin())
 	}
 	if c.name != "" {
-		logrus.Debug("appending name %s", c.name)
+		logrus.Debugf("appending name %s", c.name)
 		options = append(options, libpod.WithName(c.name))
 	}
 

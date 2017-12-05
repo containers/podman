@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,15 +12,12 @@ import (
 
 	"github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-
-	"k8s.io/apimachinery/pkg/fields"
-
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/oci"
 	"github.com/urfave/cli"
+	"k8s.io/apimachinery/pkg/fields"
 )
 
 type psOptions struct {
