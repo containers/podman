@@ -154,6 +154,7 @@ func prepareDB(db *sql.DB) (err error) {
 	// TODO add Pod ID to CreateStaticContainer as a FOREIGN KEY referencing podStatic(Id)
 	// TODO add ctr shared namespaces information - A separate table, probably? So we can FOREIGN KEY the ID
 	// TODO schema migration might be necessary and should be handled here
+	// TODO maybe make a port mappings table instead of JSONing the array and storing it?
 
 	// Enable foreign keys in SQLite
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
@@ -169,6 +170,8 @@ func prepareDB(db *sql.DB) (err error) {
             MountLabel TEXT NOT NULL,
             Mounts TEXT NOT NULL,
             ShmDir TEXT NOT NULL,
+            CreateNetNS INTEGER NOT NULL,
+            PortMappings TEXT NOT NULL,
             StaticDir TEXT NOT NULL,
             Stdin INTEGER NOT NULL,
             LabelsJSON TEXT NOT NULL,
@@ -178,6 +181,7 @@ func prepareDB(db *sql.DB) (err error) {
             RootfsImageName TEXT NOT NULL,
             UseImageConfig INTEGER NOT NULL,
             CHECK (Stdin IN (0, 1)),
+            CHECK (CreateNetNS IN (0, 1)),
             CHECK (UseImageConfig IN (0, 1)),
             CHECK (StopSignal>=0)
         );
@@ -273,6 +277,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		mountLabel         string
 		mounts             string
 		shmDir             string
+		createNetNS        int
+		portMappingsJSON   string
 		staticDir          string
 		stdin              int
 		labelsJSON         string
@@ -299,6 +305,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		&mountLabel,
 		&mounts,
 		&shmDir,
+		&createNetNS,
+		&portMappingsJSON,
 		&staticDir,
 		&stdin,
 		&labelsJSON,
@@ -335,10 +343,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	ctr.config.UseImageConfig = boolFromSQL(useImageConfig)
 	ctr.config.ProcessLabel = processLabel
 	ctr.config.MountLabel = mountLabel
-	if err := json.Unmarshal([]byte(mounts), &ctr.config.Mounts); err != nil {
-		return nil, errors.Wrapf(err, "error parsing container %s mounts JSON", id)
-	}
 	ctr.config.ShmDir = shmDir
+	ctr.config.CreateNetNS = boolFromSQL(createNetNS)
 	ctr.config.StaticDir = staticDir
 	ctr.config.Stdin = boolFromSQL(stdin)
 	ctr.config.StopSignal = stopSignal
@@ -361,6 +367,14 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		return nil, errors.Wrapf(err, "error parsing container %s labels JSON", id)
 	}
 	ctr.config.Labels = labels
+
+	if err := json.Unmarshal([]byte(mounts), &ctr.config.Mounts); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s mounts JSON", id)
+	}
+
+	if err := json.Unmarshal([]byte(portMappingsJSON), &ctr.config.PortMappings); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s port mappings JSON", id)
+	}
 
 	createdTime, err := timeFromSQL(createdTimeString)
 	if err != nil {

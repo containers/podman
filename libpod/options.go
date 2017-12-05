@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
 
@@ -397,6 +398,22 @@ func WithStopSignal(signal uint) CtrCreateOption {
 		}
 
 		ctr.config.StopSignal = signal
+
+		return nil
+	}
+}
+
+// WithNetNS indicates that the container should be given a new network
+// namespace with a minimal configuration
+// An optional array of port mappings can be provided
+func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.CreateNetNS = true
+		copy(ctr.config.PortMappings, portMappings)
 
 		return nil
 	}

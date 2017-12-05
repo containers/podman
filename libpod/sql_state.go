@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 2
+const DBSchema = 3
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -267,7 +267,7 @@ func (s *SQLState) HasContainer(id string) (bool, error) {
 func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	const (
 		addCtr = `INSERT INTO containers VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -287,6 +287,16 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
 	}
 
+	mounts, err := json.Marshal(ctr.config.Mounts)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s mounts to JSON", ctr.ID())
+	}
+
+	portsJSON, err := json.Marshal(ctr.config.PortMappings)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s port mappings to JSON", ctr.ID())
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
@@ -299,10 +309,6 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		}
 	}()
 
-	mounts, err := json.Marshal(ctr.config.Mounts)
-	if err != nil {
-		return errors.Wrapf(err, "error marshaling container %s monunts to JSON", ctr.ID())
-	}
 	// Add static container information
 	_, err = tx.Exec(addCtr,
 		ctr.ID(),
@@ -311,6 +317,8 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		ctr.config.MountLabel,
 		string(mounts),
 		ctr.config.ShmDir,
+		boolToSQL(ctr.config.CreateNetNS),
+		string(portsJSON),
 		ctr.config.StaticDir,
 		boolToSQL(ctr.config.Stdin),
 		string(labelsJSON),
