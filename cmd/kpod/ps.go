@@ -59,7 +59,7 @@ type psTemplateParams struct {
 
 // psJSONParams is only used when the JSON format is specified,
 // and is better for data processing from JSON.
-// psJSONParams will be populated by data from libkpod.ContainerData,
+// psJSONParams will be populated by data from libpod.Container,
 // the members of the struct are the sama data types as their sources.
 type psJSONParams struct {
 	ID               string              `json:"id"`
