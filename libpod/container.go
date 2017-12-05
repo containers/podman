@@ -476,38 +476,37 @@ func (c *Container) init() (err error) {
 		return err
 	}
 
-	// Make the OCI runtime spec we will use
-	g := generate.NewFromSpec(c.config.Spec)
-	// Mount ShmDir from host into container
-	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
-	c.runningSpec = g.Spec()
-	c.runningSpec.Root.Path = c.state.Mountpoint
-	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
-	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
-
 	// Save the OCI spec to disk
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")
-	// If the OCI spec already exists, replace it
 	if _, err := os.Stat(jsonPath); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
 		}
-	} else {
-		// No error, the spec exists. Remove so we can replace.
-		if err := os.Remove(jsonPath); err != nil {
-			return errors.Wrapf(err, "error replacing spec of container %s", c.ID())
-		}
-	}
-	fileJSON, err := json.Marshal(c.runningSpec)
-	if err != nil {
-		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
-	}
-	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
-		return errors.Wrapf(err, "error writing runtime spec JSON to file for container %s", c.ID())
-	}
-	c.state.ConfigPath = jsonPath
 
-	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+		// The spec does not exist, needs to be created
+		g := generate.NewFromSpec(c.config.Spec)
+		// Mount ShmDir from host into container
+		g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
+		c.runningSpec = g.Spec()
+		c.runningSpec.Root.Path = c.state.Mountpoint
+		c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
+		c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
+
+		fileJSON, err := json.Marshal(c.runningSpec)
+		if err != nil {
+			return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
+		}
+		if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
+			return errors.Wrapf(err, "error writing runtime spec JSON to file for container %s", c.ID())
+		}
+
+		logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+	} else {
+		// The spec exists
+		logrus.Debugf("Using existing OCI spec for container %s at %s", c.ID(), jsonPath)
+	}
+
+	c.state.ConfigPath = jsonPath
 
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion
