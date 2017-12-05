@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -386,13 +385,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	ctr.valid = true
 	ctr.runtime = runtime
 
-	// Ensure the lockfile exists
-	lockPath := filepath.Join(lockDir, id)
-	_, err = os.Stat(lockPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error performing stat on container %s lockfile", id)
-	}
 	// Open and set the lockfile
+	lockPath := filepath.Join(lockDir, id)
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving lockfile for container %s", id)
