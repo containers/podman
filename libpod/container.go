@@ -14,6 +14,7 @@ import (
 	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
@@ -119,6 +120,13 @@ type ContainerConfig struct {
 	MountLabel string `json:"MountLabel,omitempty"`
 	// Src path to be mounted on /dev/shm in container
 	ShmDir string `json:"ShmDir,omitempty"`
+	// CreateNetNS indicates that libpod should create and configure a new
+	// network namespace for the container
+	CreateNetNS bool `json:"createNetNS"`
+	// PortMappings are the ports forwarded to the container's network
+	// namespace
+	// These are not used unless CreateNetNS is true
+	PortMappings []ocicni.PortMapping
 	// Static directory for container content that will persist across
 	// reboot
 	StaticDir string `json:"staticDir"`
@@ -130,7 +138,7 @@ type ContainerConfig struct {
 	// about a container
 	Labels map[string]string `json:"labels,omitempty"`
 	// Mounts list contains all additional mounts by the container runtime.
-	Mounts []string
+	Mounts []string `json:"mounts,omitempty"`
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// Shared namespaces with container
