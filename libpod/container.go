@@ -50,6 +50,8 @@ const (
 	ContainerStateStopped ContainerState = iota
 	// ContainerStatePaused indicates that the container has been paused
 	ContainerStatePaused ContainerState = iota
+	// name of the directory holding the artifacts
+	artifactsDir = "artifacts"
 )
 
 // Container is a single OCI container
@@ -383,6 +385,11 @@ func (c *Container) setupStorage() error {
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
 
+	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
+	if err := os.MkdirAll(artifacts, 0755); err != nil {
+		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
+	}
+
 	return nil
 }
 
@@ -394,6 +401,11 @@ func (c *Container) teardownStorage() error {
 
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+	}
+
+	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
+	if err := os.RemoveAll(artifacts); err != nil {
+		return errors.Wrapf(err, "error removing artifacts %q", artifacts)
 	}
 
 	if err := c.cleanupStorage(); err != nil {
@@ -716,6 +728,25 @@ func (c *Container) Export(path string) error {
 
 	_, err = io.Copy(outFile, input)
 	return err
+}
+
+// AddArtifact creates and writes to an artifact file for the container
+func (c *Container) AddArtifact(name string, data []byte) error {
+	return ioutil.WriteFile(c.getArtifactPath(name), data, 0740)
+}
+
+// GetArtifact reads the specified artifact file from the container
+func (c *Container) GetArtifact(name string) ([]byte, error) {
+	return ioutil.ReadFile(c.getArtifactPath(name))
+}
+
+// RemoveArtifact deletes the specified artifacts file
+func (c *Container) RemoveArtifact(name string) error {
+	return os.Remove(c.getArtifactPath(name))
+}
+
+func (c *Container) getArtifactPath(name string) string {
+	return filepath.Join(c.config.StaticDir, artifactsDir, name)
 }
 
 // Commit commits the changes between a container and its image, creating a new
