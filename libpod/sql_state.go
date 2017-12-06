@@ -511,6 +511,10 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
                           NetNSPath=?
                        WHERE Id=?;`
 
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
 	netNSPath := ""
 	if ctr.state.NetNS != nil {
 		netNSPath = ctr.state.NetNS.Path()
@@ -518,10 +522,6 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 
 	if !s.valid {
 		return ErrDBClosed
-	}
-
-	if !ctr.valid {
-		return ErrCtrRemoved
 	}
 
 	tx, err := s.db.Begin()
