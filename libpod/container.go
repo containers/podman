@@ -551,6 +551,20 @@ func (c *Container) Init() (err error) {
 		return err
 	}
 
+	// Make a network namespace for the container
+	if c.config.CreateNetNS && c.state.NetNS == nil {
+		if err := c.runtime.createNetNS(c); err != nil {
+			return err
+		}
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
+				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
 	// If the OCI spec already exists, we need to replace it
 	// Cannot guarantee some things, e.g. network namespaces, have the same
 	// paths
@@ -580,6 +594,10 @@ func (c *Container) Init() (err error) {
 
 	// Save OCI spec to disk
 	g := generate.NewFromSpec(c.config.Spec)
+	// If network namespace was requested, add it now
+	if c.config.CreateNetNS {
+		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+	}
 	// Mount ShmDir from host into container
 	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
 	// Bind mount resolv.conf

@@ -482,7 +482,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 			}
 			newState.NetNS = ns
 		}
-	} else  {
+	} else {
 		// The container no longer has a network namespace
 		// Tear down the old one
 		if err := s.runtime.teardownNetNS(ctr); err != nil {
