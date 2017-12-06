@@ -20,19 +20,19 @@ func getPodNetwork(id, name, nsPath string, ports []ocicni.PortMapping) ocicni.P
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) createNetNS(ctr *Container) (err error) {
-	ns, err := ns.NewNS()
+	ctrNS, err := ns.NewNS()
 	if err != nil {
 		return errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
 	defer func() {
 		if err != nil {
-			if err2 := ns.Close(); err2 != nil {
+			if err2 := ctrNS.Close(); err2 != nil {
 				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
 			}
 		}
 	}()
 
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ns.Path(), ctr.config.PortMappings)
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
 	if err := r.netPlugin.SetUpPod(podNetwork); err != nil {
 		return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
@@ -40,7 +40,7 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 
 	// TODO hostport mappings for forwarded ports
 
-	ctr.state.NetNS = ns
+	ctr.state.NetNS = ctrNS
 
 	return nil
 }
