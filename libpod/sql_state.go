@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 3
+const DBSchema = 4
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -151,7 +151,8 @@ func (s *SQLState) Container(id string) (*Container, error) {
                               containerState.FinishedTime,
                               containerState.ExitCode,
                               containerState.OomKilled,
-                              containerState.Pid
+                              containerState.Pid,
+                              containerState.NetNSPath
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -186,7 +187,8 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
                               containerState.FinishedTime,
                               containerState.ExitCode,
                               containerState.OomKilled,
-                              containerState.Pid
+                              containerState.Pid,
+                              containerState.NetNSPath
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -270,7 +272,7 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 	)
 
@@ -295,6 +297,11 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	portsJSON, err := json.Marshal(ctr.config.PortMappings)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling container %s port mappings to JSON", ctr.ID())
+	}
+
+	netNSPath := ""
+	if ctr.state.NetNS != nil {
+		netNSPath = ctr.state.NetNS.Path()
 	}
 
 	tx, err := s.db.Begin()
@@ -342,7 +349,8 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		timeToSQL(ctr.state.FinishedTime),
 		ctr.state.ExitCode,
 		boolToSQL(ctr.state.OOMKilled),
-		ctr.state.PID)
+		ctr.state.PID,
+		netNSPath)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}
@@ -381,7 +389,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               FinishedTime,
                               ExitCode,
                               OomKilled,
-                              Pid
+                              Pid,
+                              NetNSPath
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -394,6 +403,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		exitCode           int32
 		oomKilled          int
 		pid                int
+		netNSPath          string
 	)
 
 	if !s.valid {
@@ -414,7 +424,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&finishedTimeString,
 		&exitCode,
 		&oomKilled,
-		&pid)
+		&pid,
+		&netNSPath)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -453,6 +464,32 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	}
 	newState.FinishedTime = finishedTime
 
+	// Do we need to replace the container's netns?
+	if netNSPath != "" {
+		// Check if the container's old state has a good netns
+		if ctr.state.NetNS != nil && netNSPath == ctr.state.NetNS.Path() {
+			newState.NetNS = ctr.state.NetNS
+		} else {
+			// Tear down the existing namespace
+			if err := s.runtime.teardownNetNS(ctr); err != nil {
+				return err
+			}
+
+			// Open the new network namespace
+			ns, err := joinNetNS(netNSPath)
+			if err != nil {
+				return errors.Wrapf(err, "error joining network namespace for container %s", ctr.ID())
+			}
+			newState.NetNS = ns
+		}
+	} else  {
+		// The container no longer has a network namespace
+		// Tear down the old one
+		if err := s.runtime.teardownNetNS(ctr); err != nil {
+			return err
+		}
+	}
+
 	// New state compiled successfully, swap it into the current state
 	ctr.state = newState
 
@@ -470,8 +507,14 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
                           FinishedTime=?,
                           ExitCode=?,
                           OomKilled=?,
-                          Pid=?
+                          Pid=?,
+                          NetNSPath=?
                        WHERE Id=?;`
+
+	netNSPath := ""
+	if ctr.state.NetNS != nil {
+		netNSPath = ctr.state.NetNS.Path()
+	}
 
 	if !s.valid {
 		return ErrDBClosed
@@ -504,6 +547,7 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		ctr.state.ExitCode,
 		boolToSQL(ctr.state.OOMKilled),
 		ctr.state.PID,
+		netNSPath,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
@@ -593,7 +637,8 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
                               containerState.FinishedTime,
                               containerState.ExitCode,
                               containerState.OomKilled,
-                              containerState.Pid
+                              containerState.Pid,
+                              containerState.NetNSPath
                       FROM containers
                       INNER JOIN
                           containerState ON containers.Id = containerState.Id
