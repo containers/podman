@@ -113,6 +113,8 @@ func pullCmd(c *cli.Context) error {
 		Writer: writer,
 	}
 
-	return runtime.PullImage(image, options)
-
+	if _, err := runtime.PullImage(image, options); err != nil {
+		return errors.Wrapf(err, "error pulling image %q", image)
+	}
+	return nil
 }

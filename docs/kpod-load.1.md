@@ -56,6 +56,7 @@ Copying config sha256:7328f6f8b41890597575cbaadc884e7386ae0acc53b747401ebce5cf0d
  0 B / 1.48 KB [---------------------------------------------------------------]
 Writing manifest to image destination
 Storing signatures
+Loaded image:  registry.fedoraproject.org/fedora:latest
 ```
 
 ```
@@ -67,6 +68,7 @@ Copying config sha256:7328f6f8b41890597575cbaadc884e7386ae0acc53b747401ebce5cf0d
  0 B / 1.48 KB [---------------------------------------------------------------]
 Writing manifest to image destination
 Storing signatures
+Loaded image:  registry.fedoraproject.org/fedora:latest
 ```
 
 ## SEE ALSO

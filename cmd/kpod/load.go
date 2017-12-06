@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -101,16 +102,18 @@ func loadCmd(c *cli.Context) error {
 	}
 
 	src := libpod.DockerArchive + ":" + input
-	if err := runtime.PullImage(src, options); err != nil {
+	imgName, err := runtime.PullImage(src, options)
+	if err != nil {
 		src = libpod.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
 		if image != "" {
 			src = src + ":" + image
 		}
-		if err := runtime.PullImage(src, options); err != nil {
+		imgName, err = runtime.PullImage(src, options)
+		if err != nil {
 			return errors.Wrapf(err, "error pulling %q", src)
 		}
 	}
-
+	fmt.Println("Loaded image: ", imgName)
 	return nil
 }
