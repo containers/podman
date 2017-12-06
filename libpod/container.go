@@ -428,23 +428,11 @@ func (c *Container) refresh() error {
 	c.state.Mounted = false
 	c.state.Mountpoint = ""
 
-	// The container is no longe running
+	// The container is no longer running
 	c.state.PID = 0
 
-	// Check the container's state. If it's not created in runc yet, we're
-	// done
-	if c.state.State == ContainerStateConfigured {
-		if err := c.runtime.state.SaveContainer(c); err != nil {
-			return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
-		}
-
-		return nil
-	}
-
-	// The container must be recreated in runc
-	if err := c.init(); err != nil {
-		return err
-	}
+	// The container no longer exists in runc
+	c.state.State = ContainerStateConfigured
 
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
@@ -454,7 +442,7 @@ func (c *Container) refresh() error {
 }
 
 // Init creates a container in the OCI runtime
-func (c *Container) Init() error {
+func (c *Container) Init() (err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -466,12 +454,6 @@ func (c *Container) Init() error {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	return c.init()
-}
-
-// Creates container in OCI runtime
-// Internal only - does not lock or check state
-func (c *Container) init() (err error) {
 	if err := c.mountStorage(); err != nil {
 		return err
 	}
