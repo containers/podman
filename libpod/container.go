@@ -314,6 +314,8 @@ func (c *Container) attachSocketPath() string {
 
 // Sync this container with on-disk state and runc status
 // Should only be called with container lock held
+// This function should suffice to ensure a container's state is accurate and
+// it is valid for use.
 func (c *Container) syncContainer() error {
 	if err := c.runtime.state.UpdateContainer(c); err != nil {
 		return err
