@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -100,6 +101,10 @@ type containerRuntimeInfo struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
+	// NetNSPath is the path of the container's network namespace
+	// Will only be set if config.CreateNetNS is true, or the container was
+	// told to join another container's network namespace
+	NetNS ns.NetNS
 	// TODO: Save information about image used in container if one is used
 }
 

@@ -200,6 +200,7 @@ func prepareDB(db *sql.DB) (err error) {
             ExitCode INTEGER NOT NULL,
             OomKilled INTEGER NOT NULL,
             Pid INTEGER NOT NULL,
+            NetNSPath TEXT NOT NULL,
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
             FOREIGN KEY (Id) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
@@ -296,6 +297,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		exitCode           int32
 		oomKilled          int
 		pid                int
+		netNSPath          string
 	)
 
 	err := row.Scan(
@@ -323,7 +325,8 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		&finishedTimeString,
 		&exitCode,
 		&oomKilled,
-		&pid)
+		&pid,
+		&netNSPath)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -393,6 +396,15 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		return nil, errors.Wrapf(err, "error parsing container %s finished time", id)
 	}
 	ctr.state.FinishedTime = finishedTime
+
+	// Join the network namespace, if there is one
+	if netNSPath != "" {
+		netNS, err := joinNetNS(netNSPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error joining network namespace for container %s", id)
+		}
+		ctr.state.NetNS = netNS
+	}
 
 	ctr.valid = true
 	ctr.runtime = runtime
