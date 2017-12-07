@@ -98,12 +98,13 @@ func (s *SQLState) Close() error {
 }
 
 // Refresh clears the state after a reboot
-// Resets mountpoint, PID, state for all containers
+// Resets mountpoint, PID, state, netns path for all containers
 func (s *SQLState) Refresh() (err error) {
 	const refresh = `UPDATE containerState SET
                              State=?,
                              Mountpoint=?,
-                             Pid=?;`
+                             Pid=?,
+                             NetNSPath=?;`
 
 	if !s.valid {
 		return ErrDBClosed
@@ -128,7 +129,8 @@ func (s *SQLState) Refresh() (err error) {
 	_, err = tx.Exec(refresh,
 		ContainerStateConfigured,
 		"",
-		0)
+		0,
+		"")
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
 	}
