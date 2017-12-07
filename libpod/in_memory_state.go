@@ -38,6 +38,12 @@ func (s *InMemoryState) Close() error {
 	return nil
 }
 
+// Refresh clears container and pod stats after a reboot
+// In-memory state won't survive a reboot so this is a no-op
+func (s *InMemoryState) Refresh() error {
+	return nil
+}
+
 // Container retrieves a container from its full ID
 func (s *InMemoryState) Container(id string) (*Container, error) {
 	if id == "" {

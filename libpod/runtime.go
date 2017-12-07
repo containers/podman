@@ -273,7 +273,13 @@ func (r *Runtime) Shutdown(force bool) error {
 // Refreshes the state, recreating temporary files
 // Does not check validity as the runtime is not valid until after this has run
 func (r *Runtime) refresh(alivePath string) error {
-	// We need to refresh the state of all containers
+	// First clear the state in the database
+	if err := r.state.Refresh(); err != nil {
+		return err
+	}
+
+	// Next refresh the state of all containers to recreate dirs and
+	// namespaces
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all containers from state")

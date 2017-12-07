@@ -103,6 +103,52 @@ func (s *SQLState) Close() error {
 	return nil
 }
 
+// Refresh clears the state after a reboot
+// Resets mountpoint, PID, state for all containers
+func (s *SQLState) Refresh() (err error) {
+	const refresh = `UPDATE containerState SET
+                             State=?,
+                             Mountpoint=?,
+                             Pid=?;`
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to refresh state: %v", err2)
+			}
+		}
+	}()
+
+	// Refresh container state
+	// The constants could be moved into the SQL, but keeping them here
+	// will keep us in sync in case ContainerStateConfigured ever changes in
+	// the container state
+	_, err = tx.Exec(refresh,
+		ContainerStateConfigured,
+		"",
+		0)
+	if err != nil {
+		return errors.Wrapf(err, "error refreshing database state")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing transaction to refresh database")
+	}
+
+	return nil
+}
+
 // Container retrieves a container from its full ID
 func (s *SQLState) Container(id string) (*Container, error) {
 	const query = `SELECT containers.*,

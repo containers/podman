@@ -6,6 +6,9 @@ type State interface {
 	// connections) that may be required
 	Close() error
 
+	// Refresh clears container and pod states after a reboot
+	Refresh() error
+
 	// Accepts full ID of container
 	Container(id string) (*Container, error)
 	// Accepts full or partial IDs (as long as they are unique) and names
