@@ -104,13 +104,12 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
 fi
-CRIO_CONFIG="$TESTDIR/crio.conf"
-CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
-CRIO_CNI_PLUGIN=${CRIO_CNI_PLUGIN:-/opt/cni/bin/}
+LIBPOD_CNI_CONFIG="$TESTDIR/cni/net.d/"
+LIBPOD_CNI_PLUGIN=${LIBPOD_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
-KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY}"
+KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
@@ -195,8 +194,8 @@ function is_apparmor_enabled() {
 }
 
 function prepare_network_conf() {
-	mkdir -p $CRIO_CNI_CONFIG
-	cat >$CRIO_CNI_CONFIG/10-crio.conf <<-EOF
+	mkdir -p $LIBPOD_CNI_CONFIG
+	cat >$LIBPOD_CNI_CONFIG/10-crio.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "name": "crionet",
@@ -214,7 +213,7 @@ function prepare_network_conf() {
 }
 EOF
 
-	cat >$CRIO_CNI_CONFIG/99-loopback.conf <<-EOF
+	cat >$LIBPOD_CNI_CONFIG/99-loopback.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "type": "loopback"
@@ -225,8 +224,8 @@ EOF
 }
 
 function prepare_plugin_test_args_network_conf() {
-	mkdir -p $CRIO_CNI_CONFIG
-	cat >$CRIO_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
+	mkdir -p $LIBPOD_CNI_CONFIG
+	cat >$LIBPOD_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
 {
     "cniVersion": "0.2.0",
     "name": "crionet_test_args",
@@ -295,7 +294,7 @@ function ping_pod_from_pod() {
 
 
 function cleanup_network_conf() {
-	rm -rf $CRIO_CNI_CONFIG
+	rm -rf $LIBPOD_CNI_CONFIG
 
 	echo 0
 }

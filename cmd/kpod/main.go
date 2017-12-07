@@ -109,6 +109,10 @@ func main() {
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:  "cni-config-dir",
+			Usage: "path of the configuration directory for CNI networks",
+		},
+		cli.StringFlag{
 			Name:  "config, c",
 			Usage: "path of a config file detailing container server configuration options",
 		},
