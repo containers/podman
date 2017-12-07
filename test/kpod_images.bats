@@ -4,6 +4,10 @@ load helpers
 
 IMAGE="busybox"
 
+function setup() {
+    prepare_network_conf
+}
+
 function teardown() {
     cleanup_test
 }
