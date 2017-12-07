@@ -3,7 +3,12 @@
 load helpers
 
 function setup() {
+    prepare_network_conf
     copy_images
+}
+
+function teardown() {
+    cleanup_test
 }
 
 @test "wait on a bogus container" {

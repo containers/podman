@@ -9,6 +9,7 @@ function teardown() {
 }
 
 function setup() {
+    prepare_network_conf
     copy_images
 }
 
