@@ -302,7 +302,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	state := new(spec.State)
 
-	out, err := exec.Command(r.path, "state", ctr.ID()).CombinedOutput()
+	out, err := exec.Command(r.path, "state", ctr.ID()).Output()
 	if err != nil {
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
 	}
