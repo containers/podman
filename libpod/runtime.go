@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
+	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -20,16 +21,17 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config         *RuntimeConfig
-	state          State
-	store          storage.Store
-	storageService *storageService
-	imageContext   *types.SystemContext
-	ociRuntime     *OCIRuntime
-	lockDir        string
-	netPlugin      ocicni.CNIPlugin
-	valid          bool
-	lock           sync.RWMutex
+	config          *RuntimeConfig
+	state           State
+	store           storage.Store
+	storageService  *storageService
+	imageContext    *types.SystemContext
+	ociRuntime      *OCIRuntime
+	lockDir         string
+	netPlugin       ocicni.CNIPlugin
+	hostportManager hostport.HostPortManager
+	valid           bool
+	lock            sync.RWMutex
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -170,7 +172,8 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	}
 	runtime.netPlugin = netPlugin
 
-	// TODO: iptables/firewalld integration to ensure rules are in place for forwarding
+	// Set up the hostport manager
+	runtime.hostportManager = hostport.NewHostportManager()
 
 	// Set up the state
 	if runtime.config.InMemoryState {
