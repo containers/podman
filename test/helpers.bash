@@ -205,7 +205,7 @@ function prepare_network_conf() {
     "ipMasq": true,
     "ipam": {
         "type": "host-local",
-        "subnet": "$1",
+        "subnet": "10.20.40.0/24",
         "routes": [
             { "dst": "0.0.0.0/0"  }
         ]
@@ -235,7 +235,7 @@ function prepare_plugin_test_args_network_conf() {
     "ipMasq": true,
     "ipam": {
         "type": "host-local",
-        "subnet": "$1",
+        "subnet": "10.20.40.0/24",
         "routes": [
             { "dst": "0.0.0.0/0"  }
         ]
