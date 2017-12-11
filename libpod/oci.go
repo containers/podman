@@ -454,3 +454,9 @@ func (r *OCIRuntime) pauseContainer(ctr *Container) error {
 func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "resume", ctr.ID())
 }
+
+//execContiner executes a command in a running container
+func (r *OCIRuntime) execContainer(c *Container, cmd []string, globalOpts runcGlobalOptions, commandOpts runcExecOptions) error {
+	r.RuncExec(c, cmd, globalOpts, commandOpts)
+	return nil
+}

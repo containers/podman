@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
@@ -552,9 +553,36 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
-// Returns fully qualified URL of streaming server for executed process
-func (c *Container) Exec(cmd []string, tty bool, stdin bool) (string, error) {
-	return "", ErrNotImplemented
+func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
+	var capList []string
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	conState := c.state.State
+
+	if conState != ContainerStateRunning {
+		return errors.Errorf("cannot attach to container that is not running")
+	}
+	if privileged {
+		capList = caps.GetAllCapabilities()
+	}
+	globalOpts := runcGlobalOptions{
+		log: c.LogPath(),
+	}
+	execOpts := runcExecOptions{
+		capAdd:  capList,
+		pidFile: filepath.Join(c.state.RunDir, fmt.Sprintf("%s-execpid", stringid.GenerateNonCryptoID()[:12])),
+		env:     env,
+		user:    user,
+		cwd:     c.config.Spec.Process.Cwd,
+		tty:     tty,
+	}
+
+	return c.runtime.ociRuntime.execContainer(c, cmd, globalOpts, execOpts)
 }
 
 // Attach attaches to a container
