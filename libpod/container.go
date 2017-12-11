@@ -420,6 +420,30 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
+// Refresh refreshes the container's state after a restart
+func (c *Container) refresh() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if !c.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
+	}
+
+	// We need to get the container's temporary directory from c/storage
+	// It was lost in the reboot and must be recreated
+	dir, err := c.runtime.storageService.GetRunDir(c.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
+	}
+	c.state.RunDir = dir
+
+	if err := c.runtime.state.SaveContainer(c); err != nil {
+		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
+	}
+
+	return nil
+}
+
 // Init creates a container in the OCI runtime
 func (c *Container) Init() (err error) {
 	c.lock.Lock()
@@ -433,12 +457,27 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	// Mount storage for the container
 	if err := c.mountStorage(); err != nil {
 		return err
 	}
 
-	// Make the OCI runtime spec we will use
+	// If the OCI spec already exists, we need to replace it
+	// Cannot guarantee some things, e.g. network namespaces, have the same
+	// paths
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	if _, err := os.Stat(jsonPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
+		}
+		// The spec does not exist, we're fine
+	} else {
+		// The spec exists, need to remove it
+		if err := os.Remove(jsonPath); err != nil {
+			return errors.Wrapf(err, "error replacing runtime spec for container %s", c.ID())
+		}
+	}
+
+	// Save OCI spec to disk
 	g := generate.NewFromSpec(c.config.Spec)
 	// Mount ShmDir from host into container
 	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
@@ -447,8 +486,6 @@ func (c *Container) Init() (err error) {
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
 	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
 
-	// Save the OCI spec to disk
-	jsonPath := filepath.Join(c.bundlePath(), "config.json")
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
@@ -456,9 +493,10 @@ func (c *Container) Init() (err error) {
 	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
 		return errors.Wrapf(err, "error writing runtime spec JSON to file for container %s", c.ID())
 	}
-	c.state.ConfigPath = jsonPath
 
 	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+
+	c.state.ConfigPath = jsonPath
 
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion

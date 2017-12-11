@@ -173,6 +173,36 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		runtime.state = state
 	}
 
+	// We now need to see if the system has restarted
+	// We check for the presence of a file in our tmp directory to verify this
+	// This check must be locked to prevent races
+	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
+	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
+	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error acquiring runtime init lock")
+	}
+	// Acquire the lock and hold it until we return
+	// This ensures that no two processes will be in runtime.refresh at once
+	// TODO: we can't close the FD in this lock, so we should keep it around
+	// and use it to lock important operations
+	aliveLock.Lock()
+	defer aliveLock.Unlock()
+	_, err = os.Stat(runtimeAliveFile)
+	if err != nil {
+		// If the file doesn't exist, we need to refresh the state
+		// This will trigger on first use as well, but refreshing an
+		// empty state only creates a single file
+		// As such, it's not really a performance concern
+		if os.IsNotExist(err) {
+			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+				return nil, err2
+			}
+		} else {
+			return nil, errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+		}
+	}
+
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further
 	runtime.valid = true
@@ -237,4 +267,34 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	return lastError
+}
+
+// Reconfigures the runtime after a reboot
+// Refreshes the state, recreating temporary files
+// Does not check validity as the runtime is not valid until after this has run
+func (r *Runtime) refresh(alivePath string) error {
+	// First clear the state in the database
+	if err := r.state.Refresh(); err != nil {
+		return err
+	}
+
+	// Next refresh the state of all containers to recreate dirs and
+	// namespaces
+	ctrs, err := r.state.AllContainers()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving all containers from state")
+	}
+	for _, ctr := range ctrs {
+		if err := ctr.refresh(); err != nil {
+			return err
+		}
+	}
+
+	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "error creating runtime status file %s", alivePath)
+	}
+	defer file.Close()
+
+	return nil
 }
