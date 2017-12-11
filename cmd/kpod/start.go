@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"os"
-	"strconv"
 )
 
 var (
@@ -104,7 +104,7 @@ func startCmd(c *cli.Context) error {
 			wg.Add(1)
 			// Attach to the running container
 			go func() {
-				logrus.Debug("trying to attach to the container %s", ctr.ID())
+				logrus.Debugf("trying to attach to the container %s", ctr.ID())
 				defer wg.Done()
 				if err := ctr.Attach(noStdIn, c.String("detach-keys"), attached); err != nil {
 					logrus.Errorf("unable to attach to container %s: %q", ctr.ID(), err)

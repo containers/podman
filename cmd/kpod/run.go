@@ -100,7 +100,7 @@ func runCmd(c *cli.Context) error {
 	if err := ctr.Init(); err != nil {
 		return err
 	}
-	logrus.Debug("container storage created for %q", ctr.ID())
+	logrus.Debugf("container storage created for %q", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		libpod.WriteFile(ctr.ID(), c.String("cidfile"))
@@ -119,7 +119,7 @@ func runCmd(c *cli.Context) error {
 		wg.Add(1)
 		// Attach to the running container
 		go func() {
-			logrus.Debug("trying to attach to the container %s", ctr.ID())
+			logrus.Debugf("trying to attach to the container %s", ctr.ID())
 			defer wg.Done()
 			if err := ctr.Attach(false, c.String("detach-keys"), attached); err != nil {
 				logrus.Errorf("unable to attach to container %s: %q", ctr.ID(), err)

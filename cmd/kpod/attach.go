@@ -71,7 +71,7 @@ func attachCmd(c *cli.Context) error {
 	wg.Add(1)
 	// Attach to the running container
 	go func() {
-		logrus.Debug("trying to attach to the container %s", ctr.ID())
+		logrus.Debugf("trying to attach to the container %s", ctr.ID())
 		defer wg.Done()
 		if err := ctr.Attach(c.Bool("no-stdin"), c.String("detach-keys"), attached); err != nil {
 			logrus.Errorf("unable to attach to container %s: %q", ctr.ID(), err)
