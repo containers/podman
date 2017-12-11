@@ -4,19 +4,77 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
+const version = "Directory Transport Version: 1.0\n"
+
+// ErrNotContainerImageDir indicates that the directory doesn't match the expected contents of a directory created
+// using the 'dir' transport
+var ErrNotContainerImageDir = errors.New("not a containers image directory, don't want to overwrite important data")
+
 type dirImageDestination struct {
-	ref dirReference
+	ref      dirReference
+	compress bool
 }
 
-// newImageDestination returns an ImageDestination for writing to an existing directory.
-func newImageDestination(ref dirReference) types.ImageDestination {
-	return &dirImageDestination{ref}
+// newImageDestination returns an ImageDestination for writing to a directory.
+func newImageDestination(ref dirReference, compress bool) (types.ImageDestination, error) {
+	d := &dirImageDestination{ref: ref, compress: compress}
+
+	// If directory exists check if it is empty
+	// if not empty, check whether the contents match that of a container image directory and overwrite the contents
+	// if the contents don't match throw an error
+	dirExists, err := pathExists(d.ref.resolvedPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking for path %q", d.ref.resolvedPath)
+	}
+	if dirExists {
+		isEmpty, err := isDirEmpty(d.ref.resolvedPath)
+		if err != nil {
+			return nil, err
+		}
+
+		if !isEmpty {
+			versionExists, err := pathExists(d.ref.versionPath())
+			if err != nil {
+				return nil, errors.Wrapf(err, "error checking if path exists %q", d.ref.versionPath())
+			}
+			if versionExists {
+				contents, err := ioutil.ReadFile(d.ref.versionPath())
+				if err != nil {
+					return nil, err
+				}
+				// check if contents of version file is what we expect it to be
+				if string(contents) != version {
+					return nil, ErrNotContainerImageDir
+				}
+			} else {
+				return nil, ErrNotContainerImageDir
+			}
+			// delete directory contents so that only one image is in the directory at a time
+			if err = removeDirContents(d.ref.resolvedPath); err != nil {
+				return nil, errors.Wrapf(err, "error erasing contents in %q", d.ref.resolvedPath)
+			}
+			logrus.Debugf("overwriting existing container image directory %q", d.ref.resolvedPath)
+		}
+	} else {
+		// create directory if it doesn't exist
+		if err := os.MkdirAll(d.ref.resolvedPath, 0755); err != nil {
+			return nil, errors.Wrapf(err, "unable to create directory %q", d.ref.resolvedPath)
+		}
+	}
+	// create version file
+	err = ioutil.WriteFile(d.ref.versionPath(), []byte(version), 0755)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating version file %q", d.ref.versionPath())
+	}
+	return d, nil
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -42,7 +100,7 @@ func (d *dirImageDestination) SupportsSignatures() error {
 
 // ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
 func (d *dirImageDestination) ShouldCompressLayers() bool {
-	return false
+	return d.compress
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -145,5 +203,41 @@ func (d *dirImageDestination) PutSignatures(signatures [][]byte) error {
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 func (d *dirImageDestination) Commit() error {
+	return nil
+}
+
+// returns true if path exists
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if err != nil && os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// returns true if directory is empty
+func isDirEmpty(path string) (bool, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return false, err
+	}
+	return len(files) == 0, nil
+}
+
+// deletes the contents of a directory
+func removeDirContents(path string) error {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if err := os.RemoveAll(filepath.Join(path, file.Name())); err != nil {
+			return err
+		}
+	}
 	return nil
 }

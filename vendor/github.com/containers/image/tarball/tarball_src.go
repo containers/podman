@@ -228,16 +228,26 @@ func (is *tarballImageSource) GetBlob(blobinfo types.BlobInfo) (io.ReadCloser, i
 	return nil, -1, fmt.Errorf("no blob with digest %q found", blobinfo.Digest.String())
 }
 
-func (is *tarballImageSource) GetManifest() ([]byte, string, error) {
+// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
+// It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (is *tarballImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+	if instanceDigest != nil {
+		return nil, "", fmt.Errorf("manifest lists are not supported by the %q transport", transportName)
+	}
 	return is.manifest, imgspecv1.MediaTypeImageManifest, nil
 }
 
-func (*tarballImageSource) GetSignatures(context.Context) ([][]byte, error) {
+// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (*tarballImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	if instanceDigest != nil {
+		return nil, fmt.Errorf("manifest lists are not supported by the %q transport", transportName)
+	}
 	return nil, nil
-}
-
-func (*tarballImageSource) GetTargetManifest(digest.Digest) ([]byte, string, error) {
-	return nil, "", fmt.Errorf("manifest lists are not supported by the %q transport", transportName)
 }
 
 func (is *tarballImageSource) Reference() types.ImageReference {

@@ -5,5 +5,5 @@ package alltransports
 import "github.com/containers/image/transports"
 
 func init() {
-	transports.Register(transports.NewStubTransport("storage"))
+	transports.Register(transports.NewStubTransport("containers-storage"))
 }

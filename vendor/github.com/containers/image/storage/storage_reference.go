@@ -8,7 +8,6 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
-	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,11 +20,9 @@ type storageReference struct {
 	reference string
 	id        string
 	name      reference.Named
-	tag       string
-	digest    digest.Digest
 }
 
-func newReference(transport storageTransport, reference, id string, name reference.Named, tag string, digest digest.Digest) *storageReference {
+func newReference(transport storageTransport, reference, id string, name reference.Named) *storageReference {
 	// We take a copy of the transport, which contains a pointer to the
 	// store that it used for resolving this reference, so that the
 	// transport that we'll return from Transport() won't be affected by
@@ -35,8 +32,6 @@ func newReference(transport storageTransport, reference, id string, name referen
 		reference: reference,
 		id:        id,
 		name:      name,
-		tag:       tag,
-		digest:    digest,
 	}
 }
 
@@ -83,21 +78,8 @@ func (s storageReference) Transport() types.ImageTransport {
 	}
 }
 
-// Return a name with a tag or digest, if we have either, else return it bare.
+// Return a name with a tag, if we have a name to base them on.
 func (s storageReference) DockerReference() reference.Named {
-	if s.name == nil {
-		return nil
-	}
-	if s.tag != "" {
-		if namedTagged, err := reference.WithTag(s.name, s.tag); err == nil {
-			return namedTagged
-		}
-	}
-	if s.digest != "" {
-		if canonical, err := reference.WithDigest(s.name, s.digest); err == nil {
-			return canonical
-		}
-	}
 	return s.name
 }
 
@@ -111,7 +93,7 @@ func (s storageReference) StringWithinTransport() string {
 		optionsList = ":" + strings.Join(options, ",")
 	}
 	storeSpec := "[" + s.transport.store.GraphDriverName() + "@" + s.transport.store.GraphRoot() + "+" + s.transport.store.RunRoot() + optionsList + "]"
-	if s.reference == "" {
+	if s.name == nil {
 		return storeSpec + "@" + s.id
 	}
 	if s.id == "" {
@@ -140,8 +122,11 @@ func (s storageReference) PolicyConfigurationNamespaces() []string {
 	driverlessStoreSpec := "[" + s.transport.store.GraphRoot() + "]"
 	namespaces := []string{}
 	if s.name != nil {
-		name := reference.TrimNamed(s.name)
-		components := strings.Split(name.String(), "/")
+		if s.id != "" {
+			// The reference without the ID is also a valid namespace.
+			namespaces = append(namespaces, storeSpec+s.reference)
+		}
+		components := strings.Split(s.name.Name(), "/")
 		for len(components) > 0 {
 			namespaces = append(namespaces, storeSpec+strings.Join(components, "/"))
 			components = components[:len(components)-1]
@@ -152,8 +137,13 @@ func (s storageReference) PolicyConfigurationNamespaces() []string {
 	return namespaces
 }
 
-func (s storageReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
-	return newImage(s)
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
+// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
+func (s storageReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
+	return newImage(ctx, s)
 }
 
 func (s storageReference) DeleteImage(ctx *types.SystemContext) error {

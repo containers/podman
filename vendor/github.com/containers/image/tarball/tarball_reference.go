@@ -61,12 +61,17 @@ func (r *tarballReference) PolicyConfigurationNamespaces() []string {
 	return nil
 }
 
-func (r *tarballReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
+// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
+func (r *tarballReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
 	src, err := r.NewImageSource(ctx)
 	if err != nil {
 		return nil, err
 	}
-	img, err := image.FromSource(src)
+	img, err := image.FromSource(ctx, src)
 	if err != nil {
 		src.Close()
 		return nil, err

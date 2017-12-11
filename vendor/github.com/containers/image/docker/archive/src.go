@@ -34,8 +34,3 @@ func (s *archiveImageSource) Reference() types.ImageReference {
 func (s *archiveImageSource) Close() error {
 	return nil
 }
-
-// UpdatedLayerInfos() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *archiveImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
-}

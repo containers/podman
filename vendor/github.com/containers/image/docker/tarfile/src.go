@@ -249,27 +249,33 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *image
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 // It may use a remote (= slow) service.
-func (s *Source) GetManifest() ([]byte, string, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *Source) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+	if instanceDigest != nil {
+		// How did we even get here? GetManifest(nil) has returned a manifest.DockerV2Schema2MediaType.
+		return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
+	}
 	if s.generatedManifest == nil {
 		if err := s.ensureCachedDataIsPresent(); err != nil {
 			return nil, "", err
 		}
-		m := manifest.Schema2{
+		m := schema2Manifest{
 			SchemaVersion: 2,
 			MediaType:     manifest.DockerV2Schema2MediaType,
-			ConfigDescriptor: manifest.Schema2Descriptor{
+			Config: distributionDescriptor{
 				MediaType: manifest.DockerV2Schema2ConfigMediaType,
 				Size:      int64(len(s.configBytes)),
 				Digest:    s.configDigest,
 			},
-			LayersDescriptors: []manifest.Schema2Descriptor{},
+			Layers: []distributionDescriptor{},
 		}
 		for _, diffID := range s.orderedDiffIDList {
 			li, ok := s.knownLayers[diffID]
 			if !ok {
 				return nil, "", errors.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
 			}
-			m.LayersDescriptors = append(m.LayersDescriptors, manifest.Schema2Descriptor{
+			m.Layers = append(m.Layers, distributionDescriptor{
 				Digest:    digest.Digest(diffID), // diffID is a digest of the uncompressed tarball
 				MediaType: manifest.DockerV2Schema2LayerMediaType,
 				Size:      li.size,
@@ -282,13 +288,6 @@ func (s *Source) GetManifest() ([]byte, string, error) {
 		s.generatedManifest = manifestBytes
 	}
 	return s.generatedManifest, manifest.DockerV2Schema2MediaType, nil
-}
-
-// GetTargetManifest returns an image's manifest given a digest. This is mainly used to retrieve a single image's manifest
-// out of a manifest list.
-func (s *Source) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	// How did we even get here? GetManifest() above has returned a manifest.DockerV2Schema2MediaType.
-	return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
 }
 
 type readCloseWrapper struct {
@@ -355,6 +354,13 @@ func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-func (s *Source) GetSignatures(ctx context.Context) ([][]byte, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *Source) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	if instanceDigest != nil {
+		// How did we even get here? GetManifest(nil) has returned a manifest.DockerV2Schema2MediaType.
+		return nil, errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
+	}
 	return [][]byte{}, nil
 }

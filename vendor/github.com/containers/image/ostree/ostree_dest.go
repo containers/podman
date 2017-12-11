@@ -4,6 +4,8 @@ package ostree
 
 import (
 	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,17 +14,26 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
-
 	"github.com/ostreedev/ostree-go/pkg/otbuiltin"
+	"github.com/pkg/errors"
+	"github.com/vbatts/tar-split/tar/asm"
+	"github.com/vbatts/tar-split/tar/storage"
 )
+
+// #cgo pkg-config: glib-2.0 gobject-2.0 ostree-1
+// #include <glib.h>
+// #include <glib-object.h>
+// #include <gio/gio.h>
+// #include <stdlib.h>
+// #include <ostree.h>
+// #include <gio/ginputstream.h>
+import "C"
 
 type blobToImport struct {
 	Size     int64
@@ -35,18 +46,24 @@ type descriptor struct {
 	Digest digest.Digest `json:"digest"`
 }
 
+type fsLayersSchema1 struct {
+	BlobSum digest.Digest `json:"blobSum"`
+}
+
 type manifestSchema struct {
-	ConfigDescriptor  descriptor   `json:"config"`
-	LayersDescriptors []descriptor `json:"layers"`
+	LayersDescriptors []descriptor      `json:"layers"`
+	FSLayers          []fsLayersSchema1 `json:"fsLayers"`
 }
 
 type ostreeImageDestination struct {
-	ref        ostreeReference
-	manifest   string
-	schema     manifestSchema
-	tmpDirPath string
-	blobs      map[string]*blobToImport
-	digest     digest.Digest
+	ref           ostreeReference
+	manifest      string
+	schema        manifestSchema
+	tmpDirPath    string
+	blobs         map[string]*blobToImport
+	digest        digest.Digest
+	signaturesLen int
+	repo          *C.struct_OstreeRepo
 }
 
 // newImageDestination returns an ImageDestination for writing to an existing ostree.
@@ -55,7 +72,7 @@ func newImageDestination(ref ostreeReference, tmpDirPath string) (types.ImageDes
 	if err := ensureDirectoryExists(tmpDirPath); err != nil {
 		return nil, err
 	}
-	return &ostreeImageDestination{ref, "", manifestSchema{}, tmpDirPath, map[string]*blobToImport{}, ""}, nil
+	return &ostreeImageDestination{ref, "", manifestSchema{}, tmpDirPath, map[string]*blobToImport{}, "", 0, nil}, nil
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -66,6 +83,9 @@ func (d *ostreeImageDestination) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageDestination, if any.
 func (d *ostreeImageDestination) Close() error {
+	if d.repo != nil {
+		C.g_object_unref(C.gpointer(d.repo))
+	}
 	return os.RemoveAll(d.tmpDirPath)
 }
 
@@ -174,6 +194,35 @@ func (d *ostreeImageDestination) ostreeCommit(repo *otbuiltin.Repo, branch strin
 	return err
 }
 
+func generateTarSplitMetadata(output *bytes.Buffer, file string) error {
+	mfz := gzip.NewWriter(output)
+	defer mfz.Close()
+	metaPacker := storage.NewJSONPacker(mfz)
+
+	stream, err := os.OpenFile(file, os.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	gzReader, err := gzip.NewReader(stream)
+	if err != nil {
+		return err
+	}
+	defer gzReader.Close()
+
+	its, err := asm.NewInputTarStream(gzReader, metaPacker, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(ioutil.Discard, its)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *ostreeImageDestination) importBlob(repo *otbuiltin.Repo, blob *blobToImport) error {
 	ostreeBranch := fmt.Sprintf("ociimage/%s", blob.Digest.Hex())
 	destinationPath := filepath.Join(d.tmpDirPath, blob.Digest.Hex(), "root")
@@ -184,6 +233,11 @@ func (d *ostreeImageDestination) importBlob(repo *otbuiltin.Repo, blob *blobToIm
 		os.Remove(blob.BlobPath)
 		os.RemoveAll(destinationPath)
 	}()
+
+	var tarSplitOutput bytes.Buffer
+	if err := generateTarSplitMetadata(&tarSplitOutput, blob.BlobPath); err != nil {
+		return err
+	}
 
 	if os.Getuid() == 0 {
 		if err := archive.UntarPath(blob.BlobPath, destinationPath); err != nil {
@@ -202,28 +256,35 @@ func (d *ostreeImageDestination) importBlob(repo *otbuiltin.Repo, blob *blobToIm
 			return err
 		}
 	}
+	return d.ostreeCommit(repo, ostreeBranch, destinationPath, []string{fmt.Sprintf("docker.size=%d", blob.Size),
+		fmt.Sprintf("tarsplit.output=%s", base64.StdEncoding.EncodeToString(tarSplitOutput.Bytes()))})
+
+}
+
+func (d *ostreeImageDestination) importConfig(repo *otbuiltin.Repo, blob *blobToImport) error {
+	ostreeBranch := fmt.Sprintf("ociimage/%s", blob.Digest.Hex())
+	destinationPath := filepath.Dir(blob.BlobPath)
+
 	return d.ostreeCommit(repo, ostreeBranch, destinationPath, []string{fmt.Sprintf("docker.size=%d", blob.Size)})
 }
 
-func (d *ostreeImageDestination) importConfig(blob *blobToImport) error {
-	ostreeBranch := fmt.Sprintf("ociimage/%s", blob.Digest.Hex())
-
-	return exec.Command("ostree", "commit",
-		"--repo", d.ref.repo,
-		fmt.Sprintf("--add-metadata-string=docker.size=%d", blob.Size),
-		"--branch", ostreeBranch, filepath.Dir(blob.BlobPath)).Run()
-}
-
 func (d *ostreeImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
-	branch := fmt.Sprintf("ociimage/%s", info.Digest.Hex())
-	output, err := exec.Command("ostree", "show", "--repo", d.ref.repo, "--print-metadata-key=docker.size", branch).CombinedOutput()
-	if err != nil {
-		if bytes.Index(output, []byte("not found")) >= 0 || bytes.Index(output, []byte("No such")) >= 0 {
-			return false, -1, nil
+
+	if d.repo == nil {
+		repo, err := openRepo(d.ref.repo)
+		if err != nil {
+			return false, 0, err
 		}
-		return false, -1, err
+		d.repo = repo
 	}
-	size, err := strconv.ParseInt(strings.Trim(string(output), "'\n"), 10, 64)
+	branch := fmt.Sprintf("ociimage/%s", info.Digest.Hex())
+
+	found, data, err := readMetadata(d.repo, branch, "docker.size")
+	if err != nil || !found {
+		return found, -1, err
+	}
+
+	size, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
 		return false, -1, err
 	}
@@ -272,6 +333,7 @@ func (d *ostreeImageDestination) PutSignatures(signatures [][]byte) error {
 			return err
 		}
 	}
+	d.signaturesLen = len(signatures)
 	return nil
 }
 
@@ -286,24 +348,37 @@ func (d *ostreeImageDestination) Commit() error {
 		return err
 	}
 
-	for _, layer := range d.schema.LayersDescriptors {
-		hash := layer.Digest.Hex()
+	checkLayer := func(hash string) error {
 		blob := d.blobs[hash]
 		// if the blob is not present in d.blobs then it is already stored in OSTree,
 		// and we don't need to import it.
 		if blob == nil {
-			continue
+			return nil
 		}
 		err := d.importBlob(repo, blob)
 		if err != nil {
 			return err
 		}
+
+		delete(d.blobs, hash)
+		return nil
+	}
+	for _, layer := range d.schema.LayersDescriptors {
+		hash := layer.Digest.Hex()
+		if err = checkLayer(hash); err != nil {
+			return err
+		}
+	}
+	for _, layer := range d.schema.FSLayers {
+		hash := layer.BlobSum.Hex()
+		if err = checkLayer(hash); err != nil {
+			return err
+		}
 	}
 
-	hash := d.schema.ConfigDescriptor.Digest.Hex()
-	blob := d.blobs[hash]
-	if blob != nil {
-		err := d.importConfig(blob)
+	// Import the other blobs that are not layers
+	for _, blob := range d.blobs {
+		err := d.importConfig(repo, blob)
 		if err != nil {
 			return err
 		}
@@ -311,7 +386,9 @@ func (d *ostreeImageDestination) Commit() error {
 
 	manifestPath := filepath.Join(d.tmpDirPath, "manifest")
 
-	metadata := []string{fmt.Sprintf("docker.manifest=%s", string(d.manifest)), fmt.Sprintf("docker.digest=%s", string(d.digest))}
+	metadata := []string{fmt.Sprintf("docker.manifest=%s", string(d.manifest)),
+		fmt.Sprintf("signatures=%d", d.signaturesLen),
+		fmt.Sprintf("docker.digest=%s", string(d.digest))}
 	err = d.ostreeCommit(repo, fmt.Sprintf("ociimage/%s", d.ref.branchName), manifestPath, metadata)
 
 	_, err = repo.CommitTransaction()

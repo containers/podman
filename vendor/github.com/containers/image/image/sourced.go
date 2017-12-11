@@ -4,12 +4,22 @@
 package image
 
 import (
-	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 )
 
-// FromSource returns a types.Image implementation for source.
-// The caller must call .Close() on the returned Image.
+// imageCloser implements types.ImageCloser, perhaps allowing simple users
+// to use a single object without having keep a reference to a types.ImageSource
+// only to call types.ImageSource.Close().
+type imageCloser struct {
+	types.Image
+	src types.ImageSource
+}
+
+// FromSource returns a types.ImageCloser implementation for the default instance of source.
+// If source is a manifest list, .Manifest() still returns the manifest list,
+// but other methods transparently return data from an appropriate image instance.
+//
+// The caller must call .Close() on the returned ImageCloser.
 //
 // FromSource “takes ownership” of the input ImageSource and will call src.Close()
 // when the image is closed.  (This does not prevent callers from using both the
@@ -18,8 +28,19 @@ import (
 //
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage instead of calling this function.
-func FromSource(src types.ImageSource) (types.Image, error) {
-	return FromUnparsedImage(UnparsedFromSource(src))
+func FromSource(ctx *types.SystemContext, src types.ImageSource) (types.ImageCloser, error) {
+	img, err := FromUnparsedImage(ctx, UnparsedInstance(src, nil))
+	if err != nil {
+		return nil, err
+	}
+	return &imageCloser{
+		Image: img,
+		src:   src,
+	}, nil
+}
+
+func (ic *imageCloser) Close() error {
+	return ic.src.Close()
 }
 
 // sourcedImage is a general set of utilities for working with container images,
@@ -38,19 +59,14 @@ type sourcedImage struct {
 }
 
 // FromUnparsedImage returns a types.Image implementation for unparsed.
-// The caller must call .Close() on the returned Image.
+// If unparsed represents a manifest list, .Manifest() still returns the manifest list,
+// but other methods transparently return data from an appropriate single image.
 //
-// FromSource “takes ownership” of the input UnparsedImage and will call uparsed.Close()
-// when the image is closed.  (This does not prevent callers from using both the
-// UnparsedImage and ImageSource objects simultaneously, but it means that they only need to
-// keep a reference to the Image.)
-func FromUnparsedImage(unparsed *UnparsedImage) (types.Image, error) {
+// The Image must not be used after the underlying ImageSource is Close()d.
+func FromUnparsedImage(ctx *types.SystemContext, unparsed *UnparsedImage) (types.Image, error) {
 	// Note that the input parameter above is specifically *image.UnparsedImage, not types.UnparsedImage:
 	// we want to be able to use unparsed.src.  We could make that an explicit interface, but, well,
 	// this is the only UnparsedImage implementation around, anyway.
-
-	// Also, we do not explicitly implement types.Image.Close; we let the implementation fall through to
-	// unparsed.Close.
 
 	// NOTE: It is essential for signature verification that all parsing done in this object happens on the same manifest which is returned by unparsed.Manifest().
 	manifestBlob, manifestMIMEType, err := unparsed.Manifest()
@@ -58,7 +74,7 @@ func FromUnparsedImage(unparsed *UnparsedImage) (types.Image, error) {
 		return nil, err
 	}
 
-	parsedManifest, err := manifestInstanceFromBlob(unparsed.src, manifestBlob, manifestMIMEType)
+	parsedManifest, err := manifestInstanceFromBlob(ctx, unparsed.src, manifestBlob, manifestMIMEType)
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +99,4 @@ func (i *sourcedImage) Manifest() ([]byte, string, error) {
 
 func (i *sourcedImage) Inspect() (*types.ImageInspectInfo, error) {
 	return inspectManifest(i.genericManifest)
-}
-
-func (i *sourcedImage) IsMultiImage() bool {
-	return i.manifestMIMEType == manifest.DockerV2ListMediaType
-}
-
-func (i *sourcedImage) UpdatedLayerInfos() []types.BlobInfo {
-	return i.UnparsedImage.UpdatedLayerInfos()
 }

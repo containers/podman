@@ -88,7 +88,6 @@ func GetData(store storage.Store, name string) (*Data, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", img.ID)
 	}
-	defer imgRef.Close()
 
 	tags, digests, err := ParseImageNames(img.Names)
 	if err != nil {
