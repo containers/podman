@@ -62,6 +62,7 @@ func main() {
 		statsCommand,
 		stopCommand,
 		tagCommand,
+		topCommand,
 		umountCommand,
 		unpauseCommand,
 		versionCommand,

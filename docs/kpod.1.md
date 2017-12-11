@@ -136,6 +136,9 @@ Stops one or more running containers.
 ### tag
 Add an additional name to a local image
 
+### top
+Display the running processes of a container
+
 ### umount
 Unmount a working container's root file system
 
