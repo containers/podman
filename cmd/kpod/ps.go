@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/oci"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -491,7 +490,7 @@ func getJSONOutput(containers []*libpod.Container, nSpace bool) ([]psJSONParams,
 			Names:            cc.Name,
 			Labels:           cc.Labels,
 			Mounts:           cc.Spec.Mounts,
-			ContainerRunning: conState.String() == oci.ContainerStateRunning,
+			ContainerRunning: conState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 		}
 		psOutput = append(psOutput, params)
@@ -605,7 +604,7 @@ type FilterParamsPS struct {
 }
 
 // parseFilter takes a filter string and a list of containers and filters it
-func parseFilter(filter string, containers []*oci.Container) (*FilterParamsPS, error) {
+func parseFilter(filter string, containers []*libpod.Container) (*FilterParamsPS, error) {
 	params := new(FilterParamsPS)
 	allFilters := strings.Split(filter, ",")
 
@@ -630,13 +629,13 @@ func parseFilter(filter string, containers []*oci.Container) (*FilterParamsPS, e
 			params.ancestor = pair[1]
 		case "before":
 			if ctr, err := findContainer(containers, pair[1]); err == nil {
-				params.before = ctr.CreatedAt()
+				params.before = ctr.Config().CreatedTime
 			} else {
 				return nil, errors.Wrapf(err, "no such container %q", pair[1])
 			}
 		case "since":
 			if ctr, err := findContainer(containers, pair[1]); err == nil {
-				params.before = ctr.CreatedAt()
+				params.before = ctr.Config().CreatedTime
 			} else {
 				return nil, errors.Wrapf(err, "no such container %q", pair[1])
 			}
@@ -650,7 +649,7 @@ func parseFilter(filter string, containers []*oci.Container) (*FilterParamsPS, e
 }
 
 // findContainer finds a container with a specific name or id from a list of containers
-func findContainer(containers []*oci.Container, ref string) (*oci.Container, error) {
+func findContainer(containers []*libpod.Container, ref string) (*libpod.Container, error) {
 	for _, ctr := range containers {
 		if strings.HasPrefix(ctr.ID(), ref) || ctr.Name() == ref {
 			return ctr, nil
