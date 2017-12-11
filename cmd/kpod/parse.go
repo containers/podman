@@ -449,36 +449,6 @@ func validateMACAddress(val string) (string, error) { //nolint
 	return val, nil
 }
 
-// validateLink validates that the specified string has a valid link format (containerName:alias).
-func validateLink(val string) (string, error) { //nolint
-	if _, _, err := parseLink(val); err != nil {
-		return val, err
-	}
-	return val, nil
-}
-
-// parseLink parses and validates the specified string as a link format (name:alias)
-func parseLink(val string) (string, string, error) {
-	if val == "" {
-		return "", "", fmt.Errorf("empty string specified for links")
-	}
-	arr := strings.Split(val, ":")
-	if len(arr) > 2 {
-		return "", "", fmt.Errorf("bad format for links: %s", val)
-	}
-	if len(arr) == 1 {
-		return val, val, nil
-	}
-	// This is kept because we can actually get a HostConfig with links
-	// from an already created container and the format is not `foo:bar`
-	// but `/foo:/c1/bar`
-	if strings.HasPrefix(arr[0], "/") {
-		_, alias := path.Split(arr[1])
-		return arr[0][1:], alias, nil
-	}
-	return arr[0], arr[1], nil
-}
-
 // parseLoggingOpts validates the logDriver and logDriverOpts
 // for log-opt and log-driver flags
 func parseLoggingOpts(logDriver string, logDriverOpt []string) (map[string]string, error) { //nolint

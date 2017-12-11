@@ -115,7 +115,6 @@ type createConfig struct {
 	group              uint32            // group
 	utsMode            container.UTSMode //uts
 	volumes            []string          //volume
-	volumesFrom        []string          //volumes-from
 	workDir            string            //workdir
 	mountLabel         string            //SecurityOpts
 	processLabel       string            //SecurityOpts
@@ -478,7 +477,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		user:        uid,
 		group:       gid,
 		volumes:     c.StringSlice("volume"),
-		volumesFrom: c.StringSlice("volumes-from"),
 		workDir:     c.String("workdir"),
 	}
 
