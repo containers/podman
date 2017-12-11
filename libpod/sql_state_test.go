@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestContainer(id, name string) *Container {
+func getTestContainer(id, name, locksDir string) (*Container, error) {
 	ctr := &Container{
 		config: &ContainerConfig{
 			ID:              id,
@@ -44,7 +44,15 @@ func getTestContainer(id, name string) *Container {
 
 	ctr.config.Labels["test"] = "testing"
 
-	return ctr
+	// Must make lockfile or container will error on being retrieved from DB
+	lockPath := filepath.Join(locksDir, id)
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, err
+	}
+	ctr.lock = lock
+
+	return ctr, nil
 }
 
 // This horrible hack tests if containers are equal in a way that should handle
@@ -89,10 +97,10 @@ func testContainersEqual(a, b *Container) bool {
 
 // Get an empty state for use in tests
 // An empty Runtime is provided
-func getEmptyState() (s State, p string, err error) {
+func getEmptyState() (s State, p string, p2 string, err error) {
 	tmpDir, err := ioutil.TempDir("", "libpod_state_test_")
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	defer func() {
 		if err != nil {
@@ -101,27 +109,29 @@ func getEmptyState() (s State, p string, err error) {
 	}()
 
 	dbPath := filepath.Join(tmpDir, "db.sql")
-	lockPath := filepath.Join(tmpDir, "db.lck")
+	specsDir := filepath.Join(tmpDir, "specs")
+	lockDir := filepath.Join(tmpDir, "locks")
 
 	runtime := new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.config.StorageConfig = storage.StoreOptions{}
 
-	state, err := NewSQLState(dbPath, lockPath, tmpDir, runtime)
+	state, err := NewSQLState(dbPath, specsDir, lockDir, runtime)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 
-	return state, tmpDir, nil
+	return state, tmpDir, lockDir, nil
 }
 
 func TestAddAndGetContainer(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -137,13 +147,15 @@ func TestAddAndGetContainer(t *testing.T) {
 }
 
 func TestAddAndGetContainerFromMultiple(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr1 := getTestContainer("11111111111111111111111111111111", "test1")
-	testCtr2 := getTestContainer("22222222222222222222222222222222", "test2")
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr1)
 	assert.NoError(t, err)
@@ -162,7 +174,7 @@ func TestAddAndGetContainerFromMultiple(t *testing.T) {
 }
 
 func TestAddInvalidContainerFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -172,13 +184,15 @@ func TestAddInvalidContainerFails(t *testing.T) {
 }
 
 func TestAddDuplicateIDFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr1 := getTestContainer("11111111111111111111111111111111", "test1")
-	testCtr2 := getTestContainer(testCtr1.ID(), "test2")
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer(testCtr1.ID(), "test2", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr1)
 	assert.NoError(t, err)
@@ -188,13 +202,15 @@ func TestAddDuplicateIDFails(t *testing.T) {
 }
 
 func TestAddDuplicateNameFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr1 := getTestContainer("11111111111111111111111111111111", "test1")
-	testCtr2 := getTestContainer("22222222222222222222222222222222", testCtr1.Name())
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", testCtr1.Name(), lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr1)
 	assert.NoError(t, err)
@@ -204,7 +220,7 @@ func TestAddDuplicateNameFails(t *testing.T) {
 }
 
 func TestGetNonexistantContainerFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -214,7 +230,7 @@ func TestGetNonexistantContainerFails(t *testing.T) {
 }
 
 func TestGetContainerWithEmptyIDFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -224,7 +240,7 @@ func TestGetContainerWithEmptyIDFails(t *testing.T) {
 }
 
 func TestLookupContainerWithEmptyIDFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -234,7 +250,7 @@ func TestLookupContainerWithEmptyIDFails(t *testing.T) {
 }
 
 func TestLookupNonexistantContainerFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 
@@ -243,12 +259,13 @@ func TestLookupNonexistantContainerFails(t *testing.T) {
 }
 
 func TestLookupContainerByFullID(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -264,12 +281,13 @@ func TestLookupContainerByFullID(t *testing.T) {
 }
 
 func TestLookupContainerByUniquePartialID(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -285,13 +303,15 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 }
 
 func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr1 := getTestContainer("00000000000000000000000000000000", "test1")
-	testCtr2 := getTestContainer("00000000000000000000000000000001", "test2")
+	testCtr1, err := getTestContainer("00000000000000000000000000000000", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("00000000000000000000000000000001", "test2", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr1)
 	assert.NoError(t, err)
@@ -304,12 +324,13 @@ func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
 }
 
 func TestLookupContainerByName(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -325,7 +346,7 @@ func TestLookupContainerByName(t *testing.T) {
 }
 
 func TestHasContainerEmptyIDFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -335,7 +356,7 @@ func TestHasContainerEmptyIDFails(t *testing.T) {
 }
 
 func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -346,12 +367,13 @@ func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
 }
 
 func TestHasContainerFindsContainer(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -362,12 +384,13 @@ func TestHasContainerFindsContainer(t *testing.T) {
 }
 
 func TestSaveAndUpdateContainer(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -393,12 +416,13 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 }
 
 func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.UpdateContainer(testCtr)
 	assert.Error(t, err)
@@ -406,7 +430,7 @@ func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
 }
 
 func TestUpdateInvalidContainerReturnsError(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -416,7 +440,7 @@ func TestUpdateInvalidContainerReturnsError(t *testing.T) {
 }
 
 func TestSaveInvalidContainerReturnsError(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -426,24 +450,26 @@ func TestSaveInvalidContainerReturnsError(t *testing.T) {
 }
 
 func TestSaveContainerNotInStateReturnsError(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.SaveContainer(testCtr)
 	assert.Error(t, err)
 }
 
 func TestRemoveContainer(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -461,19 +487,20 @@ func TestRemoveContainer(t *testing.T) {
 }
 
 func TestRemoveNonexistantContainerFails(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.RemoveContainer(testCtr)
 	assert.Error(t, err)
 }
 
 func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, _, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -484,12 +511,13 @@ func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
 }
 
 func TestGetAllContainersWithOneContainer(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test")
+	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr)
 	assert.NoError(t, err)
@@ -506,13 +534,15 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 }
 
 func TestGetAllContainersTwoContainers(t *testing.T) {
-	state, path, err := getEmptyState()
+	state, path, lockPath, err := getEmptyState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
 
-	testCtr1 := getTestContainer("11111111111111111111111111111111", "test1")
-	testCtr2 := getTestContainer("22222222222222222222222222222222", "test2")
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
 
 	err = state.AddContainer(testCtr1)
 	assert.NoError(t, err)
