@@ -531,9 +531,8 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 	// TODO parse ports into libpod format and include
-	if c.netMode.IsDefault() {
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
-	}
+	// TODO should not happen if --net=host
+	options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 
 	return options, nil
 }
