@@ -228,7 +228,7 @@ func (k *Image) GetManifest() error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new image source")
 	}
-	_, _, err = imageSource.GetManifest()
+	_, _, err = imageSource.GetManifest(nil)
 	if err == nil {
 		return nil
 	}
@@ -383,7 +383,7 @@ func (k *Image) HasLatest() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_, _, err = pullRef.(types.ImageSource).GetManifest()
+	_, _, err = pullRef.(types.ImageSource).GetManifest(nil)
 	return false, err
 }
 
@@ -1124,7 +1124,6 @@ func (r *Runtime) InfoAndDigestAndSize(img storage.Image) (*types.ImageInspectIn
 	if err != nil {
 		return nil, "", -1, errors.Wrapf(err, "error reading image %q", img.ID)
 	}
-	defer imgRef.Close()
 	return infoAndDigestAndSize(imgRef)
 }
 

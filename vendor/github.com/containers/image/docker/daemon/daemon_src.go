@@ -6,13 +6,11 @@ import (
 	"os"
 
 	"github.com/containers/image/docker/tarfile"
+	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/types"
-	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
-
-const temporaryDirectoryForBigFiles = "/var/tmp" // Do not use the system default of os.TempDir(), usually /tmp, because with systemd it could be a tmpfs.
 
 type daemonImageSource struct {
 	ref             daemonReference
@@ -35,7 +33,7 @@ type layerInfo struct {
 // is the config, and that the following len(RootFS) files are the layers, but that feels
 // way too brittle.)
 func newImageSource(ctx *types.SystemContext, ref daemonReference) (types.ImageSource, error) {
-	c, err := client.NewClient(client.DefaultDockerHost, "1.22", nil, nil) // FIXME: overridable host
+	c, err := newDockerClient(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing docker engine client")
 	}
@@ -48,7 +46,7 @@ func newImageSource(ctx *types.SystemContext, ref daemonReference) (types.ImageS
 	defer inputStream.Close()
 
 	// FIXME: use SystemContext here.
-	tarCopyFile, err := ioutil.TempFile(temporaryDirectoryForBigFiles, "docker-daemon-tar")
+	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(), "docker-daemon-tar")
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +80,4 @@ func (s *daemonImageSource) Reference() types.ImageReference {
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *daemonImageSource) Close() error {
 	return os.Remove(s.tarCopyPath)
-}
-
-// UpdatedLayerInfos() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *daemonImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
 }

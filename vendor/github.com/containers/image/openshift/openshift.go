@@ -200,20 +200,15 @@ func (s *openshiftImageSource) Close() error {
 	return nil
 }
 
-func (s *openshiftImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	if err := s.ensureImageIsResolved(context.TODO()); err != nil {
-		return nil, "", err
-	}
-	return s.docker.GetTargetManifest(digest)
-}
-
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 // It may use a remote (= slow) service.
-func (s *openshiftImageSource) GetManifest() ([]byte, string, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *openshiftImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
 	if err := s.ensureImageIsResolved(context.TODO()); err != nil {
 		return nil, "", err
 	}
-	return s.docker.GetManifest()
+	return s.docker.GetManifest(instanceDigest)
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -224,12 +219,21 @@ func (s *openshiftImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int6
 	return s.docker.GetBlob(info)
 }
 
-func (s *openshiftImageSource) GetSignatures(ctx context.Context) ([][]byte, error) {
-	if err := s.ensureImageIsResolved(ctx); err != nil {
-		return nil, err
+// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *openshiftImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	var imageName string
+	if instanceDigest == nil {
+		if err := s.ensureImageIsResolved(ctx); err != nil {
+			return nil, err
+		}
+		imageName = s.imageStreamImageName
+	} else {
+		imageName = instanceDigest.String()
 	}
-
-	image, err := s.client.getImage(ctx, s.imageStreamImageName)
+	image, err := s.client.getImage(ctx, imageName)
 	if err != nil {
 		return nil, err
 	}
@@ -240,10 +244,6 @@ func (s *openshiftImageSource) GetSignatures(ctx context.Context) ([][]byte, err
 		}
 	}
 	return sigs, nil
-}
-
-func (s *openshiftImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
 }
 
 // ensureImageIsResolved sets up s.docker and s.imageStreamImageName

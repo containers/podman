@@ -70,7 +70,11 @@ func NewPolicyFromFile(fileName string) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewPolicyFromBytes(contents)
+	policy, err := NewPolicyFromBytes(contents)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid policy in %q", fileName)
+	}
+	return policy, nil
 }
 
 // NewPolicyFromBytes returns a policy parsed from the specified blob.

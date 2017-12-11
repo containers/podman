@@ -73,11 +73,12 @@ type ImageReference interface {
 	// and each following element to be a prefix of the element preceding it.
 	PolicyConfigurationNamespaces() []string
 
-	// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
-	// The caller must call .Close() on the returned Image.
+	// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+	// The caller must call .Close() on the returned ImageCloser.
 	// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 	// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
-	NewImage(ctx *SystemContext) (Image, error)
+	// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
+	NewImage(ctx *SystemContext) (ImageCloser, error)
 	// NewImageSource returns a types.ImageSource for this reference.
 	// The caller must call .Close() on the returned ImageSource.
 	NewImageSource(ctx *SystemContext) (ImageSource, error)
@@ -99,7 +100,7 @@ type BlobInfo struct {
 	MediaType   string
 }
 
-// ImageSource is a service, possibly remote (= slow), to download components of a single image.
+// ImageSource is a service, possibly remote (= slow), to download components of a single image or a named image set (manifest list).
 // This is primarily useful for copying images around; for examining their properties, Image (below)
 // is usually more useful.
 // Each ImageSource should eventually be closed by calling Close().
@@ -114,19 +115,17 @@ type ImageSource interface {
 	Close() error
 	// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 	// It may use a remote (= slow) service.
-	GetManifest() ([]byte, string, error)
-	// GetTargetManifest returns an image's manifest given a digest. This is mainly used to retrieve a single image's manifest
-	// out of a manifest list.
-	GetTargetManifest(digest digest.Digest) ([]byte, string, error)
+	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+	// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+	GetManifest(instanceDigest *digest.Digest) ([]byte, string, error)
 	// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 	// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	GetBlob(BlobInfo) (io.ReadCloser, int64, error)
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-	GetSignatures(context.Context) ([][]byte, error)
-	// UpdatedLayerInfos returns either nil (meaning there are no updates), or updated values for the layer blobsums that are listed in the image's manifest.
-	// The Digest field is guaranteed to be provided; Size may be -1.
-	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	UpdatedLayerInfos() []BlobInfo
+	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+	// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+	// (e.g. if the source never returns manifest lists).
+	GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error)
 }
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
@@ -200,25 +199,24 @@ func (e ManifestTypeRejectedError) Error() string {
 // Thus, an UnparsedImage can be created from an ImageSource simply by fetching blobs without interpreting them,
 // allowing cryptographic signature verification to happen first, before even fetching the manifest, or parsing anything else.
 // This also makes the UnparsedImage→Image conversion an explicitly visible step.
-// Each UnparsedImage should eventually be closed by calling Close().
+//
+// An UnparsedImage is a pair of (ImageSource, instance digest); it can represent either a manifest list or a single image instance.
+//
+// The UnparsedImage must not be used after the underlying ImageSource is Close()d.
 type UnparsedImage interface {
 	// Reference returns the reference used to set up this source, _as specified by the user_
 	// (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
 	Reference() ImageReference
-	// Close removes resources associated with an initialized UnparsedImage, if any.
-	Close() error
 	// Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
 	Manifest() ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures(ctx context.Context) ([][]byte, error)
-	// UpdatedLayerInfos returns either nil (meaning there are no updates), or updated values for the layer blobsums that are listed in the image's manifest.
-	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
-	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	UpdatedLayerInfos() []BlobInfo
 }
 
 // Image is the primary API for inspecting properties of images.
-// Each Image should eventually be closed by calling Close().
+// An Image is based on a pair of (ImageSource, instance digest); it can represent either a manifest list or a single image instance.
+//
+// The Image must not be used after the underlying ImageSource is Close()d.
 type Image interface {
 	// Note that Reference may return nil in the return value of UpdatedImage!
 	UnparsedImage
@@ -250,11 +248,18 @@ type Image interface {
 	// Everything in options.InformationOnly should be provided, other fields should be set only if a modification is desired.
 	// This does not change the state of the original Image object.
 	UpdatedImage(options ManifestUpdateOptions) (Image, error)
-	// IsMultiImage returns true if the image's manifest is a list of images, false otherwise.
-	IsMultiImage() bool
 	// Size returns an approximation of the amount of disk space which is consumed by the image in its current
 	// location.  If the size is not known, -1 will be returned.
 	Size() (int64, error)
+}
+
+// ImageCloser is an Image with a Close() method which must be called by the user.
+// This is returned by ImageReference.NewImage, which transparently instantiates a types.ImageSource,
+// to ensure that the ImageSource is closed.
+type ImageCloser interface {
+	Image
+	// Close removes resources associated with an initialized ImageCloser.
+	Close() error
 }
 
 // ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedManifest
@@ -293,7 +298,7 @@ type DockerAuthConfig struct {
 	Password string
 }
 
-// SystemContext allows parametrizing access to implicitly-accessed resources,
+// SystemContext allows parameterizing access to implicitly-accessed resources,
 // like configuration files in /etc and users' login state in their home directory.
 // Various components can share the same field only if their semantics is exactly
 // the same; if in doubt, add a new field.
@@ -316,6 +321,10 @@ type SystemContext struct {
 	SystemRegistriesConfPath string
 	// If not "", overrides the default path for the authentication file
 	AuthFilePath string
+	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
+	ArchitectureChoice string
+	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.
+	OSChoice string
 
 	// === OCI.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
@@ -324,6 +333,8 @@ type SystemContext struct {
 	OCICertPath string
 	// Allow downloading OCI image layers over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
 	OCIInsecureSkipTLSVerify bool
+	// If not "", use a shared directory for storing blobs rather than within OCI layouts
+	OCISharedBlobDirPath string
 
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
@@ -332,8 +343,9 @@ type SystemContext struct {
 	DockerCertPath string
 	// If not "", overrides the system’s default path for a directory containing host[:port] subdirectories with the same structure as DockerCertPath above.
 	// Ignored if DockerCertPath is non-empty.
-	DockerPerHostCertDirPath    string
-	DockerInsecureSkipTLSVerify bool // Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	DockerPerHostCertDirPath string
+	// Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	DockerInsecureSkipTLSVerify bool
 	// if nil, the library tries to parse ~/.docker/config.json to retrieve credentials
 	DockerAuthConfig *DockerAuthConfig
 	// if not "", an User-Agent header is added to each request when contacting a registry.
@@ -344,6 +356,20 @@ type SystemContext struct {
 	DockerDisableV1Ping bool
 	// Directory to use for OSTree temporary files
 	OSTreeTmpDirPath string
+
+	// === docker/daemon.Transport overrides ===
+	// A directory containing a CA certificate (ending with ".crt"),
+	// a client certificate (ending with ".cert") and a client certificate key
+	// (ending with ".key") used when talking to a Docker daemon.
+	DockerDaemonCertPath string
+	// The hostname or IP to the Docker daemon. If not set (aka ""), client.DefaultDockerHost is assumed.
+	DockerDaemonHost string
+	// Used to skip TLS verification, off by default. To take effect DockerDaemonCertPath needs to be specified as well.
+	DockerDaemonInsecureSkipTLSVerify bool
+
+	// === dir.Transport overrides ===
+	// DirForceCompress compresses the image layers if set to true
+	DirForceCompress bool
 }
 
 // ProgressProperties is used to pass information from the copy code to a monitor which

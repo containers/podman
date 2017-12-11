@@ -52,11 +52,6 @@ func (s *dockerImageSource) Close() error {
 	return nil
 }
 
-// UpdatedLayerInfos() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *dockerImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
-}
-
 // simplifyContentType drops parameters from a HTTP media type (see https://tools.ietf.org/html/rfc7231#section-3.1.1.1)
 // Alternatively, an empty string is returned unchanged, and invalid values are "simplified" to an empty string.
 func simplifyContentType(contentType string) string {
@@ -72,7 +67,12 @@ func simplifyContentType(contentType string) string {
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 // It may use a remote (= slow) service.
-func (s *dockerImageSource) GetManifest() ([]byte, string, error) {
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *dockerImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+	if instanceDigest != nil {
+		return s.fetchManifest(context.TODO(), instanceDigest.String())
+	}
 	err := s.ensureManifestIsLoaded(context.TODO())
 	if err != nil {
 		return nil, "", err
@@ -99,18 +99,12 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	return manblob, simplifyContentType(res.Header.Get("Content-Type")), nil
 }
 
-// GetTargetManifest returns an image's manifest given a digest.
-// This is mainly used to retrieve a single image's manifest out of a manifest list.
-func (s *dockerImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	return s.fetchManifest(context.TODO(), digest.String())
-}
-
 // ensureManifestIsLoaded sets s.cachedManifest and s.cachedManifestMIMEType
 //
 // ImageSource implementations are not required or expected to do any caching,
 // but because our signatures are “attached” to the manifest digest,
-// we need to ensure that the digest of the manifest returned by GetManifest
-// and used by GetSignatures are consistent, otherwise we would get spurious
+// we need to ensure that the digest of the manifest returned by GetManifest(nil)
+// and used by GetSignatures(ctx, nil) are consistent, otherwise we would get spurious
 // signature verification failures when pulling while a tag is being updated.
 func (s *dockerImageSource) ensureManifestIsLoaded(ctx context.Context) error {
 	if s.cachedManifest != nil {
@@ -181,22 +175,30 @@ func (s *dockerImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, 
 	return res.Body, getBlobSize(res), nil
 }
 
-func (s *dockerImageSource) GetSignatures(ctx context.Context) ([][]byte, error) {
+// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *dockerImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
 	if err := s.c.detectProperties(ctx); err != nil {
 		return nil, err
 	}
 	switch {
 	case s.c.signatureBase != nil:
-		return s.getSignaturesFromLookaside(ctx)
+		return s.getSignaturesFromLookaside(ctx, instanceDigest)
 	case s.c.supportsSignatures:
-		return s.getSignaturesFromAPIExtension(ctx)
+		return s.getSignaturesFromAPIExtension(ctx, instanceDigest)
 	default:
 		return [][]byte{}, nil
 	}
 }
 
-// manifestDigest returns a digest of the manifest, either from the supplied reference or from a fetched manifest.
-func (s *dockerImageSource) manifestDigest(ctx context.Context) (digest.Digest, error) {
+// manifestDigest returns a digest of the manifest, from instanceDigest if non-nil; or from the supplied reference,
+// or finally, from a fetched manifest.
+func (s *dockerImageSource) manifestDigest(ctx context.Context, instanceDigest *digest.Digest) (digest.Digest, error) {
+	if instanceDigest != nil {
+		return *instanceDigest, nil
+	}
 	if digested, ok := s.ref.ref.(reference.Digested); ok {
 		d := digested.Digest()
 		if d.Algorithm() == digest.Canonical {
@@ -211,8 +213,8 @@ func (s *dockerImageSource) manifestDigest(ctx context.Context) (digest.Digest, 
 
 // getSignaturesFromLookaside implements GetSignatures() from the lookaside location configured in s.c.signatureBase,
 // which is not nil.
-func (s *dockerImageSource) getSignaturesFromLookaside(ctx context.Context) ([][]byte, error) {
-	manifestDigest, err := s.manifestDigest(ctx)
+func (s *dockerImageSource) getSignaturesFromLookaside(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	manifestDigest, err := s.manifestDigest(ctx, instanceDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -281,8 +283,8 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 }
 
 // getSignaturesFromAPIExtension implements GetSignatures() using the X-Registry-Supports-Signatures API extension.
-func (s *dockerImageSource) getSignaturesFromAPIExtension(ctx context.Context) ([][]byte, error) {
-	manifestDigest, err := s.manifestDigest(ctx)
+func (s *dockerImageSource) getSignaturesFromAPIExtension(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	manifestDigest, err := s.manifestDigest(ctx, instanceDigest)
 	if err != nil {
 		return nil, err
 	}

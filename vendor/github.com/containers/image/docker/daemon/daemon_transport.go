@@ -151,14 +151,17 @@ func (ref daemonReference) PolicyConfigurationNamespaces() []string {
 	return []string{}
 }
 
-// NewImage returns a types.Image for this reference.
-// The caller must call .Close() on the returned Image.
-func (ref daemonReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
+// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
+func (ref daemonReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
 	src, err := newImageSource(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(src)
+	return image.FromSource(ctx, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.

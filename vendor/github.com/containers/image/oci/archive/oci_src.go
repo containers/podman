@@ -68,14 +68,12 @@ func (s *ociArchiveImageSource) Close() error {
 	return s.unpackedSrc.Close()
 }
 
-// GetManifest returns the image's manifest along with its MIME type
-// (which may be empty when it can't be determined but the manifest is available).
-func (s *ociArchiveImageSource) GetManifest() ([]byte, string, error) {
-	return s.unpackedSrc.GetManifest()
-}
-
-func (s *ociArchiveImageSource) GetTargetManifest(digest digest.Digest) ([]byte, string, error) {
-	return s.unpackedSrc.GetTargetManifest(digest)
+// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
+// It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
+// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+func (s *ociArchiveImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+	return s.unpackedSrc.GetManifest(instanceDigest)
 }
 
 // GetBlob returns a stream for the specified blob, and the blob's size.
@@ -83,10 +81,10 @@ func (s *ociArchiveImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int
 	return s.unpackedSrc.GetBlob(info)
 }
 
-func (s *ociArchiveImageSource) GetSignatures(c context.Context) ([][]byte, error) {
-	return s.unpackedSrc.GetSignatures(c)
-}
-
-func (s *ociArchiveImageSource) UpdatedLayerInfos() []types.BlobInfo {
-	return nil
+// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *ociArchiveImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+	return s.unpackedSrc.GetSignatures(ctx, instanceDigest)
 }

@@ -10,12 +10,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/directory/explicitfilepath"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
 )
 
 const defaultOSTreeRepo = "/ostree/repo"
@@ -66,6 +66,11 @@ type ostreeReference struct {
 	repo       string
 }
 
+type ostreeImageCloser struct {
+	types.ImageCloser
+	size int64
+}
+
 func (t ostreeTransport) ParseReference(ref string) (types.ImageReference, error) {
 	var repo = ""
 	var image = ""
@@ -110,7 +115,7 @@ func NewReference(image string, repo string) (types.ImageReference, error) {
 	// This is necessary to prevent directory paths returned by PolicyConfigurationNamespaces
 	// from being ambiguous with values of PolicyConfigurationIdentity.
 	if strings.Contains(resolved, ":") {
-		return nil, errors.Errorf("Invalid OSTreeCI reference %s@%s: path %s contains a colon", image, repo, resolved)
+		return nil, errors.Errorf("Invalid OSTree reference %s@%s: path %s contains a colon", image, repo, resolved)
 	}
 
 	return ostreeReference{
@@ -168,18 +173,38 @@ func (ref ostreeReference) PolicyConfigurationNamespaces() []string {
 	return res
 }
 
-// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
-// The caller must call .Close() on the returned Image.
+func (s *ostreeImageCloser) Size() (int64, error) {
+	return s.size, nil
+}
+
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
-func (ref ostreeReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
-	return nil, errors.New("Reading ostree: images is currently not supported")
+func (ref ostreeReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
+	var tmpDir string
+	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+		tmpDir = os.TempDir()
+	} else {
+		tmpDir = ctx.OSTreeTmpDirPath
+	}
+	src, err := newImageSource(ctx, tmpDir, ref)
+	if err != nil {
+		return nil, err
+	}
+	return image.FromSource(ctx, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref ostreeReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
-	return nil, errors.New("Reading ostree: images is currently not supported")
+	var tmpDir string
+	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+		tmpDir = os.TempDir()
+	} else {
+		tmpDir = ctx.OSTreeTmpDirPath
+	}
+	return newImageSource(ctx, tmpDir, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.

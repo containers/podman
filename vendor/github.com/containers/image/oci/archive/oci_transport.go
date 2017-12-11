@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/containers/image/directory/explicitfilepath"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
+	"github.com/containers/image/internal/tmpdir"
+	"github.com/containers/image/oci/internal"
 	ocilayout "github.com/containers/image/oci/layout"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
@@ -48,51 +48,12 @@ func (t ociArchiveTransport) ParseReference(reference string) (types.ImageRefere
 
 // ValidatePolicyConfigurationScope checks that scope is a valid name for a signature.PolicyTransportScopes keys
 func (t ociArchiveTransport) ValidatePolicyConfigurationScope(scope string) error {
-	var file string
-	sep := strings.SplitN(scope, ":", 2)
-	file = sep[0]
-
-	if len(sep) == 2 {
-		image := sep[1]
-		if !refRegexp.MatchString(image) {
-			return errors.Errorf("Invalid image %s", image)
-		}
-	}
-
-	if !strings.HasPrefix(file, "/") {
-		return errors.Errorf("Invalid scope %s: must be an absolute path", scope)
-	}
-	// Refuse also "/", otherwise "/" and "" would have the same semantics,
-	// and "" could be unexpectedly shadowed by the "/" entry.
-	// (Note: we do allow "/:someimage", a bit ridiculous but why refuse it?)
-	if scope == "/" {
-		return errors.New(`Invalid scope "/": Use the generic default scope ""`)
-	}
-	cleaned := filepath.Clean(file)
-	if cleaned != file {
-		return errors.Errorf(`Invalid scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
-	}
-	return nil
+	return internal.ValidateScope(scope)
 }
-
-// annotation spex from https://github.com/opencontainers/image-spec/blob/master/annotations.md#pre-defined-annotation-keys
-const (
-	separator = `(?:[-._:@+]|--)`
-	alphanum  = `(?:[A-Za-z0-9]+)`
-	component = `(?:` + alphanum + `(?:` + separator + alphanum + `)*)`
-)
-
-var refRegexp = regexp.MustCompile(`^` + component + `(?:/` + component + `)*$`)
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an OCI ImageReference.
 func ParseReference(reference string) (types.ImageReference, error) {
-	var file, image string
-	sep := strings.SplitN(reference, ":", 2)
-	file = sep[0]
-
-	if len(sep) == 2 {
-		image = sep[1]
-	}
+	file, image := internal.SplitPathAndImage(reference)
 	return NewReference(file, image)
 }
 
@@ -102,14 +63,15 @@ func NewReference(file, image string) (types.ImageReference, error) {
 	if err != nil {
 		return nil, err
 	}
-	// This is necessary to prevent directory paths returned by PolicyConfigurationNamespaces
-	// from being ambiguous with values of PolicyConfigurationIdentity.
-	if strings.Contains(resolved, ":") {
-		return nil, errors.Errorf("Invalid OCI reference %s:%s: path %s contains a colon", file, image, resolved)
+
+	if err := internal.ValidateOCIPath(file); err != nil {
+		return nil, err
 	}
-	if len(image) > 0 && !refRegexp.MatchString(image) {
-		return nil, errors.Errorf("Invalid image %s", image)
+
+	if err := internal.ValidateImageName(image); err != nil {
+		return nil, err
 	}
+
 	return ociArchiveReference{file: file, resolvedFile: resolved, image: image}, nil
 }
 
@@ -154,14 +116,17 @@ func (ref ociArchiveReference) PolicyConfigurationNamespaces() []string {
 	return res
 }
 
-// NewImage returns a types.Image for this reference, possibly specialized for this ImageTransport.
-// The caller must call .Close() on the returned Image.
-func (ref ociArchiveReference) NewImage(ctx *types.SystemContext) (types.Image, error) {
+// NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.
+// The caller must call .Close() on the returned ImageCloser.
+// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
+// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
+// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
+func (ref ociArchiveReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
 	src, err := newImageSource(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(src)
+	return image.FromSource(ctx, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
@@ -194,7 +159,7 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 
 // createOCIRef creates the oci reference of the image
 func createOCIRef(image string) (tempDirOCIRef, error) {
-	dir, err := ioutil.TempDir("/var/tmp", "oci")
+	dir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(), "oci")
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrapf(err, "error creating temp directory")
 	}
