@@ -105,9 +105,6 @@ func (s *SQLState) Refresh() (err error) {
                              Mountpoint=?,
                              Pid=?;`
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if !s.valid {
 		return ErrDBClosed
 	}

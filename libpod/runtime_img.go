@@ -10,6 +10,8 @@ import (
 	"time"
 
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/directory"
+	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
@@ -40,12 +42,16 @@ var (
 	OCIArchive = ociarchive.Transport.Name()
 	// DirTransport is the transport for pushing and pulling
 	// images to and from a directory
-	DirTransport = "dir"
+	DirTransport = directory.Transport.Name()
 	// TransportNames are the supported transports in string form
 	TransportNames = [...]string{DefaultTransport, DockerArchive, OCIArchive, "ostree:", "dir:"}
 	// TarballTransport is the transport for importing a tar archive
 	// and creating a filesystem image
-	TarballTransport = "tarball"
+	TarballTransport = tarball.Transport.Name()
+	// Docker is the transport for docker registries
+	Docker = docker.Transport.Name()
+	// Atomic is the transport for atomic registries
+	Atomic = "atomic"
 )
 
 // CopyOptions contains the options given when pushing or pulling images
@@ -622,12 +628,12 @@ func (r *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string
 // pulled. If allTags is true, all tags for the requested image will be pulled.
 // Signature validation will be performed if the Runtime has been appropriately
 // configured
-func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
+func (r *Runtime) PullImage(imgName string, options CopyOptions) (string, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return "", ErrRuntimeStopped
 	}
 
 	// PullImage copies the image from the source to the destination
@@ -645,25 +651,25 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
 		// could be trying to pull from registry with short name
 		pullStructs, err = getRegistriesToTry(imgName, r.store, r.config.ImageDefaultTransport)
 		if err != nil {
-			return errors.Wrap(err, "error getting default registries to try")
+			return "", errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
 		pullStructs, err = r.getPullListFromRef(srcRef, imgName, sc)
 		if err != nil {
-			return errors.Wrapf(err, "error getting pullStruct info to pull image %q", imgName)
+			return "", errors.Wrapf(err, "error getting pullStruct info to pull image %q", imgName)
 		}
 	}
-
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer policyContext.Destroy()
 
 	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, &options.DockerRegistryOptions, nil, options.SigningOptions, options.AuthFile)
 
 	for _, imageInfo := range pullStructs {
-		if options.Writer != nil {
+		// Print the following statement only when pulling from a docker or atomic registry
+		if options.Writer != nil && (imageInfo.srcRef.Transport().Name() == Docker || imageInfo.srcRef.Transport().Name() == Atomic) {
 			io.WriteString(options.Writer, fmt.Sprintf("Trying to pull %s...\n", imageInfo.image))
 		}
 		if err = cp.Image(policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
@@ -671,10 +677,10 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) error {
 				io.WriteString(options.Writer, "Failed\n")
 			}
 		} else {
-			return nil
+			return imageInfo.image, nil
 		}
 	}
-	return errors.Wrapf(err, "error pulling image from %q", imgName)
+	return "", errors.Wrapf(err, "error pulling image from %q", imgName)
 }
 
 // PushImage pushes the given image to a location described by the given path
