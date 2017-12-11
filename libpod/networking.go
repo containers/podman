@@ -63,6 +63,8 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 		}
 	}()
 
+	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
+
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
 	if err := r.netPlugin.SetUpPod(podNetwork); err != nil {
@@ -117,6 +119,8 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		// The container has no network namespace, we're set
 		return nil
 	}
+
+	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	portMappings, err := portMappingToHostport(ctr.config.PortMappings)
 	if err != nil {
