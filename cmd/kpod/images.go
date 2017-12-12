@@ -93,12 +93,7 @@ func imagesCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var format string
-	if c.IsSet("format") {
-		format = c.String("format")
-	} else {
-		format = genImagesFormat(c.Bool("quiet"), c.Bool("noheading"), c.Bool("digests"))
-	}
+	format := genImagesFormat(c.String("format"), c.Bool("quiet"), c.Bool("noheading"), c.Bool("digests"))
 
 	opts := imagesOptions{
 		quiet:     c.Bool("quiet"),
@@ -137,7 +132,12 @@ func imagesCmd(c *cli.Context) error {
 	return generateImagesOutput(runtime, images, opts)
 }
 
-func genImagesFormat(quiet, noHeading, digests bool) (format string) {
+func genImagesFormat(format string, quiet, noHeading, digests bool) string {
+	if format != "" {
+		// "\t" from the command line is not being recognized as a tab
+		// replacing the string "\t" to a tab character if the user passes in "\t"
+		return strings.Replace(format, `\t`, "\t", -1)
+	}
 	if quiet {
 		return formats.IDString
 	}
@@ -149,7 +149,7 @@ func genImagesFormat(quiet, noHeading, digests bool) (format string) {
 		format += "{{.Digest}}\t"
 	}
 	format += "{{.ID}}\t{{.Created}}\t{{.Size}}\t"
-	return
+	return format
 }
 
 // imagesToGeneric creates an empty array of interfaces for output

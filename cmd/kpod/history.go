@@ -92,10 +92,7 @@ func historyCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	format := genHistoryFormat(c.Bool("quiet"))
-	if c.IsSet("format") {
-		format = c.String("format")
-	}
+	format := genHistoryFormat(c.String("format"), c.Bool("quiet"))
 
 	args := c.Args()
 	if len(args) == 0 {
@@ -121,7 +118,12 @@ func historyCmd(c *cli.Context) error {
 	return generateHistoryOutput(history, layers, imageID, opts)
 }
 
-func genHistoryFormat(quiet bool) (format string) {
+func genHistoryFormat(format string, quiet bool) string {
+	if format != "" {
+		// "\t" from the command line is not being recognized as a tab
+		// replacing the string "\t" to a tab character if the user passes in "\t"
+		return strings.Replace(format, `\t`, "\t", -1)
+	}
 	if quiet {
 		return formats.IDString
 	}
