@@ -16,31 +16,33 @@ var (
 )
 
 // GetCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
-func GetCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile string) *cp.Options {
+func GetCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool) *cp.Options {
 	if srcDockerRegistry == nil {
 		srcDockerRegistry = &DockerRegistryOptions{}
 	}
 	if destDockerRegistry == nil {
 		destDockerRegistry = &DockerRegistryOptions{}
 	}
-	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile)
-	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile)
+	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 	return &cp.Options{
-		RemoveSignatures: signing.RemoveSignatures,
-		SignBy:           signing.SignBy,
-		ReportWriter:     reportWriter,
-		SourceCtx:        srcContext,
-		DestinationCtx:   destContext,
+		RemoveSignatures:      signing.RemoveSignatures,
+		SignBy:                signing.SignBy,
+		ReportWriter:          reportWriter,
+		SourceCtx:             srcContext,
+		DestinationCtx:        destContext,
+		ForceManifestMIMEType: manifestType,
 	}
 }
 
 // GetSystemContext Constructs a new containers/image/types.SystemContext{} struct from the given signaturePolicy path
-func GetSystemContext(signaturePolicyPath, authFilePath string) *types.SystemContext {
+func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bool) *types.SystemContext {
 	sc := &types.SystemContext{}
 	if signaturePolicyPath != "" {
 		sc.SignaturePolicyPath = signaturePolicyPath
 	}
 	sc.AuthFilePath = authFilePath
+	sc.DirForceCompress = forceCompress
 	return sc
 }
 

@@ -9,8 +9,10 @@ kpod push - Push an image from local storage to elsewhere
 **kpod** **push** [*options* [...]] **imageID** [**destination**]
 
 ## DESCRIPTION
-Pushes an image from local storage to a specified destination, decompressing
-and recompressing layers as needed.
+Pushes an image from local storage to a specified destination.
+Push is mainly used to push images to registries, however **kpod push**
+can be used to save images to tarballs and directories using the following
+transports: **dir:**, **docker-archive:**, **docker-daemon:**, **oci-archive:**, and **ostree:**.
 
 ## imageID
 Image stored in local container/storage
@@ -19,6 +21,8 @@ Image stored in local container/storage
 
  The DESTINATION is a location to store container images
  The Image "DESTINATION" uses a "transport":"details" format.
+ If a transport is not given, kpod push will attempt to push
+ to a registry.
 
  Multiple transports are supported:
 
@@ -55,9 +59,15 @@ Credentials (USERNAME:PASSWORD) to use for authenticating to a registry
 
 Pathname of a directory containing TLS certificates and keys
 
-**--disable-compression, -D**
+**--compress**
 
-Don't compress copies of filesystem layers which will be pushed
+Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
+Note: This flag can only be set when using the **dir** transport
+
+**--format, -f**
+
+Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
+Note: This flag can only be set when using the **dir** transport
 
 **--quiet, -q**
 
@@ -109,6 +119,20 @@ Copying blob sha256:5bef08742407efd622d243692b79ba0055383bbce12900324f75e56f589a
  4.03 MB / 4.03 MB [========================================================] 1s
 Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d95c156
  1.41 KB / 1.41 KB [========================================================] 1s
+Writing manifest to image destination
+Storing signatures
+```
+
+This example pushes the rhel7 image to rhel7-dir with the "oci" manifest type
+```
+# kpod push --format oci registry.access.redhat.com/rhel7 dir:rhel7-dir
+Getting image source signatures
+Copying blob sha256:9cadd93b16ff2a0c51ac967ea2abfadfac50cfa3af8b5bf983d89b8f8647f3e4
+ 71.41 MB / 71.41 MB [======================================================] 9s
+Copying blob sha256:4aa565ad8b7a87248163ce7dba1dd3894821aac97e846b932ff6b8ef9a8a508a
+ 1.21 KB / 1.21 KB [========================================================] 0s
+Copying config sha256:f1b09a81455c351eaa484b61aacd048ab613c08e4c5d1da80c4c46301b03cf3b
+ 3.01 KB / 3.01 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
 ```

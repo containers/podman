@@ -22,13 +22,14 @@ type DockerRegistryOptions struct {
 
 // GetSystemContext constructs a new system context from the given signaturePolicy path and the
 // values in the DockerRegistryOptions
-func (o DockerRegistryOptions) GetSystemContext(signaturePolicyPath, authFile string) *types.SystemContext {
+func (o DockerRegistryOptions) GetSystemContext(signaturePolicyPath, authFile string, forceCompress bool) *types.SystemContext {
 	sc := &types.SystemContext{
 		SignaturePolicyPath:         signaturePolicyPath,
 		DockerAuthConfig:            o.DockerRegistryCreds,
 		DockerCertPath:              o.DockerCertPath,
 		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
 		AuthFilePath:                authFile,
+		DirForceCompress:            forceCompress,
 	}
 	return sc
 }
