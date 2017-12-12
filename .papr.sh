@@ -2,7 +2,7 @@
 set -xeuo pipefail
 
 DIST=$(cat /etc/redhat-release  | awk '{print $1}')
-IMAGE=registry.fedoraproject.org/fedora:26
+IMAGE=registry.fedoraproject.org/fedora:27
 PACKAGER=dnf
 if [[ ${DIST} != "Fedora" ]]; then
     PACKAGER=yum
@@ -10,11 +10,16 @@ if [[ ${DIST} != "Fedora" ]]; then
 fi
 
 if test -z "${INSIDE_CONTAINER:-}"; then
+    source /etc/os-release
+
     if [ -f /run/ostree-booted ]; then
 
         # by default, the root LV on AH is only 3G, but we need a
-        # bit more for our tests
-        lvresize -r -L +4G atomicos/root
+        # bit more for our tests. Only do resize on centos and fedora
+        # versions less than 27
+        if [[ "$VERSION_ID" != "27" ]]; then
+            lvresize -r -L +4G atomicos/root
+        fi
 
         if [ ! -e /var/tmp/ostree-unlock-ovl.* ]; then
             ostree admin unlock
@@ -24,7 +29,6 @@ if test -z "${INSIDE_CONTAINER:-}"; then
     systemctl restart docker
 
     # somewhat mimic the spec conditional
-    source /etc/os-release
     if [ "$ID" == fedora ]; then
       PYTHON=python3
     else
