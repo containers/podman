@@ -307,9 +307,8 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
    kpod generates a UUID for each container, and if a name is not assigned
 to the container with **--name** then the daemon will also generate a random
-string name. The name is useful when defining links (see **--link**) (or any
-other place you need to identify a container). This works for both background
-and foreground containers.
+string name. The name is useful any place you need to identify a container.
+This works for both background and foreground containers.
 
 **--network**="*bridge*"
    Set the Network mode for the container
@@ -498,8 +497,7 @@ must be an absolute path as well. kpod bind-mounts the `HOST-DIR` to the
 path you specify. For example, if you supply the `/foo` value, kpod creates a bind-mount.
 
 You can specify multiple  **-v** options to mount one or more mounts to a
-container. To use these same mounts in other containers, specify the
-**--volumes-from** option also.
+container.
 
 You can add `:ro` or `:rw` suffix to a volume to mount it  read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
@@ -551,24 +549,6 @@ change propagation properties of source mount. Say `/` is source mount for
 
 To disable automatic copying of data from the container path to the volume, use
 the `nocopy` flag. The `nocopy` flag can be set on bind mounts and named volumes.
-
-**--volumes-from**=[]
-   Mount volumes from the specified container(s)
-
-   Mounts already mounted volumes from a source container onto another
-   container. You must supply the source's container-id. To share
-   a volume, use the **--volumes-from** option when running
-   the target container. You can share volumes even if the source container
-   is not running.
-
-   By default, kpod mounts the volumes in the same mode (read-write or
-   read-only) as it is mounted in the source container. Optionally, you
-   can change this by suffixing the container-id with either the `:ro` or
-   `:rw ` keyword.
-
-   If the location of the volume from the source container overlaps with
-   data residing on a target container, then the volume hides
-   that data on the target.
 
 **-w**, **--workdir**=""
    Working directory inside the container
