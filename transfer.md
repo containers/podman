@@ -39,6 +39,7 @@ There are other equivalents for these tools
 | :---: | :---: |
 | `docker attach` | [`kpod exec`](./docs/kpod-attach.1.md) ***|
 | `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
+| `docker commit` | [`buildah commit`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-commit.md) |
 | `docker cp`     | [`kpod mount`](./docs/kpod-cp.1.md) ****   |
 | `docker create` | [`kpod create`](./docs/kpod-create.1.md)  |
 | `docker diff`   | [`kpod diff`](./docs/kpod-diff.1.md)      |
@@ -65,3 +66,32 @@ There are other equivalents for these tools
 
 *** Use `kpod exec` to enter a container and `kpod logs` to view the output of pid 1 of a container.
 **** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/kpod-cp.1.md) for more information.
+
+## Missing commands in kpod
+
+Those Docker commands currently do not have equivalents in `kpod`:
+
+ * `docker container`
+ * `docker events`
+ * `docker image`
+ * `docker network`
+ * `docker node`
+ * `docker plugin`
+ * `docker port`
+ * `docker rename`
+ * `docker restart`
+ * `docker search`
+ * `docker secret`
+ * `docker service`
+ * `docker stack`
+ * `docker swarm`
+ * `docker system`
+ * `docker top`
+ * `docker volume`
+
+## Missing commands in Docker
+
+The following kpod commands do not have a Docker equivalent:
+
+* [`kpod mount`](./docs/kpod-mount.1.md)
+* [`kpod umount`](./docs/kpod-umount.1.md)
