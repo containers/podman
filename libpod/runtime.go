@@ -309,3 +309,23 @@ func (r *Runtime) refresh(alivePath string) error {
 
 	return nil
 }
+
+// Info returns the store and host information
+func (r *Runtime) Info() ([]InfoData, error) {
+	info := []InfoData{}
+	// get host information
+	hostInfo, err := r.hostInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting host info")
+	}
+	info = append(info, InfoData{Type: "host", Data: hostInfo})
+
+	// get store information
+	storeInfo, err := r.storeInfo()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting store info")
+	}
+	info = append(info, InfoData{Type: "store", Data: storeInfo})
+
+	return info, nil
+}
