@@ -160,10 +160,7 @@ func psCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments, ps takes no arguments")
 	}
 
-	format := genPsFormat(c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"))
-	if c.IsSet("format") {
-		format = c.String("format")
-	}
+	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"))
 
 	opts := psOptions{
 		all:       c.Bool("all"),
@@ -302,19 +299,23 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 }
 
 // generate the template based on conditions given
-func genPsFormat(quiet, size, namespace bool) (format string) {
+func genPsFormat(format string, quiet, size, namespace bool) string {
+	if format != "" {
+		// "\t" from the command line is not being recognized as a tab
+		// replacing the string "\t" to a tab character if the user passes in "\t"
+		return strings.Replace(format, `\t`, "\t", -1)
+	}
 	if quiet {
 		return formats.IDString
 	}
 	if namespace {
-		format = "table {{.ID}}\t{{.Names}}\t{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t"
-		return
+		return "table {{.ID}}\t{{.Names}}\t{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t"
 	}
 	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
 	if size {
 		format += "{{.Size}}\t"
 	}
-	return
+	return format
 }
 
 func psToGeneric(templParams []psTemplateParams, JSONParams []psJSONParams) (genericParams []interface{}) {

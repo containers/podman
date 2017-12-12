@@ -1,6 +1,7 @@
 package formats
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,7 +9,6 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"bytes"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 )
