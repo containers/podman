@@ -72,6 +72,9 @@ lint: .gopathok
 gofmt:
 	@./hack/verify-gofmt.sh
 
+fix_gofmt:
+	@./hack/verify-gofmt.sh -f
+
 conmon:
 	$(MAKE) -C $@
 
