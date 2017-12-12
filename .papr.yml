@@ -4,12 +4,11 @@ branches:
   - try
 
 host:
-  distro: fedora/26/atomic
+  distro: fedora/27/atomic
   specs:
      ram: 8192
 
 required: true
-
 timeout: 45m
 
 tests:
@@ -17,6 +16,7 @@ tests:
 
 packages:
     - bats
+    - containernetworking-cni
 ---
 
 inherit: true
