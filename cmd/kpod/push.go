@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
@@ -28,6 +31,14 @@ var (
 		cli.StringFlag{
 			Name:  "cert-dir",
 			Usage: "`pathname` of a directory containing TLS certificates and keys",
+		},
+		cli.BoolFlag{
+			Name:  "compress",
+			Usage: "compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)",
+		},
+		cli.StringFlag{
+			Name:  "format, f",
+			Usage: "manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
@@ -75,8 +86,16 @@ func pushCmd(c *cli.Context) error {
 	if err := validateFlags(c, pushFlags); err != nil {
 		return err
 	}
-	srcName := c.Args().Get(0)
-	destName := c.Args().Get(1)
+	srcName := args[0]
+	destName := args[1]
+
+	// --compress and --format can only be used for the "dir" transport
+	splitArg := strings.SplitN(destName, ":", 2)
+	if c.IsSet("compress") || c.IsSet("format") {
+		if splitArg[0] != libpod.DirTransport {
+			return errors.Errorf("--compress and --format can be set only when pushing to a directory using the 'dir' transport")
+		}
+	}
 
 	registryCredsString := c.String("creds")
 	certPath := c.String("cert-dir")
@@ -112,6 +131,20 @@ func pushCmd(c *cli.Context) error {
 		writer = os.Stdout
 	}
 
+	var manifestType string
+	if c.IsSet("format") {
+		switch c.String("format") {
+		case "oci":
+			manifestType = imgspecv1.MediaTypeImageManifest
+		case "v2s1":
+			manifestType = manifest.DockerV2Schema1SignedMediaType
+		case "v2s2", "docker":
+			manifestType = manifest.DockerV2Schema2MediaType
+		default:
+			return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", c.String("format"))
+		}
+	}
+
 	options := libpod.CopyOptions{
 		Compression:         archive.Uncompressed,
 		SignaturePolicyPath: c.String("signature-policy"),
@@ -124,8 +157,10 @@ func pushCmd(c *cli.Context) error {
 			RemoveSignatures: removeSignatures,
 			SignBy:           signBy,
 		},
-		AuthFile: c.String("authfile"),
-		Writer:   writer,
+		AuthFile:         c.String("authfile"),
+		Writer:           writer,
+		ManifestMIMEType: manifestType,
+		ForceCompress:    c.Bool("compress"),
 	}
 
 	return runtime.PushImage(srcName, destName, options)

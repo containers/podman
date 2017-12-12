@@ -78,6 +78,10 @@ type CopyOptions struct {
 	Reference string
 	// ImageConfig is the Image spec for the image created when a tar archive is imported
 	ImageConfig ociv1.Image
+	// ManifestMIMEType is the manifest type of the image when saving to a directory
+	ManifestMIMEType string
+	// ForceCompress compresses the image layers when saving to a directory using the dir transport if true
+	ForceCompress bool
 }
 
 // Image API
@@ -643,7 +647,7 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) (string, error)
 		signaturePolicyPath = options.SignaturePolicyPath
 	}
 
-	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile)
+	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile, false)
 
 	srcRef, err := alltransports.ParseImageName(imgName)
 	if err != nil {
@@ -664,7 +668,7 @@ func (r *Runtime) PullImage(imgName string, options CopyOptions) (string, error)
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, &options.DockerRegistryOptions, nil, options.SigningOptions, options.AuthFile)
+	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, &options.DockerRegistryOptions, nil, options.SigningOptions, options.AuthFile, "", false)
 
 	for _, imageInfo := range pullStructs {
 		// Print the following statement only when pulling from a docker or atomic registry
@@ -721,7 +725,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		signaturePolicyPath = options.SignaturePolicyPath
 	}
 
-	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile)
+	sc := common.GetSystemContext(signaturePolicyPath, options.AuthFile, options.ForceCompress)
 
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
@@ -735,7 +739,7 @@ func (r *Runtime) PushImage(source string, destination string, options CopyOptio
 		return errors.Wrapf(err, "error getting source imageReference for %q", source)
 	}
 
-	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions, options.AuthFile)
+	copyOptions := common.GetCopyOptions(options.Writer, signaturePolicyPath, nil, &options.DockerRegistryOptions, options.SigningOptions, options.AuthFile, options.ManifestMIMEType, options.ForceCompress)
 
 	// Copy the image to the remote destination
 	err = cp.Image(policyContext, dest, src, copyOptions)
@@ -1004,7 +1008,7 @@ func (r *Runtime) ImportImage(path string, options CopyOptions) error {
 	}
 
 	var reference = options.Reference
-	sc := common.GetSystemContext("", "")
+	sc := common.GetSystemContext("", "", false)
 
 	// if reference not given, get the image digest
 	if reference == "" {
@@ -1020,7 +1024,7 @@ func (r *Runtime) ImportImage(path string, options CopyOptions) error {
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{}, "")
+	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{}, "", "", false)
 
 	dest, err := is.Transport.ParseStoreReference(r.store, reference)
 	if err != nil {

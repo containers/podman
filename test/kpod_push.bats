@@ -84,3 +84,19 @@ function setup() {
     run ${KPOD_BINARY} $KPOD_OPTIONS rmi "$ALPINE"
     echo "$output"
 }
+
+@test "push with manifest type conversion" {
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS push --format oci "${BB}" dir:my-dir"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run bash -c "grep "application/vnd.oci.image.config.v1+json" my-dir/manifest.json"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS push --compress --format v2s2 "${BB}" dir:my-dir"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run bash -c "grep "application/vnd.docker.distribution.manifest.v2+json" my-dir/manifest.json"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    rm -rf my-dir
+}
