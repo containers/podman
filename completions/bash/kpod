@@ -1267,6 +1267,7 @@ _kpod_stats() {
      -a
      --no-stream
      --format
+     --no-reset
     "
 
     case "$cur" in

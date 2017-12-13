@@ -9,6 +9,8 @@ import (
 
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
+	"strconv"
 )
 
 // Runtime API constants
@@ -75,4 +77,22 @@ func GetPolicyContext(path string) (*signature.PolicyContext, error) {
 		return nil, err
 	}
 	return signature.NewPolicyContext(policy)
+}
+
+// RemoveScientificNotationFromFloat returns a float without any
+// scientific notation if the number has any.
+// golang does not handle conversion of float64s that have scientific
+// notation in them and otherwise stinks.  please replace this if you have
+// a better implementation.
+func RemoveScientificNotationFromFloat(x float64) (float64, error) {
+	bigNum := strconv.FormatFloat(x, 'g', -1, 64)
+	breakPoint := strings.IndexAny(bigNum, "Ee")
+	if breakPoint > 0 {
+		bigNum = bigNum[:breakPoint]
+	}
+	result, err := strconv.ParseFloat(bigNum, 64)
+	if err != nil {
+		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
+	}
+	return result, nil
 }
