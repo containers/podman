@@ -75,7 +75,7 @@ var (
 		MaxLogSize:     -1,
 		NoPivotRoot:    false,
 		CNIConfigDir:   "/etc/cni/net.d/",
-		CNIPluginDir:   "/opt/cni/bin/",
+		CNIPluginDir:   "/usr/libexec/cni",
 	}
 )
 

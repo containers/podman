@@ -75,8 +75,8 @@ RUN set -x \
        && cd "$GOPATH/src/github.com/containernetworking/plugins" \
        && git checkout -q "$CNI_COMMIT" \
        && ./build.sh \
-       && mkdir -p /opt/cni/bin \
-       && cp bin/* /opt/cni/bin/ \
+       && mkdir -p /usr/libexec/cni \
+       && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
 
 # Install custom CNI bridge test plugin
