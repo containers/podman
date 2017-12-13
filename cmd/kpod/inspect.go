@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/kpod/formats"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -138,13 +139,14 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 	pidsLimit := getPidsInfo(spec)
 	cgroup := getCgroup(spec)
 
-	artifact, err := ctr.GetArtifact("create-config")
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting artifact %q", ctr.ID())
-	}
 	var createArtifact createConfig
-	if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-		return nil, err
+	artifact, err := ctr.GetArtifact("create-config")
+	if err == nil {
+		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
+			return nil, err
+		}
+	} else {
+		logrus.Errorf("couldn't get some inspect information, error getting artifact %q: %v", ctr.ID(), err)
 	}
 
 	data := &ContainerData{
