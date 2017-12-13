@@ -16,7 +16,7 @@ func TestCreateConfig_GetVolumeMounts(t *testing.T) {
 		Options:     []string{"ro", "rbind", "rprivate"},
 	}
 	config := createConfig{
-		volumes: []string{"foobar:/foobar:ro"},
+		Volumes: []string{"foobar:/foobar:ro"},
 	}
 	specMount, err := config.GetVolumeMounts()
 	assert.NoError(t, err)
@@ -31,7 +31,7 @@ func TestCreateConfig_GetTmpfsMounts(t *testing.T) {
 		Options:     []string{"rw", "size=787448k", "mode=1777"},
 	}
 	config := createConfig{
-		tmpfs: []string{"/homer:rw,size=787448k,mode=1777"},
+		Tmpfs: []string{"/homer:rw,size=787448k,mode=1777"},
 	}
 	tmpfsMount := config.GetTmpfsMounts()
 	assert.True(t, reflect.DeepEqual(data, tmpfsMount[0]))

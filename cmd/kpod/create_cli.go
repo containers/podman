@@ -111,131 +111,131 @@ func verifyContainerResources(config *createConfig, update bool) ([]string, erro
 	sysInfo := sysinfo.New(true)
 
 	// memory subsystem checks and adjustments
-	if config.resources.memory != 0 && config.resources.memory < linuxMinMemory {
+	if config.Resources.Memory != 0 && config.Resources.Memory < linuxMinMemory {
 		return warnings, fmt.Errorf("minimum memory limit allowed is 4MB")
 	}
-	if config.resources.memory > 0 && !sysInfo.MemoryLimit {
+	if config.Resources.Memory > 0 && !sysInfo.MemoryLimit {
 		warnings = addWarning(warnings, "Your kernel does not support memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
-		config.resources.memory = 0
-		config.resources.memorySwap = -1
+		config.Resources.Memory = 0
+		config.Resources.MemorySwap = -1
 	}
-	if config.resources.memory > 0 && config.resources.memorySwap != -1 && !sysInfo.SwapLimit {
+	if config.Resources.Memory > 0 && config.Resources.MemorySwap != -1 && !sysInfo.SwapLimit {
 		warnings = addWarning(warnings, "Your kernel does not support swap limit capabilities,or the cgroup is not mounted. Memory limited without swap.")
-		config.resources.memorySwap = -1
+		config.Resources.MemorySwap = -1
 	}
-	if config.resources.memory > 0 && config.resources.memorySwap > 0 && config.resources.memorySwap < config.resources.memory {
+	if config.Resources.Memory > 0 && config.Resources.MemorySwap > 0 && config.Resources.MemorySwap < config.Resources.Memory {
 		return warnings, fmt.Errorf("minimum memoryswap limit should be larger than memory limit, see usage")
 	}
-	if config.resources.memory == 0 && config.resources.memorySwap > 0 && !update {
-		return warnings, fmt.Errorf("you should always set the Memory limit when using Memoryswap limit, see usage")
+	if config.Resources.Memory == 0 && config.Resources.MemorySwap > 0 && !update {
+		return warnings, fmt.Errorf("you should always set the memory limit when using memoryswap limit, see usage")
 	}
-	if config.resources.memorySwappiness != -1 {
+	if config.Resources.MemorySwappiness != -1 {
 		if !sysInfo.MemorySwappiness {
 			msg := "Your kernel does not support memory swappiness capabilities, or the cgroup is not mounted. Memory swappiness discarded."
 			warnings = addWarning(warnings, msg)
-			config.resources.memorySwappiness = -1
+			config.Resources.MemorySwappiness = -1
 		} else {
-			swappiness := config.resources.memorySwappiness
+			swappiness := config.Resources.MemorySwappiness
 			if swappiness < -1 || swappiness > 100 {
 				return warnings, fmt.Errorf("invalid value: %v, valid memory swappiness range is 0-100", swappiness)
 			}
 		}
 	}
-	if config.resources.memoryReservation > 0 && !sysInfo.MemoryReservation {
+	if config.Resources.MemoryReservation > 0 && !sysInfo.MemoryReservation {
 		warnings = addWarning(warnings, "Your kernel does not support memory soft limit capabilities or the cgroup is not mounted. Limitation discarded.")
-		config.resources.memoryReservation = 0
+		config.Resources.MemoryReservation = 0
 	}
-	if config.resources.memoryReservation > 0 && config.resources.memoryReservation < linuxMinMemory {
+	if config.Resources.MemoryReservation > 0 && config.Resources.MemoryReservation < linuxMinMemory {
 		return warnings, fmt.Errorf("minimum memory reservation allowed is 4MB")
 	}
-	if config.resources.memory > 0 && config.resources.memoryReservation > 0 && config.resources.memory < config.resources.memoryReservation {
+	if config.Resources.Memory > 0 && config.Resources.MemoryReservation > 0 && config.Resources.Memory < config.Resources.MemoryReservation {
 		return warnings, fmt.Errorf("minimum memory limit can not be less than memory reservation limit, see usage")
 	}
-	if config.resources.kernelMemory > 0 && !sysInfo.KernelMemory {
+	if config.Resources.KernelMemory > 0 && !sysInfo.KernelMemory {
 		warnings = addWarning(warnings, "Your kernel does not support kernel memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
-		config.resources.kernelMemory = 0
+		config.Resources.KernelMemory = 0
 	}
-	if config.resources.kernelMemory > 0 && config.resources.kernelMemory < linuxMinMemory {
+	if config.Resources.KernelMemory > 0 && config.Resources.KernelMemory < linuxMinMemory {
 		return warnings, fmt.Errorf("minimum kernel memory limit allowed is 4MB")
 	}
-	if config.resources.disableOomKiller == true && !sysInfo.OomKillDisable {
+	if config.Resources.DisableOomKiller == true && !sysInfo.OomKillDisable {
 		// only produce warnings if the setting wasn't to *disable* the OOM Kill; no point
 		// warning the caller if they already wanted the feature to be off
 		warnings = addWarning(warnings, "Your kernel does not support OomKillDisable. OomKillDisable discarded.")
-		config.resources.disableOomKiller = false
+		config.Resources.DisableOomKiller = false
 	}
 
-	if config.resources.pidsLimit != 0 && !sysInfo.PidsLimit {
+	if config.Resources.PidsLimit != 0 && !sysInfo.PidsLimit {
 		warnings = addWarning(warnings, "Your kernel does not support pids limit capabilities or the cgroup is not mounted. PIDs limit discarded.")
-		config.resources.pidsLimit = 0
+		config.Resources.PidsLimit = 0
 	}
 
-	if config.resources.cpuShares > 0 && !sysInfo.CPUShares {
+	if config.Resources.CpuShares > 0 && !sysInfo.CPUShares {
 		warnings = addWarning(warnings, "Your kernel does not support CPU shares or the cgroup is not mounted. Shares discarded.")
-		config.resources.cpuShares = 0
+		config.Resources.CpuShares = 0
 	}
-	if config.resources.cpuPeriod > 0 && !sysInfo.CPUCfsPeriod {
+	if config.Resources.CpuPeriod > 0 && !sysInfo.CPUCfsPeriod {
 		warnings = addWarning(warnings, "Your kernel does not support CPU cfs period or the cgroup is not mounted. Period discarded.")
-		config.resources.cpuPeriod = 0
+		config.Resources.CpuPeriod = 0
 	}
-	if config.resources.cpuPeriod != 0 && (config.resources.cpuPeriod < 1000 || config.resources.cpuPeriod > 1000000) {
+	if config.Resources.CpuPeriod != 0 && (config.Resources.CpuPeriod < 1000 || config.Resources.CpuPeriod > 1000000) {
 		return warnings, fmt.Errorf("CPU cfs period can not be less than 1ms (i.e. 1000) or larger than 1s (i.e. 1000000)")
 	}
-	if config.resources.cpuQuota > 0 && !sysInfo.CPUCfsQuota {
+	if config.Resources.CpuQuota > 0 && !sysInfo.CPUCfsQuota {
 		warnings = addWarning(warnings, "Your kernel does not support CPU cfs quota or the cgroup is not mounted. Quota discarded.")
-		config.resources.cpuQuota = 0
+		config.Resources.CpuQuota = 0
 	}
-	if config.resources.cpuQuota > 0 && config.resources.cpuQuota < 1000 {
+	if config.Resources.CpuQuota > 0 && config.Resources.CpuQuota < 1000 {
 		return warnings, fmt.Errorf("CPU cfs quota can not be less than 1ms (i.e. 1000)")
 	}
 	// cpuset subsystem checks and adjustments
-	if (config.resources.cpusetCpus != "" || config.resources.cpusetMems != "") && !sysInfo.Cpuset {
+	if (config.Resources.CpusetCpus != "" || config.Resources.CpusetMems != "") && !sysInfo.Cpuset {
 		warnings = addWarning(warnings, "Your kernel does not support cpuset or the cgroup is not mounted. Cpuset discarded.")
-		config.resources.cpusetCpus = ""
-		config.resources.cpusetMems = ""
+		config.Resources.CpusetCpus = ""
+		config.Resources.CpusetMems = ""
 	}
-	cpusAvailable, err := sysInfo.IsCpusetCpusAvailable(config.resources.cpusetCpus)
+	cpusAvailable, err := sysInfo.IsCpusetCpusAvailable(config.Resources.CpusetCpus)
 	if err != nil {
-		return warnings, fmt.Errorf("invalid value %s for cpuset cpus", config.resources.cpusetCpus)
+		return warnings, fmt.Errorf("invalid value %s for cpuset cpus", config.Resources.CpusetCpus)
 	}
 	if !cpusAvailable {
-		return warnings, fmt.Errorf("requested CPUs are not available - requested %s, available: %s", config.resources.cpusetCpus, sysInfo.Cpus)
+		return warnings, fmt.Errorf("requested CPUs are not available - requested %s, available: %s", config.Resources.CpusetCpus, sysInfo.Cpus)
 	}
-	memsAvailable, err := sysInfo.IsCpusetMemsAvailable(config.resources.cpusetMems)
+	memsAvailable, err := sysInfo.IsCpusetMemsAvailable(config.Resources.CpusetMems)
 	if err != nil {
-		return warnings, fmt.Errorf("invalid value %s for cpuset mems", config.resources.cpusetMems)
+		return warnings, fmt.Errorf("invalid value %s for cpuset mems", config.Resources.CpusetMems)
 	}
 	if !memsAvailable {
-		return warnings, fmt.Errorf("requested memory nodes are not available - requested %s, available: %s", config.resources.cpusetMems, sysInfo.Mems)
+		return warnings, fmt.Errorf("requested memory nodes are not available - requested %s, available: %s", config.Resources.CpusetMems, sysInfo.Mems)
 	}
 
 	// blkio subsystem checks and adjustments
-	if config.resources.blkioWeight > 0 && !sysInfo.BlkioWeight {
+	if config.Resources.BlkioWeight > 0 && !sysInfo.BlkioWeight {
 		warnings = addWarning(warnings, "Your kernel does not support Block I/O weight or the cgroup is not mounted. Weight discarded.")
-		config.resources.blkioWeight = 0
+		config.Resources.BlkioWeight = 0
 	}
-	if config.resources.blkioWeight > 0 && (config.resources.blkioWeight < 10 || config.resources.blkioWeight > 1000) {
+	if config.Resources.BlkioWeight > 0 && (config.Resources.BlkioWeight < 10 || config.Resources.BlkioWeight > 1000) {
 		return warnings, fmt.Errorf("range of blkio weight is from 10 to 1000")
 	}
-	if len(config.resources.blkioWeightDevice) > 0 && !sysInfo.BlkioWeightDevice {
+	if len(config.Resources.BlkioWeightDevice) > 0 && !sysInfo.BlkioWeightDevice {
 		warnings = addWarning(warnings, "Your kernel does not support Block I/O weight_device or the cgroup is not mounted. Weight-device discarded.")
-		config.resources.blkioWeightDevice = []string{}
+		config.Resources.BlkioWeightDevice = []string{}
 	}
-	if len(config.resources.deviceReadBps) > 0 && !sysInfo.BlkioReadBpsDevice {
+	if len(config.Resources.DeviceReadBps) > 0 && !sysInfo.BlkioReadBpsDevice {
 		warnings = addWarning(warnings, "Your kernel does not support BPS Block I/O read limit or the cgroup is not mounted. Block I/O BPS read limit discarded")
-		config.resources.deviceReadBps = []string{}
+		config.Resources.DeviceReadBps = []string{}
 	}
-	if len(config.resources.deviceWriteBps) > 0 && !sysInfo.BlkioWriteBpsDevice {
+	if len(config.Resources.DeviceWriteBps) > 0 && !sysInfo.BlkioWriteBpsDevice {
 		warnings = addWarning(warnings, "Your kernel does not support BPS Block I/O write limit or the cgroup is not mounted. Block I/O BPS write limit discarded.")
-		config.resources.deviceWriteBps = []string{}
+		config.Resources.DeviceWriteBps = []string{}
 	}
-	if len(config.resources.deviceReadIOps) > 0 && !sysInfo.BlkioReadIOpsDevice {
+	if len(config.Resources.DeviceReadIOps) > 0 && !sysInfo.BlkioReadIOpsDevice {
 		warnings = addWarning(warnings, "Your kernel does not support IOPS Block read limit or the cgroup is not mounted. Block I/O IOPS read limit discarded.")
-		config.resources.deviceReadIOps = []string{}
+		config.Resources.DeviceReadIOps = []string{}
 	}
-	if len(config.resources.deviceWriteIOps) > 0 && !sysInfo.BlkioWriteIOpsDevice {
+	if len(config.Resources.DeviceWriteIOps) > 0 && !sysInfo.BlkioWriteIOpsDevice {
 		warnings = addWarning(warnings, "Your kernel does not support IOPS Block I/O write limit or the cgroup is not mounted. Block I/O IOPS write limit discarded.")
-		config.resources.deviceWriteIOps = []string{}
+		config.Resources.DeviceWriteIOps = []string{}
 	}
 
 	return warnings, nil

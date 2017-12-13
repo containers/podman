@@ -20,7 +20,7 @@ import (
 )
 
 func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator) {
-	if !config.privileged {
+	if !config.Privileged {
 		for _, mp := range []string{
 			"/proc/kcore",
 			"/proc/latency_stats",
@@ -47,12 +47,12 @@ func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator)
 }
 
 func addPidNS(config *createConfig, g *generate.Generator) error {
-	pidMode := config.pidMode
+	pidMode := config.PidMode
 	if pidMode.IsHost() {
 		return g.RemoveLinuxNamespace(libpod.PIDNamespace)
 	}
 	if pidMode.IsContainer() {
-		ctr, err := config.runtime.LookupContainer(pidMode.Container())
+		ctr, err := config.Runtime.LookupContainer(pidMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", pidMode.Container())
 		}
@@ -69,7 +69,7 @@ func addPidNS(config *createConfig, g *generate.Generator) error {
 }
 
 func addNetNS(config *createConfig, g *generate.Generator) error {
-	netMode := config.netMode
+	netMode := config.NetMode
 	if netMode.IsHost() {
 		return g.RemoveLinuxNamespace(libpod.NetNamespace)
 	}
@@ -80,7 +80,7 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 		return libpod.ErrNotImplemented
 	}
 	if netMode.IsContainer() {
-		ctr, err := config.runtime.LookupContainer(netMode.ConnectedContainer())
+		ctr, err := config.Runtime.LookupContainer(netMode.ConnectedContainer())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", netMode.ConnectedContainer())
 		}
@@ -97,7 +97,7 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 }
 
 func addUTSNS(config *createConfig, g *generate.Generator) error {
-	utsMode := config.utsMode
+	utsMode := config.UtsMode
 	if utsMode.IsHost() {
 		return g.RemoveLinuxNamespace(libpod.UTSNamespace)
 	}
@@ -105,12 +105,12 @@ func addUTSNS(config *createConfig, g *generate.Generator) error {
 }
 
 func addIpcNS(config *createConfig, g *generate.Generator) error {
-	ipcMode := config.ipcMode
+	ipcMode := config.IpcMode
 	if ipcMode.IsHost() {
 		return g.RemoveLinuxNamespace(libpod.IPCNamespace)
 	}
 	if ipcMode.IsContainer() {
-		ctr, err := config.runtime.LookupContainer(ipcMode.Container())
+		ctr, err := config.Runtime.LookupContainer(ipcMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", ipcMode.Container())
 		}
@@ -133,7 +133,7 @@ func addRlimits(config *createConfig, g *generate.Generator) error {
 		err error
 	)
 
-	for _, u := range config.resources.ulimit {
+	for _, u := range config.Resources.Ulimit {
 		if ul, err = units.ParseUlimit(u); err != nil {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
 		}
@@ -146,10 +146,10 @@ func addRlimits(config *createConfig, g *generate.Generator) error {
 func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 	var err error
 	var caplist []string
-	if config.privileged {
+	if config.Privileged {
 		caplist = caps.GetAllCapabilities()
 	} else {
-		caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.capAdd, config.capDrop)
+		caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
 		if err != nil {
 			return err
 		}
@@ -166,85 +166,85 @@ func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g := generate.New()
 	g.AddCgroupsMount("ro")
-	g.SetProcessCwd(config.workDir)
-	g.SetProcessArgs(config.command)
-	g.SetProcessTerminal(config.tty)
+	g.SetProcessCwd(config.WorkDir)
+	g.SetProcessArgs(config.Command)
+	g.SetProcessTerminal(config.Tty)
 	// User and Group must go together
-	g.SetProcessUID(config.user)
-	g.SetProcessGID(config.group)
-	for _, gid := range config.groupAdd {
+	g.SetProcessUID(config.User)
+	g.SetProcessGID(config.Group)
+	for _, gid := range config.GroupAdd {
 		g.AddProcessAdditionalGid(gid)
 	}
 	for key, val := range config.GetAnnotations() {
 		g.AddAnnotation(key, val)
 	}
-	g.SetRootReadonly(config.readOnlyRootfs)
-	g.SetHostname(config.hostname)
-	if config.hostname != "" {
-		g.AddProcessEnv("HOSTNAME", config.hostname)
+	g.SetRootReadonly(config.ReadOnlyRootfs)
+	g.SetHostname(config.Hostname)
+	if config.Hostname != "" {
+		g.AddProcessEnv("HOSTNAME", config.Hostname)
 	}
 
-	for _, sysctl := range config.sysctl {
+	for _, sysctl := range config.Sysctl {
 		s := strings.SplitN(sysctl, "=", 2)
 		g.AddLinuxSysctl(s[0], s[1])
 	}
 
 	// RESOURCES - MEMORY
-	if config.resources.memory != 0 {
-		g.SetLinuxResourcesMemoryLimit(config.resources.memory)
+	if config.Resources.Memory != 0 {
+		g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
 	}
-	if config.resources.memoryReservation != 0 {
-		g.SetLinuxResourcesMemoryReservation(config.resources.memoryReservation)
+	if config.Resources.MemoryReservation != 0 {
+		g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
 	}
-	if config.resources.memorySwap != 0 {
-		g.SetLinuxResourcesMemorySwap(config.resources.memorySwap)
+	if config.Resources.MemorySwap != 0 {
+		g.SetLinuxResourcesMemorySwap(config.Resources.MemorySwap)
 	}
-	if config.resources.kernelMemory != 0 {
-		g.SetLinuxResourcesMemoryKernel(config.resources.kernelMemory)
+	if config.Resources.KernelMemory != 0 {
+		g.SetLinuxResourcesMemoryKernel(config.Resources.KernelMemory)
 	}
-	if config.resources.memorySwappiness != -1 {
-		g.SetLinuxResourcesMemorySwappiness(uint64(config.resources.memorySwappiness))
+	if config.Resources.MemorySwappiness != -1 {
+		g.SetLinuxResourcesMemorySwappiness(uint64(config.Resources.MemorySwappiness))
 	}
-	g.SetLinuxResourcesMemoryDisableOOMKiller(config.resources.disableOomKiller)
-	g.SetProcessOOMScoreAdj(config.resources.oomScoreAdj)
+	g.SetLinuxResourcesMemoryDisableOOMKiller(config.Resources.DisableOomKiller)
+	g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
 
 	// RESOURCES - CPU
 
-	if config.resources.cpuShares != 0 {
-		g.SetLinuxResourcesCPUShares(config.resources.cpuShares)
+	if config.Resources.CpuShares != 0 {
+		g.SetLinuxResourcesCPUShares(config.Resources.CpuShares)
 	}
-	if config.resources.cpuQuota != 0 {
-		g.SetLinuxResourcesCPUQuota(config.resources.cpuQuota)
+	if config.Resources.CpuQuota != 0 {
+		g.SetLinuxResourcesCPUQuota(config.Resources.CpuQuota)
 	}
-	if config.resources.cpuPeriod != 0 {
-		g.SetLinuxResourcesCPUPeriod(config.resources.cpuPeriod)
+	if config.Resources.CpuPeriod != 0 {
+		g.SetLinuxResourcesCPUPeriod(config.Resources.CpuPeriod)
 	}
-	if config.resources.cpuRtRuntime != 0 {
-		g.SetLinuxResourcesCPURealtimeRuntime(config.resources.cpuRtRuntime)
+	if config.Resources.CpuRtRuntime != 0 {
+		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CpuRtRuntime)
 	}
-	if config.resources.cpuRtPeriod != 0 {
-		g.SetLinuxResourcesCPURealtimePeriod(config.resources.cpuRtPeriod)
+	if config.Resources.CpuRtPeriod != 0 {
+		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CpuRtPeriod)
 	}
-	if config.resources.cpus != "" {
-		g.SetLinuxResourcesCPUCpus(config.resources.cpus)
+	if config.Resources.Cpus != "" {
+		g.SetLinuxResourcesCPUCpus(config.Resources.Cpus)
 	}
-	if config.resources.cpusetMems != "" {
-		g.SetLinuxResourcesCPUMems(config.resources.cpusetMems)
+	if config.Resources.CpusetMems != "" {
+		g.SetLinuxResourcesCPUMems(config.Resources.CpusetMems)
 	}
 
 	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(config.noNewPrivileges)
-	g.SetProcessApparmorProfile(config.apparmorProfile)
-	g.SetProcessSelinuxLabel(config.processLabel)
-	g.SetLinuxMountLabel(config.mountLabel)
+	g.SetProcessNoNewPrivileges(config.NoNewPrivileges)
+	g.SetProcessApparmorProfile(config.ApparmorProfile)
+	g.SetProcessSelinuxLabel(config.ProcessLabel)
+	g.SetLinuxMountLabel(config.MountLabel)
 	blockAccessToKernelFilesystems(config, &g)
 
 	// RESOURCES - PIDS
-	if config.resources.pidsLimit != 0 {
-		g.SetLinuxResourcesPidsLimit(config.resources.pidsLimit)
+	if config.Resources.PidsLimit != 0 {
+		g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
 	}
 
-	for _, i := range config.tmpfs {
+	for _, i := range config.Tmpfs {
 		options := []string{"rw", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
@@ -257,7 +257,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		g.AddTmpfsMount(spliti[0], options)
 	}
 
-	for name, val := range config.env {
+	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
 
@@ -282,14 +282,14 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 	configSpec := g.Spec()
 
-	if config.seccompProfilePath != "" && config.seccompProfilePath != "unconfined" {
-		seccompProfile, err := ioutil.ReadFile(config.seccompProfilePath)
+	if config.SeccompProfilePath != "" && config.SeccompProfilePath != "unconfined" {
+		seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
 		if err != nil {
-			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.seccompProfilePath)
+			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
 		}
 		var seccompConfig spec.LinuxSeccomp
 		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-			return nil, errors.Wrapf(err, "decoding seccomp profile (%s) failed", config.seccompProfilePath)
+			return nil, errors.Wrapf(err, "decoding seccomp profile (%s) failed", config.SeccompProfilePath)
 		}
 		configSpec.Linux.Seccomp = &seccompConfig
 	}
@@ -347,10 +347,10 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 
 func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 	bio := spec.LinuxBlockIO{}
-	bio.Weight = &c.resources.blkioWeight
-	if len(c.resources.blkioWeightDevice) > 0 {
+	bio.Weight = &c.Resources.BlkioWeight
+	if len(c.Resources.BlkioWeightDevice) > 0 {
 		var lwds []spec.LinuxWeightDevice
-		for _, i := range c.resources.blkioWeightDevice {
+		for _, i := range c.Resources.BlkioWeightDevice {
 			wd, err := validateweightDevice(i)
 			if err != nil {
 				return bio, errors.Wrapf(err, "invalid values for blkio-weight-device")
@@ -364,29 +364,29 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 			lwds = append(lwds, lwd)
 		}
 	}
-	if len(c.resources.deviceReadBps) > 0 {
-		readBps, err := makeThrottleArray(c.resources.deviceReadBps)
+	if len(c.Resources.DeviceReadBps) > 0 {
+		readBps, err := makeThrottleArray(c.Resources.DeviceReadBps)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleReadBpsDevice = readBps
 	}
-	if len(c.resources.deviceWriteBps) > 0 {
-		writeBpds, err := makeThrottleArray(c.resources.deviceWriteBps)
+	if len(c.Resources.DeviceWriteBps) > 0 {
+		writeBpds, err := makeThrottleArray(c.Resources.DeviceWriteBps)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleWriteBpsDevice = writeBpds
 	}
-	if len(c.resources.deviceReadIOps) > 0 {
-		readIOps, err := makeThrottleArray(c.resources.deviceReadIOps)
+	if len(c.Resources.DeviceReadIOps) > 0 {
+		readIOps, err := makeThrottleArray(c.Resources.DeviceReadIOps)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleReadIOPSDevice = readIOps
 	}
-	if len(c.resources.deviceWriteIOps) > 0 {
-		writeIOps, err := makeThrottleArray(c.resources.deviceWriteIOps)
+	if len(c.Resources.DeviceWriteIOps) > 0 {
+		writeIOps, err := makeThrottleArray(c.Resources.DeviceWriteIOps)
 		if err != nil {
 			return bio, err
 		}
@@ -401,7 +401,7 @@ func (c *createConfig) GetAnnotations() map[string]string {
 	a := getDefaultAnnotations()
 	// TODO - Which annotations do we want added by default
 	// TODO - This should be added to the DB long term
-	if c.tty {
+	if c.Tty {
 		a["io.kubernetes.cri-o.TTY"] = "true"
 	}
 	return a
@@ -445,7 +445,7 @@ func getDefaultAnnotations() map[string]string {
 func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 	var m []spec.Mount
 	var options []string
-	for _, i := range c.volumes {
+	for _, i := range c.Volumes {
 		// We need to handle SELinux options better here, specifically :Z
 		spliti := strings.Split(i, ":")
 		if len(spliti) > 2 {
@@ -472,12 +472,12 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 			options = append(options, "rw")
 		}
 		if foundz {
-			if err := label.Relabel(spliti[0], c.mountLabel, true); err != nil {
+			if err := label.Relabel(spliti[0], c.MountLabel, true); err != nil {
 				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
 			}
 		}
 		if foundZ {
-			if err := label.Relabel(spliti[0], c.mountLabel, false); err != nil {
+			if err := label.Relabel(spliti[0], c.MountLabel, false); err != nil {
 				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
 			}
 		}
@@ -495,10 +495,10 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 	return m, nil
 }
 
-//GetTmpfsMounts takes user provided input for tmpfs mounts and creates Mount structs
+//GetTmpfsMounts takes user provided input for Tmpfs mounts and creates Mount structs
 func (c *createConfig) GetTmpfsMounts() []spec.Mount {
 	var m []spec.Mount
-	for _, i := range c.tmpfs {
+	for _, i := range c.Tmpfs {
 		// Default options if nothing passed
 		options := []string{"rw", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.Split(i, ":")
@@ -522,12 +522,12 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	// Uncomment after talking to mheon about unimplemented funcs
 	// options = append(options, libpod.WithLabels(c.labels))
 
-	if c.interactive {
+	if c.Interactive {
 		options = append(options, libpod.WithStdin())
 	}
-	if c.name != "" {
-		logrus.Debugf("appending name %s", c.name)
-		options = append(options, libpod.WithName(c.name))
+	if c.Name != "" {
+		logrus.Debugf("appending name %s", c.Name)
+		options = append(options, libpod.WithName(c.Name))
 	}
 
 	return options, nil

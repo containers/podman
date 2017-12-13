@@ -40,3 +40,13 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "kpod inspect container with size" {
+    run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} create ${BB} ls"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    ctr_id="$output"
+    run bash -c "${KPOD_BINARY} $KPOD_OPTIONS inspect --size $ctr_id | python -m json.tool | grep SizeRootFs"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

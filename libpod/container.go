@@ -22,6 +22,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/driver"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -132,6 +133,7 @@ type ContainerConfig struct {
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
+
 	// TODO save log location here and pass into OCI code
 	// TODO allow overriding of log path
 }
@@ -192,7 +194,6 @@ func (c *Container) Labels() map[string]string {
 	for key, value := range c.config.Labels {
 		labels[key] = value
 	}
-
 	return labels
 }
 
@@ -202,6 +203,68 @@ func (c *Container) Config() *ContainerConfig {
 	deepcopier.Copy(c.config).To(returnConfig)
 
 	return returnConfig
+}
+
+// RuntimeName returns the name of the runtime
+func (c *Container) RuntimeName() string {
+	return c.runtime.ociRuntime.name
+}
+
+// rootFsSize gets the size of the container's root filesystem
+// A container FS is split into two parts.  The first is the top layer, a
+// mutable layer, and the rest is the RootFS: the set of immutable layers
+// that make up the image on which the container is based.
+func (c *Container) rootFsSize() (int64, error) {
+	container, err := c.runtime.store.Container(c.ID())
+	if err != nil {
+		return 0, err
+	}
+
+	// Ignore the size of the top layer.   The top layer is a mutable RW layer
+	// and is not considered a part of the rootfs
+	rwLayer, err := c.runtime.store.Layer(container.LayerID)
+	if err != nil {
+		return 0, err
+	}
+	layer, err := c.runtime.store.Layer(rwLayer.Parent)
+	if err != nil {
+		return 0, err
+	}
+
+	size := int64(0)
+	for layer.Parent != "" {
+		layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
+		if err != nil {
+			return size, errors.Wrapf(err, "getting diffsize of layer %q and its parent %q", layer.ID, layer.Parent)
+		}
+		size += layerSize
+		layer, err = c.runtime.store.Layer(layer.Parent)
+		if err != nil {
+			return 0, err
+		}
+	}
+	// Get the size of the last layer.  Has to be outside of the loop
+	// because the parent of the last layer is "", andlstore.Get("")
+	// will return an error.
+	layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
+	return size + layerSize, err
+}
+
+// rwSize Gets the size of the mutable top layer of the container.
+func (c *Container) rwSize() (int64, error) {
+	container, err := c.runtime.store.Container(c.ID())
+	if err != nil {
+		return 0, err
+	}
+
+	// Get the size of the top layer by calculating the size of the diff
+	// between the layer and its parent.  The top layer of a container is
+	// the only RW layer, all others are immutable
+	layer, err := c.runtime.store.Layer(container.LayerID)
+	if err != nil {
+		return 0, err
+	}
+	return c.runtime.store.DiffSize(layer.Parent, layer.ID)
 }
 
 // LogPath returns the path to the container's log file
@@ -827,6 +890,31 @@ func (c *Container) RemoveArtifact(name string) error {
 
 func (c *Container) getArtifactPath(name string) string {
 	return filepath.Join(c.config.StaticDir, artifactsDir, name)
+}
+
+// Inspect a container for low-level information
+func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return nil, err
+	}
+
+	storeCtr, err := c.runtime.store.Container(c.ID())
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
+	}
+	layer, err := c.runtime.store.Layer(storeCtr.LayerID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading information about layer %q", storeCtr.LayerID)
+	}
+	driverData, err := driver.GetDriverData(c.runtime.store, layer.ID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
+	}
+
+	return c.getContainerInspectData(size, driverData)
 }
 
 // Commit commits the changes between a container and its image, creating a new
