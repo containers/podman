@@ -34,7 +34,9 @@ if test -z "${INSIDE_CONTAINER:-}"; then
                --privileged \
                -v $PWD:/go/src/github.com/projectatomic/libpod \
                -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro \
-               -v /:/host \
+               -v /usr:/host/usr \
+               -v /etc:/host/etc \
+               -v /host:/host/var \
                --workdir /go/src/github.com/projectatomic/libpod \
                -e INSIDE_CONTAINER=1 \
                -e PYTHON=$PYTHON \
@@ -49,7 +51,6 @@ export PATH=$HOME/gopath/bin:$PATH
 export GOSRC=/$GOPATH/src/github.com/projectatomic/libpod
 
 ${PACKAGER} install -y \
-              bats \
               btrfs-progs-devel \
               bzip2 \
               device-mapper-devel \
@@ -86,16 +87,8 @@ make install.tools TAGS="${TAGS}"
 if [[ ${PACKAGER} != "yum" ]]; then
     HEAD=$GITVALIDATE_TIP make -C $GOSRC .gitvalidation TAGS="${TAGS}"
     make lint
-    dnf install -y --installroot /host bats
 fi
 
 make TAGS="${TAGS}"
 make TAGS="${TAGS}" install PREFIX=/host/usr
 make TAGS="${TAGS}" test-binaries
-
-if [[ ${PACKAGER} == "yum" ]]; then
-    # Install EPEL to get Bats
-    ${PACKAGER} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-    ${PACKAGER} install --downloadonly --downloaddir=/tmp bats
-    cd /host && rpm2cpio /tmp/bats*.rpm | cpio -ivd
-fi
