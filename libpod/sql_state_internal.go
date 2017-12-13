@@ -154,8 +154,6 @@ func prepareDB(db *sql.DB) (err error) {
 	// TODO add Pod ID to CreateStaticContainer as a FOREIGN KEY referencing podStatic(Id)
 	// TODO add ctr shared namespaces information - A separate table, probably? So we can FOREIGN KEY the ID
 	// TODO schema migration might be necessary and should be handled here
-	// TODO add a table for the runtime, and refuse to load the database if the runtime configuration
-	// does not match the one in the database
 
 	// Enable foreign keys in SQLite
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
