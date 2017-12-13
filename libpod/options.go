@@ -401,3 +401,19 @@ func WithPodName(name string) PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodLabels sets the labels of a pod
+func WithPodLabels(labels map[string]string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.labels = make(map[string]string)
+		for key, value := range labels {
+			pod.labels[key] = value
+		}
+
+		return nil
+	}
+}
