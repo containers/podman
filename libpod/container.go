@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
+	"github.com/mrunalp/fileutils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -558,10 +559,25 @@ func (c *Container) Init() (err error) {
 		}
 	}
 
+	// Copy /etc/resolv.conf to the container's rundir
+	runDirResolv, err := c.copyHostFileToRundir("/etc/resolv.conf")
+	if err != nil {
+		return errors.Wrapf(err, "unable to copy /etc/resolv.conf to ", runDirResolv)
+	}
+	// Copy /etc/hosts to the container's rundir
+	runDirHosts, err := c.copyHostFileToRundir("/etc/hosts")
+	if err != nil {
+		return errors.Wrapf(err, "unable to copy /etc/hosts to ", runDirHosts)
+	}
+
 	// Save OCI spec to disk
 	g := generate.NewFromSpec(c.config.Spec)
 	// Mount ShmDir from host into container
 	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
+	// Bind mount resolv.conf
+	g.AddBindMount(runDirResolv, "/etc/resolv.conf", []string{"rw"})
+	// Bind mount hosts
+	g.AddBindMount(runDirHosts, "/etc/hosts", []string{"rw"})
 	c.runningSpec = g.Spec()
 	c.runningSpec.Root.Path = c.state.Mountpoint
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
@@ -1052,4 +1068,17 @@ func (c *Container) cleanupStorage() error {
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
 	return cgroups.StaticPath(filepath.Join(CGroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
+}
+
+// copyHostFileToRundir copies the provided file to the runtimedir
+func (c *Container) copyHostFileToRundir(sourcePath string) (string, error) {
+	destFileName := filepath.Join(c.state.RunDir, filepath.Base(sourcePath))
+	if err := fileutils.CopyFile(sourcePath, destFileName); err != nil {
+		return "", err
+	}
+	// Relabel runDirResolv for the container
+	if err := label.Relabel(destFileName, c.config.MountLabel, false); err != nil {
+		return "", err
+	}
+	return destFileName, nil
 }
