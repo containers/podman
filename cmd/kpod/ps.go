@@ -144,9 +144,8 @@ func psCmd(c *cli.Context) error {
 		return err
 	}
 
-	// latest, and last are mutually exclusive.
-	if c.Int("last") >= 0 && c.Bool("latest") {
-		return errors.Errorf("last and latest are mutually exclusive")
+	if err := checkFlagsPassed(c); err != nil {
+		return errors.Wrapf(err, "error with flags passed")
 	}
 
 	runtime, err := getRuntime(c)
@@ -211,6 +210,32 @@ func psCmd(c *cli.Context) error {
 	}
 
 	return generatePsOutput(outputContainers, opts)
+}
+
+// checkFlagsPassed checks if mutually exclusive flags are passed together
+func checkFlagsPassed(c *cli.Context) error {
+	// latest, and last are mutually exclusive.
+	if c.Int("last") >= 0 && c.Bool("latest") {
+		return errors.Errorf("last and latest are mutually exclusive")
+	}
+	// quiet, size, namespace, and format with Go template are mutually exclusive
+	flags := 0
+	if c.Bool("quiet") {
+		flags++
+	}
+	if c.Bool("size") {
+		flags++
+	}
+	if c.Bool("namespace") {
+		flags++
+	}
+	if c.IsSet("format") && c.String("format") != formats.JSONString {
+		flags++
+	}
+	if flags > 1 {
+		return errors.Errorf("quiet, size, namespace, and format with Go template are mutually exclusive")
+	}
+	return nil
 }
 
 func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(container *libpod.Container) bool, error) {
