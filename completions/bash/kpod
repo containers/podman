@@ -1288,6 +1288,14 @@ kpod_tag() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+kpod_top() {
+    local options_with_args="
+    "
+    local boolean_options="
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+}
+
 _kpod_version() {
      local options_with_args="
      "
