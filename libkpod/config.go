@@ -19,7 +19,7 @@ const (
 	seccompProfilePath  = "/etc/crio/seccomp.json"
 	apparmorProfileName = "crio-default"
 	cniConfigDir        = "/etc/cni/net.d/"
-	cniBinDir           = "/opt/cni/bin/"
+	cniBinDir           = "/usr/libexec/cni/"
 	cgroupManager       = "" //oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
 	containerExitsDir   = "" //oci.ContainerExitsDir
