@@ -836,6 +836,11 @@ func (s *SQLState) HasPod(id string) (bool, error) {
 	return false, ErrNotImplemented
 }
 
+// PodContainers returns all the containers in a pod given the pod's full ID
+func (s *SQLState) PodContainers(id string) ([]*Container, error) {
+	return nil, ErrNotImplemented
+}
+
 // AddPod adds a pod to the state
 // Only empty pods can be added to the state
 func (s *SQLState) AddPod(pod *Pod) error {

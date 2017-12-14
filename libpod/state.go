@@ -44,6 +44,8 @@ type State interface {
 	LookupPod(idOrName string) (*Pod, error)
 	// Checks if a pod with the given ID is present in the state
 	HasPod(id string) (bool, error)
+	// Get all the containers in a pod. Accepts full ID of pod.
+	PodContainers(id string) ([]*Container, error)
 	// Adds pod to state
 	// Only empty pods can be added to the state
 	AddPod(pod *Pod) error
