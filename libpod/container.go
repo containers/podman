@@ -135,11 +135,11 @@ type containerState struct {
 	// NetNSPath is the path of the container's network namespace
 	// Will only be set if config.CreateNetNS is true, or the container was
 	// told to join another container's network namespace
-	NetNS ns.NetNS
+	NetNS ns.NetNS `json:"-"`
 	// IP address of container (if network namespace was created)
-	IPAddress string
+	IPAddress string `json:"ipAddress"`
 	// Subnet mask of container (if network namespace was created)
-	SubnetMask string
+	SubnetMask string `json:"subnetMask"`
 }
 
 // ContainerConfig contains all information that was used to create the

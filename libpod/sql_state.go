@@ -49,9 +49,6 @@ func NewSQLState(dbPath, specsDir, lockDir string, runtime *Runtime) (State, err
 	}
 	state.lockDir = lockDir
 
-	// TODO add a separate temporary database for per-boot container
-	// state
-
 	// Open the database
 	// Use loc=auto to get accurate locales for timestamps
 	db, err := sql.Open("sqlite3", dbPath+"?_loc=auto")

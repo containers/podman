@@ -27,6 +27,9 @@ const (
 	InMemoryStateStore RuntimeStateStore = iota
 	// SQLiteStateStore is a state backed by a SQLite database
 	SQLiteStateStore RuntimeStateStore = iota
+	// BoltDBStateStore is a state backed by a BoltDB database
+	BoltDBStateStore RuntimeStateStore = iota
+
 	// SeccompDefaultPath defines the default seccomp path
 	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
 	// SeccompOverridePath if this exists it overrides the default seccomp path
@@ -76,7 +79,7 @@ var (
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: DefaultTransport,
-		StateType:             SQLiteStateStore,
+		StateType:             BoltDBStateStore,
 		RuntimePath:           findRuncPath(),
 		ConmonPath:            findConmonPath(),
 		ConmonEnvVars: []string{
@@ -231,6 +234,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		}
 
 		state, err := NewSQLState(dbPath, specsDir, runtime.lockDir, runtime)
+		if err != nil {
+			return nil, err
+		}
+		runtime.state = state
+	case BoltDBStateStore:
+		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
+
+		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
 		if err != nil {
 			return nil, err
 		}
