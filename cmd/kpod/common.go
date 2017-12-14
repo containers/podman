@@ -50,7 +50,7 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	options.GraphDriverName = config.Storage
 	options.GraphDriverOptions = config.StorageOptions
 
-	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime))
+	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime), libpod.WithCNIConfigDir(config.NetworkDir))
 }
 
 func shutdownStores() {
@@ -97,6 +97,9 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 	}
 	if c.GlobalIsSet("runtime") {
 		config.Runtime = c.GlobalString("runtime")
+	}
+	if c.GlobalIsSet("cni-config-dir") {
+		config.NetworkDir = c.GlobalString("cni-config-dir")
 	}
 	return config, nil
 }

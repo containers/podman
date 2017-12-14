@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/go-units"
@@ -529,6 +530,9 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		logrus.Debugf("appending name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
+	// TODO parse ports into libpod format and include
+	// TODO should not happen if --net=host
+	options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 
 	return options, nil
 }

@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
@@ -99,6 +101,10 @@ type containerRuntimeInfo struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
+	// NetNSPath is the path of the container's network namespace
+	// Will only be set if config.CreateNetNS is true, or the container was
+	// told to join another container's network namespace
+	NetNS ns.NetNS
 	// TODO: Save information about image used in container if one is used
 }
 
@@ -119,6 +125,13 @@ type ContainerConfig struct {
 	MountLabel string `json:"MountLabel,omitempty"`
 	// Src path to be mounted on /dev/shm in container
 	ShmDir string `json:"ShmDir,omitempty"`
+	// CreateNetNS indicates that libpod should create and configure a new
+	// network namespace for the container
+	CreateNetNS bool `json:"createNetNS"`
+	// PortMappings are the ports forwarded to the container's network
+	// namespace
+	// These are not used unless CreateNetNS is true
+	PortMappings []ocicni.PortMapping
 	// Static directory for container content that will persist across
 	// reboot
 	StaticDir string `json:"staticDir"`
@@ -130,7 +143,7 @@ type ContainerConfig struct {
 	// about a container
 	Labels map[string]string `json:"labels,omitempty"`
 	// Mounts list contains all additional mounts by the container runtime.
-	Mounts []string
+	Mounts []string `json:"mounts,omitempty"`
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// Shared namespaces with container
@@ -538,6 +551,20 @@ func (c *Container) Init() (err error) {
 		return err
 	}
 
+	// Make a network namespace for the container
+	if c.config.CreateNetNS && c.state.NetNS == nil {
+		if err := c.runtime.createNetNS(c); err != nil {
+			return err
+		}
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
+				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
 	// If the OCI spec already exists, we need to replace it
 	// Cannot guarantee some things, e.g. network namespaces, have the same
 	// paths
@@ -567,6 +594,10 @@ func (c *Container) Init() (err error) {
 
 	// Save OCI spec to disk
 	g := generate.NewFromSpec(c.config.Spec)
+	// If network namespace was requested, add it now
+	if c.config.CreateNetNS {
+		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+	}
 	// Mount ShmDir from host into container
 	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
 	// Bind mount resolv.conf

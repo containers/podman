@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
 
@@ -250,6 +251,32 @@ func WithNoPivotRoot(noPivot bool) RuntimeOption {
 	}
 }
 
+// WithCNIConfigDir sets the CNI configuration directory
+func WithCNIConfigDir(dir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.CNIConfigDir = dir
+
+		return nil
+	}
+}
+
+// WithCNIPluginDir sets the CNI plugins directory
+func WithCNIPluginDir(dir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.CNIPluginDir = dir
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm
@@ -382,6 +409,22 @@ func WithStopSignal(signal uint) CtrCreateOption {
 		}
 
 		ctr.config.StopSignal = signal
+
+		return nil
+	}
+}
+
+// WithNetNS indicates that the container should be given a new network
+// namespace with a minimal configuration
+// An optional array of port mappings can be provided
+func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.CreateNetNS = true
+		copy(ctr.config.PortMappings, portMappings)
 
 		return nil
 	}
