@@ -284,6 +284,20 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 	return ok, nil
 }
 
+// PodContainers retrieves the containers from a pod given the pod's full ID
+func (s *InMemoryState) PodContainers(id string) ([]*Container, error) {
+	if id == "" {
+		return nil, ErrEmptyID
+	}
+
+	pod, ok := s.pods[id]
+	if !ok {
+		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found", id)
+	}
+
+	return pod.GetContainers()
+}
+
 // AddPod adds a given pod to the state
 // Only empty pods can be added to the state
 func (s *InMemoryState) AddPod(pod *Pod) error {
