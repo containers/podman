@@ -1302,6 +1302,7 @@ _kpod_save() {
      --format
      "
      local boolean_options="
+	 --compress
      --quiet -q
      "
      _complete_ "$options_with_args" "$boolean_options"

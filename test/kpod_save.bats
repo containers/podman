@@ -42,3 +42,17 @@ function setup() {
 	echo "$output"
 	[ "$status" -ne 0 ]
 }
+
+@test "kpod save to directory wit oci format" {
+	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} save --format oci-dir -o alp-dir $ALPINE"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -rf alp-dir
+}
+
+@test "kpod save to directory wit v2s2 (docker) format" {
+	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} save --format docker-dir -o alp-dir $ALPINE"
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -rf alp-dir
+}

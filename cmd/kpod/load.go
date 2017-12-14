@@ -104,14 +104,18 @@ func loadCmd(c *cli.Context) error {
 	src := libpod.DockerArchive + ":" + input
 	imgName, err := runtime.PullImage(src, options)
 	if err != nil {
-		src = libpod.OCIArchive + ":" + input
 		// generate full src name with specified image:tag
+		fullSrc := libpod.OCIArchive + ":" + input
 		if image != "" {
-			src = src + ":" + image
+			fullSrc = fullSrc + ":" + image
 		}
-		imgName, err = runtime.PullImage(src, options)
+		imgName, err = runtime.PullImage(fullSrc, options)
 		if err != nil {
-			return errors.Wrapf(err, "error pulling %q", src)
+			src = libpod.DirTransport + ":" + input
+			imgName, err = runtime.PullImage(src, options)
+			if err != nil {
+				return errors.Wrapf(err, "error pulling %q", src)
+			}
 		}
 	}
 	fmt.Println("Loaded image: ", imgName)
