@@ -853,6 +853,21 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 	return ErrNotImplemented
 }
 
+// UpdatePod updates a pod from the database
+func (s *SQLState) UpdatePod(pod *Pod) error {
+	return ErrNotImplemented
+}
+
+// AddContainerToPod adds a container to the given pod
+func (s *SQLState) AddContainerToPod(pod *Pod, ctr *Container) error {
+	return ErrNotImplemented
+}
+
+// RemoveContainerFromPods removes a container from the given pod
+func (s *SQLState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
+	return ErrNotImplemented
+}
+
 // AllPods retrieves all pods presently in the state
 func (s *SQLState) AllPods() ([]*Pod, error) {
 	return nil, ErrNotImplemented

@@ -114,7 +114,6 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	pod         *Pod
 	runningSpec *spec.Spec
 
 	state *containerRuntimeInfo
