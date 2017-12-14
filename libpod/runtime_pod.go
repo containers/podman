@@ -24,7 +24,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod()
+	pod, err := newPod(r.lockDir)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
