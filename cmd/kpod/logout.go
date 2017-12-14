@@ -46,7 +46,7 @@ func logoutCmd(c *cli.Context) error {
 		server = args[0]
 	}
 
-	sc := common.GetSystemContext("", c.String("authfile"))
+	sc := common.GetSystemContext("", c.String("authfile"), false)
 
 	if c.Bool("all") {
 		if err := config.RemoveAllAuthentication(sc); err != nil {

@@ -921,8 +921,7 @@ _kpod_mount() {
 
 _kpod_push() {
     local boolean_options="
-    --disable-compression
-    -D
+    --compress
     --quiet
     -q
     --remove-signatures
@@ -931,6 +930,7 @@ _kpod_push() {
 
     local options_with_args="
     --authfile
+	--format
     --cert-dir
     --creds
     --sign-by
