@@ -3,15 +3,27 @@ package main
 import (
 	"io"
 	"os"
+	"strings"
 
+	"github.com/containers/image/manifest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
+const (
+	ociManifestDir  = "oci-dir"
+	v2s2ManifestDir = "docker-dir"
+)
+
 var (
 	saveFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "compress",
+			Usage: "compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)",
+		},
 		cli.StringFlag{
 			Name:  "output, o",
 			Usage: "Write to a file, default is STDOUT",
@@ -23,7 +35,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "Save image to oci-archive",
+			Usage: "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)",
 		},
 	}
 	saveDescription = `
@@ -56,6 +68,10 @@ func saveCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
+	if c.IsSet("compress") && (c.String("format") != ociManifestDir && c.String("format") != v2s2ManifestDir && c.String("format") == "") {
+		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
+	}
+
 	var writer io.Writer
 	if !c.Bool("quiet") {
 		writer = os.Stdout
@@ -69,10 +85,16 @@ func saveCmd(c *cli.Context) error {
 		}
 	}
 
-	var dst string
+	var dst, manifestType string
 	switch c.String("format") {
 	case libpod.OCIArchive:
 		dst = libpod.OCIArchive + ":" + output
+	case "oci-dir":
+		dst = libpod.DirTransport + ":" + output
+		manifestType = imgspecv1.MediaTypeImageManifest
+	case "docker-dir":
+		dst = libpod.DirTransport + ":" + output
+		manifestType = manifest.DockerV2Schema2MediaType
 	case libpod.DockerArchive:
 		fallthrough
 	case "":
@@ -84,12 +106,18 @@ func saveCmd(c *cli.Context) error {
 	saveOpts := libpod.CopyOptions{
 		SignaturePolicyPath: "",
 		Writer:              writer,
+		ManifestMIMEType:    manifestType,
+		ForceCompress:       c.Bool("compress"),
 	}
 
 	// only one image is supported for now
 	// future pull requests will fix this
 	for _, image := range args {
-		dest := dst + ":" + image
+		dest := dst
+		// need dest to be in the format transport:path:reference for the following transports
+		if strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive) {
+			dest = dst + ":" + image
+		}
 		if err := runtime.PushImage(image, dest, saveOpts); err != nil {
 			if err2 := os.Remove(output); err2 != nil {
 				logrus.Errorf("error deleting %q: %v", output, err)
