@@ -138,7 +138,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	}
 
 	// Make a directory to hold container lockfiles
-	lockDir := filepath.Join(runtime.config.StaticDir, "lock")
+	lockDir := filepath.Join(runtime.config.TmpDir, "lock")
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {

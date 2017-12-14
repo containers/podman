@@ -430,11 +430,6 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, ctr.config.ID)
-	// Ensure there is no conflict - file does not exist
-	_, err := os.Stat(lockPath)
-	if err == nil || !os.IsNotExist(err) {
-		return nil, errors.Wrapf(ErrCtrExists, "lockfile for container ID %s already exists", ctr.config.ID)
-	}
 	// Grab a lockfile at the given path
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
