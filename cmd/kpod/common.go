@@ -50,7 +50,7 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	options.GraphDriverName = config.Storage
 	options.GraphDriverOptions = config.StorageOptions
 
-	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime), libpod.WithCNIDirs(config.NetworkDir, config.PluginDir))
+	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime), libpod.WithCNIConfigDir(config.NetworkDir))
 }
 
 func shutdownStores() {
