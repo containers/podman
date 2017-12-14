@@ -6,7 +6,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/opencontainers/selinux/go-selinux"
-	"github.com/projectatomic/libpod/oci"
 )
 
 // Default paths if none are specified
@@ -21,9 +20,9 @@ const (
 	apparmorProfileName = "crio-default"
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/opt/cni/bin/"
-	cgroupManager       = oci.CgroupfsCgroupsManager
+	cgroupManager       = "" //oci.CgroupfsCgroupsManager
 	lockPath            = "/run/crio.lock"
-	containerExitsDir   = oci.ContainerExitsDir
+	containerExitsDir   = "" //oci.ContainerExitsDir
 )
 
 // Config represents the entire set of configuration values that can be set for
