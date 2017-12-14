@@ -481,10 +481,10 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 // state
 func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added to", pod.ID())
+		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be added to the pod", ctr.ID())
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", ctr.ID())
 	}
 
 	if ctr.config.Pod != pod.ID() {

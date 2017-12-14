@@ -26,8 +26,36 @@ var (
 	testedStates = map[string]emptyStateFunc{
 		"sql":       getEmptySQLState,
 		"in-memory": getEmptyInMemoryState,
+		"boltdb":    getEmptyBoltState,
 	}
 )
+
+// Get an empty BoltDB state for use in tests
+func getEmptyBoltState() (s State, p string, p2 string, err error) {
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	if err != nil {
+		return nil, "", "", err
+	}
+	defer func() {
+		if err != nil {
+			os.RemoveAll(tmpDir)
+		}
+	}()
+
+	dbPath := filepath.Join(tmpDir, "db.sql")
+	lockDir := filepath.Join(tmpDir, "locks")
+
+	runtime := new(Runtime)
+	runtime.config = new(RuntimeConfig)
+	runtime.config.StorageConfig = storage.StoreOptions{}
+
+	state, err := NewBoltState(dbPath, lockDir, runtime)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	return state, tmpDir, lockDir, nil
+}
 
 // Get an empty in-memory state for use in tests
 func getEmptyInMemoryState() (s State, p string, p2 string, err error) {
