@@ -334,7 +334,6 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 		}
 
 		ctr.config.Pod = pod.ID()
-		ctr.pod = pod
 
 		return nil
 	}

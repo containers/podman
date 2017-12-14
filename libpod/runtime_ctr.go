@@ -72,25 +72,22 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
 
-	// If the container is in a pod, add it to the pod
-	if ctr.pod != nil {
-		if err := ctr.pod.addContainer(ctr); err != nil {
-			return nil, errors.Wrapf(err, "error adding new container to pod %s", ctr.pod.ID())
+	// Add the container to the state
+	// TODO: May be worth looking into recovering from name/ID collisions here
+	if ctr.config.Pod != "" {
+		// Get the pod from state
+		pod, err := r.state.Pod(ctr.config.Pod)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot add container %s to pod %s", ctr.ID(), ctr.config.Pod)
 		}
-	}
-	defer func() {
-		if err != nil && ctr.pod != nil {
-			if err2 := ctr.pod.removeContainer(ctr); err2 != nil {
-				logrus.Errorf("Error removing partially-created container from pod %s: %s", ctr.pod.ID(), err2)
-			}
-		}
-	}()
 
-	if err := r.state.AddContainer(ctr); err != nil {
-		// TODO: Might be worth making an effort to detect duplicate IDs and names
-		// We can recover from that by generating a new ID for the
-		// container
-		return nil, errors.Wrapf(err, "error adding new container to state")
+		if err := r.state.AddContainerToPod(pod, ctr); err != nil {
+			return nil, errors.Wrapf(err, "error adding new container to state")
+		}
+	} else {
+		if err := r.state.AddContainer(ctr); err != nil {
+			return nil, errors.Wrapf(err, "error adding new container to state")
+		}
 	}
 
 	return ctr, nil
@@ -161,24 +158,33 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return err
 	}
 
-	if err := r.state.RemoveContainer(c); err != nil {
-		return errors.Wrapf(err, "error removing container from state")
+	// Remove the container from the state
+	if c.config.Pod != "" {
+		pod, err := r.state.Pod(c.config.Pod)
+		if err != nil {
+			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), pod.ID())
+		}
+
+		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
+			return errors.Wrapf(err, "error removing container %s from state", c.ID())
+		}
+	} else {
+		if err := r.state.RemoveContainer(c); err != nil {
+			return errors.Wrapf(err, "error removing container from state")
+		}
 	}
 
 	// Delete the container
-	if err := r.ociRuntime.deleteContainer(c); err != nil {
-		return errors.Wrapf(err, "error removing container %s from runc", c.ID())
+	// Only do this if we're not ContainerStateConfigured - if we are,
+	// we haven't been created in runc yet
+	if c.state.State == ContainerStateConfigured {
+		if err := r.ociRuntime.deleteContainer(c); err != nil {
+			return errors.Wrapf(err, "error removing container %s from runc", c.ID())
+		}
 	}
 
 	// Set container as invalid so it can no longer be used
 	c.valid = false
-
-	// Remove container from pod, if it joined one
-	if c.pod != nil {
-		if err := c.pod.removeContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container from pod %s", c.pod.ID())
-		}
-	}
 
 	return nil
 }
