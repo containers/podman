@@ -28,7 +28,7 @@ var (
 	}
 	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
 	 Note remote tar balls can be specified, via web address.
-	 Optionally tag the image. You can specify the Dockerfile instructions using the --change option.
+	 Optionally tag the image. You can specify the instructions using the --change option.
 	`
 	importCommand = cli.Command{
 		Name:        "import",

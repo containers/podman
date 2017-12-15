@@ -47,7 +47,7 @@ func getImageData(img storage.Image, imgRef types.Image, size int64, driver *dri
 		RepoDigests:  repoDigests,
 		Comment:      ociv1Img.History[0].Comment,
 		Created:      ociv1Img.Created,
-		Author:       ociv1Img.History[0].Author,
+		Author:       ociv1Img.Author,
 		Architecture: ociv1Img.Architecture,
 		Os:           ociv1Img.OS,
 		Config:       &ociv1Img.Config,

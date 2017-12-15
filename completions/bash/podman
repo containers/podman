@@ -657,6 +657,33 @@ _podman_attach() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_commit() {
+    local options_with_args="
+	--author
+	-a
+	--change
+	-c
+	--message
+	-m
+     "
+    local boolean_options="
+	--help
+	-h
+	--pause
+	-p
+     "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_list_images
+            ;;
+    esac
+}
+
 _podman_diff() {
     local options_with_args="
      --format
@@ -1454,6 +1481,7 @@ _podman_podman() {
      "
      commands="
     attach
+    commit
     create
     diff
     exec
