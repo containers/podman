@@ -42,6 +42,6 @@ ${LINTER} \
 	--exclude='duplicate of.*_test.go.*\(dupl\)$'\
 	--exclude='cmd\/client\/.*\.go.*\(dupl\)$'\
 	--exclude='vendor\/.*'\
-	--exclude='kpod\/.*'\
+	--exclude='podman\/.*'\
 	--exclude='server\/seccomp\/.*\.go.*$'\
 	${PKGS[@]}

@@ -16,7 +16,7 @@
     cgroup_manager = "cgroupfs"
     hooks_dir_path = "/usr/share/containers/oci/hooks.d"
     pids_limit = 2048
-    container_exits_dir = "/var/run/kpod/exits"
+    container_exits_dir = "/var/run/podman/exits"
   [crio.image]
     default_transport = "docker://"
     pause_image = "kubernetes/pause"

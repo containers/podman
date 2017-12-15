@@ -17,7 +17,7 @@ else
     CRIO_ROOT=$(cd "$INTEGRATION_ROOT/.."; pwd -P)
 fi
 
-KPOD_BINARY=${KPOD_BINARY:-${CRIO_ROOT}/bin/kpod}
+PODMAN_BINARY=${PODMAN_BINARY:-${CRIO_ROOT}/bin/podman}
 # Path of the conmon binary.
 CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
 # Path of the default seccomp profile.
@@ -73,7 +73,7 @@ BB="docker.io/library/busybox:latest"
 ALPINE="docker.io/library/alpine:latest"
 FEDORA_MINIMAL="registry.fedoraproject.org/fedora-minimal:latest"
 
-# kpod pull needs a configuration file for shortname pulls
+# podman pull needs a configuration file for shortname pulls
 export REGISTRIES_CONFIG_PATH="$INTEGRATION_ROOT/registries.conf"
 
 # Setup default hooks dir
@@ -109,7 +109,7 @@ LIBPOD_CNI_PLUGIN=${LIBPOD_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
 
-KPOD_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
+PODMAN_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
 
 cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
@@ -160,7 +160,7 @@ function wait_until_reachable() {
 }
 
 function cleanup_test() {
-	run bash -c "${KPOD_BINARY} ${KPOD_OPTIONS} rm --force --all"
+	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm --force --all"
 	echo "$output"
 	rm -rf "$TESTDIR"
 }

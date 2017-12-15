@@ -4,7 +4,7 @@
 
 #### runc installed
 
-The latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by kpod.
+The latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by podman.
 
 #### Setup CNI networking
 
@@ -83,7 +83,7 @@ apt-get install -y \
 
 ### Get Source Code
 
-As with other Go projects, KPOD must be cloned into a directory structure like:
+As with other Go projects, PODMAN must be cloned into a directory structure like:
 
 ```
 GOPATH
@@ -117,7 +117,7 @@ make
 sudo make install
 ```
 
-Otherwise, if you do not want to build `kpod` with seccomp support you can add `BUILDTAGS=""` when running make.
+Otherwise, if you do not want to build `podman` with seccomp support you can add `BUILDTAGS=""` when running make.
 
 ```bash
 make BUILDTAGS=""
@@ -126,7 +126,7 @@ sudo make install
 
 #### Build Tags
 
-`kpod` supports optional build tags for compiling support of various features.
+`podman` supports optional build tags for compiling support of various features.
 To add build tags to the make option the `BUILDTAGS` variable must be set.
 
 ```bash

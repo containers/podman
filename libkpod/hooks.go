@@ -1,18 +1,19 @@
 package libkpod
 
+/*
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"syscall"
+		"os"
+		"path/filepath"
+		"regexp"
+		"strings"
+		"syscall"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+		"github.com/pkg/errors"
+		"github.com/sirupsen/logrus"
 )
-
+*/
 const (
 	// DefaultHooksDirPath Default directory containing hooks config files
 	DefaultHooksDirPath = "/usr/share/containers/oci/hooks.d"
