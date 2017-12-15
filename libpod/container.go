@@ -890,6 +890,10 @@ func (c *Container) Export(path string) error {
 		return err
 	}
 
+	return c.export(path)
+}
+
+func (c *Container) export(path string) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		mount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
@@ -965,8 +969,36 @@ func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit() (*storage.Image, error) {
-	return nil, ErrNotImplemented
+func (c *Container) Commit(pause bool, options CopyOptions) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateRunning && pause {
+		if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+			return errors.Wrapf(err, "error pausing container %q", c.ID())
+		}
+		defer func() {
+			if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
+			}
+		}()
+	}
+
+	tempFile, err := ioutil.TempFile(c.runtime.config.TmpDir, "podman-commit")
+	if err != nil {
+		return errors.Wrapf(err, "error creating temp file")
+	}
+	defer os.Remove(tempFile.Name())
+	defer tempFile.Close()
+
+	if err := c.export(tempFile.Name()); err != nil {
+		return err
+	}
+	return c.runtime.ImportImage(tempFile.Name(), options)
 }
 
 // Wait blocks on a container to exit and returns its exit code

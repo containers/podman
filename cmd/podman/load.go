@@ -73,8 +73,8 @@ func loadCmd(c *cli.Context) error {
 			if err != nil {
 				return errors.Errorf("error creating file %v", err)
 			}
-			defer outFile.Close()
 			defer os.Remove(outFile.Name())
+			defer outFile.Close()
 
 			inFile, err := os.OpenFile(input, 0, 0666)
 			if err != nil {
