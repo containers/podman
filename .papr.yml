@@ -12,7 +12,7 @@ required: true
 timeout: 45m
 
 tests:
-  - CRIO_ROOT=/var/tmp/checkout KPOD_BINARY=/usr/bin/kpod CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
+  - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
 
 packages:
     - bats

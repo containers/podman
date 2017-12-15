@@ -33,7 +33,7 @@ The post-stop hooks MUST be called after the container is deleted but before the
 
 ## CRI-O configuration files for automatically enabling Hooks
 
-The way you enable the hooks above is by editing the OCI Specification to add your hook before running the oci runtime, like runc.  But this is what `CRI-O` and `Kpod create` do for you, so we wanted a way for developers to drop configuration files onto the system, so that their hooks would be able to be plugged in.
+The way you enable the hooks above is by editing the OCI Specification to add your hook before running the oci runtime, like runc.  But this is what `CRI-O` and `podman create` do for you, so we wanted a way for developers to drop configuration files onto the system, so that their hooks would be able to be plugged in.
 
 One problem with hooks is that the runtime actually stalls execution of the container before running the hooks and stalls completion of the container, until all hooks complete.  This can cause some performance issues.  Also a lot of hooks just check if certain configuration is set and then exit early, without doing anything.  For example the [oci-systemd-hook](https://github.com/projectatomic/oci-systemd-hook) only executes if the command is `init` or `systemd`, otherwise it just exits.  This means if we automatically enable all hooks, every container will have to execute oci-systemd-hook, even if they don't run systemd inside of the container.   Also since there are three stages, prestart, poststart, poststop each hook gets executed three times.
 
