@@ -155,13 +155,8 @@ func genImagesFormat(format string, quiet, noHeading, digests bool) string {
 func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
-			fmt.Println(v)
-			fmt.Printf("%T\n", v)
 			genericParams = append(genericParams, interface{}(v))
 		}
-		fmt.Println("###")
-		fmt.Println(genericParams)
-		fmt.Println("###")
 		return
 	}
 	for _, v := range JSONParams {
@@ -183,9 +178,6 @@ func (i *imagesTemplateParams) headerMap() map[string]string {
 		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
-	fmt.Println("!!!")
-	fmt.Printf("%+v\n", values)
-	fmt.Println("!!!")
 	return values
 }
 
