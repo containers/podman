@@ -165,7 +165,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 			CPUQuota:             quota,
 			CPURealtimePeriod:    realtimePeriod,
 			CPURealtimeRuntime:   realtimeRuntime,
-			CPUSetCpus:           cpus,
+			CPUSetCPUs:           cpus,
 			CPUSetMems:           mems,
 			Devices:              spec.Linux.Devices,
 			KernelMemory:         memKernel,
@@ -187,9 +187,9 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 			AutoRemove:           createArtifact.Rm,
 			CapAdd:               createArtifact.CapAdd,
 			CapDrop:              createArtifact.CapDrop,
-			DNS:                  createArtifact.DnsServers,
-			DNSOptions:           createArtifact.DnsOpt,
-			DNSSearch:            createArtifact.DnsSearch,
+			DNS:                  createArtifact.DNSServers,
+			DNSOptions:           createArtifact.DNSOpt,
+			DNSSearch:            createArtifact.DNSSearch,
 			PidMode:              string(createArtifact.PidMode),
 			CgroupParent:         createArtifact.CgroupParent,
 			ShmSize:              createArtifact.Resources.ShmSize,
@@ -312,7 +312,7 @@ type HostConfig struct {
 	Isolation            string                      `json:"Isolation"` //TODO
 	CPUShares            *uint64                     `json:"CPUSShares"`
 	Memory               int64                       `json:"Memory"`
-	NanoCpus             int                         `json:"NanoCpus"` //check type, TODO
+	NanoCPUs             int                         `json:"NanoCPUs"` //check type, TODO
 	CgroupParent         string                      `json:"CgroupParent"`
 	BlkioWeight          *uint16                     `json:"BlkioWeight"`
 	BlkioWeightDevice    []specs.LinuxWeightDevice   `json:"BlkioWeightDevice"`
@@ -324,7 +324,7 @@ type HostConfig struct {
 	CPUQuota             *int64                      `json:"CPUQuota"`
 	CPURealtimePeriod    *uint64                     `json:"CPURealtimePeriod"`
 	CPURealtimeRuntime   *int64                      `json:"CPURealtimeRuntime"`
-	CPUSetCpus           string                      `json:"CPUSetCpus"`
+	CPUSetCPUs           string                      `json:"CPUSetCPUs"`
 	CPUSetMems           string                      `json:"CPUSetMems"`
 	Devices              []specs.LinuxDevice         `json:"Devices"`
 	DiskQuota            int                         `json:"DiskQuota"` //check type, TODO

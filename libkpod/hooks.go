@@ -29,6 +29,7 @@ type HookParams struct {
 	HasBindMounts bool     `json:"hasbindmounts"`
 }
 
+/*
 // readHook reads hooks json files, verifies it and returns the json config
 func readHook(hookPath string) (HookParams, error) {
 	var hook HookParams
@@ -96,3 +97,4 @@ func readHooks(hooksPath string, hooks map[string]HookParams) error {
 	}
 	return nil
 }
+*/

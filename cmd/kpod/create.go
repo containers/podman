@@ -39,14 +39,14 @@ var (
 type createResourceConfig struct {
 	BlkioWeight       uint16   // blkio-weight
 	BlkioWeightDevice []string // blkio-weight-device
-	CpuPeriod         uint64   // cpu-period
-	CpuQuota          int64    // cpu-quota
-	CpuRtPeriod       uint64   // cpu-rt-period
-	CpuRtRuntime      int64    // cpu-rt-runtime
-	CpuShares         uint64   // cpu-shares
-	Cpus              string   // cpus
-	CpusetCpus        string
-	CpusetMems        string   // cpuset-mems
+	CPUPeriod         uint64   // cpu-period
+	CPUQuota          int64    // cpu-quota
+	CPURtPeriod       uint64   // cpu-rt-period
+	CPURtRuntime      int64    // cpu-rt-runtime
+	CPUShares         uint64   // cpu-shares
+	CPUs              string   // cpus
+	CPUsetCPUs        string
+	CPUsetMems        string   // cpuset-mems
 	DeviceReadBps     []string // device-read-bps
 	DeviceReadIOps    []string // device-read-iops
 	DeviceWriteBps    []string // device-write-bps
@@ -73,9 +73,9 @@ type createConfig struct {
 	Command            []string
 	Detach             bool              // detach
 	Devices            []*pb.Device      // device
-	DnsOpt             []string          //dns-opt
-	DnsSearch          []string          //dns-search
-	DnsServers         []string          //dns
+	DNSOpt             []string          //dns-opt
+	DNSSearch          []string          //dns-search
+	DNSServers         []string          //dns
 	Entrypoint         string            //entrypoint
 	Env                map[string]string //env
 	Expose             []string          //expose
@@ -84,8 +84,8 @@ type createConfig struct {
 	Image              string
 	Interactive        bool                  //interactive
 	IpcMode            container.IpcMode     //ipc
-	Ip6Address         string                //ipv6
-	IpAddress          string                //ip
+	IP6Address         string                //ipv6
+	IPAddress          string                //ip
 	Labels             map[string]string     //label
 	LinkLocalIP        []string              // link-local-ip
 	LogDriver          string                // log-driver
@@ -419,9 +419,9 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		CgroupParent:   c.String("cgroup-parent"),
 		Command:        command,
 		Detach:         c.Bool("detach"),
-		DnsOpt:         c.StringSlice("dns-opt"),
-		DnsSearch:      c.StringSlice("dns-search"),
-		DnsServers:     c.StringSlice("dns"),
+		DNSOpt:         c.StringSlice("dns-opt"),
+		DNSSearch:      c.StringSlice("dns-search"),
+		DNSServers:     c.StringSlice("dns"),
 		Entrypoint:     c.String("entrypoint"),
 		Env:            env,
 		Expose:         c.StringSlice("expose"),
@@ -429,8 +429,8 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Hostname:       c.String("hostname"),
 		Image:          image,
 		Interactive:    c.Bool("interactive"),
-		Ip6Address:     c.String("ipv6"),
-		IpAddress:      c.String("ip"),
+		IP6Address:     c.String("ipv6"),
+		IPAddress:      c.String("ip"),
 		Labels:         labels,
 		LinkLocalIP:    c.StringSlice("link-local-ip"),
 		LogDriver:      c.String("log-driver"),
@@ -451,14 +451,14 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Resources: createResourceConfig{
 			BlkioWeight:       blkioWeight,
 			BlkioWeightDevice: c.StringSlice("blkio-weight-device"),
-			CpuShares:         c.Uint64("cpu-shares"),
-			CpuPeriod:         c.Uint64("cpu-period"),
-			CpusetCpus:        c.String("cpu-period"),
-			CpusetMems:        c.String("cpuset-mems"),
-			CpuQuota:          c.Int64("cpu-quota"),
-			CpuRtPeriod:       c.Uint64("cpu-rt-period"),
-			CpuRtRuntime:      c.Int64("cpu-rt-runtime"),
-			Cpus:              c.String("cpus"),
+			CPUShares:         c.Uint64("cpu-shares"),
+			CPUPeriod:         c.Uint64("cpu-period"),
+			CPUsetCPUs:        c.String("cpu-period"),
+			CPUsetMems:        c.String("cpuset-mems"),
+			CPUQuota:          c.Int64("cpu-quota"),
+			CPURtPeriod:       c.Uint64("cpu-rt-period"),
+			CPURtRuntime:      c.Int64("cpu-rt-runtime"),
+			CPUs:              c.String("cpus"),
 			DeviceReadBps:     c.StringSlice("device-read-bps"),
 			DeviceReadIOps:    c.StringSlice("device-read-iops"),
 			DeviceWriteBps:    c.StringSlice("device-write-bps"),

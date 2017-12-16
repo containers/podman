@@ -164,8 +164,8 @@ func psDataToPSParams(data []string, headers []string) ([]PSParams, error) {
 
 //PSParams is a list of options that the command line ps recognizes
 type PSParams struct {
-	CPU     string `json: "%CPU"`
-	MEM     string `json: "%MEM"`
+	CPU     string
+	MEM     string
 	COMMAND string
 	BLOCKED string
 	START   string

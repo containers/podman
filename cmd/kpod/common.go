@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	is "github.com/containers/image/storage"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
@@ -20,22 +19,6 @@ var (
 )
 
 const crioConfigPath = "/etc/crio/crio.conf"
-
-func getStore(c *libkpod.Config) (storage.Store, error) {
-	options := storage.DefaultStoreOptions
-	options.GraphRoot = c.Root
-	options.RunRoot = c.RunRoot
-	options.GraphDriverName = c.Storage
-	options.GraphDriverOptions = c.StorageOptions
-
-	store, err := storage.GetStore(options)
-	if err != nil {
-		return nil, err
-	}
-	is.Transport.SetStore(store)
-	stores[store] = struct{}{}
-	return store, nil
-}
 
 func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 
