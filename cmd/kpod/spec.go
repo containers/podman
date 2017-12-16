@@ -211,26 +211,26 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 
 	// RESOURCES - CPU
 
-	if config.Resources.CpuShares != 0 {
-		g.SetLinuxResourcesCPUShares(config.Resources.CpuShares)
+	if config.Resources.CPUShares != 0 {
+		g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
 	}
-	if config.Resources.CpuQuota != 0 {
-		g.SetLinuxResourcesCPUQuota(config.Resources.CpuQuota)
+	if config.Resources.CPUQuota != 0 {
+		g.SetLinuxResourcesCPUQuota(config.Resources.CPUQuota)
 	}
-	if config.Resources.CpuPeriod != 0 {
-		g.SetLinuxResourcesCPUPeriod(config.Resources.CpuPeriod)
+	if config.Resources.CPUPeriod != 0 {
+		g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
 	}
-	if config.Resources.CpuRtRuntime != 0 {
-		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CpuRtRuntime)
+	if config.Resources.CPURtRuntime != 0 {
+		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
 	}
-	if config.Resources.CpuRtPeriod != 0 {
-		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CpuRtPeriod)
+	if config.Resources.CPURtPeriod != 0 {
+		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
 	}
-	if config.Resources.Cpus != "" {
-		g.SetLinuxResourcesCPUCpus(config.Resources.Cpus)
+	if config.Resources.CPUs != "" {
+		g.SetLinuxResourcesCPUCpus(config.Resources.CPUs)
 	}
-	if config.Resources.CpusetMems != "" {
-		g.SetLinuxResourcesCPUMems(config.Resources.CpusetMems)
+	if config.Resources.CPUsetMems != "" {
+		g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
 	}
 
 	// SECURITY OPTS

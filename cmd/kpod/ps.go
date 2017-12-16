@@ -557,17 +557,6 @@ func getStrFromSquareBrackets(cmd string) string {
 	return strings.Join(arr, ",")
 }
 
-// getImageName shortens the image name
-func getImageName(img string) string {
-	arr := strings.Split(img, "/")
-	if arr[0] == "docker.io" && arr[1] == "library" {
-		img = strings.Join(arr[2:], "/")
-	} else if arr[0] == "docker.io" {
-		img = strings.Join(arr[1:], "/")
-	}
-	return img
-}
-
 // getLabels converts the labels to a string of the form "key=value, key2=value2"
 func formatLabels(labels map[string]string) string {
 	var arr []string
@@ -581,6 +570,7 @@ func formatLabels(labels map[string]string) string {
 	return ""
 }
 
+/*
 // getMounts converts the volumes mounted to a string of the form "mount1, mount2"
 // it truncates it if noTrunc is false
 func getMounts(mounts []specs.Mount, noTrunc bool) string {
@@ -602,7 +592,6 @@ func getMounts(mounts []specs.Mount, noTrunc bool) string {
 	}
 	return strings.Join(arr, ",")
 }
-
 // getPorts converts the ports used to a string of the from "port1, port2"
 func getPorts(ports map[string]struct{}) string {
 	var arr []string
@@ -614,71 +603,4 @@ func getPorts(ports map[string]struct{}) string {
 	}
 	return strings.Join(arr, ",")
 }
-
-// FilterParamsPS contains the filter options for ps
-type FilterParamsPS struct {
-	id       string
-	label    string
-	name     string
-	exited   int32
-	status   string
-	ancestor string
-	before   time.Time
-	since    time.Time
-	volume   string
-}
-
-// parseFilter takes a filter string and a list of containers and filters it
-func parseFilter(filter string, containers []*libpod.Container) (*FilterParamsPS, error) {
-	params := new(FilterParamsPS)
-	allFilters := strings.Split(filter, ",")
-
-	for _, param := range allFilters {
-		pair := strings.SplitN(param, "=", 2)
-		switch strings.TrimSpace(pair[0]) {
-		case "id":
-			params.id = pair[1]
-		case "label":
-			params.label = pair[1]
-		case "name":
-			params.name = pair[1]
-		case "exited":
-			exitedCode, err := strconv.ParseInt(pair[1], 10, 32)
-			if err != nil {
-				return nil, errors.Errorf("exited code out of range %q", pair[1])
-			}
-			params.exited = int32(exitedCode)
-		case "status":
-			params.status = pair[1]
-		case "ancestor":
-			params.ancestor = pair[1]
-		case "before":
-			if ctr, err := findContainer(containers, pair[1]); err == nil {
-				params.before = ctr.Config().CreatedTime
-			} else {
-				return nil, errors.Wrapf(err, "no such container %q", pair[1])
-			}
-		case "since":
-			if ctr, err := findContainer(containers, pair[1]); err == nil {
-				params.before = ctr.Config().CreatedTime
-			} else {
-				return nil, errors.Wrapf(err, "no such container %q", pair[1])
-			}
-		case "volume":
-			params.volume = pair[1]
-		default:
-			return nil, errors.Errorf("invalid filter %q", pair[0])
-		}
-	}
-	return params, nil
-}
-
-// findContainer finds a container with a specific name or id from a list of containers
-func findContainer(containers []*libpod.Container, ref string) (*libpod.Container, error) {
-	for _, ctr := range containers {
-		if strings.HasPrefix(ctr.ID(), ref) || ctr.Name() == ref {
-			return ctr, nil
-		}
-	}
-	return nil, errors.Errorf("could not find container")
-}
+*/

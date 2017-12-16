@@ -170,43 +170,43 @@ func verifyContainerResources(config *createConfig, update bool) ([]string, erro
 		config.Resources.PidsLimit = 0
 	}
 
-	if config.Resources.CpuShares > 0 && !sysInfo.CPUShares {
+	if config.Resources.CPUShares > 0 && !sysInfo.CPUShares {
 		warnings = addWarning(warnings, "Your kernel does not support CPU shares or the cgroup is not mounted. Shares discarded.")
-		config.Resources.CpuShares = 0
+		config.Resources.CPUShares = 0
 	}
-	if config.Resources.CpuPeriod > 0 && !sysInfo.CPUCfsPeriod {
+	if config.Resources.CPUPeriod > 0 && !sysInfo.CPUCfsPeriod {
 		warnings = addWarning(warnings, "Your kernel does not support CPU cfs period or the cgroup is not mounted. Period discarded.")
-		config.Resources.CpuPeriod = 0
+		config.Resources.CPUPeriod = 0
 	}
-	if config.Resources.CpuPeriod != 0 && (config.Resources.CpuPeriod < 1000 || config.Resources.CpuPeriod > 1000000) {
+	if config.Resources.CPUPeriod != 0 && (config.Resources.CPUPeriod < 1000 || config.Resources.CPUPeriod > 1000000) {
 		return warnings, fmt.Errorf("CPU cfs period can not be less than 1ms (i.e. 1000) or larger than 1s (i.e. 1000000)")
 	}
-	if config.Resources.CpuQuota > 0 && !sysInfo.CPUCfsQuota {
+	if config.Resources.CPUQuota > 0 && !sysInfo.CPUCfsQuota {
 		warnings = addWarning(warnings, "Your kernel does not support CPU cfs quota or the cgroup is not mounted. Quota discarded.")
-		config.Resources.CpuQuota = 0
+		config.Resources.CPUQuota = 0
 	}
-	if config.Resources.CpuQuota > 0 && config.Resources.CpuQuota < 1000 {
+	if config.Resources.CPUQuota > 0 && config.Resources.CPUQuota < 1000 {
 		return warnings, fmt.Errorf("CPU cfs quota can not be less than 1ms (i.e. 1000)")
 	}
 	// cpuset subsystem checks and adjustments
-	if (config.Resources.CpusetCpus != "" || config.Resources.CpusetMems != "") && !sysInfo.Cpuset {
-		warnings = addWarning(warnings, "Your kernel does not support cpuset or the cgroup is not mounted. Cpuset discarded.")
-		config.Resources.CpusetCpus = ""
-		config.Resources.CpusetMems = ""
+	if (config.Resources.CPUsetCPUs != "" || config.Resources.CPUsetMems != "") && !sysInfo.Cpuset {
+		warnings = addWarning(warnings, "Your kernel does not support cpuset or the cgroup is not mounted. CPUset discarded.")
+		config.Resources.CPUsetCPUs = ""
+		config.Resources.CPUsetMems = ""
 	}
-	cpusAvailable, err := sysInfo.IsCpusetCpusAvailable(config.Resources.CpusetCpus)
+	cpusAvailable, err := sysInfo.IsCpusetCpusAvailable(config.Resources.CPUsetCPUs)
 	if err != nil {
-		return warnings, fmt.Errorf("invalid value %s for cpuset cpus", config.Resources.CpusetCpus)
+		return warnings, fmt.Errorf("invalid value %s for cpuset cpus", config.Resources.CPUsetCPUs)
 	}
 	if !cpusAvailable {
-		return warnings, fmt.Errorf("requested CPUs are not available - requested %s, available: %s", config.Resources.CpusetCpus, sysInfo.Cpus)
+		return warnings, fmt.Errorf("requested CPUs are not available - requested %s, available: %s", config.Resources.CPUsetCPUs, sysInfo.Cpus)
 	}
-	memsAvailable, err := sysInfo.IsCpusetMemsAvailable(config.Resources.CpusetMems)
+	memsAvailable, err := sysInfo.IsCpusetMemsAvailable(config.Resources.CPUsetMems)
 	if err != nil {
-		return warnings, fmt.Errorf("invalid value %s for cpuset mems", config.Resources.CpusetMems)
+		return warnings, fmt.Errorf("invalid value %s for cpuset mems", config.Resources.CPUsetMems)
 	}
 	if !memsAvailable {
-		return warnings, fmt.Errorf("requested memory nodes are not available - requested %s, available: %s", config.Resources.CpusetMems, sysInfo.Mems)
+		return warnings, fmt.Errorf("requested memory nodes are not available - requested %s, available: %s", config.Resources.CPUsetMems, sysInfo.Mems)
 	}
 
 	// blkio subsystem checks and adjustments
