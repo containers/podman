@@ -4,7 +4,6 @@ load helpers
 
 IMAGE="redis:alpine"
 function setup() {
-    prepare_network_conf
     copy_images
 }
 

@@ -73,14 +73,11 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
 		return g.RemoveLinuxNamespace(libpod.NetNamespace)
-	}
-	if netMode.IsNone() {
+	} else if netMode.IsNone() {
 		return libpod.ErrNotImplemented
-	}
-	if netMode.IsBridge() {
-		return libpod.ErrNotImplemented
-	}
-	if netMode.IsContainer() {
+	} else if netMode.IsBridge() {
+		return nil
+	} else if netMode.IsContainer() {
 		ctr, err := config.Runtime.LookupContainer(netMode.ConnectedContainer())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", netMode.ConnectedContainer())
@@ -93,6 +90,8 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 		if err := g.AddOrReplaceLinuxNamespace(libpod.NetNamespace, nsPath); err != nil {
 			return err
 		}
+	} else {
+		return errors.Errorf("unknown network mode")
 	}
 	return nil
 }
@@ -531,8 +530,9 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 	// TODO parse ports into libpod format and include
-	// TODO should not happen if --net=host
-	options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
+	if c.NetMode.IsBridge() {
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
+	}
 
 	return options, nil
 }
