@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/docker/go-connections/nat"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
@@ -287,7 +288,7 @@ type HostConfig struct {
 	ContainerIDFile      string                      `json:"ContainerIDFile"`
 	LogConfig            *LogConfig                  `json:"LogConfig"` //TODO
 	NetworkMode          string                      `json:"NetworkMode"`
-	PortBindings         map[string]struct{}         `json:"PortBindings"` //TODO
+	PortBindings         nat.PortMap                 `json:"PortBindings"` //TODO
 	AutoRemove           bool                        `json:"AutoRemove"`
 	CapAdd               []string                    `json:"CapAdd"`
 	CapDrop              []string                    `json:"CapDrop"`

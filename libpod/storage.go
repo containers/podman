@@ -200,7 +200,7 @@ func (r *storageService) GetContainerMetadata(idOrName string) (RuntimeContainer
 	return metadata, nil
 }
 
-func (r *storageService) StartContainer(idOrName string) (string, error) {
+func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 	container, err := r.store.Container(idOrName)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrContainerUnknown {
@@ -221,7 +221,7 @@ func (r *storageService) StartContainer(idOrName string) (string, error) {
 	return mountPoint, nil
 }
 
-func (r *storageService) StopContainer(idOrName string) error {
+func (r *storageService) UnmountContainerImage(idOrName string) error {
 	if idOrName == "" {
 		return ErrEmptyID
 	}

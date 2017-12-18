@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
+	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
@@ -153,7 +154,8 @@ type ContainerConfig struct {
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
-
+	// User/GID to use within the container
+	User string `json:"user"`
 	// TODO save log location here and pass into OCI code
 	// TODO allow overriding of log path
 }
@@ -440,7 +442,6 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 
 	ctr.config.Spec = new(spec.Spec)
 	deepcopier.Copy(rspec).To(ctr.config.Spec)
-
 	ctr.config.CreatedTime = time.Now()
 
 	// Path our lock file will reside at
@@ -606,6 +607,20 @@ func (c *Container) Init() (err error) {
 	g.AddBindMount(runDirResolv, "/etc/resolv.conf", []string{"rw"})
 	// Bind mount hosts
 	g.AddBindMount(runDirHosts, "/etc/hosts", []string{"rw"})
+
+	if c.config.User != "" {
+		if !c.state.Mounted {
+			return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
+		}
+		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
+		if err != nil {
+			return err
+		}
+		// User and Group must go together
+		g.SetProcessUID(uid)
+		g.SetProcessGID(gid)
+	}
+
 	c.runningSpec = g.Spec()
 	c.runningSpec.Root.Path = c.state.Mountpoint
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
@@ -1070,7 +1085,7 @@ func (c *Container) mountStorage() (err error) {
 		}
 	}
 
-	mountPoint, err := c.runtime.storageService.StartContainer(c.ID())
+	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
 	}
@@ -1116,7 +1131,7 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	// Also unmount storage
-	if err := c.runtime.storageService.StopContainer(c.ID()); err != nil {
+	if err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
 		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
 	}
 

@@ -193,9 +193,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g.SetProcessCwd(config.WorkDir)
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
-	// User and Group must go together
-	g.SetProcessUID(config.User)
-	g.SetProcessGID(config.Group)
 	for _, gid := range config.GroupAdd {
 		g.AddProcessAdditionalGid(gid)
 	}
