@@ -21,7 +21,6 @@ const (
 	cniConfigDir        = "/etc/cni/net.d/"
 	cniBinDir           = "/usr/libexec/cni/"
 	cgroupManager       = "" //oci.CgroupfsCgroupsManager
-	lockPath            = "/run/crio.lock"
 	containerExitsDir   = "" //oci.ContainerExitsDir
 )
 

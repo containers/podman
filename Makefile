@@ -24,7 +24,7 @@ COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
 
-KPOD_VERSION := ${shell cat ./KPOD_VERSION}
+PODMAN_VERSION := ${shell cat ./PODMAN_VERSION}
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -38,9 +38,9 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
 BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
-KPOD_LDFLAGS := -X main.kpodVersion=${KPOD_VERSION}
+PODMAN_LDFLAGS := -X main.podmanVersion=${PODMAN_VERSION}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
-LDFLAGS_KPOD := -ldflags '${BASE_LDFLAGS} ${KPOD_LDFLAGS}'
+LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS} ${PODMAN_LDFLAGS}'
 
 BOX="fedora_atomic"
 
@@ -52,7 +52,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build conmon and kpod"
+	@echo " * 'binaries' - Build conmon and podman"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -87,8 +87,8 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-kpod: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/kpod $(PROJECT))
-	$(GO) build -i $(LDFLAGS_KPOD) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/kpod
+podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT))
+	$(GO) build -i $(LDFLAGS_PODMAN) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 clean:
 ifneq ($(GOPATH),)
@@ -99,7 +99,7 @@ endif
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f bin/kpod
+	rm -f bin/podman
 	make -C conmon clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
@@ -123,7 +123,7 @@ localintegration: test-binaries
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: conmon kpod
+binaries: conmon podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -138,7 +138,7 @@ docs: $(MANPAGES)
 install: .gopathok install.bin install.man
 
 install.bin:
-	install ${SELINUXOPT} -D -m 755 bin/kpod $(BINDIR)/kpod
+	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 
 install.man:
@@ -151,7 +151,7 @@ install.config:
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 -D completions/bash/kpod ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 -D completions/bash/podman ${BASHINSTALLDIR}
 
 uninstall:
 	rm -f $(LIBEXECDIR)/crio/conmon

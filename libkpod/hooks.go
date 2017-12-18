@@ -1,18 +1,19 @@
 package libkpod
 
+/*
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"syscall"
+		"os"
+		"path/filepath"
+		"regexp"
+		"strings"
+		"syscall"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+		"github.com/pkg/errors"
+		"github.com/sirupsen/logrus"
 )
-
+*/
 const (
 	// DefaultHooksDirPath Default directory containing hooks config files
 	DefaultHooksDirPath = "/usr/share/containers/oci/hooks.d"
@@ -29,6 +30,7 @@ type HookParams struct {
 	HasBindMounts bool     `json:"hasbindmounts"`
 }
 
+/*
 // readHook reads hooks json files, verifies it and returns the json config
 func readHook(hookPath string) (HookParams, error) {
 	var hook HookParams
@@ -96,3 +98,4 @@ func readHooks(hooksPath string, hooks map[string]HookParams) error {
 	}
 	return nil
 }
+*/
