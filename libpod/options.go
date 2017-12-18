@@ -307,6 +307,19 @@ func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	}
 }
 
+// WithUser sets the user identity field in configutation
+// Valid uses [user | user:group | uid | uid:gid | user:gid | uid:group ]
+func WithUser(user string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.User = user
+		return nil
+	}
+}
+
 // WithRootFSFromImage sets up a fresh root filesystem using the given image
 // If useImageConfig is specified, image volumes, environment variables, and
 // other configuration from the image will be added to the config

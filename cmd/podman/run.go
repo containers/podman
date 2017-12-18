@@ -1,9 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -26,7 +25,6 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
-	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -41,51 +39,10 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	createImage := runtime.NewImage(createConfig.Image)
-	createImage.LocalName, _ = createImage.GetLocalImageName()
-	if createImage.LocalName == "" {
-		// The image wasnt found by the user input'd name or its fqname
-		// Pull the image
-		var writer io.Writer
-		if !createConfig.Quiet {
-			writer = os.Stdout
-		}
-		createImage.Pull(writer)
-	}
-
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
 	if err != nil {
 		return err
 	}
-	logrus.Debug("spec is ", runtimeSpec)
-
-	if createImage.LocalName != "" {
-		nameIsID, err := runtime.IsImageID(createImage.LocalName)
-		if err != nil {
-			return err
-		}
-		if nameIsID {
-			// If the input from the user is an ID, then we need to get the image
-			// name for cstorage
-			createImage.LocalName, err = createImage.GetNameByID()
-			if err != nil {
-				return err
-			}
-		}
-		imageName = createImage.LocalName
-	} else {
-		imageName, err = createImage.GetFQName()
-	}
-	if err != nil {
-		return err
-	}
-	logrus.Debug("imageName is ", imageName)
-
-	imageID, err := createImage.GetImageID()
-	if err != nil {
-		return err
-	}
-	logrus.Debug("imageID is ", imageID)
 
 	options, err := createConfig.GetContainerCreateOptions()
 	if err != nil {
@@ -93,8 +50,10 @@ func runCmd(c *cli.Context) error {
 	}
 
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
+	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, true))
 	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
+	options = append(options, libpod.WithLabels(createConfig.Labels))
+	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
@@ -106,6 +65,16 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 	logrus.Debugf("container storage created for %q", ctr.ID())
+
+	createConfigJSON, err := json.Marshal(createConfig)
+	if err != nil {
+		return err
+	}
+	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
+		return err
+	}
+
+	logrus.Debug("new container created ", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		libpod.WriteFile(ctr.ID(), c.String("cidfile"))

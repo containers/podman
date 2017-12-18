@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -80,10 +81,11 @@ type createConfig struct {
 	DNSServers         []string          //dns
 	Entrypoint         string            //entrypoint
 	Env                map[string]string //env
-	Expose             []string          //expose
-	GroupAdd           []uint32          // group-add
-	Hostname           string            //hostname
+	ExposedPorts       map[nat.Port]struct{}
+	GroupAdd           []uint32 // group-add
+	Hostname           string   //hostname
 	Image              string
+	ImageID            string
 	Interactive        bool                  //interactive
 	IpcMode            container.IpcMode     //ipc
 	IP6Address         string                //ipv6
@@ -99,7 +101,8 @@ type createConfig struct {
 	NetworkAlias       []string              //network-alias
 	PidMode            container.PidMode     //pid
 	NsUser             string
-	Pod                string   //pod
+	Pod                string //pod
+	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
 	PublishAll         bool     //publish-all
@@ -115,8 +118,7 @@ type createConfig struct {
 	Sysctl             map[string]string //sysctl
 	Tmpfs              []string          // tmpfs
 	Tty                bool              //tty
-	User               uint32            //user
-	Group              uint32            // group
+	User               string            //user
 	UtsMode            container.UTSMode //uts
 	Volumes            []string          //volume
 	WorkDir            string            //workdir
@@ -148,7 +150,6 @@ var createCommand = cli.Command{
 func createCmd(c *cli.Context) error {
 	// TODO should allow user to create based off a directory on the host not just image
 	// Need CLI support for this
-	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -164,44 +165,7 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 
-	// Deal with the image after all the args have been checked
-	createImage := runtime.NewImage(createConfig.Image)
-	createImage.LocalName, _ = createImage.GetLocalImageName()
-	if createImage.LocalName == "" {
-		// The image wasnt found by the user input'd name or its fqname
-		// Pull the image
-		var writer io.Writer
-		if !createConfig.Quiet {
-			writer = os.Stdout
-		}
-		createImage.Pull(writer)
-	}
-
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
-	if err != nil {
-		return err
-	}
-	if createImage.LocalName != "" {
-		nameIsID, err := runtime.IsImageID(createImage.LocalName)
-		if err != nil {
-			return err
-		}
-		if nameIsID {
-			// If the input from the user is an ID, then we need to get the image
-			// name for cstorage
-			createImage.LocalName, err = createImage.GetNameByID()
-			if err != nil {
-				return err
-			}
-		}
-		imageName = createImage.LocalName
-	} else {
-		imageName, err = createImage.GetFQName()
-	}
-	if err != nil {
-		return err
-	}
-	imageID, err := createImage.GetImageID()
 	if err != nil {
 		return err
 	}
@@ -210,8 +174,10 @@ func createCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(imageID, imageName, false))
+	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, true))
 	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
+	options = append(options, libpod.WithLabels(createConfig.Labels))
+	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
@@ -300,13 +266,101 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 	return err
 }
 
+func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
+	// TODO Handle exposed ports from image
+	// Currently ignoring imageExposedPorts
+
+	ports, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, e := range c.StringSlice("expose") {
+		// Merge in exposed ports to the map of published ports
+		if strings.Contains(e, ":") {
+			return nil, nil, fmt.Errorf("invalid port format for --expose: %s", e)
+		}
+		//support two formats for expose, original format <portnum>/[<proto>] or <startport-endport>/[<proto>]
+		proto, port := nat.SplitProtoPort(e)
+		//parse the start and end port and create a sequence of ports to expose
+		//if expose a port, the start and end port are the same
+		start, end, err := nat.ParsePortRange(port)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid range format for --expose: %s, error: %s", e, err)
+		}
+		for i := start; i <= end; i++ {
+			p, err := nat.NewPort(proto, strconv.FormatUint(i, 10))
+			if err != nil {
+				return nil, nil, err
+			}
+			if _, exists := ports[p]; !exists {
+				ports[p] = struct{}{}
+			}
+		}
+	}
+	return ports, portBindings, nil
+}
+
+// imageData pulls down the image if not stored locally and extracts the
+// default container runtime data out of it. imageData returns the data
+// to the caller.  Example Data: Entrypoint, Env, WorkingDir, Labels ...
+func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, string, *libpod.ImageData, error) {
+	var err error
+	// Deal with the image after all the args have been checked
+	createImage := runtime.NewImage(image)
+	createImage.LocalName, _ = createImage.GetLocalImageName()
+	if createImage.LocalName == "" {
+		// The image wasnt found by the user input'd name or its fqname
+		// Pull the image
+		var writer io.Writer
+		if !c.Bool("quiet") {
+			writer = os.Stdout
+		}
+		createImage.Pull(writer)
+	}
+
+	var imageName string
+	if createImage.LocalName != "" {
+		nameIsID, err := runtime.IsImageID(createImage.LocalName)
+		if err != nil {
+			return "", "", nil, err
+		}
+		if nameIsID {
+			// If the input from the user is an ID, then we need to get the image
+			// name for cstorage
+			createImage.LocalName, err = createImage.GetNameByID()
+			if err != nil {
+				return "", "", nil, err
+			}
+		}
+		imageName = createImage.LocalName
+	} else {
+		imageName, err = createImage.GetFQName()
+	}
+	if err != nil {
+		return "", "", nil, err
+	}
+	imageID, err := createImage.GetImageID()
+	if err != nil {
+		return "", "", nil, err
+	}
+	storageImage, err := runtime.GetImage(image)
+	if err != nil {
+		return "", "", nil, errors.Wrapf(err, "error getting storage image %q", image)
+	}
+	data, err := runtime.GetImageInspectInfo(*storageImage)
+	if err != nil {
+		return "", "", nil, errors.Wrapf(err, "error parsing image data %q", image)
+	}
+	return imageName, imageID, data, err
+}
+
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, error) {
 	var command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16
-	var uid, gid uint32
 
 	if len(c.Args()) < 1 {
 		return nil, errors.Errorf("image name or ID is required")
@@ -317,33 +371,14 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		command = c.Args()[1:]
 	}
 
-	// LABEL VARIABLES
-	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("labels"))
-	if err != nil {
-		return &createConfig{}, errors.Wrapf(err, "unable to process labels")
-	}
-	// ENVIRONMENT VARIABLES
-	env := defaultEnvVariables
-	if err := readKVStrings(env, c.StringSlice("env-file"), c.StringSlice("env")); err != nil {
-		return &createConfig{}, errors.Wrapf(err, "unable to process environment variables")
-	}
-
 	sysctl, err := convertStringSliceToMap(c.StringSlice("sysctl"), "=")
 	if err != nil {
-		return &createConfig{}, errors.Wrapf(err, "sysctl values must be in the form of KEY=VALUE")
+		return nil, errors.Wrapf(err, "sysctl values must be in the form of KEY=VALUE")
 	}
 
 	groupAdd, err := stringSlicetoUint32Slice(c.StringSlice("group-add"))
 	if err != nil {
-		return &createConfig{}, errors.Wrapf(err, "invalid value for groups provided")
-	}
-
-	if c.String("user") != "" {
-		// TODO
-		// We need to mount the imagefs and get the uid/gid
-		// For now, user zeros
-		uid = 0
-		gid = 0
+		return nil, errors.Wrapf(err, "invalid value for groups provided")
 	}
 
 	if c.String("memory") != "" {
@@ -417,12 +452,77 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		}
 		shmDir = ctr.ShmDir()
 	}
-	stopSignal := syscall.SIGTERM
+
+	imageName, imageID, data, err := imageData(c, runtime, image)
+	if err != nil {
+		return nil, err
+	}
+
+	// USER
+	user := c.String("user")
+	if user == "" {
+		user = data.Config.User
+	}
+
+	// STOP SIGNAL
+	stopSignal := syscall.SIGINT
+	signalString := data.Config.StopSignal
 	if c.IsSet("stop-signal") {
-		stopSignal, err = signal.ParseSignal(c.String("stop-signal"))
+		signalString = c.String("stop-signal")
+	}
+	if signalString != "" {
+		stopSignal, err = signal.ParseSignal(signalString)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// ENVIRONMENT VARIABLES
+	env := defaultEnvVariables
+	for _, e := range data.Config.Env {
+		split := strings.SplitN(e, "=", 2)
+		if len(split) > 1 {
+			env[split[0]] = split[1]
+		} else {
+			env[split[0]] = ""
+		}
+	}
+	if err := readKVStrings(env, c.StringSlice("env-file"), c.StringSlice("env")); err != nil {
+		return nil, errors.Wrapf(err, "unable to process environment variables")
+	}
+
+	// LABEL VARIABLES
+	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("labels"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to process labels")
+	}
+	for key, val := range data.Config.Labels {
+		if _, ok := labels[key]; !ok {
+			labels[key] = val
+		}
+	}
+
+	// WORKING DIRECTORY
+	workDir := c.String("workdir")
+	if workDir == "" {
+		workDir = data.Config.WorkingDir
+	}
+
+	// COMMAND
+	if len(command) == 0 {
+		command = data.Config.Cmd
+	}
+
+	// ENTRYPOINT
+	entrypoint := c.String("entrypoint")
+	if entrypoint == "" {
+		entrypoint = strings.Join(data.Config.Entrypoint, " ")
+	}
+
+	// EXPOSED PORTS
+	ports, portBindings, err := exposedPorts(c, data.Config.ExposedPorts)
+	if err != nil {
+		return nil, err
 	}
 
 	config := &createConfig{
@@ -436,12 +536,13 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		DNSOpt:         c.StringSlice("dns-opt"),
 		DNSSearch:      c.StringSlice("dns-search"),
 		DNSServers:     c.StringSlice("dns"),
-		Entrypoint:     c.String("entrypoint"),
+		Entrypoint:     entrypoint,
 		Env:            env,
-		Expose:         c.StringSlice("expose"),
+		ExposedPorts:   ports,
 		GroupAdd:       groupAdd,
 		Hostname:       c.String("hostname"),
-		Image:          image,
+		Image:          imageName,
+		ImageID:        imageID,
 		Interactive:    c.Bool("interactive"),
 		IP6Address:     c.String("ipv6"),
 		IPAddress:      c.String("ip"),
@@ -461,6 +562,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Privileged:     c.Bool("privileged"),
 		Publish:        c.StringSlice("publish"),
 		PublishAll:     c.Bool("publish-all"),
+		PortBindings:   portBindings,
 		Quiet:          c.Bool("quiet"),
 		ReadOnlyRootfs: c.Bool("read-only"),
 		Resources: createResourceConfig{
@@ -499,10 +601,9 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Sysctl:      sysctl,
 		Tmpfs:       c.StringSlice("tmpfs"),
 		Tty:         tty,
-		User:        uid,
-		Group:       gid,
+		User:        user,
 		Volumes:     c.StringSlice("volume"),
-		WorkDir:     c.String("workdir"),
+		WorkDir:     workDir,
 	}
 
 	if !config.Privileged {
