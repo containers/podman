@@ -227,20 +227,20 @@ func parseOptions(options []string) (*overlayOptions, error) {
 		}
 		key = strings.ToLower(key)
 		switch key {
-		case "overlay.override_kernel_check", "overlay2.override_kernel_check":
+		case ".override_kernel_check", "overlay.override_kernel_check", "overlay2.override_kernel_check":
 			logrus.Debugf("overlay: override_kernelcheck=%s", val)
 			o.overrideKernelCheck, err = strconv.ParseBool(val)
 			if err != nil {
 				return nil, err
 			}
-		case "overlay.size", "overlay2.size":
+		case ".size", "overlay.size", "overlay2.size":
 			logrus.Debugf("overlay: size=%s", val)
 			size, err := units.RAMInBytes(val)
 			if err != nil {
 				return nil, err
 			}
 			o.quota.Size = uint64(size)
-		case "overlay.imagestore", "overlay2.imagestore":
+		case ".imagestore", "overlay.imagestore", "overlay2.imagestore":
 			logrus.Debugf("overlay: imagestore=%s", val)
 			// Additional read only image stores to use for lower paths
 			for _, store := range strings.Split(val, ",") {

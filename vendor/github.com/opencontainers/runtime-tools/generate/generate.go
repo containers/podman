@@ -17,6 +17,12 @@ import (
 var (
 	// Namespaces include the names of supported namespaces.
 	Namespaces = []string{"network", "pid", "mount", "ipc", "uts", "user", "cgroup"}
+
+	// we don't care about order...and this is way faster...
+	removeFunc = func(s []string, i int) []string {
+		s[i] = s[len(s)-1]
+		return s[:len(s)-1]
+	}
 )
 
 // Generator represents a generator for a container spec.
@@ -35,7 +41,7 @@ func New() Generator {
 	spec := rspec.Spec{
 		Version: rspec.Version,
 		Root: &rspec.Root{
-			Path:     "",
+			Path:     "rootfs",
 			Readonly: false,
 		},
 		Process: &rspec.Process{
@@ -392,7 +398,7 @@ func (g *Generator) SetProcessArgs(args []string) {
 
 // ClearProcessEnv clears g.spec.Process.Env.
 func (g *Generator) ClearProcessEnv() {
-	if g.spec == nil {
+	if g.spec == nil || g.spec.Process == nil {
 		return
 	}
 	g.spec.Process.Env = []string{}
@@ -434,7 +440,7 @@ func (g *Generator) AddProcessRlimits(rType string, rHard uint64, rSoft uint64) 
 
 // RemoveProcessRlimits removes a rlimit from g.spec.Process.Rlimits.
 func (g *Generator) RemoveProcessRlimits(rType string) error {
-	if g.spec == nil {
+	if g.spec == nil || g.spec.Process == nil {
 		return nil
 	}
 	for i, rlimit := range g.spec.Process.Rlimits {
@@ -448,7 +454,7 @@ func (g *Generator) RemoveProcessRlimits(rType string) error {
 
 // ClearProcessRlimits clear g.spec.Process.Rlimits.
 func (g *Generator) ClearProcessRlimits() {
-	if g.spec == nil {
+	if g.spec == nil || g.spec.Process == nil {
 		return
 	}
 	g.spec.Process.Rlimits = []rspec.POSIXRlimit{}
@@ -456,7 +462,7 @@ func (g *Generator) ClearProcessRlimits() {
 
 // ClearProcessAdditionalGids clear g.spec.Process.AdditionalGids.
 func (g *Generator) ClearProcessAdditionalGids() {
-	if g.spec == nil {
+	if g.spec == nil || g.spec.Process == nil {
 		return
 	}
 	g.spec.Process.User.AdditionalGids = []uint32{}
@@ -716,13 +722,11 @@ func (g *Generator) SetLinuxRootPropagation(rp string) error {
 	switch rp {
 	case "":
 	case "private":
-	case "rprivate":
 	case "slave":
-	case "rslave":
 	case "shared":
-	case "rshared":
+	case "unbindable":
 	default:
-		return fmt.Errorf("rootfs-propagation must be empty or one of private|rprivate|slave|rslave|shared|rshared")
+		return fmt.Errorf("rootfs-propagation must be empty or one of private|slave|shared|unbindable")
 	}
 	g.initSpecLinux()
 	g.spec.Linux.RootfsPropagation = rp
@@ -731,10 +735,7 @@ func (g *Generator) SetLinuxRootPropagation(rp string) error {
 
 // ClearPreStartHooks clear g.spec.Hooks.Prestart.
 func (g *Generator) ClearPreStartHooks() {
-	if g.spec == nil {
-		return
-	}
-	if g.spec.Hooks == nil {
+	if g.spec == nil || g.spec.Hooks == nil {
 		return
 	}
 	g.spec.Hooks.Prestart = []rspec.Hook{}
@@ -781,10 +782,7 @@ func (g *Generator) AddPreStartHookTimeout(path string, timeout int) {
 
 // ClearPostStopHooks clear g.spec.Hooks.Poststop.
 func (g *Generator) ClearPostStopHooks() {
-	if g.spec == nil {
-		return
-	}
-	if g.spec.Hooks == nil {
+	if g.spec == nil || g.spec.Hooks == nil {
 		return
 	}
 	g.spec.Hooks.Poststop = []rspec.Hook{}
@@ -831,10 +829,7 @@ func (g *Generator) AddPostStopHookTimeout(path string, timeout int) {
 
 // ClearPostStartHooks clear g.spec.Hooks.Poststart.
 func (g *Generator) ClearPostStartHooks() {
-	if g.spec == nil {
-		return
-	}
-	if g.spec.Hooks == nil {
+	if g.spec == nil || g.spec.Hooks == nil {
 		return
 	}
 	g.spec.Hooks.Poststart = []rspec.Hook{}
@@ -970,7 +965,7 @@ func (g *Generator) SetupPrivileged(privileged bool) {
 
 // ClearProcessCapabilities clear g.spec.Process.Capabilities.
 func (g *Generator) ClearProcessCapabilities() {
-	if g.spec == nil {
+	if g.spec == nil || g.spec.Process == nil || g.spec.Process.Capabilities == nil {
 		return
 	}
 	g.spec.Process.Capabilities.Bounding = []string{}
@@ -980,8 +975,32 @@ func (g *Generator) ClearProcessCapabilities() {
 	g.spec.Process.Capabilities.Ambient = []string{}
 }
 
-// AddProcessCapability adds a process capability into g.spec.Process.Capabilities.
-func (g *Generator) AddProcessCapability(c string) error {
+// AddProcessCapabilityAmbient adds a process capability into g.spec.Process.Capabilities.Ambient.
+func (g *Generator) AddProcessCapabilityAmbient(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initSpecProcessCapabilities()
+
+	var foundAmbient bool
+	for _, cap := range g.spec.Process.Capabilities.Ambient {
+		if strings.ToUpper(cap) == cp {
+			foundAmbient = true
+			break
+		}
+	}
+
+	if !foundAmbient {
+		g.spec.Process.Capabilities.Ambient = append(g.spec.Process.Capabilities.Ambient, cp)
+	}
+
+	return nil
+}
+
+// AddProcessCapabilityBounding adds a process capability into g.spec.Process.Capabilities.Bounding.
+func (g *Generator) AddProcessCapabilityBounding(c string) error {
 	cp := strings.ToUpper(c)
 	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
 		return err
@@ -1000,6 +1019,18 @@ func (g *Generator) AddProcessCapability(c string) error {
 		g.spec.Process.Capabilities.Bounding = append(g.spec.Process.Capabilities.Bounding, cp)
 	}
 
+	return nil
+}
+
+// AddProcessCapabilityEffective adds a process capability into g.spec.Process.Capabilities.Effective.
+func (g *Generator) AddProcessCapabilityEffective(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initSpecProcessCapabilities()
+
 	var foundEffective bool
 	for _, cap := range g.spec.Process.Capabilities.Effective {
 		if strings.ToUpper(cap) == cp {
@@ -1010,6 +1041,18 @@ func (g *Generator) AddProcessCapability(c string) error {
 	if !foundEffective {
 		g.spec.Process.Capabilities.Effective = append(g.spec.Process.Capabilities.Effective, cp)
 	}
+
+	return nil
+}
+
+// AddProcessCapabilityInheritable adds a process capability into g.spec.Process.Capabilities.Inheritable.
+func (g *Generator) AddProcessCapabilityInheritable(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initSpecProcessCapabilities()
 
 	var foundInheritable bool
 	for _, cap := range g.spec.Process.Capabilities.Inheritable {
@@ -1022,6 +1065,18 @@ func (g *Generator) AddProcessCapability(c string) error {
 		g.spec.Process.Capabilities.Inheritable = append(g.spec.Process.Capabilities.Inheritable, cp)
 	}
 
+	return nil
+}
+
+// AddProcessCapabilityPermitted adds a process capability into g.spec.Process.Capabilities.Permitted.
+func (g *Generator) AddProcessCapabilityPermitted(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initSpecProcessCapabilities()
+
 	var foundPermitted bool
 	for _, cap := range g.spec.Process.Capabilities.Permitted {
 		if strings.ToUpper(cap) == cp {
@@ -1033,58 +1088,14 @@ func (g *Generator) AddProcessCapability(c string) error {
 		g.spec.Process.Capabilities.Permitted = append(g.spec.Process.Capabilities.Permitted, cp)
 	}
 
-	var foundAmbient bool
-	for _, cap := range g.spec.Process.Capabilities.Ambient {
-		if strings.ToUpper(cap) == cp {
-			foundAmbient = true
-			break
-		}
-	}
-	if !foundAmbient {
-		g.spec.Process.Capabilities.Ambient = append(g.spec.Process.Capabilities.Ambient, cp)
-	}
-
 	return nil
 }
 
-// DropProcessCapability drops a process capability from g.spec.Process.Capabilities.
-func (g *Generator) DropProcessCapability(c string) error {
+// DropProcessCapabilityAmbient drops a process capability from g.spec.Process.Capabilities.Ambient.
+func (g *Generator) DropProcessCapabilityAmbient(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
-		return err
-	}
 
 	g.initSpecProcessCapabilities()
-
-	// we don't care about order...and this is way faster...
-	removeFunc := func(s []string, i int) []string {
-		s[i] = s[len(s)-1]
-		return s[:len(s)-1]
-	}
-
-	for i, cap := range g.spec.Process.Capabilities.Bounding {
-		if strings.ToUpper(cap) == cp {
-			g.spec.Process.Capabilities.Bounding = removeFunc(g.spec.Process.Capabilities.Bounding, i)
-		}
-	}
-
-	for i, cap := range g.spec.Process.Capabilities.Effective {
-		if strings.ToUpper(cap) == cp {
-			g.spec.Process.Capabilities.Effective = removeFunc(g.spec.Process.Capabilities.Effective, i)
-		}
-	}
-
-	for i, cap := range g.spec.Process.Capabilities.Inheritable {
-		if strings.ToUpper(cap) == cp {
-			g.spec.Process.Capabilities.Inheritable = removeFunc(g.spec.Process.Capabilities.Inheritable, i)
-		}
-	}
-
-	for i, cap := range g.spec.Process.Capabilities.Permitted {
-		if strings.ToUpper(cap) == cp {
-			g.spec.Process.Capabilities.Permitted = removeFunc(g.spec.Process.Capabilities.Permitted, i)
-		}
-	}
 
 	for i, cap := range g.spec.Process.Capabilities.Ambient {
 		if strings.ToUpper(cap) == cp {
@@ -1092,7 +1103,70 @@ func (g *Generator) DropProcessCapability(c string) error {
 		}
 	}
 
-	return nil
+	return validate.CapValid(cp, false)
+}
+
+// DropProcessCapabilityBounding drops a process capability from g.spec.Process.Capabilities.Bounding.
+func (g *Generator) DropProcessCapabilityBounding(c string) error {
+	cp := strings.ToUpper(c)
+
+	g.initSpecProcessCapabilities()
+
+	for i, cap := range g.spec.Process.Capabilities.Bounding {
+		if strings.ToUpper(cap) == cp {
+			g.spec.Process.Capabilities.Bounding = removeFunc(g.spec.Process.Capabilities.Bounding, i)
+		}
+	}
+
+	return validate.CapValid(cp, false)
+}
+
+// DropProcessCapabilityEffective drops a process capability from g.spec.Process.Capabilities.Effective.
+func (g *Generator) DropProcessCapabilityEffective(c string) error {
+	cp := strings.ToUpper(c)
+
+	g.initSpecProcessCapabilities()
+
+	for i, cap := range g.spec.Process.Capabilities.Effective {
+		if strings.ToUpper(cap) == cp {
+			g.spec.Process.Capabilities.Effective = removeFunc(g.spec.Process.Capabilities.Effective, i)
+		}
+	}
+
+	return validate.CapValid(cp, false)
+}
+
+// DropProcessCapabilityInheritable drops a process capability from g.spec.Process.Capabilities.Inheritable.
+func (g *Generator) DropProcessCapabilityInheritable(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initSpecProcessCapabilities()
+
+	for i, cap := range g.spec.Process.Capabilities.Inheritable {
+		if strings.ToUpper(cap) == cp {
+			g.spec.Process.Capabilities.Inheritable = removeFunc(g.spec.Process.Capabilities.Inheritable, i)
+		}
+	}
+
+	return validate.CapValid(cp, false)
+}
+
+// DropProcessCapabilityPermitted drops a process capability from g.spec.Process.Capabilities.Permitted.
+func (g *Generator) DropProcessCapabilityPermitted(c string) error {
+	cp := strings.ToUpper(c)
+
+	g.initSpecProcessCapabilities()
+
+	for i, cap := range g.spec.Process.Capabilities.Permitted {
+		if strings.ToUpper(cap) == cp {
+			g.spec.Process.Capabilities.Ambient = removeFunc(g.spec.Process.Capabilities.Ambient, i)
+		}
+	}
+
+	return validate.CapValid(cp, false)
 }
 
 func mapStrToNamespace(ns string, path string) (rspec.LinuxNamespace, error) {
@@ -1201,6 +1275,39 @@ func (g *Generator) ClearLinuxDevices() {
 	}
 
 	g.spec.Linux.Devices = []rspec.LinuxDevice{}
+}
+
+// AddLinuxResourcesDevice - add a device into g.spec.Linux.Resources.Devices
+func (g *Generator) AddLinuxResourcesDevice(allow bool, devType string, major, minor *int64, access string) {
+	g.initSpecLinuxResources()
+
+	device := rspec.LinuxDeviceCgroup{
+		Allow:  allow,
+		Type:   devType,
+		Access: access,
+		Major:  major,
+		Minor:  minor,
+	}
+	g.spec.Linux.Resources.Devices = append(g.spec.Linux.Resources.Devices, device)
+}
+
+// RemoveLinuxResourcesDevice - remove a device from g.spec.Linux.Resources.Devices
+func (g *Generator) RemoveLinuxResourcesDevice(allow bool, devType string, major, minor *int64, access string) {
+	if g.spec == nil || g.spec.Linux == nil || g.spec.Linux.Resources == nil {
+		return
+	}
+	for i, device := range g.spec.Linux.Resources.Devices {
+		if device.Allow == allow &&
+			(devType == device.Type || (devType != "" && device.Type != "" && devType == device.Type)) &&
+			(access == device.Access || (access != "" && device.Access != "" && access == device.Access)) &&
+			(major == device.Major || (major != nil && device.Major != nil && *major == *device.Major)) &&
+			(minor == device.Minor || (minor != nil && device.Minor != nil && *minor == *device.Minor)) {
+
+			g.spec.Linux.Resources.Devices = append(g.spec.Linux.Resources.Devices[:i], g.spec.Linux.Resources.Devices[i+1:]...)
+			return
+		}
+	}
+	return
 }
 
 // strPtr returns the pointer pointing to the string s.

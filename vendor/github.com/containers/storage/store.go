@@ -370,6 +370,10 @@ type Store interface {
 	// and may have different metadata, big data items, and flags.
 	ImagesByTopLayer(id string) ([]*Image, error)
 
+	// ImagesByDigest returns a list of images which contain a big data item
+	// named ImageDigestBigDataKey whose contents have the specified digest.
+	ImagesByDigest(d digest.Digest) ([]*Image, error)
+
 	// Container returns a specific container.
 	Container(id string) (*Container, error)
 
@@ -430,6 +434,8 @@ type ImageOptions struct {
 	// CreationDate, if not zero, will override the default behavior of marking the image as having been
 	// created when CreateImage() was called, recording CreationDate instead.
 	CreationDate time.Time
+	// Digest is a hard-coded digest value that we can use to look up the image.  It is optional.
+	Digest digest.Digest
 }
 
 // ContainerOptions is used for passing options to a Store's CreateContainer() method.
@@ -486,11 +492,6 @@ func GetStore(options StoreOptions) (Store, error) {
 
 	if err := os.MkdirAll(options.RunRoot, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
-	}
-	for _, subdir := range []string{} {
-		if err := os.MkdirAll(filepath.Join(options.RunRoot, subdir), 0700); err != nil && !os.IsExist(err) {
-			return nil, err
-		}
 	}
 	if err := os.MkdirAll(options.GraphRoot, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
@@ -834,11 +835,11 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 	}
 
 	creationDate := time.Now().UTC()
-	if options != nil {
+	if options != nil && !options.CreationDate.IsZero() {
 		creationDate = options.CreationDate
 	}
 
-	return ristore.Create(id, names, layer, metadata, creationDate)
+	return ristore.Create(id, names, layer, metadata, creationDate, options.Digest)
 }
 
 func (s *store) CreateContainer(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error) {
@@ -2082,6 +2083,33 @@ func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
 				images = append(images, &image)
 			}
 		}
+	}
+	return images, nil
+}
+
+func (s *store) ImagesByDigest(d digest.Digest) ([]*Image, error) {
+	images := []*Image{}
+
+	istore, err := s.ImageStore()
+	if err != nil {
+		return nil, err
+	}
+
+	istores, err := s.ROImageStores()
+	if err != nil {
+		return nil, err
+	}
+	for _, store := range append([]ROImageStore{istore}, istores...) {
+		store.Lock()
+		defer store.Unlock()
+		if modified, err := store.Modified(); modified || err != nil {
+			store.Load()
+		}
+		imageList, err := store.ByDigest(d)
+		if err != nil && err != ErrImageUnknown {
+			return nil, err
+		}
+		images = append(images, imageList...)
 	}
 	return images, nil
 }

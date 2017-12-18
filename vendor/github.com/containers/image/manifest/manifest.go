@@ -2,7 +2,9 @@ package manifest
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/containers/image/types"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -36,6 +38,39 @@ var DefaultRequestedManifestMIMETypes = []string{
 	DockerV2Schema1SignedMediaType,
 	DockerV2Schema1MediaType,
 	DockerV2ListMediaType,
+}
+
+// Manifest is an interface for parsing, modifying image manifests in isolation.
+// Callers can either use this abstract interface without understanding the details of the formats,
+// or instantiate a specific implementation (e.g. manifest.OCI1) and access the public members
+// directly.
+//
+// See types.Image for functionality not limited to manifests, including format conversions and config parsing.
+// This interface is similar to, but not strictly equivalent to, the equivalent methods in types.Image.
+type Manifest interface {
+	// ConfigInfo returns a complete BlobInfo for the separate config object, or a BlobInfo{Digest:""} if there isn't a separate object.
+	ConfigInfo() types.BlobInfo
+	// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
+	// The Digest field is guaranteed to be provided; Size may be -1.
+	// WARNING: The list may contain duplicates, and they are semantically relevant.
+	LayerInfos() []types.BlobInfo
+	// UpdateLayerInfos replaces the original layers with the specified BlobInfos (size+digest+urls), in order (the root layer first, and then successive layered layers)
+	UpdateLayerInfos(layerInfos []types.BlobInfo) error
+
+	// ImageID computes an ID which can uniquely identify this image by its contents, irrespective
+	// of which (of possibly more than one simultaneously valid) reference was used to locate the
+	// image, and unchanged by whether or how the layers are compressed.  The result takes the form
+	// of the hexadecimal portion of a digest.Digest.
+	ImageID(diffIDs []digest.Digest) (string, error)
+
+	// Inspect returns various information for (skopeo inspect) parsed from the manifest,
+	// incorporating information from a configuration blob returned by configGetter, if
+	// the underlying image format is expected to include a configuration blob.
+	Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*types.ImageInspectInfo, error)
+
+	// Serialize returns the manifest in a blob format.
+	// NOTE: Serialize() does not in general reproduce the original blob if this object was loaded from one, even if no modifications were made!
+	Serialize() ([]byte, error)
 }
 
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
@@ -146,4 +181,58 @@ func AddDummyV2S1Signature(manifest []byte) ([]byte, error) {
 // MIMETypeIsMultiImage returns true if mimeType is a list of images
 func MIMETypeIsMultiImage(mimeType string) bool {
 	return mimeType == DockerV2ListMediaType
+}
+
+// NormalizedMIMEType returns the effective MIME type of a manifest MIME type returned by a server,
+// centralizing various workarounds.
+func NormalizedMIMEType(input string) string {
+	switch input {
+	// "application/json" is a valid v2s1 value per https://github.com/docker/distribution/blob/master/docs/spec/manifest-v2-1.md .
+	// This works for now, when nothing else seems to return "application/json"; if that were not true, the mapping/detection might
+	// need to happen within the ImageSource.
+	case "application/json":
+		return DockerV2Schema1SignedMediaType
+	case DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType,
+		imgspecv1.MediaTypeImageManifest,
+		DockerV2Schema2MediaType,
+		DockerV2ListMediaType:
+		return input
+	default:
+		// If it's not a recognized manifest media type, or we have failed determining the type, we'll try one last time
+		// to deserialize using v2s1 as per https://github.com/docker/distribution/blob/master/manifests.go#L108
+		// and https://github.com/docker/distribution/blob/master/manifest/schema1/manifest.go#L50
+		//
+		// Crane registries can also return "text/plain", or pretty much anything else depending on a file extension “recognized” in the tag.
+		// This makes no real sense, but it happens
+		// because requests for manifests are
+		// redirected to a content distribution
+		// network which is configured that way. See https://bugzilla.redhat.com/show_bug.cgi?id=1389442
+		return DockerV2Schema1SignedMediaType
+	}
+}
+
+// FromBlob returns a Manifest instance for the specified manifest blob and the corresponding MIME type
+func FromBlob(manblob []byte, mt string) (Manifest, error) {
+	switch NormalizedMIMEType(mt) {
+	case DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType:
+		return Schema1FromManifest(manblob)
+	case imgspecv1.MediaTypeImageManifest:
+		return OCI1FromManifest(manblob)
+	case DockerV2Schema2MediaType:
+		return Schema2FromManifest(manblob)
+	case DockerV2ListMediaType:
+		return nil, fmt.Errorf("Treating manifest lists as individual manifests is not implemented")
+	default: // Note that this may not be reachable, NormalizedMIMEType has a default for unknown values.
+		return nil, fmt.Errorf("Unimplemented manifest MIME type %s", mt)
+	}
+}
+
+// LayerInfosToStrings converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
+// method call, into a format suitable for inclusion in a types.ImageInspectInfo structure.
+func LayerInfosToStrings(infos []types.BlobInfo) []string {
+	layers := make([]string, len(infos))
+	for i, info := range infos {
+		layers[i] = info.Digest.String()
+	}
+	return layers
 }

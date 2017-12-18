@@ -143,6 +143,11 @@ func (s *ociImageSource) getExternalBlob(urls []string) (io.ReadCloser, int64, e
 	return nil, 0, errWrap
 }
 
+// LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
+func (s *ociImageSource) LayerInfosForCopy() []types.BlobInfo {
+	return nil
+}
+
 func getBlobSize(resp *http.Response) int64 {
 	size, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
 	if err != nil {

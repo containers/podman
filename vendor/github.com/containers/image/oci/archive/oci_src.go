@@ -88,3 +88,8 @@ func (s *ociArchiveImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int
 func (s *ociArchiveImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
 	return s.unpackedSrc.GetSignatures(ctx, instanceDigest)
 }
+
+// LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
+func (s *ociArchiveImageSource) LayerInfosForCopy() []types.BlobInfo {
+	return nil
+}

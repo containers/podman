@@ -254,7 +254,7 @@ func (is *tarballImageSource) Reference() types.ImageReference {
 	return &is.reference
 }
 
-// UpdatedLayerInfos() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (*tarballImageSource) UpdatedLayerInfos() []types.BlobInfo {
+// LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
+func (*tarballImageSource) LayerInfosForCopy() []types.BlobInfo {
 	return nil
 }

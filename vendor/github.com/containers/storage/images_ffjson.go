@@ -38,6 +38,11 @@ func (j *Image) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	buf.WriteString(`{ "id":`)
 	fflib.WriteJsonString(buf, string(j.ID))
 	buf.WriteByte(',')
+	if len(j.Digest) != 0 {
+		buf.WriteString(`"digest":`)
+		fflib.WriteJsonString(buf, string(j.Digest))
+		buf.WriteByte(',')
+	}
 	if len(j.Names) != 0 {
 		buf.WriteString(`"names":`)
 		if j.Names != nil {
@@ -54,9 +59,11 @@ func (j *Image) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	buf.WriteString(`"layer":`)
-	fflib.WriteJsonString(buf, string(j.TopLayer))
-	buf.WriteByte(',')
+	if len(j.TopLayer) != 0 {
+		buf.WriteString(`"layer":`)
+		fflib.WriteJsonString(buf, string(j.TopLayer))
+		buf.WriteByte(',')
+	}
 	if len(j.Metadata) != 0 {
 		buf.WriteString(`"metadata":`)
 		fflib.WriteJsonString(buf, string(j.Metadata))
@@ -144,6 +151,8 @@ const (
 
 	ffjtImageID
 
+	ffjtImageDigest
+
 	ffjtImageNames
 
 	ffjtImageTopLayer
@@ -162,6 +171,8 @@ const (
 )
 
 var ffjKeyImageID = []byte("id")
+
+var ffjKeyImageDigest = []byte("digest")
 
 var ffjKeyImageNames = []byte("names")
 
@@ -266,6 +277,14 @@ mainparse:
 						goto mainparse
 					}
 
+				case 'd':
+
+					if bytes.Equal(ffjKeyImageDigest, kn) {
+						currentKey = ffjtImageDigest
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
 				case 'f':
 
 					if bytes.Equal(ffjKeyImageFlags, kn) {
@@ -356,6 +375,12 @@ mainparse:
 					goto mainparse
 				}
 
+				if fflib.EqualFoldRight(ffjKeyImageDigest, kn) {
+					currentKey = ffjtImageDigest
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
 				if fflib.SimpleLetterEqualFold(ffjKeyImageID, kn) {
 					currentKey = ffjtImageID
 					state = fflib.FFParse_want_colon
@@ -381,6 +406,9 @@ mainparse:
 
 				case ffjtImageID:
 					goto handle_ID
+
+				case ffjtImageDigest:
+					goto handle_Digest
 
 				case ffjtImageNames:
 					goto handle_Names
@@ -439,6 +467,32 @@ handle_ID:
 			outBuf := fs.Output.Bytes()
 
 			j.ID = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Digest:
+
+	/* handler: j.Digest type=digest.Digest kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for Digest", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.Digest = digest.Digest(string(outBuf))
 
 		}
 	}

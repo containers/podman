@@ -81,3 +81,8 @@ func (s *daemonImageSource) Reference() types.ImageReference {
 func (s *daemonImageSource) Close() error {
 	return os.Remove(s.tarCopyPath)
 }
+
+// LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
+func (s *daemonImageSource) LayerInfosForCopy() []types.BlobInfo {
+	return nil
+}

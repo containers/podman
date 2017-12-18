@@ -36,6 +36,11 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	for _, option := range options {
 		if strings.HasPrefix(option, "vfs.imagestore=") {
 			d.homes = append(d.homes, strings.Split(option[15:], ",")...)
+			continue
+		}
+		if strings.HasPrefix(option, ".imagestore=") {
+			d.homes = append(d.homes, strings.Split(option[12:], ",")...)
+			continue
 		}
 	}
 	return graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps), nil
