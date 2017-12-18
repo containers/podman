@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"time"
-
-	"github.com/pkg/errors"
+	"os"
+	"path/filepath"
+	"sync/atomic"
 
 	"github.com/containers/image/image"
 	"github.com/containers/image/manifest"
@@ -18,9 +19,13 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
-	ddigest "github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+const temporaryDirectoryForBigFiles = "/var/tmp" // Do not use the system default of os.TempDir(), usually /tmp, because with systemd it could be a tmpfs.
 
 var (
 	// ErrBlobDigestMismatch is returned when PutBlob() is given a blob
@@ -39,32 +44,25 @@ var (
 
 type storageImageSource struct {
 	imageRef       storageReference
-	Tag            string                      `json:"tag,omitempty"`
-	Created        time.Time                   `json:"created-time,omitempty"`
-	ID             string                      `json:"id"`
-	BlobList       []types.BlobInfo            `json:"blob-list,omitempty"` // Ordered list of every blob the image has been told to handle
-	Layers         map[ddigest.Digest][]string `json:"layers,omitempty"`    // Map from digests of blobs to lists of layer IDs
-	LayerPosition  map[ddigest.Digest]int      `json:"-"`                   // Where we are in reading a blob's layers
-	SignatureSizes []int                       `json:"signature-sizes"`     // List of sizes of each signature slice
+	ID             string
+	layerPosition  map[digest.Digest]int // Where we are in reading a blob's layers
+	cachedManifest []byte                // A cached copy of the manifest, if already known, or nil
+	SignatureSizes []int                 `json:"signature-sizes,omitempty"` // List of sizes of each signature slice
 }
 
 type storageImageDestination struct {
-	imageRef       storageReference
-	Tag            string                      `json:"tag,omitempty"`
-	Created        time.Time                   `json:"created-time,omitempty"`
-	ID             string                      `json:"id"`
-	BlobList       []types.BlobInfo            `json:"blob-list,omitempty"` // Ordered list of every blob the image has been told to handle
-	Layers         map[ddigest.Digest][]string `json:"layers,omitempty"`    // Map from digests of blobs to lists of layer IDs
-	BlobData       map[ddigest.Digest][]byte   `json:"-"`                   // Map from names of blobs that aren't layers to contents, temporary
-	Manifest       []byte                      `json:"-"`                   // Manifest contents, temporary
-	Signatures     []byte                      `json:"-"`                   // Signature contents, temporary
-	SignatureSizes []int                       `json:"signature-sizes"`     // List of sizes of each signature slice
-}
-
-type storageLayerMetadata struct {
-	Digest         string `json:"digest,omitempty"`
-	Size           int64  `json:"size"`
-	CompressedSize int64  `json:"compressed-size,omitempty"`
+	image          types.ImageCloser
+	systemContext  *types.SystemContext
+	imageRef       storageReference                // The reference we'll use to name the image
+	publicRef      storageReference                // The reference we return when asked about the name we'll give to the image
+	directory      string                          // Temporary directory where we store blobs until Commit() time
+	nextTempFileID int32                           // A counter that we use for computing filenames to assign to blobs
+	manifest       []byte                          // Manifest contents, temporary
+	signatures     []byte                          // Signature contents, temporary
+	blobDiffIDs    map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
+	fileSizes      map[digest.Digest]int64         // Mapping from layer blobsums to their sizes
+	filenames      map[digest.Digest]string        // Mapping from layer blobsums to names of files we used to hold them
+	SignatureSizes []int                           `json:"signature-sizes,omitempty"` // List of sizes of each signature slice
 }
 
 type storageImageCloser struct {
@@ -72,223 +70,292 @@ type storageImageCloser struct {
 	size int64
 }
 
-// newImageSource sets us up to read out an image, which needs to already exist.
+// newImageSource sets up an image for reading.
 func newImageSource(imageRef storageReference) (*storageImageSource, error) {
+	// First, locate the image.
 	img, err := imageRef.resolveImage()
 	if err != nil {
 		return nil, err
 	}
+
+	// Build the reader object.
 	image := &storageImageSource{
 		imageRef:       imageRef,
-		Created:        time.Now(),
 		ID:             img.ID,
-		BlobList:       []types.BlobInfo{},
-		Layers:         make(map[ddigest.Digest][]string),
-		LayerPosition:  make(map[ddigest.Digest]int),
+		layerPosition:  make(map[digest.Digest]int),
 		SignatureSizes: []int{},
 	}
-	if err := json.Unmarshal([]byte(img.Metadata), image); err != nil {
-		return nil, errors.Wrap(err, "error decoding metadata for source image")
+	if img.Metadata != "" {
+		if err := json.Unmarshal([]byte(img.Metadata), image); err != nil {
+			return nil, errors.Wrap(err, "error decoding metadata for source image")
+		}
 	}
 	return image, nil
 }
 
-// newImageDestination sets us up to write a new image.
-func newImageDestination(imageRef storageReference) (*storageImageDestination, error) {
-	image := &storageImageDestination{
-		imageRef:       imageRef,
-		Tag:            imageRef.reference,
-		Created:        time.Now(),
-		ID:             imageRef.id,
-		BlobList:       []types.BlobInfo{},
-		Layers:         make(map[ddigest.Digest][]string),
-		BlobData:       make(map[ddigest.Digest][]byte),
-		SignatureSizes: []int{},
-	}
-	return image, nil
-}
-
+// Reference returns the image reference that we used to find this image.
 func (s storageImageSource) Reference() types.ImageReference {
 	return s.imageRef
 }
 
-func (s storageImageDestination) Reference() types.ImageReference {
-	return s.imageRef
-}
-
+// Close cleans up any resources we tied up while reading the image.
 func (s storageImageSource) Close() error {
 	return nil
 }
 
-func (s storageImageDestination) Close() error {
-	return nil
+// GetBlob reads the data blob or filesystem layer which matches the digest and size, if given.
+func (s *storageImageSource) GetBlob(info types.BlobInfo) (rc io.ReadCloser, n int64, err error) {
+	rc, n, _, err = s.getBlobAndLayerID(info)
+	return rc, n, err
 }
 
+// getBlobAndLayer reads the data blob or filesystem layer which matches the digest and size, if given.
+func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadCloser, n int64, layerID string, err error) {
+	var layer storage.Layer
+	var diffOptions *storage.DiffOptions
+	// We need a valid digest value.
+	err = info.Digest.Validate()
+	if err != nil {
+		return nil, -1, "", err
+	}
+	// Check if the blob corresponds to a diff that was used to initialize any layers.  Our
+	// callers should try to retrieve layers using their uncompressed digests, so no need to
+	// check if they're using one of the compressed digests, which we can't reproduce anyway.
+	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(info.Digest)
+	// If it's not a layer, then it must be a data item.
+	if len(layers) == 0 {
+		b, err := s.imageRef.transport.store.ImageBigData(s.ID, info.Digest.String())
+		if err != nil {
+			return nil, -1, "", err
+		}
+		r := bytes.NewReader(b)
+		logrus.Debugf("exporting opaque data as blob %q", info.Digest.String())
+		return ioutil.NopCloser(r), int64(r.Len()), "", nil
+	}
+	// Step through the list of matching layers.  Tests may want to verify that if we have multiple layers
+	// which claim to have the same contents, that we actually do have multiple layers, otherwise we could
+	// just go ahead and use the first one every time.
+	i := s.layerPosition[info.Digest]
+	s.layerPosition[info.Digest] = i + 1
+	if len(layers) > 0 {
+		layer = layers[i%len(layers)]
+	}
+	// Force the storage layer to not try to match any compression that was used when the layer was first
+	// handed to it.
+	noCompression := archive.Uncompressed
+	diffOptions = &storage.DiffOptions{
+		Compression: &noCompression,
+	}
+	if layer.UncompressedSize < 0 {
+		n = -1
+	} else {
+		n = layer.UncompressedSize
+	}
+	logrus.Debugf("exporting filesystem layer %q without compression for blob %q", layer.ID, info.Digest)
+	rc, err = s.imageRef.transport.store.Diff("", layer.ID, diffOptions)
+	if err != nil {
+		return nil, -1, "", err
+	}
+	return rc, n, layer.ID, err
+}
+
+// GetManifest() reads the image's manifest.
+func (s *storageImageSource) GetManifest(instanceDigest *digest.Digest) (manifestBlob []byte, MIMEType string, err error) {
+	if instanceDigest != nil {
+		return nil, "", ErrNoManifestLists
+	}
+	if len(s.cachedManifest) == 0 {
+		// We stored the manifest as an item named after storage.ImageDigestBigDataKey.
+		cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.ID, storage.ImageDigestBigDataKey)
+		if err != nil {
+			return nil, "", err
+		}
+		s.cachedManifest = cachedBlob
+	}
+	return s.cachedManifest, manifest.GuessMIMEType(s.cachedManifest), err
+}
+
+// LayerInfosForCopy() returns the list of layer blobs that make up the root filesystem of
+// the image, after they've been decompressed.
+func (s *storageImageSource) LayerInfosForCopy() []types.BlobInfo {
+	simg, err := s.imageRef.transport.store.Image(s.ID)
+	if err != nil {
+		logrus.Errorf("error reading image %q: %v", s.ID, err)
+		return nil
+	}
+	updatedBlobInfos := []types.BlobInfo{}
+	layerID := simg.TopLayer
+	_, manifestType, err := s.GetManifest(nil)
+	if err != nil {
+		logrus.Errorf("error reading image manifest for %q: %v", s.ID, err)
+		return nil
+	}
+	uncompressedLayerType := ""
+	switch manifestType {
+	case imgspecv1.MediaTypeImageManifest:
+		uncompressedLayerType = imgspecv1.MediaTypeImageLayer
+	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema2MediaType:
+		// This is actually a compressed type, but there's no uncompressed type defined
+		uncompressedLayerType = manifest.DockerV2Schema2LayerMediaType
+	}
+	for layerID != "" {
+		layer, err := s.imageRef.transport.store.Layer(layerID)
+		if err != nil {
+			logrus.Errorf("error reading layer %q in image %q: %v", layerID, s.ID, err)
+			return nil
+		}
+		if layer.UncompressedDigest == "" {
+			logrus.Errorf("uncompressed digest for layer %q is unknown", layerID)
+			return nil
+		}
+		if layer.UncompressedSize < 0 {
+			logrus.Errorf("uncompressed size for layer %q is unknown", layerID)
+			return nil
+		}
+		blobInfo := types.BlobInfo{
+			Digest:    layer.UncompressedDigest,
+			Size:      layer.UncompressedSize,
+			MediaType: uncompressedLayerType,
+		}
+		updatedBlobInfos = append([]types.BlobInfo{blobInfo}, updatedBlobInfos...)
+		layerID = layer.Parent
+	}
+	return updatedBlobInfos
+}
+
+// GetSignatures() parses the image's signatures blob into a slice of byte slices.
+func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) (signatures [][]byte, err error) {
+	if instanceDigest != nil {
+		return nil, ErrNoManifestLists
+	}
+	var offset int
+	sigslice := [][]byte{}
+	signature := []byte{}
+	if len(s.SignatureSizes) > 0 {
+		signatureBlob, err := s.imageRef.transport.store.ImageBigData(s.ID, "signatures")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up signatures data for image %q", s.ID)
+		}
+		signature = signatureBlob
+	}
+	for _, length := range s.SignatureSizes {
+		sigslice = append(sigslice, signature[offset:offset+length])
+		offset += length
+	}
+	if offset != len(signature) {
+		return nil, errors.Errorf("signatures data contained %d extra bytes", len(signatures)-offset)
+	}
+	return sigslice, nil
+}
+
+// newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
+// it's time to Commit() the image
+func newImageDestination(ctx *types.SystemContext, imageRef storageReference) (*storageImageDestination, error) {
+	directory, err := ioutil.TempDir(temporaryDirectoryForBigFiles, "storage")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating a temporary directory")
+	}
+	// Break reading of the reference we're writing, so that copy.Image() won't try to rewrite
+	// schema1 image manifests to remove embedded references, since that changes the manifest's
+	// digest, and that makes the image unusable if we subsequently try to access it using a
+	// reference that mentions the no-longer-correct digest.
+	publicRef := imageRef
+	publicRef.name = nil
+	image := &storageImageDestination{
+		systemContext:  ctx,
+		imageRef:       imageRef,
+		publicRef:      publicRef,
+		directory:      directory,
+		blobDiffIDs:    make(map[digest.Digest]digest.Digest),
+		fileSizes:      make(map[digest.Digest]int64),
+		filenames:      make(map[digest.Digest]string),
+		SignatureSizes: []int{},
+	}
+	return image, nil
+}
+
+// Reference returns a mostly-usable image reference that can't return a DockerReference, to
+// avoid triggering logic in copy.Image() that rewrites schema 1 image manifests in order to
+// remove image names that they contain which don't match the value we're using.
+func (s storageImageDestination) Reference() types.ImageReference {
+	return s.publicRef
+}
+
+// Close cleans up the temporary directory.
+func (s *storageImageDestination) Close() error {
+	return os.RemoveAll(s.directory)
+}
+
+// ShouldCompressLayers indicates whether or not a caller should compress not-already-compressed
+// data when handing it to us.
 func (s storageImageDestination) ShouldCompressLayers() bool {
-	// We ultimately have to decompress layers to populate trees on disk,
-	// so callers shouldn't bother compressing them before handing them to
-	// us, if they're not already compressed.
+	// We ultimately have to decompress layers to populate trees on disk, so callers shouldn't
+	// bother compressing them before handing them to us, if they're not already compressed.
 	return false
 }
 
-// putBlob stores a layer or data blob, optionally enforcing that a digest in
-// blobinfo matches the incoming data.
-func (s *storageImageDestination) putBlob(stream io.Reader, blobinfo types.BlobInfo, enforceDigestAndSize bool) (types.BlobInfo, error) {
-	blobSize := blobinfo.Size
-	digest := blobinfo.Digest
+// PutBlob stores a layer or data blob in our temporary directory, checking that any information
+// in the blobinfo matches the incoming data.
+func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobInfo) (types.BlobInfo, error) {
 	errorBlobInfo := types.BlobInfo{
 		Digest: "",
 		Size:   -1,
 	}
-	// Try to read an initial snippet of the blob.
-	buf := [archive.HeaderSize]byte{}
-	n, err := io.ReadAtLeast(stream, buf[:], len(buf))
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return errorBlobInfo, err
-	}
-	// Set up to read the whole blob (the initial snippet, plus the rest)
-	// while digesting it with either the default, or the passed-in digest,
-	// if one was specified.
-	hasher := ddigest.Canonical.Digester()
-	if digest.Validate() == nil {
-		if a := digest.Algorithm(); a.Available() {
+	// Set up to digest the blob and count its size while saving it to a file.
+	hasher := digest.Canonical.Digester()
+	if blobinfo.Digest.Validate() == nil {
+		if a := blobinfo.Digest.Algorithm(); a.Available() {
 			hasher = a.Digester()
 		}
 	}
-	hash := ""
+	diffID := digest.Canonical.Digester()
+	filename := filepath.Join(s.directory, fmt.Sprintf("%d", atomic.AddInt32(&s.nextTempFileID, 1)))
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+	if err != nil {
+		return errorBlobInfo, errors.Wrapf(err, "error creating temporary file %q", filename)
+	}
+	defer file.Close()
 	counter := ioutils.NewWriteCounter(hasher.Hash())
-	defragmented := io.MultiReader(bytes.NewBuffer(buf[:n]), stream)
-	multi := io.TeeReader(defragmented, counter)
-	if (n > 0) && archive.IsArchive(buf[:n]) {
-		// It's a filesystem layer.  If it's not the first one in the
-		// image, we assume that the most recently added layer is its
-		// parent.
-		parentLayer := ""
-		for _, blob := range s.BlobList {
-			if layerList, ok := s.Layers[blob.Digest]; ok {
-				parentLayer = layerList[len(layerList)-1]
-			}
-		}
-		// If we have an expected content digest, generate a layer ID
-		// based on the parent's ID and the expected content digest.
-		id := ""
-		if digest.Validate() == nil {
-			id = ddigest.Canonical.FromBytes([]byte(parentLayer + "+" + digest.String())).Hex()
-		}
-		// Attempt to create the identified layer and import its contents.
-		layer, uncompressedSize, err := s.imageRef.transport.store.PutLayer(id, parentLayer, nil, "", true, multi)
-		if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
-			logrus.Debugf("error importing layer blob %q as %q: %v", blobinfo.Digest, id, err)
-			return errorBlobInfo, err
-		}
-		if errors.Cause(err) == storage.ErrDuplicateID {
-			// We specified an ID, and there's already a layer with
-			// the same ID.  Drain the input so that we can look at
-			// its length and digest.
-			_, err := io.Copy(ioutil.Discard, multi)
-			if err != nil && err != io.EOF {
-				logrus.Debugf("error digesting layer blob %q: %v", blobinfo.Digest, id, err)
-				return errorBlobInfo, err
-			}
-			hash = hasher.Digest().String()
-		} else {
-			// Applied the layer with the specified ID.  Note the
-			// size info and computed digest.
-			hash = hasher.Digest().String()
-			layerMeta := storageLayerMetadata{
-				Digest:         hash,
-				CompressedSize: counter.Count,
-				Size:           uncompressedSize,
-			}
-			if metadata, err := json.Marshal(&layerMeta); len(metadata) != 0 && err == nil {
-				s.imageRef.transport.store.SetMetadata(layer.ID, string(metadata))
-			}
-			// Hang on to the new layer's ID.
-			id = layer.ID
-		}
-		// Check if the size looks right.
-		if enforceDigestAndSize && blobinfo.Size >= 0 && blobinfo.Size != counter.Count {
-			logrus.Debugf("layer blob %q size is %d, not %d, rejecting", blobinfo.Digest, counter.Count, blobinfo.Size)
-			if layer != nil {
-				// Something's wrong; delete the newly-created layer.
-				s.imageRef.transport.store.DeleteLayer(layer.ID)
-			}
-			return errorBlobInfo, ErrBlobSizeMismatch
-		}
-		// If the content digest was specified, verify it.
-		if enforceDigestAndSize && digest.Validate() == nil && digest.String() != hash {
-			logrus.Debugf("layer blob %q digests to %q, rejecting", blobinfo.Digest, hash)
-			if layer != nil {
-				// Something's wrong; delete the newly-created layer.
-				s.imageRef.transport.store.DeleteLayer(layer.ID)
-			}
-			return errorBlobInfo, ErrBlobDigestMismatch
-		}
-		// If we didn't get a blob size, return the one we calculated.
-		if blobSize == -1 {
-			blobSize = counter.Count
-		}
-		// If we didn't get a digest, construct one.
-		if digest == "" {
-			digest = ddigest.Digest(hash)
-		}
-		// Record that this layer blob is a layer, and the layer ID it
-		// ended up having.  This is a list, in case the same blob is
-		// being applied more than once.
-		s.Layers[digest] = append(s.Layers[digest], id)
-		s.BlobList = append(s.BlobList, types.BlobInfo{Digest: digest, Size: counter.Count})
-		if layer != nil {
-			logrus.Debugf("blob %q imported as a filesystem layer %q", blobinfo.Digest, id)
-		} else {
-			logrus.Debugf("layer blob %q already present as layer %q", blobinfo.Digest, id)
-		}
-	} else {
-		// It's just data.  Finish scanning it in, check that our
-		// computed digest matches the passed-in digest, and store it,
-		// but leave it out of the blob-to-layer-ID map so that we can
-		// tell that it's not a layer.
-		blob, err := ioutil.ReadAll(multi)
-		if err != nil && err != io.EOF {
-			return errorBlobInfo, err
-		}
-		hash = hasher.Digest().String()
-		if enforceDigestAndSize && blobinfo.Size >= 0 && int64(len(blob)) != blobinfo.Size {
-			logrus.Debugf("blob %q size is %d, not %d, rejecting", blobinfo.Digest, int64(len(blob)), blobinfo.Size)
-			return errorBlobInfo, ErrBlobSizeMismatch
-		}
-		// If we were given a digest, verify that the content matches
-		// it.
-		if enforceDigestAndSize && digest.Validate() == nil && digest.String() != hash {
-			logrus.Debugf("blob %q digests to %q, rejecting", blobinfo.Digest, hash)
-			return errorBlobInfo, ErrBlobDigestMismatch
-		}
-		// If we didn't get a blob size, return the one we calculated.
-		if blobSize == -1 {
-			blobSize = int64(len(blob))
-		}
-		// If we didn't get a digest, construct one.
-		if digest == "" {
-			digest = ddigest.Digest(hash)
-		}
-		// Save the blob for when we Commit().
-		s.BlobData[digest] = blob
-		s.BlobList = append(s.BlobList, types.BlobInfo{Digest: digest, Size: int64(len(blob))})
-		logrus.Debugf("blob %q imported as opaque data %q", blobinfo.Digest, digest)
+	reader := io.TeeReader(io.TeeReader(stream, counter), file)
+	decompressed, err := archive.DecompressStream(reader)
+	if err != nil {
+		return errorBlobInfo, errors.Wrap(err, "error setting up to decompress blob")
+	}
+	// Copy the data to the file.
+	_, err = io.Copy(diffID.Hash(), decompressed)
+	decompressed.Close()
+	if err != nil {
+		return errorBlobInfo, errors.Wrapf(err, "error storing blob to file %q", filename)
+	}
+	// Ensure that any information that we were given about the blob is correct.
+	if blobinfo.Digest.Validate() == nil && blobinfo.Digest != hasher.Digest() {
+		return errorBlobInfo, ErrBlobDigestMismatch
+	}
+	if blobinfo.Size >= 0 && blobinfo.Size != counter.Count {
+		return errorBlobInfo, ErrBlobSizeMismatch
+	}
+	// Record information about the blob.
+	s.blobDiffIDs[hasher.Digest()] = diffID.Digest()
+	s.fileSizes[hasher.Digest()] = counter.Count
+	s.filenames[hasher.Digest()] = filename
+	blobDigest := blobinfo.Digest
+	if blobDigest.Validate() != nil {
+		blobDigest = hasher.Digest()
+	}
+	blobSize := blobinfo.Size
+	if blobSize < 0 {
+		blobSize = counter.Count
 	}
 	return types.BlobInfo{
-		Digest: digest,
-		Size:   blobSize,
+		Digest:    blobDigest,
+		Size:      blobSize,
+		MediaType: blobinfo.MediaType,
 	}, nil
 }
 
-// PutBlob is used to both store filesystem layers and binary data that is part
-// of the image.  Filesystem layers are assumed to be imported in order, as
-// that is required by some of the underlying storage drivers.
-func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobInfo) (types.BlobInfo, error) {
-	return s.putBlob(stream, blobinfo, true)
-}
-
-// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
+// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be
+// reapplied using ReapplyBlob.
+//
 // Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
 // If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
 // it returns a non-nil error only on an unexpected failure.
@@ -296,93 +363,289 @@ func (s *storageImageDestination) HasBlob(blobinfo types.BlobInfo) (bool, int64,
 	if blobinfo.Digest == "" {
 		return false, -1, errors.Errorf(`Can not check for a blob with unknown digest`)
 	}
-	for _, blob := range s.BlobList {
-		if blob.Digest == blobinfo.Digest {
-			return true, blob.Size, nil
-		}
+	if err := blobinfo.Digest.Validate(); err != nil {
+		return false, -1, errors.Wrapf(err, `Can not check for a blob with invalid digest`)
 	}
+	// Check if we've already cached it in a file.
+	if size, ok := s.fileSizes[blobinfo.Digest]; ok {
+		return true, size, nil
+	}
+	// Check if we have a wasn't-compressed layer in storage that's based on that blob.
+	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(blobinfo.Digest)
+	if err != nil && errors.Cause(err) != storage.ErrLayerUnknown {
+		return false, -1, errors.Wrapf(err, `Error looking for layers with digest %q`, blobinfo.Digest)
+	}
+	if len(layers) > 0 {
+		// Save this for completeness.
+		s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
+		return true, layers[0].UncompressedSize, nil
+	}
+	// Check if we have a was-compressed layer in storage that's based on that blob.
+	layers, err = s.imageRef.transport.store.LayersByCompressedDigest(blobinfo.Digest)
+	if err != nil && errors.Cause(err) != storage.ErrLayerUnknown {
+		return false, -1, errors.Wrapf(err, `Error looking for compressed layers with digest %q`, blobinfo.Digest)
+	}
+	if len(layers) > 0 {
+		// Record the uncompressed value so that we can use it to calculate layer IDs.
+		s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
+		return true, layers[0].CompressedSize, nil
+	}
+	// Nope, we don't have it.
 	return false, -1, nil
 }
 
+// ReapplyBlob is now a no-op, assuming HasBlob() says we already have it, since Commit() can just apply the
+// same one when it walks the list in the manifest.
 func (s *storageImageDestination) ReapplyBlob(blobinfo types.BlobInfo) (types.BlobInfo, error) {
-	err := blobinfo.Digest.Validate()
-	if err != nil {
-		return types.BlobInfo{}, err
+	present, size, err := s.HasBlob(blobinfo)
+	if !present {
+		return types.BlobInfo{}, errors.Errorf("error reapplying blob %+v: blob was not previously applied", blobinfo)
 	}
-	if layerList, ok := s.Layers[blobinfo.Digest]; !ok || len(layerList) < 1 {
-		b, err := s.imageRef.transport.store.ImageBigData(s.ID, blobinfo.Digest.String())
-		if err != nil {
-			return types.BlobInfo{}, err
+	if err != nil {
+		return types.BlobInfo{}, errors.Wrapf(err, "error reapplying blob %+v", blobinfo)
+	}
+	blobinfo.Size = size
+	return blobinfo, nil
+}
+
+// computeID computes a recommended image ID based on information we have so far.  If
+// the manifest is not of a type that we recognize, we return an empty value, indicating
+// that since we don't have a recommendation, a random ID should be used if one needs
+// to be allocated.
+func (s *storageImageDestination) computeID(m manifest.Manifest) string {
+	// Build the diffID list.  We need the decompressed sums that we've been calculating to
+	// fill in the DiffIDs.  It's expected (but not enforced by us) that the number of
+	// diffIDs corresponds to the number of non-EmptyLayer entries in the history.
+	var diffIDs []digest.Digest
+	switch m.(type) {
+	case *manifest.Schema1:
+		// Build a list of the diffIDs we've generated for the non-throwaway FS layers,
+		// in reverse of the order in which they were originally listed.
+		s1, ok := m.(*manifest.Schema1)
+		if !ok {
+			// Shouldn't happen
+			logrus.Debugf("internal error reading schema 1 manifest")
+			return ""
 		}
-		return types.BlobInfo{Digest: blobinfo.Digest, Size: int64(len(b))}, nil
+		for i, history := range s1.History {
+			compat := manifest.Schema1V1Compatibility{}
+			if err := json.Unmarshal([]byte(history.V1Compatibility), &compat); err != nil {
+				logrus.Debugf("internal error reading schema 1 history: %v", err)
+				return ""
+			}
+			if compat.ThrowAway {
+				continue
+			}
+			blobSum := s1.FSLayers[i].BlobSum
+			diffID, ok := s.blobDiffIDs[blobSum]
+			if !ok {
+				logrus.Infof("error looking up diffID for layer %q", blobSum.String())
+				return ""
+			}
+			diffIDs = append([]digest.Digest{diffID}, diffIDs...)
+		}
+	case *manifest.Schema2, *manifest.OCI1:
+		// We know the ID calculation for these formats doesn't actually use the diffIDs,
+		// so we don't need to populate the diffID list.
 	}
-	layerList := s.Layers[blobinfo.Digest]
-	rc, _, err := diffLayer(s.imageRef.transport.store, layerList[len(layerList)-1])
+	id, err := m.ImageID(diffIDs)
 	if err != nil {
-		return types.BlobInfo{}, err
+		return ""
 	}
-	return s.putBlob(rc, blobinfo, false)
+	return id
+}
+
+// getConfigBlob exists only to let us retrieve the configuration blob so that the manifest package can dig
+// information out of it for Inspect().
+func (s *storageImageDestination) getConfigBlob(info types.BlobInfo) ([]byte, error) {
+	if info.Digest == "" {
+		return nil, errors.Errorf(`no digest supplied when reading blob`)
+	}
+	if err := info.Digest.Validate(); err != nil {
+		return nil, errors.Wrapf(err, `invalid digest supplied when reading blob`)
+	}
+	// Assume it's a file, since we're only calling this from a place that expects to read files.
+	if filename, ok := s.filenames[info.Digest]; ok {
+		contents, err2 := ioutil.ReadFile(filename)
+		if err2 != nil {
+			return nil, errors.Wrapf(err2, `error reading blob from file %q`, filename)
+		}
+		return contents, nil
+	}
+	// If it's not a file, it's a bug, because we're not expecting to be asked for a layer.
+	return nil, errors.New("blob not found")
 }
 
 func (s *storageImageDestination) Commit() error {
-	// Create the image record.
-	lastLayer := ""
-	for _, blob := range s.BlobList {
-		if layerList, ok := s.Layers[blob.Digest]; ok {
-			lastLayer = layerList[len(layerList)-1]
-		}
+	// Find the list of layer blobs.
+	if len(s.manifest) == 0 {
+		return errors.New("Internal error: storageImageDestination.Commit() called without PutManifest()")
 	}
-	img, err := s.imageRef.transport.store.CreateImage(s.ID, nil, lastLayer, "", nil)
+	man, err := manifest.FromBlob(s.manifest, manifest.GuessMIMEType(s.manifest))
+	if err != nil {
+		return errors.Wrapf(err, "error parsing manifest")
+	}
+	layerBlobs := man.LayerInfos()
+	// Extract or find the layers.
+	lastLayer := ""
+	addedLayers := []string{}
+	for _, blob := range layerBlobs {
+		var diff io.ReadCloser
+		// Check if there's already a layer with the ID that we'd give to the result of applying
+		// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
+		diffID, haveDiffID := s.blobDiffIDs[blob.Digest]
+		if !haveDiffID {
+			// Check if it's elsewhere and the caller just forgot to pass it to us in a PutBlob(),
+			// or to even check if we had it.
+			logrus.Debugf("looking for diffID for blob %+v", blob.Digest)
+			has, _, err := s.HasBlob(blob)
+			if err != nil {
+				return errors.Wrapf(err, "error checking for a layer based on blob %q", blob.Digest.String())
+			}
+			if !has {
+				return errors.Errorf("error determining uncompressed digest for blob %q", blob.Digest.String())
+			}
+			diffID, haveDiffID = s.blobDiffIDs[blob.Digest]
+			if !haveDiffID {
+				return errors.Errorf("we have blob %q, but don't know its uncompressed digest", blob.Digest.String())
+			}
+		}
+		id := diffID.Hex()
+		if lastLayer != "" {
+			id = digest.Canonical.FromBytes([]byte(lastLayer + "+" + diffID.Hex())).Hex()
+		}
+		if layer, err2 := s.imageRef.transport.store.Layer(id); layer != nil && err2 == nil {
+			// There's already a layer that should have the right contents, just reuse it.
+			lastLayer = layer.ID
+			continue
+		}
+		// Check if we cached a file with that blobsum.  If we didn't already have a layer with
+		// the blob's contents, we should have gotten a copy.
+		if filename, ok := s.filenames[blob.Digest]; ok {
+			// Use the file's contents to initialize the layer.
+			file, err2 := os.Open(filename)
+			if err2 != nil {
+				return errors.Wrapf(err2, "error opening file %q", filename)
+			}
+			defer file.Close()
+			diff = file
+		}
+		if diff == nil {
+			// Try to find a layer with contents matching that blobsum.
+			layer := ""
+			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(blob.Digest)
+			if err2 == nil && len(layers) > 0 {
+				layer = layers[0].ID
+			} else {
+				layers, err2 = s.imageRef.transport.store.LayersByCompressedDigest(blob.Digest)
+				if err2 == nil && len(layers) > 0 {
+					layer = layers[0].ID
+				}
+			}
+			if layer == "" {
+				return errors.Wrapf(err2, "error locating layer for blob %q", blob.Digest)
+			}
+			// Use the layer's contents to initialize the new layer.
+			noCompression := archive.Uncompressed
+			diffOptions := &storage.DiffOptions{
+				Compression: &noCompression,
+			}
+			diff, err2 = s.imageRef.transport.store.Diff("", layer, diffOptions)
+			if err2 != nil {
+				return errors.Wrapf(err2, "error reading layer %q for blob %q", layer, blob.Digest)
+			}
+			defer diff.Close()
+		}
+		if diff == nil {
+			// This shouldn't have happened.
+			return errors.Errorf("error applying blob %q: content not found", blob.Digest)
+		}
+		// Build the new layer using the diff, regardless of where it came from.
+		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, diff)
+		if err != nil {
+			return errors.Wrapf(err, "error adding layer with blob %q", blob.Digest)
+		}
+		lastLayer = layer.ID
+		addedLayers = append([]string{lastLayer}, addedLayers...)
+	}
+	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image
+	// was originally created, in case we're just copying it.  If not, no harm done.
+	options := &storage.ImageOptions{}
+	if inspect, err := man.Inspect(s.getConfigBlob); err == nil {
+		logrus.Debugf("setting image creation date to %s", inspect.Created)
+		options.CreationDate = inspect.Created
+	}
+	if manifestDigest, err := manifest.Digest(s.manifest); err == nil {
+		options.Digest = manifestDigest
+	}
+	// Create the image record, pointing to the most-recently added layer.
+	intendedID := s.imageRef.id
+	if intendedID == "" {
+		intendedID = s.computeID(man)
+	}
+	oldNames := []string{}
+	img, err := s.imageRef.transport.store.CreateImage(intendedID, nil, lastLayer, "", options)
 	if err != nil {
 		if errors.Cause(err) != storage.ErrDuplicateID {
 			logrus.Debugf("error creating image: %q", err)
-			return errors.Wrapf(err, "error creating image %q", s.ID)
+			return errors.Wrapf(err, "error creating image %q", intendedID)
 		}
-		img, err = s.imageRef.transport.store.Image(s.ID)
+		img, err = s.imageRef.transport.store.Image(intendedID)
 		if err != nil {
-			return errors.Wrapf(err, "error reading image %q", s.ID)
+			return errors.Wrapf(err, "error reading image %q", intendedID)
 		}
 		if img.TopLayer != lastLayer {
-			logrus.Debugf("error creating image: image with ID %q exists, but uses different layers", s.ID)
-			return errors.Wrapf(storage.ErrDuplicateID, "image with ID %q already exists, but uses a different top layer", s.ID)
+			logrus.Debugf("error creating image: image with ID %q exists, but uses different layers", intendedID)
+			return errors.Wrapf(storage.ErrDuplicateID, "image with ID %q already exists, but uses a different top layer", intendedID)
 		}
 		logrus.Debugf("reusing image ID %q", img.ID)
+		oldNames = append(oldNames, img.Names...)
 	} else {
 		logrus.Debugf("created new image ID %q", img.ID)
 	}
-	s.ID = img.ID
-	names := img.Names
-	if s.Tag != "" {
-		names = append(names, s.Tag)
+	// Add the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
+	// we just need to screen out the ones that are actually layers to get the list of non-layers.
+	dataBlobs := make(map[digest.Digest]struct{})
+	for blob := range s.filenames {
+		dataBlobs[blob] = struct{}{}
 	}
-	// We have names to set, so move those names to this image.
-	if len(names) > 0 {
+	for _, layerBlob := range layerBlobs {
+		delete(dataBlobs, layerBlob.Digest)
+	}
+	for blob := range dataBlobs {
+		v, err := ioutil.ReadFile(s.filenames[blob])
+		if err != nil {
+			return errors.Wrapf(err, "error copying non-layer blob %q to image", blob)
+		}
+		if err := s.imageRef.transport.store.SetImageBigData(img.ID, blob.String(), v); err != nil {
+			if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
+				logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
+			}
+			logrus.Debugf("error saving big data %q for image %q: %v", blob.String(), img.ID, err)
+			return errors.Wrapf(err, "error saving big data %q for image %q", blob.String(), img.ID)
+		}
+	}
+	// Set the reference's name on the image.
+	if name := s.imageRef.DockerReference(); len(oldNames) > 0 || name != nil {
+		names := []string{}
+		if name != nil {
+			names = append(names, verboseName(name))
+		}
+		if len(oldNames) > 0 {
+			names = append(names, oldNames...)
+		}
 		if err := s.imageRef.transport.store.SetNames(img.ID, names); err != nil {
 			if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
 				logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
 			}
-			logrus.Debugf("error setting names on image %q: %v", img.ID, err)
-			return err
+			logrus.Debugf("error setting names %v on image %q: %v", names, img.ID, err)
+			return errors.Wrapf(err, "error setting names %v on image %q", names, img.ID)
 		}
 		logrus.Debugf("set names of image %q to %v", img.ID, names)
 	}
-	// Save the data blobs to disk, and drop their contents from memory.
-	keys := []ddigest.Digest{}
-	for k, v := range s.BlobData {
-		if err := s.imageRef.transport.store.SetImageBigData(img.ID, k.String(), v); err != nil {
-			if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
-				logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
-			}
-			logrus.Debugf("error saving big data %q for image %q: %v", k, img.ID, err)
-			return err
-		}
-		keys = append(keys, k)
-	}
-	for _, key := range keys {
-		delete(s.BlobData, key)
-	}
-	// Save the manifest, if we have one.
-	if err := s.imageRef.transport.store.SetImageBigData(s.ID, "manifest", s.Manifest); err != nil {
+	// Save the manifest.  Use storage.ImageDigestBigDataKey as the item's
+	// name, so that its digest can be used to locate the image in the Store.
+	if err := s.imageRef.transport.store.SetImageBigData(img.ID, storage.ImageDigestBigDataKey, s.manifest); err != nil {
 		if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
 			logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
 		}
@@ -390,12 +653,14 @@ func (s *storageImageDestination) Commit() error {
 		return err
 	}
 	// Save the signatures, if we have any.
-	if err := s.imageRef.transport.store.SetImageBigData(s.ID, "signatures", s.Signatures); err != nil {
-		if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
-			logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
+	if len(s.signatures) > 0 {
+		if err := s.imageRef.transport.store.SetImageBigData(img.ID, "signatures", s.signatures); err != nil {
+			if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
+				logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
+			}
+			logrus.Debugf("error saving signatures for image %q: %v", img.ID, err)
+			return err
 		}
-		logrus.Debugf("error saving signatures for image %q: %v", img.ID, err)
-		return err
 	}
 	// Save our metadata.
 	metadata, err := json.Marshal(s)
@@ -407,7 +672,7 @@ func (s *storageImageDestination) Commit() error {
 		return err
 	}
 	if len(metadata) != 0 {
-		if err = s.imageRef.transport.store.SetMetadata(s.ID, string(metadata)); err != nil {
+		if err = s.imageRef.transport.store.SetMetadata(img.ID, string(metadata)); err != nil {
 			if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
 				logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
 			}
@@ -420,7 +685,7 @@ func (s *storageImageDestination) Commit() error {
 }
 
 var manifestMIMETypes = []string{
-	// TODO(runcom): we'll add OCI as part of another PR here
+	imgspecv1.MediaTypeImageManifest,
 	manifest.DockerV2Schema2MediaType,
 	manifest.DockerV2Schema1SignedMediaType,
 	manifest.DockerV2Schema1MediaType,
@@ -430,23 +695,20 @@ func (s *storageImageDestination) SupportedManifestMIMETypes() []string {
 	return manifestMIMETypes
 }
 
-// PutManifest writes manifest to the destination.
-// FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
-// If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
-// but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
+// PutManifest writes the manifest to the destination.
 func (s *storageImageDestination) PutManifest(manifest []byte) error {
-	s.Manifest = make([]byte, len(manifest))
-	copy(s.Manifest, manifest)
+	s.manifest = make([]byte, len(manifest))
+	copy(s.manifest, manifest)
 	return nil
 }
 
-// SupportsSignatures returns an error if we can't expect GetSignatures() to
-// return data that was previously supplied to PutSignatures().
+// SupportsSignatures returns an error if we can't expect GetSignatures() to return data that was
+// previously supplied to PutSignatures().
 func (s *storageImageDestination) SupportsSignatures() error {
 	return nil
 }
 
-// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
+// AcceptsForeignLayerURLs returns false iff foreign layers in the manifest should actually be
 // uploaded to the image destination, true otherwise.
 func (s *storageImageDestination) AcceptsForeignLayerURLs() bool {
 	return false
@@ -457,6 +719,7 @@ func (s *storageImageDestination) MustMatchRuntimeOS() bool {
 	return true
 }
 
+// PutSignatures records the image's signatures for committing as a single data blob.
 func (s *storageImageDestination) PutSignatures(signatures [][]byte) error {
 	sizes := []int{}
 	sigblob := []byte{}
@@ -467,150 +730,67 @@ func (s *storageImageDestination) PutSignatures(signatures [][]byte) error {
 		copy(newblob[len(sigblob):], sig)
 		sigblob = newblob
 	}
-	s.Signatures = sigblob
+	s.signatures = sigblob
 	s.SignatureSizes = sizes
 	return nil
 }
 
-func (s *storageImageSource) GetBlob(info types.BlobInfo) (rc io.ReadCloser, n int64, err error) {
-	rc, n, _, err = s.getBlobAndLayerID(info)
-	return rc, n, err
-}
-
-func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadCloser, n int64, layerID string, err error) {
-	err = info.Digest.Validate()
-	if err != nil {
-		return nil, -1, "", err
-	}
-	if layerList, ok := s.Layers[info.Digest]; !ok || len(layerList) < 1 {
-		b, err := s.imageRef.transport.store.ImageBigData(s.ID, info.Digest.String())
-		if err != nil {
-			return nil, -1, "", err
-		}
-		r := bytes.NewReader(b)
-		logrus.Debugf("exporting opaque data as blob %q", info.Digest.String())
-		return ioutil.NopCloser(r), int64(r.Len()), "", nil
-	}
-	// If the blob was "put" more than once, we have multiple layer IDs
-	// which should all produce the same diff.  For the sake of tests that
-	// want to make sure we created different layers each time the blob was
-	// "put", though, cycle through the layers.
-	layerList := s.Layers[info.Digest]
-	position, ok := s.LayerPosition[info.Digest]
-	if !ok {
-		position = 0
-	}
-	s.LayerPosition[info.Digest] = (position + 1) % len(layerList)
-	logrus.Debugf("exporting filesystem layer %q for blob %q", layerList[position], info.Digest)
-	rc, n, err = diffLayer(s.imageRef.transport.store, layerList[position])
-	return rc, n, layerList[position], err
-}
-
-func diffLayer(store storage.Store, layerID string) (rc io.ReadCloser, n int64, err error) {
-	layer, err := store.Layer(layerID)
-	if err != nil {
-		return nil, -1, err
-	}
-	layerMeta := storageLayerMetadata{
-		CompressedSize: -1,
-	}
-	if layer.Metadata != "" {
-		if err := json.Unmarshal([]byte(layer.Metadata), &layerMeta); err != nil {
-			return nil, -1, errors.Wrapf(err, "error decoding metadata for layer %q", layerID)
-		}
-	}
-	if layerMeta.CompressedSize <= 0 {
-		n = -1
-	} else {
-		n = layerMeta.CompressedSize
-	}
-	diff, err := store.Diff("", layer.ID, nil)
-	if err != nil {
-		return nil, -1, err
-	}
-	return diff, n, nil
-}
-
-// GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
-// It may use a remote (= slow) service.
-// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
-// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-func (s *storageImageSource) GetManifest(instanceDigest *ddigest.Digest) (manifestBlob []byte, MIMEType string, err error) {
-	if instanceDigest != nil {
-		return nil, "", ErrNoManifestLists
-	}
-	manifestBlob, err = s.imageRef.transport.store.ImageBigData(s.ID, "manifest")
-	return manifestBlob, manifest.GuessMIMEType(manifestBlob), err
-}
-
-// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
-// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
-// (e.g. if the source never returns manifest lists).
-func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *ddigest.Digest) ([][]byte, error) {
-	if instanceDigest != nil {
-		return nil, ErrNoManifestLists
-	}
-	var offset int
-	signature, err := s.imageRef.transport.store.ImageBigData(s.ID, "signatures")
-	if err != nil {
-		return nil, err
-	}
-	sigslice := [][]byte{}
-	for _, length := range s.SignatureSizes {
-		sigslice = append(sigslice, signature[offset:offset+length])
-		offset += length
-	}
-	if offset != len(signature) {
-		return nil, errors.Errorf("signatures data contained %d extra bytes", len(signature)-offset)
-	}
-	return sigslice, nil
-}
-
+// getSize() adds up the sizes of the image's data blobs (which includes the configuration blob), the
+// signatures, and the uncompressed sizes of all of the image's layers.
 func (s *storageImageSource) getSize() (int64, error) {
 	var sum int64
-	names, err := s.imageRef.transport.store.ListImageBigData(s.imageRef.id)
+	// Size up the data blobs.
+	dataNames, err := s.imageRef.transport.store.ListImageBigData(s.ID)
 	if err != nil {
-		return -1, errors.Wrapf(err, "error reading image %q", s.imageRef.id)
+		return -1, errors.Wrapf(err, "error reading image %q", s.ID)
 	}
-	for _, name := range names {
-		bigSize, err := s.imageRef.transport.store.ImageBigDataSize(s.imageRef.id, name)
+	for _, dataName := range dataNames {
+		bigSize, err := s.imageRef.transport.store.ImageBigDataSize(s.ID, dataName)
 		if err != nil {
-			return -1, errors.Wrapf(err, "error reading data blob size %q for %q", name, s.imageRef.id)
+			return -1, errors.Wrapf(err, "error reading data blob size %q for %q", dataName, s.ID)
 		}
 		sum += bigSize
 	}
+	// Add the signature sizes.
 	for _, sigSize := range s.SignatureSizes {
 		sum += int64(sigSize)
 	}
-	for _, layerList := range s.Layers {
-		for _, layerID := range layerList {
-			layer, err := s.imageRef.transport.store.Layer(layerID)
-			if err != nil {
-				return -1, err
-			}
-			layerMeta := storageLayerMetadata{
-				Size: -1,
-			}
-			if layer.Metadata != "" {
-				if err := json.Unmarshal([]byte(layer.Metadata), &layerMeta); err != nil {
-					return -1, errors.Wrapf(err, "error decoding metadata for layer %q", layerID)
-				}
-			}
-			if layerMeta.Size < 0 {
-				return -1, errors.Errorf("size for layer %q is unknown, failing getSize()", layerID)
-			}
-			sum += layerMeta.Size
+	// Prepare to walk the layer list.
+	img, err := s.imageRef.transport.store.Image(s.ID)
+	if err != nil {
+		return -1, errors.Wrapf(err, "error reading image info %q", s.ID)
+	}
+	// Walk the layer list.
+	layerID := img.TopLayer
+	for layerID != "" {
+		layer, err := s.imageRef.transport.store.Layer(layerID)
+		if err != nil {
+			return -1, err
 		}
+		if layer.UncompressedDigest == "" || layer.UncompressedSize < 0 {
+			return -1, errors.Errorf("size for layer %q is unknown, failing getSize()", layerID)
+		}
+		sum += layer.UncompressedSize
+		if layer.Parent == "" {
+			break
+		}
+		layerID = layer.Parent
 	}
 	return sum, nil
 }
 
+// Size() adds up the sizes of the image's data blobs (which includes the configuration blob), the
+// signatures, and the uncompressed sizes of all of the image's layers.
+func (s *storageImageSource) Size() (int64, error) {
+	return s.getSize()
+}
+
+// Size() returns the previously-computed size of the image, with no error.
 func (s *storageImageCloser) Size() (int64, error) {
 	return s.size, nil
 }
 
-// newImage creates an ImageCloser that also knows its size
+// newImage creates an image that also knows its size
 func newImage(ctx *types.SystemContext, s storageReference) (types.ImageCloser, error) {
 	src, err := newImageSource(s)
 	if err != nil {

@@ -82,3 +82,8 @@ func (s *dirImageSource) GetSignatures(ctx context.Context, instanceDigest *dige
 	}
 	return signatures, nil
 }
+
+// LayerInfosForCopy() returns updated layer info that should be used when copying, in preference to values in the manifest, if specified.
+func (s *dirImageSource) LayerInfosForCopy() []types.BlobInfo {
+	return nil
+}

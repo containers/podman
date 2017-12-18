@@ -483,7 +483,7 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 			}
 		}
 		if rootProp == "" {
-			options = append(options, "rprivate")
+			options = append(options, "private")
 		}
 
 		m = append(m, spec.Mount{

@@ -61,3 +61,10 @@ func (i *memoryImage) Signatures(ctx context.Context) ([][]byte, error) {
 func (i *memoryImage) Inspect() (*types.ImageInspectInfo, error) {
 	return inspectManifest(i.genericManifest)
 }
+
+// LayerInfosForCopy returns an updated set of layer blob information which may not match the manifest.
+// The Digest field is guaranteed to be provided; Size may be -1.
+// WARNING: The list may contain duplicates, and they are semantically relevant.
+func (i *memoryImage) LayerInfosForCopy() []types.BlobInfo {
+	return nil
+}
