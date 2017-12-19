@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -49,7 +50,9 @@ func rmiCmd(c *cli.Context) error {
 	if len(args) > 0 && removeAll {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
+
 	imagesToDelete := args[:]
+	var lastError error
 	if removeAll {
 		localImages, err := runtime.GetImages(&libpod.ImageFilterParams{})
 		if err != nil {
@@ -63,13 +66,21 @@ func rmiCmd(c *cli.Context) error {
 	for _, arg := range imagesToDelete {
 		image, err := runtime.GetImage(arg)
 		if err != nil {
-			return errors.Wrapf(err, "could not get image %q", arg)
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "could not get image %q", arg)
+			continue
 		}
 		id, err := runtime.RemoveImage(image, c.Bool("force"))
 		if err != nil {
-			return errors.Wrapf(err, "error removing image %q", id)
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to remove image")
+		} else {
+			fmt.Println(id)
 		}
-		fmt.Printf("%s\n", id)
 	}
-	return nil
+	return lastError
 }
