@@ -6,8 +6,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -106,7 +108,7 @@ type createConfig struct {
 	Rm                 bool //rm
 	ShmDir             string
 	SigProxy           bool              //sig-proxy
-	StopSignal         string            // stop-signal
+	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        int64             // stop-timeout
 	StorageOpts        []string          //storage-opt
 	Sysctl             map[string]string //sysctl
@@ -411,6 +413,13 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		}
 		shmDir = ctr.ShmDir()
 	}
+	stopSignal := syscall.SIGTERM
+	if c.IsSet("stop-signal") {
+		stopSignal, err = signal.ParseSignal(c.String("stop-signal"))
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	config := &createConfig{
 		Runtime:        runtime,
@@ -478,7 +487,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Rm:          c.Bool("rm"),
 		ShmDir:      shmDir,
 		SigProxy:    c.Bool("sig-proxy"),
-		StopSignal:  c.String("stop-signal"),
+		StopSignal:  stopSignal,
 		StopTimeout: c.Int64("stop-timeout"),
 		StorageOpts: c.StringSlice("storage-opt"),
 		Sysctl:      sysctl,
