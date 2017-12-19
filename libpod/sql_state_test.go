@@ -26,6 +26,7 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			Stdin:           true,
 			Labels:          make(map[string]string),
 			StopSignal:      0,
+			StopTimeout:     0,
 			CreatedTime:     time.Now(),
 		},
 		state: &containerRuntimeInfo{

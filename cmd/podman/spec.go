@@ -559,7 +559,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	// TODO should not happen if --net=host
 	options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
-
+	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 	return options, nil
 }
 
