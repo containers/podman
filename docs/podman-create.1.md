@@ -373,6 +373,10 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
+**--quiet, -q**
+
+Suppress output information when pulling images
+
 **--read-only**=*true*|*false*
    Mount the container's root filesystem as read only.
 

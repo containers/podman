@@ -397,7 +397,7 @@ func (k *Image) HasLatest() (bool, error) {
 }
 
 // Pull is a wrapper function to pull and image
-func (k *Image) Pull() error {
+func (k *Image) Pull(writer io.Writer) error {
 	// If the image hasn't been decomposed yet
 	if !k.beenDecomposed {
 		err := k.Decompose()
@@ -405,7 +405,7 @@ func (k *Image) Pull() error {
 			return err
 		}
 	}
-	k.runtime.PullImage(k.PullName, CopyOptions{Writer: os.Stdout, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
+	k.runtime.PullImage(k.PullName, CopyOptions{Writer: writer, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
 	return nil
 }
 
