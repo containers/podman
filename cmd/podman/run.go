@@ -44,7 +44,6 @@ func runCmd(c *cli.Context) error {
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
-		fmt.Printf("Trying to pull %s...", createImage.PullName)
 		createImage.Pull()
 	}
 
