@@ -363,6 +363,10 @@ var createFlags = []cli.Flag{
 		Usage: "Publish all exposed ports to random ports on the host interface",
 	},
 	cli.BoolFlag{
+		Name:  "quiet, q",
+		Usage: "Suppress output information when pulling images",
+	},
+	cli.BoolFlag{
 		Name:  "read-only",
 		Usage: "Make containers root filesystem read-only",
 	},

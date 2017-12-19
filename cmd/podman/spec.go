@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -163,6 +164,25 @@ func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 	return nil
 }
 
+func addDevice(g *generate.Generator, device string) error {
+	dev, err := devices.DeviceFromPath(device, "rwm")
+	if err != nil {
+		return errors.Wrapf(err, "%s is not a valid device", device)
+	}
+	linuxdev := spec.LinuxDevice{
+		Path:     dev.Path,
+		Type:     string(dev.Type),
+		Major:    dev.Major,
+		Minor:    dev.Minor,
+		FileMode: &dev.FileMode,
+		UID:      &dev.Uid,
+		GID:      &dev.Gid,
+	}
+	g.AddDevice(linuxdev)
+	g.AddLinuxResourcesDevice(true, string(dev.Type), &dev.Major, &dev.Minor, dev.Permissions)
+	return nil
+}
+
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g := generate.New()
@@ -231,6 +251,13 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 	if config.Resources.CPUsetMems != "" {
 		g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
+	}
+
+	// Devices
+	for _, device := range config.Devices {
+		if err := addDevice(&g, device); err != nil {
+			return nil, err
+		}
 	}
 
 	// SECURITY OPTS
@@ -321,7 +348,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			Hooks: &configSpec.Hooks{},
 			//Annotations
 				Resources: &configSpec.LinuxResources{
-					Devices: config.GetDefaultDevices(),
 					BlockIO: &blkio,
 					//HugepageLimits:
 					Network: &configSpec.LinuxNetwork{
@@ -331,7 +357,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				},
 				//CgroupsPath:
 				//Namespaces: []LinuxNamespace
-				//Devices
 				// DefaultAction:
 				// Architectures
 				// Syscalls:

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
 
 type mountType string
@@ -72,7 +72,7 @@ type createConfig struct {
 	CgroupParent       string // cgroup-parent
 	Command            []string
 	Detach             bool              // detach
-	Devices            []*pb.Device      // device
+	Devices            []string          // device
 	DNSOpt             []string          //dns-opt
 	DNSSearch          []string          //dns-search
 	DNSServers         []string          //dns
@@ -101,6 +101,7 @@ type createConfig struct {
 	Privileged         bool     //privileged
 	Publish            []string //publish
 	PublishAll         bool     //publish-all
+	Quiet              bool     //quiet
 	ReadOnlyRootfs     bool     //read-only
 	Resources          createResourceConfig
 	Rm                 bool //rm
@@ -167,8 +168,11 @@ func createCmd(c *cli.Context) error {
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
-		fmt.Printf("Trying to pull %s...", createImage.PullName)
-		createImage.Pull()
+		var writer io.Writer
+		if !createConfig.Quiet {
+			writer = os.Stdout
+		}
+		createImage.Pull(writer)
 	}
 
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
@@ -419,6 +423,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		CgroupParent:   c.String("cgroup-parent"),
 		Command:        command,
 		Detach:         c.Bool("detach"),
+		Devices:        c.StringSlice("device"),
 		DNSOpt:         c.StringSlice("dns-opt"),
 		DNSSearch:      c.StringSlice("dns-search"),
 		DNSServers:     c.StringSlice("dns"),
@@ -447,6 +452,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		Privileged:     c.Bool("privileged"),
 		Publish:        c.StringSlice("publish"),
 		PublishAll:     c.Bool("publish-all"),
+		Quiet:          c.Bool("quiet"),
 		ReadOnlyRootfs: c.Bool("read-only"),
 		Resources: createResourceConfig{
 			BlkioWeight:       blkioWeight,

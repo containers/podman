@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -44,7 +46,11 @@ func runCmd(c *cli.Context) error {
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
-		createImage.Pull()
+		var writer io.Writer
+		if !createConfig.Quiet {
+			writer = os.Stdout
+		}
+		createImage.Pull(writer)
 	}
 
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
