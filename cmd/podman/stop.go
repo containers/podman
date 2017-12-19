@@ -6,17 +6,15 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 var (
-	defaultTimeout int64 = 10
-	stopFlags            = []cli.Flag{
-		cli.Int64Flag{
+	stopFlags = []cli.Flag{
+		cli.UintFlag{
 			Name:  "timeout, t",
 			Usage: "Seconds to wait for stop before killing the container",
-			Value: defaultTimeout,
+			Value: libpod.CtrRemoveTimeout,
 		},
 		cli.BoolFlag{
 			Name:  "all, a",
@@ -43,7 +41,6 @@ var (
 
 func stopCmd(c *cli.Context) error {
 	args := c.Args()
-	stopTimeout := c.Int64("timeout")
 	if c.Bool("all") && len(args) > 0 {
 		return errors.Errorf("no arguments are needed with -a")
 	}
@@ -59,8 +56,6 @@ func stopCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	logrus.Debugf("Stopping containers with timeout %d", stopTimeout)
 
 	var filterFuncs []libpod.ContainerFilter
 	var containers []*libpod.Container
@@ -91,6 +86,12 @@ func stopCmd(c *cli.Context) error {
 	}
 
 	for _, ctr := range containers {
+		var stopTimeout uint
+		if c.IsSet("timeout") {
+			stopTimeout = c.Uint("timeout")
+		} else {
+			stopTimeout = ctr.StopTimeout()
+		}
 		if err := ctr.Stop(stopTimeout); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)

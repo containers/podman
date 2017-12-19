@@ -401,7 +401,7 @@ func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 // immediately kill with SIGKILL
 // Does not set finished time for container, assumes you will run updateStatus
 // after to pull the exit code
-func (r *OCIRuntime) stopContainer(ctr *Container, timeout int64) error {
+func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	// Ping the container to see if it's alive
 	// If it's not, it's already stopped, return
 	err := unix.Kill(ctr.state.PID, 0)

@@ -9,7 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ctrRemoveTimeout = 10
+// CtrRemoveTimeout is the default number of seconds to wait after stopping a container
+// before sending the kill signal
+const CtrRemoveTimeout = 10
 
 // Contains the public Runtime API for containers
 
@@ -34,6 +36,7 @@ func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *
 	if err != nil {
 		return nil, err
 	}
+	ctr.config.StopTimeout = CtrRemoveTimeout
 
 	for _, option := range options {
 		if err := option(ctr); err != nil {
@@ -122,7 +125,7 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == ContainerStateRunning && force {
-		if err := r.ociRuntime.stopContainer(c, ctrRemoveTimeout); err != nil {
+		if err := r.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 
