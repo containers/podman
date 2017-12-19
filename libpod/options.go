@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"path/filepath"
+	"syscall"
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -396,7 +397,7 @@ func WithName(name string) CtrCreateOption {
 }
 
 // WithStopSignal sets the signal that will be sent to stop the container
-func WithStopSignal(signal uint) CtrCreateOption {
+func WithStopSignal(signal syscall.Signal) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
@@ -408,7 +409,7 @@ func WithStopSignal(signal uint) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "stop signal cannot be greater than 64 (SIGRTMAX)")
 		}
 
-		ctr.config.StopSignal = signal
+		ctr.config.StopSignal = uint(signal)
 
 		return nil
 	}
