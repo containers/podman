@@ -127,6 +127,57 @@ for key in ${!IMAGES[@]}; do
 
 done
 
+###
+# Buildah related variables
+###
+BUILDAH_BINARY=${BUILDAH_BINARY:-$(dirname ${BASH_SOURCE})/../buildah}
+BUILDAH_IMGTYPE_BINARY=${BUILDAH_IMGTYPE_BINARY:-$(dirname ${BASH_SOURCE})/../imgtype}
+BUILDAH_TESTSDIR=${BUILDAH_TESTSDIR:-$(dirname ${BASH_SOURCE})}
+BUILDAH_STORAGE_DRIVER=${BUILDAH_STORAGE_DRIVER:-vfs}
+#BUILDAH_PATH=$(dirname ${BASH_SOURCE})/..:${BUILDAH_PATH}
+
+# Make sure we have a copy of the redis:alpine image.
+if ! [ -d "$ARTIFACTS_PATH"/redis-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/redis-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis:alpine --export-to=dir:"$ARTIFACTS_PATH"/redis-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://redis"
+        rm -fr "$ARTIFACTS_PATH"/redis-image
+        exit 1
+    fi
+fi
+
+# TODO: remove the code below for pulling redis:alpine using a canonical reference once
+#       https://github.com/kubernetes-incubator/cri-o/issues/531 is complete and we can
+#       pull the image using a tagged reference and then subsequently find the image without
+#       having to explicitly record the canonical reference as one of the image's names
+if ! [ -d "$ARTIFACTS_PATH"/redis-image-digest ]; then
+    mkdir -p "$ARTIFACTS_PATH"/redis-image-digest
+    if ! "$COPYIMG_BINARY" --import-from=docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b --export-to=dir:"$ARTIFACTS_PATH"/redis-image-digest --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://redis@sha256:03789f402b2ecfb98184bf128d180f398f81c63364948ff1454583b02442f73b"
+        rm -fr "$ARTIFACTS_PATH"/redis-image-digest
+        exit 1
+    fi
+fi
+
+# Make sure we have a copy of the runcom/stderr-test image.
+if ! [ -d "$ARTIFACTS_PATH"/stderr-test ]; then
+    mkdir -p "$ARTIFACTS_PATH"/stderr-test
+    if ! "$COPYIMG_BINARY" --import-from=docker://runcom/stderr-test:latest --export-to=dir:"$ARTIFACTS_PATH"/stderr-test --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://stderr-test"
+        rm -fr "$ARTIFACTS_PATH"/stderr-test
+        exit 1
+    fi
+fi
+
+# Make sure we have a copy of the busybox:latest image.
+if ! [ -d "$ARTIFACTS_PATH"/busybox-image ]; then
+    mkdir -p "$ARTIFACTS_PATH"/busybox-image
+    if ! "$COPYIMG_BINARY" --import-from=docker://busybox --export-to=dir:"$ARTIFACTS_PATH"/busybox-image --signature-policy="$INTEGRATION_ROOT"/policy.json ; then
+        echo "Error pulling docker://busybox"
+        rm -fr "$ARTIFACTS_PATH"/busybox-image
+        exit 1
+    fi
+fi
 
 # Communicate with Docker on the host machine.
 # Should rarely use this.
@@ -307,4 +358,50 @@ function copy_images() {
     for key in ${!IMAGES[@]}; do
         "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=${IMAGES[${key}]} --import-from=dir:"$ARTIFACTS_PATH"/${key} --add-name=${IMAGES[${key}]}
     done
+}
+
+###
+# Buildah Functions
+###
+function setup() {
+	suffix=$(dd if=/dev/urandom bs=12 count=1 status=none | base64 | tr +/ABCDEFGHIJKLMNOPQRSTUVWXYZ _.abcdefghijklmnopqrstuvwxyz)
+	TESTDIR=${BATS_TMPDIR}/tmp.${suffix}
+	rm -fr ${TESTDIR}
+	mkdir -p ${TESTDIR}/{root,runroot}
+}
+
+function starthttpd() {
+	pushd ${2:-${TESTDIR}} > /dev/null
+	cp ${BUILDAH_TESTSDIR}/serve.go .
+	go build serve.go
+	HTTP_SERVER_PORT=$((RANDOM+32768))
+	./serve ${HTTP_SERVER_PORT} ${1:-${BATS_TMPDIR}} &
+	HTTP_SERVER_PID=$!
+	popd > /dev/null
+}
+
+function stophttpd() {
+	if test -n "$HTTP_SERVER_PID" ; then
+		kill -HUP ${HTTP_SERVER_PID}
+		unset HTTP_SERVER_PID
+		unset HTTP_SERVER_PORT
+	fi
+	true
+}
+
+function teardown() {
+	stophttpd
+	rm -fr ${TESTDIR}
+}
+
+function createrandom() {
+	dd if=/dev/urandom bs=1 count=${2:-256} of=${1:-${BATS_TMPDIR}/randomfile} status=none
+}
+
+function buildah() {
+	${BUILDAH_BINARY} --debug --root ${TESTDIR}/root --runroot ${TESTDIR}/runroot --storage-driver ${BUILDAH_STORAGE_DRIVER} "$@"
+}
+
+function imgtype() {
+        ${BUILDAH_IMGTYPE_BINARY} -root ${TESTDIR}/root -runroot ${TESTDIR}/runroot -storage-driver ${BUILDAH_STORAGE_DRIVER} "$@"
 }

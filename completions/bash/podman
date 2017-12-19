@@ -657,6 +657,48 @@ _podman_attach() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_build() {
+     local boolean_options="
+     --build
+     --help
+     -h
+     --pull
+     --pull-always
+     --quiet
+     -q
+     --tls-verify
+  "
+
+     local options_with_args="
+     --signature-policy
+     --runtime
+     --runtime-flag
+     --tag
+     -t
+     --file
+     -f
+     --build-arg
+     --format
+  "
+
+     local all_options="$options_with_args $boolean_options"
+
+     case "$prev" in
+         --runtime)
+             COMPREPLY=($(compgen -W 'runc runv' -- "$cur"))
+             ;;
+         $(__buildah_to_extglob "$options_with_args"))
+ return
+ ;;
+ esac
+
+ case "$cur" in
+     -*)
+         COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+         ;;
+ esac
+}
+
 _podman_diff() {
     local options_with_args="
      --format
