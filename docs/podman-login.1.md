@@ -37,6 +37,12 @@ Username for registry
 **--authfile**
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
 
+**--cert-dir**
+Pathname of a directory containing TLS certificates and keys
+
+**--tls-verify**
+Require HTTPS and verify certificates when contacting registries (default: true)
+
 ## EXAMPLES
 
 ```
@@ -55,6 +61,16 @@ Login Succeeded!
 # podman login --authfile authdir/myauths.json docker.io
 Username: umohnani
 Password:
+Login Succeeded!
+```
+
+```
+$ kpod login --tls-verify=false -u test -p test localhost:5000
+Login Succeeded!
+```
+
+```
+$ kpod login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
 Login Succeeded!
 ```
 
