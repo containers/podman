@@ -3,7 +3,7 @@
 # podman-login "1" "August 2017" "podman"
 
 ## NAME
-podman-login - Login to a container registry
+podman login - Login to a container registry
 
 ## SYNOPSIS
 **podman login**

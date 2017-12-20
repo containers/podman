@@ -31,16 +31,19 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 libpod is currently in active development.
 
 ## Commands
-| Command                                              | Description                                                               | Demo|
-| ---------------------------------------------------- | --------------------------------------------------------------------------|-----|
+| Command                                                  | Description                                                               | Demo|
+| :------------------------------------------------------- | :------------------------------------------------------------------------ | :----|
 | [podman(1)](/docs/podman.1.md)                           | Simple management tool for pods and images                                ||
-| [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container.
-| [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality.||
+| [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             ||
+| [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
+| [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
+| [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
-| [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container.
+| [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container
 | [podman-export(1)](/docs/podman-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [podman-history(1)](/docs/podman-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
 | [podman-images(1)](/docs/podman-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
+| [podman-import(1)](/docs/podman-import.1.md)             | Import a tarball and save it as a filesystem image                        ||
 | [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                ||
 | [podman-inspect(1)](/docs/podman-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
 | [podman-kill(1)](/docs/podman-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
@@ -53,7 +56,6 @@ libpod is currently in active development.
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
 | [podman-pull(1)](/docs/podman-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
 | [podman-push(1)](/docs/podman-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
-| [podman-rename(1)](/docs/podman-rename.1.md)             | Rename a container                                                        ||
 | [podman-rm(1)](/docs/podman-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [podman-rmi(1)](/docs/podman-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
 | [podman-save(1)](/docs/podman-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|

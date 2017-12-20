@@ -3,7 +3,7 @@
 # podman-export "1" "July 2017" "podman"
 
 ## NAME
-podman-export - Export container's filesystem contents as a tar archive
+podman export - Export container's filesystem contents as a tar archive
 
 ## SYNOPSIS
 **podman export**

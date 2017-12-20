@@ -3,7 +3,7 @@
 % podman-history "1" "JULY 2017" "podman"
 
 ## NAME
-podman-history - Shows the history of an image
+podman history - Shows the history of an image
 
 ## SYNOPSIS
 **podman history**

@@ -3,7 +3,7 @@
 % podman-ps "1" "AUGUST 2017" "podman"
 
 ## NAME
-podman-ps - Prints out information about containers
+podman ps - Prints out information about containers
 
 ## SYNOPSIS
 **podman ps**

@@ -1,11 +1,13 @@
 % podman(1) podman-run - Run a command in a container
 % Dan Walsh
-podman-run - Run a command in a new container
 
-# SYNOPSIS
+## NAME
+podman run - Run a command in a new container
+
+## SYNOPSIS
 **podman run** [*options* [...]] IMAGE [COMMAND] [ARG...]
 
-# DESCRIPTION
+## DESCRIPTION
 
 Run a process in a new container. **podman run** starts a process with its own
 file system, its own networking, and its own isolated process tree. The IMAGE
@@ -19,7 +21,7 @@ If the IMAGE is not already loaded then **podman run** will pull the IMAGE, and
 all image dependencies, from the repository in the same way running **podman
 pull** IMAGE, before it starts the container from that image.
 
-# OPTIONS
+## OPTIONS
 **--add-host**=[]
    Add a custom host-to-IP mapping (host:ip)
 
@@ -598,9 +600,9 @@ the exit codes follow the `chroot` standard, see below:
     $ podman run busybox /bin/sh -c 'exit 3'
     # 3
 
-# EXAMPLES
+## EXAMPLES
 
-## Running container in read-only mode
+### Running container in read-only mode
 
 During container image development, containers often need to write to the image
 content.  Installing packages into /usr, for example.  In production,
@@ -613,7 +615,7 @@ tmpfs directories on /run and /tmp.
 
     # podman run --read-only --tmpfs /run --tmpfs /tmp -i -t fedora /bin/bash
 
-## Exposing log messages from the container to the host's log
+### Exposing log messages from the container to the host's log
 
 If you want messages that are logged in your container to show up in the host's
 syslog/journal then you should bind mount the /dev/log directory as follows.
@@ -632,7 +634,7 @@ Then exit and check the journal.
 
 This should list the message sent to logger.
 
-## Attaching to one or more from STDIN, STDOUT, STDERR
+### Attaching to one or more from STDIN, STDOUT, STDERR
 
 If you do not specify -a then podman will attach everything (stdin,stdout,stderr)
 . You can specify to which of the three standard streams (stdin, stdout, stderr)
@@ -705,7 +707,7 @@ Create a 3rd container using the new --ipc=container:CONTAINERID option, now it 
  0x0000162e 0          root       666        27         1
 ```
 
-## Mapping Ports for External Usage
+### Mapping Ports for External Usage
 
 The exposed port of an application can be mapped to a host port using the **-p**
 flag. For example, an httpd port 80 can be mapped to the host port 8080 using the
@@ -713,7 +715,7 @@ following:
 
     # podman run -p 8080:80 -d -i -t fedora/httpd
 
-## Mounting External Volumes
+### Mounting External Volumes
 
 To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
@@ -737,7 +739,7 @@ to the host directory:
 Now, writing to the /data1 volume in the container will be allowed and the
 changes will also be reflected on the host in /var/db.
 
-## Using alternative security labeling
+### Using alternative security labeling
 
 You can override the default labeling scheme for each container by specifying
 the `--security-opt` flag. For example, you can specify the MCS/MLS level, a
@@ -766,7 +768,7 @@ Note:
 
 You would have to write policy defining a `svirt_apache_t` type.
 
-## Setting device weight
+### Setting device weight
 
 If you want to set `/dev/sda` device weight to `200`, you can specify the device
 weight by `--blkio-weight-device` flag. Use the following command:
@@ -777,7 +779,7 @@ weight by `--blkio-weight-device` flag. Use the following command:
 $ podman run -d busybox top
 ```
 
-## Setting Namespaced Kernel Parameters (Sysctls)
+### Setting Namespaced Kernel Parameters (Sysctls)
 
 The `--sysctl` sets namespaced kernel parameters (sysctls) in the
 container. For example, to turn on IP forwarding in the containers
@@ -794,7 +796,7 @@ evolves we expect to see more sysctls become namespaced.
 See the definition of the `--sysctl` option above for the current list of
 supported sysctls.
 
-# HISTORY
+## HISTORY
 April 2014, Originally compiled by William Henry (whenry at redhat dot com)
 based on docker.com source material and internal work.
 June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>

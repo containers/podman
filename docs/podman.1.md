@@ -55,6 +55,9 @@ has the capability to debug pods/images created by crio.
 ### attach
 Attach to a running container
 
+### commit
+Create new image based on the changed container
+
 ### create
 create a new container
 
@@ -108,9 +111,6 @@ Pull an image from a registry
 
 ### push
 Push an image from local storage to elsewhere
-
-### rename
-Rename a container
 
 ### rm
 Remove one or more containers
