@@ -94,5 +94,5 @@ if [[ ${PACKAGER} != "yum" ]]; then
 fi
 
 make TAGS="${TAGS}"
-make TAGS="${TAGS}" install PREFIX=/host/usr
+make TAGS="${TAGS}" install PREFIX=/host/usr ETCDIR=/host/etc
 make TAGS="${TAGS}" test-binaries

@@ -10,7 +10,7 @@ PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
-ETCDIR ?= ${DESTDIR}/etc
+ETCDIR ?= /etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 
@@ -135,7 +135,7 @@ docs/%.1: docs/%.1.md .gopathok
 
 docs: $(MANPAGES)
 
-install: .gopathok install.bin install.man
+install: .gopathok install.bin install.man install.cni
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
@@ -152,6 +152,10 @@ install.config:
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 -D completions/bash/podman ${BASHINSTALLDIR}
+
+install.cni:
+	install ${SELINUXOPT} -D -m 644 cni/98-podman-loopback.conf ${ETCDIR}/cni/net.d/98-podman-loopback.conf
+	install ${SELINUXOPT} -m 644 cni/97-podman-bridge.conf ${ETCDIR}/cni/net.d/97-podman-bridge.conf
 
 uninstall:
 	rm -f $(LIBEXECDIR)/crio/conmon
