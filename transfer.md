@@ -39,7 +39,7 @@ There are other equivalents for these tools
 | Existing Step | PODMAN (and friends) |
 | :--- | :--- |
 | `docker attach` | [`podman exec`](./docs/podman-attach.1.md)|
-| `docker build`  | [`buildah bud`](https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md) |
+| `docker build`  | [`podman build`](./docs/podman-build.1.md) |
 | `docker commit` | [`podman commit`](./docs/podman-commit.1.md)|
 | `docker cp`     | [`podman mount`](./docs/podman-cp.1.md) ****   |
 | `docker create` | [`podman create`](./docs/podman-create.1.md)  |
