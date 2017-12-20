@@ -146,6 +146,8 @@ type ContainerConfig struct {
 	Mounts []string `json:"mounts,omitempty"`
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
+	// StopTimeout is the signal that will be used to stop the container
+	StopTimeout uint `json:"stopTimeout,omitempty"`
 	// Shared namespaces with container
 	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
 	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
@@ -671,9 +673,10 @@ func (c *Container) Start() error {
 // to stop the container, and if it has not stopped after the given timeout (in
 // seconds), uses SIGKILL to attempt to forcibly stop the container.
 // If timeout is 0, SIGKILL will be used immediately
-func (c *Container) Stop(timeout int64) error {
+func (c *Container) Stop(timeout uint) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
 
 	if err := c.syncContainer(); err != nil {
 		return err
@@ -1139,4 +1142,9 @@ func (c *Container) copyHostFileToRundir(sourcePath string) (string, error) {
 		return "", err
 	}
 	return destFileName, nil
+}
+
+// StopTimeout returns a stop timeout field for this container
+func (c *Container) StopTimeout() uint {
+	return c.config.StopTimeout
 }

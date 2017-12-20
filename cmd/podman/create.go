@@ -110,7 +110,7 @@ type createConfig struct {
 	ShmDir             string
 	SigProxy           bool              //sig-proxy
 	StopSignal         syscall.Signal    // stop-signal
-	StopTimeout        int64             // stop-timeout
+	StopTimeout        uint              // stop-timeout
 	StorageOpts        []string          //storage-opt
 	Sysctl             map[string]string //sysctl
 	Tmpfs              []string          // tmpfs
@@ -494,7 +494,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		ShmDir:      shmDir,
 		SigProxy:    c.Bool("sig-proxy"),
 		StopSignal:  stopSignal,
-		StopTimeout: c.Int64("stop-timeout"),
+		StopTimeout: c.Uint("stop-timeout"),
 		StorageOpts: c.StringSlice("storage-opt"),
 		Sysctl:      sysctl,
 		Tmpfs:       c.StringSlice("tmpfs"),

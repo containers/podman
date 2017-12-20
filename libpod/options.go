@@ -415,6 +415,19 @@ func WithStopSignal(signal syscall.Signal) CtrCreateOption {
 	}
 }
 
+// WithStopTimeout sets the time to after initial stop signal is sent to container, before sending the kill signal
+func WithStopTimeout(timeout uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.StopTimeout = timeout
+
+		return nil
+	}
+}
+
 // WithNetNS indicates that the container should be given a new network
 // namespace with a minimal configuration
 // An optional array of port mappings can be provided

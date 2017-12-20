@@ -176,6 +176,7 @@ func prepareDB(db *sql.DB) (err error) {
             Stdin INTEGER NOT NULL,
             LabelsJSON TEXT NOT NULL,
             StopSignal INTEGER NOT NULL,
+            StopTimeout INTEGER NOT NULL,
             CreatedTime TEXT NOT NULL,
             RootfsImageID TEXT NOT NULL,
             RootfsImageName TEXT NOT NULL,
@@ -284,6 +285,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		stdin              int
 		labelsJSON         string
 		stopSignal         uint
+		stopTimeout        uint
 		createdTimeString  string
 		rootfsImageID      string
 		rootfsImageName    string
@@ -313,6 +315,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		&stdin,
 		&labelsJSON,
 		&stopSignal,
+		&stopTimeout,
 		&createdTimeString,
 		&rootfsImageID,
 		&rootfsImageName,
@@ -351,6 +354,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	ctr.config.StaticDir = staticDir
 	ctr.config.Stdin = boolFromSQL(stdin)
 	ctr.config.StopSignal = stopSignal
+	ctr.config.StopTimeout = stopTimeout
 
 	ctr.state.State = ContainerState(state)
 	ctr.state.ConfigPath = configPath

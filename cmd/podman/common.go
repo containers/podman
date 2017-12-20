@@ -393,6 +393,7 @@ var createFlags = []cli.Flag{
 	cli.IntFlag{
 		Name:  "stop-timeout",
 		Usage: "Timeout (in seconds) to stop a container. Default is 10",
+		Value: libpod.CtrRemoveTimeout,
 	},
 	cli.StringSliceFlag{
 		Name:  "storage-opt",

@@ -277,7 +277,7 @@ func (r *Runtime) Shutdown(force bool) error {
 			logrus.Errorf("Error retrieving containers from database: %v", err)
 		} else {
 			for _, ctr := range ctrs {
-				if err := ctr.Stop(ctrRemoveTimeout); err != nil {
+				if err := ctr.Stop(CtrRemoveTimeout); err != nil {
 					logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
 				}
 			}
