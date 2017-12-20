@@ -32,7 +32,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
-			Usage: "Pathname of a directory containing TLS certificates and keys",
+			Usage: "Pathname of a directory containing TLS certificates and keys used to connect to the registry",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
