@@ -35,6 +35,7 @@ libpod is currently in active development.
 | :------------------------------------------------------- | :------------------------------------------------------------------------ | :----|
 | [podman(1)](/docs/podman.1.md)                           | Simple management tool for pods and images                                ||
 | [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             ||
+| [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                                             ||
 | [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
