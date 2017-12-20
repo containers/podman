@@ -85,7 +85,7 @@ HOOKS_OPTS="--hooks-dir-path=$HOOKSDIR"
 MOUNT_PATH="$TESTDIR/secrets"
 mkdir ${MOUNT_PATH}
 MOUNT_FILE="${MOUNT_PATH}/test.txt"
-touch ${MOUNT_FILE}
+touch ${MOUNT_FILE}}
 echo "Testing secrets mounts!" > ${MOUNT_FILE}
 
 DEFAULT_MOUNTS_OPTS="--default-mounts=${MOUNT_PATH}:/container/path1"
@@ -104,10 +104,15 @@ if [ -e /usr/sbin/selinuxenabled ] && /usr/sbin/selinuxenabled; then
     filelabel=$(awk -F'"' '/^file.*=.*/ {print $2}' /etc/selinux/${SELINUXTYPE}/contexts/lxc_contexts)
     chcon -R ${filelabel} $TESTDIR
 fi
-LIBPOD_CNI_CONFIG="$TESTDIR/cni/net.d/"
+
+LIBPOD_CNI_CONFIG="$TESTDIR/etc/cni/net.d/"
 LIBPOD_CNI_PLUGIN=${LIBPOD_CNI_PLUGIN:-/opt/cni/bin/}
 POD_CIDR="10.88.0.0/16"
 POD_CIDR_MASK="10.88.*.*"
+
+# Make sure the cni config dirs are created and populate them with the default configs
+mkdir -p ${LIBPOD_CNI_CONFIG}
+cp ${CRIO_ROOT}/cni/* ${LIBPOD_CNI_CONFIG}
 
 PODMAN_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
 
@@ -190,59 +195,6 @@ function is_apparmor_enabled() {
 			return
 		fi
 	fi
-	echo 0
-}
-
-function prepare_network_conf() {
-	mkdir -p $LIBPOD_CNI_CONFIG
-	cat >$LIBPOD_CNI_CONFIG/10-crio.conf <<-EOF
-{
-    "cniVersion": "0.2.0",
-    "name": "crionet",
-    "type": "bridge",
-    "bridge": "cni0",
-    "isGateway": true,
-    "ipMasq": true,
-    "ipam": {
-        "type": "host-local",
-        "subnet": "10.20.40.0/24",
-        "routes": [
-            { "dst": "0.0.0.0/0"  }
-        ]
-    }
-}
-EOF
-
-	cat >$LIBPOD_CNI_CONFIG/99-loopback.conf <<-EOF
-{
-    "cniVersion": "0.2.0",
-    "type": "loopback"
-}
-EOF
-
-	echo 0
-}
-
-function prepare_plugin_test_args_network_conf() {
-	mkdir -p $LIBPOD_CNI_CONFIG
-	cat >$LIBPOD_CNI_CONFIG/10-plugin-test-args.conf <<-EOF
-{
-    "cniVersion": "0.2.0",
-    "name": "crionet_test_args",
-    "type": "bridge-custom",
-    "bridge": "cni0",
-    "isGateway": true,
-    "ipMasq": true,
-    "ipam": {
-        "type": "host-local",
-        "subnet": "10.20.40.0/24",
-        "routes": [
-            { "dst": "0.0.0.0/0"  }
-        ]
-    }
-}
-EOF
-
 	echo 0
 }
 

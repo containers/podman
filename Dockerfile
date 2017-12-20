@@ -79,23 +79,6 @@ RUN set -x \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
 
-# Install custom CNI bridge test plugin
-# XXX: this plugin is meant to be a replacement for the old "test_plugin_args.bash"
-# we need this in testing because sandbox_run now gather IP address and the mock
-# plugin wasn't able to properly setup the net ns.
-# The bridge is based on the same commit as the one above.
-#ENV CNI_COMMIT 6bfe036c38c8e1410f1acaa4b2ee16f1851472e4
-ENV CNI_TEST_BRANCH custom-bridge
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/runcom/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
-       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_TEST_BRANCH" \
-       && ./build.sh \
-       && mkdir -p /opt/cni/bin \
-       && cp bin/bridge /opt/cni/bin/bridge-custom \
-       && rm -rf "$GOPATH"
-
 # Install crictl
 ENV CRICTL_COMMIT 16e6fe4d7199c5689db4630a9330e6a8a12cecd1
 RUN set -x \
