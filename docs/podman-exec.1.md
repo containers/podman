@@ -3,7 +3,7 @@
 # podman-exec "1" "December 2017" "podman"
 
 ## NAME
-podman-exec - Execute a command in a running container
+podman exec - Execute a command in a running container
 
 ## SYNOPSIS
 **podman exec**

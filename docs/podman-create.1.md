@@ -1,11 +1,13 @@
 % podman(1) podman-create - Create a new container
 % Dan Walsh
-podman-create - Create a new container
 
-# SYNOPSIS
+## NAME
+podman create - Create a new container
+
+## SYNOPSIS
 **podman create** [*options* [...]] IMAGE [COMMAND] [ARG...]
 
-# DESCRIPTION
+## DESCRIPTION
 
 Creates a writeable container layer over the specified image and prepares it for
 running the specified command. The container ID is then printed to STDOUT. This
@@ -15,7 +17,7 @@ any point.
 
 The initial status of the container created with **podman create** is 'created'.
 
-# OPTIONS
+## OPTIONS
 **--add-host**=[]
    Add a custom host-to-IP mapping (host:ip)
 
@@ -561,9 +563,9 @@ the `nocopy` flag. The `nocopy` flag can be set on bind mounts and named volumes
 The image developer can set a different default with the WORKDIR instruction. The operator
 can override the working directory by using the **-w** option.
 
-# EXAMPLES
+## EXAMPLES
 
-# HISTORY
+## HISTORY
 August 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 September 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 November 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
