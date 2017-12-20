@@ -3,7 +3,7 @@
 # podman-commit "1" "December 2017" "podman"
 
 ## NAME
-podman-commit - Create new image based on the changed container
+podman commit - Create new image based on the changed container
 
 ## SYNOPSIS
 **podman commit**

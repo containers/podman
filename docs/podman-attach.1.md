@@ -3,7 +3,7 @@
 # podman-attach "1" "December 2017" "podman"
 
 ## NAME
-podman-attach - Attach to a running container
+podman attach - Attach to a running container
 
 ## SYNOPSIS
 **podman attach [OPTIONS] CONTAINER**

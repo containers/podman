@@ -3,7 +3,7 @@
 # podman-pull "1" "July 2017" "podman"
 
 ## NAME
-podman-pull - Pull an image from a registry
+podman pull - Pull an image from a registry
 
 ## SYNOPSIS
 **podman pull**
