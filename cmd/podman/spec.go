@@ -73,15 +73,16 @@ func addPidNS(config *createConfig, g *generate.Generator) error {
 func addNetNS(config *createConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
+		logrus.Debug("Using host netmode")
 		return g.RemoveLinuxNamespace(libpod.NetNamespace)
-	}
-	if netMode.IsNone() {
-		return libpod.ErrNotImplemented
-	}
-	if netMode.IsBridge() {
-		return libpod.ErrNotImplemented
-	}
-	if netMode.IsContainer() {
+	} else if netMode.IsNone() {
+		logrus.Debug("Using none netmode")
+		return nil
+	} else if netMode.IsBridge() {
+		logrus.Debug("Using bridge netmode")
+		return nil
+	} else if netMode.IsContainer() {
+		logrus.Debug("Using container netmode")
 		ctr, err := config.Runtime.LookupContainer(netMode.ConnectedContainer())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", netMode.ConnectedContainer())
@@ -94,6 +95,8 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 		if err := g.AddOrReplaceLinuxNamespace(libpod.NetNamespace, nsPath); err != nil {
 			return err
 		}
+	} else {
+		return errors.Errorf("unknown network mode")
 	}
 	return nil
 }
@@ -556,8 +559,9 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 	// TODO parse ports into libpod format and include
-	// TODO should not happen if --net=host
-	options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
+	if !c.NetMode.IsHost() {
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
+	}
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 	return options, nil
