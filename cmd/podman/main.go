@@ -36,6 +36,7 @@ func main() {
 	app.Commands = []cli.Command{
 		attachCommand,
 		commitCommand,
+		buildCommand,
 		createCommand,
 		diffCommand,
 		execCommand,
