@@ -34,7 +34,7 @@ libpod is currently in active development.
 | Command                                                  | Description                                                               | Demo|
 | :------------------------------------------------------- | :------------------------------------------------------------------------ | :----|
 | [podman(1)](/docs/podman.1.md)                           | Simple management tool for pods and images                                ||
-| [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             ||
+| [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             |[![...](/docs/play.png)](https://asciinema.org/a/XDlocUrHVETFECg4zlO9nBbLf)|
 | [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                                             ||
 | [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
@@ -45,14 +45,14 @@ libpod is currently in active development.
 | [podman-history(1)](/docs/podman-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
 | [podman-images(1)](/docs/podman-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
 | [podman-import(1)](/docs/podman-import.1.md)             | Import a tarball and save it as a filesystem image                        ||
-| [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                ||
+| [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                |[![...](/docs/play.png)](https://asciinema.org/a/yKbi5fQ89y5TJ8e1RfJd4ivTD)|
 | [podman-inspect(1)](/docs/podman-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
 | [podman-kill(1)](/docs/podman-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
 | [podman-load(1)](/docs/podman-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [podman-login(1)](/docs/podman-login.1.md)               | Login to a container registry						   |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [podman-logout(1)](/docs/podman-logout.1.md)             | Logout of a container registry                                            |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
-| [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           ||
-| [podman-mount(1)](/docs/podman-mount.1.md)               | Mount a working container's root filesystem                               ||
+| [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
+| [podman-mount(1)](/docs/podman-mount.1.md)               | Mount a working container's root filesystem                               |[![...](/docs/play.png)](https://asciinema.org/a/YSP6hNvZo0RGeMHDA97PhPAf3)|
 | [podman-pause(1)](/docs/podman-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
 | [podman-pull(1)](/docs/podman-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
@@ -61,14 +61,14 @@ libpod is currently in active development.
 | [podman-rmi(1)](/docs/podman-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
 | [podman-save(1)](/docs/podman-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [podman-start(1)](/docs/podman-start.1.md)               | Starts one or more containers
-| [podman-stats(1)](/docs/podman-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics||
-| [podman-stop(1)](/docs/podman-stop.1.md)                 | Stops one or more running containers                                      ||
+| [podman-stats(1)](/docs/podman-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics|[![...](/docs/play.png)](https://asciinema.org/a/vfUPbAA5tsNWhsfB9p25T6xdr)|
+| [podman-stop(1)](/docs/podman-stop.1.md)                 | Stops one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/KNRF9xVXeaeNTNjBQVogvZBcp)|
 | [podman-tag(1)](/docs/podman-tag.1.md)                   | Add an additional name to a local image                                   |[![...](/docs/play.png)](https://asciinema.org/a/133803)|
-| [podman-top(1)](/docs/podman-top.1.md)                   | Display the running processes of a container
-| [podman-umount(1)](/docs/podman-umount.1.md)             | Unmount a working container's root filesystem                             ||
+| [podman-top(1)](/docs/podman-top.1.md)                   | Display the running processes of a container              |[![...](/docs/play.png)](https://asciinema.org/a/5WCCi1LXwSuRbvaO9cBUYf3fk)|
+| [podman-umount(1)](/docs/podman-umount.1.md)             | Unmount a working container's root filesystem                             |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
 | [podman-unpause(1)](/docs/podman-unpause.1.md)           | Unpause one or more running containers                                    |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-version(1)](/docs/podman-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
-| [podman-wait(1)](/docs/podman-wait.1.md)                 | Wait on one or more containers to stop and print their exit codes||
+| [podman-wait(1)](/docs/podman-wait.1.md)                 | Wait on one or more containers to stop and print their exit codes  |[![...](/docs/play.png)](https://asciinema.org/a/QNPGKdjWuPgI96GcfkycQtah0)|
 
 ## OCI Hooks Support
 
@@ -84,8 +84,8 @@ For async communication and long running discussions please use issues and pull 
 
 For sync communication we have an IRC channel #PODMAN, on chat.freenode.net, that everyone is welcome to join and chat about development.
 
-## [Installation Instructions](install.md)
-
+## [Podman tutorial](podman_tutorial.md)
+For more information on how to build, install, and use podman, check out the [podman tutorial](podman_tutorial.md).
 
 ### Current Roadmap
 
