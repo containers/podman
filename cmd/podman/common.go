@@ -324,7 +324,8 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "network",
-		Usage: "Connect a container to a network (default 'default')",
+		Usage: "Connect a container to a network",
+		Value: "bridge",
 	},
 	cli.StringSliceFlag{
 		Name:  "network-alias",
