@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"syscall"
 
 	"github.com/containers/storage"
@@ -15,6 +16,7 @@ var (
 	ctrNotImplemented = func(c *Container) error {
 		return fmt.Errorf("NOT IMPLEMENTED")
 	}
+	nameRegex = regexp.MustCompile("[a-zA-Z0-9_-]+")
 )
 
 const (
@@ -390,6 +392,11 @@ func WithName(name string) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
+		// Check the name against a regex
+		if !nameRegex.MatchString(name) {
+			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+		}
+
 		ctr.config.Name = name
 
 		return nil
@@ -451,6 +458,11 @@ func WithPodName(name string) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return ErrPodFinalized
+		}
+
+		// Check the name against a regex
+		if !nameRegex.MatchString(name) {
+			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
 		}
 
 		pod.name = name
