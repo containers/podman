@@ -584,9 +584,17 @@ func (c *Container) Init() (err error) {
 	}
 
 	// Copy /etc/resolv.conf to the container's rundir
-	runDirResolv, err := c.copyHostFileToRundir("/etc/resolv.conf")
+	resolvPath := "/etc/resolv.conf"
+
+	// Check if the host system is using system resolve and if so
+	// copy its resolv.conf
+	_, err = os.Stat("/run/systemd/resolve/resolv.conf")
+	if err == nil {
+		resolvPath = "/run/systemd/resolve/resolv.conf"
+	}
+	runDirResolv, err := c.copyHostFileToRundir(resolvPath)
 	if err != nil {
-		return errors.Wrapf(err, "unable to copy /etc/resolv.conf to ", runDirResolv)
+		return errors.Wrapf(err, "unable to copy resolv.conf to ", runDirResolv)
 	}
 	// Copy /etc/hosts to the container's rundir
 	runDirHosts, err := c.copyHostFileToRundir("/etc/hosts")
