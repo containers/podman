@@ -158,7 +158,7 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 func (p *PodmanTest) Cleanup() {
 	// Remove all containers
 	session := p.Podman([]string{"rm", "-fa"})
-	session.Wait(60)
+	session.Wait(90)
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
