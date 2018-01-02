@@ -653,7 +653,10 @@ _podman_attach() {
      local boolean_options="
      --help
      -h
-     --no-stdin"
+     --latest
+     -l
+     --no-stdin
+     "
      _complete_ "$options_with_args" "$boolean_options"
 }
 
@@ -752,6 +755,8 @@ _podman_exec() {
     -u
      "
     local boolean_options="
+    --latest
+    -l
     --privileged
     --tty
     -t
@@ -875,6 +880,8 @@ _podman_inspect() {
     local boolean_options="
      --help
      -h
+     --latest
+     -l
      "
     local options_with_args="
     --format
@@ -898,7 +905,10 @@ _podman_kill() {
      "
      local boolean_options="
      --help
-     -h"
+     -h
+     --latest
+     -l
+     "
      _complete_ "$options_with_args" "$boolean_options"
 }
 
@@ -910,6 +920,8 @@ _podman_logs() {
      local boolean_options="
      --follow
      -f
+     --latest
+     -l
      "
      _complete_ "$options_with_args" "$boolean_options"
 
@@ -1286,6 +1298,8 @@ _podman_rm() {
     -a
     --force
     -f
+    --latest
+    -l
     "
 
     local options_with_args="
@@ -1355,6 +1369,10 @@ podman_top() {
     local options_with_args="
     "
     local boolean_options="
+    --help
+    -h
+    --latest
+    -l
     "
     _complete_ "$options_with_args" "$boolean_options"
 }
@@ -1424,7 +1442,9 @@ _podman_start() {
      -a
      --attach
      -i
-     --interactive"
+     --interactive
+     --latest
+     -l"
      _complete_ "$options_with_args" "$boolean_options"
 }
 _podman_stop() {
@@ -1433,7 +1453,9 @@ _podman_stop() {
      "
      local boolean_options="
      --all
-     -a"
+     -a
+     --latest
+     -l"
      _complete_ "$options_with_args" "$boolean_options"
 }
 

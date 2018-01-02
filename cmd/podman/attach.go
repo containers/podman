@@ -19,6 +19,7 @@ var (
 			Name:  "no-stdin",
 			Usage: "Do not attach STDIN. The default is false.",
 		},
+		LatestFlag,
 	}
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
 	attachCommand     = cli.Command{
@@ -33,12 +34,12 @@ var (
 
 func attachCmd(c *cli.Context) error {
 	args := c.Args()
+	var ctr *libpod.Container
 	if err := validateFlags(c, attachFlags); err != nil {
 		return err
 	}
-
-	if len(c.Args()) < 1 || len(c.Args()) > 1 {
-		return errors.Errorf("attach requires the name or id of one running container")
+	if len(c.Args()) > 1 || (len(c.Args()) == 0 && !c.Bool("latest")) {
+		return errors.Errorf("attach requires the name or id of one running container or the latest flag")
 	}
 
 	runtime, err := getRuntime(c)
@@ -47,7 +48,11 @@ func attachCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, err := runtime.LookupContainer(args[0])
+	if c.Bool("latest") {
+		ctr, err = runtime.GetLatestContainer()
+	} else {
+		ctr, err = runtime.LookupContainer(args[0])
+	}
 
 	if err != nil {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])

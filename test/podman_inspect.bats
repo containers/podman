@@ -45,8 +45,7 @@ function setup() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} create ${BB} ls"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
-    run bash -c "${PODMAN_BINARY} $PODMAN_OPTIONS inspect --size $ctr_id | python -m json.tool | grep SizeRootFs"
+    run bash -c "${PODMAN_BINARY} $PODMAN_OPTIONS inspect --size -l | python -m json.tool | grep SizeRootFs"
     echo "$output"
     [ "$status" -eq 0 ]
 }

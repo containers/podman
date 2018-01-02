@@ -28,3 +28,10 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "exec simple command using latest" {
+    ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d -t ${ALPINE} sleep 60
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} exec -l ls
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
