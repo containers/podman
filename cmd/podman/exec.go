@@ -27,6 +27,7 @@ var (
 			Name:  "user, u",
 			Usage: "Sets the username or UID used and optionally the groupname or GID for the specified command",
 		},
+		LatestFlag,
 	}
 	execDescription = `
 	podman exec
@@ -48,20 +49,30 @@ var (
 func execCmd(c *cli.Context) error {
 	var envs []string
 	args := c.Args()
-	if len(args) < 1 {
+	var ctr *libpod.Container
+	var err error
+	argStart := 1
+	if len(args) < 1 && !c.Bool("latest") {
 		return errors.Errorf("you must provide one container name or id")
 	}
-	if len(args) < 2 {
+	if len(args) < 2 && !c.Bool("latest") {
 		return errors.Errorf("you must provide a command to exec")
 	}
-	cmd := args[1:]
+	if c.Bool("latest") {
+		argStart = 0
+	}
+	cmd := args[argStart:]
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, err := runtime.LookupContainer(args[0])
+	if c.Bool("latest") {
+		ctr, err = runtime.GetLatestContainer()
+	} else {
+		ctr, err = runtime.LookupContainer(args[0])
+	}
 	if err != nil {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])
 	}

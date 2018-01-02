@@ -29,6 +29,9 @@ ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _.
 
 Attach container's STDIN. The default is false.
 
+**--latest, -l**
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
 
 ## EXAMPLE
 
@@ -37,6 +40,8 @@ podman start mywebserver
 podman start 860a4b23 5421ab4
 
 podman start -i -a 860a4b23
+
+podman start -i -l
 
 ## SEE ALSO
 podman(1), podman-create(1)

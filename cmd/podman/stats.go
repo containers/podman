@@ -42,7 +42,7 @@ var (
 		cli.BoolFlag{
 			Name:  "no-reset",
 			Usage: "disable resetting the screen between intervals",
-		},
+		}, LatestFlag,
 	}
 
 	statsDescription = "display a live stream of one or more containers' resource usage statistics"
@@ -61,6 +61,15 @@ func statsCmd(c *cli.Context) error {
 		return err
 	}
 
+	all := c.Bool("all")
+
+	if c.Bool("latest") && all {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+
+	if c.Bool("latest") && len(c.Args()) > 0 {
+		return errors.Errorf("no container names are allowed with --latest")
+	}
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -75,7 +84,6 @@ func statsCmd(c *cli.Context) error {
 	var format string
 	var ctrs []*libpod.Container
 	var containerFunc func() ([]*libpod.Container, error)
-	all := c.Bool("all")
 
 	if c.IsSet("format") {
 		format = c.String("format")
@@ -85,6 +93,13 @@ func statsCmd(c *cli.Context) error {
 
 	if len(c.Args()) > 0 {
 		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.Args()) }
+	} else if c.Bool("latest") {
+		containerFunc = func() ([]*libpod.Container, error) {
+			var ctrs []*libpod.Container
+			lastCtr, err := runtime.GetLatestContainer()
+			ctrs = append(ctrs, lastCtr)
+			return ctrs, err
+		}
 	} else if all {
 		containerFunc = runtime.GetAllContainers
 	} else {

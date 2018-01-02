@@ -33,6 +33,7 @@ var (
 			Name:  "size",
 			Usage: "Display total file size if the type is container",
 		},
+		LatestFlag,
 	}
 	inspectDescription = "This displays the low-level information on containers and images identified by name or ID. By default, this will render all results in a JSON array. If the container and image have the same name, this will return container JSON for unspecified type."
 	inspectCommand     = cli.Command{
@@ -47,7 +48,10 @@ var (
 
 func inspectCmd(c *cli.Context) error {
 	args := c.Args()
-	if len(args) == 0 {
+	inspectType := c.String("type")
+	latestContainer := c.Bool("latest")
+	var name string
+	if len(args) == 0 && !latestContainer {
 		return errors.Errorf("container or image name must be specified: podman inspect [options [...]] name")
 	}
 	if len(args) > 1 {
@@ -63,17 +67,26 @@ func inspectCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	if c.String("type") != inspectTypeContainer && c.String("type") != inspectTypeImage && c.String("type") != inspectAll {
+	if !libpod.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
 	}
-
-	name := args[0]
-
+	if !latestContainer {
+		name = args[0]
+	}
+	if latestContainer {
+		inspectType = inspectTypeContainer
+	}
 	outputFormat := c.String("format")
 	var data interface{}
-	switch c.String("type") {
+	switch inspectType {
 	case inspectTypeContainer:
-		ctr, err := runtime.LookupContainer(name)
+		var ctr *libpod.Container
+		var err error
+		if latestContainer {
+			ctr, err = runtime.GetLatestContainer()
+		} else {
+			ctr, err = runtime.LookupContainer(name)
+		}
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", name)
 		}

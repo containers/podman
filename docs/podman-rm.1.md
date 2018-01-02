@@ -21,6 +21,9 @@ Force the removal of a running container
 
 Remove all containers.  Can be used in conjunction with -f as well.
 
+**--latest, -l**
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
 ## EXAMPLE
 
 podman rm mywebserver
@@ -30,6 +33,8 @@ podman rm mywebserver myflaskserver 860a4b23
 podman rm -f 860a4b23
 
 podman rm -f -a
+
+podman rm -f --latest
 
 ## SEE ALSO
 podman(1), podman-rmi(1)

@@ -19,6 +19,7 @@ var (
 			Name:  "all, a",
 			Usage: "Remove all containers",
 		},
+		LatestFlag,
 	}
 	rmDescription = "Remove one or more containers"
 	rmCommand     = cli.Command{
@@ -46,7 +47,11 @@ func rmCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) == 0 && !c.Bool("all") {
+	if c.Bool("latest") && c.Bool("all") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+
+	if len(args) == 0 && !c.Bool("all") && !c.Bool("latest") {
 		return errors.Errorf("specify one or more containers to remove")
 	}
 
@@ -57,6 +62,12 @@ func rmCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to get container list")
 		}
+	} else if c.Bool("latest") {
+		lastCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest container")
+		}
+		delContainers = append(delContainers, lastCtr)
 	} else {
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)

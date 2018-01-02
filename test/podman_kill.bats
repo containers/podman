@@ -62,3 +62,10 @@ function setup() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} ps --no-trunc"
     [ "$status" -eq 0 ]
 }
+
+@test "kill the latest container run" {
+    ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d ${ALPINE} sleep 9999
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} kill -l"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
