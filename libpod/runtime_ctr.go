@@ -25,14 +25,14 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(spec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}
 
-	ctr, err := newContainer(spec, r.lockDir)
+	ctr, err := newContainer(rSpec, r.lockDir)
 	if err != nil {
 		return nil, err
 	}
