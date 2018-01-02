@@ -63,7 +63,7 @@ var (
 		ImageDefaultTransport: DefaultTransport,
 		InMemoryState:         false,
 		RuntimePath:           "/usr/bin/runc",
-		ConmonPath:            "/usr/local/libexec/crio/conmon",
+		ConmonPath:            findConmonPath(),
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
@@ -78,6 +78,15 @@ var (
 		CNIPluginDir:   "/usr/libexec/cni",
 	}
 )
+
+func findConmonPath() string {
+	path := "/usr/local/libexec/crio/conmon"
+	_, err := os.Stat(path)
+	if err != nil {
+		path = "/usr/libexec/crio/conmon"
+	}
+	return path
+}
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
