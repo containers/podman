@@ -14,10 +14,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var (
-	stores = make(map[storage.Store]struct{})
-)
-
 const crioConfigPath = "/etc/crio/crio.conf"
 
 func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
@@ -34,14 +30,6 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	options.GraphDriverOptions = config.StorageOptions
 
 	return libpod.NewRuntime(libpod.WithStorageConfig(options), libpod.WithConmonPath(config.Conmon), libpod.WithOCIRuntime(config.Runtime), libpod.WithCNIConfigDir(config.NetworkDir))
-}
-
-func shutdownStores() {
-	for store := range stores {
-		if _, err := store.Shutdown(false); err != nil {
-			break
-		}
-	}
 }
 
 func getConfig(c *cli.Context) (*libkpod.Config, error) {

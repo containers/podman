@@ -98,16 +98,10 @@ func main() {
 	}
 	app.After = func(*cli.Context) error {
 		// called by Run() when the command handler succeeds
-		shutdownStores()
 		if cpuProfile {
 			pprof.StopCPUProfile()
 		}
 		return nil
-	}
-	cli.OsExiter = func(code int) {
-		// called by Run() when the command fails, bypassing After()
-		shutdownStores()
-		os.Exit(code)
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -158,6 +152,5 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, err.Error())
 		}
-		cli.OsExiter(1)
 	}
 }
