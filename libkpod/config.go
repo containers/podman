@@ -12,7 +12,6 @@ import (
 const (
 	crioRoot            = "/var/lib/containers/storage"
 	crioRunRoot         = "/var/run/containers/storage"
-	conmonPath          = "/usr/local/libexec/crio/conmon"
 	pauseImage          = "kubernetes/pause"
 	pauseCommand        = "/pause"
 	defaultTransport    = "docker://"
@@ -278,7 +277,6 @@ func DefaultConfig() *Config {
 			RuntimeUntrustedWorkload: "",
 			DefaultWorkloadTrust:     "trusted",
 
-			Conmon: conmonPath,
 			ConmonEnv: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
