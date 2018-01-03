@@ -328,12 +328,12 @@ func getTags(nameInput string) (reference.NamedTagged, bool, error) {
 // It will return an empty string and error if not found.
 func (k *Image) GetLocalImageName() (string, error) {
 	_, err := k.runtime.GetImage(k.Name)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to obtain local image")
+	if err == nil {
+		return k.Name, nil
 	}
 	localImages, err := k.runtime.GetImages(&ImageFilterParams{})
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to obtain local image")
+		return "", errors.Wrapf(err, "unable to find local images")
 	}
 	_, isTagged, err := getTags(k.Name)
 	if err != nil {
@@ -370,8 +370,7 @@ func (k *Image) GetLocalImageName() (string, error) {
 			}
 		}
 	}
-	fqname, _ := k.GetFQName()
-	return fqname, nil
+	return "", errors.Wrapf(storage.ErrImageUnknown, "unable to find image locally")
 }
 
 // HasLatest determines if we have the latest image local
