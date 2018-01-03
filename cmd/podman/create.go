@@ -344,7 +344,7 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 	if err != nil {
 		return "", "", nil, err
 	}
-	storageImage, err := runtime.GetImage(image)
+	storageImage, err := runtime.GetImage(imageName)
 	if err != nil {
 		return "", "", nil, errors.Wrapf(err, "error getting storage image %q", image)
 	}
@@ -452,7 +452,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		}
 		shmDir = ctr.ShmDir()
 	}
-
 	imageName, imageID, data, err := imageData(c, runtime, image)
 	if err != nil {
 		return nil, err
