@@ -39,7 +39,6 @@ function teardown() {
 }
 
 @test "pause a running container by id" {
-    skip "Test needs to wait for --force to work for podman rm"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -56,7 +55,6 @@ function teardown() {
 }
 
 @test "unpause a running container" {
-    skip "Test needs to wait for --force to work for podman rm"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -87,7 +85,6 @@ function teardown() {
 }
 
 @test "stop a paused container created by id" {
-    skip "Test needs to wait for podman stop to be implemented"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -104,7 +101,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} ps -a --filter id=$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm $ctr_id"
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm -f $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }
