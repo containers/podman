@@ -26,7 +26,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
+    ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -43,7 +43,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
+    ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -60,7 +60,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
+    ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} unpause $ctr_id"
     echo "$output"
     [ "$status" -eq 1 ]
@@ -74,7 +74,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
+    ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -91,7 +91,7 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB sleep 60"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
+    ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
