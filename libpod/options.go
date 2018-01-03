@@ -134,9 +134,10 @@ func WithConmonPath(path string) RuntimeOption {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
-
-		rt.config.ConmonPath = path
-
+		// TODO Once libkpod is eliminated, "" should throw an error
+		if path != "" {
+			rt.config.ConmonPath = path
+		}
 		return nil
 	}
 }
