@@ -13,13 +13,13 @@ function setup() {
 @test "exec into a bogus container" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} exec foobar ls
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "exec without command should fail" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} exec foobar
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "exec simple command" {

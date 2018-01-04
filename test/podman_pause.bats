@@ -13,13 +13,13 @@ function teardown() {
 @test "pause a bogus container" {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pause foobar"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "unpause a bogus container" {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} unpause foobar"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "pause a created container by id" {
@@ -61,7 +61,7 @@ function teardown() {
     ctr_id=`echo "$output" | tail -n 1`
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} unpause $ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm -f $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -78,7 +78,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm $ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm --force $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -94,7 +94,7 @@ function teardown() {
     [ "$status" -eq 0 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} stop $ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} unpause $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]

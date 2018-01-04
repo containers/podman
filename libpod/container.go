@@ -558,6 +558,13 @@ func (c *Container) Init() (err error) {
 	if err := c.mountStorage(); err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
 
 	// Make a network namespace for the container
 	if c.config.CreateNetNS && c.state.NetNS == nil {

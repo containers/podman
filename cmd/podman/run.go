@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -62,6 +63,11 @@ func runCmd(c *cli.Context) error {
 
 	logrus.Debug("new container created ", ctr.ID())
 	if err := ctr.Init(); err != nil {
+		// This means the command did not exist
+		exitCode = 126
+		if strings.Index(err.Error(), "permission denied") > -1 {
+			exitCode = 127
+		}
 		return err
 	}
 	logrus.Debugf("container storage created for %q", ctr.ID())
@@ -109,9 +115,15 @@ func runCmd(c *cli.Context) error {
 	}
 	if createConfig.Detach {
 		fmt.Printf("%s\n", ctr.ID())
+		exitCode = 0
 		return nil
 	}
 	wg.Wait()
+	if ecode, err := ctr.ExitCode(); err != nil {
+		logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
+	} else {
+		exitCode = int(ecode)
+	}
 
 	if createConfig.Rm {
 		return runtime.RemoveContainer(ctr, true)

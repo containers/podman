@@ -13,7 +13,7 @@ function teardown() {
 @test "start bogus container" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} start 1234
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "start single container by id" {
@@ -46,5 +46,5 @@ function teardown() {
     ${PODMAN_BINARY} ${PODMAN_OPTIONS} create --name foobar2 -d ${ALPINE} ls
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} start -a foobar1 foobar2
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
