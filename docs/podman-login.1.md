@@ -65,12 +65,12 @@ Login Succeeded!
 ```
 
 ```
-$ kpod login --tls-verify=false -u test -p test localhost:5000
+$ podman login --tls-verify=false -u test -p test localhost:5000
 Login Succeeded!
 ```
 
 ```
-$ kpod login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
+$ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
 Login Succeeded!
 ```
 
