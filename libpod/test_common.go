@@ -12,6 +12,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
+// nolint
 func getTestContainer(id, name, locksDir string) (*Container, error) {
 	ctr := &Container{
 		config: &ContainerConfig{
@@ -75,6 +76,7 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 
 // This horrible hack tests if containers are equal in a way that should handle
 // empty arrays being dropped to nil pointers in the spec JSON
+// nolint
 func testContainersEqual(a, b *Container) bool {
 	if a == nil && b == nil {
 		return true
