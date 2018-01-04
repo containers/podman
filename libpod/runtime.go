@@ -20,16 +20,16 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config          *RuntimeConfig
-	state           State
-	store           storage.Store
-	storageService  *storageService
-	imageContext    *types.SystemContext
-	ociRuntime      *OCIRuntime
-	lockDir         string
-	netPlugin       ocicni.CNIPlugin
-	valid           bool
-	lock            sync.RWMutex
+	config         *RuntimeConfig
+	state          State
+	store          storage.Store
+	storageService *storageService
+	imageContext   *types.SystemContext
+	ociRuntime     *OCIRuntime
+	lockDir        string
+	netPlugin      ocicni.CNIPlugin
+	valid          bool
+	lock           sync.RWMutex
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
