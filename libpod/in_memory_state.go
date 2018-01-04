@@ -182,6 +182,18 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 // As all state is in-memory, no update will be required
 // As such this is a no-op
 func (s *InMemoryState) UpdateContainer(ctr *Container) error {
+	// If the container is invalid, return error
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+	}
+
+	// If the container does not exist, return error
+	_, ok := s.containers[ctr.ID()]
+	if !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
 	return nil
 }
 
@@ -190,6 +202,18 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 // are made
 // As such this is a no-op
 func (s *InMemoryState) SaveContainer(ctr *Container) error {
+	// If the container is invalid, return error
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+	}
+
+	// If the container does not exist, return error
+	_, ok := s.containers[ctr.ID()]
+	if !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
 	return nil
 }
 

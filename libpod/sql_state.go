@@ -651,6 +651,8 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		return errors.Wrapf(err, "error retrieving number of rows modified by update of container %s", ctr.ID())
 	}
 	if rows == 0 {
+		// Container was probably removed elsewhere
+		ctr.valid = false
 		return ErrNoSuchCtr
 	}
 

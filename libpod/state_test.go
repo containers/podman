@@ -1,126 +1,59 @@
 package libpod
 
 import (
-	"encoding/json"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestContainer(id, name, locksDir string) (*Container, error) {
-	ctr := &Container{
-		config: &ContainerConfig{
-			ID:              id,
-			Name:            name,
-			RootfsImageID:   id,
-			RootfsImageName: "testimg",
-			ImageVolumes:    true,
-			ReadOnly:        true,
-			StaticDir:       "/does/not/exist/",
-			Stdin:           true,
-			Labels:          make(map[string]string),
-			StopSignal:      0,
-			StopTimeout:     0,
-			CreatedTime:     time.Now(),
-			Privileged:      true,
-			Mounts:          []string{"/does/not/exist"},
-			DNSServer:       []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
-			DNSSearch:       []string{"example.com", "example.example.com"},
-			PortMappings: []ocicni.PortMapping{
-				{
-					HostPort:      80,
-					ContainerPort: 90,
-					Protocol:      "tcp",
-					HostIP:        "192.168.3.3",
-				},
-				{
-					HostPort:      100,
-					ContainerPort: 110,
-					Protocol:      "udp",
-					HostIP:        "192.168.4.4",
-				},
-			},
-		},
-		state: &containerRuntimeInfo{
-			State:      ContainerStateRunning,
-			ConfigPath: "/does/not/exist/specs/" + id,
-			RunDir:     "/does/not/exist/tmp/",
-			Mounted:    true,
-			Mountpoint: "/does/not/exist/tmp/" + id,
-			PID:        1234,
-		},
-		valid: true,
+// Returns state, tmp directory containing all state files, locks directory
+// (subdirectory of tmp dir), and error
+// Closing the state and removing the given tmp directory should be sufficient
+// to clean up
+type emptyStateFunc func() (State, string, string, error)
+
+const (
+	tmpDirPrefix = "libpod_state_test_"
+)
+
+var (
+	testedStates = map[string]emptyStateFunc{
+		"sql":       getEmptySQLState,
+		"in-memory": getEmptyInMemoryState,
 	}
+)
 
-	g := generate.New()
-	ctr.config.Spec = g.Spec()
-
-	ctr.config.Labels["test"] = "testing"
-
-	// Must make lockfile or container will error on being retrieved from DB
-	lockPath := filepath.Join(locksDir, id)
-	lock, err := storage.GetLockfile(lockPath)
+// Get an empty in-memory state for use in tests
+func getEmptyInMemoryState() (s State, p string, p2 string, err error) {
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
-	ctr.lock = lock
+	defer func() {
+		if err != nil {
+			os.RemoveAll(tmpDir)
+		}
+	}()
 
-	return ctr, nil
+	state, err := NewInMemoryState()
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	// Don't need a separate locks dir as InMemoryState stores nothing on
+	// disk
+	return state, tmpDir, tmpDir, nil
 }
 
-// This horrible hack tests if containers are equal in a way that should handle
-// empty arrays being dropped to nil pointers in the spec JSON
-func testContainersEqual(a, b *Container) bool {
-	if a == nil && b == nil {
-		return true
-	} else if a == nil || b == nil {
-		return false
-	}
-
-	if a.valid != b.valid {
-		return false
-	}
-
-	aConfigJSON, err := json.Marshal(a.config)
-	if err != nil {
-		return false
-	}
-
-	bConfigJSON, err := json.Marshal(b.config)
-	if err != nil {
-		return false
-	}
-
-	if !reflect.DeepEqual(aConfigJSON, bConfigJSON) {
-		return false
-	}
-
-	aStateJSON, err := json.Marshal(a.state)
-	if err != nil {
-		return false
-	}
-
-	bStateJSON, err := json.Marshal(b.state)
-	if err != nil {
-		return false
-	}
-
-	return reflect.DeepEqual(aStateJSON, bStateJSON)
-}
-
-// Get an empty state for use in tests
+// Get an empty SQL state for use in tests
 // An empty Runtime is provided
-func getEmptyState() (s State, p string, p2 string, err error) {
-	tmpDir, err := ioutil.TempDir("", "libpod_state_test_")
+func getEmptySQLState() (s State, p string, p2 string, err error) {
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -146,12 +79,32 @@ func getEmptyState() (s State, p string, p2 string, err error) {
 	return state, tmpDir, lockDir, nil
 }
 
-func TestAddAndGetContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+func runForAllStates(t *testing.T, testName string, testFunc func(*testing.T, State, string)) {
+	for stateName, stateFunc := range testedStates {
+		state, path, lockPath, err := stateFunc()
+		if err != nil {
+			t.Fatalf("Error initializing state %s", stateName)
+		}
+		defer os.RemoveAll(path)
+		defer state.Close()
 
+		testName = testName + "-" + stateName
+
+		success := t.Run(testName, func(t *testing.T) {
+			testFunc(t, state, lockPath)
+		})
+		if !success {
+			t.Fail()
+			t.Logf("%s failed for state %s", testName, stateName)
+		}
+	}
+}
+
+func TestAddAndGetContainer(t *testing.T) {
+	runForAllStates(t, "TestAddAndGetContainer", addAndGetContainer)
+}
+
+func addAndGetContainer(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -169,11 +122,10 @@ func TestAddAndGetContainer(t *testing.T) {
 }
 
 func TestAddAndGetContainerFromMultiple(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestAddAndGetContainerFromMultiple", addAndGetContainerFromMultiple)
+}
 
+func addAndGetContainerFromMultiple(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
@@ -196,21 +148,19 @@ func TestAddAndGetContainerFromMultiple(t *testing.T) {
 }
 
 func TestAddInvalidContainerFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestAddInvalidContainerFails", addInvalidContainerFails)
+}
 
-	err = state.AddContainer(&Container{})
+func addInvalidContainerFails(t *testing.T, state State, lockPath string) {
+	err := state.AddContainer(&Container{config:&ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
-func TestAddDuplicateIDFails(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+func TestAddDuplicateCtrIDFails(t *testing.T) {
+	runForAllStates(t, "TestAddDuplicateCtrIDFails", addDuplicateCtrIDFails)
+}
 
+func addDuplicateCtrIDFails(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer(testCtr1.ID(), "test2", lockPath)
@@ -223,12 +173,11 @@ func TestAddDuplicateIDFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestAddDuplicateNameFails(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+func TestAddDuplicateCtrNameFails(t *testing.T) {
+	runForAllStates(t, "TestAddDuplicateCtrNameFails", addDuplicateCtrNameFails)
+}
 
+func addDuplicateCtrNameFails(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", testCtr1.Name(), lockPath)
@@ -241,51 +190,47 @@ func TestAddDuplicateNameFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGetNonexistantContainerFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+func TestGetNonexistentContainerFails(t *testing.T) {
+	runForAllStates(t, "TestGetNonexistentContainerFails", getNonexistentContainerFails)
+}
 
-	_, err = state.Container("does not exist")
+func getNonexistentContainerFails(t *testing.T, state State, lockPath string) {
+	_, err := state.Container("does not exist")
 	assert.Error(t, err)
 }
 
 func TestGetContainerWithEmptyIDFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestGetContainerWithEmptyIDFails", getContainerWithEmptyIDFails)
+}
 
-	_, err = state.Container("")
+func getContainerWithEmptyIDFails(t *testing.T, state State, lockPath string) {
+	_, err := state.Container("")
 	assert.Error(t, err)
 }
 
 func TestLookupContainerWithEmptyIDFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestLookupContainerWithEmptyIDFails", lookupContainerWithEmptyIDFails)
+}
 
-	_, err = state.LookupContainer("")
+func lookupContainerWithEmptyIDFails(t *testing.T, state State, lockPath string) {
+	_, err := state.LookupContainer("")
 	assert.Error(t, err)
 }
 
-func TestLookupNonexistantContainerFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
+func TestLookupNonexistentContainerFails(t *testing.T) {
+	runForAllStates(t, "TestLookupNonexistantContainerFails", lookupNonexistentContainerFails)
+}
 
-	_, err = state.LookupContainer("does not exist")
+func lookupNonexistentContainerFails(t *testing.T, state State, lockPath string) {
+	_, err := state.LookupContainer("does not exist")
 	assert.Error(t, err)
 }
 
 func TestLookupContainerByFullID(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestLookupContainerByFullID", lookupContainerByFullID)
+}
 
+func lookupContainerByFullID(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -303,11 +248,10 @@ func TestLookupContainerByFullID(t *testing.T) {
 }
 
 func TestLookupContainerByUniquePartialID(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestLookupContainerByUniquePartialID", lookupContainerByUniquePartialID)
+}
 
+func lookupContainerByUniquePartialID(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -325,11 +269,10 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 }
 
 func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestLookupContainerByNonUniquePartialIDFails", lookupContainerByNonUniquePartialIDFails)
+}
 
+func lookupContainerByNonUniquePartialIDFails(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("00000000000000000000000000000000", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("00000000000000000000000000000001", "test2", lockPath)
@@ -346,7 +289,11 @@ func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
 }
 
 func TestLookupContainerByName(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
+	runForAllStates(t, "TestLookupContainerByName", lookupContainerByName)
+}
+
+func lookupContainerByName(t *testing.T, state State, lockPath string) {
+	state, path, lockPath, err := getEmptySQLState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
@@ -368,32 +315,29 @@ func TestLookupContainerByName(t *testing.T) {
 }
 
 func TestHasContainerEmptyIDFails(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestHasContainerEmptyIDFails", hasContainerEmptyIDFails)
+}
 
-	_, err = state.HasContainer("")
+func hasContainerEmptyIDFails(t *testing.T, state State, lockPath string) {
+	_, err := state.HasContainer("")
 	assert.Error(t, err)
 }
 
 func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestHasContainerNoSuchContainerReturnsFalse", hasContainerNoSuchContainerReturnsFalse)
+}
 
+func hasContainerNoSuchContainerReturnsFalse(t *testing.T, state State, lockPath string) {
 	exists, err := state.HasContainer("does not exist")
 	assert.NoError(t, err)
 	assert.False(t, exists)
 }
 
 func TestHasContainerFindsContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestHasContainerFindsContainer", hasContainerFindsContainer)
+}
 
+func hasContainerFindsContainer(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -406,11 +350,10 @@ func TestHasContainerFindsContainer(t *testing.T) {
 }
 
 func TestSaveAndUpdateContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestSaveAndUpdateContainer", saveAndUpdateContainer)
+}
 
+func saveAndUpdateContainer(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -438,11 +381,10 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 }
 
 func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestUpdateContainerNotInDatabaseReturnsError", updateContainerNotInDatabaseReturnsError)
+}
 
+func updateContainerNotInDatabaseReturnsError(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -452,44 +394,41 @@ func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
 }
 
 func TestUpdateInvalidContainerReturnsError(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestUpdateInvalidContainerReturnsError", updateInvalidContainerReturnsError)
+}
 
-	err = state.UpdateContainer(&Container{})
+func updateInvalidContainerReturnsError(t *testing.T, state State, lockPath string) {
+	err := state.UpdateContainer(&Container{config:&ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
 func TestSaveInvalidContainerReturnsError(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestSaveInvalidContainerReturnsError", saveInvalidContainerReturnsError)
+}
 
-	err = state.SaveContainer(&Container{})
+func saveInvalidContainerReturnsError(t *testing.T, state State, lockPath string) {
+	err := state.SaveContainer(&Container{config:&ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
 func TestSaveContainerNotInStateReturnsError(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestSaveContainerNotInStateReturnsError", saveContainerNotInStateReturnsError)
+}
 
+func saveContainerNotInStateReturnsError(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
 	err = state.SaveContainer(testCtr)
 	assert.Error(t, err)
+	assert.False(t, testCtr.valid)
 }
 
 func TestRemoveContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestRemoveContainer", removeContainer)
+}
 
+func removeContainer(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -509,11 +448,10 @@ func TestRemoveContainer(t *testing.T) {
 }
 
 func TestRemoveNonexistantContainerFails(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestRemoveNonexistantContainerFails", removeNonexistantContainerFails)
+}
 
+func removeNonexistantContainerFails(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -522,22 +460,20 @@ func TestRemoveNonexistantContainerFails(t *testing.T) {
 }
 
 func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestGetAllContainersOnNewStateIsEmpty", getAllContainersOnNewStateIsEmpty)
+}
 
+func getAllContainersOnNewStateIsEmpty(t *testing.T, state State, lockPath string) {
 	ctrs, err := state.AllContainers()
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ctrs))
 }
 
 func TestGetAllContainersWithOneContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestGetAllContainersWithOneContainer", getAllContainersWithOneContainer)
+}
 
+func getAllContainersWithOneContainer(t *testing.T, state State, lockPath string) {
 	testCtr, err := getTestContainer("0123456789ABCDEF0123456789ABCDEF", "test", lockPath)
 	assert.NoError(t, err)
 
@@ -556,11 +492,10 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 }
 
 func TestGetAllContainersTwoContainers(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestGetAllContainersTwoContainers", getAllContainersTwoContainers)
+}
 
+func getAllContainersTwoContainers(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
@@ -575,17 +510,6 @@ func TestGetAllContainersTwoContainers(t *testing.T) {
 	ctrs, err := state.AllContainers()
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(ctrs))
-
-	// Containers should be ordered by creation time
-
-	// Use assert.EqualValues if the test fails to pretty print diff
-	// between actual and expected
-	if !testContainersEqual(testCtr2, ctrs[0]) {
-		assert.EqualValues(t, testCtr2, ctrs[0])
-	}
-	if !testContainersEqual(testCtr1, ctrs[1]) {
-		assert.EqualValues(t, testCtr1, ctrs[1])
-	}
 }
 
 func TestContainerInUseInvalidContainer(t *testing.T) {
