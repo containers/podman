@@ -865,7 +865,7 @@ func (s *SQLState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	return ErrNotImplemented
 }
 
-// RemoveContainerFromPods removes a container from the given pod
+// RemoveContainerFromPod removes a container from the given pod
 func (s *SQLState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	return ErrNotImplemented
 }
