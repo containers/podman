@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
-	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -29,7 +28,6 @@ type Runtime struct {
 	ociRuntime      *OCIRuntime
 	lockDir         string
 	netPlugin       ocicni.CNIPlugin
-	hostportManager hostport.HostPortManager
 	valid           bool
 	lock            sync.RWMutex
 }
@@ -180,9 +178,6 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		return nil, errors.Wrapf(err, "error configuring CNI network plugin")
 	}
 	runtime.netPlugin = netPlugin
-
-	// Set up the hostport manager
-	runtime.hostportManager = hostport.NewHostportManager()
 
 	// Set up the state
 	if runtime.config.InMemoryState {
