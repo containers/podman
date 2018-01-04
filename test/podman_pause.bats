@@ -101,6 +101,11 @@ function teardown() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} ps -a --filter id=$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
+    # Container should be running after unpause and shouldn't
+    # be removable without the force flag.
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm $ctr_id"
+    echo "$output"
+    [ "$status" -eq 125 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm -f $ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
