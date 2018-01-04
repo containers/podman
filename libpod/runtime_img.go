@@ -184,6 +184,24 @@ func (k *Image) GetImageID() (string, error) {
 			return img.ID, nil
 		}
 	}
+	// If the user input is an ID
+	images, err := k.runtime.GetImages(&ImageFilterParams{})
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get images")
+	}
+	for _, image := range images {
+		// Check if we have an ID match
+		if strings.HasPrefix(image.ID, k.Name) {
+			return image.ID, nil
+		}
+		// Check if we have a name match, perhaps a tagged name
+		for _, name := range image.Names {
+			if k.Name == name {
+				return image.ID, nil
+			}
+		}
+	}
+
 	// If neither the ID is known and no local name
 	// is know, we search it out.
 	image, _ := k.GetFQName()
@@ -406,6 +424,26 @@ func (k *Image) Pull(writer io.Writer) error {
 	}
 	k.runtime.PullImage(k.PullName, CopyOptions{Writer: writer, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
 	return nil
+}
+
+// Remove calls into container storage and deletes the image
+func (k *Image) Remove(force bool) (string, error) {
+	if k.LocalName == "" {
+		// This populates the images local name
+		_, err := k.GetLocalImageName()
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to find %s locally", k.Name)
+		}
+	}
+	iid, err := k.GetImageID()
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get image id")
+	}
+	image, err := k.runtime.GetImage(iid)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to remove %s", iid)
+	}
+	return k.runtime.RemoveImage(image, force)
 }
 
 // GetRegistries gets the searchable registries from the global registration file.
