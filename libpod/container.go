@@ -412,11 +412,16 @@ func (c *Container) syncContainer() error {
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
 		(c.state.State != ContainerStateConfigured) {
+		oldState := c.state.State
+		// TODO: optionally replace this with a stat for the exit file
 		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
 			return err
 		}
-		if err := c.save(); err != nil {
-			return err
+		// Only save back to DB if state changed
+		if c.state.State != oldState {
+			if err := c.save(); err != nil {
+				return err
+			}
 		}
 	}
 
