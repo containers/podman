@@ -126,6 +126,11 @@ func startCmd(c *cli.Context) error {
 			fmt.Println(ctr.ID())
 		}
 		wg.Wait()
+		if ecode, err := ctr.ExitCode(); err != nil {
+			logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
+		} else {
+			exitCode = int(ecode)
+		}
 	}
 	return lastError
 }

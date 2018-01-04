@@ -14,7 +14,7 @@ function teardown() {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} wait 12343
     echo $output
     echo $status
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "wait on a stopped container" {

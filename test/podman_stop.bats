@@ -13,7 +13,7 @@ function setup() {
 @test "stop a bogus container" {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} stop foobar"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "stop a running container by id" {

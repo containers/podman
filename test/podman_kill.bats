@@ -58,7 +58,7 @@ function setup() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} ps"
     [ "$status" -eq 0 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} kill -s foobar $ctr_id"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} ps --no-trunc"
     [ "$status" -eq 0 ]
 }

@@ -19,7 +19,7 @@ function setup() {
 @test "stats with bogus container id" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} stats --no-stream  123
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "stats on a running container" {

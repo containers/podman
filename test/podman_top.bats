@@ -13,13 +13,13 @@ function setup() {
 @test "top without container name or id" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} top
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "top a bogus container" {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} top foobar
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "top non-running container by id with defaults" {
@@ -28,7 +28,7 @@ function setup() {
     ctr_id="$output"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id"
     echo "$output"
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 125 ]
 }
 
 @test "top running container by id with defaults" {

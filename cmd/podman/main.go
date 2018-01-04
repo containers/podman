@@ -13,7 +13,10 @@ import (
 
 // This is populated by the Makefile from the VERSION file
 // in the repository
-var podmanVersion = ""
+var (
+	podmanVersion = ""
+	exitCode      = 125
+)
 
 func main() {
 	debug := false
@@ -152,5 +155,14 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, err.Error())
 		}
+	} else {
+		// The exitCode modified from 125, indicates an application
+		// running inside of a container failed, as opposed to the
+		// podman command failed.  Must exit with that exit code
+		// otherwise command exited correctly.
+		if exitCode == 125 {
+			exitCode = 0
+		}
 	}
+	os.Exit(exitCode)
 }

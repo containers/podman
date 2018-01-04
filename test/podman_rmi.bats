@@ -19,7 +19,7 @@ function pullImages() {
 @test "podman rmi bogus image" {
 	run ${PODMAN_BINARY} $PODMAN_OPTIONS rmi debian:6.0.10
 	echo "$output"
-	[ "$status" -eq 1 ]
+	[ "$status" -eq 125 ]
 }
 
 @test "podman rmi image with fq name" {
