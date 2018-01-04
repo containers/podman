@@ -16,6 +16,11 @@ tests:
 
 packages:
     - containernetworking-cni
+
+extra-repos:
+    - name: updatestesting
+      baseurl: http://download.fedoraproject.org/pub/fedora/linux/updates/testing/27/x86_64/
+
 ---
 
 inherit: true

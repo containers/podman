@@ -584,7 +584,7 @@ func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 		}
 
 		ctr.config.CreateNetNS = true
-		copy(ctr.config.PortMappings, portMappings)
+		ctr.config.PortMappings = portMappings
 
 		return nil
 	}

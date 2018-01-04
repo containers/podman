@@ -35,7 +35,6 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 	}()
 
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
-
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
 	_, err = r.netPlugin.SetUpPod(podNetwork)

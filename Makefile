@@ -157,7 +157,7 @@ install.completions:
 	install ${SELINUXOPT} -m 644 -D completions/bash/podman ${BASHINSTALLDIR}
 
 install.cni:
-	install ${SELINUXOPT} -D -m 644 cni/97-podman-bridge.conf ${ETCDIR}/cni/net.d/97-podman-bridge.conf
+	install ${SELINUXOPT} -D -m 644 cni/87-podman-bridge.conflist ${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 
 install.docker: docker-docs
 	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
