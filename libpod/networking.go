@@ -113,6 +113,27 @@ func joinNetNS(path string) (ns.NetNS, error) {
 	return ns, nil
 }
 
+// Get a container's IP address
+func (r *Runtime) getContainerIP(ctr *Container) (net.IP, error) {
+	if ctr.state.NetNS == nil {
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s has no network namespace, cannot get IP", ctr.ID())
+	}
+
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.PortMappings)
+
+	ipStr, err := r.netPlugin.GetPodNetworkStatus(podNetwork)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving network status of container %s", ctr.ID())
+	}
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return nil, errors.Wrapf(ErrInternal, "error parsing IP address %s for container %s", ipStr, ctr.ID())
+	}
+
+	return ip, nil
+}
+
 // Tear down a network namespace
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -295,6 +296,23 @@ func (c *Container) rwSize() (int64, error) {
 func (c *Container) LogPath() string {
 	// TODO store this in state and allow overriding
 	return c.logPath()
+}
+
+// IPAddress returns the IP address of the container
+// If the container does not have a network namespace, an error will be returned
+func (c *Container) IPAddress() (net.IP, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+
+	if !c.config.CreateNetNS || c.state.NetNS == nil {
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s does not have a network namespace", c.ID())
+	}
+
+	return c.runtime.getContainerIP(c)
 }
 
 // ExitCode returns the exit code of the container as
