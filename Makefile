@@ -154,8 +154,7 @@ install.completions:
 	install ${SELINUXOPT} -m 644 -D completions/bash/podman ${BASHINSTALLDIR}
 
 install.cni:
-	install ${SELINUXOPT} -D -m 644 cni/98-podman-loopback.conf ${ETCDIR}/cni/net.d/98-podman-loopback.conf
-	install ${SELINUXOPT} -m 644 cni/97-podman-bridge.conf ${ETCDIR}/cni/net.d/97-podman-bridge.conf
+	install ${SELINUXOPT} -D -m 644 cni/97-podman-bridge.conf ${ETCDIR}/cni/net.d/97-podman-bridge.conf
 
 uninstall:
 	rm -f $(LIBEXECDIR)/crio/conmon
