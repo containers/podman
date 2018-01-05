@@ -2,17 +2,16 @@
 
 load helpers
 
-IMAGE="alpine:latest"
-
 function teardown() {
     cleanup_test
 }
 
+function setup() {
+    copy_images
+}
+
 @test "podman tag with shortname:latest" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pull $IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag $IMAGE foobar:latest"
+	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:latest"
 	[ "$status" -eq 0 ]
 	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest"
 	echo "$output"
@@ -22,10 +21,7 @@ function teardown() {
 }
 
 @test "podman tag with shortname" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pull $IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag $IMAGE foobar"
+	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest"
@@ -36,10 +32,7 @@ function teardown() {
 }
 
 @test "podman tag with shortname:tag" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pull $IMAGE"
-	echo "$output"
-	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag $IMAGE foobar:v"
+	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:v"
 	echo "$output"
 	[ "$status" -eq 0 ]
 	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:v"
