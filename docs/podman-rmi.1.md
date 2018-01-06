@@ -15,10 +15,11 @@ Removes one or more locally stored images.
 
 **-all**, **-a**
 
-Remove all of the locally storage images
-**--force, -f**
+Remove all images in the local storage.
 
-Executing this command will stop all containers that are using the image and remove them from the system
+**--force**, **-f**
+
+This option will cause podman to remove all containers that are using the image before removing the image from the system.
 
 ## EXAMPLE
 
