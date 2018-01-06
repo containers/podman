@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 5
+const DBSchema = 6
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -271,7 +271,7 @@ func (s *SQLState) HasContainer(id string) (bool, error) {
 func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	const (
 		addCtr = `INSERT INTO containers VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
@@ -336,7 +336,8 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		timeToSQL(ctr.config.CreatedTime),
 		ctr.config.RootfsImageID,
 		ctr.config.RootfsImageName,
-		boolToSQL(ctr.config.UseImageConfig))
+		boolToSQL(ctr.config.UseImageConfig),
+		ctr.config.User)
 	if err != nil {
 		return errors.Wrapf(err, "error adding static information for container %s to database", ctr.ID())
 	}
