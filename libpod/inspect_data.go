@@ -3,6 +3,7 @@ package libpod
 import (
 	"time"
 
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -55,23 +56,23 @@ type ContainerInspectState struct {
 
 // NetworkSettings holds information about the newtwork settings of the container
 type NetworkSettings struct {
-	Bridge                 string              `json:"Bridge"`
-	SandboxID              string              `json:"SandboxID"`
-	HairpinMode            bool                `json:"HairpinMode"`
-	LinkLocalIPv6Address   string              `json:"LinkLocalIPv6Address"`
-	LinkLocalIPv6PrefixLen int                 `json:"LinkLocalIPv6PrefixLen"`
-	Ports                  map[string]struct{} `json:"Ports"`
-	SandboxKey             string              `json:"SandboxKey"`
-	SecondaryIPAddresses   string              `json:"SecondaryIPAddresses"`   //idk type
-	SecondaryIPv6Addresses string              `json:"SecondaryIPv6Addresses"` //idk type
-	EndpointID             string              `json:"EndpointID"`
-	Gateway                string              `json:"Gateway"`
-	GlobalIPv6Addresses    string              `json:"GlobalIPv6Addresses"`
-	GlobalIPv6PrefixLen    int                 `json:"GlobalIPv6PrefixLen"`
-	IPAddress              string              `json:"IPAddress"`
-	IPPrefixLen            int                 `json:"IPPrefixLen"`
-	IPv6Gateway            string              `json:"IPv6Gateway"`
-	MacAddress             string              `json:"MacAddress"`
+	Bridge                 string               `json:"Bridge"`
+	SandboxID              string               `json:"SandboxID"`
+	HairpinMode            bool                 `json:"HairpinMode"`
+	LinkLocalIPv6Address   string               `json:"LinkLocalIPv6Address"`
+	LinkLocalIPv6PrefixLen int                  `json:"LinkLocalIPv6PrefixLen"`
+	Ports                  []ocicni.PortMapping `json:"Ports"`
+	SandboxKey             string               `json:"SandboxKey"`
+	SecondaryIPAddresses   []string             `json:"SecondaryIPAddresses"`
+	SecondaryIPv6Addresses []string             `json:"SecondaryIPv6Addresses"`
+	EndpointID             string               `json:"EndpointID"`
+	Gateway                string               `json:"Gateway"`
+	GlobalIPv6Addresses    []string             `json:"GlobalIPv6Addresses"`
+	GlobalIPv6PrefixLen    int                  `json:"GlobalIPv6PrefixLen"`
+	IPAddress              string               `json:"IPAddress"`
+	IPPrefixLen            int                  `json:"IPPrefixLen"`
+	IPv6Gateway            string               `json:"IPv6Gateway"`
+	MacAddress             string               `json:"MacAddress"`
 }
 
 // ImageData holds the inspect information of an image

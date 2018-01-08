@@ -1,8 +1,10 @@
 package libpod
 
 import (
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*ContainerInspectData, error) {
@@ -52,8 +54,46 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		ExecIDs:         []string{}, //TODO
 		GraphDriver:     driverData,
 		Mounts:          spec.Mounts,
-		NetworkSettings: &NetworkSettings{}, // TODO from networking patch
+		NetworkSettings: &NetworkSettings{
+			Bridge:                 "",    // TODO
+			SandboxID:              "",    // TODO - is this even relevant?
+			HairpinMode:            false, // TODO
+			LinkLocalIPv6Address:   "",    // TODO - do we even support IPv6?
+			LinkLocalIPv6PrefixLen: 0,     // TODO - do we even support IPv6?
+			Ports:                  []ocicni.PortMapping{}, // TODO - maybe worth it to put this in Docker format?
+			SandboxKey:             "",                     // Network namespace path
+			SecondaryIPAddresses:   nil,                    // TODO - do we support this?
+			SecondaryIPv6Addresses: nil,                    // TODO - do we support this?
+			EndpointID:             "",                     // TODO - is this even relevant?
+			Gateway:                "",                     // TODO
+			GlobalIPv6Addresses:    []string{},             // TODO - do we even support IPv6?
+			GlobalIPv6PrefixLen:    0,                      // TODO - do we even support IPv6?
+			IPAddress:              "",
+			IPPrefixLen:            0,  // TODO
+			IPv6Gateway:            "", // TODO - do we even support IPv6?
+			MacAddress:             "", // TODO
+		},
 	}
+
+	// Copy port mappings into network settings
+	if config.PortMappings != nil {
+		deepcopier.Copy(config.PortMappings).To(data.NetworkSettings.Ports)
+	}
+
+	// Get information on the container's network namespace (if present)
+	if runtimeInfo.NetNS != nil {
+		// Get IP address
+		ip, err := c.runtime.getContainerIP(c)
+		if err != nil {
+			logrus.Errorf("error getting container %q IP: %v", config.ID, err)
+		} else {
+			data.NetworkSettings.IPAddress = ip.To4().String()
+		}
+
+		// Set network namespace path
+		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
+	}
+
 	if size {
 		rootFsSize, err := c.rootFsSize()
 		if err != nil {
