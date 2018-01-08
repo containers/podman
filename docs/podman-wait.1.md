@@ -21,9 +21,15 @@ After the container stops, the container's return code is printed.
 **--help, -h**
   Print usage statement
 
+**--latest, -l**
+  Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
+
 ## EXAMPLES
 
   podman wait mywebserver
+
+  podman wait --latest
 
   podman wait 860a4b23
 

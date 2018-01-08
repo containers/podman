@@ -1469,7 +1469,11 @@ _podman_unpause() {
 
 _podman_wait() {
      local options_with_args=""
-     local boolean_options="--help -h"
+     local boolean_options="
+        --help
+        -h
+        -l
+        --latest"
      _complete_ "$options_with_args" "$boolean_options"
 }
 

@@ -34,3 +34,10 @@ function teardown() {
     run bash -c ${PODMAN_BINARY} ${PODMAN_OPTIONS} wait $ctr_id
     [ "$status" -eq 0 ]
 }
+
+@test "wait on the latest container" {
+    ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d ${ALPINE} sleep 5
+    run bash -c ${PODMAN_BINARY} ${PODMAN_OPTIONS} wait -l
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
