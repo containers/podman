@@ -11,9 +11,6 @@ function setup() {
 }
 
 @test "run pidns test" {
-
-    ${PODMAN_BINARY} ${PODMAN_OPTIONS} pull ${ALPINE}
-
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${ALPINE}  sh -c 'echo \$\$'"
     echo $output
     [ "$status" -eq 0 ]
@@ -32,9 +29,6 @@ function setup() {
 }
 
 @test "run ipcns test" {
-
-    ${PODMAN_BINARY} ${PODMAN_OPTIONS} pull ${ALPINE}
-
     tmp=$(mktemp /dev/shm/foo.XXXXX)
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --ipc=host ${ALPINE} ls $tmp
     echo $output

@@ -101,9 +101,6 @@ function setup() {
 IMAGE="docker.io/library/fedora:latest"
 
 @test "run limits test" {
-
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} pull ${IMAGE}"
-
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched"
     echo $output
     [ "$status" -eq 0 ]
