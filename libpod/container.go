@@ -157,6 +157,7 @@ type ContainerConfig struct {
 	CreatedTime time.Time `json:"createdTime"`
 	// User/GID to use within the container
 	User string `json:"user"`
+
 	// TODO save log location here and pass into OCI code
 	// TODO allow overriding of log path
 }

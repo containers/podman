@@ -181,6 +181,7 @@ func prepareDB(db *sql.DB) (err error) {
             RootfsImageID TEXT NOT NULL,
             RootfsImageName TEXT NOT NULL,
             UseImageConfig INTEGER NOT NULL,
+            User TEXT NOT NULL,
             CHECK (Stdin IN (0, 1)),
             CHECK (CreateNetNS IN (0, 1)),
             CHECK (UseImageConfig IN (0, 1)),
@@ -290,6 +291,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		rootfsImageID      string
 		rootfsImageName    string
 		useImageConfig     int
+		user               string
 		state              int
 		configPath         string
 		runDir             string
@@ -320,6 +322,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		&rootfsImageID,
 		&rootfsImageName,
 		&useImageConfig,
+		&user,
 		&state,
 		&configPath,
 		&runDir,
@@ -355,6 +358,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	ctr.config.Stdin = boolFromSQL(stdin)
 	ctr.config.StopSignal = stopSignal
 	ctr.config.StopTimeout = stopTimeout
+	ctr.config.User = user
 
 	ctr.state.State = ContainerState(state)
 	ctr.state.ConfigPath = configPath
