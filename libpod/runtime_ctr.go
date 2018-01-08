@@ -3,6 +3,7 @@ package libpod
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -204,7 +205,6 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}
-
 	return r.state.LookupContainer(idOrName)
 }
 
@@ -267,4 +267,22 @@ func (r *Runtime) GetContainersByList(containers []string) ([]*Container, error)
 		ctrs = append(ctrs, ctr)
 	}
 	return ctrs, nil
+}
+
+// GetLatestContainer returns a container object of the latest created container.
+func (r *Runtime) GetLatestContainer() (*Container, error) {
+	var lastCreatedIndex int
+	var lastCreatedTime time.Time
+	ctrs, err := r.GetAllContainers()
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to find latest container")
+	}
+	for containerIndex, ctr := range ctrs {
+		createdTime := ctr.config.CreatedTime
+		if createdTime.After(lastCreatedTime) {
+			lastCreatedTime = createdTime
+			lastCreatedIndex = containerIndex
+		}
+	}
+	return ctrs[lastCreatedIndex], nil
 }

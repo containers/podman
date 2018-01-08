@@ -21,6 +21,10 @@ Display the running process of the container. ps-OPTION can be any of the option
 **--format**
   Display the output in an alternate format.  The only supported format is **JSON**.
 
+**--latest, -l**
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
+
 ## EXAMPLES
 
 ```

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"syscall"
 
+	"fmt"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -17,23 +17,28 @@ var (
 			Usage: "Signal to send to the container",
 			Value: "KILL",
 		},
+		LatestFlag,
 	}
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
 	killCommand     = cli.Command{
-		Name:        "kill",
-		Usage:       "Kill one or more running containers with a specific signal",
-		Description: killDescription,
-		Flags:       killFlags,
-		Action:      killCmd,
-		ArgsUsage:   "[CONTAINER_NAME_OR_ID]",
+		Name:                   "kill",
+		Usage:                  "Kill one or more running containers with a specific signal",
+		Description:            killDescription,
+		Flags:                  killFlags,
+		Action:                 killCmd,
+		ArgsUsage:              "[CONTAINER_NAME_OR_ID]",
+		UseShortOptionHandling: true,
 	}
 )
 
 // killCmd kills one or more containers with a signal
 func killCmd(c *cli.Context) error {
 	args := c.Args()
-	if len(args) == 0 {
+	if len(args) == 0 && !c.Bool("latest") {
 		return errors.Errorf("specify one or more containers to kill")
+	}
+	if len(args) > 0 && c.Bool("latest") {
+		return errors.Errorf("you cannot specific any containers to kill with --latest")
 	}
 	if err := validateFlags(c, killFlags); err != nil {
 		return err
@@ -56,8 +61,16 @@ func killCmd(c *cli.Context) error {
 		killSignal = uint(sysSignal)
 	}
 
+	if c.Bool("latest") {
+		latestCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest container")
+		}
+		args = append(args, latestCtr.ID())
+	}
+
 	var lastError error
-	for _, container := range c.Args() {
+	for _, container := range args {
 		ctr, err := runtime.LookupContainer(container)
 		if err != nil {
 			if lastError != nil {

@@ -21,6 +21,10 @@ Return data on items of the specified type.  Type can be 'container', 'image' or
 
 Format the output using the given Go template
 
+**--latest, -l**
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
+
 **--size**
 
 Display the total file size if the type is a container

@@ -26,6 +26,7 @@ var (
 			Name:  "interactive, i",
 			Usage: "Keep STDIN open even if not attached",
 		},
+		LatestFlag,
 	}
 	startDescription = `
    podman start
@@ -46,7 +47,7 @@ var (
 
 func startCmd(c *cli.Context) error {
 	args := c.Args()
-	if len(args) < 1 {
+	if len(args) < 1 && !c.Bool("latest") {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
@@ -65,7 +66,13 @@ func startCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
-
+	if c.Bool("latest") {
+		lastCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest container")
+		}
+		args = append(args, lastCtr.ID())
+	}
 	var lastError error
 	for _, container := range args {
 		// Create a bool channel to track that the console socket attach

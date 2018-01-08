@@ -47,3 +47,10 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "stop a container with latest" {
+    ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d ${ALPINE} sleep 9999
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} stop -t 1 -l"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

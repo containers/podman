@@ -42,11 +42,10 @@ function setup() {
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d $BB ls"
     echo "$output"
     [ "$status" -eq 0 ]
-    ctr_id="$output"
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} logs --since 2017-08-07T10:10:09.056611202-04:00 $ctr_id"
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} logs --since 2017-08-07T10:10:09.056611202-04:00 -l"
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm $ctr_id"
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rm -l"
     echo "$output"
     [ "$status" -eq 0 ]
 }

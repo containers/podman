@@ -37,6 +37,7 @@ var (
 			Name:  "tail",
 			Usage: "Output the specified number of LINES at the end of the logs.  Defaults to 0, which prints all lines",
 		},
+		LatestFlag,
 	}
 	logsDescription = "The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.  This does not guarantee execution" +
 		"order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs"
@@ -51,6 +52,8 @@ var (
 )
 
 func logsCmd(c *cli.Context) error {
+	var ctr *libpod.Container
+	var err error
 	if err := validateFlags(c, logsFlags); err != nil {
 		return err
 	}
@@ -62,7 +65,7 @@ func logsCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) != 1 {
+	if len(args) != 1 && !c.Bool("latest") {
 		return errors.Errorf("'podman logs' requires exactly one container name/ID")
 	}
 
@@ -83,7 +86,11 @@ func logsCmd(c *cli.Context) error {
 		tail:      c.Uint64("tail"),
 	}
 
-	ctr, err := runtime.LookupContainer(args[0])
+	if c.Bool("latest") {
+		ctr, err = runtime.GetLatestContainer()
+	} else {
+		ctr, err = runtime.LookupContainer(args[0])
+	}
 	if err != nil {
 		return err
 	}

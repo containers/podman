@@ -16,7 +16,7 @@ var (
 		cli.StringFlag{
 			Name:  "format",
 			Usage: "Change the output to JSON",
-		},
+		}, LatestFlag,
 	}
 	topDescription = `
    podman top
@@ -36,6 +36,8 @@ var (
 )
 
 func topCmd(c *cli.Context) error {
+	var container *libpod.Container
+	var err error
 	doJSON := false
 	if c.IsSet("format") {
 		if strings.ToUpper(c.String("format")) == "JSON" {
@@ -47,7 +49,7 @@ func topCmd(c *cli.Context) error {
 	args := c.Args()
 	var psArgs []string
 	psOpts := []string{"-o", "uid,pid,ppid,c,stime,tname,time,cmd"}
-	if len(args) < 1 {
+	if len(args) < 1 && !c.Bool("latest") {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
 	if err := validateFlags(c, topFlags); err != nil {
@@ -63,7 +65,12 @@ func topCmd(c *cli.Context) error {
 		psOpts = args[1:]
 	}
 
-	container, err := runtime.LookupContainer(args[0])
+	if c.Bool("latest") {
+		container, err = runtime.GetLatestContainer()
+	} else {
+		container, err = runtime.LookupContainer(args[0])
+	}
+
 	if err != nil {
 		return errors.Wrapf(err, "unable to lookup %s", args[0])
 	}

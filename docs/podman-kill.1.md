@@ -12,6 +12,9 @@ podman kill - Kills one or more containers with a signal
 The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal.
 
 ## OPTIONS
+**--latest, -l**
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
 
 **--signal, s**
 
@@ -25,6 +28,8 @@ podman kill mywebserver
 podman kill 860a4b23
 
 podman kill --signal TERM 860a4b23
+
+podman kill --latest
 
 ## SEE ALSO
 podman(1), podman-stop(1)

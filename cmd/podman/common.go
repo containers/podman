@@ -14,6 +14,14 @@ import (
 	"github.com/urfave/cli"
 )
 
+var (
+	stores     = make(map[storage.Store]struct{})
+	LatestFlag = cli.BoolFlag{
+		Name:  "latest, l",
+		Usage: "act on the latest container podman is aware of",
+	}
+)
+
 const crioConfigPath = "/etc/crio/crio.conf"
 
 func getRuntime(c *cli.Context) (*libpod.Runtime, error) {

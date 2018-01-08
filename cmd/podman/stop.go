@@ -19,7 +19,7 @@ var (
 		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "stop all running containers",
-		},
+		}, LatestFlag,
 	}
 	stopDescription = `
    podman stop
@@ -41,10 +41,13 @@ var (
 
 func stopCmd(c *cli.Context) error {
 	args := c.Args()
-	if c.Bool("all") && len(args) > 0 {
-		return errors.Errorf("no arguments are needed with -a")
+	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
+		return errors.Errorf("no arguments are needed with --all or --latest")
 	}
-	if len(args) < 1 && !c.Bool("all") {
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 	if err := validateFlags(c, stopFlags); err != nil {
@@ -71,6 +74,12 @@ func stopCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to get running containers")
 		}
+	} else if c.Bool("latest") {
+		lastCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get last created container")
+		}
+		containers = append(containers, lastCtr)
 	} else {
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
