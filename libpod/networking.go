@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"net"
+
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
