@@ -271,11 +271,14 @@ func (r *Runtime) GetContainersByList(containers []string) ([]*Container, error)
 
 // GetLatestContainer returns a container object of the latest created container.
 func (r *Runtime) GetLatestContainer() (*Container, error) {
-	var lastCreatedIndex int
+	lastCreatedIndex := -1
 	var lastCreatedTime time.Time
 	ctrs, err := r.GetAllContainers()
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to find latest container")
+	}
+	if len(ctrs) == 0 {
+		return nil, ErrNoSuchCtr
 	}
 	for containerIndex, ctr := range ctrs {
 		createdTime := ctr.config.CreatedTime
