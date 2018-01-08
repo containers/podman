@@ -64,22 +64,15 @@ func rmiCmd(c *cli.Context) error {
 	}
 
 	for _, arg := range imagesToDelete {
-		image, err := runtime.GetImage(arg)
+		image := runtime.NewImage(arg)
+		iid, err := image.Remove(c.Bool("force"))
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "could not get image %q", arg)
-			continue
-		}
-		id, err := runtime.RemoveImage(image, c.Bool("force"))
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to remove image")
+			lastError = err
 		} else {
-			fmt.Println(id)
+			fmt.Println(iid)
 		}
 	}
 	return lastError
