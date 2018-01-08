@@ -139,6 +139,11 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
+	// Stop the container's network namespace (if it has one)
+	if err := r.teardownNetNS(c); err != nil {
+		return err
+	}
+
 	// Stop the container's storage
 	if err := c.teardownStorage(); err != nil {
 		return err
