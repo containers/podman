@@ -347,6 +347,7 @@ func getTags(nameInput string) (reference.NamedTagged, bool, error) {
 func (k *Image) GetLocalImageName() (string, error) {
 	_, err := k.runtime.GetImage(k.Name)
 	if err == nil {
+		k.LocalName = k.Name
 		return k.Name, nil
 	}
 	localImages, err := k.runtime.GetImages(&ImageFilterParams{})
@@ -359,6 +360,7 @@ func (k *Image) GetLocalImageName() (string, error) {
 	}
 	for _, image := range localImages {
 		if strings.HasPrefix(image.ID, k.Name) {
+			k.ID = image.ID
 			return image.ID, nil
 		}
 		for _, name := range image.Names {
@@ -379,11 +381,13 @@ func (k *Image) GetLocalImageName() (string, error) {
 			}
 
 			if imageName == k.Name {
+				k.LocalName = name
 				return name, nil
 			}
 			imageSplit := strings.Split(imageName, "/")
 			baseName := imageSplit[len(imageSplit)-1]
 			if baseName == k.Name {
+				k.LocalName = name
 				return name, nil
 			}
 		}

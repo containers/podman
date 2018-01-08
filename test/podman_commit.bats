@@ -13,7 +13,6 @@ function setup() {
 }
 
 @test "podman commit default" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d --name my_ctr ${FEDORA_MINIMAL} sleep 6000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -32,7 +31,6 @@ function setup() {
 }
 
 @test "podman commit with message flag" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d --name my_ctr ${FEDORA_MINIMAL} sleep 6000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -51,7 +49,6 @@ function setup() {
 }
 
 @test "podman commit with author flag" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d --name my_ctr ${FEDORA_MINIMAL} sleep 6000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -70,7 +67,6 @@ function setup() {
 }
 
 @test "podman commit with change flag" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d --name my_ctr ${FEDORA_MINIMAL} sleep 6000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -89,7 +85,6 @@ function setup() {
 }
 
 @test "podman commit with pause flag" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d --name my_ctr ${FEDORA_MINIMAL} sleep 6000"
     echo "$output"
     [ "$status" -eq 0 ]
@@ -108,7 +103,6 @@ function setup() {
 }
 
 @test "podman commit non-running container" {
-    skip "Skipping until docker name removed from image store assumptions"
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} create --name my_ctr ${FEDORA_MINIMAL} ls"
     echo "$output"
     [ "$status" -eq 0 ]
