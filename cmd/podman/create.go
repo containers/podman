@@ -491,7 +491,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 	}
 
 	// LABEL VARIABLES
-	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("labels"))
+	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("label"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}
