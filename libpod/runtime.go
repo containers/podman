@@ -46,8 +46,6 @@ type RuntimeConfig struct {
 	CgroupManager         string
 	StaticDir             string
 	TmpDir                string
-	SelinuxEnabled        bool
-	PidsLimit             int64
 	MaxLogSize            int64
 	NoPivotRoot           bool
 	CNIConfigDir          string
@@ -65,15 +63,13 @@ var (
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		CgroupManager:  "cgroupfs",
-		StaticDir:      filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
-		TmpDir:         "/var/run/libpod",
-		SelinuxEnabled: false,
-		PidsLimit:      1024,
-		MaxLogSize:     -1,
-		NoPivotRoot:    false,
-		CNIConfigDir:   "/etc/cni/net.d/",
-		CNIPluginDir:   []string{"/usr/libexec/cni", "/opt/cni/bin"},
+		CgroupManager: "cgroupfs",
+		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
+		TmpDir:        "/var/run/libpod",
+		MaxLogSize:    -1,
+		NoPivotRoot:   false,
+		CNIConfigDir:  "/etc/cni/net.d/",
+		CNIPluginDir:  []string{"/usr/libexec/cni", "/opt/cni/bin"},
 	}
 )
 
@@ -323,6 +319,7 @@ func (r *Runtime) refresh(alivePath string) error {
 		}
 	}
 
+	// Create a file indicating the runtime is alive and ready
 	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime status file %s", alivePath)
