@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 6
+const DBSchema = 7
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -104,7 +104,9 @@ func (s *SQLState) Refresh() (err error) {
                              State=?,
                              Mountpoint=?,
                              Pid=?,
-                             NetNSPath=?;`
+                             NetNSPath=?,
+                             IPAddress=?,
+                             SubnetMask=?;`
 
 	if !s.valid {
 		return ErrDBClosed
@@ -130,6 +132,8 @@ func (s *SQLState) Refresh() (err error) {
 		ContainerStateConfigured,
 		"",
 		0,
+		"",
+		"",
 		"")
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
@@ -154,7 +158,9 @@ func (s *SQLState) Container(id string) (*Container, error) {
                               containerState.ExitCode,
                               containerState.OomKilled,
                               containerState.Pid,
-                              containerState.NetNSPath
+                              containerState.NetNSPath,
+                              containerState.IPAddress,
+                              containerState.SubnetMask
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -170,7 +176,7 @@ func (s *SQLState) Container(id string) (*Container, error) {
 
 	row := s.db.QueryRow(query, id)
 
-	ctr, err := ctrFromScannable(row, s.runtime, s.specsDir, s.lockDir)
+	ctr, err := s.ctrFromScannable(row)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving container %s from database", id)
 	}
@@ -190,7 +196,9 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
                               containerState.ExitCode,
                               containerState.OomKilled,
                               containerState.Pid,
-                              containerState.NetNSPath
+                              containerState.NetNSPath,
+                              containerState.IPAddress,
+                              containerState.SubnetMask
                        FROM containers
                        INNER JOIN
                            containerState ON containers.Id = containerState.Id
@@ -218,7 +226,7 @@ func (s *SQLState) LookupContainer(idOrName string) (*Container, error) {
 		}
 
 		var err error
-		ctr, err = ctrFromScannable(rows, s.runtime, s.specsDir, s.lockDir)
+		ctr, err = s.ctrFromScannable(rows)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving container %s from database", idOrName)
 		}
@@ -271,10 +279,17 @@ func (s *SQLState) HasContainer(id string) (bool, error) {
 func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	const (
 		addCtr = `INSERT INTO containers VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?
                 );`
 	)
 
@@ -286,11 +301,6 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		return ErrCtrRemoved
 	}
 
-	labelsJSON, err := json.Marshal(ctr.config.Labels)
-	if err != nil {
-		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
-	}
-
 	mounts, err := json.Marshal(ctr.config.Mounts)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling container %s mounts to JSON", ctr.ID())
@@ -299,6 +309,11 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	portsJSON, err := json.Marshal(ctr.config.PortMappings)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling container %s port mappings to JSON", ctr.ID())
+	}
+
+	labelsJSON, err := json.Marshal(ctr.config.Labels)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
 	}
 
 	netNSPath := ""
@@ -322,22 +337,37 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	_, err = tx.Exec(addCtr,
 		ctr.ID(),
 		ctr.Name(),
+		stringToNullString(ctr.PodID()),
+
+		ctr.config.RootfsImageID,
+		ctr.config.RootfsImageName,
+		boolToSQL(ctr.config.ImageVolumes),
+		boolToSQL(ctr.config.ReadOnly),
+		ctr.config.ShmDir,
+		ctr.config.ShmSize,
+		ctr.config.StaticDir,
+		string(mounts),
+
 		ctr.config.ProcessLabel,
 		ctr.config.MountLabel,
-		string(mounts),
-		ctr.config.ShmDir,
+		ctr.config.User,
+
+		stringToNullString(ctr.config.IPCNsCtr),
+		stringToNullString(ctr.config.MountNsCtr),
+		stringToNullString(ctr.config.NetNsCtr),
+		stringToNullString(ctr.config.PIDNsCtr),
+		stringToNullString(ctr.config.UserNsCtr),
+		stringToNullString(ctr.config.UTSNsCtr),
+
 		boolToSQL(ctr.config.CreateNetNS),
 		string(portsJSON),
-		ctr.config.StaticDir,
+
 		boolToSQL(ctr.config.Stdin),
 		string(labelsJSON),
 		ctr.config.StopSignal,
 		ctr.config.StopTimeout,
 		timeToSQL(ctr.config.CreatedTime),
-		ctr.config.RootfsImageID,
-		ctr.config.RootfsImageName,
-		boolToSQL(ctr.config.UseImageConfig),
-		ctr.config.User)
+		ctr.config.CgroupParent)
 	if err != nil {
 		return errors.Wrapf(err, "error adding static information for container %s to database", ctr.ID())
 	}
@@ -354,7 +384,9 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		ctr.state.ExitCode,
 		boolToSQL(ctr.state.OOMKilled),
 		ctr.state.PID,
-		netNSPath)
+		netNSPath,
+		ctr.state.IPAddress,
+		ctr.state.SubnetMask)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}
@@ -394,7 +426,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               ExitCode,
                               OomKilled,
                               Pid,
-                              NetNSPath
+                              NetNSPath,
+                              IPAddress,
+                              SubnetMask
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -408,6 +442,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		oomKilled          int
 		pid                int
 		netNSPath          string
+		ipAddress          string
+		subnetMask         string
 	)
 
 	if !s.valid {
@@ -429,7 +465,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&exitCode,
 		&oomKilled,
 		&pid,
-		&netNSPath)
+		&netNSPath,
+		&ipAddress,
+		&subnetMask)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -451,6 +489,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	newState.ExitCode = exitCode
 	newState.OOMKilled = boolFromSQL(oomKilled)
 	newState.PID = pid
+	newState.IPAddress = ipAddress
+	newState.SubnetMask = subnetMask
 
 	if newState.Mountpoint != "" {
 		newState.Mounted = true
@@ -512,7 +552,9 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
                           ExitCode=?,
                           OomKilled=?,
                           Pid=?,
-                          NetNSPath=?
+                          NetNSPath=?,
+                          IPAddress=?,
+                          SubnetMask=?
                        WHERE Id=?;`
 
 	if !ctr.valid {
@@ -552,6 +594,8 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		boolToSQL(ctr.state.OOMKilled),
 		ctr.state.PID,
 		netNSPath,
+		ctr.state.IPAddress,
+		ctr.state.SubnetMask,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
@@ -642,7 +686,9 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
                               containerState.ExitCode,
                               containerState.OomKilled,
                               containerState.Pid,
-                              containerState.NetNSPath
+                              containerState.NetNSPath,
+                              containerState.IPAddress,
+                              containerState.SubnetMask
                       FROM containers
                       INNER JOIN
                           containerState ON containers.Id = containerState.Id
@@ -661,7 +707,7 @@ func (s *SQLState) AllContainers() ([]*Container, error) {
 	containers := []*Container{}
 
 	for rows.Next() {
-		ctr, err := ctrFromScannable(rows, s.runtime, s.specsDir, s.lockDir)
+		ctr, err := s.ctrFromScannable(rows)
 		if err != nil {
 			return nil, err
 		}
