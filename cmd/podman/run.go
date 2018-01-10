@@ -56,6 +56,7 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithLabels(createConfig.Labels))
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
+	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err

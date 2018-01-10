@@ -9,7 +9,7 @@ import (
 // define error codes
 const (
 	// DefaultRuntimeLinuxSymlinks represents "While creating the container (step 2 in the lifecycle), runtimes MUST create default symlinks if the source file exists after processing `mounts`."
-	DefaultRuntimeLinuxSymlinks = "While creating the container (step 2 in the lifecycle), runtimes MUST create the default symlinks if the source file exists after processing `mounts`."
+	DefaultRuntimeLinuxSymlinks Code = 0xf001 + iota
 )
 
 var (

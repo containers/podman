@@ -13,13 +13,13 @@ const referenceTemplate = "https://github.com/opencontainers/runtime-spec/blob/v
 
 // Code represents the spec violation, enumerating both
 // configuration violations and runtime violations.
-type Code string
+type Code int64
 
 const (
 	// NonError represents that an input is not an error
-	NonError = "the input is not an error"
+	NonError Code = 0x1a001 + iota
 	// NonRFCError represents that an error is not a rfc2119 error
-	NonRFCError = "the error is not a rfc2119 error"
+	NonRFCError
 )
 
 type errorTemplate struct {
@@ -50,7 +50,7 @@ var ociErrors = map[Code]errorTemplate{}
 
 func register(code Code, level rfc2119.Level, ref func(versiong string) (string, error)) {
 	if _, ok := ociErrors[code]; ok {
-		panic(fmt.Sprintf("should not regist a same code twice: %s", code))
+		panic(fmt.Sprintf("should not regist a same code twice: %v", code))
 	}
 
 	ociErrors[code] = errorTemplate{Level: level, Reference: ref}

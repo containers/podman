@@ -1,7 +1,6 @@
 package filepath
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 )
@@ -11,9 +10,6 @@ var windowsAbs = regexp.MustCompile(`^[a-zA-Z]:\\.*$`)
 // Abs is a version of path/filepath's Abs with an explicit operating
 // system and current working directory.
 func Abs(os, path, cwd string) (_ string, err error) {
-	if os == "windows" {
-		return "", errors.New("Abs() does not support windows yet")
-	}
 	if IsAbs(os, path) {
 		return Clean(os, path), nil
 	}

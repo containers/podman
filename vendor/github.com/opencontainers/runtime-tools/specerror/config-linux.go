@@ -9,59 +9,59 @@ import (
 // define error codes
 const (
 	// DefaultFilesystems represents "The following filesystems SHOULD be made available in each container's filesystem:"
-	DefaultFilesystems = "The following filesystems SHOULD be made available in each container's filesystem:"
+	DefaultFilesystems Code = 0xc001 + iota
 	// NSPathAbs represents "This value MUST be an absolute path in the runtime mount namespace."
-	NSPathAbs = "This value MUST be an absolute path in the runtime mount namespace."
+	NSPathAbs
 	// NSProcInPath represents "The runtime MUST place the container process in the namespace associated with that `path`."
-	NSProcInPath = "The runtime MUST place the container process in the namespace associated with that `path`."
+	NSProcInPath
 	// NSPathMatchTypeError represents "The runtime MUST generate an error if `path` is not associated with a namespace of type `type`."
-	NSPathMatchTypeError = "The runtime MUST generate an error if `path` is not associated with a namespace of type `type`."
+	NSPathMatchTypeError
 	// NSNewNSWithoutPath represents "If `path` is not specified, the runtime MUST create a new container namespace of type `type`."
-	NSNewNSWithoutPath = "If `path` is not specified, the runtime MUST create a new container namespace of type `type`."
+	NSNewNSWithoutPath
 	// NSInheritWithoutType represents "If a namespace type is not specified in the `namespaces` array, the container MUST inherit the runtime namespace of that type."
-	NSInheritWithoutType = "If a namespace type is not specified in the `namespaces` array, the container MUST inherit the runtime namespace of that type."
+	NSInheritWithoutType
 	// NSErrorOnDup represents "If a `namespaces` field contains duplicated namespaces with same `type`, the runtime MUST generate an error."
-	NSErrorOnDup = "If a `namespaces` field contains duplicated namespaces with same `type`, the runtime MUST generate an error."
+	NSErrorOnDup
 	// UserNSMapOwnershipRO represents "The runtime SHOULD NOT modify the ownership of referenced filesystems to realize the mapping."
-	UserNSMapOwnershipRO = "The runtime SHOULD NOT modify the ownership of referenced filesystems to realize the mapping."
+	UserNSMapOwnershipRO
 	// DevicesAvailable represents "devices (array of objects, OPTIONAL) lists devices that MUST be available in the container."
-	DevicesAvailable = "devices (array of objects, OPTIONAL) lists devices that MUST be available in the container."
+	DevicesAvailable
 	// DevicesFileNotMatch represents "If a file already exists at `path` that does not match the requested device, the runtime MUST generate an error."
-	DevicesFileNotMatch = "If a file already exists at `path` that does not match the requested device, the runtime MUST generate an error."
+	DevicesFileNotMatch
 	// DevicesMajMinRequired represents "`major, minor` (int64, REQUIRED unless `type` is `p`) - major, minor numbers for the device."
-	DevicesMajMinRequired = "`major, minor` (int64, REQUIRED unless `type` is `p`) - major, minor numbers for the device."
+	DevicesMajMinRequired
 	// DevicesErrorOnDup represents "The same `type`, `major` and `minor` SHOULD NOT be used for multiple devices."
-	DevicesErrorOnDup = "The same `type`, `major` and `minor` SHOULD NOT be used for multiple devices."
+	DevicesErrorOnDup
 	// DefaultDevices represents "In addition to any devices configured with this setting, the runtime MUST also supply default devices."
-	DefaultDevices = "In addition to any devices configured with this setting, the runtime MUST also supply default devices."
+	DefaultDevices
 	// CgroupsPathAbsOrRel represents "The value of `cgroupsPath` MUST be either an absolute path or a relative path."
-	CgroupsPathAbsOrRel = "The value of `cgroupsPath` MUST be either an absolute path or a relative path."
+	CgroupsPathAbsOrRel
 	// CgroupsAbsPathRelToMount represents "In the case of an absolute path (starting with `/`), the runtime MUST take the path to be relative to the cgroups mount point."
-	CgroupsAbsPathRelToMount = "In the case of an absolute path (starting with `/`), the runtime MUST take the path to be relative to the cgroups mount point."
+	CgroupsAbsPathRelToMount
 	// CgroupsPathAttach represents "If the value is specified, the runtime MUST consistently attach to the same place in the cgroups hierarchy given the same value of `cgroupsPath`."
-	CgroupsPathAttach = "If the value is specified, the runtime MUST consistently attach to the same place in the cgroups hierarchy given the same value of `cgroupsPath`."
+	CgroupsPathAttach
 	// CgroupsPathError represents "Runtimes MAY consider certain `cgroupsPath` values to be invalid, and MUST generate an error if this is the case."
-	CgroupsPathError = "Runtimes MAY consider certain `cgroupsPath` values to be invalid, and MUST generate an error if this is the case."
+	CgroupsPathError
 	// DevicesApplyInOrder represents "The runtime MUST apply entries in the listed order."
-	DevicesApplyInOrder = "The runtime MUST apply entries in the listed order."
+	DevicesApplyInOrder
 	// BlkIOWeightOrLeafWeightExist represents "You MUST specify at least one of `weight` or `leafWeight` in a given entry, and MAY specify both."
-	BlkIOWeightOrLeafWeightExist = "You MUST specify at least one of `weight` or `leafWeight` in a given entry, and MAY specify both."
+	BlkIOWeightOrLeafWeightExist
 	// IntelRdtPIDWrite represents "If `intelRdt` is set, the runtime MUST write the container process ID to the `<container-id>/tasks` file in a mounted `resctrl` pseudo-filesystem, using the container ID from `start` and creating the `container-id` directory if necessary."
-	IntelRdtPIDWrite = "If `intelRdt` is set, the runtime MUST write the container process ID to the `<container-id>/tasks` file in a mounted `resctrl` pseudo-filesystem, using the container ID from `start` and creating the `<container-id>` directory if necessary."
+	IntelRdtPIDWrite
 	// IntelRdtNoMountedResctrlError represents "If no mounted `resctrl` pseudo-filesystem is available in the runtime mount namespace, the runtime MUST generate an error."
-	IntelRdtNoMountedResctrlError = "If no mounted `resctrl` pseudo-filesystem is available in the runtime mount namespace, the runtime MUST generate an error."
+	IntelRdtNoMountedResctrlError
 	// NotManipResctrlWithoutIntelRdt represents "If `intelRdt` is not set, the runtime MUST NOT manipulate any `resctrl` pseudo-filesystems."
-	NotManipResctrlWithoutIntelRdt = "If `intelRdt` is not set, the runtime MUST NOT manipulate any `resctrl` pseudo-filesystems."
+	NotManipResctrlWithoutIntelRdt
 	// IntelRdtL3CacheSchemaWrite represents "If `l3CacheSchema` is set, runtimes MUST write the value to the `schemata` file in the `<container-id>` directory discussed in `intelRdt`."
-	IntelRdtL3CacheSchemaWrite = "If `l3CacheSchema` is set, runtimes MUST write the value to the `schemata` file in the `<container-id>` directory discussed in `intelRdt`."
+	IntelRdtL3CacheSchemaWrite
 	// IntelRdtL3CacheSchemaNotWrite represents "If `l3CacheSchema` is not set, runtimes MUST NOT write to `schemata` files in any `resctrl` pseudo-filesystems."
-	IntelRdtL3CacheSchemaNotWrite = "If `l3CacheSchema` is not set, runtimes MUST NOT write to `schemata` files in any `resctrl` pseudo-filesystems."
+	IntelRdtL3CacheSchemaNotWrite
 	// SeccSyscallsNamesRequired represents "`names` MUST contain at least one entry."
-	SeccSyscallsNamesRequired = "`names` MUST contain at least one entry."
+	SeccSyscallsNamesRequired
 	// MaskedPathsAbs represents "maskedPaths (array of strings, OPTIONAL) will mask over the provided paths inside the container so that they cannot be read. The values MUST be absolute paths in the container namespace."
-	MaskedPathsAbs = "maskedPaths (array of strings, OPTIONAL) will mask over the provided paths inside the container so that they cannot be read. The values MUST be absolute paths in the container namespace."
+	MaskedPathsAbs
 	// ReadonlyPathsAbs represents "readonlyPaths (array of strings, OPTIONAL) will set the provided paths as readonly inside the container. The values MUST be absolute paths in the container namespace."
-	ReadonlyPathsAbs = "readonlyPaths (array of strings, OPTIONAL) will set the provided paths as readonly inside the container. The values MUST be absolute paths in the container namespace."
+	ReadonlyPathsAbs
 )
 
 var (
