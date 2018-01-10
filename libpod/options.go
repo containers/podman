@@ -465,6 +465,23 @@ func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 	}
 }
 
+// WithCgroupParent sets the Cgroup Parent of the new container
+func WithCgroupParent(parent string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if parent == "" {
+			return errors.Wrapf(ErrInvalidArg, "cgroup parent cannot be empty")
+		}
+
+		ctr.config.CgroupParent = parent
+
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod

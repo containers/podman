@@ -83,7 +83,6 @@ type Container struct {
 // TODO Add readonly support
 // TODO add SHM size support
 // TODO add shared namespace support
-// TODO add cgroup parent support
 
 // containerRuntimeInfo contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
@@ -1228,7 +1227,7 @@ func (c *Container) cleanupStorage() error {
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
-	return cgroups.StaticPath(filepath.Join(CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
+	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
 }
 
 // copyHostFileToRundir copies the provided file to the runtimedir
