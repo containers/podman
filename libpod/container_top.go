@@ -25,7 +25,7 @@ func (c *Container) GetContainerPids() ([]string, error) {
 // Gets the pids for a container without locking.  should only be called from a func where
 // locking has already been established.
 func (c *Container) getContainerPids() ([]string, error) {
-	taskFile := filepath.Join("/sys/fs/cgroup/pids", CGroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID()), c.ID(), "tasks")
+	taskFile := filepath.Join("/sys/fs/cgroup/pids", CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID()), c.ID(), "tasks")
 	logrus.Debug("reading pids from ", taskFile)
 	content, err := ioutil.ReadFile(taskFile)
 	if err != nil {
