@@ -189,7 +189,13 @@ func addDevice(g *generate.Generator, device string) error {
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g := generate.New()
-	g.AddCgroupsMount("ro")
+	cgroupMnt := spec.Mount{
+		Destination: "/sys/fs/cgroup",
+		Type:        "cgroup",
+		Source:      "cgroup",
+		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+	}
+	g.AddMount(cgroupMnt)
 	g.SetProcessCwd(config.WorkDir)
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
@@ -273,6 +279,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	for _, i := range config.Tmpfs {
+		// Default options if nothing passed
 		options := []string{"rw", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
@@ -281,8 +288,13 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			}
 			options = strings.Split(spliti[1], ",")
 		}
-		// Default options if nothing passed
-		g.AddTmpfsMount(spliti[0], append(options, "tmpcopyup"))
+		tmpfsMnt := spec.Mount{
+			Destination: spliti[0],
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, "tmpcopyup"),
+		}
+		g.AddMount(tmpfsMnt)
 	}
 
 	for name, val := range config.Env {

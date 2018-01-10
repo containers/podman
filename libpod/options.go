@@ -295,6 +295,18 @@ func WithShmDir(dir string) CtrCreateOption {
 	}
 }
 
+// WithShmSize sets the size of /dev/shm tmpfs mount
+func WithShmSize(size int64) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.ShmSize = size
+		return nil
+	}
+}
+
 // WithSELinuxLabels sets the mount label for SELinux
 func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	return func(ctr *Container) error {

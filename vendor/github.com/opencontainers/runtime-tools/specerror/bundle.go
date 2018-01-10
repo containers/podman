@@ -9,11 +9,11 @@ import (
 // define error codes
 const (
 	// ConfigInRootBundleDir represents "This REQUIRED file MUST reside in the root of the bundle directory"
-	ConfigInRootBundleDir = "This REQUIRED file MUST reside in the root of the bundle directory."
+	ConfigInRootBundleDir Code = 0xa001 + iota
 	// ConfigConstName represents "This REQUIRED file MUST be named `config.json`."
-	ConfigConstName = "This REQUIRED file MUST be named `config.json`."
+	ConfigConstName
 	// ArtifactsInSingleDir represents "When supplied, while these artifacts MUST all be present in a single directory on the local filesystem, that directory itself is not part of the bundle."
-	ArtifactsInSingleDir = "When supplied, while these artifacts MUST all be present in a single directory on the local filesystem, that directory itself is not part of the bundle."
+	ArtifactsInSingleDir
 )
 
 var (

@@ -377,7 +377,8 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "shm-size",
-		Usage: "Size of `/dev/shm`. The format is `<number><unit>`. default is 64 MB",
+		Usage: "Size of `/dev/shm`. The format is `<number><unit>`.",
+		Value: "65536k",
 	},
 	cli.BoolFlag{
 		Name:  "sig-proxy",

@@ -62,7 +62,7 @@ type createResourceConfig struct {
 	MemorySwappiness  int      // memory-swappiness
 	OomScoreAdj       int      //oom-score-adj
 	PidsLimit         int64    // pids-limit
-	ShmSize           string
+	ShmSize           int64
 	Ulimit            []string //ulimit
 }
 
@@ -179,6 +179,7 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithLabels(createConfig.Labels))
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
+	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -524,6 +525,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 		return nil, err
 	}
 
+	// SHM SIze
+	shmSize, err := units.FromHumanSize(c.String("shm-size"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to translate --shm-size")
+	}
+
 	config := &createConfig{
 		Runtime:        runtime,
 		CapAdd:         c.StringSlice("cap-add"),
@@ -580,7 +587,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			DeviceWriteBps:    c.StringSlice("device-write-bps"),
 			DeviceWriteIOps:   c.StringSlice("device-write-iops"),
 			DisableOomKiller:  c.Bool("oom-kill-disable"),
-			ShmSize:           c.String("shm-size"),
+			ShmSize:           shmSize,
 			Memory:            memoryLimit,
 			MemoryReservation: memoryReservation,
 			MemorySwap:        memorySwap,

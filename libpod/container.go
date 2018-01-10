@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -686,12 +685,32 @@ func (c *Container) Init() (err error) {
 	if c.config.CreateNetNS {
 		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 	}
+	// Remove default /etc/shm mount
+	g.RemoveMount("/dev/shm")
 	// Mount ShmDir from host into container
-	g.AddBindMount(c.config.ShmDir, "/dev/shm", []string{"rw"})
+	shmMnt := spec.Mount{
+		Type:        "bind",
+		Source:      c.config.ShmDir,
+		Destination: "/dev/shm",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(shmMnt)
 	// Bind mount resolv.conf
-	g.AddBindMount(runDirResolv, "/etc/resolv.conf", []string{"rw"})
+	resolvMnt := spec.Mount{
+		Type:        "bind",
+		Source:      runDirResolv,
+		Destination: "/etc/resolv.conf",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(resolvMnt)
 	// Bind mount hosts
-	g.AddBindMount(runDirHosts, "/etc/hosts", []string{"rw"})
+	hostsMnt := spec.Mount{
+		Type:        "bind",
+		Source:      runDirHosts,
+		Destination: "/etc/hosts",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(hostsMnt)
 
 	if c.config.User != "" {
 		if !c.state.Mounted {
@@ -1163,7 +1182,7 @@ func (c *Container) mountStorage() (err error) {
 	}
 
 	if !mounted {
-		shmOptions := "mode=1777,size=" + strconv.Itoa(DefaultShmSize)
+		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
 		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
 			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
