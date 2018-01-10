@@ -61,8 +61,8 @@ const (
 	artifactsDir = "artifacts"
 )
 
-// CGroupParent is the prefix to a cgroup path in libpod
-var CGroupParent = "/libpod_parent"
+// CgroupParent is the default prefix to a cgroup path in libpod
+var CgroupParent = "/libpod_parent"
 
 // Container is a single OCI container
 type Container struct {
@@ -77,6 +77,13 @@ type Container struct {
 	lock    storage.Locker
 	runtime *Runtime
 }
+
+// TODO fetch IP and Subnet Mask from networks once we have updated OCICNI
+// TODO enable pod support
+// TODO Add readonly support
+// TODO add SHM size support
+// TODO add shared namespace support
+// TODO add cgroup parent support
 
 // containerRuntimeInfo contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
@@ -107,7 +114,10 @@ type containerRuntimeInfo struct {
 	// Will only be set if config.CreateNetNS is true, or the container was
 	// told to join another container's network namespace
 	NetNS ns.NetNS
-	// TODO: Save information about image used in container if one is used
+	// IP address of container (if network namespace was created)
+	IPAddress string
+	// Subnet mask of container (if network namespace was created)
+	SubnetMask string
 }
 
 // ContainerConfig contains all information that was used to create the
@@ -117,49 +127,76 @@ type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
+	// Full ID of the pood the container belongs to
+	Pod string `json:"pod,omitempty"`
+
+	// TODO consider breaking these subsections up into smaller structs
+
+	// Storage Config
 	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
-	UseImageConfig  bool   `json:"useImageConfig"`
+	// Whether to mount volumes specified in the image
+	ImageVolumes bool `json:"imageVolumes"`
+	// Whether to make the container read only
+	ReadOnly bool `json:"readOnly"`
+	// Src path to be mounted on /dev/shm in container
+	ShmDir string `json:"ShmDir,omitempty"`
+	// Size of the container's SHM
+	ShmSize int64 `json:"shmSize"`
+	// Static directory for container content that will persist across
+	// reboot
+	StaticDir string `json:"staticDir"`
+	// Mounts list contains all additional mounts into the container rootfs
+	// These include the SHM mount
+	// These must be unmounted before the container's rootfs is unmounted
+	Mounts []string `json:"mounts,omitempty"`
+
+	// Security Config
 	// SELinux process label for container
 	ProcessLabel string `json:"ProcessLabel,omitempty"`
 	// SELinux mount label for root filesystem
 	MountLabel string `json:"MountLabel,omitempty"`
-	// Src path to be mounted on /dev/shm in container
-	ShmDir string `json:"ShmDir,omitempty"`
+	// User and group to use in the container
+	// Can be specified by name or UID/GID
+	User string `json:"user"`
+
+	// Namespace Config
+	// IDs of container to share namespaces with
+	// NetNsCtr conflicts with the CreateNetNS bool
+	IPCNsCtr   string `json:"ipcNsCtr"`
+	MountNsCtr string `json:"mountNsCtr"`
+	NetNsCtr   string `json:"netNsCtr"`
+	PIDNsCtr   string `json:"pidNsCtr"`
+	UserNsCtr  string `json:"userNsCtr"`
+	UTSNsCtr   string `json:"utsNsCtr"`
+
+	// Network Config
 	// CreateNetNS indicates that libpod should create and configure a new
 	// network namespace for the container
+	// This cannot be set if NetNsCtr is also set
 	CreateNetNS bool `json:"createNetNS"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
-	PortMappings []ocicni.PortMapping
-	// Static directory for container content that will persist across
-	// reboot
-	StaticDir string `json:"staticDir"`
+	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+
+	// Misc Options
 	// Whether to keep container STDIN open
 	Stdin bool `json:"stdin,omitempty"`
-	// Pod the container belongs to
-	Pod string `json:"pod,omitempty"`
 	// Labels is a set of key-value pairs providing additional information
 	// about a container
 	Labels map[string]string `json:"labels,omitempty"`
-	// Mounts list contains all additional mounts by the container runtime.
-	Mounts []string `json:"mounts,omitempty"`
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
 	// StopTimeout is the signal that will be used to stop the container
 	StopTimeout uint `json:"stopTimeout,omitempty"`
-	// Shared namespaces with container
-	SharedNamespaceCtr *string           `json:"shareNamespacesWith,omitempty"`
-	SharedNamespaceMap map[string]string `json:"sharedNamespaces"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
-	// User/GID to use within the container
-	User string `json:"user"`
+	// Cgroup parent of the container
+	CgroupParent string `json:"cgroupParent"`
 
-	// TODO save log location here and pass into OCI code
-	// TODO allow overriding of log path
+	// TODO log options - logpath for plaintext, others for log drivers
 }
 
 // ContainerStater returns a string representation for users
@@ -190,6 +227,12 @@ func (c *Container) ID() string {
 // Name returns the container's name
 func (c *Container) Name() string {
 	return c.config.Name
+}
+
+// PodID returns the full ID of the pod the container belongs to, or "" if it
+// does not belong to a pod
+func (c *Container) PodID() string {
+	return c.config.Pod
 }
 
 // ShmDir returns the sources path to be mounted on /dev/shm in container
@@ -468,6 +511,9 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	deepcopier.Copy(rspec).To(ctr.config.Spec)
 	ctr.config.CreatedTime = time.Now()
 
+	ctr.config.ShmSize = DefaultShmSize
+	ctr.config.CgroupParent = CgroupParent
+
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, ctr.config.ID)
 	// Grab a lockfile at the given path
@@ -679,7 +725,7 @@ func (c *Container) Init() (err error) {
 
 	// With the spec complete, do an OCI create
 	// TODO set cgroup parent in a sane fashion
-	if err := c.runtime.ociRuntime.createContainer(c, CGroupParent); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c, CgroupParent); err != nil {
 		return err
 	}
 
@@ -1182,7 +1228,7 @@ func (c *Container) cleanupStorage() error {
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
-	return cgroups.StaticPath(filepath.Join(CGroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
+	return cgroups.StaticPath(filepath.Join(CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
 }
 
 // copyHostFileToRundir copies the provided file to the runtimedir

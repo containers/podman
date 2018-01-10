@@ -325,7 +325,7 @@ func WithUser(user string) CtrCreateOption {
 // If useImageConfig is specified, image volumes, environment variables, and
 // other configuration from the image will be added to the config
 // TODO: Replace image name and ID with a libpod.Image struct when that is finished
-func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) CtrCreateOption {
+func WithRootFSFromImage(imageID string, imageName string, useImageVolumes bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
@@ -337,7 +337,7 @@ func WithRootFSFromImage(imageID string, imageName string, useImageConfig bool) 
 
 		ctr.config.RootfsImageID = imageID
 		ctr.config.RootfsImageName = imageName
-		ctr.config.UseImageConfig = useImageConfig
+		ctr.config.ImageVolumes = useImageVolumes
 
 		return nil
 	}

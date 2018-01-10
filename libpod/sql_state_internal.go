@@ -22,13 +22,13 @@ func checkDB(db *sql.DB, r *Runtime) (err error) {
 	// TODO: Include UID/GID mappings
 	const runtimeTable = `
         CREATE TABLE runtime(
-            Id INTEGER NOT NULL PRIMARY KEY,
-            SchemaVersion INTEGER NOT NULL,
-            StaticDir TEXT NOT NULL,
-            TmpDir TEXT NOT NULL,
-            RunRoot TEXT NOT NULL,
-            GraphRoot TEXT NOT NULL,
-            GraphDriverName TEXT NOT NULL,
+            Id              INTEGER NOT NULL PRIMARY KEY,
+            SchemaVersion   INTEGER NOT NULL,
+            StaticDir       TEXT    NOT NULL,
+            TmpDir          TEXT    NOT NULL,
+            RunRoot         TEXT    NOT NULL,
+            GraphRoot       TEXT    NOT NULL,
+            GraphDriverName TEXT    NOT NULL,
             CHECK (Id=0)
         );
         `
@@ -155,6 +155,7 @@ func prepareDB(db *sql.DB) (err error) {
 	// TODO add ctr shared namespaces information - A separate table, probably? So we can FOREIGN KEY the ID
 	// TODO schema migration might be necessary and should be handled here
 	// TODO maybe make a port mappings table instead of JSONing the array and storing it?
+	// TODO prepared statements for common queries for performance
 
 	// Enable foreign keys in SQLite
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
@@ -164,48 +165,85 @@ func prepareDB(db *sql.DB) (err error) {
 	// Create a table for unchanging container data
 	const createCtr = `
         CREATE TABLE IF NOT EXISTS containers(
-            Id TEXT NOT NULL PRIMARY KEY,
-            Name TEXT NOT NULL UNIQUE,
-            ProcessLabel TEXT NOT NULL,
-            MountLabel TEXT NOT NULL,
-            Mounts TEXT NOT NULL,
-            ShmDir TEXT NOT NULL,
-            CreateNetNS INTEGER NOT NULL,
-            PortMappings TEXT NOT NULL,
-            StaticDir TEXT NOT NULL,
-            Stdin INTEGER NOT NULL,
-            LabelsJSON TEXT NOT NULL,
-            StopSignal INTEGER NOT NULL,
-            StopTimeout INTEGER NOT NULL,
-            CreatedTime TEXT NOT NULL,
-            RootfsImageID TEXT NOT NULL,
-            RootfsImageName TEXT NOT NULL,
-            UseImageConfig INTEGER NOT NULL,
-            User TEXT NOT NULL,
-            CHECK (Stdin IN (0, 1)),
+            Id              TEXT    NOT NULL PRIMARY KEY,
+            Name            TEXT    NOT NULL UNIQUE,
+            Pod             TEXT,
+
+            RootfsImageID   TEXT    NOT NULL,
+            RootfsImageName TEXT    NOT NULL,
+            ImageVolumes    INTEGER NOT NULL,
+            ReadOnly        INTEGER NOT NULL,
+            ShmDir          TEXT    NOT NULL,
+            ShmSize         INTEGER NOT NULL,
+            StaticDir       TEXT    NOT NULL,
+            Mounts          TEXT    NOT NULL,
+
+            ProcessLabel    TEXT    NOT NULL,
+            MountLabel      TEXT    NOT NULL,
+            User            TEXT    NOT NULL,
+
+            IPCNsCtr        TEXT,
+            MountNsCtr      TEXT,
+            NetNsCtr        TEXT,
+            PIDNsCtr        TEXT,
+            UserNsCtr       TEXT,
+            UTSNsCtr        TEXT,
+
+            CreateNetNS     INTEGER NOT NULL,
+            PortMappings    TEXT    NOT NULL,
+
+            Stdin           INTEGER NOT NULL,
+            LabelsJSON      TEXT    NOT NULL,
+            StopSignal      INTEGER NOT NULL,
+            StopTimeout     INTEGER NOT NULL,
+            CreatedTime     TEXT    NOT NULL,
+            CgroupParent    TEXT    NOT NULL,
+
+            CHECK (ImageVolumes IN (0, 1)),
+            CHECK (ReadOnly IN (0, 1)),
+            CHECK (SHMSize>=0),
             CHECK (CreateNetNS IN (0, 1)),
-            CHECK (UseImageConfig IN (0, 1)),
-            CHECK (StopSignal>=0)
+            CHECK (Stdin IN (0, 1)),
+            CHECK (StopSignal>=0),
+            FOREIGN KEY (Pod)        REFERENCES pod(Id)        DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (IPCNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (MountNsCtr) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (NetNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (PIDNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (UserNsCtr)  REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (UTSNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
         );
         `
 
 	// Create a table for changing container state
 	const createCtrState = `
         CREATE TABLE IF NOT EXISTS containerState(
-            Id TEXT NOT NULL PRIMARY KEY,
-            State INTEGER NOT NULL,
-            ConfigPath TEXT NOT NULL,
-            RunDir TEXT NOT NULL,
-            Mountpoint TEXT NOT NULL,
-            StartedTime TEXT NUT NULL,
-            FinishedTime TEXT NOT NULL,
-            ExitCode INTEGER NOT NULL,
-            OomKilled INTEGER NOT NULL,
-            Pid INTEGER NOT NULL,
-            NetNSPath TEXT NOT NULL,
+            Id           TEXT    NOT NULL PRIMARY KEY,
+            State        INTEGER NOT NULL,
+            ConfigPath   TEXT    NOT NULL,
+            RunDir       TEXT    NOT NULL,
+            Mountpoint   TEXT    NOT NULL,
+            StartedTime  TEXT    NUT NULL,
+            FinishedTime TEXT    NOT NULL,
+            ExitCode     INTEGER NOT NULL,
+            OomKilled    INTEGER NOT NULL,
+            Pid          INTEGER NOT NULL,
+            NetNSPath    TEXT    NOT NULL,
+            IPAddress    TEXT    NOT NULL,
+            SubnetMask   TEXT    NOT NULL,
+
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
             FOREIGN KEY (Id) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
+        );
+        `
+
+	// Create a table for pod config
+	const createPod = `
+        CREATE TABLE IF NOT EXISTS pod(
+            Id     TEXT NOT NULL PRIMARY KEY,
+            Name   TEXT NOT NULL UNIQUE,
+            Labels TEXT NOT NULL
         );
         `
 
@@ -229,6 +267,9 @@ func prepareDB(db *sql.DB) (err error) {
 	if _, err := tx.Exec(createCtrState); err != nil {
 		return errors.Wrapf(err, "error creating container state table in database")
 	}
+	if _, err := tx.Exec(createPod); err != nil {
+		return errors.Wrapf(err, "error creating pods table in database")
+	}
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing table creation transaction in database")
@@ -249,6 +290,25 @@ func boolToSQL(b bool) int {
 	}
 
 	return 0
+}
+
+// Convert a null string from SQL-readable format
+func stringFromNullString(s sql.NullString) string {
+	if s.Valid {
+		return s.String
+	}
+	return ""
+}
+
+// Convert a string to a SQL nullable string
+func stringToNullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
 }
 
 // Convert a bool from SQL-readable format
@@ -272,26 +332,42 @@ type scannable interface {
 }
 
 // Read a single container from a single row result in the database
-func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir string) (*Container, error) {
+func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	var (
-		id                 string
-		name               string
-		processLabel       string
-		mountLabel         string
-		mounts             string
-		shmDir             string
-		createNetNS        int
-		portMappingsJSON   string
-		staticDir          string
-		stdin              int
-		labelsJSON         string
-		stopSignal         uint
-		stopTimeout        uint
-		createdTimeString  string
-		rootfsImageID      string
-		rootfsImageName    string
-		useImageConfig     int
-		user               string
+		id   string
+		name string
+		pod  sql.NullString
+
+		rootfsImageID   string
+		rootfsImageName string
+		imageVolumes    int
+		readOnly        int
+		shmDir          string
+		shmSize         int64
+		staticDir       string
+		mounts          string
+
+		processLabel string
+		mountLabel   string
+		user         string
+
+		ipcNsCtrNullStr   sql.NullString
+		mountNsCtrNullStr sql.NullString
+		netNsCtrNullStr   sql.NullString
+		pidNsCtrNullStr   sql.NullString
+		userNsCtrNullStr  sql.NullString
+		utsNsCtrNullStr   sql.NullString
+
+		createNetNS      int
+		portMappingsJSON string
+
+		stdin             int
+		labelsJSON        string
+		stopSignal        uint
+		stopTimeout       uint
+		createdTimeString string
+		cgroupParent      string
+
 		state              int
 		configPath         string
 		runDir             string
@@ -302,27 +378,45 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		oomKilled          int
 		pid                int
 		netNSPath          string
+		ipAddress          string
+		subnetMask         string
 	)
 
 	err := row.Scan(
 		&id,
 		&name,
+		&pod,
+
+		&rootfsImageID,
+		&rootfsImageName,
+		&imageVolumes,
+		&readOnly,
+		&shmDir,
+		&shmSize,
+		&staticDir,
+		&mounts,
+
 		&processLabel,
 		&mountLabel,
-		&mounts,
-		&shmDir,
+		&user,
+
+		&ipcNsCtrNullStr,
+		&mountNsCtrNullStr,
+		&netNsCtrNullStr,
+		&pidNsCtrNullStr,
+		&userNsCtrNullStr,
+		&utsNsCtrNullStr,
+
 		&createNetNS,
 		&portMappingsJSON,
-		&staticDir,
+
 		&stdin,
 		&labelsJSON,
 		&stopSignal,
 		&stopTimeout,
 		&createdTimeString,
-		&rootfsImageID,
-		&rootfsImageName,
-		&useImageConfig,
-		&user,
+		&cgroupParent,
+
 		&state,
 		&configPath,
 		&runDir,
@@ -332,7 +426,9 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 		&exitCode,
 		&oomKilled,
 		&pid,
-		&netNSPath)
+		&netNSPath,
+		&ipAddress,
+		&subnetMask)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -347,18 +443,33 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 
 	ctr.config.ID = id
 	ctr.config.Name = name
+	ctr.config.Pod = stringFromNullString(pod)
+
 	ctr.config.RootfsImageID = rootfsImageID
 	ctr.config.RootfsImageName = rootfsImageName
-	ctr.config.UseImageConfig = boolFromSQL(useImageConfig)
+	ctr.config.ImageVolumes = boolFromSQL(imageVolumes)
+	ctr.config.ReadOnly = boolFromSQL(readOnly)
+	ctr.config.ShmDir = shmDir
+	ctr.config.ShmSize = shmSize
+	ctr.config.StaticDir = staticDir
+
 	ctr.config.ProcessLabel = processLabel
 	ctr.config.MountLabel = mountLabel
-	ctr.config.ShmDir = shmDir
+	ctr.config.User = user
+
+	ctr.config.IPCNsCtr = stringFromNullString(ipcNsCtrNullStr)
+	ctr.config.MountNsCtr = stringFromNullString(mountNsCtrNullStr)
+	ctr.config.NetNsCtr = stringFromNullString(netNsCtrNullStr)
+	ctr.config.PIDNsCtr = stringFromNullString(pidNsCtrNullStr)
+	ctr.config.UserNsCtr = stringFromNullString(userNsCtrNullStr)
+	ctr.config.UTSNsCtr = stringFromNullString(utsNsCtrNullStr)
+
 	ctr.config.CreateNetNS = boolFromSQL(createNetNS)
-	ctr.config.StaticDir = staticDir
+
 	ctr.config.Stdin = boolFromSQL(stdin)
 	ctr.config.StopSignal = stopSignal
 	ctr.config.StopTimeout = stopTimeout
-	ctr.config.User = user
+	ctr.config.CgroupParent = cgroupParent
 
 	ctr.state.State = ContainerState(state)
 	ctr.state.ConfigPath = configPath
@@ -367,17 +478,13 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	ctr.state.ExitCode = exitCode
 	ctr.state.OOMKilled = boolFromSQL(oomKilled)
 	ctr.state.PID = pid
+	ctr.state.IPAddress = ipAddress
+	ctr.state.SubnetMask = subnetMask
 
 	// TODO should we store this in the database separately instead?
 	if ctr.state.Mountpoint != "" {
 		ctr.state.Mounted = true
 	}
-
-	labels := make(map[string]string)
-	if err := json.Unmarshal([]byte(labelsJSON), &labels); err != nil {
-		return nil, errors.Wrapf(err, "error parsing container %s labels JSON", id)
-	}
-	ctr.config.Labels = labels
 
 	if err := json.Unmarshal([]byte(mounts), &ctr.config.Mounts); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s mounts JSON", id)
@@ -386,6 +493,12 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	if err := json.Unmarshal([]byte(portMappingsJSON), &ctr.config.PortMappings); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s port mappings JSON", id)
 	}
+
+	labels := make(map[string]string)
+	if err := json.Unmarshal([]byte(labelsJSON), &labels); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s labels JSON", id)
+	}
+	ctr.config.Labels = labels
 
 	createdTime, err := timeFromSQL(createdTimeString)
 	if err != nil {
@@ -415,10 +528,10 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 	}
 
 	ctr.valid = true
-	ctr.runtime = runtime
+	ctr.runtime = s.runtime
 
 	// Open and set the lockfile
-	lockPath := filepath.Join(lockDir, id)
+	lockPath := filepath.Join(s.lockDir, id)
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving lockfile for container %s", id)
@@ -427,7 +540,7 @@ func ctrFromScannable(row scannable, runtime *Runtime, specsDir string, lockDir 
 
 	// Retrieve the spec from disk
 	ociSpec := new(spec.Spec)
-	specPath := getSpecPath(specsDir, id)
+	specPath := getSpecPath(s.specsDir, id)
 	fileContents, err := ioutil.ReadFile(specPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading container %s OCI spec", id)
