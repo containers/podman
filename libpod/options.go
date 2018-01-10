@@ -200,33 +200,6 @@ func WithTmpDir(dir string) RuntimeOption {
 	}
 }
 
-// WithSELinux enables SELinux on the container server
-func WithSELinux() RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return ErrRuntimeFinalized
-		}
-
-		rt.config.SelinuxEnabled = true
-
-		return nil
-	}
-}
-
-// WithPidsLimit specifies the maximum number of processes each container is
-// restricted to
-func WithPidsLimit(limit int64) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return ErrRuntimeFinalized
-		}
-
-		rt.config.PidsLimit = limit
-
-		return nil
-	}
-}
-
 // WithMaxLogSize sets the maximum size of container logs
 // Positive sizes are limits in bytes, -1 is unlimited
 func WithMaxLogSize(limit int64) RuntimeOption {
