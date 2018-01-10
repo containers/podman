@@ -24,7 +24,7 @@ const (
 func WriteFile(content string, path string) error {
 	baseDir := filepath.Dir(path)
 	if baseDir != "" {
-		if _, err := os.Stat(path); err != nil {
+		if _, err := os.Stat(baseDir); err != nil {
 			return err
 		}
 	}

@@ -132,3 +132,12 @@ IMAGE="docker.io/library/fedora:latest"
     echo $output
     [ "$status" -eq 0 ]
 }
+
+@test "podman run with cidfile" {
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cidfile /tmp/cidfile $BB ls"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run rm /tmp/cidfile
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
