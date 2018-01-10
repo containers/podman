@@ -59,6 +59,13 @@ func (g *Generator) initSpecLinux() {
 	}
 }
 
+func (g *Generator) initSpecLinuxIntelRdt() {
+	g.initSpecLinux()
+	if g.spec.Linux.IntelRdt == nil {
+		g.spec.Linux.IntelRdt = &rspec.LinuxIntelRdt{}
+	}
+}
+
 func (g *Generator) initSpecLinuxSysctl() {
 	g.initSpecLinux()
 	if g.spec.Linux.Sysctl == nil {
@@ -77,6 +84,13 @@ func (g *Generator) initSpecLinuxResources() {
 	g.initSpecLinux()
 	if g.spec.Linux.Resources == nil {
 		g.spec.Linux.Resources = &rspec.LinuxResources{}
+	}
+}
+
+func (g *Generator) initSpecLinuxResourcesBlockIO() {
+	g.initSpecLinuxResources()
+	if g.spec.Linux.Resources.BlockIO == nil {
+		g.spec.Linux.Resources.BlockIO = &rspec.LinuxBlockIO{}
 	}
 }
 
@@ -105,5 +119,54 @@ func (g *Generator) initSpecLinuxResourcesPids() {
 	g.initSpecLinuxResources()
 	if g.spec.Linux.Resources.Pids == nil {
 		g.spec.Linux.Resources.Pids = &rspec.LinuxPids{}
+	}
+}
+
+func (g *Generator) initSpecSolaris() {
+	g.initSpec()
+	if g.spec.Solaris == nil {
+		g.spec.Solaris = &rspec.Solaris{}
+	}
+}
+
+func (g *Generator) initSpecSolarisCappedCPU() {
+	g.initSpecSolaris()
+	if g.spec.Solaris.CappedCPU == nil {
+		g.spec.Solaris.CappedCPU = &rspec.SolarisCappedCPU{}
+	}
+}
+
+func (g *Generator) initSpecSolarisCappedMemory() {
+	g.initSpecSolaris()
+	if g.spec.Solaris.CappedMemory == nil {
+		g.spec.Solaris.CappedMemory = &rspec.SolarisCappedMemory{}
+	}
+}
+
+func (g *Generator) initSpecWindows() {
+	g.initSpec()
+	if g.spec.Windows == nil {
+		g.spec.Windows = &rspec.Windows{}
+	}
+}
+
+func (g *Generator) initSpecWindowsHyperV() {
+	g.initSpecWindows()
+	if g.spec.Windows.HyperV == nil {
+		g.spec.Windows.HyperV = &rspec.WindowsHyperV{}
+	}
+}
+
+func (g *Generator) initSpecWindowsResources() {
+	g.initSpecWindows()
+	if g.spec.Windows.Resources == nil {
+		g.spec.Windows.Resources = &rspec.WindowsResources{}
+	}
+}
+
+func (g *Generator) initSpecWindowsResourcesMemory() {
+	g.initSpecWindowsResources()
+	if g.spec.Windows.Resources.Memory == nil {
+		g.spec.Windows.Resources.Memory = &rspec.WindowsMemoryResources{}
 	}
 }

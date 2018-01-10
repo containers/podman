@@ -9,91 +9,91 @@ import (
 // define error codes
 const (
 	// SpecVersionInSemVer represents "`ociVersion` (string, REQUIRED) MUST be in SemVer v2.0.0 format and specifies the version of the Open Container Initiative Runtime Specification with which the bundle complies."
-	SpecVersionInSemVer = "`ociVersion` (string, REQUIRED) MUST be in SemVer v2.0.0 format and specifies the version of the Open Container Initiative Runtime Specification with which the bundle complies."
+	SpecVersionInSemVer Code = 0xb001 + iota
 	// RootOnWindowsRequired represents "On Windows, for Windows Server Containers, this field is REQUIRED."
-	RootOnWindowsRequired = "On Windows, for Windows Server Containers, this field is REQUIRED."
+	RootOnWindowsRequired
 	// RootOnHyperVNotSet represents "For Hyper-V Containers, this field MUST NOT be set."
-	RootOnHyperVNotSet = "For Hyper-V Containers, this field MUST NOT be set."
+	RootOnHyperVNotSet
 	// RootOnNonHyperVRequired represents "On all other platforms, this field is REQUIRED."
-	RootOnNonHyperVRequired = "On all other platforms, this field is REQUIRED."
+	RootOnNonHyperVRequired
 	// RootPathOnWindowsGUID represents "On Windows, `path` MUST be a volume GUID path."
-	RootPathOnWindowsGUID = "On Windows, `path` MUST be a volume GUID path."
+	RootPathOnWindowsGUID
 	// RootPathOnPosixConvention represents "The value SHOULD be the conventional `rootfs`."
-	RootPathOnPosixConvention = "The value SHOULD be the conventional `rootfs`."
+	RootPathOnPosixConvention
 	// RootPathExist represents "A directory MUST exist at the path declared by the field."
-	RootPathExist = "A directory MUST exist at the path declared by the field."
+	RootPathExist
 	// RootReadonlyImplement represents "`readonly` (bool, OPTIONAL) If true then the root filesystem MUST be read-only inside the container, defaults to false."
-	RootReadonlyImplement = "`readonly` (bool, OPTIONAL) If true then the root filesystem MUST be read-only inside the container, defaults to false."
+	RootReadonlyImplement
 	// RootReadonlyOnWindowsFalse represents "* On Windows, this field MUST be omitted or false."
-	RootReadonlyOnWindowsFalse = "On Windows, this field MUST be omitted or false."
+	RootReadonlyOnWindowsFalse
 	// MountsInOrder represents "The runtime MUST mount entries in the listed order."
-	MountsInOrder = "The runtime MUST mount entries in the listed order."
+	MountsInOrder
 	// MountsDestAbs represents "Destination of mount point: path inside container. This value MUST be an absolute path."
-	MountsDestAbs = "Destination of mount point: path inside container. This value MUST be an absolute path."
+	MountsDestAbs
 	// MountsDestOnWindowsNotNested represents "Windows: one mount destination MUST NOT be nested within another mount (e.g., c:\\foo and c:\\foo\\bar)."
-	MountsDestOnWindowsNotNested = "Windows: one mount destination MUST NOT be nested within another mount (e.g., c:\\foo and c:\\foo\\bar)."
+	MountsDestOnWindowsNotNested
 	// MountsOptionsOnWindowsROSupport represents "Windows: runtimes MUST support `ro`, mounting the filesystem read-only when `ro` is given."
-	MountsOptionsOnWindowsROSupport = "Windows: runtimes MUST support `ro`, mounting the filesystem read-only when `ro` is given."
+	MountsOptionsOnWindowsROSupport
 	// ProcRequiredAtStart represents "This property is REQUIRED when `start` is called."
-	ProcRequiredAtStart = "This property is REQUIRED when `start` is called."
+	ProcRequiredAtStart
 	// ProcConsoleSizeIgnore represents "Runtimes MUST ignore `consoleSize` if `terminal` is `false` or unset."
-	ProcConsoleSizeIgnore = "Runtimes MUST ignore `consoleSize` if `terminal` is `false` or unset."
+	ProcConsoleSizeIgnore
 	// ProcCwdAbs represents "cwd (string, REQUIRED) is the working directory that will be set for the executable. This value MUST be an absolute path."
-	ProcCwdAbs = "cwd (string, REQUIRED) is the working directory that will be set for the executable. This value MUST be an absolute path."
+	ProcCwdAbs
 	// ProcArgsOneEntryRequired represents "This specification extends the IEEE standard in that at least one entry is REQUIRED, and that entry is used with the same semantics as `execvp`'s *file*."
-	ProcArgsOneEntryRequired = "This specification extends the IEEE standard in that at least one entry is REQUIRED, and that entry is used with the same semantics as `execvp`'s *file*."
+	ProcArgsOneEntryRequired
 	// PosixProcRlimitsTypeGenError represents "The runtime MUST generate an error for any values which cannot be mapped to a relevant kernel interface."
-	PosixProcRlimitsTypeGenError = "The runtime MUST generate an error for any values which cannot be mapped to a relevant kernel interface."
+	PosixProcRlimitsTypeGenError
 	// PosixProcRlimitsTypeGet represents "For each entry in `rlimits`, a `getrlimit(3)` on `type` MUST succeed."
-	PosixProcRlimitsTypeGet = "For each entry in `rlimits`, a `getrlimit(3)` on `type` MUST succeed."
+	PosixProcRlimitsTypeGet
 	// PosixProcRlimitsTypeValueError represents "valid values are defined in the ... man page"
-	PosixProcRlimitsTypeValueError = "valid values are defined in the ... man page"
+	PosixProcRlimitsTypeValueError
 	// PosixProcRlimitsSoftMatchCur represents "`rlim.rlim_cur` MUST match the configured value."
-	PosixProcRlimitsSoftMatchCur = "`rlim.rlim_cur` MUST match the configured value."
+	PosixProcRlimitsSoftMatchCur
 	// PosixProcRlimitsHardMatchMax represents "`rlim.rlim_max` MUST match the configured value."
-	PosixProcRlimitsHardMatchMax = "`rlim.rlim_max` MUST match the configured value."
+	PosixProcRlimitsHardMatchMax
 	// PosixProcRlimitsErrorOnDup represents "If `rlimits` contains duplicated entries with same `type`, the runtime MUST generate an error."
-	PosixProcRlimitsErrorOnDup = "If `rlimits` contains duplicated entries with same `type`, the runtime MUST generate an error."
+	PosixProcRlimitsErrorOnDup
 	// LinuxProcCapError represents "Any value which cannot be mapped to a relevant kernel interface MUST cause an error."
-	LinuxProcCapError = "Any value which cannot be mapped to a relevant kernel interface MUST cause an error."
+	LinuxProcCapError
 	// LinuxProcOomScoreAdjSet represents "If `oomScoreAdj` is set, the runtime MUST set `oom_score_adj` to the given value."
-	LinuxProcOomScoreAdjSet = "If `oomScoreAdj` is set, the runtime MUST set `oom_score_adj` to the given value."
+	LinuxProcOomScoreAdjSet
 	// LinuxProcOomScoreAdjNotSet represents "If `oomScoreAdj` is not set, the runtime MUST NOT change the value of `oom_score_adj`."
-	LinuxProcOomScoreAdjNotSet = "If `oomScoreAdj` is not set, the runtime MUST NOT change the value of `oom_score_adj`."
+	LinuxProcOomScoreAdjNotSet
 	// PlatformSpecConfOnWindowsSet represents "This MUST be set if the target platform of this spec is `windows`."
-	PlatformSpecConfOnWindowsSet = "This MUST be set if the target platform of this spec is `windows`."
+	PlatformSpecConfOnWindowsSet
 	// PosixHooksPathAbs represents "This specification extends the IEEE standard in that `path` MUST be absolute."
-	PosixHooksPathAbs = "This specification extends the IEEE standard in that `path` MUST be absolute."
+	PosixHooksPathAbs
 	// PosixHooksTimeoutPositive represents "If set, `timeout` MUST be greater than zero."
-	PosixHooksTimeoutPositive = "If set, `timeout` MUST be greater than zero."
+	PosixHooksTimeoutPositive
 	// PosixHooksCalledInOrder represents "Hooks MUST be called in the listed order."
-	PosixHooksCalledInOrder = "Hooks MUST be called in the listed order."
+	PosixHooksCalledInOrder
 	// PosixHooksStateToStdin represents "The state of the container MUST be passed to hooks over stdin so that they may do work appropriate to the current state of the container."
-	PosixHooksStateToStdin = "The state of the container MUST be passed to hooks over stdin so that they may do work appropriate to the current state of the container."
+	PosixHooksStateToStdin
 	// PrestartTiming represents "The pre-start hooks MUST be called after the `start` operation is called but before the user-specified program command is executed."
-	PrestartTiming = "The pre-start hooks MUST be called after the `start` operation is called but before the user-specified program command is executed."
+	PrestartTiming
 	// PoststartTiming represents "The post-start hooks MUST be called after the user-specified process is executed but before the `start` operation returns."
-	PoststartTiming = "The post-start hooks MUST be called after the user-specified process is executed but before the `start` operation returns."
+	PoststartTiming
 	// PoststopTiming represents "The post-stop hooks MUST be called after the container is deleted but before the `delete` operation returns."
-	PoststopTiming = "The post-stop hooks MUST be called after the container is deleted but before the `delete` operation returns."
+	PoststopTiming
 	// AnnotationsKeyValueMap represents "Annotations MUST be a key-value map."
-	AnnotationsKeyValueMap = "Annotations MUST be a key-value map."
+	AnnotationsKeyValueMap
 	// AnnotationsKeyString represents "Keys MUST be strings."
-	AnnotationsKeyString = "Keys MUST be strings."
+	AnnotationsKeyString
 	// AnnotationsKeyRequired represents "Keys MUST NOT be an empty string."
-	AnnotationsKeyRequired = "Keys MUST NOT be an empty string."
+	AnnotationsKeyRequired
 	// AnnotationsKeyReversedDomain represents "Keys SHOULD be named using a reverse domain notation - e.g. `com.example.myKey`."
-	AnnotationsKeyReversedDomain = "Keys SHOULD be named using a reverse domain notation - e.g. `com.example.myKey`."
+	AnnotationsKeyReversedDomain
 	// AnnotationsKeyReservedNS represents "Keys using the `org.opencontainers` namespace are reserved and MUST NOT be used by subsequent specifications."
-	AnnotationsKeyReservedNS = "Keys using the `org.opencontainers` namespace are reserved and MUST NOT be used by subsequent specifications."
+	AnnotationsKeyReservedNS
 	// AnnotationsKeyIgnoreUnknown represents "Implementations that are reading/processing this configuration file MUST NOT generate an error if they encounter an unknown annotation key."
-	AnnotationsKeyIgnoreUnknown = "Implementations that are reading/processing this configuration file MUST NOT generate an error if they encounter an unknown annotation key."
+	AnnotationsKeyIgnoreUnknown
 	// AnnotationsValueString represents "Values MUST be strings."
-	AnnotationsValueString = "Values MUST be strings."
+	AnnotationsValueString
 	// ExtensibilityIgnoreUnknownProp represents "Runtimes that are reading or processing this configuration file MUST NOT generate an error if they encounter an unknown property."
-	ExtensibilityIgnoreUnknownProp = "Runtimes that are reading or processing this configuration file MUST NOT generate an error if they encounter an unknown property.\nInstead they MUST ignore unknown properties."
+	ExtensibilityIgnoreUnknownProp
 	// ValidValues represents "Runtimes that are reading or processing this configuration file MUST generate an error when invalid or unsupported values are encountered."
-	ValidValues = "Runtimes that are reading or processing this configuration file MUST generate an error when invalid or unsupported values are encountered."
+	ValidValues
 )
 
 var (

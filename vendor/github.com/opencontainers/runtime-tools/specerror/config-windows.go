@@ -9,11 +9,11 @@ import (
 // define error codes
 const (
 	// WindowsLayerFoldersRequired represents "`layerFolders` MUST contain at least one entry."
-	WindowsLayerFoldersRequired = "`layerFolders` MUST contain at least one entry."
+	WindowsLayerFoldersRequired Code = 0xd001 + iota
 	// WindowsHyperVPresent represents "If present, the container MUST be run with Hyper-V isolation."
-	WindowsHyperVPresent = "If present, the container MUST be run with Hyper-V isolation."
+	WindowsHyperVPresent
 	// WindowsHyperVOmit represents "If omitted, the container MUST be run as a Windows Server container."
-	WindowsHyperVOmit = "If omitted, the container MUST be run as a Windows Server container."
+	WindowsHyperVOmit
 )
 
 var (

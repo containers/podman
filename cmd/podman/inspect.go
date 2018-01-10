@@ -320,7 +320,7 @@ type HostConfig struct {
 	SecurityOpt          []string                    `json:"SecurityOpt"`
 	UTSMode              string                      `json:"UTSMode"`
 	UsernsMode           string                      `json:"UsernsMode"`
-	ShmSize              string                      `json:"ShmSize"`
+	ShmSize              int64                       `json:"ShmSize"`
 	Runtime              string                      `json:"Runtime"`
 	ConsoleSize          *specs.Box                  `json:"ConsoleSize"`
 	Isolation            string                      `json:"Isolation"` //TODO

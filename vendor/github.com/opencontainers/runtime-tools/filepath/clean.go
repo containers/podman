@@ -30,6 +30,9 @@ func Clean(os, path string) string {
 	// Eliminate each inner .. path name element (the parent directory)
 	// along with the non-.. element that precedes it.
 	for i := 1; i < len(elements); i++ {
+		if i == 1 && abs && sep == '\\' {
+			continue
+		}
 		if i > 0 && elements[i] == ".." {
 			elements = append(elements[:i-1], elements[i+1:]...)
 			i -= 2
@@ -39,16 +42,31 @@ func Clean(os, path string) string {
 	// Eliminate .. elements that begin a rooted path:
 	// that is, replace "/.." by "/" at the beginning of a path,
 	// assuming Separator is '/'.
-	if abs && len(elements) > 0 {
-		for elements[0] == ".." {
-			elements = elements[1:]
+	offset := 0
+	if sep == '\\' {
+		offset = 1
+	}
+	if abs {
+		for len(elements) > offset && elements[offset] == ".." {
+			elements = append(elements[:offset], elements[offset+1:]...)
 		}
 	}
 
 	cleaned := strings.Join(elements, string(sep))
 	if abs {
-		cleaned = fmt.Sprintf("%c%s", sep, cleaned)
+		if sep == '/' {
+			cleaned = fmt.Sprintf("%c%s", sep, cleaned)
+		} else if len(elements) == 1 {
+			cleaned = fmt.Sprintf("%s%c", cleaned, sep)
+		}
 	}
+
+	// If the result of this process is an empty string, Clean returns
+	// the string ".".
+	if len(cleaned) == 0 {
+		cleaned = "."
+	}
+
 	if cleaned == path {
 		return path
 	}
