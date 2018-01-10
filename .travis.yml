@@ -47,4 +47,4 @@ jobs:
 
 # Turn off notifications until we have our own channel (After rename)
 # notifications:
-#  irc: "chat.freenode.net#cri-o"
+  irc: "chat.freenode.net#podman"
