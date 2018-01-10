@@ -154,6 +154,12 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 
+	if c.String("cidfile") != "" {
+		if err := libpod.WriteFile("", c.String("cidfile")); err != nil {
+			return errors.Wrapf(err, "unable to write cidfile %s", c.String("cidfile"))
+		}
+	}
+
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
@@ -196,11 +202,12 @@ func createCmd(c *cli.Context) error {
 	logrus.Debug("new container created ", ctr.ID())
 
 	if c.String("cidfile") != "" {
-		libpod.WriteFile(ctr.ID(), c.String("cidfile"))
-	} else {
-		fmt.Printf("%s\n", ctr.ID())
+		err := libpod.WriteFile(ctr.ID(), c.String("cidfile"))
+		if err != nil {
+			logrus.Error(err)
+		}
 	}
-
+	fmt.Printf("%s\n", ctr.ID())
 	return nil
 }
 
