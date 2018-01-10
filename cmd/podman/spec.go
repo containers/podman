@@ -282,7 +282,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			options = strings.Split(spliti[1], ",")
 		}
 		// Default options if nothing passed
-		g.AddTmpfsMount(spliti[0], options)
+		g.AddTmpfsMount(spliti[0], append(options, "tmpcopyup"))
 	}
 
 	for name, val := range config.Env {
