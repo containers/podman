@@ -64,6 +64,7 @@ func main() {
 		rmiCommand,
 		runCommand,
 		saveCommand,
+		searchCommand,
 		startCommand,
 		statsCommand,
 		stopCommand,

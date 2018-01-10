@@ -60,6 +60,7 @@ There are other equivalents for these tools
 | `docker rmi`    | [`podman rmi`](./docs/podman-rmi.1.md)        |
 | `docker run`    | [`podman run`](./docs/podman-run.1.md)        |
 | `docker save`   | [`podman save`](./docs/podman-save.1.md)      |
+| `docker search` | [`podman search`](./docs/podman-search.1.md)  |
 | `docker start`  | [`podman start`](./docs/podman-start.1.md)    |
 | `docker stop`   | [`podman stop`](./docs/podman-stop.1.md)      |
 | `docker tag`    | [`podman tag`](./docs/podman-tag.1.md)        |
@@ -85,7 +86,6 @@ Those Docker commands currently do not have equivalents in `podman`:
 | `docker port`     ||
 | `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
 | `docker restart`  | podman does not support restart.  We recommend that you put your podman containers into a systemd unit file and use it for restarting applications.|
-| `docker search`   ||
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||
