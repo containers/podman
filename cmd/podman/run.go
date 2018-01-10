@@ -41,8 +41,12 @@ func runCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
+	if len(c.Args()) < 1 {
+		return errors.Errorf("image name or ID is required")
+	}
 
-	createConfig, err := parseCreateOpts(c, runtime)
+	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
