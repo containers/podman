@@ -51,7 +51,7 @@ type RuntimeConfig struct {
 	MaxLogSize            int64
 	NoPivotRoot           bool
 	CNIConfigDir          string
-	CNIPluginDir          string
+	CNIPluginDir          []string
 }
 
 var (
@@ -73,7 +73,7 @@ var (
 		MaxLogSize:     -1,
 		NoPivotRoot:    false,
 		CNIConfigDir:   "/etc/cni/net.d/",
-		CNIPluginDir:   "/usr/libexec/cni",
+		CNIPluginDir:   []string{"/usr/libexec/cni", "/opt/cni/bin"},
 	}
 )
 
@@ -173,7 +173,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI(runtime.config.CNIConfigDir, runtime.config.CNIPluginDir)
+	netPlugin, err := ocicni.InitCNI(runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error configuring CNI network plugin")
 	}
