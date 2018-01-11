@@ -81,6 +81,8 @@ const (
 	UserNS LinuxNS = iota
 	// UTSNS is the UTS namespace
 	UTSNS LinuxNS = iota
+	// CgroupNS is the CGroup namespace
+	CgroupNS LinuxNS = iota
 )
 
 // String returns a string representation of a Linux namespace
@@ -101,6 +103,8 @@ func (ns LinuxNS) String() string {
 		return "user"
 	case UTSNS:
 		return "uts"
+	case CgroupNS:
+		return "cgroup"
 	default:
 		return "unknown"
 	}
@@ -917,6 +921,21 @@ func (c *Container) Init() (err error) {
 		}
 
 		if err := g.AddOrReplaceLinuxNamespace(spec.UTSNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.CgroupNsCtr != "" {
+		cgroupCtr, err := c.runtime.state.Container(c.config.CgroupNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := cgroupCtr.NamespacePath(CgroupNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, nsPath); err != nil {
 			return err
 		}
 	}
