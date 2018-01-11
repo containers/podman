@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "Using podman package to emulate the Docker CLI"
+exec /usr/bin/podman $@
