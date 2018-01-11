@@ -3,6 +3,7 @@ package ocicni
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -139,33 +140,11 @@ func (plugin *cniNetworkPlugin) monitorNetDir() {
 	<-plugin.monitorNetDirChan
 }
 
-// InitCNI takes the plugin directory and cni directories where the cni files should be searched for
-// Returns a valid plugin object and any error
+// InitCNI takes the plugin directory and CNI directories where the CNI config
+// files should be searched for.  If no valid CNI configs exist, network requests
+// will fail until valid CNI config files are present in the config directory.
 func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
-	plugin := probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir, cniDirs, "")
-	var err error
-	plugin.nsenterPath, err = exec.LookPath("nsenter")
-	if err != nil {
-		return nil, err
-	}
-
-	// check if a default network exists, otherwise dump the CNI search and return a noop plugin
-	_, err = getDefaultCNINetwork(plugin.pluginDir, plugin.cniDirs, plugin.vendorCNIDirPrefix)
-	if err != nil {
-		if err != errMissingDefaultNetwork {
-			logrus.Warningf("Error in finding usable CNI plugin - %v", err)
-			// create a noop plugin instead
-			return &cniNoOp{}, nil
-		}
-
-		// We do not have a default network, we start the monitoring thread.
-		go plugin.monitorNetDir()
-	}
-
-	return plugin, nil
-}
-
-func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir string, cniDirs []string, vendorCNIDirPrefix string) *cniNetworkPlugin {
+	vendorCNIDirPrefix := ""
 	plugin := &cniNetworkPlugin{
 		defaultNetwork:     nil,
 		loNetwork:          getLoNetwork(cniDirs, vendorCNIDirPrefix),
@@ -176,11 +155,26 @@ func probeNetworkPluginsWithVendorCNIDirPrefix(pluginDir string, cniDirs []strin
 		pods:               make(map[string]*podLock),
 	}
 
-	// sync NetworkConfig in best effort during probing.
-	if err := plugin.syncNetworkConfig(); err != nil {
-		logrus.Error(err)
+	var err error
+	plugin.nsenterPath, err = exec.LookPath("nsenter")
+	if err != nil {
+		return nil, err
 	}
-	return plugin
+
+	// Fail loudly if plugin directory doesn't exist, because fsnotify watcher
+	// won't be able to watch it.
+	if _, err := os.Stat(pluginDir); err != nil {
+		return nil, err
+	}
+
+	if err := plugin.syncNetworkConfig(); err != nil {
+		// We do not have a valid default network, so start the
+		// monitoring thread.  Network setup/teardown requests
+		// will fail until we have a valid default network.
+		go plugin.monitorNetDir()
+	}
+
+	return plugin, nil
 }
 
 func getDefaultCNINetwork(pluginDir string, cniDirs []string, vendorCNIDirPrefix string) (*cniNetwork, error) {
@@ -308,9 +302,9 @@ func (plugin *cniNetworkPlugin) Name() string {
 	return CNIPluginName
 }
 
-func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) error {
+func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) (cnitypes.Result, error) {
 	if err := plugin.checkInitialized(); err != nil {
-		return err
+		return nil, err
 	}
 
 	plugin.podLock(podNetwork).Lock()
@@ -319,16 +313,16 @@ func (plugin *cniNetworkPlugin) SetUpPod(podNetwork PodNetwork) error {
 	_, err := plugin.loNetwork.addToNetwork(podNetwork)
 	if err != nil {
 		logrus.Errorf("Error while adding to cni lo network: %s", err)
-		return err
+		return nil, err
 	}
 
-	_, err = plugin.getDefaultNetwork().addToNetwork(podNetwork)
+	result, err := plugin.getDefaultNetwork().addToNetwork(podNetwork)
 	if err != nil {
 		logrus.Errorf("Error while adding to cni network: %s", err)
-		return err
+		return nil, err
 	}
 
-	return err
+	return result, err
 }
 
 func (plugin *cniNetworkPlugin) TearDownPod(podNetwork PodNetwork) error {
