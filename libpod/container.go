@@ -133,7 +133,6 @@ type Container struct {
 // TODO enable pod support
 // TODO Add readonly support
 // TODO add SHM size support
-// TODO add shared namespace support
 
 // containerRuntimeInfo contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
