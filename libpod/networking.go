@@ -38,7 +38,8 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
-	if err := r.netPlugin.SetUpPod(podNetwork); err != nil {
+	_, err := r.netPlugin.SetUpPod(podNetwork)
+	if err != nil {
 		return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
 	}
 
