@@ -72,6 +72,11 @@ type Container struct {
 
 	state *containerRuntimeInfo
 
+	// Locked indicates that a container has been locked as part of a
+	// Batch() operation
+	// Functions called on a locked container will not lock or sync
+	locked  bool
+
 	valid   bool
 	lock    storage.Locker
 	runtime *Runtime
@@ -1265,4 +1270,39 @@ func (c *Container) copyHostFileToRundir(sourcePath string) (string, error) {
 // StopTimeout returns a stop timeout field for this container
 func (c *Container) StopTimeout() uint {
 	return c.config.StopTimeout
+}
+
+// Batch starts a batch operation on the given container
+// All commands in the passed function will execute under the same lock and
+// without syncronyzing state after each operation
+// This will result in substantial performance benefits when running numerous
+// commands on the same container
+// Note that the container passed into the Batch function cannot be removed
+// during batched operations. runtime.RemoveContainer can only be called outside
+// of Batch
+// Any error returned by the given batch function will be returned unmodified by
+// Batch
+func (c *Container) Batch(batchFunc func(*Container) error) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	newCtr := new(Container)
+	newCtr.config = c.config
+	newCtr.state = c.state
+	newCtr.runtime = c.runtime
+	newCtr.valid = true
+
+	newCtr.locked = true
+
+	if err := batchFunc(newCtr); err != nil {
+		return err
+	}
+
+	newCtr.locked = false
+
+	return c.save()
 }
