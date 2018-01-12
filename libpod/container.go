@@ -71,7 +71,7 @@ const (
 	InvalidNS LinuxNS = iota
 	// IPCNS is the IPC namespace
 	IPCNS LinuxNS = iota
-	// MntNS is the mount namespace
+	// MountNS is the mount namespace
 	MountNS LinuxNS = iota
 	// NetNS is the network namespace
 	NetNS LinuxNS = iota
