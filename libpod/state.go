@@ -28,6 +28,13 @@ type State interface {
 	UpdateContainer(ctr *Container) error
 	// SaveContainer saves a container's current state to the backing store
 	SaveContainer(ctr *Container) error
+	// ContainerInUse checks if other containers depend upon a given
+	// container
+	// It returns a slice of the IDs of containers which depend on the given
+	// container. If the slice is empty, no container depend on the given
+	// container.
+	// A container cannot be removed if other containers depend on it
+	ContainerInUse(ctr *Container) ([]string, error)
 	// Retrieves all containers presently in state
 	AllContainers() ([]*Container, error)
 
