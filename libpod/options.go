@@ -275,7 +275,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.CNIPluginDir = dir
+		rt.config.CNIPluginDir = []string{dir}
 
 		return nil
 	}

@@ -1,5 +1,9 @@
 package ocicni
 
+import (
+	"github.com/containernetworking/cni/pkg/types"
+)
+
 const (
 	// DefaultInterfaceName is the string to be used for the interface name inside the net namespace
 	DefaultInterfaceName = "eth0"
@@ -49,7 +53,7 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(network PodNetwork) error
+	SetUpPod(network PodNetwork) (types.Result, error)
 
 	// TearDownPod is the method called before a pod's sandbox container will be deleted
 	TearDownPod(network PodNetwork) error
