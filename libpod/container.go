@@ -72,6 +72,11 @@ type Container struct {
 
 	state *containerRuntimeInfo
 
+	// Locked indicates that a container has been locked as part of a
+	// Batch() operation
+	// Functions called on a locked container will not lock or sync
+	locked bool
+
 	valid   bool
 	lock    storage.Locker
 	runtime *Runtime
@@ -343,11 +348,13 @@ func (c *Container) LogPath() string {
 // IPAddress returns the IP address of the container
 // If the container does not have a network namespace, an error will be returned
 func (c *Container) IPAddress() (net.IP, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
+		if err := c.syncContainer(); err != nil {
+			return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 
 	if !c.config.CreateNetNS || c.state.NetNS == nil {
@@ -360,10 +367,12 @@ func (c *Container) IPAddress() (net.IP, error) {
 // ExitCode returns the exit code of the container as
 // an int32
 func (c *Container) ExitCode() (int32, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.ExitCode, nil
 }
@@ -371,10 +380,12 @@ func (c *Container) ExitCode() (int32, error) {
 // Mounted returns a bool as to if the container's storage
 // is mounted
 func (c *Container) Mounted() (bool, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return false, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return false, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.Mounted, nil
 }
@@ -382,41 +393,49 @@ func (c *Container) Mounted() (bool, error) {
 // Mountpoint returns the path to the container's mounted
 // storage as a string
 func (c *Container) Mountpoint() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.Mountpoint, nil
 }
 
 // StartedTime is the time the container was started
 func (c *Container) StartedTime() (time.Time, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.StartedTime, nil
 }
 
 // FinishedTime is the time the container was stopped
 func (c *Container) FinishedTime() (time.Time, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return time.Time{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.FinishedTime, nil
 }
 
 // State returns the current state of the container
 func (c *Container) State() (ContainerState, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return ContainerStateUnknown, err
+		if err := c.syncContainer(); err != nil {
+			return ContainerStateUnknown, err
+		}
 	}
 	return c.state.State, nil
 }
@@ -424,11 +443,13 @@ func (c *Container) State() (ContainerState, error) {
 // PID returns the PID of the container
 // An error is returned if the container is not running
 func (c *Container) PID() (int, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return -1, err
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
 	}
 
 	return c.state.PID, nil
@@ -436,10 +457,12 @@ func (c *Container) PID() (int, error) {
 
 // MountPoint returns the mount point of the continer
 func (c *Container) MountPoint() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.state.Mountpoint, nil
 }
@@ -607,11 +630,13 @@ func (c *Container) refresh() error {
 
 // Init creates a container in the OCI runtime
 func (c *Container) Init() (err error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State != ContainerStateConfigured {
@@ -756,11 +781,13 @@ func (c *Container) Init() (err error) {
 
 // Start starts a container
 func (c *Container) Start() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	// Container must be created or stopped to be started
@@ -792,13 +819,16 @@ func (c *Container) Start() error {
 // seconds), uses SIGKILL to attempt to forcibly stop the container.
 // If timeout is 0, SIGKILL will be used immediately
 func (c *Container) Stop(timeout uint) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
+
+	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
 
 	if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateUnknown ||
@@ -820,11 +850,13 @@ func (c *Container) Stop(timeout uint) error {
 
 // Kill sends a signal to a container
 func (c *Container) Kill(signal uint) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State != ContainerStateRunning {
@@ -837,11 +869,14 @@ func (c *Container) Kill(signal uint) error {
 // Exec starts a new process inside the container
 func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
 	var capList []string
-	c.lock.Lock()
-	defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	conState := c.state.State
@@ -870,8 +905,13 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
 func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
-	if err := c.syncContainer(); err != nil {
-		return err
+	if !c.locked {
+		c.lock.Lock()
+		if err := c.syncContainer(); err != nil {
+			c.lock.Unlock()
+			return err
+		}
+		c.lock.Unlock()
 	}
 
 	if c.state.State != ContainerStateCreated &&
@@ -899,11 +939,13 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 // Mount mounts a container's filesystem on the host
 // The path where the container has been mounted is returned
 func (c *Container) Mount(label string) (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return "", err
+		if err := c.syncContainer(); err != nil {
+			return "", err
+		}
 	}
 
 	// return mountpoint if container already mounted
@@ -932,11 +974,13 @@ func (c *Container) Mount(label string) (string, error) {
 
 // Unmount unmounts a container's filesystem on the host
 func (c *Container) Unmount() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
@@ -948,11 +992,13 @@ func (c *Container) Unmount() error {
 
 // Pause pauses a container
 func (c *Container) Pause() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State == ContainerStatePaused {
@@ -977,11 +1023,13 @@ func (c *Container) Pause() error {
 
 // Unpause unpauses a container
 func (c *Container) Unpause() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State != ContainerStatePaused {
@@ -1004,11 +1052,13 @@ func (c *Container) Unpause() error {
 // Export exports a container's root filesystem as a tar archive
 // The archive will be saved as a file at the given path
 func (c *Container) Export(path string) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	return c.export(path)
@@ -1046,16 +1096,28 @@ func (c *Container) export(path string) error {
 
 // AddArtifact creates and writes to an artifact file for the container
 func (c *Container) AddArtifact(name string, data []byte) error {
+	if !c.valid {
+		return ErrCtrRemoved
+	}
+
 	return ioutil.WriteFile(c.getArtifactPath(name), data, 0740)
 }
 
 // GetArtifact reads the specified artifact file from the container
 func (c *Container) GetArtifact(name string) ([]byte, error) {
+	if !c.valid {
+		return nil, ErrCtrRemoved
+	}
+
 	return ioutil.ReadFile(c.getArtifactPath(name))
 }
 
 // RemoveArtifact deletes the specified artifacts file
 func (c *Container) RemoveArtifact(name string) error {
+	if !c.valid {
+		return ErrCtrRemoved
+	}
+
 	return os.Remove(c.getArtifactPath(name))
 }
 
@@ -1065,11 +1127,13 @@ func (c *Container) getArtifactPath(name string) string {
 
 // Inspect a container for low-level information
 func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return nil, err
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
 	}
 
 	storeCtr, err := c.runtime.store.Container(c.ID())
@@ -1091,11 +1155,13 @@ func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
 // Commit commits the changes between a container and its image, creating a new
 // image
 func (c *Container) Commit(pause bool, options CopyOptions) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
 	if c.state.State == ContainerStateRunning && pause {
@@ -1124,6 +1190,10 @@ func (c *Container) Commit(pause bool, options CopyOptions) error {
 
 // Wait blocks on a container to exit and returns its exit code
 func (c *Container) Wait() (int32, error) {
+	if !c.valid {
+		return -1, ErrCtrRemoved
+	}
+
 	err := wait.PollImmediateInfinite(1,
 		func() (bool, error) {
 			stopped, err := c.isStopped()
@@ -1145,8 +1215,10 @@ func (c *Container) Wait() (int32, error) {
 }
 
 func (c *Container) isStopped() (bool, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
 	err := c.syncContainer()
 	if err != nil {
 		return true, err
@@ -1210,10 +1282,12 @@ func (c *Container) mountStorage() (err error) {
 
 // CleanupStorage unmounts all mount points in container and cleans up container storage
 func (c *Container) CleanupStorage() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return err
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 	return c.cleanupStorage()
 }
@@ -1265,4 +1339,72 @@ func (c *Container) copyHostFileToRundir(sourcePath string) (string, error) {
 // StopTimeout returns a stop timeout field for this container
 func (c *Container) StopTimeout() uint {
 	return c.config.StopTimeout
+}
+
+// Batch starts a batch operation on the given container
+// All commands in the passed function will execute under the same lock and
+// without syncronyzing state after each operation
+// This will result in substantial performance benefits when running numerous
+// commands on the same container
+// Note that the container passed into the Batch function cannot be removed
+// during batched operations. runtime.RemoveContainer can only be called outside
+// of Batch
+// Any error returned by the given batch function will be returned unmodified by
+// Batch
+// As Batch normally disables updating the current state of the container, the
+// Sync() function is provided to enable container state to be updated and
+// checked within Batch.
+func (c *Container) Batch(batchFunc func(*Container) error) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
+	newCtr := new(Container)
+	newCtr.config = c.config
+	newCtr.state = c.state
+	newCtr.runtime = c.runtime
+	newCtr.valid = true
+
+	newCtr.locked = true
+
+	if err := batchFunc(newCtr); err != nil {
+		return err
+	}
+
+	newCtr.locked = false
+
+	return c.save()
+}
+
+// Sync updates the current state of the container, checking whether its state
+// has changed
+// Sync can only be used inside Batch() - otherwise, it will be done
+// automatically.
+// When called outside Batch(), Sync() is a no-op
+func (c *Container) Sync() error {
+	if !c.locked {
+		return nil
+	}
+
+	// If runc knows about the container, update its status in runc
+	// And then save back to disk
+	if (c.state.State != ContainerStateUnknown) &&
+		(c.state.State != ContainerStateConfigured) {
+		oldState := c.state.State
+		// TODO: optionally replace this with a stat for the exit file
+		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+			return err
+		}
+		// Only save back to DB if state changed
+		if c.state.State != oldState {
+			if err := c.save(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
