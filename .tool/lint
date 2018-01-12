@@ -29,7 +29,6 @@ ${LINTER} \
 	--enable=gofmt\
 	--enable=golint\
 	--enable=ineffassign\
-	--enable=interfacer\
 	--enable=megacheck\
 	--enable=misspell\
 	--enable=structcheck\
