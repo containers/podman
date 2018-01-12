@@ -21,6 +21,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const cpuPeriod = 100000
+
 func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator) {
 	if !config.Privileged {
 		for _, mp := range []string{
@@ -143,7 +145,7 @@ func addRlimits(config *createConfig, g *generate.Generator) error {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
 		}
 
-		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Soft), uint64(ul.Hard))
+		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
 	return nil
 }
@@ -210,10 +212,8 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	if config.Hostname != "" {
 		g.AddProcessEnv("HOSTNAME", config.Hostname)
 	}
-
-	for _, sysctl := range config.Sysctl {
-		s := strings.SplitN(sysctl, "=", 2)
-		g.AddLinuxSysctl(s[0], s[1])
+	for sysctlKey, sysctlVal := range config.Sysctl {
+		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
 
 	// RESOURCES - MEMORY
@@ -236,7 +236,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
 
 	// RESOURCES - CPU
-
 	if config.Resources.CPUShares != 0 {
 		g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
 	}
@@ -246,14 +245,18 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	if config.Resources.CPUPeriod != 0 {
 		g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
 	}
+	if config.Resources.CPUs != 0 {
+		g.SetLinuxResourcesCPUPeriod(cpuPeriod)
+		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
+	}
 	if config.Resources.CPURtRuntime != 0 {
 		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
 	}
 	if config.Resources.CPURtPeriod != 0 {
 		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
 	}
-	if config.Resources.CPUs != "" {
-		g.SetLinuxResourcesCPUCpus(config.Resources.CPUs)
+	if config.Resources.CPUsetCPUs != "" {
+		g.SetLinuxResourcesCPUCpus(config.Resources.CPUsetCPUs)
 	}
 	if config.Resources.CPUsetMems != "" {
 		g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
@@ -356,6 +359,15 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		return nil, err
 	}
 
+	// BLOCK IO
+	blkio, err := config.CreateBlockIO()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating block io")
+	}
+	if blkio != nil {
+		configSpec.Linux.Resources.BlockIO = blkio
+	}
+
 	/*
 			Hooks: &configSpec.Hooks{},
 			//Annotations
@@ -383,8 +395,8 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	return configSpec, nil
 }
 
-func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
-	bio := spec.LinuxBlockIO{}
+func (c *createConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
+	bio := &spec.LinuxBlockIO{}
 	bio.Weight = &c.Resources.BlkioWeight
 	if len(c.Resources.BlkioWeightDevice) > 0 {
 		var lwds []spec.LinuxWeightDevice
@@ -401,6 +413,7 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 			lwd.Minor = int64(unix.Minor(wdStat.Rdev))
 			lwds = append(lwds, lwd)
 		}
+		bio.WeightDevice = lwds
 	}
 	if len(c.Resources.DeviceReadBps) > 0 {
 		readBps, err := makeThrottleArray(c.Resources.DeviceReadBps)
@@ -430,7 +443,6 @@ func (c *createConfig) CreateBlockIO() (spec.LinuxBlockIO, error) {
 		}
 		bio.ThrottleWriteIOPSDevice = writeIOps
 	}
-
 	return bio, nil
 }
 

@@ -28,15 +28,15 @@ func createTmpFile(content []byte) (string, error) {
 	return tmpfile.Name(), nil
 }
 
-func TestConvertStringSliceToMap(t *testing.T) {
-	strSlice := []string{"BLAU=BLUE", "GELB=YELLOW"}
-	result, _ := convertStringSliceToMap(strSlice, "=")
-	assert.Equal(t, result["BLAU"], "BLUE")
+func TestValidateSysctl(t *testing.T) {
+	strSlice := []string{"net.core.test1=4", "kernel.msgmax=2"}
+	result, _ := validateSysctl(strSlice)
+	assert.Equal(t, result["net.core.test1"], "4")
 }
 
-func TestConvertStringSliceToMapBadData(t *testing.T) {
+func TestValidateSysctlBadSysctl(t *testing.T) {
 	strSlice := []string{"BLAU=BLUE", "GELB^YELLOW"}
-	_, err := convertStringSliceToMap(strSlice, "=")
+	_, err := validateSysctl(strSlice)
 	assert.Error(t, err)
 }
 

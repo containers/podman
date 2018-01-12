@@ -56,13 +56,6 @@ each of stdin, stdout, and stderr.
 **--cidfile**=""
    Write the container ID to the file
 
-**--cpu-count**=*0*
-    Limit the number of CPUs available for execution by the container.
-
-    On Windows Server containers, this is approximated as a percentage of total CPU usage.
-
-    On Windows Server containers, the processor resource controls are mutually exclusive, the order of precedence is CPUCount first, then CPUShares, and CPUPercent last.
-
 **--cpu-period**=*0*
     Limit the CPU CFS (Completely Fair Scheduler) period
 

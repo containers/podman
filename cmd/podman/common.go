@@ -173,7 +173,7 @@ var createFlags = []cli.Flag{
 		Name:  "cpu-shares",
 		Usage: "CPU shares (relative weight)",
 	},
-	cli.StringFlag{
+	cli.Float64Flag{
 		Name:  "cpus",
 		Usage: "Number of CPUs. The default is 0.000 which means no limit",
 	},
