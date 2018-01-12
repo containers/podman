@@ -14,10 +14,12 @@ import (
 // GetContainerPids reads sysfs to obtain the pids associated with the container's cgroup
 // and uses locking
 func (c *Container) GetContainerPids() ([]string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return []string{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return []string{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	return c.getContainerPids()
 }
@@ -38,10 +40,12 @@ func (c *Container) getContainerPids() ([]string, error) {
 // GetContainerPidInformation calls ps with the appropriate options and returns
 // the results as a string
 func (c *Container) GetContainerPidInformation(args []string) ([]string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return []string{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return []string{}, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 	pids, err := c.getContainerPids()
 	if err != nil {
