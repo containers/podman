@@ -160,13 +160,18 @@ func createCmd(c *cli.Context) error {
 		}
 	}
 
+	if len(c.Args()) < 1 {
+		return errors.Errorf("image name or ID is required")
+	}
+
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	createConfig, err := parseCreateOpts(c, runtime)
+	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
@@ -365,15 +370,13 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, error) {
+func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *libpod.ImageData) (*createConfig, error) {
+	//imageName, imageID, data, err := imageData(c, runtime, image)
 	var command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16
 
-	if len(c.Args()) < 1 {
-		return nil, errors.Errorf("image name or ID is required")
-	}
-	image := c.Args()[0]
+	imageID := data.ID
 
 	if len(c.Args()) > 1 {
 		command = c.Args()[1:]
@@ -459,10 +462,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime) (*createConfig, er
 			return nil, errors.Wrapf(err, "container %q not found", ipcMode.Container())
 		}
 		shmDir = ctr.ShmDir()
-	}
-	imageName, imageID, data, err := imageData(c, runtime, image)
-	if err != nil {
-		return nil, err
 	}
 
 	// USER
