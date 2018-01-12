@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	units "github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/projectatomic/libpod/libpod"
@@ -79,4 +80,23 @@ func TestPIDsLimit(t *testing.T) {
 	a.Run(append(cmd, args...))
 	runtimeSpec := getRuntimeSpec(CLI)
 	assert.Equal(t, runtimeSpec.Linux.Resources.Pids.Limit, int64(22))
+}
+
+// TestBLKIOWeightDevice verifies the inputed blkio weigh device is correctly defined in the spec
+func TestBLKIOWeightDevice(t *testing.T) {
+	a := createCLI()
+	args := []string{"--blkio-weight-device", "/dev/sda:100"}
+	a.Run(append(cmd, args...))
+	runtimeSpec := getRuntimeSpec(CLI)
+	assert.Equal(t, *runtimeSpec.Linux.Resources.BlockIO.WeightDevice[0].Weight, uint16(100))
+}
+
+// TestMemorySwap verifies that the inputed memory swap is correctly defined in the spec
+func TestMemorySwap(t *testing.T) {
+	a := createCLI()
+	args := []string{"--memory-swap", "45m", "--memory", "40m"}
+	a.Run(append(cmd, args...))
+	runtimeSpec := getRuntimeSpec(CLI)
+	mem, _ := units.RAMInBytes("45m")
+	assert.Equal(t, *runtimeSpec.Linux.Resources.Memory.Swap, mem)
 }

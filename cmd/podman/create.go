@@ -47,7 +47,7 @@ type createResourceConfig struct {
 	CPURtPeriod       uint64   // cpu-rt-period
 	CPURtRuntime      int64    // cpu-rt-runtime
 	CPUShares         uint64   // cpu-shares
-	CPUs              string   // cpus
+	CPUs              float64  // cpus
 	CPUsetCPUs        string
 	CPUsetMems        string   // cpuset-mems
 	DeviceReadBps     []string // device-read-bps
@@ -382,9 +382,9 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		command = c.Args()[1:]
 	}
 
-	sysctl, err := convertStringSliceToMap(c.StringSlice("sysctl"), "=")
+	sysctl, err := validateSysctl(c.StringSlice("sysctl"))
 	if err != nil {
-		return nil, errors.Wrapf(err, "sysctl values must be in the form of KEY=VALUE")
+		return nil, errors.Wrapf(err, "invalid value for sysctl")
 	}
 
 	groupAdd, err := stringSlicetoUint32Slice(c.StringSlice("group-add"))
@@ -443,6 +443,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 
 	if c.Bool("detach") && c.Bool("rm") {
 		return nil, errors.Errorf("--rm and --detach can not be specified together")
+	}
+	if c.Int64("cpu-period") != 0 && c.Float64("cpus") > 0 {
+		return nil, errors.Errorf("--cpu-period and --cpus cannot be set together")
+	}
+	if c.Int64("cpu-quota") != 0 && c.Float64("cpus") > 0 {
+		return nil, errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
 	utsMode := container.UTSMode(c.String("uts"))
@@ -582,12 +588,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 			BlkioWeightDevice: c.StringSlice("blkio-weight-device"),
 			CPUShares:         c.Uint64("cpu-shares"),
 			CPUPeriod:         c.Uint64("cpu-period"),
-			CPUsetCPUs:        c.String("cpu-period"),
+			CPUsetCPUs:        c.String("cpuset-cpus"),
 			CPUsetMems:        c.String("cpuset-mems"),
 			CPUQuota:          c.Int64("cpu-quota"),
 			CPURtPeriod:       c.Uint64("cpu-rt-period"),
 			CPURtRuntime:      c.Int64("cpu-rt-runtime"),
-			CPUs:              c.String("cpus"),
+			CPUs:              c.Float64("cpus"),
 			DeviceReadBps:     c.StringSlice("device-read-bps"),
 			DeviceReadIOps:    c.StringSlice("device-read-iops"),
 			DeviceWriteBps:    c.StringSlice("device-write-bps"),

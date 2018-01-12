@@ -110,6 +110,11 @@ IMAGE="docker.io/library/fedora:latest"
     [ "$status" -eq 0 ]
     [ "$output" = 2048 ]
 
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --ulimit nofile=1024:1028 ${IMAGE} ulimit -n | tr -d '\r'"
+    echo $output
+    [ "$status" -eq 0 ]
+    [ "$output" = 1024 ]
+
     run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --oom-kill-disable=true ${IMAGE} echo memory-hog"
     echo $output
     [ "$status" -eq 0 ]
@@ -140,4 +145,18 @@ IMAGE="docker.io/library/fedora:latest"
     run rm /tmp/cidfile
     echo "$output"
     [ "$status" -eq 0 ]
+}
+
+@test "podman run sysctl test" {
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --rm --sysctl net.core.somaxconn=65535 ${ALPINE} sysctl net.core.somaxconn | tr -d '\r'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = "net.core.somaxconn = 65535" ]
+}
+
+@test "podman run blkio-weight test" {
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --rm --blkio-weight=15 ${ALPINE} cat /sys/fs/cgroup/blkio/blkio.weight | tr -d '\r'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    [ "$output" = 15 ]
 }
