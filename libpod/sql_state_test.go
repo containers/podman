@@ -587,3 +587,117 @@ func TestGetAllContainersTwoContainers(t *testing.T) {
 		assert.EqualValues(t, testCtr1, ctrs[1])
 	}
 }
+
+func TestContainerInUseInvalidContainer(t *testing.T) {
+	state, path, _, err := getEmptyState()
+	assert.NoError(t, err)
+	defer os.RemoveAll(path)
+	defer state.Close()
+
+	_, err = state.ContainerInUse(&Container{})
+	assert.Error(t, err)
+}
+
+func TestContainerInUseOneContainer(t *testing.T) {
+	state, path, lockPath, err := getEmptyState()
+	assert.NoError(t, err)
+	defer os.RemoveAll(path)
+	defer state.Close()
+
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
+
+	testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+	err = state.AddContainer(testCtr1)
+	assert.NoError(t, err)
+
+	err = state.AddContainer(testCtr2)
+	assert.NoError(t, err)
+
+	ids, err := state.ContainerInUse(testCtr1)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, testCtr2.config.ID, ids[0])
+}
+
+func TestContainerInUseTwoContainers(t *testing.T) {
+	state, path, lockPath, err := getEmptyState()
+	assert.NoError(t, err)
+	defer os.RemoveAll(path)
+	defer state.Close()
+
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
+	testCtr3, err := getTestContainer("33333333333333333333333333333333", "test3", lockPath)
+	assert.NoError(t, err)
+
+	testCtr2.config.UserNsCtr = testCtr1.config.ID
+	testCtr3.config.IPCNsCtr = testCtr1.config.ID
+
+	err = state.AddContainer(testCtr1)
+	assert.NoError(t, err)
+
+	err = state.AddContainer(testCtr2)
+	assert.NoError(t, err)
+
+	err = state.AddContainer(testCtr3)
+	assert.NoError(t, err)
+
+	ids, err := state.ContainerInUse(testCtr1)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(ids))
+}
+
+func TestCannotRemoveContainerWithDependency(t *testing.T) {
+	state, path, lockPath, err := getEmptyState()
+	assert.NoError(t, err)
+	defer os.RemoveAll(path)
+	defer state.Close()
+
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
+
+	testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+	err = state.AddContainer(testCtr1)
+	assert.NoError(t, err)
+
+	err = state.AddContainer(testCtr2)
+	assert.NoError(t, err)
+
+	err = state.RemoveContainer(testCtr1)
+	assert.Error(t, err)
+}
+
+func TestCanRemoveContainerAfterDependencyRemoved(t *testing.T) {
+	state, path, lockPath, err := getEmptyState()
+	assert.NoError(t, err)
+	defer os.RemoveAll(path)
+	defer state.Close()
+
+	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
+	assert.NoError(t, err)
+	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
+	assert.NoError(t, err)
+
+	testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+	err = state.AddContainer(testCtr1)
+	assert.NoError(t, err)
+
+	err = state.AddContainer(testCtr2)
+	assert.NoError(t, err)
+
+	err = state.RemoveContainer(testCtr2)
+	assert.NoError(t, err)
+
+	err = state.RemoveContainer(testCtr1)
+	assert.NoError(t, err)
+}

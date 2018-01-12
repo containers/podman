@@ -661,6 +661,51 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 	return nil
 }
 
+// ContainerInUse checks if other containers depend on the given container
+// It returns the IDs of containers which depend on the given container
+func (s *SQLState) ContainerInUse(ctr *Container) ([]string, error) {
+	const inUseQuery = `SELECT Id FROM containers WHERE
+                                IPCNsCtr=?   OR
+                                MountNsCtr=? OR
+                                NetNsCtr=?   OR
+                                PIDNsCtr=?   OR
+                                UserNsCtr=?  OR
+                                UTSNsCtr=?   OR
+                                CgroupNsCtr=?;`
+
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return nil, ErrCtrRemoved
+	}
+
+	id := ctr.ID()
+
+	rows, err := s.db.Query(inUseQuery, id, id, id, id, id, id, id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error querying database for containers that depend on container %s", id)
+	}
+	defer rows.Close()
+
+	ids := []string{}
+
+	for rows.Next() {
+		var ctrID string
+		if err := rows.Scan(&ctrID); err != nil {
+			return nil, errors.Wrapf(err, "error scanning container IDs from db rows for container %s", id)
+		}
+
+		ids = append(ids, ctrID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrapf(err, "error retrieving rows for container %s", id)
+	}
+
+	return ids, nil
+}
+
 // RemoveContainer removes the container from the state
 func (s *SQLState) RemoveContainer(ctr *Container) error {
 	const (
