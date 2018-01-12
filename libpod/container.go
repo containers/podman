@@ -1351,6 +1351,9 @@ func (c *Container) StopTimeout() uint {
 // of Batch
 // Any error returned by the given batch function will be returned unmodified by
 // Batch
+// As Batch normally disables updating the current state of the container, the
+// Sync() function is provided to enable container state to be updated and
+// checked within Batch.
 func (c *Container) Batch(batchFunc func(*Container) error) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -1374,4 +1377,34 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	newCtr.locked = false
 
 	return c.save()
+}
+
+// Sync updates the current state of the container, checking whether its state
+// has changed
+// Sync can only be used inside Batch() - otherwise, it will be done
+// automatically.
+// When called outside Batch(), Sync() is a no-op
+func (c *Container) Sync() error {
+	if !c.locked {
+		return nil
+	}
+
+	// If runc knows about the container, update its status in runc
+	// And then save back to disk
+	if (c.state.State != ContainerStateUnknown) &&
+		(c.state.State != ContainerStateConfigured) {
+		oldState := c.state.State
+		// TODO: optionally replace this with a stat for the exit file
+		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+			return err
+		}
+		// Only save back to DB if state changed
+		if c.state.State != oldState {
+			if err := c.save(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
