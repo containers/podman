@@ -75,7 +75,7 @@ type Container struct {
 	// Locked indicates that a container has been locked as part of a
 	// Batch() operation
 	// Functions called on a locked container will not lock or sync
-	locked  bool
+	locked bool
 
 	valid   bool
 	lock    storage.Locker
