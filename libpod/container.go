@@ -806,10 +806,7 @@ func (c *Container) Start() error {
 
 	logrus.Debugf("Started container %s", c.ID())
 
-	// Update container's state as it should be ContainerStateRunning now
-	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-		return err
-	}
+	c.state.State = ContainerStateRunning
 
 	return c.save()
 }
@@ -1013,10 +1010,7 @@ func (c *Container) Pause() error {
 
 	logrus.Debugf("Paused container %s", c.ID())
 
-	// Update container's state as it should be ContainerStatePaused now
-	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-		return err
-	}
+	c.state.State = ContainerStatePaused
 
 	return c.save()
 }
@@ -1041,10 +1035,7 @@ func (c *Container) Unpause() error {
 
 	logrus.Debugf("Unpaused container %s", c.ID())
 
-	// Update container's state as it should be ContainerStateRunning now
-	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-		return err
-	}
+	c.state.State = ContainerStateRunning
 
 	return c.save()
 }
