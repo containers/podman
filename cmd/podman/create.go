@@ -536,6 +536,17 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
 	}
+	// Network
+	// Both --network and --net have default values of 'bridge'
+	// --net only overrides --network when --network is not explicitly
+	// set and --net is.
+	if c.IsSet("network") && c.IsSet("net") {
+		return nil, errors.Errorf("cannot use --network and --net together.  use only --network instead")
+	}
+	networkMode := c.String("network")
+	if !c.IsSet("network") && c.IsSet("net") {
+		networkMode = c.String("net")
+	}
 
 	config := &createConfig{
 		Runtime:        runtime,
@@ -564,10 +575,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		LogDriverOpt:   c.StringSlice("log-opt"),
 		MacAddress:     c.String("mac-address"),
 		Name:           c.String("name"),
-		Network:        c.String("network"),
+		Network:        networkMode,
 		NetworkAlias:   c.StringSlice("network-alias"),
 		IpcMode:        ipcMode,
-		NetMode:        container.NetworkMode(c.String("network")),
+		NetMode:        container.NetworkMode(networkMode),
 		UtsMode:        utsMode,
 		PidMode:        pidMode,
 		Pod:            c.String("pod"),

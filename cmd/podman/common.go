@@ -316,7 +316,8 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "net",
-		Usage: "Setup the network namespace",
+		Usage: "Connect a container to a network (alias for --network)",
+		Value: "bridge",
 	},
 	cli.StringFlag{
 		Name:  "network",
