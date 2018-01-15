@@ -545,15 +545,15 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 	// TODO parse ports into libpod format and include
-	if !c.NetMode.IsHost() && !c.NetMode.IsContainer() {
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
-	} else if c.NetMode.IsContainer() {
+	if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
 
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
+	} else if !c.NetMode.IsHost() {
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 	}
 	if c.PidMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.PidMode.Container())
