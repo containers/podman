@@ -156,23 +156,28 @@ type ContainerConfig struct {
 	Mounts []string `json:"mounts,omitempty"`
 
 	// Security Config
+	// Whether the container is privileged
+	Privileged bool `json:"privileged"`
+	// Whether to set the No New Privileges flag
+	NoNewPrivs bool `json:"noNewPrivs"`
 	// SELinux process label for container
 	ProcessLabel string `json:"ProcessLabel,omitempty"`
 	// SELinux mount label for root filesystem
 	MountLabel string `json:"MountLabel,omitempty"`
 	// User and group to use in the container
 	// Can be specified by name or UID/GID
-	User string `json:"user"`
+	User string `json:"user,omitempty"`
 
 	// Namespace Config
 	// IDs of container to share namespaces with
 	// NetNsCtr conflicts with the CreateNetNS bool
-	IPCNsCtr   string `json:"ipcNsCtr"`
-	MountNsCtr string `json:"mountNsCtr"`
-	NetNsCtr   string `json:"netNsCtr"`
-	PIDNsCtr   string `json:"pidNsCtr"`
-	UserNsCtr  string `json:"userNsCtr"`
-	UTSNsCtr   string `json:"utsNsCtr"`
+	IPCNsCtr    string `json:"ipcNsCtr,omitempty"`
+	MountNsCtr  string `json:"mountNsCtr,omitempty"`
+	NetNsCtr    string `json:"netNsCtr,omitempty"`
+	PIDNsCtr    string `json:"pidNsCtr,omitempty"`
+	UserNsCtr   string `json:"userNsCtr,omitempty"`
+	UTSNsCtr    string `json:"utsNsCtr,omitempty"`
+	CgroupNsCtr string `json:"cgroupNsCtr,omitempty"`
 
 	// Network Config
 	// CreateNetNS indicates that libpod should create and configure a new
@@ -183,6 +188,18 @@ type ContainerConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// DNS servers to use in container resolv.conf
+	// Will override servers in host resolv if set
+	DNSServer []net.IP `json:"dnsServer,omitempty"`
+	// DNS Search domains to use in container resolv.conf
+	// Will override search domains in host resolv if set
+	DNSSearch []string `json:"dnsSearch,omitempty"`
+	// DNS options to be set in container resolv.conf
+	// With override options in host resolv if set
+	DNSOption []string `json:"dnsOption,omitempty"`
+	// Hosts to add in container
+	// Will be appended to host's host file
+	HostAdd []string `json:"hostsAdd,omitempty"`
 
 	// Misc Options
 	// Whether to keep container STDIN open

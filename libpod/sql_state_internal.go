@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -178,6 +179,8 @@ func prepareDB(db *sql.DB) (err error) {
             StaticDir       TEXT    NOT NULL,
             Mounts          TEXT    NOT NULL,
 
+            Privileged      INTEGER NOT NULL,
+            NoNewPrivs      INTEGER NOT NULL,
             ProcessLabel    TEXT    NOT NULL,
             MountLabel      TEXT    NOT NULL,
             User            TEXT    NOT NULL,
@@ -188,9 +191,13 @@ func prepareDB(db *sql.DB) (err error) {
             PIDNsCtr        TEXT,
             UserNsCtr       TEXT,
             UTSNsCtr        TEXT,
+            CgroupNsCtr     TEXT,
 
             CreateNetNS     INTEGER NOT NULL,
-            PortMappings    TEXT    NOT NULL,
+            DNSServer       TEXT    NOT NULL,
+            DNSSearch       TEXT    NOT NULL,
+            DNSOption       TEXT    NOT NULL,
+            HostAdd         TEXT    NOT NULL,
 
             Stdin           INTEGER NOT NULL,
             LabelsJSON      TEXT    NOT NULL,
@@ -202,16 +209,20 @@ func prepareDB(db *sql.DB) (err error) {
             CHECK (ImageVolumes IN (0, 1)),
             CHECK (ReadOnly IN (0, 1)),
             CHECK (SHMSize>=0),
+            CHECK (Privileged IN (0, 1)),
+            CHECK (NoNewPrivs IN (0, 1)),
             CHECK (CreateNetNS IN (0, 1)),
             CHECK (Stdin IN (0, 1)),
             CHECK (StopSignal>=0),
-            FOREIGN KEY (Pod)        REFERENCES pod(Id)        DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (IPCNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (MountNsCtr) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (NetNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (PIDNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (UserNsCtr)  REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED,
-            FOREIGN KEY (UTSNsCtr)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
+            FOREIGN KEY (Id)          REFERENCES containerState(Id) DEFERRABLE INITIALLY DEFERRED
+            FOREIGN KEY (Pod)         REFERENCES pod(Id)            DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (IPCNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (MountNsCtr)  REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (NetNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (PIDNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (UserNsCtr)   REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (UTSNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (CgroupNsCtr) REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED
         );
         `
 
@@ -283,6 +294,11 @@ func getSpecPath(specsDir, id string) string {
 	return filepath.Join(specsDir, id)
 }
 
+// Get filename for container port mappings on disk
+func getPortsPath(specsDir, id string) string {
+	return filepath.Join(specsDir, id+"_ports")
+}
+
 // Convert a bool into SQL-readable format
 func boolToSQL(b bool) int {
 	if b {
@@ -347,19 +363,25 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		staticDir       string
 		mounts          string
 
+		privileged   int
+		noNewPrivs   int
 		processLabel string
 		mountLabel   string
 		user         string
 
-		ipcNsCtrNullStr   sql.NullString
-		mountNsCtrNullStr sql.NullString
-		netNsCtrNullStr   sql.NullString
-		pidNsCtrNullStr   sql.NullString
-		userNsCtrNullStr  sql.NullString
-		utsNsCtrNullStr   sql.NullString
+		ipcNsCtrNullStr    sql.NullString
+		mountNsCtrNullStr  sql.NullString
+		netNsCtrNullStr    sql.NullString
+		pidNsCtrNullStr    sql.NullString
+		userNsCtrNullStr   sql.NullString
+		utsNsCtrNullStr    sql.NullString
+		cgroupNsCtrNullStr sql.NullString
 
-		createNetNS      int
-		portMappingsJSON string
+		createNetNS   int
+		dnsServerJSON string
+		dnsSearchJSON string
+		dnsOptionJSON string
+		hostAddJSON   string
 
 		stdin             int
 		labelsJSON        string
@@ -396,6 +418,8 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&staticDir,
 		&mounts,
 
+		&privileged,
+		&noNewPrivs,
 		&processLabel,
 		&mountLabel,
 		&user,
@@ -406,9 +430,13 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&pidNsCtrNullStr,
 		&userNsCtrNullStr,
 		&utsNsCtrNullStr,
+		&cgroupNsCtrNullStr,
 
 		&createNetNS,
-		&portMappingsJSON,
+		&dnsServerJSON,
+		&dnsSearchJSON,
+		&dnsOptionJSON,
+		&hostAddJSON,
 
 		&stdin,
 		&labelsJSON,
@@ -453,6 +481,8 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.ShmSize = shmSize
 	ctr.config.StaticDir = staticDir
 
+	ctr.config.Privileged = boolFromSQL(privileged)
+	ctr.config.NoNewPrivs = boolFromSQL(noNewPrivs)
 	ctr.config.ProcessLabel = processLabel
 	ctr.config.MountLabel = mountLabel
 	ctr.config.User = user
@@ -463,6 +493,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.PIDNsCtr = stringFromNullString(pidNsCtrNullStr)
 	ctr.config.UserNsCtr = stringFromNullString(userNsCtrNullStr)
 	ctr.config.UTSNsCtr = stringFromNullString(utsNsCtrNullStr)
+	ctr.config.CgroupNsCtr = stringFromNullString(cgroupNsCtrNullStr)
 
 	ctr.config.CreateNetNS = boolFromSQL(createNetNS)
 
@@ -490,8 +521,20 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		return nil, errors.Wrapf(err, "error parsing container %s mounts JSON", id)
 	}
 
-	if err := json.Unmarshal([]byte(portMappingsJSON), &ctr.config.PortMappings); err != nil {
-		return nil, errors.Wrapf(err, "error parsing container %s port mappings JSON", id)
+	if err := json.Unmarshal([]byte(dnsServerJSON), &ctr.config.DNSServer); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s DNS server JSON", id)
+	}
+
+	if err := json.Unmarshal([]byte(dnsSearchJSON), &ctr.config.DNSSearch); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s DNS search JSON", id)
+	}
+
+	if err := json.Unmarshal([]byte(dnsOptionJSON), &ctr.config.DNSOption); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s DNS option JSON", id)
+	}
+
+	if err := json.Unmarshal([]byte(hostAddJSON), &ctr.config.HostAdd); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s DNS server JSON", id)
 	}
 
 	labels := make(map[string]string)
@@ -549,6 +592,26 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		return nil, errors.Wrapf(err, "error parsing container %s OCI spec", id)
 	}
 	ctr.config.Spec = ociSpec
+
+	// Retrieve the ports from disk
+	// They may not exist - if they don't, this container just doesn't have ports
+	portPath := getPortsPath(s.specsDir, id)
+	_, err = os.Stat(portPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "error stating container %s JSON ports", id)
+		}
+	}
+	if err == nil {
+		// The file exists, read it
+		fileContents, err := ioutil.ReadFile(portPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading container %s JSON ports", id)
+		}
+		if err := json.Unmarshal(fileContents, &ctr.config.PortMappings); err != nil {
+			return nil, errors.Wrapf(err, "error parsing container %s JSON ports", id)
+		}
+	}
 
 	return ctr, nil
 }
