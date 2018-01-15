@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 7
+const DBSchema = 8
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -284,7 +284,8 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
@@ -306,9 +307,24 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		return errors.Wrapf(err, "error marshaling container %s mounts to JSON", ctr.ID())
 	}
 
-	portsJSON, err := json.Marshal(ctr.config.PortMappings)
+	dnsServerJSON, err := json.Marshal(ctr.config.DNSServer)
 	if err != nil {
-		return errors.Wrapf(err, "error marshaling container %s port mappings to JSON", ctr.ID())
+		return errors.Wrapf(err, "error marshaling container %s DNS servers to JSON", ctr.ID())
+	}
+
+	dnsSearchJSON, err := json.Marshal(ctr.config.DNSSearch)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s DNS search domains to JSON", ctr.ID())
+	}
+
+	dnsOptionJSON, err := json.Marshal(ctr.config.DNSOption)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s DNS options to JSON", ctr.ID())
+	}
+
+	hostAddJSON, err := json.Marshal(ctr.config.HostAdd)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s hosts to JSON", ctr.ID())
 	}
 
 	labelsJSON, err := json.Marshal(ctr.config.Labels)
@@ -319,6 +335,19 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	netNSPath := ""
 	if ctr.state.NetNS != nil {
 		netNSPath = ctr.state.NetNS.Path()
+	}
+
+	specJSON, err := json.Marshal(ctr.config.Spec)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s spec to JSON", ctr.ID())
+	}
+
+	portsJSON := []byte{}
+	if len(ctr.config.PortMappings) > 0 {
+		portsJSON, err = json.Marshal(&ctr.config.PortMappings)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling container %s port mappings to JSON", ctr.ID())
+		}
 	}
 
 	tx, err := s.db.Begin()
@@ -348,6 +377,8 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		ctr.config.StaticDir,
 		string(mounts),
 
+		boolToSQL(ctr.config.Privileged),
+		boolToSQL(ctr.config.NoNewPrivs),
 		ctr.config.ProcessLabel,
 		ctr.config.MountLabel,
 		ctr.config.User,
@@ -358,9 +389,13 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		stringToNullString(ctr.config.PIDNsCtr),
 		stringToNullString(ctr.config.UserNsCtr),
 		stringToNullString(ctr.config.UTSNsCtr),
+		stringToNullString(ctr.config.CgroupNsCtr),
 
 		boolToSQL(ctr.config.CreateNetNS),
-		string(portsJSON),
+		string(dnsServerJSON),
+		string(dnsSearchJSON),
+		string(dnsOptionJSON),
+		string(hostAddJSON),
 
 		boolToSQL(ctr.config.Stdin),
 		string(labelsJSON),
@@ -392,10 +427,6 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 	}
 
 	// Save the container's runtime spec to disk
-	specJSON, err := json.Marshal(ctr.config.Spec)
-	if err != nil {
-		return errors.Wrapf(err, "error marshalling container %s spec to JSON", ctr.ID())
-	}
 	specPath := getSpecPath(s.specsDir, ctr.ID())
 	if err := ioutil.WriteFile(specPath, specJSON, 0750); err != nil {
 		return errors.Wrapf(err, "error saving container %s spec JSON to disk", ctr.ID())
@@ -407,6 +438,21 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 			}
 		}
 	}()
+
+	// If the container has port mappings, save them to disk
+	if len(ctr.config.PortMappings) > 0 {
+		portPath := getPortsPath(s.specsDir, ctr.ID())
+		if err := ioutil.WriteFile(portPath, portsJSON, 0750); err != nil {
+			return errors.Wrapf(err, "error saving container %s port JSON to disk", ctr.ID())
+		}
+		defer func() {
+			if err != nil {
+				if err2 := os.Remove(portPath); err2 != nil {
+					logrus.Errorf("Error removing container %s JSON ports from state: %v", ctr.ID(), err2)
+				}
+			}
+		}()
+	}
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to add container %s", ctr.ID())
@@ -666,6 +712,15 @@ func (s *SQLState) RemoveContainer(ctr *Container) error {
 	jsonPath := getSpecPath(s.specsDir, ctr.ID())
 	if err := os.Remove(jsonPath); err != nil {
 		return errors.Wrapf(err, "error removing JSON spec from state for container %s", ctr.ID())
+	}
+
+	// Remove containers ports JSON from disk
+	// May not exist, so ignore os.IsNotExist
+	portsPath := getPortsPath(s.specsDir, ctr.ID())
+	if err := os.Remove(portsPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error removing JSON ports from state for container %s", ctr.ID())
+		}
 	}
 
 	ctr.valid = false

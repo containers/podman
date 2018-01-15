@@ -3,6 +3,7 @@ package libpod
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,6 +31,24 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			StopSignal:      0,
 			StopTimeout:     0,
 			CreatedTime:     time.Now(),
+			Privileged:      true,
+			Mounts:          []string{"/does/not/exist"},
+			DNSServer:       []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
+			DNSSearch:       []string{"example.com", "example.example.com"},
+			PortMappings: []ocicni.PortMapping{
+				{
+					HostPort:      80,
+					ContainerPort: 90,
+					Protocol:      "tcp",
+					HostIP:        "192.168.3.3",
+				},
+				{
+					HostPort:      100,
+					ContainerPort: 110,
+					Protocol:      "udp",
+					HostIP:        "192.168.4.4",
+				},
+			},
 		},
 		state: &containerRuntimeInfo{
 			State:      ContainerStateRunning,
