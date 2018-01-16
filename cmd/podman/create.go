@@ -114,7 +114,6 @@ type createConfig struct {
 	SigProxy           bool              //sig-proxy
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
-	StorageOpts        []string          //storage-opt
 	Sysctl             map[string]string //sysctl
 	Tmpfs              []string          // tmpfs
 	Tty                bool              //tty
@@ -626,7 +625,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		SigProxy:    c.Bool("sig-proxy"),
 		StopSignal:  stopSignal,
 		StopTimeout: c.Uint("stop-timeout"),
-		StorageOpts: c.StringSlice("storage-opt"),
 		Sysctl:      sysctl,
 		Tmpfs:       c.StringSlice("tmpfs"),
 		Tty:         tty,
