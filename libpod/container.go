@@ -341,7 +341,7 @@ func (c *Container) Dependencies() []string {
 	}
 
 	depends := make([]string, 0, len(dependsCtrs))
-	for ctr, _ := range dependsCtrs {
+	for ctr := range dependsCtrs {
 		depends = append(depends, ctr)
 	}
 
