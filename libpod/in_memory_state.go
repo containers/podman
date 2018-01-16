@@ -26,6 +26,8 @@ func NewInMemoryState() (State, error) {
 	state.pods = make(map[string]*Pod)
 	state.containers = make(map[string]*Container)
 
+	state.ctrDepends = make(map[string][]string)
+
 	state.podNameIndex = registrar.NewRegistrar()
 	state.ctrNameIndex = registrar.NewRegistrar()
 
@@ -131,13 +133,10 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	s.containers[ctr.ID()] = ctr
 
 	// Add containers this container depends on
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.MountNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.NetNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.UserNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		s.addCtrToDependsMap(ctr.ID(), depCtr)
+	}
 
 	return nil
 }
@@ -167,13 +166,11 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 
 	delete(s.ctrDepends, ctr.ID())
 
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.MountNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.NetNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UserNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
+	// Remove us from container dependencies
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		s.removeCtrFromDependsMap(ctr.ID(), depCtr)
+	}
 
 	return nil
 }
@@ -479,7 +476,7 @@ func (s *InMemoryState) removeCtrFromDependsMap(ctrID, dependsID string) {
 			return
 		}
 
-		newArr := make([]string, len(arr), 0)
+		newArr := make([]string, 0, len(arr))
 
 		for _, id := range arr {
 			if id != ctrID {

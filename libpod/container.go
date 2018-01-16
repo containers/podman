@@ -336,7 +336,11 @@ func (c *Container) Dependencies() []string {
 		dependsCtrs[c.config.CgroupNsCtr] = true
 	}
 
-	depends := make([]string, len(dependsCtrs), 0)
+	if len(dependsCtrs) == 0 {
+		return []string{}
+	}
+
+	depends := make([]string, 0, len(dependsCtrs))
 	for ctr, _ := range dependsCtrs {
 		depends = append(depends, ctr)
 	}
