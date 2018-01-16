@@ -310,6 +310,40 @@ func (c *Container) ProcessLabel() string {
 	return c.config.ProcessLabel
 }
 
+// Dependencies gets the containers this container depends upon
+func (c *Container) Dependencies() []string {
+	// Collect in a map first to remove dupes
+	dependsCtrs := map[string]bool{}
+	if c.config.IPCNsCtr != "" {
+		dependsCtrs[c.config.IPCNsCtr] = true
+	}
+	if c.config.MountNsCtr != "" {
+		dependsCtrs[c.config.MountNsCtr] = true
+	}
+	if c.config.NetNsCtr != "" {
+		dependsCtrs[c.config.NetNsCtr] = true
+	}
+	if c.config.PIDNsCtr != "" {
+		dependsCtrs[c.config.NetNsCtr] = true
+	}
+	if c.config.UserNsCtr != "" {
+		dependsCtrs[c.config.UserNsCtr] = true
+	}
+	if c.config.UTSNsCtr != "" {
+		dependsCtrs[c.config.UTSNsCtr] = true
+	}
+	if c.config.CgroupNsCtr != "" {
+		dependsCtrs[c.config.CgroupNsCtr] = true
+	}
+
+	depends := make([]string, len(dependsCtrs), 0)
+	for ctr, _ := range dependsCtrs {
+		depends = append(depends, ctr)
+	}
+
+	return depends
+}
+
 // Spec returns the container's OCI runtime spec
 // The spec returned is the one used to create the container. The running
 // spec may differ slightly as mounts are added based on the image
