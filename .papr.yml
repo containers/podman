@@ -15,7 +15,6 @@ tests:
   - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
 
 packages:
-    - bats
     - containernetworking-cni
 ---
 

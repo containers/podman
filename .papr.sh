@@ -96,3 +96,8 @@ fi
 make TAGS="${TAGS}"
 make TAGS="${TAGS}" install PREFIX=/host/usr ETCDIR=/host/etc
 make TAGS="${TAGS}" test-binaries
+
+# Add the new bats core instead of the deprecated bats
+git clone https://github.com/bats-core/bats-core /bats-core
+cd /bats-core
+install -D -m 755 libexec/* /host/usr/bin/
