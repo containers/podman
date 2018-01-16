@@ -82,11 +82,11 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 		}
 
 		if err := r.state.AddContainerToPod(pod, ctr); err != nil {
-			return nil, errors.Wrapf(err, "error adding new container to state")
+			return nil, err
 		}
 	} else {
 		if err := r.state.AddContainer(ctr); err != nil {
-			return nil, errors.Wrapf(err, "error adding new container to state")
+			return nil, err
 		}
 	}
 
@@ -166,17 +166,17 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		}
 
 		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			return errors.Wrapf(err, "error removing container %s from state", c.ID())
+			return err
 		}
 	} else {
 		if err := r.state.RemoveContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container from state")
+			return err
 		}
 	}
 
 	// Delete the container
 	// Only do this if we're not ContainerStateConfigured - if we are,
-	// we haven't been created in runc yet
+	// we haven't been created in the runtime yet
 	if c.state.State == ContainerStateConfigured {
 		if err := r.ociRuntime.deleteContainer(c); err != nil {
 			return errors.Wrapf(err, "error removing container %s from runc", c.ID())
