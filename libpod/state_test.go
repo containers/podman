@@ -513,21 +513,19 @@ func getAllContainersTwoContainers(t *testing.T, state State, lockPath string) {
 }
 
 func TestContainerInUseInvalidContainer(t *testing.T) {
-	state, path, _, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestContainerInUseInvalidContainer", containerInUseInvalidContainer)
+}
 
-	_, err = state.ContainerInUse(&Container{})
+func containerInUseInvalidContainer(t *testing.T, state State, lockPath string) {
+	_, err := state.ContainerInUse(&Container{})
 	assert.Error(t, err)
 }
 
 func TestContainerInUseOneContainer(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestContainerInUseOneContainer", containerInUseOneContainer)
+}
 
+func containerInUseOneContainer(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
@@ -548,11 +546,10 @@ func TestContainerInUseOneContainer(t *testing.T) {
 }
 
 func TestContainerInUseTwoContainers(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestContainerInUseTwoContainers", containerInUseTwoContainers)
+}
 
+func containerInUseTwoContainers(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
@@ -578,11 +575,10 @@ func TestContainerInUseTwoContainers(t *testing.T) {
 }
 
 func TestCannotRemoveContainerWithDependency(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestCannotRemoveContainerWithDependency", cannotRemoveContainerWithDependency)
+}
 
+func cannotRemoveContainerWithDependency(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
@@ -601,11 +597,10 @@ func TestCannotRemoveContainerWithDependency(t *testing.T) {
 }
 
 func TestCanRemoveContainerAfterDependencyRemoved(t *testing.T) {
-	state, path, lockPath, err := getEmptyState()
-	assert.NoError(t, err)
-	defer os.RemoveAll(path)
-	defer state.Close()
+	runForAllStates(t, "TestCanRemoveContainerAfterDependencyRemoved", canRemoveContainerAfterDependencyRemoved)
+}
 
+func canRemoveContainerAfterDependencyRemoved(t *testing.T, state State, lockPath string) {
 	testCtr1, err := getTestContainer("11111111111111111111111111111111", "test1", lockPath)
 	assert.NoError(t, err)
 	testCtr2, err := getTestContainer("22222222222222222222222222222222", "test2", lockPath)
