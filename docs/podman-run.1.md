@@ -420,17 +420,6 @@ incompatible with any restart policy other than `none`.
 **--stop-timeout**=*10*
   Timeout (in seconds) to stop a container. Default is 10.
 
-**--storage-opt**=[]
-   Storage driver options per container
-
-   $ podman run -it --storage-opt size=120G fedora /bin/bash
-
-   This (size) will allow to set the container rootfs size to 120G at creation time.
-   This option is only available for the `devicemapper`, `btrfs`, `overlay2`  and `zfs` graph drivers.
-   For the `devicemapper`, `btrfs` and `zfs` storage drivers, user cannot pass a size less than the Default BaseFS Size.
-   For the `overlay2` storage driver, the size option is only available if the backing fs is `xfs` and mounted with the `pquota` mount option.
-   Under these conditions, user can pass any size less then the backing fs size.
-
 **--sysctl**=SYSCTL
   Configure namespaced kernel parameters at runtime
 
