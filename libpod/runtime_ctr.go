@@ -3,6 +3,7 @@ package libpod
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -122,6 +123,16 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 
 	if c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+	}
+
+	// Check that no other containers depend on the container
+	deps, err := r.state.ContainerInUse(c)
+	if err != nil {
+		return err
+	}
+	if len(deps) != 0 {
+		depsStr := strings.Join(deps, ", ")
+		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
 	// Check that the container's in a good state to be removed

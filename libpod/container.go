@@ -63,6 +63,53 @@ const (
 // CgroupParent is the default prefix to a cgroup path in libpod
 var CgroupParent = "/libpod_parent"
 
+// LinuxNS represents a Linux namespace
+type LinuxNS int
+
+const (
+	// InvalidNS is an invalid namespace
+	InvalidNS LinuxNS = iota
+	// IPCNS is the IPC namespace
+	IPCNS LinuxNS = iota
+	// MountNS is the mount namespace
+	MountNS LinuxNS = iota
+	// NetNS is the network namespace
+	NetNS LinuxNS = iota
+	// PIDNS is the PID namespace
+	PIDNS LinuxNS = iota
+	// UserNS is the user namespace
+	UserNS LinuxNS = iota
+	// UTSNS is the UTS namespace
+	UTSNS LinuxNS = iota
+	// CgroupNS is the CGroup namespace
+	CgroupNS LinuxNS = iota
+)
+
+// String returns a string representation of a Linux namespace
+// It is guaranteed to be the name of the namespace in /proc for valid ns types
+func (ns LinuxNS) String() string {
+	switch ns {
+	case InvalidNS:
+		return "invalid"
+	case IPCNS:
+		return "ipc"
+	case MountNS:
+		return "mnt"
+	case NetNS:
+		return "net"
+	case PIDNS:
+		return "pid"
+	case UserNS:
+		return "user"
+	case UTSNS:
+		return "uts"
+	case CgroupNS:
+		return "cgroup"
+	default:
+		return "unknown"
+	}
+}
+
 // Container is a single OCI container
 type Container struct {
 	config *ContainerConfig
@@ -86,7 +133,6 @@ type Container struct {
 // TODO enable pod support
 // TODO Add readonly support
 // TODO add SHM size support
-// TODO add shared namespace support
 
 // containerRuntimeInfo contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
@@ -484,6 +530,26 @@ func (c *Container) MountPoint() (string, error) {
 	return c.state.Mountpoint, nil
 }
 
+// NamespacePath returns the path of one of the container's namespaces
+// If the container is not running, an error will be returned
+func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.syncContainer(); err != nil {
+		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	}
+
+	if c.state.State != ContainerStateRunning {
+		return "", errors.Wrapf(ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
+	}
+
+	if ns == InvalidNS {
+		return "", errors.Wrapf(ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
+	}
+
+	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, ns.String()), nil
+}
+
 // The path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
@@ -764,6 +830,113 @@ func (c *Container) Init() (err error) {
 		// User and Group must go together
 		g.SetProcessUID(uid)
 		g.SetProcessGID(gid)
+	}
+
+	// Add shared namespaces from other containers
+	if c.config.IPCNsCtr != "" {
+		ipcCtr, err := c.runtime.state.Container(c.config.IPCNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := ipcCtr.NamespacePath(IPCNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.IPCNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.MountNsCtr != "" {
+		mountCtr, err := c.runtime.state.Container(c.config.MountNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := mountCtr.NamespacePath(MountNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.MountNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.NetNsCtr != "" {
+		netCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := netCtr.NamespacePath(NetNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.PIDNsCtr != "" {
+		pidCtr, err := c.runtime.state.Container(c.config.PIDNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := pidCtr.NamespacePath(PIDNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.UserNsCtr != "" {
+		userCtr, err := c.runtime.state.Container(c.config.UserNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := userCtr.NamespacePath(UserNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.UTSNsCtr != "" {
+		utsCtr, err := c.runtime.state.Container(c.config.UTSNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := utsCtr.NamespacePath(UTSNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.UTSNamespace, nsPath); err != nil {
+			return err
+		}
+	}
+	if c.config.CgroupNsCtr != "" {
+		cgroupCtr, err := c.runtime.state.Container(c.config.CgroupNsCtr)
+		if err != nil {
+			return err
+		}
+
+		nsPath, err := cgroupCtr.NamespacePath(CgroupNS)
+		if err != nil {
+			return err
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, nsPath); err != nil {
+			return err
+		}
 	}
 
 	c.runningSpec = g.Spec()

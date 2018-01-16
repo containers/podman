@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -53,21 +52,10 @@ func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator)
 func addPidNS(config *createConfig, g *generate.Generator) error {
 	pidMode := config.PidMode
 	if pidMode.IsHost() {
-		return g.RemoveLinuxNamespace(libpod.PIDNamespace)
+		return g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 	}
 	if pidMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(pidMode.Container())
-		if err != nil {
-			return errors.Wrapf(err, "container %q not found", pidMode.Container())
-		}
-		pid, err := ctr.PID()
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get pid of container %q", pidMode.Container())
-		}
-		pidNsPath := fmt.Sprintf("/proc/%d/ns/pid", pid)
-		if err := g.AddOrReplaceLinuxNamespace(libpod.PIDNamespace, pidNsPath); err != nil {
-			return err
-		}
+		logrus.Debug("using container pidmode")
 	}
 	return nil
 }
@@ -76,7 +64,7 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
 		logrus.Debug("Using host netmode")
-		return g.RemoveLinuxNamespace(libpod.NetNamespace)
+		return g.RemoveLinuxNamespace(spec.NetworkNamespace)
 	} else if netMode.IsNone() {
 		logrus.Debug("Using none netmode")
 		return nil
@@ -85,18 +73,6 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 		return nil
 	} else if netMode.IsContainer() {
 		logrus.Debug("Using container netmode")
-		ctr, err := config.Runtime.LookupContainer(netMode.ConnectedContainer())
-		if err != nil {
-			return errors.Wrapf(err, "container %q not found", netMode.ConnectedContainer())
-		}
-		pid, err := ctr.PID()
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get pid of container %q", netMode.ConnectedContainer())
-		}
-		nsPath := fmt.Sprintf("/proc/%d/ns/net", pid)
-		if err := g.AddOrReplaceLinuxNamespace(libpod.NetNamespace, nsPath); err != nil {
-			return err
-		}
 	} else {
 		return errors.Errorf("unknown network mode")
 	}
@@ -106,7 +82,7 @@ func addNetNS(config *createConfig, g *generate.Generator) error {
 func addUTSNS(config *createConfig, g *generate.Generator) error {
 	utsMode := config.UtsMode
 	if utsMode.IsHost() {
-		return g.RemoveLinuxNamespace(libpod.UTSNamespace)
+		return g.RemoveLinuxNamespace(spec.UTSNamespace)
 	}
 	return nil
 }
@@ -114,21 +90,10 @@ func addUTSNS(config *createConfig, g *generate.Generator) error {
 func addIpcNS(config *createConfig, g *generate.Generator) error {
 	ipcMode := config.IpcMode
 	if ipcMode.IsHost() {
-		return g.RemoveLinuxNamespace(libpod.IPCNamespace)
+		return g.RemoveLinuxNamespace(spec.IPCNamespace)
 	}
 	if ipcMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(ipcMode.Container())
-		if err != nil {
-			return errors.Wrapf(err, "container %q not found", ipcMode.Container())
-		}
-		pid, err := ctr.PID()
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get pid of container %q", ipcMode.Container())
-		}
-		nsPath := fmt.Sprintf("/proc/%d/ns/ipc", pid)
-		if err := g.AddOrReplaceLinuxNamespace(libpod.IPCNamespace, nsPath); err != nil {
-			return err
-		}
+		logrus.Debug("Using container ipcmode")
 	}
 
 	return nil
@@ -580,9 +545,33 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 	// TODO parse ports into libpod format and include
-	if !c.NetMode.IsHost() {
+	if c.NetMode.IsContainer() {
+		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
+		}
+
+		options = append(options, libpod.WithNetNSFrom(connectedCtr))
+	} else if !c.NetMode.IsHost() {
 		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 	}
+	if c.PidMode.IsContainer() {
+		connectedCtr, err := c.Runtime.LookupContainer(c.PidMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.PidMode.Container())
+		}
+
+		options = append(options, libpod.WithPIDNSFrom(connectedCtr))
+	}
+	if c.IpcMode.IsContainer() {
+		connectedCtr, err := c.Runtime.LookupContainer(c.IpcMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.IpcMode.Container())
+		}
+
+		options = append(options, libpod.WithIPCNSFrom(connectedCtr))
+	}
+
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 	return options, nil

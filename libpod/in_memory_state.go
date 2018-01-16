@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"strings"
+
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/registrar"
@@ -10,6 +12,7 @@ import (
 type InMemoryState struct {
 	pods         map[string]*Pod
 	containers   map[string]*Container
+	ctrDepends   map[string][]string
 	podNameIndex *registrar.Registrar
 	podIDIndex   *truncindex.TruncIndex
 	ctrNameIndex *registrar.Registrar
@@ -137,6 +140,15 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 
 	s.containers[ctr.ID()] = ctr
 
+	// Add containers this container depends on
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.MountNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.NetNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.UserNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
+	s.addCtrToDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
+
 	return nil
 }
 
@@ -145,6 +157,13 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	// Almost no validity checks are performed, to ensure we can kick
 	// misbehaving containers out of the state
+
+	// Ensure we don't remove a container which other containers depend on
+	deps, ok := s.ctrDepends[ctr.ID()]
+	if ok && len(deps) != 0 {
+		depsStr := strings.Join(deps, ", ")
+		return errors.Wrapf(ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+	}
 
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
@@ -155,6 +174,16 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	}
 	delete(s.containers, ctr.ID())
 	s.ctrNameIndex.Release(ctr.Name())
+
+	delete(s.ctrDepends, ctr.ID())
+
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.MountNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.NetNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UserNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
+	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
 
 	return nil
 }
@@ -172,6 +201,20 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 // As such this is a no-op
 func (s *InMemoryState) SaveContainer(ctr *Container) error {
 	return nil
+}
+
+// ContainerInUse checks if the given container is being used by other containers
+func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
+	if !ctr.valid {
+		return nil, ErrCtrRemoved
+	}
+
+	arr, ok := s.ctrDepends[ctr.ID()]
+	if !ok {
+		return []string{}, nil
+	}
+
+	return arr, nil
 }
 
 // AllContainers retrieves all containers from the state
@@ -297,4 +340,44 @@ func (s *InMemoryState) AllPods() ([]*Pod, error) {
 	}
 
 	return pods, nil
+}
+
+// Internal Functions
+
+// Add a container to the dependency mappings
+func (s *InMemoryState) addCtrToDependsMap(ctrID, dependsID string) {
+	if dependsID != "" {
+		arr, ok := s.ctrDepends[dependsID]
+		if !ok {
+			// Do not have a mapping for that container yet
+			s.ctrDepends[dependsID] = []string{ctrID}
+		} else {
+			// Have a mapping for the container
+			arr = append(arr, ctrID)
+			s.ctrDepends[dependsID] = arr
+		}
+	}
+}
+
+// Remove a container from dependency mappings
+func (s *InMemoryState) removeCtrFromDependsMap(ctrID, dependsID string) {
+	if dependsID != "" {
+		arr, ok := s.ctrDepends[dependsID]
+		if !ok {
+			// Internal state seems inconsistent
+			// But the dependency is definitely gone
+			// So just return
+			return
+		}
+
+		newArr := make([]string, len(arr), 0)
+
+		for _, id := range arr {
+			if id != ctrID {
+				newArr = append(newArr, id)
+			}
+		}
+
+		s.ctrDepends[dependsID] = newArr
+	}
 }
