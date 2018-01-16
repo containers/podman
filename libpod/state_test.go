@@ -152,7 +152,7 @@ func TestAddInvalidContainerFails(t *testing.T) {
 }
 
 func addInvalidContainerFails(t *testing.T, state State, lockPath string) {
-	err := state.AddContainer(&Container{config:&ContainerConfig{ID: "1234"}})
+	err := state.AddContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
@@ -398,7 +398,7 @@ func TestUpdateInvalidContainerReturnsError(t *testing.T) {
 }
 
 func updateInvalidContainerReturnsError(t *testing.T, state State, lockPath string) {
-	err := state.UpdateContainer(&Container{config:&ContainerConfig{ID: "1234"}})
+	err := state.UpdateContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
@@ -407,7 +407,7 @@ func TestSaveInvalidContainerReturnsError(t *testing.T) {
 }
 
 func saveInvalidContainerReturnsError(t *testing.T, state State, lockPath string) {
-	err := state.SaveContainer(&Container{config:&ContainerConfig{ID: "1234"}})
+	err := state.SaveContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 	assert.Error(t, err)
 }
 
