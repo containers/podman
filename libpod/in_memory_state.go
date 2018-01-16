@@ -188,8 +188,7 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 	}
 
 	// If the container does not exist, return error
-	_, ok := s.containers[ctr.ID()]
-	if !ok {
+	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
@@ -208,8 +207,7 @@ func (s *InMemoryState) SaveContainer(ctr *Container) error {
 	}
 
 	// If the container does not exist, return error
-	_, ok := s.containers[ctr.ID()]
-	if !ok {
+	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
@@ -371,7 +369,8 @@ func (s *InMemoryState) UpdatePod(pod *Pod) error {
 func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
 		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added to", pod.ID())
-	} else if !ctr.valid {
+	}
+	if !ctr.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be added to the pod", ctr.ID())
 	}
 
@@ -391,12 +390,12 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	}
 
 	if err := s.ctrNameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
-		return errors.Wrapf(err, "error registering container name %s", ctr.Name())
+		return errors.Wrapf(err, "error reserving container name %s", ctr.Name())
 	}
 
 	if err := s.ctrIDIndex.Add(ctr.ID()); err != nil {
 		s.ctrNameIndex.Release(ctr.Name())
-		return errors.Wrapf(err, "error registering container ID %s", ctr.ID())
+		return errors.Wrapf(err, "error releasing container ID %s", ctr.ID())
 	}
 
 	s.containers[ctr.ID()] = ctr
@@ -409,7 +408,8 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
 		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and containers cannot be removed", pod.ID())
-	} else if !ctr.valid {
+	}
+	if !ctr.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
 	}
 
@@ -417,7 +417,8 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	exists, err := pod.HasContainer(ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error checking for container %s in pod %s", ctr.ID(), pod.ID())
-	} else if !exists {
+	}
+	if !exists {
 		return errors.Wrapf(ErrNoSuchCtr, "no container %s in pod %s", ctr.ID(), pod.ID())
 	}
 

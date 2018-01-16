@@ -191,13 +191,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime.netPlugin = netPlugin
 
 	// Set up the state
-	if runtime.config.StateType == InMemoryStateStore {
+	switch runtime.config.StateType {
+	case InMemoryStateStore:
 		state, err := NewInMemoryState()
 		if err != nil {
 			return nil, err
 		}
 		runtime.state = state
-	} else if runtime.config.StateType == SQLiteStateStore {
+	case SQLiteStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "sql_state.db")
 		specsDir := filepath.Join(runtime.config.StaticDir, "ocispec")
 
@@ -215,7 +216,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, err
 		}
 		runtime.state = state
-	} else {
+	default:
 		return nil, errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
