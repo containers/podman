@@ -18,12 +18,14 @@ else
 fi
 
 PODMAN_BINARY=${PODMAN_BINARY:-${CRIO_ROOT}/bin/podman}
-# Path of the conmon binary.
-CONMON_BINARY=${CONMON_BINARY:-${CRIO_ROOT}/bin/conmon}
 # Path of the default seccomp profile.
 SECCOMP_PROFILE=${SECCOMP_PROFILE:-${CRIO_ROOT}/seccomp.json}
 # Name of the default apparmor profile.
 APPARMOR_PROFILE=${APPARMOR_PROFILE:-crio-default}
+# Conmon
+CONMON=${CONMON:-conmon}
+CONMON_PATH=$(command -v $CONMON || true)
+CONMON_BINARY=${CONMON_PATH:-/usr/libexec/crio/conmon}
 # Runtime
 RUNTIME=${RUNTIME:-runc}
 RUNTIME_PATH=$(command -v $RUNTIME || true)
@@ -115,8 +117,6 @@ mkdir -p ${LIBPOD_CNI_CONFIG}
 cp ${CRIO_ROOT}/cni/* ${LIBPOD_CNI_CONFIG}
 
 PODMAN_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
-
-cp "$CONMON_BINARY" "$TESTDIR/conmon"
 
 PATH=$PATH:$TESTDIR
 

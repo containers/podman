@@ -52,7 +52,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo
 	@echo " * 'install' - Install binaries to system locations"
-	@echo " * 'binaries' - Build conmon and podman"
+	@echo " * 'binaries' - Build podmon"
 	@echo " * 'integration' - Execute integration tests"
 	@echo " * 'clean' - Clean artifacts"
 	@echo " * 'lint' - Execute the source code linter"
@@ -74,9 +74,6 @@ gofmt:
 
 fix_gofmt:
 	@./hack/verify-gofmt.sh -f
-
-conmon:
-	$(MAKE) -C $@
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
@@ -100,7 +97,6 @@ endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 	rm -f bin/podman
-	make -C conmon clean
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
@@ -123,7 +119,7 @@ localintegration: test-binaries
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: conmon podman
+binaries: podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -142,7 +138,6 @@ install: .gopathok install.bin install.man install.cni
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
-	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
@@ -165,7 +160,6 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
 
 uninstall:
-	rm -f $(LIBEXECDIR)/crio/conmon
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man1/$$(basename $${i}); \
 	done
@@ -208,7 +202,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 .PHONY: \
 	binaries \
 	clean \
-	conmon \
 	default \
 	docs \
 	gofmt \

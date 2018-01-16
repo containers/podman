@@ -6,6 +6,10 @@
 
 The latest version of `runc` is expected to be installed on the system. It is picked up as the default runtime by podman.
 
+#### conmon installed
+
+The latest version of `conmon` is expected to be installed on the system. Conmon is used to monitor OCI Runtimes
+
 #### Setup CNI networking
 
 A proper description of setting up CNI networking is given in the
@@ -22,6 +26,7 @@ Fedora, CentOS, RHEL, and related distributions:
 ```bash
 yum install -y \
   btrfs-progs-devel \
+  conmon \
   device-mapper-devel \
   git \
   glib2-devel \
@@ -45,6 +50,7 @@ Debian, Ubuntu, and related distributions:
 ```bash
 apt-get install -y \
   btrfs-tools \
+  cri-o \
   git \
   golang-go \
   libassuan-dev \
