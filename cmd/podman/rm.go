@@ -80,13 +80,6 @@ func rmCmd(c *cli.Context) error {
 		}
 	}
 	for _, container := range delContainers {
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to find container %s", container.ID())
-			continue
-		}
 		err = runtime.RemoveContainer(container, c.Bool("force"))
 		if err != nil {
 			if lastError != nil {
