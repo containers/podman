@@ -696,21 +696,6 @@ func parseSecurityOpts(securityOpts []string) ([]string, error) { //nolint
 	return securityOpts, nil
 }
 
-// parses storage options per container into a map
-// for storage-opt flag
-func parseStorageOpts(storageOpts []string) (map[string]string, error) { //nolint
-	m := make(map[string]string)
-	for _, option := range storageOpts {
-		if strings.Contains(option, "=") {
-			opt := strings.SplitN(option, "=", 2)
-			m[opt[0]] = opt[1]
-		} else {
-			return nil, errors.Errorf("invalid storage option %q", option)
-		}
-	}
-	return m, nil
-}
-
 // convertKVStringsToMap converts ["key=value"] to {"key":"value"}
 func convertKVStringsToMap(values []string) map[string]string {
 	result := make(map[string]string, len(values))

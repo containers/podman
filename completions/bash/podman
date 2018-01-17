@@ -1079,7 +1079,6 @@ _podman_container_run() {
 		--shm-size
 		--stop-signal
 		--stop-timeout
-		--storage-opt
 		--tmpfs
 		--sysctl
 		--ulimit

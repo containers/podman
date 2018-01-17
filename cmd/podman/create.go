@@ -114,7 +114,6 @@ type createConfig struct {
 	SigProxy           bool              //sig-proxy
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
-	StorageOpts        []string          //storage-opt
 	Sysctl             map[string]string //sysctl
 	Tmpfs              []string          // tmpfs
 	Tty                bool              //tty
@@ -171,6 +170,9 @@ func createCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	if err != nil {
+		return err
+	}
 	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
@@ -371,7 +373,6 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *libpod.ImageData) (*createConfig, error) {
-	//imageName, imageID, data, err := imageData(c, runtime, image)
 	var command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16
@@ -626,7 +627,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		SigProxy:    c.Bool("sig-proxy"),
 		StopSignal:  stopSignal,
 		StopTimeout: c.Uint("stop-timeout"),
-		StorageOpts: c.StringSlice("storage-opt"),
 		Sysctl:      sysctl,
 		Tmpfs:       c.StringSlice("tmpfs"),
 		Tty:         tty,
