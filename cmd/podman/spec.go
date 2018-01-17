@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"strings"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
+	"github.com/docker/docker/profiles/seccomp"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -290,16 +290,31 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 	configSpec := g.Spec()
 
-	if config.SeccompProfilePath != "" && config.SeccompProfilePath != "unconfined" {
-		seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
+	// HANDLE CAPABILITIES
+	// NOTE: Must happen before SECCOMP
+	if err := setupCapabilities(config, configSpec); err != nil {
+		return nil, err
+	}
+
+	// HANDLE SECCOMP
+	if config.SeccompProfilePath != "unconfined" {
+		if config.SeccompProfilePath != "" {
+			seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
+			}
+			seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), configSpec)
+			if err != nil {
+				return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
+			}
+			configSpec.Linux.Seccomp = seccompConfig
+		} else {
+			seccompConfig, err := seccomp.GetDefaultProfile(configSpec)
+			if err != nil {
+				return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
+			}
+			configSpec.Linux.Seccomp = seccompConfig
 		}
-		var seccompConfig spec.LinuxSeccomp
-		if err := json.Unmarshal(seccompProfile, &seccompConfig); err != nil {
-			return nil, errors.Wrapf(err, "decoding seccomp profile (%s) failed", config.SeccompProfilePath)
-		}
-		configSpec.Linux.Seccomp = &seccompConfig
 	}
 
 	// BIND MOUNTS
@@ -317,11 +332,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 				}
 			}
 		}
-	}
-
-	// HANDLE CAPABILITIES
-	if err := setupCapabilities(config, configSpec); err != nil {
-		return nil, err
 	}
 
 	// BLOCK IO

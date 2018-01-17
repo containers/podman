@@ -218,8 +218,6 @@ func createCmd(c *cli.Context) error {
 	return nil
 }
 
-const seccompDefaultPath = "/etc/crio/seccomp.json"
-
 func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 	var (
 		labelOpts []string
@@ -269,12 +267,19 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 	}
 
 	if config.SeccompProfilePath == "" {
-		if _, err := os.Stat(seccompDefaultPath); err != nil {
-			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", seccompDefaultPath)
-			}
+		if _, err := os.Stat(libpod.SeccompOverridePath); err == nil {
+			config.SeccompProfilePath = libpod.SeccompOverridePath
 		} else {
-			config.SeccompProfilePath = seccompDefaultPath
+			if !os.IsNotExist(err) {
+				return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
+			}
+			if _, err := os.Stat(libpod.SeccompDefaultPath); err != nil {
+				if !os.IsNotExist(err) {
+					return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
+				}
+			} else {
+				config.SeccompProfilePath = libpod.SeccompDefaultPath
+			}
 		}
 	}
 	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
