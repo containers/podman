@@ -651,6 +651,8 @@ func (s *SQLState) SaveContainer(ctr *Container) error {
 		return errors.Wrapf(err, "error retrieving number of rows modified by update of container %s", ctr.ID())
 	}
 	if rows == 0 {
+		// Container was probably removed elsewhere
+		ctr.valid = false
 		return ErrNoSuchCtr
 	}
 
@@ -836,6 +838,11 @@ func (s *SQLState) HasPod(id string) (bool, error) {
 	return false, ErrNotImplemented
 }
 
+// PodContainers returns all the containers in a pod given the pod's full ID
+func (s *SQLState) PodContainers(id string) ([]*Container, error) {
+	return nil, ErrNotImplemented
+}
+
 // AddPod adds a pod to the state
 // Only empty pods can be added to the state
 func (s *SQLState) AddPod(pod *Pod) error {
@@ -845,6 +852,21 @@ func (s *SQLState) AddPod(pod *Pod) error {
 // RemovePod removes a pod from the state
 // Only empty pods can be removed
 func (s *SQLState) RemovePod(pod *Pod) error {
+	return ErrNotImplemented
+}
+
+// UpdatePod updates a pod from the database
+func (s *SQLState) UpdatePod(pod *Pod) error {
+	return ErrNotImplemented
+}
+
+// AddContainerToPod adds a container to the given pod
+func (s *SQLState) AddContainerToPod(pod *Pod, ctr *Container) error {
+	return ErrNotImplemented
+}
+
+// RemoveContainerFromPod removes a container from the given pod
+func (s *SQLState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	return ErrNotImplemented
 }
 

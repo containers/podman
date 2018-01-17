@@ -81,15 +81,21 @@ func WithSignaturePolicy(path string) RuntimeOption {
 	}
 }
 
-// WithInMemoryState specifies that the runtime will be backed by an in-memory
-// state only, and state will not persist after the runtime is shut down
-func WithInMemoryState() RuntimeOption {
+// WithStateType sets the backing state implementation for libpod
+// Please note that information is not portable between backing states
+// As such, if this differs between two libpods running on the same system,
+// they will not share containers, and unspecified behavior may occur
+func WithStateType(storeType RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.InMemoryState = true
+		if storeType == InvalidStateStore {
+			return errors.Wrapf(ErrInvalidArg, "must provide a valid state store type")
+		}
+
+		rt.config.StateType = storeType
 
 		return nil
 	}
@@ -334,7 +340,6 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 		}
 
 		ctr.config.Pod = pod.ID()
-		ctr.pod = pod
 
 		return nil
 	}

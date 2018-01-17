@@ -114,7 +114,6 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	pod         *Pod
 	runningSpec *spec.Spec
 
 	state *containerRuntimeInfo
@@ -309,6 +308,44 @@ func (c *Container) ShmDir() string {
 // ProcessLabel returns the selinux ProcessLabel of the container
 func (c *Container) ProcessLabel() string {
 	return c.config.ProcessLabel
+}
+
+// Dependencies gets the containers this container depends upon
+func (c *Container) Dependencies() []string {
+	// Collect in a map first to remove dupes
+	dependsCtrs := map[string]bool{}
+	if c.config.IPCNsCtr != "" {
+		dependsCtrs[c.config.IPCNsCtr] = true
+	}
+	if c.config.MountNsCtr != "" {
+		dependsCtrs[c.config.MountNsCtr] = true
+	}
+	if c.config.NetNsCtr != "" {
+		dependsCtrs[c.config.NetNsCtr] = true
+	}
+	if c.config.PIDNsCtr != "" {
+		dependsCtrs[c.config.NetNsCtr] = true
+	}
+	if c.config.UserNsCtr != "" {
+		dependsCtrs[c.config.UserNsCtr] = true
+	}
+	if c.config.UTSNsCtr != "" {
+		dependsCtrs[c.config.UTSNsCtr] = true
+	}
+	if c.config.CgroupNsCtr != "" {
+		dependsCtrs[c.config.CgroupNsCtr] = true
+	}
+
+	if len(dependsCtrs) == 0 {
+		return []string{}
+	}
+
+	depends := make([]string, 0, len(dependsCtrs))
+	for ctr := range dependsCtrs {
+		depends = append(depends, ctr)
+	}
+
+	return depends
 }
 
 // Spec returns the container's OCI runtime spec

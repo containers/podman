@@ -26,6 +26,8 @@ func NewInMemoryState() (State, error) {
 	state.pods = make(map[string]*Pod)
 	state.containers = make(map[string]*Container)
 
+	state.ctrDepends = make(map[string][]string)
+
 	state.podNameIndex = registrar.NewRegistrar()
 	state.ctrNameIndex = registrar.NewRegistrar()
 
@@ -104,8 +106,7 @@ func (s *InMemoryState) HasContainer(id string) (bool, error) {
 }
 
 // AddContainer adds a container to the state
-// If the container belongs to a pod, the pod must already be present when the
-// container is added, and the container must be present in the pod
+// Containers in a pod cannot be added to the state
 func (s *InMemoryState) AddContainer(ctr *Container) error {
 	if !ctr.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
@@ -116,17 +117,8 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
-	if ctr.pod != nil {
-		if _, ok := s.pods[ctr.pod.ID()]; !ok {
-			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist, cannot add container %s", ctr.pod.ID(), ctr.ID())
-		}
-
-		hasCtr, err := ctr.pod.HasContainer(ctr.ID())
-		if err != nil {
-			return errors.Wrapf(err, "error checking if container %s is present in pod %s", ctr.ID(), ctr.pod.ID())
-		} else if !hasCtr {
-			return errors.Wrapf(ErrNoSuchCtr, "container %s is not present in pod %s", ctr.ID(), ctr.pod.ID())
-		}
+	if ctr.config.Pod != "" {
+		return errors.Wrapf(ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
 	}
 
 	if err := s.ctrNameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
@@ -141,13 +133,10 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	s.containers[ctr.ID()] = ctr
 
 	// Add containers this container depends on
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.MountNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.NetNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.UserNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
-	s.addCtrToDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		s.addCtrToDependsMap(ctr.ID(), depCtr)
+	}
 
 	return nil
 }
@@ -177,13 +166,11 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 
 	delete(s.ctrDepends, ctr.ID())
 
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.IPCNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.MountNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.NetNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.PIDNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UserNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.UTSNsCtr)
-	s.removeCtrFromDependsMap(ctr.ID(), ctr.config.CgroupNsCtr)
+	// Remove us from container dependencies
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		s.removeCtrFromDependsMap(ctr.ID(), depCtr)
+	}
 
 	return nil
 }
@@ -192,6 +179,17 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 // As all state is in-memory, no update will be required
 // As such this is a no-op
 func (s *InMemoryState) UpdateContainer(ctr *Container) error {
+	// If the container is invalid, return error
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+	}
+
+	// If the container does not exist, return error
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
 	return nil
 }
 
@@ -200,6 +198,17 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 // are made
 // As such this is a no-op
 func (s *InMemoryState) SaveContainer(ctr *Container) error {
+	// If the container is invalid, return error
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+	}
+
+	// If the container does not exist, return error
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
 	return nil
 }
 
@@ -284,6 +293,20 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 	return ok, nil
 }
 
+// PodContainers retrieves the containers from a pod given the pod's full ID
+func (s *InMemoryState) PodContainers(id string) ([]*Container, error) {
+	if id == "" {
+		return nil, ErrEmptyID
+	}
+
+	pod, ok := s.pods[id]
+	if !ok {
+		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found", id)
+	}
+
+	return pod.GetContainers()
+}
+
 // AddPod adds a given pod to the state
 // Only empty pods can be added to the state
 func (s *InMemoryState) AddPod(pod *Pod) error {
@@ -332,6 +355,89 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 	return nil
 }
 
+// UpdatePod updates a pod's state from the backing database
+// As in-memory states have no database this is a no-op
+func (s *InMemoryState) UpdatePod(pod *Pod) error {
+	return nil
+}
+
+// AddContainerToPod adds a container to the given pod, also adding it to the
+// state
+func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
+	if !pod.valid {
+		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added to", pod.ID())
+	}
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be added to the pod", ctr.ID())
+	}
+
+	if ctr.config.Pod != pod.ID() {
+		return errors.Wrapf(ErrInvalidArg, "container %s is not in pod %s", ctr.ID(), pod.ID())
+	}
+
+	// Add container to pod
+	if err := pod.addContainer(ctr); err != nil {
+		return err
+	}
+
+	// Add container to state
+	_, ok := s.containers[ctr.ID()]
+	if ok {
+		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
+	}
+
+	if err := s.ctrNameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
+		return errors.Wrapf(err, "error reserving container name %s", ctr.Name())
+	}
+
+	if err := s.ctrIDIndex.Add(ctr.ID()); err != nil {
+		s.ctrNameIndex.Release(ctr.Name())
+		return errors.Wrapf(err, "error releasing container ID %s", ctr.ID())
+	}
+
+	s.containers[ctr.ID()] = ctr
+
+	return nil
+}
+
+// RemoveContainerFromPod removes the given container from the given pod
+// The container is also removed from the state
+func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
+	if !pod.valid {
+		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and containers cannot be removed", pod.ID())
+	}
+	if !ctr.valid {
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
+	}
+
+	// Is the container in the pod?
+	exists, err := pod.HasContainer(ctr.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error checking for container %s in pod %s", ctr.ID(), pod.ID())
+	}
+	if !exists {
+		return errors.Wrapf(ErrNoSuchCtr, "no container %s in pod %s", ctr.ID(), pod.ID())
+	}
+
+	// Remove container from pod
+	if err := pod.removeContainer(ctr); err != nil {
+		return err
+	}
+
+	// Remove container from state
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
+	}
+
+	if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
+		return errors.Wrapf(err, "error removing container ID from index")
+	}
+	delete(s.containers, ctr.ID())
+	s.ctrNameIndex.Release(ctr.Name())
+
+	return nil
+}
+
 // AllPods retrieves all pods currently in the state
 func (s *InMemoryState) AllPods() ([]*Pod, error) {
 	pods := make([]*Pod, 0, len(s.pods))
@@ -370,7 +476,7 @@ func (s *InMemoryState) removeCtrFromDependsMap(ctrID, dependsID string) {
 			return
 		}
 
-		newArr := make([]string, len(arr), 0)
+		newArr := make([]string, 0, len(arr))
 
 		for _, id := range arr {
 			if id != ctrID {

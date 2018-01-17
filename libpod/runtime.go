@@ -14,6 +14,21 @@ import (
 	"github.com/ulule/deepcopier"
 )
 
+// RuntimeStateStore is a constant indicating which state store implementation
+// should be used by libpod
+type RuntimeStateStore int
+
+const (
+	// InvalidStateStore is an invalid state store
+	InvalidStateStore RuntimeStateStore = iota
+	// InMemoryStateStore is an in-memory state that will not persist data
+	// on containers and pods between libpod instances or after system
+	// reboot
+	InMemoryStateStore RuntimeStateStore = iota
+	// SQLiteStateStore is a state backed by a SQLite database
+	SQLiteStateStore RuntimeStateStore = iota
+)
+
 // A RuntimeOption is a functional option which alters the Runtime created by
 // NewRuntime
 type RuntimeOption func(*Runtime) error
@@ -39,7 +54,7 @@ type RuntimeConfig struct {
 	InsecureRegistries    []string
 	Registries            []string
 	SignaturePolicyPath   string
-	InMemoryState         bool
+	StateType             RuntimeStateStore
 	RuntimePath           string
 	ConmonPath            string
 	ConmonEnvVars         []string
@@ -57,7 +72,7 @@ var (
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: DefaultTransport,
-		InMemoryState:         false,
+		StateType:             SQLiteStateStore,
 		RuntimePath:           "/usr/bin/runc",
 		ConmonPath:            findConmonPath(),
 		ConmonEnvVars: []string{
@@ -176,14 +191,15 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime.netPlugin = netPlugin
 
 	// Set up the state
-	if runtime.config.InMemoryState {
+	switch runtime.config.StateType {
+	case InMemoryStateStore:
 		state, err := NewInMemoryState()
 		if err != nil {
 			return nil, err
 		}
 		runtime.state = state
-	} else {
-		dbPath := filepath.Join(runtime.config.StaticDir, "state.sql")
+	case SQLiteStateStore:
+		dbPath := filepath.Join(runtime.config.StaticDir, "sql_state.db")
 		specsDir := filepath.Join(runtime.config.StaticDir, "ocispec")
 
 		// Make a directory to hold JSON versions of container OCI specs
@@ -200,6 +216,8 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, err
 		}
 		runtime.state = state
+	default:
+		return nil, errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
 	// We now need to see if the system has restarted
