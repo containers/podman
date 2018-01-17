@@ -412,7 +412,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			status = "Up " + runningFor + " ago"
 		case libpod.ContainerStatePaused:
 			status = "Paused"
-		case libpod.ContainerStateCreated:
+		case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
 			status = "Created"
 		default:
 			status = "Dead"
