@@ -27,6 +27,10 @@ const (
 	InMemoryStateStore RuntimeStateStore = iota
 	// SQLiteStateStore is a state backed by a SQLite database
 	SQLiteStateStore RuntimeStateStore = iota
+	// SeccompDefaultPath defines the default seccomp path
+	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
+	// SeccompOverridePath if this exists it overrides the default seccomp path
+	SeccompOverridePath = "/etc/crio/seccomp.json"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by

@@ -66,11 +66,24 @@ func createCLI() cli.App {
 	return a
 }
 
-func getRuntimeSpec(c *cli.Context) *spec.Spec {
-	runtime, _ := getRuntime(c)
-	createConfig, _ := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
-	runtimeSpec, _ := createConfigToOCISpec(createConfig)
-	return runtimeSpec
+func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
+	/*
+		TODO: This test has never worked. Need to install content
+		runtime, err := getRuntime(c)
+		if err != nil {
+		return nil, err
+		}
+		createConfig, err := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
+	*/
+	createConfig, err := parseCreateOpts(c, nil, "alpine", generateAlpineImageData())
+	if err != nil {
+		return nil, err
+	}
+	runtimeSpec, err := createConfigToOCISpec(createConfig)
+	if err != nil {
+		return nil, err
+	}
+	return runtimeSpec, nil
 }
 
 // TestPIDsLimit verifies the inputed pid-limit is correctly defined in the spec
@@ -78,7 +91,10 @@ func TestPIDsLimit(t *testing.T) {
 	a := createCLI()
 	args := []string{"--pids-limit", "22"}
 	a.Run(append(cmd, args...))
-	runtimeSpec := getRuntimeSpec(CLI)
+	runtimeSpec, err := getRuntimeSpec(CLI)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	assert.Equal(t, runtimeSpec.Linux.Resources.Pids.Limit, int64(22))
 }
 
@@ -87,7 +103,10 @@ func TestBLKIOWeightDevice(t *testing.T) {
 	a := createCLI()
 	args := []string{"--blkio-weight-device", "/dev/sda:100"}
 	a.Run(append(cmd, args...))
-	runtimeSpec := getRuntimeSpec(CLI)
+	runtimeSpec, err := getRuntimeSpec(CLI)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	assert.Equal(t, *runtimeSpec.Linux.Resources.BlockIO.WeightDevice[0].Weight, uint16(100))
 }
 
@@ -96,7 +115,10 @@ func TestMemorySwap(t *testing.T) {
 	a := createCLI()
 	args := []string{"--memory-swap", "45m", "--memory", "40m"}
 	a.Run(append(cmd, args...))
-	runtimeSpec := getRuntimeSpec(CLI)
+	runtimeSpec, err := getRuntimeSpec(CLI)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	mem, _ := units.RAMInBytes("45m")
 	assert.Equal(t, *runtimeSpec.Linux.Resources.Memory.Swap, mem)
 }
