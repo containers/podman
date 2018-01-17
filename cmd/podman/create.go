@@ -170,6 +170,9 @@ func createCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	if err != nil {
+		return err
+	}
 	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
@@ -370,7 +373,6 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *libpod.ImageData) (*createConfig, error) {
-	//imageName, imageID, data, err := imageData(c, runtime, image)
 	var command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16

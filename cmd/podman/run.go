@@ -46,6 +46,10 @@ func runCmd(c *cli.Context) error {
 	}
 
 	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	if err != nil {
+		return err
+	}
+
 	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
