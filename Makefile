@@ -10,7 +10,7 @@ PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
-ETCDIR ?= /etc
+ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 
