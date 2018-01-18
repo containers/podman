@@ -839,8 +839,20 @@ func (s *SQLState) HasPod(id string) (bool, error) {
 	return false, ErrNotImplemented
 }
 
+// PodHasContainer checks if the given pod containers a container with the given
+// ID
+func (s *SQLState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
+	return false, ErrNotImplemented
+}
+
+// PodContainersByID returns the container IDs of all containers in the given
+// pod
+func (s *SQLState) PodContainersByID(pod *Pod) ([]string, error) {
+	return nil, ErrNotImplemented
+}
+
 // PodContainers returns all the containers in a pod given the pod's full ID
-func (s *SQLState) PodContainers(id string) ([]*Container, error) {
+func (s *SQLState) PodContainers(pod *Pod) ([]*Container, error) {
 	return nil, ErrNotImplemented
 }
 
@@ -853,11 +865,6 @@ func (s *SQLState) AddPod(pod *Pod) error {
 // RemovePod removes a pod from the state
 // Only empty pods can be removed
 func (s *SQLState) RemovePod(pod *Pod) error {
-	return ErrNotImplemented
-}
-
-// UpdatePod updates a pod from the database
-func (s *SQLState) UpdatePod(pod *Pod) error {
 	return ErrNotImplemented
 }
 
