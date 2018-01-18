@@ -11,33 +11,33 @@ function setup() {
 }
 
 @test "podman tag with shortname:latest" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:latest"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:latest
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:latest"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:latest
 	[ "$status" -eq 0 ]
 }
 
 @test "podman tag with shortname" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:latest
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:latest"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:latest
 	[ "$status" -eq 0 ]
 }
 
 @test "podman tag with shortname:tag" {
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:v"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} tag ${ALPINE} foobar:v
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:v"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect foobar:v
 	echo "$output"
 	[ "$status" -eq 0 ]
-	run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:v"
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} rmi --force foobar:v
 	[ "$status" -eq 0 ]
 }
