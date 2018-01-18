@@ -1,5 +1,5 @@
 GO ?= go
-EPOCH_TEST_COMMIT ?= dd0d35d
+EPOCH_TEST_COMMIT ?= 858116f
 HEAD ?= HEAD
 PROJECT := github.com/projectatomic/libpod
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
