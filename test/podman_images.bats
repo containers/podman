@@ -10,7 +10,7 @@ function setup() {
     copy_images
 }
 @test "podman images" {
-    run bash -c ${PODMAN_BINARY} ${PODMAN_OPTIONS} images
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} images
     echo "$output"
     [ "$status" -eq 0 ]
 }

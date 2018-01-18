@@ -15,7 +15,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rm "$ctr_id"
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rm "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -35,7 +35,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rm -f "$ctr_id"
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rm -f "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -45,7 +45,7 @@ function teardown() {
     echo "$output"
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rm -f "$ctr_id"
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rm -f "$ctr_id"
     echo "$output"
     [ "$status" -eq 0 ]
 }

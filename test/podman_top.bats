@@ -26,7 +26,7 @@ function setup() {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} create -d ${ALPINE} sleep 60
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id
     echo "$output"
     [ "$status" -eq 125 ]
 }
@@ -36,7 +36,7 @@ function setup() {
     [ "$status" -eq 0 ]
     ctr_id="$output"
     echo $ctr_id
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -45,7 +45,7 @@ function setup() {
     run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -d ${ALPINE} sleep 60
     [ "$status" -eq 0 ]
     ctr_id="$output"
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id -o fuser,f,comm,label"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} top $ctr_id -o fuser,f,comm,label
     echo "$output"
     [ "$status" -eq 0 ]
 }

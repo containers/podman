@@ -23,11 +23,11 @@ function setup() {
 }
 
 @test "podman inspect with format" {
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS inspect --format {{.ID}} ${ALPINE}
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS inspect --format {{.ID}} ${ALPINE}
     echo "$output"
     [ "$status" -eq 0 ]
     inspectOutput="$output"
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS images --no-trunc --quiet ${ALPINE}
+    bash -c run ${PODMAN_BINARY} $PODMAN_OPTIONS images --no-trunc --quiet ${ALPINE} | sed -e 's/sha256://g'
     echo "$output"
     [ "$status" -eq 0 ]
     [ "$output" = "$inspectOutput" ]
@@ -42,7 +42,7 @@ function setup() {
 }
 
 @test "podman inspect container with size" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} create ${BB} ls"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} create ${BB} ls
     echo "$output"
     [ "$status" -eq 0 ]
     run bash -c "${PODMAN_BINARY} $PODMAN_OPTIONS inspect --size -l | python -m json.tool | grep SizeRootFs"

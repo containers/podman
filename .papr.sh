@@ -46,7 +46,7 @@ if test -z "${INSIDE_CONTAINER:-}"; then
                -e PYTHON=$PYTHON \
                ${IMAGE} /go/src/github.com/projectatomic/libpod/.papr.sh
     systemd-detect-virt
-    ./test/test_runner.sh
+    script -qefc ./test/test_runner.sh
     exit 0
 fi
 
