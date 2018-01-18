@@ -141,7 +141,7 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerRuntimeInfo)
+	ctr.state = new(containerState)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 	ctr.config.Name = namesgenerator.GetRandomName(0)

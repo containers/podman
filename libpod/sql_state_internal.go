@@ -467,7 +467,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerRuntimeInfo)
+	ctr.state = new(containerState)
 
 	ctr.config.ID = id
 	ctr.config.Name = name

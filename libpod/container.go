@@ -93,7 +93,7 @@ type Container struct {
 
 	runningSpec *spec.Spec
 
-	state *containerRuntimeInfo
+	state *containerState
 
 	// Locked indicates that a container has been locked as part of a
 	// Batch() operation
@@ -109,9 +109,9 @@ type Container struct {
 // TODO enable pod support
 // TODO Add readonly support
 
-// containerRuntimeInfo contains the current state of the container
+// containerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
-type containerRuntimeInfo struct {
+type containerState struct {
 	// The current state of the running container
 	State ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container

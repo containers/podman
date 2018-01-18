@@ -47,7 +47,7 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 				},
 			},
 		},
-		state: &containerRuntimeInfo{
+		state: &containerState{
 			State:      ContainerStateRunning,
 			ConfigPath: "/does/not/exist/specs/" + id,
 			RunDir:     "/does/not/exist/tmp/",
