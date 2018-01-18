@@ -135,13 +135,16 @@ docs/%.1: docs/%.1.md .gopathok
 
 docs: $(MANPAGES)
 
+docker-docs: docs
+	(cd docs; ./dckrman.sh *.1)
+
 install: .gopathok install.bin install.man install.cni
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
 	install ${SELINUXOPT} -D -m 755 bin/conmon $(LIBEXECDIR)/crio/conmon
 
-install.man:
+install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 
@@ -155,6 +158,11 @@ install.completions:
 
 install.cni:
 	install ${SELINUXOPT} -D -m 644 cni/97-podman-bridge.conf ${ETCDIR}/cni/net.d/97-podman-bridge.conf
+
+install.docker: docker-docs
+	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
 
 uninstall:
 	rm -f $(LIBEXECDIR)/crio/conmon
