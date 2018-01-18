@@ -4,6 +4,7 @@ set -xeuo pipefail
 DIST=$(cat /etc/redhat-release  | awk '{print $1}')
 IMAGE=registry.fedoraproject.org/fedora:27
 PACKAGER=dnf
+NOTEST=${NOTEST:-0}
 if [[ ${DIST} != "Fedora" ]]; then
     PACKAGER=yum
     IMAGE=registry.centos.org/centos/centos:7
@@ -44,7 +45,11 @@ if test -z "${INSIDE_CONTAINER:-}"; then
                --workdir /go/src/github.com/projectatomic/libpod \
                -e INSIDE_CONTAINER=1 \
                -e PYTHON=$PYTHON \
+               -e NOTEST=$NOTEST \
                ${IMAGE} /go/src/github.com/projectatomic/libpod/.papr.sh
+    if [[ "${NOTEST}" -eq 1 ]]; then
+        exit
+    fi
     systemd-detect-virt
     script -qefc ./test/test_runner.sh
     exit 0
@@ -82,13 +87,16 @@ ${PACKAGER} install -y \
 export GITVALIDATE_TIP=$(cd $GOSRC; git log -2 --pretty='%H' | tail -n 1)
 export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
 
-make gofmt TAGS="${TAGS}"
-make testunit TAGS="${TAGS}"
+if [[ "${NOTEST}" -eq 0 ]]; then
+    make gofmt TAGS="${TAGS}"
+    make testunit TAGS="${TAGS}"
+fi
+
 make install.tools TAGS="${TAGS}"
 
 # Only check lint and gitvalidation on more recent
 # distros with updated git and tooling
-if [[ ${PACKAGER} != "yum" ]]; then
+if [[ ${PACKAGER} != "yum" ]] && [[ "${NOTEST}" -eq 0 ]]; then
     HEAD=$GITVALIDATE_TIP make -C $GOSRC .gitvalidation TAGS="${TAGS}"
     make lint
 fi
