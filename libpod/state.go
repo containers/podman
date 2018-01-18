@@ -42,17 +42,17 @@ type State interface {
 	LookupPod(idOrName string) (*Pod, error)
 	// Checks if a pod with the given ID is present in the state
 	HasPod(id string) (bool, error)
-	// Get all the containers in a pod. Accepts full ID of pod.
-	PodContainers(id string) ([]*Container, error)
+	// Check if a pod has a container with the given ID
+	PodHasContainer(pod *Pod, ctrID string) (bool, error)
+	// Get the IDs of all containers in a pod
+	PodContainersByID(pod *Pod) ([]string, error)
+	// Get all the containers in a pod
+	PodContainers(pod *Pod) ([]*Container, error)
 	// Adds pod to state
-	// Only empty pods can be added to the state
 	AddPod(pod *Pod) error
 	// Removes pod from state
-	// Containers within a pod will not be removed from the state, and will
-	// not be changed to remove them from the now-removed pod
+	// Only empty pods can be removed from the state
 	RemovePod(pod *Pod) error
-	// UpdatePod updates a pod's state from the backing store
-	UpdatePod(pod *Pod) error
 	// AddContainerToPod adds a container to an existing pod
 	// The container given will be added to the state and the pod
 	AddContainerToPod(pod *Pod, ctr *Container) error
