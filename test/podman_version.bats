@@ -7,7 +7,7 @@ function teardown() {
 }
 
 @test "podman version test" {
-	run bash -c "${PODMAN_BINARY} version"
+	run ${PODMAN_BINARY} version
 	echo "$output"
 	[ "$status" -eq 0 ]
 }

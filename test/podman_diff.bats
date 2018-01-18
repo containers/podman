@@ -23,7 +23,6 @@ function teardown() {
 }
 
 @test "test diff with json output" {
-    # run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} diff --format json $IMAGE | python -m json.tool"
     run ${PODMAN_BINARY} $PODMAN_OPTIONS diff --format json $BB
     echo "$output"
     [ "$status" -eq 0 ]

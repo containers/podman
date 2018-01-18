@@ -11,19 +11,19 @@ function setup() {
 }
 
 @test "run a container based on local image" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run $BB ls"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run $BB ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "run a container based on local image with short options" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run -dt $BB ls"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -dt $BB ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "run a container based on a remote image" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${BB_GLIBC} ls"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${BB_GLIBC} ls
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -33,11 +33,11 @@ function setup() {
         skip "SELinux not enabled"
     fi
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${ALPINE} cat /proc/self/attr/current"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${ALPINE} cat /proc/self/attr/current
     echo "$output"
     firstLabel=$output
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${ALPINE} cat /proc/self/attr/current"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run ${ALPINE} cat /proc/self/attr/current
     echo "$output"
     [ "$output" != "${firstLabel}" ]
 }
@@ -52,19 +52,19 @@ function setup() {
 }
 
 @test "run capabilities test" {
-    run  bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-add all ${ALPINE} cat /proc/self/status
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-add sys_admin ${ALPINE} cat /proc/self/status"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-add sys_admin ${ALPINE} cat /proc/self/status
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-drop all ${ALPINE} cat /proc/self/status"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-drop all ${ALPINE} cat /proc/self/status
     echo "$output"
     [ "$status" -eq 0 ]
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-drop setuid ${ALPINE} cat /proc/self/status"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cap-drop setuid ${ALPINE} cat /proc/self/status
     echo "$output"
     [ "$status" -eq 0 ]
 
@@ -86,7 +86,7 @@ function setup() {
     [ "$status" -eq 0 ]
     [ "$output" = "BAR" ]
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --env FOO ${ALPINE} printenv"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --env FOO ${ALPINE} printenv
     echo "$output"
     [ "$status" -ne 0 ]
 
@@ -101,7 +101,7 @@ function setup() {
 IMAGE="docker.io/library/fedora:latest"
 
 @test "run limits test" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --ulimit rtprio=99 --cap-add=sys_nice ${IMAGE}  cat /proc/self/sched
     echo $output
     [ "$status" -eq 0 ]
 
@@ -115,7 +115,7 @@ IMAGE="docker.io/library/fedora:latest"
     [ "$status" -eq 0 ]
     [ "$output" = 1024 ]
 
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --oom-kill-disable=true ${IMAGE} echo memory-hog"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --oom-kill-disable=true ${IMAGE} echo memory-hog
     echo $output
     [ "$status" -eq 0 ]
 
@@ -139,7 +139,7 @@ IMAGE="docker.io/library/fedora:latest"
 }
 
 @test "podman run with cidfile" {
-    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cidfile /tmp/cidfile $BB ls"
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run --cidfile /tmp/cidfile $BB ls
     echo "$output"
     [ "$status" -eq 0 ]
     run rm /tmp/cidfile

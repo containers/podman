@@ -36,7 +36,7 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
     rm -rf /tmp/busybox
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -47,7 +47,7 @@ function setup() {
     echo "--->"
     [ "$status" -eq 0 ]
     rm /tmp/busybox-archive
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -57,18 +57,18 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
     rm -f /tmp/oci-busybox.tar
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
     echo "$output"
     [ "$status" -eq 0 ]
 }
 
 @test "podman push without signatures" {
     mkdir /tmp/busybox
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS push --remove-signatures $ALPINE dir:/tmp/busybox
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS push --remove-signatures $ALPINE dir:/tmp/busybox
     echo "$output"
     [ "$status" -eq 0 ]
     rm -rf /tmp/busybox
-    run bash -c ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS rmi $ALPINE
     echo "$output"
     [ "$status" -eq 0 ]
 }
@@ -86,13 +86,13 @@ function setup() {
 }
 
 @test "push with manifest type conversion" {
-    run bash -c "${PODMAN_BINARY} $PODMAN_OPTIONS push --format oci "${BB}" dir:my-dir"
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS push --format oci "${BB}" dir:my-dir
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "grep "application/vnd.oci.image.config.v1+json" my-dir/manifest.json"
+    run grep "application/vnd.oci.image.config.v1+json" my-dir/manifest.json
     echo "$output"
     [ "$status" -eq 0 ]
-    run bash -c "${PODMAN_BINARY} $PODMAN_OPTIONS push --compress --format v2s2 "${BB}" dir:my-dir"
+    run ${PODMAN_BINARY} $PODMAN_OPTIONS push --compress --format v2s2 "${BB}" dir:my-dir
     echo "$output"
     [ "$status" -eq 0 ]
     run bash -c "grep "application/vnd.docker.distribution.manifest.v2+json" my-dir/manifest.json"
