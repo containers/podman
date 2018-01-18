@@ -25,7 +25,6 @@ import (
 const (
 	// name of the directory holding the artifacts
 	artifactsDir = "artifacts"
-
 )
 
 // rootFsSize gets the size of the container's root filesystem
