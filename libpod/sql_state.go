@@ -527,8 +527,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		return errors.Wrapf(err, "error parsing database state for container %s", ctr.ID())
 	}
 
-	newState := new(containerRuntimeInfo)
-	newState.State = ContainerState(state)
+	newState := new(containerState)
+	newState.State = ContainerStatus(state)
 	newState.ConfigPath = configPath
 	newState.RunDir = runDir
 	newState.Mountpoint = mountpoint
