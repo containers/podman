@@ -15,28 +15,26 @@ import (
 	"github.com/ulule/deepcopier"
 )
 
-// ContainerState represents the current state of a container
-type ContainerState int
+// ContainerStatus represents the current state of a container
+type ContainerStatus int
 
 const (
 	// ContainerStateUnknown indicates that the container is in an error
 	// state where information about it cannot be retrieved
-	ContainerStateUnknown ContainerState = iota
+	ContainerStateUnknown ContainerStatus = iota
 	// ContainerStateConfigured indicates that the container has had its
 	// storage configured but it has not been created in the OCI runtime
-	ContainerStateConfigured ContainerState = iota
+	ContainerStateConfigured ContainerStatus = iota
 	// ContainerStateCreated indicates the container has been created in
 	// the OCI runtime but not started
-	ContainerStateCreated ContainerState = iota
+	ContainerStateCreated ContainerStatus = iota
 	// ContainerStateRunning indicates the container is currently executing
-	ContainerStateRunning ContainerState = iota
+	ContainerStateRunning ContainerStatus = iota
 	// ContainerStateStopped indicates that the container was running but has
 	// exited
-	ContainerStateStopped ContainerState = iota
+	ContainerStateStopped ContainerStatus = iota
 	// ContainerStatePaused indicates that the container has been paused
-	ContainerStatePaused ContainerState = iota
-	// name of the directory holding the artifacts
-	artifactsDir = "artifacts"
+	ContainerStatePaused ContainerStatus = iota
 )
 
 // CgroupParent is the default prefix to a cgroup path in libpod
@@ -115,7 +113,7 @@ type Container struct {
 // It is stored on disk in a tmpfs and recreated on reboot
 type containerRuntimeInfo struct {
 	// The current state of the running container
-	State ContainerState `json:"state"`
+	State ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
@@ -242,9 +240,9 @@ type ContainerConfig struct {
 	// TODO log options - logpath for plaintext, others for log drivers
 }
 
-// ContainerStater returns a string representation for users
+// ContainerStatus returns a string representation for users
 // of a container state
-func (t ContainerState) String() string {
+func (t ContainerStatus) String() string {
 	switch t {
 	case ContainerStateUnknown:
 		return "unknown"
@@ -449,7 +447,7 @@ func (c *Container) FinishedTime() (time.Time, error) {
 }
 
 // State returns the current state of the container
-func (c *Container) State() (ContainerState, error) {
+func (c *Container) State() (ContainerStatus, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()

@@ -528,7 +528,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	}
 
 	newState := new(containerRuntimeInfo)
-	newState.State = ContainerState(state)
+	newState.State = ContainerStatus(state)
 	newState.ConfigPath = configPath
 	newState.RunDir = runDir
 	newState.Mountpoint = mountpoint

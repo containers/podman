@@ -22,6 +22,12 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const (
+	// name of the directory holding the artifacts
+	artifactsDir = "artifacts"
+
+)
+
 // rootFsSize gets the size of the container's root filesystem
 // A container FS is split into two parts.  The first is the top layer, a
 // mutable layer, and the rest is the RootFS: the set of immutable layers

@@ -502,7 +502,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.StopTimeout = stopTimeout
 	ctr.config.CgroupParent = cgroupParent
 
-	ctr.state.State = ContainerState(state)
+	ctr.state.State = ContainerStatus(state)
 	ctr.state.ConfigPath = configPath
 	ctr.state.RunDir = runDir
 	ctr.state.Mountpoint = mountpoint
