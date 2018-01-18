@@ -10,17 +10,19 @@ libpod also contains a tool podman, which allows you to manage Pods, Containers,
 
 At a high level, we expect the scope of libpod/podman to the following functionalities:
 
-* Support multiple image formats including the existing Docker/OCI image formats
-* Support for multiple means to download images including trust & image verification
-* Container image management (managing image layers, overlay filesystems, etc)
-* Container and POD process lifecycle management
+* Support multiple image formats including the existing Docker/OCI image formats.
+* Support for multiple means to download images including trust & image verification.
+* Container image management (managing image layers, overlay filesystems, etc).
+* Container and POD process lifecycle management.
 * Resource isolation of containers and PODS.
 
 ## What is not in scope for this project?
 
-* Building container images. See Buildah
+* Building container images. See Buildah.
 * Signing and pushing images to various image storages.  See Skopeo.
 * Container Runtimes daemons for working with Kubernetes CRIs  See CRI-O.
+
+## OCI Projects Plans
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
 - Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
@@ -37,10 +39,12 @@ Information on how to install Podman in your environment.
 Information on how Podman configures OCI Hooks to run when launching a container.
 
 **[Podman Commands](/commands.md)**
-A list of the Podman commands with links to their man pages and in many cases videos showing the commands in use.
+A list of the Podman commands with links to their man pages and in many cases videos
+showing the commands in use.
 
 **[Podman Usage Transfer](/transfer.md)**
-Useful information for ops and dev transfer as it relates to infrastructure that utilizes Podman.  This page includes tables showing Docker commands and their Podman equivalent commands. 
+Useful information for ops and dev transfer as it relates to infrastructure that utilizes Podman.  This page
+includes tables showing Docker commands and their Podman equivalent commands.
 
 **[Tutorials](docs/tutorials/tutorials.md)**
 Tutorials on the Podman utility.
