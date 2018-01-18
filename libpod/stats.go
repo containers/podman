@@ -29,11 +29,16 @@ type ContainerStats struct {
 // GetContainerStats gets the running stats for a given container
 func (c *Container) GetContainerStats(previousStats *ContainerStats) (*ContainerStats, error) {
 	stats := new(ContainerStats)
+	stats.ContainerID = c.ID()
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.syncContainer(); err != nil {
 		return stats, errors.Wrapf(err, "error updating container %s state", c.ID())
 	}
+	if c.state.State != ContainerStateRunning {
+		return stats, nil
+	}
+
 	cgroup, err := cgroups.Load(cgroups.V1, c.CGroupPath())
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to load cgroup at %+v", c.CGroupPath())
@@ -50,7 +55,6 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 
 	previousCPU := previousStats.CPUNano
 	previousSystem := previousStats.SystemNano
-	stats.ContainerID = c.ID()
 	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, previousSystem)
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
