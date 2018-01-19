@@ -22,7 +22,7 @@ type statsOutputParams struct {
 	MemPerc   string `json:"mem_percent"`
 	NetIO     string `json:"netio"`
 	BlockIO   string `json:"blocki"`
-	PIDS      uint64 `json:"pids"`
+	PIDS      string `json:"pids"`
 }
 
 var (
@@ -62,14 +62,22 @@ func statsCmd(c *cli.Context) error {
 	}
 
 	all := c.Bool("all")
-
-	if c.Bool("latest") && all {
-		return errors.Errorf("--all and --latest cannot be used together")
+	latest := c.Bool("latest")
+	ctr := 0
+	if all {
+		ctr += 1
+	}
+	if latest {
+		ctr += 1
+	}
+	if len(c.Args()) > 0 {
+		ctr += 1
 	}
 
-	if c.Bool("latest") && len(c.Args()) > 0 {
-		return errors.Errorf("no container names are allowed with --latest")
+	if ctr > 1 {
+		return errors.Errorf("--all, --latest and containers cannot be used together")
 	}
+
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -91,19 +99,19 @@ func statsCmd(c *cli.Context) error {
 		format = genStatsFormat()
 	}
 
+	containerFunc = runtime.GetRunningContainers
 	if len(c.Args()) > 0 {
 		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.Args()) }
-	} else if c.Bool("latest") {
+	} else if latest {
 		containerFunc = func() ([]*libpod.Container, error) {
-			var ctrs []*libpod.Container
 			lastCtr, err := runtime.GetLatestContainer()
-			ctrs = append(ctrs, lastCtr)
-			return ctrs, err
+			if err != nil {
+				return nil, err
+			}
+			return []*libpod.Container{lastCtr}, nil
 		}
 	} else if all {
 		containerFunc = runtime.GetAllContainers
-	} else {
-		containerFunc = runtime.GetRunningContainers
 	}
 
 	ctrs, err = containerFunc()
@@ -215,16 +223,27 @@ func (i *statsOutputParams) headerMap() map[string]string {
 }
 
 func combineHumanValues(a, b uint64) string {
+	if a == 0 && b == 0 {
+		return "-- / --"
+	}
 	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
 }
 
 func floatToPercentString(f float64) string {
 	strippedFloat, err := libpod.RemoveScientificNotationFromFloat(f)
-	if err != nil {
+	if err != nil || strippedFloat == 0 {
 		// If things go bazinga, return a safe value
-		return "0.00 %"
+		return "--"
 	}
 	return fmt.Sprintf("%.2f", strippedFloat) + "%"
+}
+
+func pidsToString(pid uint64) string {
+	if pid == 0 {
+		// If things go bazinga, return a safe value
+		return "--"
+	}
+	return fmt.Sprintf("%d", pid)
 }
 
 func getStatsOutputParams(stats *libpod.ContainerStats) statsOutputParams {
@@ -236,6 +255,6 @@ func getStatsOutputParams(stats *libpod.ContainerStats) statsOutputParams {
 		MemPerc:   floatToPercentString(stats.MemPerc),
 		NetIO:     combineHumanValues(stats.NetInput, stats.NetOutput),
 		BlockIO:   combineHumanValues(stats.BlockInput, stats.BlockOutput),
-		PIDS:      stats.PIDs,
+		PIDS:      pidsToString(stats.PIDs),
 	}
 }
