@@ -584,6 +584,19 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
+	if len(c.DNSSearch) > 0 {
+		options = append(options, libpod.WithDNSSearch(c.DNSSearch))
+	}
+	if len(c.DNSServers) > 0 {
+		options = append(options, libpod.WithDNS(c.DNSServers))
+	}
+	if len(c.DNSOpt) > 0 {
+		options = append(options, libpod.WithDNSOption(c.DNSOpt))
+	}
+	if len(c.HostAdd) > 0 {
+		options = append(options, libpod.WithHosts(c.HostAdd))
+	}
+
 	return options, nil
 }
 

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"net"
 	"path/filepath"
 	"regexp"
 	"syscall"
@@ -638,6 +639,58 @@ func WithPodLabels(labels map[string]string) PodCreateOption {
 			pod.labels[key] = value
 		}
 
+		return nil
+	}
+}
+
+// WithDNSSearch sets the additional search domains of a container
+func WithDNSSearch(searchDomains []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.DNSSearch = searchDomains
+		return nil
+	}
+}
+
+// WithDNS sets additional name servers for the container
+func WithDNS(dnsServers []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		var dns []net.IP
+		for _, i := range dnsServers {
+			result := net.ParseIP(i)
+			if result == nil {
+				return errors.Wrapf(ErrInvalidArg, "invalid IP address %s", i)
+			}
+			dns = append(dns, result)
+		}
+		ctr.config.DNSServer = dns
+		return nil
+	}
+}
+
+// WithDNSOption sets addition dns options for the container
+func WithDNSOption(dnsOptions []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.DNSOption = dnsOptions
+		return nil
+	}
+}
+
+// WithHosts sets additional host:IP for the hosts file
+func WithHosts(hosts []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.HostAdd = hosts
 		return nil
 	}
 }

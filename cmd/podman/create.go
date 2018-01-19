@@ -83,6 +83,7 @@ type createConfig struct {
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []uint32 // group-add
+	HostAdd            []string //add-host
 	Hostname           string   //hostname
 	Image              string
 	ImageID            string
@@ -560,6 +561,18 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		networkMode = c.String("net")
 	}
 
+	// Verify the additional hosts are in correct format
+	for _, host := range c.StringSlice("add-host") {
+		if _, err := validateExtraHost(host); err != nil {
+			return nil, err
+		}
+	}
+
+	// Check for . and dns-search domains
+	if libpod.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
+		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+	}
+
 	config := &createConfig{
 		Runtime:        runtime,
 		CapAdd:         c.StringSlice("cap-add"),
@@ -576,6 +589,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		ExposedPorts:   ports,
 		GroupAdd:       groupAdd,
 		Hostname:       c.String("hostname"),
+		HostAdd:        c.StringSlice("add-host"),
 		Image:          imageName,
 		ImageID:        imageID,
 		Interactive:    c.Bool("interactive"),
