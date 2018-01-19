@@ -52,7 +52,7 @@ Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 
 Pull the image even if a version of the image is already present.
 
-**--quiet**
+**-q, --quiet**
 
 Suppress output messages which indicate which instruction is being processed,
 and of progress when pulling images from a registry, and when writing the
