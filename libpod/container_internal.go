@@ -3,8 +3,10 @@ package libpod
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
-	"github.com/mrunalp/fileutils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -373,15 +374,137 @@ func (c *Container) cleanupStorage() error {
 	return c.save()
 }
 
-// copyHostFileToRundir copies the provided file to the runtimedir
-func (c *Container) copyHostFileToRundir(sourcePath string) (string, error) {
-	destFileName := filepath.Join(c.state.RunDir, filepath.Base(sourcePath))
-	if err := fileutils.CopyFile(sourcePath, destFileName); err != nil {
-		return "", err
+// WriteStringToRundir copies the provided file to the runtimedir
+func (c *Container) WriteStringToRundir(destFile, output string) (string, error) {
+	destFileName := filepath.Join(c.state.RunDir, destFile)
+	f, err := os.Create(destFileName)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to create %s", destFileName)
+	}
+
+	defer f.Close()
+	_, err = f.WriteString(output)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to write %s", destFileName)
 	}
 	// Relabel runDirResolv for the container
 	if err := label.Relabel(destFileName, c.config.MountLabel, false); err != nil {
 		return "", err
 	}
 	return destFileName, nil
+}
+
+type resolv struct {
+	nameServers   []string
+	searchDomains []string
+	options       []string
+}
+
+// generateResolvConf generates a containers resolv.conf
+func (c *Container) generateResolvConf() (string, error) {
+	// Copy /etc/resolv.conf to the container's rundir
+	resolvPath := "/etc/resolv.conf"
+
+	// Check if the host system is using system resolve and if so
+	// copy its resolv.conf
+	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
+		resolvPath = "/run/systemd/resolve/resolv.conf"
+	}
+	orig, err := ioutil.ReadFile(resolvPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
+	}
+	if len(c.config.DNSServer) == 0 && len(c.config.DNSSearch) == 0 && len(c.config.DNSOption) == 0 {
+		return c.WriteStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
+	}
+
+	// Read and organize the hosts /etc/resolv.conf
+	resolv := createResolv(string(orig[:]))
+
+	// Populate the resolv struct with user's dns search domains
+	if len(c.config.DNSSearch) > 0 {
+		resolv.searchDomains = nil
+		// The . character means the user doesnt want any search domains in the container
+		if !StringInSlice(".", c.config.DNSSearch) {
+			resolv.searchDomains = append(resolv.searchDomains, c.Config().DNSSearch...)
+		}
+	}
+
+	// Populate the resolv struct with user's dns servers
+	if len(c.config.DNSServer) > 0 {
+		resolv.nameServers = nil
+		for _, i := range c.config.DNSServer {
+			resolv.nameServers = append(resolv.nameServers, i.String())
+		}
+	}
+
+	// Populate the resolve struct with the users dns options
+	if len(c.config.DNSOption) > 0 {
+		resolv.options = nil
+		resolv.options = append(resolv.options, c.Config().DNSOption...)
+	}
+	return c.WriteStringToRundir("resolv.conf", resolv.ToString())
+}
+
+// createResolv creates a resolv struct from an input string
+func createResolv(input string) resolv {
+	var resolv resolv
+	for _, line := range strings.Split(input, "\n") {
+		if strings.HasPrefix(line, "search") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				logrus.Debugf("invalid resolv.conf line %s", line)
+				continue
+			}
+			resolv.searchDomains = append(resolv.searchDomains, fields[1:]...)
+		} else if strings.HasPrefix(line, "nameserver") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				logrus.Debugf("invalid resolv.conf line %s", line)
+				continue
+			}
+			resolv.nameServers = append(resolv.nameServers, fields[1])
+		} else if strings.HasPrefix(line, "options") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				logrus.Debugf("invalid resolv.conf line %s", line)
+				continue
+			}
+			resolv.options = append(resolv.options, fields[1:]...)
+		}
+	}
+	return resolv
+}
+
+//ToString returns a resolv struct in the form of a resolv.conf
+func (r resolv) ToString() string {
+	var result string
+	// Populate the output string with search domains
+	result += fmt.Sprintf("search %s\n", strings.Join(r.searchDomains, " "))
+	// Populate the output string with name servers
+	for _, i := range r.nameServers {
+		result += fmt.Sprintf("nameserver %s\n", i)
+	}
+	// Populate the output string with dns options
+	for _, i := range r.options {
+		result += fmt.Sprintf("options %s\n", i)
+	}
+	return result
+}
+
+// generateHosts creates a containers hosts file
+func (c *Container) generateHosts() (string, error) {
+	orig, err := ioutil.ReadFile("/etc/hosts")
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read /etc/hosts")
+	}
+	hosts := string(orig)
+	if len(c.config.HostAdd) > 0 {
+		for _, host := range c.config.HostAdd {
+			// the host format has already been verified at this point
+			fields := strings.Split(host, ":")
+			hosts += fmt.Sprintf("%s %s\n", fields[0], fields[1])
+		}
+	}
+	return c.WriteStringToRundir("hosts", hosts)
 }

@@ -79,22 +79,15 @@ func (c *Container) Init() (err error) {
 	}
 
 	// Copy /etc/resolv.conf to the container's rundir
-	resolvPath := "/etc/resolv.conf"
+	runDirResolv, err := c.generateResolvConf()
+	if err != nil {
+		return err
+	}
 
-	// Check if the host system is using system resolve and if so
-	// copy its resolv.conf
-	_, err = os.Stat("/run/systemd/resolve/resolv.conf")
-	if err == nil {
-		resolvPath = "/run/systemd/resolve/resolv.conf"
-	}
-	runDirResolv, err := c.copyHostFileToRundir(resolvPath)
-	if err != nil {
-		return errors.Wrapf(err, "unable to copy resolv.conf to ", runDirResolv)
-	}
 	// Copy /etc/hosts to the container's rundir
-	runDirHosts, err := c.copyHostFileToRundir("/etc/hosts")
+	runDirHosts, err := c.generateHosts()
 	if err != nil {
-		return errors.Wrapf(err, "unable to copy /etc/hosts to ", runDirHosts)
+		return errors.Wrapf(err, "unable to copy /etc/hosts to container space")
 	}
 
 	// Save OCI spec to disk
