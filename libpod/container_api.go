@@ -90,6 +90,18 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(err, "unable to copy /etc/hosts to container space")
 	}
 
+	if c.Spec().Hostname == "" {
+		id := c.ID()
+		if len(c.ID()) > 11 {
+			id = c.ID()[:12]
+		}
+		c.config.Spec.Hostname = id
+	}
+	runDirHostname, err := c.generateEtcHostname(c.config.Spec.Hostname)
+	if err != nil {
+		return errors.Wrapf(err, "unable to generate hostname file for container")
+	}
+
 	// Save OCI spec to disk
 	g := generate.NewFromSpec(c.config.Spec)
 	// If network namespace was requested, add it now
@@ -122,6 +134,14 @@ func (c *Container) Init() (err error) {
 		Options:     []string{"rw", "bind"},
 	}
 	g.AddMount(hostsMnt)
+	// Bind hostname
+	hostnameMnt := spec.Mount{
+		Type:        "bind",
+		Source:      runDirHostname,
+		Destination: "/etc/hostname",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(hostnameMnt)
 
 	if c.config.User != "" {
 		if !c.state.Mounted {

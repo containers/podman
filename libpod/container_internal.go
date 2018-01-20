@@ -508,3 +508,8 @@ func (c *Container) generateHosts() (string, error) {
 	}
 	return c.WriteStringToRundir("hosts", hosts)
 }
+
+// generateEtcHostname creates a containers /etc/hostname
+func (c *Container) generateEtcHostname(hostname string) (string, error) {
+	return c.WriteStringToRundir("hostname", hostname)
+}
