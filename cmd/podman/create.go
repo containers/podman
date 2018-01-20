@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -287,15 +288,25 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 	return err
 }
 
+// isPortInPortBindings determines if an exposed host port is in user
+// provided ports
+func isPortInPortBindings(pb map[nat.Port][]nat.PortBinding, port nat.Port) bool {
+	var hostPorts []string
+	for _, i := range pb {
+		hostPorts = append(hostPorts, i[0].HostPort)
+	}
+	return libpod.StringInSlice(port.Port(), hostPorts)
+}
+
 func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
 	// TODO Handle exposed ports from image
 	// Currently ignoring imageExposedPorts
-
-	ports, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
+	var ports map[nat.Port]struct{}
+	ports = make(map[nat.Port]struct{})
+	_, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
 	if err != nil {
 		return nil, nil, err
 	}
-
 	for _, e := range c.StringSlice("expose") {
 		// Merge in exposed ports to the map of published ports
 		if strings.Contains(e, ":") {
@@ -313,6 +324,28 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 			p, err := nat.NewPort(proto, strconv.FormatUint(i, 10))
 			if err != nil {
 				return nil, nil, err
+			}
+			// check if the port in question is already being used
+			if isPortInPortBindings(portBindings, p) {
+				return nil, nil, errors.Errorf("host port %s already used in --publish option", p.Port())
+			}
+
+			if c.Bool("publish-all") {
+				l, err := net.Listen("tcp", ":0")
+				if err != nil {
+					return nil, nil, errors.Wrapf(err, "unable to get free port")
+				}
+				_, randomPort, err := net.SplitHostPort(l.Addr().String())
+				if err != nil {
+					return nil, nil, errors.Wrapf(err, "unable to determine free port")
+				}
+				rp, err := strconv.Atoi(randomPort)
+				if err != nil {
+					return nil, nil, errors.Wrapf(err, "unable to convert random port to int")
+				}
+				logrus.Debug(fmt.Sprintf("Using random host port %s with container port %d", randomPort, p.Int()))
+				portBindings[p] = CreatePortBinding(rp, "")
+				continue
 			}
 			if _, exists := ports[p]; !exists {
 				ports[p] = struct{}{}
@@ -668,4 +701,13 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		fmt.Fprintln(os.Stderr, warning)
 	}
 	return config, nil
+}
+
+//CreatePortBinding takes port (int) and IP (string) and creates an array of portbinding structs
+func CreatePortBinding(hostPort int, hostIP string) []nat.PortBinding {
+	pb := nat.PortBinding{
+		HostPort: strconv.Itoa(hostPort),
+	}
+	pb.HostIP = hostIP
+	return []nat.PortBinding{pb}
 }

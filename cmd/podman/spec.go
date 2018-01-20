@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -543,6 +544,8 @@ func (c *createConfig) GetTmpfsMounts() []spec.Mount {
 
 func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
+	var portBindings []ocicni.PortMapping
+	var err error
 
 	// Uncomment after talking to mheon about unimplemented funcs
 	// options = append(options, libpod.WithLabels(c.labels))
@@ -554,17 +557,25 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		logrus.Debugf("appending name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
-	// TODO parse ports into libpod format and include
+
+	// TODO deal with ports defined in image metadata
+	if len(c.PortBindings) > 0 || len(c.ExposedPorts) > 0 {
+		portBindings, err = c.CreatePortBindings()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create port bindings")
+		}
+	}
+
 	if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
-
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() {
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
+		options = append(options, libpod.WithNetNS(portBindings))
 	}
+
 	if c.PidMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.PidMode.Container())
 		if err != nil {
@@ -621,4 +632,44 @@ func makeThrottleArray(throttleInput []string) ([]spec.LinuxThrottleDevice, erro
 		ltds = append(ltds, ltd)
 	}
 	return ltds, nil
+}
+
+// CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
+func (c *createConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
+	var portBindings []ocicni.PortMapping
+	for containerPb, hostPb := range c.PortBindings {
+		var pm ocicni.PortMapping
+		pm.ContainerPort = int32(containerPb.Int())
+		for _, i := range hostPb {
+			var hostPort int
+			var err error
+			pm.HostIP = i.HostIP
+			if i.HostPort == "" {
+				hostPort = containerPb.Int()
+			} else {
+				hostPort, err = strconv.Atoi(i.HostPort)
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to convert host port to integer")
+				}
+			}
+
+			pm.HostPort = int32(hostPort)
+			// CNI requires us to make both udp and tcp structs
+			pm.Protocol = "udp"
+			portBindings = append(portBindings, pm)
+			pm.Protocol = "tcp"
+			portBindings = append(portBindings, pm)
+		}
+	}
+	for j := range c.ExposedPorts {
+		var expose ocicni.PortMapping
+		expose.HostPort = int32(j.Int())
+		expose.ContainerPort = int32(j.Int())
+		// CNI requires us to make both udp and tcp structs
+		expose.Protocol = "udp"
+		portBindings = append(portBindings, expose)
+		expose.Protocol = "tcp"
+		portBindings = append(portBindings, expose)
+	}
+	return portBindings, nil
 }
