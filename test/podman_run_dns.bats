@@ -45,3 +45,12 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "test addition of hostname" {
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --rm --hostname='foobar' ${ALPINE} cat /etc/hostname | grep foobar"
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} run --rm --hostname='foobar' ${ALPINE} hostname | grep foobar"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}
