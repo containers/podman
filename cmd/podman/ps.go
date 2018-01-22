@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,9 +17,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/fields"
 )
+
+const mountTruncLength = 12
 
 type psOptions struct {
 	all       bool
@@ -63,12 +67,13 @@ type psJSONParams struct {
 	ID               string              `json:"id"`
 	Image            string              `json:"image"`
 	ImageID          string              `json:"image_id"`
-	Command          string              `json:"command"`
+	Command          []string            `json:"command"`
 	CreatedAt        time.Time           `json:"createdAt"`
 	RunningFor       time.Duration       `json:"runningFor"`
 	Status           string              `json:"status"`
 	Ports            map[string]struct{} `json:"ports"`
-	Size             uint                `json:"size"`
+	RootFsSize       int64               `json:"rootFsSize"`
+	RWSize           int64               `json:"rwSize"`
 	Names            string              `json:"names"`
 	Labels           fields.Set          `json:"labels"`
 	Mounts           []specs.Mount       `json:"mounts"`
@@ -242,7 +247,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 	switch filter {
 	case "id":
 		return func(c *libpod.Container) bool {
-			return c.ID() == filterValue
+			return strings.Contains(c.ID(), filterValue)
 		}, nil
 	case "label":
 		return func(c *libpod.Container) bool {
@@ -255,7 +260,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 		}, nil
 	case "name":
 		return func(c *libpod.Container) bool {
-			return c.Name() == filterValue
+			return strings.Contains(c.Name(), filterValue)
 		}, nil
 	case "exited":
 		exitCode, err := strconv.ParseInt(filterValue, 10, 32)
@@ -278,14 +283,18 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			if err != nil {
 				return false
 			}
-			return status.String() == filterValue
+			state := status.String()
+			if status == libpod.ContainerStateConfigured {
+				state = "created"
+			}
+			return state == filterValue
 		}, nil
 	case "ancestor":
 		// This needs to refine to match docker
 		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
 		return func(c *libpod.Container) bool {
 			containerConfig := c.Config()
-			if containerConfig.RootfsImageID == filterValue || containerConfig.RootfsImageName == filterValue {
+			if strings.Contains(containerConfig.RootfsImageID, filterValue) || strings.Contains(containerConfig.RootfsImageName, filterValue) {
 				return true
 			}
 			return false
@@ -316,8 +325,21 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 		//- volume=(<volume-name>|<mount-point-destination>)
 		return func(c *libpod.Container) bool {
 			containerConfig := c.Config()
-			//TODO We need to still lookup against volumes too
-			return containerConfig.MountLabel == filterValue
+			var dest string
+			arr := strings.Split(filterValue, ":")
+			source := arr[0]
+			if len(arr) == 2 {
+				dest = arr[1]
+			}
+			for _, mount := range containerConfig.Spec.Mounts {
+				if dest != "" && (mount.Source == source && mount.Destination == dest) {
+					return true
+				}
+				if dest == "" && mount.Source == source {
+					return true
+				}
+			}
+			return false
 		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
@@ -394,15 +416,32 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		runningFor := units.HumanDuration(time.Since(conConfig.CreatedTime))
 		createdAt := runningFor + " ago"
 		imageName := conConfig.RootfsImageName
+		rootFsSize, err := ctr.RootFsSize()
+		if err != nil {
+			logrus.Errorf("error getting root fs size for %q: %v", ctr.ID(), err)
+		}
+		rwSize, err := ctr.RWSize()
+		if err != nil {
+			logrus.Errorf("error getting rw size for %q: %v", ctr.ID(), err)
+		}
+
+		var createArtifact createConfig
+		artifact, err := ctr.GetArtifact("create-config")
+		if err == nil {
+			if err := json.Unmarshal(artifact, &createArtifact); err != nil {
+				return nil, err
+			}
+		} else {
+			logrus.Errorf("couldn't get some ps information, error getting artifact %q: %v", ctr.ID(), err)
+		}
 
 		// TODO We currently dont have the ability to get many of
 		// these data items.  Uncomment as progress is made
 
-		//command := getStrFromSquareBrackets(ctr.ImageCreatedBy)
 		command := strings.Join(ctr.Spec().Process.Args, " ")
-		//mounts := getMounts(ctr.Mounts, opts.noTrunc)
 		ports := getPorts(ctr.Config().PortMappings)
-		//size := units.HumanSize(float64(ctr.SizeRootFs))
+		mounts := getMounts(createArtifact.Volumes, opts.noTrunc)
+		size := units.HumanSizeWithPrecision(float64(rwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(rootFsSize), 3) + ")"
 		labels := formatLabels(ctr.Labels())
 		ns := getNamespaces(pid)
 
@@ -435,18 +474,18 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			RunningFor: runningFor,
 			Status:     status,
 			Ports:      ports,
-			//Size:       size,
-			Names:  ctr.Name(),
-			Labels: labels,
-			//Mounts:     mounts,
-			PID:    pid,
-			Cgroup: ns.Cgroup,
-			IPC:    ns.IPC,
-			MNT:    ns.MNT,
-			NET:    ns.NET,
-			PIDNS:  ns.PID,
-			User:   ns.User,
-			UTS:    ns.UTS,
+			Size:       size,
+			Names:      ctr.Name(),
+			Labels:     labels,
+			Mounts:     mounts,
+			PID:        pid,
+			Cgroup:     ns.Cgroup,
+			IPC:        ns.IPC,
+			MNT:        ns.MNT,
+			NET:        ns.NET,
+			PIDNS:      ns.PID,
+			User:       ns.User,
+			UTS:        ns.UTS,
 		}
 		psOutput = append(psOutput, params)
 	}
@@ -500,19 +539,28 @@ func getJSONOutput(containers []*libpod.Container, nSpace bool) ([]psJSONParams,
 		if err != nil {
 			return psOutput, errors.Wrapf(err, "unable to obtain container state for JSON output")
 		}
+		rootFsSize, err := ctr.RootFsSize()
+		if err != nil {
+			logrus.Errorf("error getting root fs size for %q: %v", ctr.ID(), err)
+		}
+		rwSize, err := ctr.RWSize()
+		if err != nil {
+			logrus.Errorf("error getting rw size for %q: %v", ctr.ID(), err)
+		}
+
 		params := psJSONParams{
 			// TODO When we have ability to obtain the commented out data, we need
 			// TODO to add it
-			ID:      ctr.ID(),
-			Image:   cc.RootfsImageName,
-			ImageID: cc.RootfsImageID,
-			//Command:          getStrFromSquareBrackets(ctr.ImageCreatedBy),
-			Command:    strings.Join(ctr.Spec().Process.Args, " "),
+			ID:         ctr.ID(),
+			Image:      cc.RootfsImageName,
+			ImageID:    cc.RootfsImageID,
+			Command:    ctr.Spec().Process.Args,
 			CreatedAt:  cc.CreatedTime,
 			RunningFor: time.Since(cc.CreatedTime),
 			Status:     conState.String(),
 			//Ports:            cc.Spec.Linux.Resources.Network.
-			//Size:             ctr.SizeRootFs,
+			RootFsSize:       rootFsSize,
+			RWSize:           rwSize,
 			Names:            cc.Name,
 			Labels:           cc.Labels,
 			Mounts:           cc.Spec.Mounts,
@@ -571,29 +619,24 @@ func formatLabels(labels map[string]string) string {
 	return ""
 }
 
-/*
 // getMounts converts the volumes mounted to a string of the form "mount1, mount2"
 // it truncates it if noTrunc is false
-func getMounts(mounts []specs.Mount, noTrunc bool) string {
+func getMounts(mounts []string, noTrunc bool) string {
 	var arr []string
 	if len(mounts) == 0 {
 		return ""
 	}
 	for _, mount := range mounts {
-		if noTrunc {
-			arr = append(arr, mount.Source)
+		splitArr := strings.Split(mount, ":")
+		if len(splitArr[0]) > mountTruncLength && !noTrunc {
+			arr = append(arr, splitArr[0][:mountTruncLength]+"...")
 			continue
 		}
-		tempArr := strings.SplitAfter(mount.Source, "/")
-		if len(tempArr) >= 3 {
-			arr = append(arr, strings.Join(tempArr[:3], ""))
-		} else {
-			arr = append(arr, mount.Source)
-		}
+		arr = append(arr, splitArr[0])
 	}
 	return strings.Join(arr, ",")
 }
-*/
+
 // getPorts converts the ports used to a string of the from "port1, port2"
 func getPorts(ports []ocicni.PortMapping) string {
 	var portDisplay []string
