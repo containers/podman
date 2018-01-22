@@ -232,11 +232,8 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 		if err != nil {
 			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 		} else {
-			// XXX: this defer does nothing as the cgroup can't be deleted cause
-			// it contains the conmon pid in tasks
 			// we need to remove this defer and delete the cgroup once conmon exits
 			// maybe need a conmon monitor?
-			defer control.Delete()
 			if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
