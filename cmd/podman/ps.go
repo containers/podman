@@ -373,23 +373,38 @@ func (p *psTemplateParams) headerMap() map[string]string {
 
 // getTemplateOutput returns the modified container information
 func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemplateParams, error) {
-	var psOutput []psTemplateParams
-	var status string
+	var (
+		psOutput      []psTemplateParams
+		status, ctrID string
+		conConfig     *libpod.ContainerConfig
+		conState      libpod.ContainerStatus
+		err           error
+		exitCode      int32
+		pid           int
+	)
+
 	for _, ctr := range containers {
-		ctrID := ctr.ID()
-		conConfig := ctr.Config()
-		conState, err := ctr.State()
-		if err != nil {
-			return psOutput, errors.Wrapf(err, "unable to obtain container state")
+		batchErr := ctr.Batch(func(c *libpod.Container) error {
+			ctrID = c.ID()
+			conConfig = c.Config()
+			conState, err = c.State()
+			if err != nil {
+				return errors.Wrapf(err, "unable to obtain container state")
+			}
+			exitCode, err = c.ExitCode()
+			if err != nil {
+				return errors.Wrapf(err, "unable to obtain container exit code")
+			}
+			pid, err = c.PID()
+			if err != nil {
+				return errors.Wrapf(err, "unable to obtain container pid")
+			}
+			return nil
+		})
+		if batchErr != nil {
+			return nil, err
 		}
-		exitCode, err := ctr.ExitCode()
-		if err != nil {
-			return psOutput, errors.Wrapf(err, "unable to obtain container exit code")
-		}
-		pid, err := ctr.PID()
-		if err != nil {
-			return psOutput, errors.Wrapf(err, "unable to obtain container pid")
-		}
+
 		runningFor := units.HumanDuration(time.Since(conConfig.CreatedTime))
 		createdAt := runningFor + " ago"
 		imageName := conConfig.RootfsImageName
