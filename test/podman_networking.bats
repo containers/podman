@@ -48,3 +48,12 @@ function setup() {
     echo "$output"
     [ "$status" -eq 0 ]
 }
+
+@test "expose ports in image" {
+    run ${PODMAN_BINARY} ${PODMAN_OPTIONS} run -dt -P docker.io/library/nginx:latest
+    echo "$output"
+    [ "$status" -eq 0 ]
+    run bash -c "${PODMAN_BINARY} ${PODMAN_OPTIONS} inspect -l | grep ': 80,'"
+    echo "$output"
+    [ "$status" -eq 0 ]
+}

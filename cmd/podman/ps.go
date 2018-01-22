@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -400,7 +401,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		//command := getStrFromSquareBrackets(ctr.ImageCreatedBy)
 		command := strings.Join(ctr.Spec().Process.Args, " ")
 		//mounts := getMounts(ctr.Mounts, opts.noTrunc)
-		//ports := getPorts(ctr.Config.ExposedPorts)
+		ports := getPorts(ctr.Config().PortMappings)
 		//size := units.HumanSize(float64(ctr.SizeRootFs))
 		labels := formatLabels(ctr.Labels())
 		ns := getNamespaces(pid)
@@ -433,7 +434,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			CreatedAt:  createdAt,
 			RunningFor: runningFor,
 			Status:     status,
-			//Ports:      ports,
+			Ports:      ports,
 			//Size:       size,
 			Names:  ctr.Name(),
 			Labels: labels,
@@ -592,15 +593,19 @@ func getMounts(mounts []specs.Mount, noTrunc bool) string {
 	}
 	return strings.Join(arr, ",")
 }
+*/
 // getPorts converts the ports used to a string of the from "port1, port2"
-func getPorts(ports map[string]struct{}) string {
-	var arr []string
+func getPorts(ports []ocicni.PortMapping) string {
+	var portDisplay []string
 	if len(ports) == 0 {
 		return ""
 	}
-	for key := range ports {
-		arr = append(arr, key)
+	for _, v := range ports {
+		hostIP := v.HostIP
+		if hostIP == "" {
+			hostIP = "0.0.0.0"
+		}
+		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
 	}
-	return strings.Join(arr, ",")
+	return strings.Join(portDisplay, ", ")
 }
-*/

@@ -4,7 +4,6 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*ContainerInspectData, error) {
@@ -77,7 +76,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 
 	// Copy port mappings into network settings
 	if config.PortMappings != nil {
-		deepcopier.Copy(config.PortMappings).To(data.NetworkSettings.Ports)
+		data.NetworkSettings.Ports = config.PortMappings
 	}
 
 	// Get information on the container's network namespace (if present)
