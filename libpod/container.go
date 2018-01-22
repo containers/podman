@@ -515,3 +515,27 @@ func (c *Container) CGroupPath() cgroups.Path {
 func (c *Container) StopTimeout() uint {
 	return c.config.StopTimeout
 }
+
+// RootFsSize returns the root FS size of the container
+func (c *Container) RootFsSize() (int64, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return -1, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
+	}
+	return c.rootFsSize()
+}
+
+// RWSize returns the rw size of the container
+func (c *Container) RWSize() (int64, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return -1, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
+	}
+	return c.rwSize()
+}
