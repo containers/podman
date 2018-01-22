@@ -299,15 +299,26 @@ func isPortInPortBindings(pb map[nat.Port][]nat.PortBinding, port nat.Port) bool
 }
 
 func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
-	// TODO Handle exposed ports from image
-	// Currently ignoring imageExposedPorts
+	var exposedPorts []string
 	var ports map[nat.Port]struct{}
 	ports = make(map[nat.Port]struct{})
 	_, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, e := range c.StringSlice("expose") {
+
+	// Parse the ports from the image itself
+	for i := range imageExposedPorts {
+		fields := strings.Split(i, "/")
+		if len(fields) > 2 {
+			return nil, nil, errors.Errorf("invalid exposed port format in image")
+		}
+		exposedPorts = append(exposedPorts, fields[0])
+	}
+
+	// Add the ports from the image to the ports from the user
+	exposedPorts = append(exposedPorts, c.StringSlice("expose")...)
+	for _, e := range exposedPorts {
 		// Merge in exposed ports to the map of published ports
 		if strings.Contains(e, ":") {
 			return nil, nil, fmt.Errorf("invalid port format for --expose: %s", e)
