@@ -370,10 +370,13 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 // default container runtime data out of it. imageData returns the data
 // to the caller.  Example Data: Entrypoint, Env, WorkingDir, Labels ...
 func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, string, *libpod.ImageData, error) {
-	var err error
+	var (
+		err                error
+		imageName, imageID string
+	)
 	// Deal with the image after all the args have been checked
 	createImage := runtime.NewImage(image)
-	createImage.LocalName, _ = createImage.GetLocalImageName()
+	imageName, imageID, _ = createImage.GetLocalImageName()
 	if createImage.LocalName == "" {
 		// The image wasnt found by the user input'd name or its fqname
 		// Pull the image
@@ -384,28 +387,11 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 		createImage.Pull(writer)
 	}
 
-	var imageName string
-	if createImage.LocalName != "" {
-		nameIsID, err := runtime.IsImageID(createImage.LocalName)
-		if err != nil {
-			return "", "", nil, err
-		}
-		if nameIsID {
-			// If the input from the user is an ID, then we need to get the image
-			// name for cstorage
-			createImage.LocalName, err = createImage.GetNameByID()
-			if err != nil {
-				return "", "", nil, err
-			}
-		}
-		imageName = createImage.LocalName
-	} else {
+	createImage.LocalName = imageName
+	if imageName == "" {
 		imageName, err = createImage.GetFQName()
+		_, imageID, _ = createImage.GetLocalImageName()
 	}
-	if err != nil {
-		return "", "", nil, err
-	}
-	imageID, err := createImage.GetImageID()
 	if err != nil {
 		return "", "", nil, err
 	}

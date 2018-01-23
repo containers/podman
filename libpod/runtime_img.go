@@ -342,27 +342,23 @@ func getTags(nameInput string) (reference.NamedTagged, bool, error) {
 	return tagged, isTagged, nil
 }
 
-// GetLocalImageName returns  the name of the image if it is local.
-// It will return an empty string and error if not found.
-func (k *Image) GetLocalImageName() (string, error) {
-	_, err := k.runtime.GetImage(k.Name)
+// GetLocalImageName returns  the name of the image if it is local as well
+// as the image's ID. It will return an empty strings and error if not found.
+func (k *Image) GetLocalImageName() (string, string, error) {
+	localImage, err := k.runtime.GetImage(k.Name)
 	if err == nil {
 		k.LocalName = k.Name
-		return k.Name, nil
+		return k.Name, localImage.ID, nil
 	}
 	localImages, err := k.runtime.GetImages(&ImageFilterParams{})
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to find local images")
+		return "", "", errors.Wrapf(err, "unable to find local images")
 	}
 	_, isTagged, err := getTags(k.Name)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	for _, image := range localImages {
-		if strings.HasPrefix(image.ID, k.Name) {
-			k.ID = image.ID
-			return image.ID, nil
-		}
 		for _, name := range image.Names {
 			imgRef, err := reference.Parse(name)
 			if err != nil {
@@ -382,22 +378,22 @@ func (k *Image) GetLocalImageName() (string, error) {
 
 			if imageName == k.Name {
 				k.LocalName = name
-				return name, nil
+				return name, image.ID, nil
 			}
 			imageSplit := strings.Split(imageName, "/")
 			baseName := imageSplit[len(imageSplit)-1]
 			if baseName == k.Name {
 				k.LocalName = name
-				return name, nil
+				return name, image.ID, nil
 			}
 		}
 	}
-	return "", errors.Wrapf(storage.ErrImageUnknown, "unable to find image locally")
+	return "", "", errors.Wrapf(storage.ErrImageUnknown, "unable to find image locally")
 }
 
 // HasLatest determines if we have the latest image local
 func (k *Image) HasLatest() (bool, error) {
-	localName, err := k.GetLocalImageName()
+	localName, _, err := k.GetLocalImageName()
 	if err != nil {
 		return false, err
 	}
@@ -434,7 +430,7 @@ func (k *Image) Pull(writer io.Writer) error {
 func (k *Image) Remove(force bool) (string, error) {
 	if k.LocalName == "" {
 		// This populates the images local name
-		_, err := k.GetLocalImageName()
+		_, _, err := k.GetLocalImageName()
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to find %s locally", k.Name)
 		}
