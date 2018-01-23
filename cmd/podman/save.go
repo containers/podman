@@ -43,12 +43,13 @@ var (
 	Default is docker-archive`
 
 	saveCommand = cli.Command{
-		Name:        "save",
-		Usage:       "Save image to an archive",
-		Description: saveDescription,
-		Flags:       saveFlags,
-		Action:      saveCmd,
-		ArgsUsage:   "",
+		Name:           "save",
+		Usage:          "Save image to an archive",
+		Description:    saveDescription,
+		Flags:          saveFlags,
+		Action:         saveCmd,
+		ArgsUsage:      "",
+		SkipArgReorder: true,
 	}
 )
 
