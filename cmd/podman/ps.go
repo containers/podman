@@ -474,7 +474,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		}
 
 		if !opts.noTrunc {
-			ctrID = ctr.ID()[:idTruncLength]
+			ctrID = shortID(ctr.ID())
 			imageName = conConfig.RootfsImageName
 		}
 

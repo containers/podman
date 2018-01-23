@@ -22,7 +22,10 @@ var (
 	}
 )
 
-const crioConfigPath = "/etc/crio/crio.conf"
+const (
+	crioConfigPath = "/etc/crio/crio.conf"
+	idTruncLength  = 12
+)
 
 func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 
@@ -86,6 +89,13 @@ func getConfig(c *cli.Context) (*libkpod.Config, error) {
 func splitCamelCase(src string) string {
 	entries := camelcase.Split(src)
 	return strings.Join(entries, " ")
+}
+
+func shortID(id string) string {
+	if len(id) > idTruncLength {
+		return id[:idTruncLength]
+	}
+	return id
 }
 
 // validateFlags searches for StringFlags or StringSlice flags that never had

@@ -13,6 +13,7 @@ import (
 // ContainerStats contains the statistics information for a running container
 type ContainerStats struct {
 	ContainerID string
+	Name        string
 	CPU         float64
 	CPUNano     uint64
 	SystemNano  uint64
@@ -30,6 +31,7 @@ type ContainerStats struct {
 func (c *Container) GetContainerStats(previousStats *ContainerStats) (*ContainerStats, error) {
 	stats := new(ContainerStats)
 	stats.ContainerID = c.ID()
+	stats.Name = c.Name()
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.syncContainer(); err != nil {
