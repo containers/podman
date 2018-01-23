@@ -268,6 +268,18 @@ func WithShmSize(size int64) CtrCreateOption {
 	}
 }
 
+// WithPrivileged sets the privileged flag in the container runtime
+func WithPrivileged(privileged bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Privileged = privileged
+		return nil
+	}
+}
+
 // WithSELinuxLabels sets the mount label for SELinux
 func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	return func(ctr *Container) error {

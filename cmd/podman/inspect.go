@@ -188,7 +188,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 			MemorySwappiness:     memSwappiness,
 			OomKillDisable:       memDisableOOMKiller,
 			PidsLimit:            pidsLimit,
-			Privileged:           spec.Process.NoNewPrivileges,
+			Privileged:           config.Privileged,
 			ReadonlyRootfs:       spec.Root.Readonly,
 			Runtime:              ctr.RuntimeName(),
 			NetworkMode:          string(createArtifact.NetMode),
