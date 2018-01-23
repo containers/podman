@@ -427,9 +427,17 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		if batchErr != nil {
 			return nil, err
 		}
-
-		runningFor := units.HumanDuration(time.Since(conConfig.CreatedTime))
-		createdAt := runningFor + " ago"
+		runningFor := ""
+		startedTime, err := ctr.StartedTime()
+		if err != nil {
+			logrus.Errorf("error getting started time for %q: %v", ctr.ID(), err)
+		}
+		// If the container has not be started, the "zero" value of time is 0001-01-01 00:00:00 +0000 UTC
+		// which would make the time elapsed about a few hundred of years. So checking for the "zero" value of time.Time
+		if startedTime != (time.Time{}) {
+			runningFor = units.HumanDuration(time.Since(startedTime))
+		}
+		createdAt := conConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
 		imageName := conConfig.RootfsImageName
 		rootFsSize, err := ctr.RootFsSize()
 		if err != nil {
