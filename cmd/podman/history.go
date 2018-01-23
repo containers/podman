@@ -14,10 +14,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const (
-	createdByTruncLength = 45
-	idTruncLength        = 12
-)
+const createdByTruncLength = 45
 
 // historyTemplateParams stores info about each layer
 type historyTemplateParams struct {
@@ -169,7 +166,7 @@ func getHistoryTemplateOutput(history []v1.History, layers []types.BlobInfo, ima
 			imageID = "<missing>"
 		}
 		if !opts.noTrunc && i == len(history)-1 {
-			imageID = imageID[:idTruncLength]
+			imageID = shortID(imageID)
 		}
 
 		var size int64

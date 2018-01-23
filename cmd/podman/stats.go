@@ -15,14 +15,14 @@ import (
 )
 
 type statsOutputParams struct {
-	Container string `json:"name"`
-	ID        string `json:"id"`
-	CPUPerc   string `json:"cpu_percent"`
-	MemUsage  string `json:"mem_usage"`
-	MemPerc   string `json:"mem_percent"`
-	NetIO     string `json:"netio"`
-	BlockIO   string `json:"blocki"`
-	PIDS      string `json:"pids"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	CPUPerc  string `json:"cpu_percent"`
+	MemUsage string `json:"mem_usage"`
+	MemPerc  string `json:"mem_percent"`
+	NetIO    string `json:"netio"`
+	BlockIO  string `json:"blocki"`
+	PIDS     string `json:"pids"`
 }
 
 var (
@@ -37,7 +37,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "pretty-print container statistics using a Go template",
+			Usage: "pretty-print container statistics to JSON or using a Go template",
 		},
 		cli.BoolFlag{
 			Name:  "no-reset",
@@ -184,7 +184,12 @@ func outputStats(stats []*libpod.ContainerStats, format string) error {
 }
 
 func genStatsFormat() (format string) {
-	return "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}"
+	if format != "" {
+		// "\t" from the command line is not being recognized as a tab
+		// replacing the string "\t" to a tab character if the user passes in "\t"
+		return strings.Replace(format, `\t`, "\t", -1)
+	}
+	return "table {{.ID}}\t{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDS}}"
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
@@ -248,13 +253,13 @@ func pidsToString(pid uint64) string {
 
 func getStatsOutputParams(stats *libpod.ContainerStats) statsOutputParams {
 	return statsOutputParams{
-		Container: stats.ContainerID[:12],
-		ID:        stats.ContainerID,
-		CPUPerc:   floatToPercentString(stats.CPU),
-		MemUsage:  combineHumanValues(stats.MemUsage, stats.MemLimit),
-		MemPerc:   floatToPercentString(stats.MemPerc),
-		NetIO:     combineHumanValues(stats.NetInput, stats.NetOutput),
-		BlockIO:   combineHumanValues(stats.BlockInput, stats.BlockOutput),
-		PIDS:      pidsToString(stats.PIDs),
+		Name:     stats.Name,
+		ID:       shortID(stats.ContainerID),
+		CPUPerc:  floatToPercentString(stats.CPU),
+		MemUsage: combineHumanValues(stats.MemUsage, stats.MemLimit),
+		MemPerc:  floatToPercentString(stats.MemPerc),
+		NetIO:    combineHumanValues(stats.NetInput, stats.NetOutput),
+		BlockIO:  combineHumanValues(stats.BlockInput, stats.BlockOutput),
+		PIDS:     pidsToString(stats.PIDs),
 	}
 }
