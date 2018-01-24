@@ -103,6 +103,22 @@ RUN set -x \
        && cp "$GOPATH"/bin/crictl /usr/bin/ \
        && rm -rf "$GOPATH"
 
+# Install ginkgo
+RUN set -x \
+       && export GOPATH=/go \
+       && go get -u github.com/onsi/ginkgo/ginkgo \
+       && install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
+
+# Install gomega
+RUN set -x \
+       && export GOPATH=/go \
+       && go get github.com/onsi/gomega/...
+
+# Install cni config
+#RUN make install.cni
+RUN mkdir -p /etc/cni/net.d/
+COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
+
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json

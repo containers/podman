@@ -7,20 +7,13 @@ host:
   distro: fedora/27/atomic
   specs:
      ram: 8192
+     cpus: 4
 
 required: true
 timeout: 45m
 
 tests:
-  - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
-
-packages:
-    - cri-o
-    - containernetworking-cni
-
-extra-repos:
-    - name: updatestesting
-      baseurl: http://download.fedoraproject.org/pub/fedora/linux/updates/testing/27/x86_64/
+  -  sh .papr_prepare.sh
 
 ---
 
@@ -29,6 +22,7 @@ host:
   distro: centos/7/atomic/smoketested
   specs:
      ram: 8192
+     cpus: 4
 extra-repos:
     - name: epel
       metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch

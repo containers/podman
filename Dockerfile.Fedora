@@ -1,0 +1,67 @@
+FROM registry.fedoraproject.org/fedora:27
+
+RUN dnf -y install btrfs-progs-devel \
+              bzip2 \
+              device-mapper-devel \
+              findutils \
+              git \
+              glib2-devel \
+              gnupg \
+              golang \
+              gpgme-devel \
+              libassuan-devel \
+              libseccomp-devel \
+              libselinux-devel \
+              skopeo-containers \
+              runc \
+              make \
+              ostree-devel \
+              python \
+              which\
+              golang-github-cpuguy83-go-md2man \
+              crio \
+              procps-ng \
+              iptables && dnf clean all
+
+# install bats
+RUN cd /tmp \
+    && git clone https://github.com/sstephenson/bats.git \
+    && cd bats \
+    && git reset --hard 03608115df2071fff4eaaff1605768c275e5f81f \
+    && ./install.sh /usr/local \
+    && rm -fr /tmp/bats
+
+# Install CNI plugins
+ENV CNI_COMMIT 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
+RUN set -x \
+       && export GOPATH="$(mktemp -d)" \
+       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
+       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
+       && git checkout -q "$CNI_COMMIT" \
+       && ./build.sh \
+       && mkdir -p /usr/libexec/cni \
+       && cp bin/* /usr/libexec/cni \
+       && rm -rf "$GOPATH"
+
+# Install ginkgo
+RUN set -x \
+       && export GOPATH=/go \
+       && go get -u github.com/onsi/ginkgo/ginkgo \
+       && install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
+
+# Install gomega
+RUN set -x \
+       && export GOPATH=/go \
+       && go get github.com/onsi/gomega/...
+
+# Install cni config
+#RUN make install.cni
+RUN mkdir -p /etc/cni/net.d/
+COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
+
+# Make sure we have some policy for pulling images
+RUN mkdir -p /etc/containers
+COPY test/policy.json /etc/containers/policy.json
+COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
+
+WORKDIR /go/src/github.com/projectatomic/libpod
