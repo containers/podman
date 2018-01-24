@@ -43,15 +43,27 @@ function setup() {
 	[ "$status" -ne 0 ]
 }
 
-@test "podman save to directory wit oci format" {
+@test "podman save to directory with oci format" {
 	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} save --format oci-dir -o alp-dir $ALPINE
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -rf alp-dir
 }
 
-@test "podman save to directory wit v2s2 (docker) format" {
+@test "podman save to directory with v2s2 (docker) format" {
 	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} save --format docker-dir -o alp-dir $ALPINE
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -rf alp-dir
+}
+
+@test "podman save to directory with compression" {
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} save --compress --format docker-dir -o alp-dir $ALPINE
+	echo "$output"
+	[ "$status" -eq 0 ]
+	rm -rf alp-dir
+
+	run ${PODMAN_BINARY} ${PODMAN_OPTIONS} save --format docker-dir --compress -o alp-dir $ALPINE
 	echo "$output"
 	[ "$status" -eq 0 ]
 	rm -rf alp-dir
