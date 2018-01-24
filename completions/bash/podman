@@ -1413,6 +1413,18 @@ _podman_pause() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_port() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options="
+     --all
+     -a
+     -l
+     --latest"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_ps() {
      local options_with_args="
      --filter -f
@@ -1566,6 +1578,7 @@ _podman_podman() {
     logs
     mount
     pause
+    port
     ps
     pull
     push

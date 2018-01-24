@@ -57,6 +57,7 @@ func main() {
 		mountCommand,
 		pauseCommand,
 		psCommand,
+		portCommand,
 		pullCommand,
 		pushCommand,
 		rmCommand,

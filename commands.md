@@ -25,6 +25,7 @@
 | [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
 | [podman-mount(1)](/docs/podman-mount.1.md)               | Mount a working container's root filesystem                               |[![...](/docs/play.png)](https://asciinema.org/a/YSP6hNvZo0RGeMHDA97PhPAf3)|
 | [podman-pause(1)](/docs/podman-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
+| [podman-port(1)](/docs/podman-port.1.md)               | List port mappings for running containers |[![...](/docs/play.png)]()|
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
 | [podman-pull(1)](/docs/podman-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
 | [podman-push(1)](/docs/podman-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
