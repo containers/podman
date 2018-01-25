@@ -608,6 +608,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithHosts(c.HostAdd))
 	}
 
+	options = append(options, libpod.WithPrivileged(c.Privileged))
 	return options, nil
 }
 
