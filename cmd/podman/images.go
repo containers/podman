@@ -194,7 +194,7 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*storage.Image, o
 
 		imageID := "sha256:" + img.ID
 		if !opts.noTrunc {
-			imageID = img.ID[:idTruncLength]
+			imageID = shortID(img.ID)
 		}
 
 		repository := "<none>"

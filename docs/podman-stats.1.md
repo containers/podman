@@ -31,48 +31,58 @@ Disable streaming stats and only pull the first result, default setting is false
 
 **--format="TEMPLATE"**
 
-Pretty-print images using a Go template
+Pretty-print container statistics to JSON or using a Go template
+
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder** | **Description**   |
+| --------------- | ---------------   |
+| .ID             | Container ID      |
+| .Name           | Container Name    |
+| .CPUPerc        | CPU percentage    |
+| .MemUsage       | Memory usage      |
+| .MemPerc        | Memory percentage |
+| .NetIO          | Network IO        |
+| .BlockIO        | Block IO          |
+| .PIDS           | Number of PIDs    |
 
 
 ## EXAMPLE
 
 ```
 # podman stats -a --no-stream
-
-CONTAINER      CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO       PIDS
-132ade621b5d   0.00%   1.618MB / 33.08GB   0.00%   0B / 0B   0B / 0B        0
-940e00a40a77   0.00%   1.544MB / 33.08GB   0.00%   0B / 0B   0B / 0B        0
-72a1dfb44ca7   0.00%   1.528MB / 33.08GB   0.00%   0B / 0B   0B / 0B        0
-f5a62a71b07b   0.00%   5.669MB / 33.08GB   0.02%   0B / 0B   0B / 0B        3
-31eab2cf93f4   0.00%   16.42MB / 33.08GB   0.05%   0B / 0B   22.43MB / 0B   0
-
-#
+ID             NAME              CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
+a9f807ffaacd   frosty_hodgkin    --      3.092MB / 16.7GB    0.02%   -- / --   -- / --    2
+3b33001239ee   sleepy_stallman   --      -- / --             --      -- / --   -- / --    --
 ```
 
 ```
-# podman stats --no-stream 31eab2cf93f4
-CONTAINER      CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO       PIDS
-31eab2cf93f4   0.00%   16.42MB / 33.08GB   0.05%   0B / 0B   22.43MB / 0B   0
+# podman stats --no-stream a9f80
+ID             NAME             CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
+a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   -- / --    2
+```
 
-#
 ```
-```
-# podman stats --no-stream --format=json 31eab2cf93f4
+# podman stats --no-stream --format=json a9f80
 [
     {
-        "name": "31eab2cf93f4",
-        "id": "31eab2cf93f413af64a3f13d8d78393238658465d75e527333a8577f251162ec",
-        "cpu_percent": "0.00%",
-        "mem_usage": "16.42MB / 33.08GB",
-        "mem_percent": "0.05%",
-        "netio": "0B / 0B",
-        "blocki": "22.43MB / 0B",
-        "pids": 0
+        "id": "a9f807ffaacd",
+        "name": "frosty_hodgkin",
+        "cpu_percent": "--",
+        "mem_usage": "3.092MB / 16.7GB",
+        "mem_percent": "0.02%",
+        "netio": "-- / --",
+        "blocki": "-- / --",
+        "pids": "2"
     }
 ]
-#
 ```
 
+```
+# podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" 6eae
+ID             NAME           MEM USAGE / LIMIT
+6eae9e25a564   clever_bassi   3.031MB / 16.7GB
+```
 
 ## SEE ALSO
 podman(1)
