@@ -15,6 +15,7 @@ tests:
   - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
 
 packages:
+    - cri-o
     - containernetworking-cni
 
 extra-repos:
@@ -31,6 +32,9 @@ host:
 extra-repos:
     - name: epel
       metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+      gpgcheck: 0
+    - name: cri-o
+      baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
       gpgcheck: 0
 
 context: centos/7/atomic/smoketested

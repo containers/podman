@@ -67,6 +67,19 @@ RUN set -x \
 	&& cp runc /usr/bin/runc \
 	&& rm -rf "$GOPATH"
 
+# Install conmon
+ENV CRIO_COMMIT 814c6ab0913d827543696b366048056a31d9529c
+RUN set -x \
+	&& export GOPATH="$(mktemp -d)" \
+	&& git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
+	&& cd "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
+	&& git fetch origin --tags \
+	&& git checkout -q "$CRIO_COMMIT" \
+	&& mkdir bin \
+	&& make conmon \
+	&& install -D -m 755 bin/conmon /usr/libexec/crio/conmon \
+	&& rm -rf "$GOPATH"
+
 # Install CNI plugins
 ENV CNI_COMMIT 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
 RUN set -x \
