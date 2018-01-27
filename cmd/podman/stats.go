@@ -89,15 +89,8 @@ func statsCmd(c *cli.Context) error {
 		times = 1
 	}
 
-	var format string
 	var ctrs []*libpod.Container
 	var containerFunc func() ([]*libpod.Container, error)
-
-	if c.IsSet("format") {
-		format = c.String("format")
-	} else {
-		format = genStatsFormat()
-	}
 
 	containerFunc = runtime.GetRunningContainers
 	if len(c.Args()) > 0 {
@@ -127,6 +120,9 @@ func statsCmd(c *cli.Context) error {
 		}
 		containerStats[ctr.ID()] = initialStats
 	}
+
+	format := genStatsFormat(c.String("format"))
+
 	step := 1
 	if times == -1 {
 		times = 1
@@ -183,7 +179,7 @@ func outputStats(stats []*libpod.ContainerStats, format string) error {
 	return formats.Writer(out).Out()
 }
 
-func genStatsFormat() (format string) {
+func genStatsFormat(format string) string {
 	if format != "" {
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
