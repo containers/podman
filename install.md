@@ -27,6 +27,7 @@ Fedora, CentOS, RHEL, and related distributions:
 yum install -y \
   btrfs-progs-devel \
   conmon \
+  containernetworking-cni \
   device-mapper-devel \
   git \
   glib2-devel \
