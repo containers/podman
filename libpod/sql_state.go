@@ -604,7 +604,6 @@ func (s *SQLState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, errors.Wrapf(ErrNoSuchCtr, "no pod with ID or name %s found", idOrName)
 	}
 
-
 	return pod, nil
 }
 
@@ -651,7 +650,6 @@ func (s *SQLState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 	} else if check != 1 {
 		return false, errors.Wrapf(ErrInternal, "check digit for PodHasContainer query incorrect")
 	}
-
 
 	return true, nil
 }
@@ -703,7 +701,6 @@ func (s *SQLState) PodContainersByID(pod *Pod) ([]string, error) {
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrapf(err, "error retrieving container rows")
 	}
-
 
 	return containers, nil
 }
@@ -820,7 +817,7 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 	// Check rows acted on for the first transaction, verify we actually removed something
 	result, err := tx.Exec(query, pod.ID())
 	if err != nil {
-		return errors.Wrapf(err, "error removing pod %s from containers table", pod.ID())
+		return errors.Wrapf(err, "error removing pod %s from pods table", pod.ID())
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
@@ -831,6 +828,108 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to remove pod %s", pod.ID())
+	}
+
+	return nil
+}
+
+// RemovePodContainers removes all containers in a pod simultaneously
+// This can avoid issues with dependencies within the pod
+// The operation will fail if any container in the pod has a dependency from
+// outside the pod
+func (s *SQLState) RemovePodContainers(pod *Pod) error {
+	const (
+		getPodCtrs     = "SELECT Id FROM containers WHERE pod=?;"
+		removeCtr      = "DELETE FROM containers WHERE pod=?;"
+		removeCtrState = "DELETE FROM containerState WHERE ID=ANY(SELECT Id FROM containers WHERE pod=?);"
+	)
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	committed := false
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil && !committed {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to remove pod %s containers: %v", pod.ID(), err2)
+			}
+		}
+	}()
+
+	// First get all containers in the pod
+	rows, err := tx.Query(getPodCtrs, pod.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving containers from database")
+	}
+	defer rows.Close()
+
+	containers := []string{}
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			if err == sql.ErrNoRows {
+				return ErrNoSuchCtr
+			}
+
+			return errors.Wrapf(err, "error parsing database row into container ID")
+		}
+
+		containers = append(containers, id)
+	}
+	if err := rows.Err(); err != nil {
+		return errors.Wrapf(err, "error retrieving container rows")
+	}
+
+	// Have container IDs, now exec SQL to remove contianers in the pod
+	// Remove state first, as it needs the subquery on containers
+	// Don't bother checking if we actually removed anything, we just want to
+	// empty the pod
+	_, err = tx.Exec(removeCtrState, pod.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error removing pod %s containers from state table", pod.ID())
+	}
+
+	_, err = tx.Exec(removeCtr, pod.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error removing pod %s containers from containers table", pod.ID())
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing transaction to add pod %s", pod.ID())
+	}
+
+	committed = true
+
+	// Remove JSON files from the containers in question
+	hasError := false
+	for _, ctr := range containers {
+		jsonPath := getSpecPath(s.specsDir, ctr)
+		if err := os.Remove(jsonPath); err != nil {
+			logrus.Errorf("Error removing spec JSON for container %s: %v", ctr, err)
+			hasError = true
+		}
+
+		portsPath := getPortsPath(s.specsDir, ctr)
+		if err := os.Remove(portsPath); err != nil {
+			if !os.IsNotExist(err) {
+				logrus.Errorf("Error removing ports JSON for container %s: %v", ctr, err)
+				hasError = true
+			}
+		}
+	}
+	if hasError {
+		return errors.Wrapf(ErrInternal, "error removing JSON state for some containers")
 	}
 
 	return nil
