@@ -195,7 +195,6 @@ func prepareDB(db *sql.DB) (err error) {
             RootfsImageID   TEXT    NOT NULL,
             RootfsImageName TEXT    NOT NULL,
             ImageVolumes    INTEGER NOT NULL,
-            ReadOnly        INTEGER NOT NULL,
             ShmDir          TEXT    NOT NULL,
             ShmSize         INTEGER NOT NULL,
             StaticDir       TEXT    NOT NULL,
@@ -230,7 +229,6 @@ func prepareDB(db *sql.DB) (err error) {
             CgroupParent    TEXT    NOT NULL,
 
             CHECK (ImageVolumes IN (0, 1)),
-            CHECK (ReadOnly IN (0, 1)),
             CHECK (SHMSize>=0),
             CHECK (Privileged IN (0, 1)),
             CHECK (NoNewPrivs IN (0, 1)),
@@ -403,7 +401,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		rootfsImageID   string
 		rootfsImageName string
 		imageVolumes    int
-		readOnly        int
 		shmDir          string
 		shmSize         int64
 		staticDir       string
@@ -459,7 +456,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&rootfsImageID,
 		&rootfsImageName,
 		&imageVolumes,
-		&readOnly,
 		&shmDir,
 		&shmSize,
 		&staticDir,
@@ -524,7 +520,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.RootfsImageID = rootfsImageID
 	ctr.config.RootfsImageName = rootfsImageName
 	ctr.config.ImageVolumes = boolFromSQL(imageVolumes)
-	ctr.config.ReadOnly = boolFromSQL(readOnly)
 	ctr.config.ShmDir = shmDir
 	ctr.config.ShmSize = shmSize
 	ctr.config.StaticDir = staticDir
@@ -718,7 +713,7 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?
+                    ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
@@ -800,7 +795,6 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
 		ctr.config.RootfsImageID,
 		ctr.config.RootfsImageName,
 		boolToSQL(ctr.config.ImageVolumes),
-		boolToSQL(ctr.config.ReadOnly),
 		ctr.config.ShmDir,
 		ctr.config.ShmSize,
 		ctr.config.StaticDir,

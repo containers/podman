@@ -106,8 +106,6 @@ type Container struct {
 }
 
 // TODO fetch IP and Subnet Mask from networks once we have updated OCICNI
-// TODO enable pod support
-// TODO Add readonly support
 
 // containerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
@@ -162,8 +160,6 @@ type ContainerConfig struct {
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	// Whether to mount volumes specified in the image
 	ImageVolumes bool `json:"imageVolumes"`
-	// Whether to make the container read only
-	ReadOnly bool `json:"readOnly"`
 	// Src path to be mounted on /dev/shm in container
 	ShmDir string `json:"ShmDir,omitempty"`
 	// Size of the container's SHM
