@@ -423,6 +423,52 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 	return nil
 }
 
+// RemovePodContainers removes all containers from a pod
+// This is used to simultaneously remove a number of containers with
+// many interdependencies
+// Will only remove containers if no dependencies outside of the pod are present
+func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
+	if !pod.valid {
+		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+	}
+
+	// Get pod containers
+	podCtrs, ok := s.podContainers[pod.ID()]
+	if !ok {
+		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+	}
+
+	// Go through container dependencies. Check to see if any are outside the pod.
+	for ctr := range podCtrs {
+		ctrDeps, ok := s.ctrDepends[ctr]
+		if !ok {
+			return errors.Wrapf(ErrInternal, "cannot find dependencies for container %s", ctr)
+		}
+
+		for _, dep := range ctrDeps {
+			_, ok := podCtrs[dep]
+			if !ok {
+				return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
+			}
+		}
+	}
+
+	// All dependencies are OK to remove
+	// Remove all containers
+	s.podContainers[pod.ID()] = make(map[string]*Container)
+	for _, ctr := range podCtrs {
+		if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error removing container ID from index")
+		}
+		s.ctrNameIndex.Release(ctr.Name())
+
+		delete(s.containers, ctr.ID())
+		delete(s.ctrDepends, ctr.ID())
+	}
+
+	return nil
+}
+
 // AddContainerToPod adds a container to the given pod, also adding it to the
 // state
 func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {

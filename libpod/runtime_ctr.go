@@ -83,6 +83,11 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 			return nil, errors.Wrapf(err, "cannot add container %s to pod %s", ctr.ID(), ctr.config.Pod)
 		}
 
+		// Lock the pod to ensure we can't add containers to pods
+		// being removed
+		pod.lock.Lock()
+		defer pod.lock.Unlock()
+
 		if err := r.state.AddContainerToPod(pod, ctr); err != nil {
 			return nil, err
 		}
@@ -107,6 +112,26 @@ func (r *Runtime) RemoveContainer(c *Container, force bool) error {
 // Internal function to remove a container
 // Locks the container, but does not lock the runtime
 func (r *Runtime) removeContainer(c *Container, force bool) error {
+	if !c.valid {
+		// Container probably already removed
+		// Or was never in the runtime to begin with
+		return nil
+	}
+
+	// We need to lock the pod before we lock the container
+	// To avoid races around removing a container and the pod it is in
+	var pod *Pod
+	if c.config.Pod != "" {
+		pod, err := r.state.Pod(c.config.Pod)
+		if err != nil {
+			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), pod.ID())
+		}
+
+		// Lock the pod while we're removing container
+		pod.lock.Lock()
+		defer pod.lock.Unlock()
+	}
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -121,16 +146,6 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 
 	if c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
-	}
-
-	// Check that no other containers depend on the container
-	deps, err := r.state.ContainerInUse(c)
-	if err != nil {
-		return err
-	}
-	if len(deps) != 0 {
-		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
 	// Check that the container's in a good state to be removed
@@ -149,6 +164,16 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
+	// Check that no other containers depend on the container
+	deps, err := r.state.ContainerInUse(c)
+	if err != nil {
+		return err
+	}
+	if len(deps) != 0 {
+		depsStr := strings.Join(deps, ", ")
+		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+	}
+
 	// Stop the container's network namespace (if it has one)
 	if err := r.teardownNetNS(c); err != nil {
 		return err
@@ -161,11 +186,6 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 
 	// Remove the container from the state
 	if c.config.Pod != "" {
-		pod, err := r.state.Pod(c.config.Pod)
-		if err != nil {
-			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), pod.ID())
-		}
-
 		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
 			return err
 		}
@@ -178,7 +198,7 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	// Delete the container
 	// Only do this if we're not ContainerStateConfigured - if we are,
 	// we haven't been created in the runtime yet
-	if c.state.State == ContainerStateConfigured {
+	if c.state.State != ContainerStateConfigured {
 		if err := r.ociRuntime.deleteContainer(c); err != nil {
 			return errors.Wrapf(err, "error removing container %s from runc", c.ID())
 		}
