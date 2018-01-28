@@ -21,7 +21,6 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			RootfsImageID:   id,
 			RootfsImageName: "testimg",
 			ImageVolumes:    true,
-			ReadOnly:        true,
 			StaticDir:       "/does/not/exist/",
 			LogPath:         "/does/not/exist/",
 			Stdin:           true,
