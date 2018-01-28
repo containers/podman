@@ -11,7 +11,7 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 
 	if c.GlobalIsSet("root") || c.GlobalIsSet("runroot") ||
-		c.GlobalIsSet("storage-opt") {
+		c.GlobalIsSet("storage-opt") || c.GlobalIsSet("storage-driver") {
 		storageOpts := storage.DefaultStoreOptions
 
 		if c.GlobalIsSet("root") {
@@ -20,7 +20,9 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 		if c.GlobalIsSet("runroot") {
 			storageOpts.RunRoot = c.GlobalString("runroot")
 		}
-		// TODO add CLI option to set graph driver
+		if c.GlobalIsSet("storage-driver") {
+			storageOpts.GraphDriverName = c.GlobalString("storage-driver")
+		}
 		if c.GlobalIsSet("storage-opt") {
 			storageOpts.GraphDriverOptions = c.GlobalStringSlice("storage-opt")
 		}
