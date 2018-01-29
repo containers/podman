@@ -268,6 +268,9 @@ func (c *Container) Init() (err error) {
 	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
 	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
 
+	// Set the hostname in the env variables
+	c.runningSpec.Process.Env = append(c.runningSpec.Process.Env, fmt.Sprintf("HOSTNAME=%s", c.config.Spec.Hostname))
+
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
