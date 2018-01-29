@@ -754,7 +754,10 @@ func (s *SQLState) PodContainers(pod *Pod) ([]*Container, error) {
 // AddPod adds a pod to the state
 // Only empty pods can be added to the state
 func (s *SQLState) AddPod(pod *Pod) (err error) {
-	const query = "INSERT INTO pods VALUES (?, ?, ?);"
+	const (
+		podQuery      = "INSERT INTO pods VALUES (?, ?, ?);"
+		registryQuery = "INSERT INTO registry VALUES (?, ?);"
+	)
 
 	if !s.valid {
 		return ErrDBClosed
@@ -781,8 +784,11 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 		}
 	}()
 
-	_, err = tx.Exec(query, pod.ID(), pod.Name(), string(labelsJSON))
-	if err != nil {
+	if _, err := tx.Exec(registryQuery, pod.ID(), pod.Name()); err != nil {
+		return errors.Wrapf(err, "error adding pod %s to name/ID registry", pod.ID())
+	}
+
+	if _, err = tx.Exec(podQuery, pod.ID(), pod.Name(), string(labelsJSON)); err != nil {
 		return errors.Wrapf(err, "error adding pod %s to database", pod.ID())
 	}
 
@@ -796,7 +802,10 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 // RemovePod removes a pod from the state
 // Only empty pods can be removed
 func (s *SQLState) RemovePod(pod *Pod) error {
-	const query = "DELETE FROM pods WHERE ID=?;"
+	const (
+		removePod      = "DELETE FROM pods WHERE ID=?;"
+		removeRegistry = "DELETE FROM registry WHERE Id=?;"
+	)
 
 	if !s.valid {
 		return ErrDBClosed
@@ -814,8 +823,8 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 		}
 	}()
 
-	// Check rows acted on for the first transaction, verify we actually removed something
-	result, err := tx.Exec(query, pod.ID())
+	// Check rows acted on for the first statement, verify we actually removed something
+	result, err := tx.Exec(removePod, pod.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error removing pod %s from pods table", pod.ID())
 	}
@@ -824,6 +833,11 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 		return errors.Wrapf(err, "error retrieving number of rows in transaction removing pod %s", pod.ID())
 	} else if rows == 0 {
 		return ErrNoSuchPod
+	}
+
+	// We know it exists, remove it from registry
+	if _, err := tx.Exec(removeRegistry, pod.ID()); err != nil {
+		return errors.Wrapf(err, "error removing pod %s from name/ID registry", pod.ID())
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -891,7 +905,7 @@ func (s *SQLState) RemovePodContainers(pod *Pod) error {
 		return errors.Wrapf(err, "error retrieving container rows")
 	}
 
-	// Have container IDs, now exec SQL to remove contianers in the pod
+	// Have container IDs, now exec SQL to remove containers in the pod
 	// Remove state first, as it needs the subquery on containers
 	// Don't bother checking if we actually removed anything, we just want to
 	// empty the pod

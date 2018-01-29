@@ -17,7 +17,7 @@ type Pod struct {
 
 	valid   bool
 	runtime *Runtime
-	lock storage.Locker
+	lock    storage.Locker
 }
 
 // ID retrieves the pod's ID
@@ -59,7 +59,7 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	return pod, nil
 }
 
-// Init() initializes all containers within a pod that have not been initialized
+// Init initializes all containers within a pod that have not been initialized
 func (p *Pod) Init() error {
 	return ErrNotImplemented
 }
@@ -88,7 +88,7 @@ func (p *Pod) HasContainer(id string) (bool, error) {
 	return p.runtime.state.PodHasContainer(p, id)
 }
 
-// AllContainersID returns the container IDs of all the containers in the pod
+// AllContainersByID returns the container IDs of all the containers in the pod
 func (p *Pod) AllContainersByID() ([]string, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()

@@ -8,9 +8,9 @@ import (
 	"github.com/projectatomic/libpod/pkg/registrar"
 )
 
-// TODO: unified name/ID registry to ensure no name and ID conflicts between
-// containers and pods
-// This can probably be used to replace the existing trunc index and registrars
+// TODO: Maybe separate idIndex for pod/containers
+// As of right now, partial IDs used in Lookup... need to be unique as well
+// This may be undesirable?
 
 // An InMemoryState is a purely in-memory state store
 type InMemoryState struct {
@@ -486,7 +486,7 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	}
 
 	// Is the container already in the pod?
-	if _, ok := podCtrs[ctr.ID()]; ok {
+	if _, ok = podCtrs[ctr.ID()]; ok {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), pod.ID())
 	}
 
