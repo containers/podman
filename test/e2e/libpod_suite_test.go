@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"encoding/json"
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/storage"
@@ -30,17 +31,18 @@ import (
 //TODO whats the best way to clean up after a test
 
 var (
-	PODMAN_BINARY    string
-	CONMON_BINARY    string
-	CNI_CONFIG_DIR   string
-	RUNC_BINARY      string
-	INTEGRATION_ROOT string
-	STORAGE_OPTIONS  = "--storage-driver vfs"
-	ARTIFACT_DIR     = "/tmp/.artifacts"
-	IMAGES           = []string{"alpine", "busybox"}
-	ALPINE           = "docker.io/library/alpine:latest"
-	BB_GLIBC         = "docker.io/library/busybox:glibc"
-	fedoraMinimal    = "registry.fedoraproject.org/fedora-minimal:latest"
+	PODMAN_BINARY      string
+	CONMON_BINARY      string
+	CNI_CONFIG_DIR     string
+	RUNC_BINARY        string
+	INTEGRATION_ROOT   string
+	STORAGE_OPTIONS    = "--storage-driver vfs"
+	ARTIFACT_DIR       = "/tmp/.artifacts"
+	IMAGES             = []string{"alpine", "busybox"}
+	ALPINE             = "docker.io/library/alpine:latest"
+	BB_GLIBC           = "docker.io/library/busybox:glibc"
+	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
+	defaultWaitTimeout = 90
 )
 
 // PodmanSession wrapps the gexec.session so we can extend it
@@ -156,7 +158,7 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 func (p *PodmanTest) Cleanup() {
 	// Remove all containers
 	session := p.Podman([]string{"rm", "-fa"})
-	session.Wait()
+	session.Wait(60)
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
@@ -201,6 +203,22 @@ func (p *PodmanTest) PullImage(image string) error {
 func (s *PodmanSession) OutputToString() string {
 	fields := strings.Fields(fmt.Sprintf("%s", s.Out.Contents()))
 	return strings.Join(fields, " ")
+}
+
+// IsJSONOutputValid attempts to unmarshall the session buffer
+// and if successful, returns true, else false
+func (s *PodmanSession) IsJSONOutputValid() bool {
+	var i interface{}
+	if err := json.Unmarshal(s.Out.Contents(), &i); err != nil {
+		fmt.Println(err)
+		fmt.Println(s.OutputToString())
+		return false
+	}
+	return true
+}
+
+func (s *PodmanSession) WaitWithDefaultTimeout() {
+	s.Wait(defaultWaitTimeout)
 }
 
 // SystemExec is used to exec a system command to check its exit code or output
@@ -305,4 +323,15 @@ func (p *PodmanTest) RestoreAllArtifacts() error {
 		}
 	}
 	return nil
+}
+
+//RunSleepContainer runs a simple container in the background that
+// sleeps.  If the name passed != "", it will have a name
+func (p *PodmanTest) RunSleepContainer(name string) *PodmanSession {
+	var podmanArgs = []string{"run"}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "sleep", "90")
+	return p.Podman(podmanArgs)
 }
