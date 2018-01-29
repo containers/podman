@@ -326,10 +326,11 @@ func (c *Container) Start() error {
 }
 
 // Stop uses the container's stop signal (or SIGTERM if no signal was specified)
-// to stop the container, and if it has not stopped after the given timeout (in
-// seconds), uses SIGKILL to attempt to forcibly stop the container.
-// If timeout is 0, SIGKILL will be used immediately
-func (c *Container) Stop(timeout uint) error {
+// to stop the container, and if it has not stopped after container's stop
+// timeout, SIGKILL is used to attempt to forcibly stop the container
+// Default stop timeout is 10 seconds, but can be overridden when the container
+// is created
+func (c *Container) Stop() error {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -339,24 +340,23 @@ func (c *Container) Stop(timeout uint) error {
 		}
 	}
 
-	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
+	return c.stop(c.config.StopTimeout)
+}
 
-	if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+// StopWithTimeout is a version of Stop that allows a timeout to be specified
+// manually. If timeout is 0, SIGKILL will be used immediately to kill the
+// container.
+func (c *Container) StopWithTimeout(timeout uint) error {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
 	}
 
-	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
-		return err
-	}
-
-	// Sync the container's state to pick up return code
-	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-		return err
-	}
-
-	return c.cleanupStorage()
+	return c.stop(timeout)
 }
 
 // Kill sends a signal to a container
