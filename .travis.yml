@@ -45,6 +45,4 @@ jobs:
         - make integration
       go: 1.8.x
 
-# Turn off notifications until we have our own channel (After rename)
-# notifications:
-  irc: "chat.freenode.net#podman"
+irc: "chat.freenode.net#podman"
