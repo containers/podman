@@ -302,6 +302,28 @@ func (c *Container) save() error {
 	return nil
 }
 
+// Internal, non-locking function to stop container
+func (c *Container) stop(timeout uint) error {
+	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
+
+	if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+	}
+
+	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
+		return err
+	}
+
+	// Sync the container's state to pick up return code
+	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		return err
+	}
+
+	return c.cleanupStorage()
+}
+
 // mountStorage sets up the container's root filesystem
 // It mounts the image and any other requested mounts
 // TODO: Add ability to override mount label so we can use this for Mount() too
