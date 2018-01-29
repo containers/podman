@@ -18,10 +18,8 @@ type InMemoryState struct {
 	containers    map[string]*Container
 	ctrDepends    map[string][]string
 	podContainers map[string]map[string]*Container
-	podNameIndex  *registrar.Registrar
-	podIDIndex    *truncindex.TruncIndex
-	ctrNameIndex  *registrar.Registrar
-	ctrIDIndex    *truncindex.TruncIndex
+	nameIndex     *registrar.Registrar
+	idIndex       *truncindex.TruncIndex
 }
 
 // NewInMemoryState initializes a new, empty in-memory state
@@ -35,11 +33,8 @@ func NewInMemoryState() (State, error) {
 
 	state.podContainers = make(map[string]map[string]*Container)
 
-	state.podNameIndex = registrar.NewRegistrar()
-	state.ctrNameIndex = registrar.NewRegistrar()
-
-	state.podIDIndex = truncindex.NewTruncIndex([]string{})
-	state.ctrIDIndex = truncindex.NewTruncIndex([]string{})
+	state.nameIndex = registrar.NewRegistrar()
+	state.idIndex = truncindex.NewTruncIndex([]string{})
 
 	return state, nil
 }
@@ -76,11 +71,11 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, ErrEmptyID
 	}
 
-	fullID, err := s.ctrNameIndex.Get(idOrName)
+	fullID, err := s.nameIndex.Get(idOrName)
 	if err != nil {
 		if err == registrar.ErrNameNotReserved {
 			// What was passed is not a name, assume it's an ID
-			fullID, err = s.ctrIDIndex.Get(idOrName)
+			fullID, err = s.idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
 					return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
@@ -94,8 +89,8 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 
 	ctr, ok := s.containers[fullID]
 	if !ok {
-		// This should never happen
-		return nil, errors.Wrapf(ErrInternal, "mismatch in container ID registry and containers map for ID %s", fullID)
+		// It's a pod, not a container
+		return nil, errors.Wrapf(ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
 	}
 
 	return ctr, nil
@@ -128,12 +123,12 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
 	}
 
-	if err := s.ctrNameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
+	if err := s.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error registering container name %s", ctr.Name())
 	}
 
-	if err := s.ctrIDIndex.Add(ctr.ID()); err != nil {
-		s.ctrNameIndex.Release(ctr.Name())
+	if err := s.idIndex.Add(ctr.ID()); err != nil {
+		s.nameIndex.Release(ctr.Name())
 		return errors.Wrapf(err, "error registering container ID %s", ctr.ID())
 	}
 
@@ -165,11 +160,11 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
 	}
 
-	if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
+	if err := s.idIndex.Delete(ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error removing container ID from index")
 	}
 	delete(s.containers, ctr.ID())
-	s.ctrNameIndex.Release(ctr.Name())
+	s.nameIndex.Release(ctr.Name())
 
 	delete(s.ctrDepends, ctr.ID())
 
@@ -264,11 +259,11 @@ func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, ErrEmptyID
 	}
 
-	fullID, err := s.podNameIndex.Get(idOrName)
+	fullID, err := s.nameIndex.Get(idOrName)
 	if err != nil {
 		if err == registrar.ErrNameNotReserved {
 			// What was passed is not a name, assume it's an ID
-			fullID, err = s.podIDIndex.Get(idOrName)
+			fullID, err = s.idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
 					return nil, errors.Wrapf(ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
@@ -282,8 +277,8 @@ func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
 
 	pod, ok := s.pods[fullID]
 	if !ok {
-		// This should never happen
-		return nil, errors.Wrapf(ErrInternal, "mismatch in pod ID registry and pod map for ID %s", fullID)
+		// It's a container not a pod
+		return nil, errors.Wrapf(ErrNoSuchPod, "id or name %s is a container not a pod", idOrName)
 	}
 
 	return pod, nil
@@ -380,12 +375,12 @@ func (s *InMemoryState) AddPod(pod *Pod) error {
 		return errors.Wrapf(ErrPodExists, "pod with ID %s already exists in state", pod.ID())
 	}
 
-	if err := s.podNameIndex.Reserve(pod.Name(), pod.ID()); err != nil {
+	if err := s.nameIndex.Reserve(pod.Name(), pod.ID()); err != nil {
 		return errors.Wrapf(err, "error registering pod name %s", pod.Name())
 	}
 
-	if err := s.podIDIndex.Add(pod.ID()); err != nil {
-		s.podNameIndex.Release(pod.Name())
+	if err := s.idIndex.Add(pod.ID()); err != nil {
+		s.nameIndex.Release(pod.Name())
 		return errors.Wrapf(err, "error registering pod ID %s", pod.ID())
 	}
 
@@ -413,12 +408,12 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 		return errors.Wrapf(ErrCtrExists, "pod %s is not empty and cannot be removed", pod.ID())
 	}
 
-	if err := s.podIDIndex.Delete(pod.ID()); err != nil {
+	if err := s.idIndex.Delete(pod.ID()); err != nil {
 		return errors.Wrapf(err, "error removing pod ID %s from index", pod.ID())
 	}
 	delete(s.pods, pod.ID())
 	delete(s.podContainers, pod.ID())
-	s.podNameIndex.Release(pod.Name())
+	s.nameIndex.Release(pod.Name())
 
 	return nil
 }
@@ -457,10 +452,10 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 	// Remove all containers
 	s.podContainers[pod.ID()] = make(map[string]*Container)
 	for _, ctr := range podCtrs {
-		if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
+		if err := s.idIndex.Delete(ctr.ID()); err != nil {
 			return errors.Wrapf(err, "error removing container ID from index")
 		}
-		s.ctrNameIndex.Release(ctr.Name())
+		s.nameIndex.Release(ctr.Name())
 
 		delete(s.containers, ctr.ID())
 		delete(s.ctrDepends, ctr.ID())
@@ -501,12 +496,12 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
-	if err := s.ctrNameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
+	if err := s.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error reserving container name %s", ctr.Name())
 	}
 
-	if err := s.ctrIDIndex.Add(ctr.ID()); err != nil {
-		s.ctrNameIndex.Release(ctr.Name())
+	if err := s.idIndex.Add(ctr.ID()); err != nil {
+		s.nameIndex.Release(ctr.Name())
 		return errors.Wrapf(err, "error releasing container ID %s", ctr.ID())
 	}
 
@@ -545,11 +540,11 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
 	}
 
-	if err := s.ctrIDIndex.Delete(ctr.ID()); err != nil {
+	if err := s.idIndex.Delete(ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error removing container ID from index")
 	}
 	delete(s.containers, ctr.ID())
-	s.ctrNameIndex.Release(ctr.Name())
+	s.nameIndex.Release(ctr.Name())
 
 	// Remove the container from the pod
 	delete(podCtrs, ctr.ID())
