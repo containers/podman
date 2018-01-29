@@ -73,7 +73,7 @@ If using an older release or a long-term support release, be careful to double-c
 
 **NOTE**
 
-Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are avaliable at https://golang.org/dl/
+Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
 
 **Optional**
 

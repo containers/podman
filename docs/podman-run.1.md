@@ -252,7 +252,7 @@ millions of trillions.
 **--link-local-ip**=[]
    Add one or more link-local IPv4/IPv6 addresses to the container's interface
 
-**--log-driver**="*json-file*|*syslog*|*journald*|*gelf*|*fluentd*|*awslogs*|*splunk*|*etwlogs*|*gcplogs*|*none*"
+**--log-driver**="*json-file*"
   Logging driver for the container. Default is defined by daemon `--log-driver` flag.
   **Warning**: the `podman logs` command works only for the `json-file` and
   `journald` logging drivers.
@@ -349,7 +349,7 @@ This is because by default a container is not allowed to access any devices.
 A “privileged” container is given access to all devices.
 
    When the operator executes **podman run --privileged**, podman enables access
-to all devices on the host as well as set turn off most of the security messurs
+to all devices on the host as well as set turn off most of the security measures
 protecting the host from the container.
 
 **-p**, **--publish**=[]
@@ -529,7 +529,7 @@ Use `df <source-dir>` to figure out the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to figure out propagation
 properties of source mount. If `findmnt` utility is not available, then one
 can look at mount entry for source mount point in `/proc/self/mountinfo`. Look
-at `optional fields` and see if any propagaion properties are specified.
+at `optional fields` and see if any propagation properties are specified.
 `shared:X` means mount is `shared`, `master:X` means mount is `slave` and if
 nothing is there that means mount is `private`.
 

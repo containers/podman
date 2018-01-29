@@ -9,7 +9,7 @@ podman create - Create a new container
 
 ## DESCRIPTION
 
-Creates a writeable container layer over the specified image and prepares it for
+Creates a writable container layer over the specified image and prepares it for
 running the specified command. The container ID is then printed to STDOUT. This
 is similar to **podman run -d** except the container is never started. You can
 then use the **podman start <container_id>** command to start the container at
@@ -253,7 +253,7 @@ millions of trillions.
 **--link-local-ip**=[]
    Add one or more link-local IPv4/IPv6 addresses to the container's interface
 
-**--log-driver**="*json-file*|*syslog*|*journald*|*gelf*|*fluentd*|*awslogs*|*splunk*|*etwlogs*|*gcplogs*|*none*"
+**--log-driver**="*json-file*"
   Logging driver for the container. Default is defined by daemon `--log-driver` flag.
   **Warning**: the `podman logs` command works only for the `json-file` and
   `journald` logging drivers.
@@ -350,7 +350,7 @@ This is because by default a container is not allowed to access any devices.
 A “privileged” container is given access to all devices.
 
    When the operator executes **podman run --privileged**, podman enables access
-to all devices on the host as well as set turn off most of the security messurs
+to all devices on the host as well as set turn off most of the security measures
 protecting the host from the container.
 
 **-p**, **--publish**=[]

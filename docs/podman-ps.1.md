@@ -10,7 +10,7 @@ podman ps - Prints out information about containers
 [**--all**|**-a**]
 [**--no-trunc**]
 [**--quiet**|**-q**]
-[**--fromat**]
+[**--format**]
 [**--help**|**-h**]
 
 ## DESCRIPTION

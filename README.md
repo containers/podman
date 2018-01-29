@@ -8,7 +8,7 @@
 libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
 libpod also contains a tool podman, which allows you to manage Pods, Containers, and Container Images.
 
-At a high level, we expect the scope of libpod/podman to the following functionalities:
+At a high level, we expect the scope of libpod/podman to be the following:
 
 * Support multiple image formats including the existing Docker/OCI image formats.
 * Support for multiple means to download images including trust & image verification.

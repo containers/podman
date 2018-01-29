@@ -23,7 +23,7 @@ Show logs since TIMESTAMP
 
 **--tail=LINES**
 
-Ouput the specified number of LINES at the end of the logs.  LINES must be a positive integer.  Defaults to 0, which prints all lines
+Output the specified number of LINES at the end of the logs.  LINES must be a positive integer.  Defaults to 0, which prints all lines
 
 ## EXAMPLE
 

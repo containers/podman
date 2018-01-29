@@ -53,6 +53,7 @@ type HookParams struct {
 	Cmds          []string `json:"cmds"`
 	Annotations   []string `json:"annotations"`
 	HasBindMounts bool     `json:"hasbindmounts"`
+	Arguments     []string `json:"arguments"`
 }
 ```
 
