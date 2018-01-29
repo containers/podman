@@ -81,7 +81,7 @@ Those Docker commands currently do not have equivalents in `podman`:
 | `docker image`    ||
 | `docker network`  ||
 | `docker node`     ||
-| `docker plugin`   |podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behaviour of podman.|
+| `docker plugin`   |podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
 | `docker port`     ||
 | `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
 | `docker restart`  | podman does not support restart.  We recommend that you put your podman containers into a systemd unit file and use it for restarting applications.|

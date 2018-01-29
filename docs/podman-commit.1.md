@@ -57,7 +57,7 @@ Storing signatures
 ```
 
 ```
-# podman commit --message "commiting container to image" reverent_golick image-commited
+# podman commit --message "committing container to image" reverent_golick image-commited
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
  25.80 MB / 25.80 MB [======================================================] 0s

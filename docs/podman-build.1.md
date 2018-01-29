@@ -65,11 +65,11 @@ commands specified by the **RUN** instruction.
 
 **--runtime-flag** *flag*
 
-Adds global flags for the container rutime.
+Adds global flags for the container runtime.
 
-**--signature-policy** *signaturepolicy*
+**--signature-policy** *signature-policy-file*
 
-Pathname of a signature policy file to use.  It is not recommended that this
+Path name of a signature policy file to use.  It is not recommended that this
 option be used, as the default behavior of using the system-wide default policy
 (frequently */etc/containers/policy.json*) is most often preferred.
 

@@ -29,7 +29,7 @@ Please don't include any private/sensitive information in your issue!
 ## Submitting Pull Requests
 
 No Pull Request (PR) is too small! Typos, additional comments in the code,
-new testcases, bug fixes, new features, more documentation, ... it's all
+new test cases, bug fixes, new features, more documentation, ... it's all
 welcome!
 
 While bug fixes can first be identified via an "issue", that is not required.

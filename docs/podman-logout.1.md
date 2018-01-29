@@ -14,7 +14,7 @@ podman logout - Logout of a container registry
 
 ## DESCRIPTION
 **podman logout** logs out of a specified registry server by deleting the cached credentials
-stored in the **auth.json** file. The path of the authentication file can be overrriden by the user by setting the **authfile** flag.
+stored in the **auth.json** file. The path of the authentication file can be overridden by the user by setting the **authfile** flag.
 The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
 All the cached credentials can be removed by setting the **all** flag.
 
