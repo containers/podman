@@ -121,8 +121,9 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	// We need to lock the pod before we lock the container
 	// To avoid races around removing a container and the pod it is in
 	var pod *Pod
+	var err error
 	if c.config.Pod != "" {
-		pod, err := r.state.Pod(c.config.Pod)
+		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
 			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), pod.ID())
 		}

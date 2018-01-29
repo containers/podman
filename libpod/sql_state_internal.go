@@ -173,9 +173,6 @@ func checkDB(db *sql.DB, r *Runtime) (err error) {
 // Performs database setup including by not limited to initializing tables in
 // the database
 func prepareDB(db *sql.DB) (err error) {
-	// TODO create pod tables
-	// TODO add Pod ID to CreateStaticContainer as a FOREIGN KEY referencing podStatic(Id)
-	// TODO add ctr shared namespaces information - A separate table, probably? So we can FOREIGN KEY the ID
 	// TODO schema migration might be necessary and should be handled here
 	// TODO maybe make a port mappings table instead of JSONing the array and storing it?
 	// TODO prepared statements for common queries for performance
@@ -184,6 +181,14 @@ func prepareDB(db *sql.DB) (err error) {
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return errors.Wrapf(err, "error enabling foreign key support in database")
 	}
+
+	// Create a table for holding container and pod names and IDs
+	const createRegistry = `
+        CREATE TABLE IF NOT EXISTS registry(
+            Id   TEXT NOT NULL PRIMARY KEY,
+            Name TEXT NOT NULL UNIQUE
+        );
+        `
 
 	// Create a table for unchanging container data
 	const createCtr = `
@@ -235,7 +240,9 @@ func prepareDB(db *sql.DB) (err error) {
             CHECK (CreateNetNS IN (0, 1)),
             CHECK (Stdin IN (0, 1)),
             CHECK (StopSignal>=0),
-            FOREIGN KEY (Id)          REFERENCES containerState(Id) DEFERRABLE INITIALLY DEFERRED
+            FOREIGN KEY (Id)          REFERENCES registry(Id)       DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Id)          REFERENCES containerState(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Name)        REFERENCES registry(Name)     DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (Pod)         REFERENCES pods(Id)           DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (IPCNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (MountNsCtr)  REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
@@ -266,7 +273,8 @@ func prepareDB(db *sql.DB) (err error) {
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
-            FOREIGN KEY (Id) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
+            FOREIGN KEY (Id)   REFERENCES registry(Id)   DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Id)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
         );
         `
 
@@ -275,7 +283,9 @@ func prepareDB(db *sql.DB) (err error) {
         CREATE TABLE IF NOT EXISTS pods(
             Id     TEXT NOT NULL PRIMARY KEY,
             Name   TEXT NOT NULL UNIQUE,
-            Labels TEXT NOT NULL
+            Labels TEXT NOT NULL,
+            FOREIGN KEY (Id)   REFERENCES registry(Id)   DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Name) REFERENCES registry(Name) DEFERRABLE INITIALLY DEFERRED
         );
         `
 
@@ -293,6 +303,9 @@ func prepareDB(db *sql.DB) (err error) {
 
 	}()
 
+	if _, err := tx.Exec(createRegistry); err != nil {
+		return errors.Wrapf(err, "error creating ID and Name registry in database")
+	}
 	if _, err := tx.Exec(createCtr); err != nil {
 		return errors.Wrapf(err, "error creating containers table in database")
 	}
@@ -720,6 +733,7 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?
                 );`
+		addRegistry = "INSERT INTO registry VALUES (?, ?);"
 	)
 
 	if !s.valid {
@@ -785,6 +799,11 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
 			}
 		}
 	}()
+
+	// Add container to registry
+	if _, err := tx.Exec(addRegistry, ctr.ID(), ctr.Name()); err != nil {
+		return errors.Wrapf(err, "error adding container %s to name/ID registry", ctr.ID())
+	}
 
 	// Add static container information
 	_, err = tx.Exec(addCtr,
@@ -888,8 +907,9 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
 // Internal functions for removing containers
 func (s *SQLState) removeContainer(ctr *Container) error {
 	const (
-		removeCtr   = "DELETE FROM containers WHERE Id=?;"
-		removeState = "DELETE FROM containerState WHERE Id=?;"
+		removeCtr      = "DELETE FROM containers WHERE Id=?;"
+		removeState    = "DELETE FROM containerState WHERE Id=?;"
+		removeRegistry = "DELETE FROM registry WHERE Id=?;"
 	)
 
 	if !s.valid {
@@ -924,6 +944,12 @@ func (s *SQLState) removeContainer(ctr *Container) error {
 
 	if _, err := tx.Exec(removeState, ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error removing container %s from state table", ctr.ID())
+	}
+
+	// Remove registry last of all
+	// So we know the container did exist
+	if _, err := tx.Exec(removeRegistry, ctr.ID()); err != nil {
+		return errors.Wrapf(err, "error removing container %s from name/ID registry", ctr.ID())
 	}
 
 	if err := tx.Commit(); err != nil {
