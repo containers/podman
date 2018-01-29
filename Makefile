@@ -18,7 +18,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/projectatomic/libpod/vendor)
+PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/projectatomic/libpod/vendor | grep -v e2e)
 
 COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
@@ -110,10 +110,16 @@ dbuild: libpodimage
 integration: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localintegration
 
+integration.fedora:
+	DIST=Fedora sh .papr_prepare.sh
 testunit:
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
+ginkgo:
+	ginkgo -v test/e2e/
+
 localintegration: test-binaries
+	ginkgo -v test/e2e/.
 	bash -i ./test/test_runner.sh ${TESTFLAGS}
 
 vagrant-check:
