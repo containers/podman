@@ -312,7 +312,7 @@ func (k *Image) Decompose() error {
 			return nil
 		}
 		// We need to check if the registry name is legit
-		_, err = net.LookupAddr(k.Registry)
+		_, err = net.LookupHost(k.Registry)
 		if err == nil {
 			return nil
 		}

@@ -298,6 +298,18 @@ func isPortInPortBindings(pb map[nat.Port][]nat.PortBinding, port nat.Port) bool
 	return libpod.StringInSlice(port.Port(), hostPorts)
 }
 
+// isPortInImagePorts determines if an exposed host port was given to us by metadata
+// in the image itself
+func isPortInImagePorts(exposedPorts map[string]struct{}, port string) bool {
+	for i := range exposedPorts {
+		fields := strings.Split(i, "/")
+		if port == fields[0] {
+			return true
+		}
+	}
+	return false
+}
+
 func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
 	var exposedPorts []string
 	var ports map[nat.Port]struct{}
@@ -337,7 +349,7 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 				return nil, nil, err
 			}
 			// check if the port in question is already being used
-			if isPortInPortBindings(portBindings, p) {
+			if isPortInPortBindings(portBindings, p) && !isPortInImagePorts(imageExposedPorts, p.Port()) {
 				return nil, nil, errors.Errorf("host port %s already used in --publish option", p.Port())
 			}
 
