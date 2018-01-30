@@ -608,6 +608,10 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	if len(c.HostAdd) > 0 {
 		options = append(options, libpod.WithHosts(c.HostAdd))
 	}
+	logPath := getLoggingPath(c.LogDriverOpt)
+	if logPath != "" {
+		options = append(options, libpod.WithLogPath(logPath))
+	}
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
 	return options, nil

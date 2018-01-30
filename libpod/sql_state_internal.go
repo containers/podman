@@ -178,6 +178,7 @@ func prepareDB(db *sql.DB) (err error) {
             ShmSize         INTEGER NOT NULL,
             StaticDir       TEXT    NOT NULL,
             Mounts          TEXT    NOT NULL,
+            LogPath         TEXT    NOT NULL,
 
             Privileged      INTEGER NOT NULL,
             NoNewPrivs      INTEGER NOT NULL,
@@ -362,6 +363,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		shmSize         int64
 		staticDir       string
 		mounts          string
+		logPath         string
 
 		privileged   int
 		noNewPrivs   int
@@ -417,6 +419,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&shmSize,
 		&staticDir,
 		&mounts,
+		&logPath,
 
 		&privileged,
 		&noNewPrivs,
@@ -480,6 +483,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.ShmDir = shmDir
 	ctr.config.ShmSize = shmSize
 	ctr.config.StaticDir = staticDir
+	ctr.config.LogPath = logPath
 
 	ctr.config.Privileged = boolFromSQL(privileged)
 	ctr.config.NoNewPrivs = boolFromSQL(noNewPrivs)

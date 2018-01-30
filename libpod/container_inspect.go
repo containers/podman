@@ -44,7 +44,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		HostnamePath:    spec.Annotations["io.kubernetes.cri-o.HostnamePath"], // not sure
 		HostsPath:       "",                                                   // can't get yet
 		StaticDir:       config.StaticDir,
-		LogPath:         c.LogPath(),
+		LogPath:         config.LogPath,
 		Name:            config.Name,
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,

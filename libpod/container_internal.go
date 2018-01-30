@@ -91,11 +91,6 @@ func (c *Container) bundlePath() string {
 	return c.config.StaticDir
 }
 
-// The path to the container's logs file
-func (c *Container) logPath() string {
-	return filepath.Join(c.config.StaticDir, "ctr.log")
-}
-
 // Retrieves the path of the container's attach socket
 func (c *Container) attachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
