@@ -23,6 +23,7 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			ImageVolumes:    true,
 			ReadOnly:        true,
 			StaticDir:       "/does/not/exist/",
+			LogPath:         "/does/not/exist/",
 			Stdin:           true,
 			Labels:          make(map[string]string),
 			StopSignal:      0,

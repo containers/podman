@@ -260,6 +260,8 @@ millions of trillions.
 **--log-opt**=[]
   Logging driver specific options.
 
+    "path=/var/log/container/mycontainer.json"   : Set the path to the container log file.
+
 **--mac-address**=""
    Container MAC address (e.g. 92:d0:c6:0a:29:33)
 

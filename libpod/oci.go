@@ -174,7 +174,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
-	args = append(args, "-l", ctr.logPath())
+	args = append(args, "-l", ctr.LogPath())
 	args = append(args, "--exit-dir", r.exitsDir)
 	args = append(args, "--socket-dir-path", r.socketsDir)
 	if ctr.config.Spec.Process.Terminal {

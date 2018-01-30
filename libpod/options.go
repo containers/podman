@@ -602,6 +602,22 @@ func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 	}
 }
 
+// WithLogPath sets the path to the log file
+func WithLogPath(path string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		if path == "" {
+			return errors.Wrapf(ErrInvalidArg, "log path must be set")
+		}
+
+		ctr.config.LogPath = path
+
+		return nil
+	}
+}
+
 // WithCgroupParent sets the Cgroup Parent of the new container
 func WithCgroupParent(parent string) CtrCreateOption {
 	return func(ctr *Container) error {

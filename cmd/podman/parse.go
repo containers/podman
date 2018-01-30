@@ -773,3 +773,15 @@ func stringSlicetoUint32Slice(inputSlice []string) ([]uint32, error) {
 	}
 	return outputSlice, nil
 }
+
+func getLoggingPath(opts []string) string {
+	for _, opt := range opts {
+		arr := strings.SplitN(opt, "=", 2)
+		if len(arr) == 2 {
+			if strings.TrimSpace(arr[0]) == "path" {
+				return strings.TrimSpace(arr[1])
+			}
+		}
+	}
+	return ""
+}

@@ -15,7 +15,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 8
+const DBSchema = 9
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -285,7 +285,7 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?
+                    ?, ?, ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
@@ -376,6 +376,7 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		ctr.config.ShmSize,
 		ctr.config.StaticDir,
 		string(mounts),
+		ctr.LogPath(),
 
 		boolToSQL(ctr.config.Privileged),
 		boolToSQL(ctr.config.NoNewPrivs),
