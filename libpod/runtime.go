@@ -77,7 +77,7 @@ var (
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             SQLiteStateStore,
-		RuntimePath:           "/usr/bin/runc",
+		RuntimePath:           findRuncPath(),
 		ConmonPath:            findConmonPath(),
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -101,6 +101,15 @@ func findConmonPath() string {
 	return path
 }
 
+func findRuncPath() string {
+	path := "/usr/bin/runc"
+	_, err := os.Stat(path)
+	if err != nil {
+		path = "/usr/sbin/runc"
+	}
+	return path
+}
+
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
@@ -115,6 +124,11 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if err := opt(runtime); err != nil {
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
+	}
+
+	// Check for the existence of the runc binary
+	if _, err := os.Stat(runtime.config.RuntimePath); err != nil {
+		return nil, errors.Errorf("unable to find runc binary %s", runtime.config.RuntimePath)
 	}
 
 	// Set up containers/storage
