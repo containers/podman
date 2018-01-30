@@ -14,7 +14,8 @@ for Podman until an RPM becomes available.
 ```
 # sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
                                     gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
-                                    atomic-registries iptables skopeo-containers containernetworking-cni
+                                    atomic-registries iptables skopeo-containers containernetworking-cni \
+                                    conmon
 ```
 ### Building and installing podman
 ```
@@ -24,60 +25,61 @@ for Podman until an RPM becomes available.
 # sudo make install PREFIX=/usr
 ```
 
-<!-- (
+You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](Familiarizing yourself with Podman)
+to begin using Podman.
+
 ## Install podman on Ubuntu
 
 The default Ubuntu cloud image size will not allow for the following exercise to be done without increasing its
 capacity.  Be sure to add at least 5GB to the image. Instructions to do this are outside the scope of this
-tutorial.
+tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was used.
 
+### Installing build and runtime dependencies
+
+#### Installing base packages
 ```
 # sudo apt-get update
 # sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
                         go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev
-# mkdir -p ~/src/github.com/projectatomic/
-# cd ~/src/github.com/projectatomic/
-# git clone https://github.com/projectatomic/libpod/
-#
-# cd libpod
-# make
-# sudo make install PREFIX=/usr
+```
+#### Building and installing conmon
+```
+# git clone https://github.com/kubernetes-incubator/cri-o ~/src/github.com/kubernetes-incubator/cri-o
+# cd ~/src/github.com/kubernetes-incubator/cri-o
+# mkdir bin
+# make conmon
+# sudo install -D -m 755 bin/conmon /usr/libexec/crio/conmon
+```
+#### Adding required configuration files
+```
 # sudo mkdir -p /etc/containers
-# sudo bash -c 'cat <<EOF > /etc/containers/registries.conf
-registries.search
-registries = ['docker.io', 'registry.fedoraproject.org']
-EOF
-'
-# sudo bash -c 'cat <<EOF > /etc/containers/policy.json
- {
-     "default": [
-         {
-             "type": "insecureAcceptAnything"
-         }
-     ],
-     "transports":
-         {
-             "docker-daemon":
-                 {
-                     "": [{"type":"insecureAcceptAnything"}]
-                 }
-         }
- }
- EOF
-'
+# sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
+# sudo curl https://raw.githubusercontent.com/projectatomic/skopeo/master/default-policy.json -o /etc/containers/policy.json
+```
+#### Installing CNI plugins
+```
 # git clone https://github.com/containernetworking/plugins.git ~/src/github.com/containernetworking/plugins
 # cd ~/src/github.com/containernetworking/plugins
-# ./build
+# ./build.sh
 # sudo mkdir -p /usr/libexec/cni
 # sudo cp bin/* /usr/libexec/cni
+```
+#### Installing runc
+```
 # git clone https://github.com/opencontainers/runc.git ~/src/github.com/opencontainers/runc
+# cd ~/src/github.com/opencontainers/runc
 # GOPATH=~/ make static BUILDTAGS="seccomp selinux"
 # sudo cp runc /usr/bin/runc
-# sudo mkdir -p /usr/local/libexec
-# sudo ln -s /usr/libexec/crio /usr/local/libexec/
 ```
 
-) -->
+### Building and installing Podman
+```
+# git clone https://github.com/projectatomic/libpod/ ~/src/github.com/projectatomic/libpod
+# cd ~/src/github.com/projectatomic/libpod
+# make
+# sudo make install PREFIX=/usr
+```
+
 ## Familiarizing yourself with Podman
 
 ### Running a sample container
