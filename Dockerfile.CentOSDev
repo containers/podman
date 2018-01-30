@@ -1,6 +1,7 @@
 FROM registry.centos.org/centos/centos:7
 
 RUN yum -y install btrfs-progs-devel \
+              atomic-registries \
               bzip2 \
               device-mapper-devel \
               findutils \
