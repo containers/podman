@@ -93,21 +93,22 @@ var (
 )
 
 func findConmonPath() string {
-	path := "/usr/local/libexec/crio/conmon"
-	_, err := os.Stat(path)
-	if err != nil {
-		path = "/usr/libexec/crio/conmon"
-	}
-	return path
+	paths := []string{"/usr/libexec/crio/conmon", "/usr/local/libexec/crio/conmon", "/usr/bin/conmon", "/usr/sbin/conmon"}
+	return pathHelper(paths)
 }
 
 func findRuncPath() string {
-	path := "/usr/bin/runc"
-	_, err := os.Stat(path)
-	if err != nil {
-		path = "/usr/sbin/runc"
+	paths := []string{"/usr/bin/runc", "/usr/sbin/runc", "/sbin/runc", "/bin/runc"}
+	return pathHelper(paths)
+}
+
+func pathHelper(paths []string) string {
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
 	}
-	return path
+	return paths[0]
 }
 
 // NewRuntime creates a new container runtime
