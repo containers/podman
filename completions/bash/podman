@@ -700,15 +700,18 @@ _podman_build() {
   "
 
      local options_with_args="
-     --signature-policy
-     --runtime
-     --runtime-flag
-     --tag
-     -t
+     --authfile
+     --build-arg
+     --cert-dir
+     --creds
      --file
      -f
-     --build-arg
      --format
+     --runtime
+     --runtime-flag
+     --signature-policy
+     --tag
+     -t
   "
 
      local all_options="$options_with_args $boolean_options"

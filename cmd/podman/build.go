@@ -11,9 +11,23 @@ import (
 
 var (
 	buildFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "authfile",
+			Usage: "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+		},
 		cli.StringSliceFlag{
 			Name:  "build-arg",
 			Usage: "`argument=value` to supply to the builder",
+		},
+		cli.StringFlag{
+			Name:  "cert-dir",
+			Value: "",
+			Usage: "use certificates at the specified path to access the registry",
+		},
+		cli.StringFlag{
+			Name:  "creds",
+			Value: "",
+			Usage: "use `[username[:password]]` for accessing the registry",
 		},
 		cli.StringSliceFlag{
 			Name:  "file, f",
@@ -68,8 +82,17 @@ func buildCmd(c *cli.Context) error {
 
 	budCmdArgs := []string{"bud"}
 
+	if c.IsSet("authfile") {
+		budCmdArgs = append(budCmdArgs, "--authfile", c.String("authfile"))
+	}
 	for _, buildArg := range c.StringSlice("build-arg") {
 		budCmdArgs = append(budCmdArgs, "--build-arg", buildArg)
+	}
+	if c.IsSet("cert-dir") {
+		budCmdArgs = append(budCmdArgs, "--cert-dir", c.String("cert-dir"))
+	}
+	if c.IsSet("creds") {
+		budCmdArgs = append(budCmdArgs, "--creds", c.String("creds"))
 	}
 	for _, fileName := range c.StringSlice("file") {
 		budCmdArgs = append(budCmdArgs, "--file", fileName)
