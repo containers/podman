@@ -120,7 +120,8 @@ RUN mkdir -p /etc/cni/net.d/
 COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 
 # Make sure we have some policy for pulling images
-RUN mkdir -p /etc/containers
+RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
+
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 

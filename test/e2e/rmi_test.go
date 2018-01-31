@@ -32,21 +32,21 @@ var _ = Describe("Podman rmi", func() {
 
 	It("podman rmi bogus image", func() {
 		session := podmanTest.Podman([]string{"rmi", "debian:6.0.10"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 
 	})
 
 	It("podman rmi with fq name", func() {
 		session := podmanTest.Podman([]string{"rmi", image1})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
 
 	It("podman rmi with short name", func() {
 		session := podmanTest.Podman([]string{"rmi", "alpine"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
@@ -54,7 +54,7 @@ var _ = Describe("Podman rmi", func() {
 	It("podman rmi all images", func() {
 		podmanTest.PullImages([]string{image3})
 		session := podmanTest.Podman([]string{"rmi", "-a"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
@@ -62,7 +62,7 @@ var _ = Describe("Podman rmi", func() {
 	It("podman rmi all images forceably with short options", func() {
 		podmanTest.PullImages([]string{image3})
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})

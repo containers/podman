@@ -19,8 +19,9 @@ RUN dnf -y install btrfs-progs-devel \
               python \
               which\
               golang-github-cpuguy83-go-md2man \
-              crio \
+              conmon \
               procps-ng \
+              atomic-registries \
               iptables && dnf clean all
 
 # install bats

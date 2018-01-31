@@ -205,6 +205,13 @@ func (s *PodmanSession) OutputToString() string {
 	return strings.Join(fields, " ")
 }
 
+// OutputToStringArray returns the output as a []string
+// where each array item is a line split by newline
+func (s *PodmanSession) OutputToStringArray() []string {
+	output := fmt.Sprintf("%s", s.Out.Contents())
+	return strings.Split(output, "\n")
+}
+
 // IsJSONOutputValid attempts to unmarshall the session buffer
 // and if successful, returns true, else false
 func (s *PodmanSession) IsJSONOutputValid() bool {
@@ -333,5 +340,16 @@ func (p *PodmanTest) RunSleepContainer(name string) *PodmanSession {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "sleep", "90")
+	return p.Podman(podmanArgs)
+}
+
+//RunLsContainer runs a simple container in the background that
+// simply runs ls. If the name passed != "", it will have a name
+func (p *PodmanTest) RunLsContainer(name string) *PodmanSession {
+	var podmanArgs = []string{"run"}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
 	return p.Podman(podmanArgs)
 }
