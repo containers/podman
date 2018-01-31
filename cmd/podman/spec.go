@@ -572,7 +572,8 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
-	} else if !c.NetMode.IsHost() {
+	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
 		options = append(options, libpod.WithNetNS(portBindings))
 	}
 
