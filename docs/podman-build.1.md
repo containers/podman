@@ -24,12 +24,27 @@ to do the actual building.
 
 ## OPTIONS
 
+**--authfile** *path*
+
+Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+
 **--build-arg** *arg=value*
 
 Specifies a build argument and its value, which will be interpolated in
 instructions read from the Dockerfiles in the same way that environment
 variables are, but which will not be added to environment variable list in the
 resulting image's configuration.
+
+**--cert-dir** *path*
+
+Use certificates at *path* (*.crt, *.cert, *.key) to connect to the registry
+
+**--creds** *creds*
+
+The [username[:password]] to use to authenticate with the registry if required.
+If one or both values are not supplied, a command line prompt will appear and the
+value can be entered.  The password is entered without echo.
 
 **-f, --file** *Dockerfile*
 
@@ -95,6 +110,12 @@ podman build -t imageName .
 podman build --tls-verify=true -t imageName -f Dockerfile.simple
 
 podman build --tls-verify=false -t imageName .
+
+podman bud --runtime-flag log-format=json .
+
+podman bud --runtime-flag debug .
+
+podman bud --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple
 
 ## SEE ALSO
 podman(1), buildah(1)
