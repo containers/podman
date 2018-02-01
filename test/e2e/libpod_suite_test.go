@@ -439,3 +439,13 @@ func (s *PodmanSession) LineInOuputContains(term string) bool {
 	}
 	return false
 }
+
+//GetContainerStatus returns the containers state.
+// This function assumes only one container is active.
+func (p *PodmanTest) GetContainerStatus() string {
+	var podmanArgs = []string{"ps"}
+	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session.OutputToString()
+}
