@@ -14,7 +14,7 @@ The dependencies for integration really consists of three things:
 The following instructions assume your GOPATH is ~/go. Adjust as needed for your
 environment.
 
-### Installing ginko
+### Installing ginkgo
 Fetch and build ginkgo with the following command:
 ```
 GOPATH=~/go go get -u github.com/onsi/ginkgo/ginkgo
