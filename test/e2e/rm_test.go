@@ -29,10 +29,8 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm stopped container", func() {
-		session := podmanTest.RunLsContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		cid := session.OutputToString()
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()

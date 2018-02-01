@@ -47,9 +47,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps all", func() {
-		session := podmanTest.RunLsContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a"})
 		result.WaitWithDefaultTimeout()
@@ -58,9 +57,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps size flag", func() {
-		session := podmanTest.RunLsContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--size"})
 		result.WaitWithDefaultTimeout()
@@ -69,10 +67,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps quiet flag", func() {
-		session := podmanTest.RunLsContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		fullCid := session.OutputToString()
+		_, ec, fullCid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "-q"})
 		result.WaitWithDefaultTimeout()
@@ -82,9 +78,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps latest flag", func() {
-		session := podmanTest.RunLsContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "--latest"})
 		result.WaitWithDefaultTimeout()
@@ -93,18 +88,15 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps last flag", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunLsContainer("test2")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ = podmanTest.RunLsContainer("test2")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunLsContainer("test3")
-		session.WaitWithDefaultTimeout()
+		_, ec, _ = podmanTest.RunLsContainer("test3")
+		Expect(ec).To(Equal(0))
 
-		Expect(session.ExitCode()).To(Equal(0))
 		result := podmanTest.Podman([]string{"ps", "--last", "2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -112,10 +104,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps no-trunc", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		fullCid := session.OutputToString()
+		_, ec, fullCid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
 		result.WaitWithDefaultTimeout()
@@ -125,9 +115,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--namespace"})
 		result.WaitWithDefaultTimeout()
@@ -136,9 +125,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag with json format", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "json"})
 		result.WaitWithDefaultTimeout()
@@ -147,9 +135,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps namespace flag with go template format", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--format", "\"table {{.ID}} {{.Image}} {{.Labels}}\""})
 		result.WaitWithDefaultTimeout()
@@ -158,9 +145,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps ancestor filter flag", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--filter", "ancestor=docker.io/library/alpine:latest"})
 		result.WaitWithDefaultTimeout()
@@ -168,10 +154,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps id filter flag", func() {
-		session := podmanTest.RunLsContainer("test1")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		fullCid := session.OutputToString()
+		_, ec, fullCid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"ps", "-a", "--filter", fmt.Sprintf("id=%s", fullCid)})
 		result.WaitWithDefaultTimeout()
