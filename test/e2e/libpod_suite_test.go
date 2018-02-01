@@ -345,11 +345,28 @@ func (p *PodmanTest) RunSleepContainer(name string) *PodmanSession {
 
 //RunLsContainer runs a simple container in the background that
 // simply runs ls. If the name passed != "", it will have a name
-func (p *PodmanTest) RunLsContainer(name string) *PodmanSession {
+func (p *PodmanTest) RunLsContainer(name string) (*PodmanSession, int, string) {
 	var podmanArgs = []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
-	return p.Podman(podmanArgs)
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
+}
+
+//NumberOfContainersRunning returns an int of how many
+// containers are currently running.
+func (p *PodmanTest) NumberOfContainersRunning() int {
+	var containers []string
+	ps := p.Podman([]string{"ps", "-q"})
+	ps.WaitWithDefaultTimeout()
+	Expect(ps.ExitCode()).To(Equal(0))
+	for _, i := range ps.OutputToStringArray() {
+		if i != "" {
+			containers = append(containers, i)
+		}
+	}
+	return len(containers)
 }
