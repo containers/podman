@@ -23,6 +23,12 @@ func TestCreateConfig_GetVolumeMounts(t *testing.T) {
 	assert.True(t, reflect.DeepEqual(data, specMount[0]))
 }
 
+func TestCreateConfig_GetAnnotations(t *testing.T) {
+	config := createConfig{}
+	annotations := config.GetAnnotations()
+	assert.True(t, reflect.DeepEqual("sandbox", annotations["io.kubernetes.cri-o.ContainerType"]))
+}
+
 func TestCreateConfig_GetTmpfsMounts(t *testing.T) {
 	data := spec.Mount{
 		Destination: "/homer",
