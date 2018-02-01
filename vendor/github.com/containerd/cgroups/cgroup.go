@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 )
 
 // New returns a new control via the cgroup cgroups interface
@@ -39,6 +40,9 @@ func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
 	for _, s := range pathers(subsystems) {
 		p, err := path(s.Name())
 		if err != nil {
+			if os.IsNotExist(errors.Cause(err)) {
+				return nil, ErrCgroupDeleted
+			}
 			return nil, err
 		}
 		if _, err := os.Lstat(s.Path(p)); err != nil {
@@ -154,8 +158,8 @@ func (c *cgroup) Delete() error {
 	return nil
 }
 
-// Stat returns the current stats for the cgroup
-func (c *cgroup) Stat(handlers ...ErrorHandler) (*Stats, error) {
+// Stat returns the current metrics for the cgroup
+func (c *cgroup) Stat(handlers ...ErrorHandler) (*Metrics, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.err != nil {
@@ -165,9 +169,14 @@ func (c *cgroup) Stat(handlers ...ErrorHandler) (*Stats, error) {
 		handlers = append(handlers, errPassthrough)
 	}
 	var (
-		stats = &Stats{}
-		wg    = &sync.WaitGroup{}
-		errs  = make(chan error, len(c.subsystems))
+		stats = &Metrics{
+			CPU: &CPUStat{
+				Throttling: &Throttle{},
+				Usage:      &CPUUsage{},
+			},
+		}
+		wg   = &sync.WaitGroup{}
+		errs = make(chan error, len(c.subsystems))
 	)
 	for _, s := range c.subsystems {
 		if ss, ok := s.(stater); ok {
@@ -301,7 +310,8 @@ func (c *cgroup) Thaw() error {
 }
 
 // OOMEventFD returns the memory cgroup's out of memory event fd that triggers
-// when processes inside the cgroup receive an oom event
+// when processes inside the cgroup receive an oom event. Returns
+// ErrMemoryNotSupported if memory cgroups is not supported.
 func (c *cgroup) OOMEventFD() (uintptr, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

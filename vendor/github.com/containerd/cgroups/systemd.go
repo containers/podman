@@ -43,19 +43,13 @@ func Slice(slice, name string) Path {
 }
 
 func NewSystemd(root string) (*SystemdController, error) {
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return nil, err
-	}
 	return &SystemdController{
 		root: root,
-		conn: conn,
 	}, nil
 }
 
 type SystemdController struct {
 	mu   sync.Mutex
-	conn *systemdDbus.Conn
 	root string
 }
 
@@ -64,6 +58,11 @@ func (s *SystemdController) Name() Name {
 }
 
 func (s *SystemdController) Create(path string, resources *specs.LinuxResources) error {
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 	slice, name := splitName(path)
 	properties := []systemdDbus.Property{
 		systemdDbus.PropDescription(fmt.Sprintf("cgroup %s", name)),
@@ -74,14 +73,29 @@ func (s *SystemdController) Create(path string, resources *specs.LinuxResources)
 		newProperty("CPUAccounting", true),
 		newProperty("BlockIOAccounting", true),
 	}
-	_, err := s.conn.StartTransientUnit(name, "replace", properties, nil)
-	return err
+	ch := make(chan string)
+	_, err = conn.StartTransientUnit(name, "replace", properties, ch)
+	if err != nil {
+		return err
+	}
+	<-ch
+	return nil
 }
 
 func (s *SystemdController) Delete(path string) error {
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 	_, name := splitName(path)
-	_, err := s.conn.StopUnit(name, "replace", nil)
-	return err
+	ch := make(chan string)
+	_, err = conn.StopUnit(name, "replace", ch)
+	if err != nil {
+		return err
+	}
+	<-ch
+	return nil
 }
 
 func newProperty(name string, units interface{}) systemdDbus.Property {

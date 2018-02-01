@@ -51,20 +51,21 @@ func (h *hugetlbController) Create(path string, resources *specs.LinuxResources)
 	return nil
 }
 
-func (h *hugetlbController) Stat(path string, stats *Stats) error {
-	stats.Hugetlb = make(map[string]HugetlbStat)
+func (h *hugetlbController) Stat(path string, stats *Metrics) error {
 	for _, size := range h.sizes {
 		s, err := h.readSizeStat(path, size)
 		if err != nil {
 			return err
 		}
-		stats.Hugetlb[size] = s
+		stats.Hugetlb = append(stats.Hugetlb, s)
 	}
 	return nil
 }
 
-func (h *hugetlbController) readSizeStat(path, size string) (HugetlbStat, error) {
-	var s HugetlbStat
+func (h *hugetlbController) readSizeStat(path, size string) (*HugetlbStat, error) {
+	s := HugetlbStat{
+		Pagesize: size,
+	}
 	for _, t := range []struct {
 		name  string
 		value *uint64
@@ -84,9 +85,9 @@ func (h *hugetlbController) readSizeStat(path, size string) (HugetlbStat, error)
 	} {
 		v, err := readUint(filepath.Join(h.Path(path), strings.Join([]string{"hugetlb", size, t.name}, ".")))
 		if err != nil {
-			return s, err
+			return nil, err
 		}
 		*t.value = v
 	}
-	return s, nil
+	return &s, nil
 }

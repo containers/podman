@@ -30,7 +30,7 @@ func (c *cpuacctController) Path(path string) string {
 	return filepath.Join(c.root, path)
 }
 
-func (c *cpuacctController) Stat(path string, stats *Stats) error {
+func (c *cpuacctController) Stat(path string, stats *Metrics) error {
 	user, kernel, err := c.getUsage(path)
 	if err != nil {
 		return err
@@ -43,17 +43,10 @@ func (c *cpuacctController) Stat(path string, stats *Stats) error {
 	if err != nil {
 		return err
 	}
-	stats.cpuMu.Lock()
-	cpu := stats.Cpu
-	if cpu == nil {
-		cpu = &CpuStat{}
-		stats.Cpu = cpu
-	}
-	stats.cpuMu.Unlock()
-	cpu.Usage.Total = total
-	cpu.Usage.User = user
-	cpu.Usage.Kernel = kernel
-	cpu.Usage.PerCpu = percpu
+	stats.CPU.Usage.Total = total
+	stats.CPU.Usage.User = user
+	stats.CPU.Usage.Kernel = kernel
+	stats.CPU.Usage.PerCPU = percpu
 	return nil
 }
 
