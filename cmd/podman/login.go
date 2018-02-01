@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/image/docker"
@@ -75,7 +74,7 @@ func loginCmd(c *cli.Context) error {
 	}
 	sc.DockerInsecureSkipTLSVerify = !c.BoolT("tls-verify")
 	if c.String("cert-dir") != "" {
-		sc.DockerCertPath = filepath.Join(c.String("cert-dir"), server)
+		sc.DockerCertPath = c.String("cert-dir")
 	}
 
 	if err = docker.CheckAuth(context.TODO(), sc, username, password, server); err == nil {
