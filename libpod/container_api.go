@@ -17,6 +17,7 @@ import (
 	"github.com/projectatomic/libpod/libpod/driver"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
@@ -600,7 +601,7 @@ func (c *Container) RemoveArtifact(name string) error {
 }
 
 // Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
+func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()

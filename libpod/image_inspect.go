@@ -9,10 +9,10 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
-func getImageData(img storage.Image, imgRef types.Image, size int64, driver *driver.Data) (*ImageData, error) {
+func getImageData(img storage.Image, imgRef types.Image, size int64, driver *inspect.Data) (*inspect.ImageData, error) {
 	imgSize, err := imgRef.Size()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading size of image %q", img.ID)
@@ -41,7 +41,7 @@ func getImageData(img storage.Image, imgRef types.Image, size int64, driver *dri
 		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+imgDigest.String())
 	}
 
-	data := &ImageData{
+	data := &inspect.ImageData{
 		ID:           img.ID,
 		RepoTags:     img.Names,
 		RepoDigests:  repoDigests,
@@ -57,7 +57,7 @@ func getImageData(img storage.Image, imgRef types.Image, size int64, driver *dri
 		Annotations:  annotations,
 		Digest:       imgDigest,
 		Labels:       info.Labels,
-		RootFS: &RootFS{
+		RootFS: &inspect.RootFS{
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
 		},

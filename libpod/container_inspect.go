@@ -2,11 +2,11 @@ package libpod
 
 import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*ContainerInspectData, error) {
+func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data) (*inspect.ContainerInspectData, error) {
 	config := c.config
 	runtimeInfo := c.state
 	spec := c.config.Spec
@@ -20,12 +20,12 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		args = args[1:]
 	}
 
-	data := &ContainerInspectData{
+	data := &inspect.ContainerInspectData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
 		Path:    path,
 		Args:    args,
-		State: &ContainerInspectState{
+		State: &inspect.ContainerInspectState{
 			OciVersion: spec.Version,
 			Status:     runtimeInfo.State.String(),
 			Running:    runtimeInfo.State == ContainerStateRunning,
@@ -53,7 +53,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		ExecIDs:         []string{}, //TODO
 		GraphDriver:     driverData,
 		Mounts:          spec.Mounts,
-		NetworkSettings: &NetworkSettings{
+		NetworkSettings: &inspect.NetworkSettings{
 			Bridge:                 "",    // TODO
 			SandboxID:              "",    // TODO - is this even relevant?
 			HairpinMode:            false, // TODO
