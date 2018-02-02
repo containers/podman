@@ -439,7 +439,7 @@ func getDefaultAnnotations() map[string]string {
 	annotations[ann.Annotations] = ""
 	annotations[ann.ContainerID] = ""
 	annotations[ann.ContainerName] = ""
-	annotations[ann.ContainerType] = ""
+	annotations[ann.ContainerType] = "sandbox"
 	annotations[ann.Created] = ""
 	annotations[ann.HostName] = ""
 	annotations[ann.IP] = ""
