@@ -17,6 +17,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -381,7 +382,7 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 // imageData pulls down the image if not stored locally and extracts the
 // default container runtime data out of it. imageData returns the data
 // to the caller.  Example Data: Entrypoint, Env, WorkingDir, Labels ...
-func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, string, *libpod.ImageData, error) {
+func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, string, *inspect.ImageData, error) {
 	var (
 		err                error
 		imageName, imageID string
@@ -420,7 +421,7 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *libpod.ImageData) (*createConfig, error) {
+func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*createConfig, error) {
 	var command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16

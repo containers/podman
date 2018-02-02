@@ -13,6 +13,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/urfave/cli"
 )
 
@@ -273,7 +274,7 @@ func generateImagesOutput(runtime *libpod.Runtime, images []*storage.Image, opts
 func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) libpod.ImageFilter {
 	switch filterType {
 	case "label":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.Label == "" {
 				return true
 			}
@@ -290,21 +291,21 @@ func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) l
 			return false
 		}
 	case "before-image":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.BeforeImage.IsZero() {
 				return true
 			}
 			return info.Created.Before(params.BeforeImage)
 		}
 	case "since-image":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.SinceImage.IsZero() {
 				return true
 			}
 			return info.Created.After(params.SinceImage)
 		}
 	case "dangling":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.Dangling == "" {
 				return true
 			}
@@ -317,14 +318,14 @@ func generateImagesFilter(params *libpod.ImageFilterParams, filterType string) l
 			return false
 		}
 	case "reference":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.ReferencePattern == "" {
 				return true
 			}
 			return libpod.MatchesReference(params.ImageName, params.ReferencePattern)
 		}
 	case "image-input":
-		return func(image *storage.Image, info *libpod.ImageData) bool {
+		return func(image *storage.Image, info *inspect.ImageData) bool {
 			if params == nil || params.ImageInput == "" {
 				return true
 			}

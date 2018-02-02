@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-
-	"github.com/docker/go-connections/nat"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -143,7 +142,7 @@ func inspectCmd(c *cli.Context) error {
 	return nil
 }
 
-func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerInspectData) (*ContainerData, error) {
+func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerInspectData) (*inspect.ContainerData, error) {
 	config := ctr.Config()
 	spec := config.Spec
 
@@ -163,9 +162,9 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 		logrus.Errorf("couldn't get some inspect information, error getting artifact %q: %v", ctr.ID(), err)
 	}
 
-	data := &ContainerData{
+	data := &inspect.ContainerData{
 		CtrInspectData: ctrInspectData,
-		HostConfig: &HostConfig{
+		HostConfig: &inspect.HostConfig{
 			ConsoleSize:          spec.Process.ConsoleSize,
 			OomScoreAdj:          spec.Process.OOMScoreAdj,
 			CPUShares:            shares,
@@ -211,7 +210,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerIn
 			Ulimits:              createArtifact.Resources.Ulimit,
 			SecurityOpt:          createArtifact.SecurityOpts,
 		},
-		Config: &CtrConfig{
+		Config: &inspect.CtrConfig{
 			Hostname:    spec.Hostname,
 			User:        spec.Process.User,
 			Env:         spec.Process.Env,
@@ -281,98 +280,4 @@ func getCgroup(spec *specs.Spec) string {
 		}
 	}
 	return cgroup
-}
-
-// ContainerData holds the podman inspect data for a container
-type ContainerData struct {
-	CtrInspectData *libpod.ContainerInspectData `json:"CtrInspectData"`
-	HostConfig     *HostConfig                  `json:"HostConfig"`
-	Config         *CtrConfig                   `json:"Config"`
-}
-
-// LogConfig holds the log information for a container
-type LogConfig struct {
-	Type   string            `json:"Type"`   // TODO
-	Config map[string]string `json:"Config"` //idk type, TODO
-}
-
-// HostConfig represents the host configuration for the container
-type HostConfig struct {
-	ContainerIDFile      string                      `json:"ContainerIDFile"`
-	LogConfig            *LogConfig                  `json:"LogConfig"` //TODO
-	NetworkMode          string                      `json:"NetworkMode"`
-	PortBindings         nat.PortMap                 `json:"PortBindings"` //TODO
-	AutoRemove           bool                        `json:"AutoRemove"`
-	CapAdd               []string                    `json:"CapAdd"`
-	CapDrop              []string                    `json:"CapDrop"`
-	DNS                  []string                    `json:"DNS"`
-	DNSOptions           []string                    `json:"DNSOptions"`
-	DNSSearch            []string                    `json:"DNSSearch"`
-	ExtraHosts           []string                    `json:"ExtraHosts"`
-	GroupAdd             []uint32                    `json:"GroupAdd"`
-	IpcMode              string                      `json:"IpcMode"`
-	Cgroup               string                      `json:"Cgroup"`
-	OomScoreAdj          *int                        `json:"OomScoreAdj"`
-	PidMode              string                      `json:"PidMode"`
-	Privileged           bool                        `json:"Privileged"`
-	PublishAllPorts      bool                        `json:"PublishAllPorts"` //TODO
-	ReadonlyRootfs       bool                        `json:"ReadonlyRootfs"`
-	SecurityOpt          []string                    `json:"SecurityOpt"`
-	UTSMode              string                      `json:"UTSMode"`
-	UsernsMode           string                      `json:"UsernsMode"`
-	ShmSize              int64                       `json:"ShmSize"`
-	Runtime              string                      `json:"Runtime"`
-	ConsoleSize          *specs.Box                  `json:"ConsoleSize"`
-	Isolation            string                      `json:"Isolation"` //TODO
-	CPUShares            *uint64                     `json:"CPUSShares"`
-	Memory               int64                       `json:"Memory"`
-	NanoCPUs             int                         `json:"NanoCPUs"` //check type, TODO
-	CgroupParent         string                      `json:"CgroupParent"`
-	BlkioWeight          *uint16                     `json:"BlkioWeight"`
-	BlkioWeightDevice    []specs.LinuxWeightDevice   `json:"BlkioWeightDevice"`
-	BlkioDeviceReadBps   []specs.LinuxThrottleDevice `json:"BlkioDeviceReadBps"`
-	BlkioDeviceWriteBps  []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteBps"`
-	BlkioDeviceReadIOps  []specs.LinuxThrottleDevice `json:"BlkioDeviceReadIOps"`
-	BlkioDeviceWriteIOps []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteIOps"`
-	CPUPeriod            *uint64                     `json:"CPUPeriod"`
-	CPUQuota             *int64                      `json:"CPUQuota"`
-	CPURealtimePeriod    *uint64                     `json:"CPURealtimePeriod"`
-	CPURealtimeRuntime   *int64                      `json:"CPURealtimeRuntime"`
-	CPUSetCPUs           string                      `json:"CPUSetCPUs"`
-	CPUSetMems           string                      `json:"CPUSetMems"`
-	Devices              []specs.LinuxDevice         `json:"Devices"`
-	DiskQuota            int                         `json:"DiskQuota"` //check type, TODO
-	KernelMemory         *int64                      `json:"KernelMemory"`
-	MemoryReservation    *int64                      `json:"MemoryReservation"`
-	MemorySwap           *int64                      `json:"MemorySwap"`
-	MemorySwappiness     *uint64                     `json:"MemorySwappiness"`
-	OomKillDisable       *bool                       `json:"OomKillDisable"`
-	PidsLimit            *int64                      `json:"PidsLimit"`
-	Ulimits              []string                    `json:"Ulimits"`
-	CPUCount             int                         `json:"CPUCount"`           //check type, TODO
-	CPUPercent           int                         `json:"CPUPercent"`         //check type, TODO
-	IOMaximumIOps        int                         `json:"IOMaximumIOps"`      //check type, TODO
-	IOMaximumBandwidth   int                         `json:"IOMaximumBandwidth"` //check type, TODO
-}
-
-// CtrConfig holds information about the container configuration
-type CtrConfig struct {
-	Hostname     string              `json:"Hostname"`
-	DomainName   string              `json:"Domainname"` //TODO
-	User         specs.User          `json:"User"`
-	AttachStdin  bool                `json:"AttachStdin"`  //TODO
-	AttachStdout bool                `json:"AttachStdout"` //TODO
-	AttachStderr bool                `json:"AttachStderr"` //TODO
-	Tty          bool                `json:"Tty"`
-	OpenStdin    bool                `json:"OpenStdin"`
-	StdinOnce    bool                `json:"StdinOnce"` //TODO
-	Env          []string            `json:"Env"`
-	Cmd          []string            `json:"Cmd"`
-	Image        string              `json:"Image"`
-	Volumes      map[string]struct{} `json:"Volumes"`
-	WorkingDir   string              `json:"WorkingDir"`
-	Entrypoint   string              `json:"Entrypoint"`
-	Labels       map[string]string   `json:"Labels"`
-	Annotations  map[string]string   `json:"Annotations"`
-	StopSignal   uint                `json:"StopSignal"`
 }

@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
 // - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
@@ -218,10 +219,27 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 	var i interface{}
 	if err := json.Unmarshal(s.Out.Contents(), &i); err != nil {
 		fmt.Println(err)
-		fmt.Println(s.OutputToString())
 		return false
 	}
 	return true
+}
+
+// InspectContainerToJSON takes the session output of an inspect
+// container and returns json
+func (s *PodmanSession) InspectContainerToJSON() inspect.ContainerData {
+	var i inspect.ContainerData
+	err := json.Unmarshal(s.Out.Contents(), &i)
+	Expect(err).To(BeNil())
+	return i
+}
+
+// InspectImageJSON takes the session output of an inspect
+// image and returns json
+func (s *PodmanSession) InspectImageJSON() inspect.ImageData {
+	var i inspect.ImageData
+	err := json.Unmarshal(s.Out.Contents(), &i)
+	Expect(err).To(BeNil())
+	return i
 }
 
 func (s *PodmanSession) WaitWithDefaultTimeout() {
@@ -369,4 +387,29 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 		}
 	}
 	return len(containers)
+}
+
+//NumberOfContainersreturns an int of how many
+// containers are currently defined.
+func (p *PodmanTest) NumberOfContainers() int {
+	var containers []string
+	ps := p.Podman([]string{"ps", "-aq"})
+	ps.WaitWithDefaultTimeout()
+	Expect(ps.ExitCode()).To(Equal(0))
+	for _, i := range ps.OutputToStringArray() {
+		if i != "" {
+			containers = append(containers, i)
+		}
+	}
+	return len(containers)
+}
+
+// StringInSlice determines if a string is in a string slice, returns bool
+func StringInSlice(s string, sl []string) bool {
+	for _, i := range sl {
+		if i == s {
+			return true
+		}
+	}
+	return false
 }

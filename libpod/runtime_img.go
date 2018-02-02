@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
 // Runtime API
@@ -492,7 +493,7 @@ func getRegistries() ([]string, error) {
 // ImageFilter is a function to determine whether an image is included in
 // command output. Images to be outputted are tested using the function. A true
 // return will include the image, a false return will exclude it.
-type ImageFilter func(*storage.Image, *ImageData) bool
+type ImageFilter func(*storage.Image, *inspect.ImageData) bool
 
 func (ips imageDecomposeStruct) returnFQName() string {
 	return fmt.Sprintf("%s%s/%s:%s", ips.transport, ips.registry, ips.imageName, ips.tag)
@@ -1072,7 +1073,7 @@ func (r *Runtime) ImportImage(path string, options CopyOptions) error {
 }
 
 // GetImageInspectInfo returns the inspect information of an image
-func (r *Runtime) GetImageInspectInfo(image storage.Image) (*ImageData, error) {
+func (r *Runtime) GetImageInspectInfo(image storage.Image) (*inspect.ImageData, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -1082,7 +1083,7 @@ func (r *Runtime) GetImageInspectInfo(image storage.Image) (*ImageData, error) {
 	return r.getImageInspectInfo(image)
 }
 
-func (r *Runtime) getImageInspectInfo(image storage.Image) (*ImageData, error) {
+func (r *Runtime) getImageInspectInfo(image storage.Image) (*inspect.ImageData, error) {
 	imgRef, err := r.getImageRef("@" + image.ID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading image %q", image.ID)
