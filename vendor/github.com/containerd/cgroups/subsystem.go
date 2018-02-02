@@ -67,7 +67,7 @@ type deleter interface {
 
 type stater interface {
 	Subsystem
-	Stat(path string, stats *Stats) error
+	Stat(path string, stats *Metrics) error
 }
 
 type updater interface {

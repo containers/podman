@@ -81,13 +81,18 @@ func (m *memoryController) Update(path string, resources *specs.LinuxResources) 
 	return m.set(path, settings)
 }
 
-func (m *memoryController) Stat(path string, stats *Stats) error {
+func (m *memoryController) Stat(path string, stats *Metrics) error {
 	f, err := os.Open(filepath.Join(m.Path(path), "memory.stat"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	stats.Memory = &MemoryStat{}
+	stats.Memory = &MemoryStat{
+		Usage:     &MemoryEntry{},
+		Swap:      &MemoryEntry{},
+		Kernel:    &MemoryEntry{},
+		KernelTCP: &MemoryEntry{},
+	}
 	if err := m.parseStats(f, stats.Memory); err != nil {
 		return err
 	}
@@ -97,19 +102,19 @@ func (m *memoryController) Stat(path string, stats *Stats) error {
 	}{
 		{
 			module: "",
-			entry:  &stats.Memory.Usage,
+			entry:  stats.Memory.Usage,
 		},
 		{
 			module: "memsw",
-			entry:  &stats.Memory.Swap,
+			entry:  stats.Memory.Swap,
 		},
 		{
 			module: "kmem",
-			entry:  &stats.Memory.Kernel,
+			entry:  stats.Memory.Kernel,
 		},
 		{
 			module: "kmem.tcp",
-			entry:  &stats.Memory.KernelTCP,
+			entry:  stats.Memory.KernelTCP,
 		},
 	} {
 		for _, tt := range []struct {
@@ -155,7 +160,7 @@ func (m *memoryController) OOMEventFD(path string) (uintptr, error) {
 		return 0, err
 	}
 	defer f.Close()
-	fd, _, serr := unix.RawSyscall(unix.SYS_EVENTFD2, 0, unix.FD_CLOEXEC, 0)
+	fd, _, serr := unix.RawSyscall(unix.SYS_EVENTFD2, 0, unix.EFD_CLOEXEC, 0)
 	if serr != 0 {
 		return 0, serr
 	}

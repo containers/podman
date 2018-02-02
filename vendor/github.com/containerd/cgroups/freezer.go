@@ -26,16 +26,10 @@ func (f *freezerController) Path(path string) string {
 }
 
 func (f *freezerController) Freeze(path string) error {
-	if err := f.changeState(path, Frozen); err != nil {
-		return err
-	}
 	return f.waitState(path, Frozen)
 }
 
 func (f *freezerController) Thaw(path string) error {
-	if err := f.changeState(path, Thawed); err != nil {
-		return err
-	}
 	return f.waitState(path, Thawed)
 }
 
@@ -57,6 +51,9 @@ func (f *freezerController) state(path string) (State, error) {
 
 func (f *freezerController) waitState(path string, state State) error {
 	for {
+		if err := f.changeState(path, state); err != nil {
+			return err
+		}
 		current, err := f.state(path)
 		if err != nil {
 			return err

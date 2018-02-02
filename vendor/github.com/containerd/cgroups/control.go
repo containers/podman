@@ -40,7 +40,7 @@ type Cgroup interface {
 	// subsystems are moved one at a time
 	MoveTo(Cgroup) error
 	// Stat returns the stats for all subsystems in the cgroup
-	Stat(...ErrorHandler) (*Stats, error)
+	Stat(...ErrorHandler) (*Metrics, error)
 	// Update updates all the subsystems with the provided resource changes
 	Update(resources *specs.LinuxResources) error
 	// Processes returns all the processes in a select subsystem for the cgroup

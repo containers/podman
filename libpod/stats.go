@@ -66,8 +66,8 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		stats.PIDs = cgroupStats.Pids.Current - 1
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
-	stats.CPUNano = cgroupStats.Cpu.Usage.Total
-	stats.SystemNano = cgroupStats.Cpu.Usage.Kernel
+	stats.CPUNano = cgroupStats.CPU.Usage.Total
+	stats.SystemNano = cgroupStats.CPU.Usage.Kernel
 	// TODO Figure out where to get the Netout stuff.
 	//stats.NetInput, stats.NetOutput = getContainerNetIO(cgroupStats)
 	return stats, nil
@@ -99,21 +99,21 @@ func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted 
 	return
 }
 
-func calculateCPUPercent(stats *cgroups.Stats, previousCPU, previousSystem uint64) float64 {
+func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uint64) float64 {
 	var (
 		cpuPercent  = 0.0
-		cpuDelta    = float64(stats.Cpu.Usage.Total - previousCPU)
+		cpuDelta    = float64(stats.CPU.Usage.Total - previousCPU)
 		systemDelta = float64(uint64(time.Now().UnixNano()) - previousSystem)
 	)
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
 		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
 		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.Cpu.Usage.PerCpu)) * 100
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CPU.Usage.PerCPU)) * 100
 	}
 	return cpuPercent
 }
 
-func calculateBlockIO(stats *cgroups.Stats) (read uint64, write uint64) {
+func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
 	for _, blkIOEntry := range stats.Blkio.IoServiceBytesRecursive {
 		switch strings.ToLower(blkIOEntry.Op) {
 		case "read":

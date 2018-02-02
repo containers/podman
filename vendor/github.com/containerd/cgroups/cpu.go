@@ -84,20 +84,13 @@ func (c *cpuController) Update(path string, resources *specs.LinuxResources) err
 	return c.Create(path, resources)
 }
 
-func (c *cpuController) Stat(path string, stats *Stats) error {
+func (c *cpuController) Stat(path string, stats *Metrics) error {
 	f, err := os.Open(filepath.Join(c.Path(path), "cpu.stat"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	// get or create the cpu field because cpuacct can also set values on this struct
-	stats.cpuMu.Lock()
-	cpu := stats.Cpu
-	if cpu == nil {
-		cpu = &CpuStat{}
-		stats.Cpu = cpu
-	}
-	stats.cpuMu.Unlock()
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		if err := sc.Err(); err != nil {
@@ -109,11 +102,11 @@ func (c *cpuController) Stat(path string, stats *Stats) error {
 		}
 		switch key {
 		case "nr_periods":
-			cpu.Throttling.Periods = v
+			stats.CPU.Throttling.Periods = v
 		case "nr_throttled":
-			cpu.Throttling.ThrottledPeriods = v
+			stats.CPU.Throttling.ThrottledPeriods = v
 		case "throttled_time":
-			cpu.Throttling.ThrottledTime = v
+			stats.CPU.Throttling.ThrottledTime = v
 		}
 	}
 	return nil

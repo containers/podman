@@ -46,7 +46,7 @@ func (p *pidsController) Update(path string, resources *specs.LinuxResources) er
 	return p.Create(path, resources)
 }
 
-func (p *pidsController) Stat(path string, stats *Stats) error {
+func (p *pidsController) Stat(path string, stats *Metrics) error {
 	current, err := readUint(filepath.Join(p.Path(path), "pids.current"))
 	if err != nil {
 		return err
