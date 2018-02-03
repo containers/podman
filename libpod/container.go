@@ -236,8 +236,9 @@ type ContainerConfig struct {
 	CreatedTime time.Time `json:"createdTime"`
 	// Cgroup parent of the container
 	CgroupParent string `json:"cgroupParent"`
-
-	// TODO log options - logpath for plaintext, others for log drivers
+	// LogPath log location
+	LogPath string `json:"logPath"`
+	// TODO log options for log drivers
 }
 
 // ContainerStatus returns a string representation for users
@@ -360,8 +361,7 @@ func (c *Container) RuntimeName() string {
 // This file will only be present after Init() is called to create the container
 // in runc
 func (c *Container) LogPath() string {
-	// TODO store this in state and allow overriding
-	return c.logPath()
+	return c.config.LogPath
 }
 
 // IPAddress returns the IP address of the container

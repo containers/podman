@@ -62,6 +62,9 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 		}
 	}()
 
+	if ctr.config.LogPath == "" {
+		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
+	}
 	if ctr.config.ShmDir == "" {
 		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
@@ -71,7 +74,6 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 		}
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
-
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
@@ -89,7 +91,6 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 			return nil, err
 		}
 	}
-
 	return ctr, nil
 }
 

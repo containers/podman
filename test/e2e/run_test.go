@@ -184,4 +184,16 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("15"))
 	})
+
+	It("podman run log-opt", func() {
+		log := filepath.Join(podmanTest.TempDir, "/container.log")
+		session := podmanTest.Podman([]string{"run", "--rm", "--log-opt", fmt.Sprintf("path=%s", log), ALPINE, "ls"})
+		session.Wait(10)
+		fmt.Println(session.OutputToString())
+		Expect(session.ExitCode()).To(Equal(0))
+		_, err := os.Stat(log)
+		Expect(err).To(BeNil())
+		_ = os.Remove(log)
+	})
+
 })
