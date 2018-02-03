@@ -65,7 +65,9 @@ Pathname of a directory containing TLS certificates and keys
 
 **--creds**
 
-Credentials (USERNAME:PASSWORD) to use for authenticating to a registry
+The [username[:password]] to use to authenticate with the registry if required.
+If one or both values are not supplied, a command line prompt will appear and the
+value can be entered.  The password is entered without echo.
 
 **--quiet, -q**
 
