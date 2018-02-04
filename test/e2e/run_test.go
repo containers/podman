@@ -185,6 +185,17 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("15"))
 	})
 
+	It("podman run notify_socket", func() {
+		sock := "/run/sock"
+		os.Setenv("NOTIFY_SOCKET", sock)
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "NOTIFY_SOCKET"})
+		session.Wait(10)
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(sock)
+		Expect(match).Should(BeTrue())
+		os.Unsetenv("NOTIFY_SOCKET")
+	})
+
 	It("podman run log-opt", func() {
 		log := filepath.Join(podmanTest.TempDir, "/container.log")
 		session := podmanTest.Podman([]string{"run", "--rm", "--log-opt", fmt.Sprintf("path=%s", log), ALPINE, "ls"})
