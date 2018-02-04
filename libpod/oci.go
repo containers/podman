@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/coreos/go-systemd/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -210,6 +211,14 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+	}
+	if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LISTEN_FDS=%s", listenfds))
+		fds := activation.Files(false)
+		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
+	}
 
 	err = cmd.Start()
 	if err != nil {
