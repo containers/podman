@@ -156,12 +156,24 @@ func addDevice(g *generate.Generator, device string) error {
 
 // Parses information needed to create a container into an OCI runtime spec
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
+	cgroupPerm := "ro"
 	g := generate.New()
+	if config.Privileged {
+		cgroupPerm = "rw"
+		g.RemoveMount("/sys")
+		sysMnt := spec.Mount{
+			Destination: "/sys",
+			Type:        "sysfs",
+			Source:      "sysfs",
+			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
+		}
+		g.AddMount(sysMnt)
+	}
 	cgroupMnt := spec.Mount{
 		Destination: "/sys/fs/cgroup",
 		Type:        "cgroup",
 		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+		Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
 	}
 	g.AddMount(cgroupMnt)
 	g.SetProcessCwd(config.WorkDir)
