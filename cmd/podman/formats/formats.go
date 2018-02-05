@@ -11,6 +11,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -70,7 +71,8 @@ func (j JSONStructArray) Out() error {
 
 	// If the we did get NULL back, we should spit out {} which is
 	// at least valid JSON for the consumer.
-	fmt.Printf("%s\n", data)
+	fmt.Printf("%s", data)
+	humanNewLine()
 	return nil
 }
 
@@ -95,13 +97,20 @@ func (t StdoutTemplateArray) Out() error {
 	if err != nil {
 		return errors.Wrapf(err, "Template parsing error")
 	}
-	for _, img := range t.Output {
+	for i, img := range t.Output {
 		basicTmpl := tmpl.Funcs(basicFunctions)
 		err = basicTmpl.Execute(w, img)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(w, "")
+		if i != len(t.Output)-1 {
+			fmt.Fprintln(w, "")
+			continue
+		}
+		// Only print new line at the end of the output if stdout is the terminal
+		if terminal.IsTerminal(int(os.Stdout.Fd())) {
+			fmt.Fprintln(w, "")
+		}
 	}
 	return w.Flush()
 }
@@ -112,7 +121,8 @@ func (j JSONStruct) Out() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", data)
+	fmt.Printf("%s", data)
+	humanNewLine()
 	return nil
 }
 
@@ -126,7 +136,7 @@ func (t StdoutTemplate) Out() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println()
+	humanNewLine()
 	return nil
 }
 
@@ -138,6 +148,14 @@ func (y YAMLStruct) Out() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(buf))
+	fmt.Printf("%s", string(buf))
+	humanNewLine()
 	return nil
+}
+
+// humanNewLine prints a new line at the end of the output only if stdout is the terminal
+func humanNewLine() {
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		fmt.Println()
+	}
 }
