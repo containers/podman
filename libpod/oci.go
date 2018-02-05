@@ -215,7 +215,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
 	if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LISTEN_FDS=%s", listenfds))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
 		fds := activation.Files(false)
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
 	}
