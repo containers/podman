@@ -194,7 +194,10 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.md2man: .gopathok
 	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
-		go get -u github.com/cpuguy83/go-md2man; \
+		   go get -d github.com/cpuguy83/go-md2man; \
+		   cd $(GOPATH)/src/github.com/cpuguy83/go-md2man; \
+		   git checkout 20f5889cbdc3c73dbd2862796665e7c465ade7d1; \
+		   go install github.com/cpuguy83/go-md2man; \
 	fi
 
 .install.ostree: .gopathok
