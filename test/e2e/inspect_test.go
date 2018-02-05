@@ -3,9 +3,10 @@ package integration
 import (
 	"os"
 
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
 )
 
 var _ = Describe("Podman inspect", func() {
@@ -69,6 +70,6 @@ var _ = Describe("Podman inspect", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData.CtrInspectData.SizeRootFs).To(BeNumerically(">", 0))
+		Expect(conData.SizeRootFs).To(BeNumerically(">", 0))
 	})
 })
