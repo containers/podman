@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -175,7 +176,10 @@ func fixFiles(selinuxHnd *C.struct_selabel_handle, root string, dir string, user
 			if err != nil {
 				return err
 			}
-			relPath = fmt.Sprintf("/%s", relPath)
+			// Handle /exports/hostfs as a special case.  Files under this directory are copied to the host,
+			// thus we benefit from maintaining the same SELinux label they would have on the host as we could
+			// use hard links instead of copying the files.
+			relPath = fmt.Sprintf("/%s", strings.TrimPrefix(relPath, "exports/hostfs/"))
 
 			relPathC := C.CString(relPath)
 			defer C.free(unsafe.Pointer(relPathC))
@@ -237,7 +241,7 @@ func generateTarSplitMetadata(output *bytes.Buffer, file string) error {
 	}
 	defer stream.Close()
 
-	gzReader, err := gzip.NewReader(stream)
+	gzReader, err := archive.DecompressStream(stream)
 	if err != nil {
 		return err
 	}
@@ -383,7 +387,7 @@ func (d *ostreeImageDestination) Commit() error {
 	var selinuxHnd *C.struct_selabel_handle
 
 	if os.Getuid() == 0 && selinux.GetEnabled() {
-		selinuxHnd, err := C.selabel_open(C.SELABEL_CTX_FILE, nil, 0)
+		selinuxHnd, err = C.selabel_open(C.SELABEL_CTX_FILE, nil, 0)
 		if selinuxHnd == nil {
 			return errors.Wrapf(err, "cannot open the SELinux DB")
 		}

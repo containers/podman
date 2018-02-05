@@ -149,6 +149,16 @@ func (m *manifestOCI1) UpdatedImage(options types.ManifestUpdateOptions) (types.
 
 	switch options.ManifestMIMEType {
 	case "": // No conversion, OK
+	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType:
+		// We can't directly convert to V1, but we can transitively convert via a V2 image
+		m2, err := copy.convertToManifestSchema2()
+		if err != nil {
+			return nil, err
+		}
+		return m2.UpdatedImage(types.ManifestUpdateOptions{
+			ManifestMIMEType: options.ManifestMIMEType,
+			InformationOnly:  options.InformationOnly,
+		})
 	case manifest.DockerV2Schema2MediaType:
 		return copy.convertToManifestSchema2()
 	default:

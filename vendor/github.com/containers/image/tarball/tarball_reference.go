@@ -89,5 +89,5 @@ func (r *tarballReference) DeleteImage(ctx *types.SystemContext) error {
 }
 
 func (r *tarballReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return nil, fmt.Errorf("destination not implemented yet")
+	return nil, fmt.Errorf(`"tarball:" locations can only be read from, not written to`)
 }
