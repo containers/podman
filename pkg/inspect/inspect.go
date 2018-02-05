@@ -12,9 +12,9 @@ import (
 
 // ContainerData holds the podman inspect data for a container
 type ContainerData struct {
-	CtrInspectData *ContainerInspectData `json:"CtrInspectData"`
-	HostConfig     *HostConfig           `json:"HostConfig"`
-	Config         *CtrConfig            `json:"Config"`
+	*ContainerInspectData
+	HostConfig *HostConfig `json:"HostConfig"`
+	Config     *CtrConfig  `json:"Config"`
 }
 
 // HostConfig represents the host configuration for the container

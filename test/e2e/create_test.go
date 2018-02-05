@@ -38,7 +38,7 @@ var _ = Describe("Podman create", func() {
 		check := podmanTest.Podman([]string{"inspect", "-l"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectContainerToJSON()
-		Expect(data.CtrInspectData.ID).To(ContainSubstring(cid))
+		Expect(data.ID).To(ContainSubstring(cid))
 	})
 
 	It("podman create container based on a remote image", func() {

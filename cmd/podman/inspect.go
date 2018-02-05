@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
@@ -163,8 +164,8 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 	}
 
 	data := &inspect.ContainerData{
-		CtrInspectData: ctrInspectData,
-		HostConfig: &inspect.HostConfig{
+		ctrInspectData,
+		&inspect.HostConfig{
 			ConsoleSize:          spec.Process.ConsoleSize,
 			OomScoreAdj:          spec.Process.OOMScoreAdj,
 			CPUShares:            shares,
@@ -210,7 +211,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			Ulimits:              createArtifact.Resources.Ulimit,
 			SecurityOpt:          createArtifact.SecurityOpts,
 		},
-		Config: &inspect.CtrConfig{
+		&inspect.CtrConfig{
 			Hostname:    spec.Hostname,
 			User:        spec.Process.User,
 			Env:         spec.Process.Env,

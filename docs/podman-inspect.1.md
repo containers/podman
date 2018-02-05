@@ -79,6 +79,16 @@ Display the total file size if the type is a container
 }
 ```
 
+```
+# podman inspect a04 --format "{{.ImageName}}"
+fedora
+```
+
+```
+# sudo podman inspect a04 --format "{{.GraphDriver.Name}}"
+overlay
+```
+
 ## SEE ALSO
 podman(1)
 
