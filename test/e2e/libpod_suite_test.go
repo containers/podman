@@ -413,3 +413,14 @@ func StringInSlice(s string, sl []string) bool {
 	}
 	return false
 }
+
+//LineInOutputStartsWith returns true if a line in a
+// session output starts with the supplied string
+func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
+	for _, i := range s.OutputToStringArray() {
+		if strings.HasPrefix(i, term) {
+			return true
+		}
+	}
+	return false
+}
