@@ -18,9 +18,6 @@ Display the running process of the container. ps-OPTION can be any of the option
 **--help, -h**
   Print usage statement
 
-**--format**
-  Display the output in an alternate format.  The only supported format is **JSON**.
-
 **--latest, -l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
@@ -41,20 +38,6 @@ FUSER    F COMMAND         LABEL
 root     4 bash            system_u:system_r:container_t:s0:c429,c1016
 root     0 vi              system_u:system_r:container_t:s0:c429,c1016
 #
-```
-```
-# podman top --format=json f5a62a71b07b -o %cpu,%mem,command,blocked
-[
-    {
-        "CPU": "0.0",
-        "MEM": "0.0",
-        "COMMAND": "vi",
-        "BLOCKED": "0000000000000000",
-        "START": "",
-        "TIME": "",
-        "C": "",
-        "CAUGHT": "",
-        ...
 ```
 ## SEE ALSO
 podman(1), ps(1)
