@@ -11,7 +11,9 @@ podman stop - Stop one or more containers
 ## DESCRIPTION
 Stops one or more containers.  You may use container IDs or names as input. The **--timeout** switch
 allows you to specify the number of seconds to wait before forcibly stopping the container after the stop command
-is issued to the container. The default is 10 seconds.
+is issued to the container. The default is 10 seconds. By default, containers are stopped with SIGTERM
+and then SIGKILL after the timeout. The SIGTERM default can be overridden by the image used to create the
+container and also via command line when creating the container.
 
 ## OPTIONS
 
