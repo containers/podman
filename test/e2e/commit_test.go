@@ -74,6 +74,7 @@ var _ = Describe("Podman commit", func() {
 	})
 
 	It("podman commit container with change flag", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
 		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", fedoraMinimal, "ls"})
 		test.WaitWithDefaultTimeout()
 		Expect(test.ExitCode()).To(Equal(0))

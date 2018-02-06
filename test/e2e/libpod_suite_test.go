@@ -39,7 +39,8 @@ var (
 	INTEGRATION_ROOT   string
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	IMAGES             = []string{"alpine", "busybox"}
+	CACHE_IMAGES       = []string{"alpine", "busybox", fedoraMinimal}
+	RESTORE_IMAGES     = []string{"alpine", "busybox"}
 	ALPINE             = "docker.io/library/alpine:latest"
 	BB_GLIBC           = "docker.io/library/busybox:glibc"
 	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
@@ -86,7 +87,7 @@ var _ = BeforeSuite(func() {
 			os.Exit(1)
 		}
 	}
-	for _, image := range IMAGES {
+	for _, image := range CACHE_IMAGES {
 		fmt.Printf("Caching %s...\n", image)
 		if err := podman.CreateArtifact(image); err != nil {
 			fmt.Printf("%q\n", err)
@@ -280,7 +281,8 @@ func (p *PodmanTest) CreateArtifact(image string) error {
 		return errors.Errorf("error parsing image name %v: %v", image, err)
 	}
 
-	exportTo := filepath.Join("dir:", p.ArtifactPath, image)
+	imageDir := strings.Replace(image, "/", "_", -1)
+	exportTo := filepath.Join("dir:", p.ArtifactPath, imageDir)
 	exportRef, err := alltransports.ParseImageName(exportTo)
 	if err != nil {
 		return errors.Errorf("error parsing image name %v: %v", exportTo, err)
@@ -314,7 +316,8 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 		return errors.Errorf("error parsing image name: %v", err)
 	}
 
-	importFrom := fmt.Sprintf("dir:%s", filepath.Join(p.ArtifactPath, image))
+	imageDir := strings.Replace(image, "/", "_", -1)
+	importFrom := fmt.Sprintf("dir:%s", filepath.Join(p.ArtifactPath, imageDir))
 	importRef, err := alltransports.ParseImageName(importFrom)
 	if err != nil {
 		return errors.Errorf("error parsing image name %v: %v", image, err)
@@ -342,7 +345,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 
 // RestoreAllArtifacts unpacks all cached images
 func (p *PodmanTest) RestoreAllArtifacts() error {
-	for _, image := range IMAGES {
+	for _, image := range RESTORE_IMAGES {
 		if err := p.RestoreArtifact(image); err != nil {
 			return err
 		}
