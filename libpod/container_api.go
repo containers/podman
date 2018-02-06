@@ -313,6 +313,11 @@ func (c *Container) Start() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
+	// TODO remove this when we patch conmon to support restarting containers
+	if c.state.State == ContainerStateStopped {
+		return errors.Wrapf(ErrNotImplemented, "restarting a stopped container is not yet supported")
+	}
+
 	// Mount storage for the container
 	if err := c.mountStorage(); err != nil {
 		return err
