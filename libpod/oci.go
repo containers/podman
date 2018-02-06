@@ -394,6 +394,7 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 
 // killContainer sends the given signal to the given container
 func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
+	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", ctr.ID(), fmt.Sprintf("%d", signal)); err != nil {
 		return errors.Wrapf(err, "error sending signal to container %s", ctr.ID())
 	}
