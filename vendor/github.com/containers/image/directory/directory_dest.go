@@ -70,7 +70,7 @@ func newImageDestination(ref dirReference, compress bool) (types.ImageDestinatio
 		}
 	}
 	// create version file
-	err = ioutil.WriteFile(d.ref.versionPath(), []byte(version), 0755)
+	err = ioutil.WriteFile(d.ref.versionPath(), []byte(version), 0644)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating version file %q", d.ref.versionPath())
 	}

@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,8 +26,9 @@ import (
 )
 
 const (
-	dockerHostname = "docker.io"
-	dockerRegistry = "registry-1.docker.io"
+	dockerHostname   = "docker.io"
+	dockerV1Hostname = "index.docker.io"
+	dockerRegistry   = "registry-1.docker.io"
 
 	systemPerHostCertDirPath = "/etc/docker/certs.d"
 
@@ -66,9 +69,10 @@ type extensionSignatureList struct {
 }
 
 type bearerToken struct {
-	Token     string    `json:"token"`
-	ExpiresIn int       `json:"expires_in"`
-	IssuedAt  time.Time `json:"issued_at"`
+	Token       string    `json:"token"`
+	AccessToken string    `json:"access_token"`
+	ExpiresIn   int       `json:"expires_in"`
+	IssuedAt    time.Time `json:"issued_at"`
 }
 
 // dockerClient is configuration for dealing with a single Docker registry.
@@ -94,6 +98,24 @@ type dockerClient struct {
 type authScope struct {
 	remoteName string
 	actions    string
+}
+
+func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
+	token := new(bearerToken)
+	if err := json.Unmarshal(blob, &token); err != nil {
+		return nil, err
+	}
+	if token.Token == "" {
+		token.Token = token.AccessToken
+	}
+	if token.ExpiresIn < minimumTokenLifetimeSeconds {
+		token.ExpiresIn = minimumTokenLifetimeSeconds
+		logrus.Debugf("Increasing token expiration to: %d seconds", token.ExpiresIn)
+	}
+	if token.IssuedAt.IsZero() {
+		token.IssuedAt = time.Now().UTC()
+	}
+	return token, nil
 }
 
 // this is cloned from docker/go-connections because upstream docker has changed
@@ -200,6 +222,100 @@ func CheckAuth(ctx context.Context, sCtx *types.SystemContext, username, passwor
 	default:
 		return errors.Errorf("error occured with status code %q", resp.StatusCode)
 	}
+}
+
+// SearchResult holds the information of each matching image
+// It matches the output returned by the v1 endpoint
+type SearchResult struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// StarCount states the number of stars the image has
+	StarCount int  `json:"star_count"`
+	IsTrusted bool `json:"is_trusted"`
+	// IsAutomated states whether the image is an automated build
+	IsAutomated bool `json:"is_automated"`
+	// IsOfficial states whether the image is an official build
+	IsOfficial bool `json:"is_official"`
+}
+
+// SearchRegistry queries a registry for images that contain "image" in their name
+// The limit is the max number of results desired
+// Note: The limit value doesn't work with all registries
+// for example registry.access.redhat.com returns all the results without limiting it to the limit value
+func SearchRegistry(ctx context.Context, sCtx *types.SystemContext, registry, image string, limit int) ([]SearchResult, error) {
+	type V2Results struct {
+		// Repositories holds the results returned by the /v2/_catalog endpoint
+		Repositories []string `json:"repositories"`
+	}
+	type V1Results struct {
+		// Results holds the results returned by the /v1/search endpoint
+		Results []SearchResult `json:"results"`
+	}
+	v2Res := &V2Results{}
+	v1Res := &V1Results{}
+
+	// The /v2/_catalog endpoint has been disabled for docker.io therefore the call made to that endpoint will fail
+	// So using the v1 hostname for docker.io for simplicity of implementation and the fact that it returns search results
+	if registry == dockerHostname {
+		registry = dockerV1Hostname
+	}
+
+	client, err := newDockerClientWithDetails(sCtx, registry, "", "", "", nil, "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating new docker client")
+	}
+
+	logrus.Debugf("trying to talk to v2 search endpoint\n")
+	resp, err := client.makeRequest(ctx, "GET", "/v2/_catalog", nil, nil)
+	if err != nil {
+		logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			logrus.Debugf("error getting search results from v2 endpoint %q, status code %q", registry, resp.StatusCode)
+		} else {
+			if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
+				return nil, err
+			}
+			searchRes := []SearchResult{}
+			for _, repo := range v2Res.Repositories {
+				if strings.Contains(repo, image) {
+					res := SearchResult{
+						Name: repo,
+					}
+					searchRes = append(searchRes, res)
+				}
+			}
+			return searchRes, nil
+		}
+	}
+
+	// set up the query values for the v1 endpoint
+	u := url.URL{
+		Path: "/v1/search",
+	}
+	q := u.Query()
+	q.Set("q", image)
+	q.Set("n", strconv.Itoa(limit))
+	u.RawQuery = q.Encode()
+
+	logrus.Debugf("trying to talk to v1 search endpoint\n")
+	resp, err = client.makeRequest(ctx, "GET", u.String(), nil, nil)
+	if err != nil {
+		logrus.Debugf("error getting search results from v1 endpoint %q: %v", registry, err)
+	} else {
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			logrus.Debugf("error getting search results from v1 endpoint %q, status code %q", registry, resp.StatusCode)
+		} else {
+			if err := json.NewDecoder(resp.Body).Decode(v1Res); err != nil {
+				return nil, err
+			}
+			return v1Res.Results, nil
+		}
+	}
+
+	return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
 }
 
 // makeRequest creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
@@ -332,18 +448,8 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	if err != nil {
 		return nil, err
 	}
-	var token bearerToken
-	if err := json.Unmarshal(tokenBlob, &token); err != nil {
-		return nil, err
-	}
-	if token.ExpiresIn < minimumTokenLifetimeSeconds {
-		token.ExpiresIn = minimumTokenLifetimeSeconds
-		logrus.Debugf("Increasing token expiration to: %d seconds", token.ExpiresIn)
-	}
-	if token.IssuedAt.IsZero() {
-		token.IssuedAt = time.Now().UTC()
-	}
-	return &token, nil
+
+	return newBearerTokenFromJSONBlob(tokenBlob)
 }
 
 // detectProperties detects various properties of the registry.

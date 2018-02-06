@@ -954,6 +954,19 @@ _podman_pull() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_search() {
+	local options_with_args="
+	--filter -f
+	--format
+	--limit
+	--registry
+	"
+	local boolean_options="
+	--no-trunc
+	"
+	_complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_unmount() {
     _podman_umount $@
 }
@@ -1589,6 +1602,7 @@ _podman_podman() {
     rmi
     run
     save
+    search
     start
     stats
     stop
