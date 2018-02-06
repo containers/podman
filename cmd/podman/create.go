@@ -527,7 +527,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	}
 
 	// STOP SIGNAL
-	stopSignal := syscall.SIGINT
+	stopSignal := syscall.SIGTERM
 	signalString := data.Config.StopSignal
 	if c.IsSet("stop-signal") {
 		signalString = c.String("stop-signal")
