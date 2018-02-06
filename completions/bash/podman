@@ -923,6 +923,8 @@ _podman_logs() {
      -f
      --latest
      -l
+     --timestamps
+     -t
      "
      _complete_ "$options_with_args" "$boolean_options"
 
