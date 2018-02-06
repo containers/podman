@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,8 +31,6 @@ const (
 	dockerV1Hostname = "index.docker.io"
 	dockerRegistry   = "registry-1.docker.io"
 
-	systemPerHostCertDirPath = "/etc/docker/certs.d"
-
 	resolvedPingV2URL       = "%s://%s/v2/"
 	resolvedPingV1URL       = "%s://%s/v1/_ping"
 	tagsPath                = "/v2/%s/tags/list"
@@ -52,6 +51,7 @@ var (
 	ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
 	// ErrUnauthorizedForCredentials is returned when the status code returned is 401
 	ErrUnauthorizedForCredentials = errors.New("unable to retrieve auth token: invalid username/password")
+	systemPerHostCertDirPaths     = [2]string{"/etc/containers/certs.d", "/etc/docker/certs.d"}
 )
 
 // extensionSignature and extensionSignatureList come from github.com/openshift/origin/pkg/dockerregistry/server/signaturedispatcher.go:
@@ -131,19 +131,42 @@ func serverDefault() *tls.Config {
 }
 
 // dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
-func dockerCertDir(ctx *types.SystemContext, hostPort string) string {
+func dockerCertDir(ctx *types.SystemContext, hostPort string) (string, error) {
 	if ctx != nil && ctx.DockerCertPath != "" {
-		return ctx.DockerCertPath
+		return ctx.DockerCertPath, nil
 	}
-	var hostCertDir string
 	if ctx != nil && ctx.DockerPerHostCertDirPath != "" {
-		hostCertDir = ctx.DockerPerHostCertDirPath
-	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-		hostCertDir = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemPerHostCertDirPath)
-	} else {
-		hostCertDir = systemPerHostCertDirPath
+		return filepath.Join(ctx.DockerPerHostCertDirPath, hostPort), nil
 	}
-	return filepath.Join(hostCertDir, hostPort)
+
+	var (
+		hostCertDir     string
+		fullCertDirPath string
+	)
+	for _, systemPerHostCertDirPath := range systemPerHostCertDirPaths {
+		if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
+			hostCertDir = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemPerHostCertDirPath)
+		} else {
+			hostCertDir = systemPerHostCertDirPath
+		}
+
+		fullCertDirPath = filepath.Join(hostCertDir, hostPort)
+		_, err := os.Stat(fullCertDirPath)
+		if err == nil {
+			break
+		}
+		if os.IsNotExist(err) {
+			continue
+		}
+		if os.IsPermission(err) {
+			logrus.Debugf("error accessing certs directory due to permissions: %v", err)
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return fullCertDirPath, nil
 }
 
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
@@ -177,7 +200,10 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 	// dockerHostname here, because it is more symmetrical to read the configuration in that case as well, and because
 	// generally the UI hides the existence of the different dockerRegistry.  But note that this behavior is
 	// undocumented and may change if docker/docker changes.
-	certDir := dockerCertDir(ctx, hostName)
+	certDir, err := dockerCertDir(ctx, hostName)
+	if err != nil {
+		return nil, err
+	}
 	if err := tlsclientconfig.SetupCertificates(certDir, tr.TLSClientConfig); err != nil {
 		return nil, err
 	}
