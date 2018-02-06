@@ -365,6 +365,19 @@ func (c *Container) mountStorage() (err error) {
 	return c.save()
 }
 
+// cleanupNetwork unmounts and cleans up the container's network
+func (c *Container) cleanupNetwork() error {
+	// Stop the container's network namespace (if it has one)
+	if err := c.runtime.teardownNetNS(c); err != nil {
+		logrus.Errorf("unable cleanup network for container %s: %q", c.ID(), err)
+	}
+
+	c.state.NetNS = nil
+	c.state.SubnetMask = ""
+	c.state.IPAddress = ""
+	return c.save()
+}
+
 // cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
