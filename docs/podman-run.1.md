@@ -620,8 +620,8 @@ This should list the message sent to logger.
 
 ### Attaching to one or more from STDIN, STDOUT, STDERR
 
-If you do not specify -a then podman will attach everything (stdin,stdout,stderr)
-. You can specify to which of the three standard streams (stdin, stdout, stderr)
+If you do not specify -a then podman will attach everything (stdin,stdout,stderr).
+You can specify to which of the three standard streams (stdin, stdout, stderr)
 you'd like to connect instead, as in:
 
     # podman run -a stdin -a stdout -i -t fedora /bin/bash
