@@ -38,7 +38,8 @@ Username for registry
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
 
 **--cert-dir**
-Pathname of a directory containing TLS certificates and keys used to connect to the registry
+Pathname of a directory containing TLS certificates and keys used to connect to the registry.
+Default certificates directory is _/etc/containers/certs.d_.
 
 **--tls-verify**
 Require HTTPS and verify certificates when contacting registries (default: true)

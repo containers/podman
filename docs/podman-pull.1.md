@@ -61,7 +61,8 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 
 **--cert-dir**
 
-Pathname of a directory containing TLS certificates and keys
+Pathname of a directory containing TLS certificates and keys.
+Default certificates directory is _/etc/containers/certs.d_.
 
 **--creds**
 
