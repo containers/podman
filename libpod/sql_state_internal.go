@@ -37,6 +37,7 @@ const (
                           FROM containers
                           INNER JOIN
                               containerState ON containers.Id = containerState.Id `
+	// ExistsQuery is a query to check if a pod exists
 	ExistsQuery = "SELECT 1 FROM pods WHERE Id=?;"
 )
 
