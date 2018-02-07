@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -97,25 +97,15 @@ func pushCmd(c *cli.Context) error {
 		}
 	}
 
-	registryCredsString := c.String("creds")
 	certPath := c.String("cert-dir")
 	skipVerify := !c.BoolT("tls-verify")
 	removeSignatures := c.Bool("remove-signatures")
 	signBy := c.String("sign-by")
 
-	if registryCredsString != "" {
-		creds, err := common.ParseRegistryCreds(registryCredsString)
+	if c.IsSet("creds") {
+		creds, err := util.ParseRegistryCreds(c.String("creds"))
 		if err != nil {
-			if err == common.ErrNoPassword {
-				fmt.Print("Password: ")
-				password, err := terminal.ReadPassword(0)
-				if err != nil {
-					return errors.Wrapf(err, "could not read password from terminal")
-				}
-				creds.Password = string(password)
-			} else {
-				return err
-			}
+			return err
 		}
 		registryCreds = creds
 	}

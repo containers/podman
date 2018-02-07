@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
-
-	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -80,19 +78,11 @@ func pullCmd(c *cli.Context) error {
 	image := args[0]
 
 	var registryCreds *types.DockerAuthConfig
-	if c.String("creds") != "" {
-		creds, err := common.ParseRegistryCreds(c.String("creds"))
+
+	if c.IsSet("creds") {
+		creds, err := util.ParseRegistryCreds(c.String("creds"))
 		if err != nil {
-			if err == common.ErrNoPassword {
-				fmt.Print("Password: ")
-				password, err := terminal.ReadPassword(0)
-				if err != nil {
-					return errors.Wrapf(err, "could not read password from terminal")
-				}
-				creds.Password = string(password)
-			} else {
-				return err
-			}
+			return err
 		}
 		registryCreds = creds
 	}
