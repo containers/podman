@@ -14,7 +14,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 9
+const DBSchema = 10
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -252,7 +252,7 @@ func (s *SQLState) AddContainer(ctr *Container) (err error) {
 		return errors.Wrapf(ErrPodExists, "cannot add container that belongs to a pod, use AddContainerToPod instead")
 	}
 
-	return s.addContainer(ctr)
+	return s.addContainer(ctr, nil)
 }
 
 // UpdateContainer updates a container's state from the database
@@ -381,7 +381,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 }
 
 // SaveContainer updates a container's state in the database
-func (s *SQLState) SaveContainer(ctr *Container) error {
+func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 	const update = `UPDATE containerState SET
                           State=?,
                           ConfigPath=?,
@@ -508,7 +508,7 @@ func (s *SQLState) RemoveContainer(ctr *Container) error {
 		return errors.Wrapf(ErrPodExists, "container %s belongs to a pod, use RemoveContainerFromPod", ctr.ID())
 	}
 
-	return s.removeContainer(ctr)
+	return s.removeContainer(ctr, nil)
 }
 
 // AllContainers retrieves all the containers presently in the state
@@ -801,7 +801,7 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 
 // RemovePod removes a pod from the state
 // Only empty pods can be removed
-func (s *SQLState) RemovePod(pod *Pod) error {
+func (s *SQLState) RemovePod(pod *Pod) (err error) {
 	const (
 		removePod      = "DELETE FROM pods WHERE ID=?;"
 		removeRegistry = "DELETE FROM registry WHERE Id=?;"
@@ -832,6 +832,7 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving number of rows in transaction removing pod %s", pod.ID())
 	} else if rows == 0 {
+		pod.valid = false
 		return ErrNoSuchPod
 	}
 
@@ -851,11 +852,11 @@ func (s *SQLState) RemovePod(pod *Pod) error {
 // This can avoid issues with dependencies within the pod
 // The operation will fail if any container in the pod has a dependency from
 // outside the pod
-func (s *SQLState) RemovePodContainers(pod *Pod) error {
+func (s *SQLState) RemovePodContainers(pod *Pod) (err error) {
 	const (
 		getPodCtrs     = "SELECT Id FROM containers WHERE pod=?;"
 		removeCtr      = "DELETE FROM containers WHERE pod=?;"
-		removeCtrState = "DELETE FROM containerState WHERE ID=ANY(SELECT Id FROM containers WHERE pod=?);"
+		removeCtrState = "DELETE FROM containerState WHERE ID IN (SELECT Id FROM containers WHERE pod=?);"
 	)
 
 	if !s.valid {
@@ -879,6 +880,16 @@ func (s *SQLState) RemovePodContainers(pod *Pod) error {
 			}
 		}
 	}()
+
+	// Check if the pod exists
+	exists, err := podExistsTx(pod.ID(), tx)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		pod.valid = false
+		return ErrNoSuchPod
+	}
 
 	// First get all containers in the pod
 	rows, err := tx.Query(getPodCtrs, pod.ID())
@@ -920,7 +931,7 @@ func (s *SQLState) RemovePodContainers(pod *Pod) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrapf(err, "error committing transaction to add pod %s", pod.ID())
+		return errors.Wrapf(err, "error committing transaction remove pod %s containers", pod.ID())
 	}
 
 	committed = true
@@ -963,7 +974,7 @@ func (s *SQLState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "container's pod ID does not match given pod's ID")
 	}
 
-	return s.addContainer(ctr)
+	return s.addContainer(ctr, pod)
 }
 
 // RemoveContainerFromPod removes a container from the given pod
@@ -972,7 +983,7 @@ func (s *SQLState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "container %s is not in pod %s", ctr.ID(), pod.ID())
 	}
 
-	return s.removeContainer(ctr)
+	return s.removeContainer(ctr, pod)
 }
 
 // AllPods retrieves all pods presently in the state

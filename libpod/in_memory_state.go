@@ -123,6 +123,17 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
 	}
 
+	// There are potential race conditions with this
+	// But in-memory state is intended purely for testing and not production
+	// use, so this should be fine.
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		_, ok = s.containers[depCtr]
+		if !ok {
+			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
+		}
+	}
+
 	if err := s.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
 		return errors.Wrapf(err, "error registering container name %s", ctr.Name())
 	}
@@ -135,7 +146,6 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	s.containers[ctr.ID()] = ctr
 
 	// Add containers this container depends on
-	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
 		s.addCtrToDependsMap(ctr.ID(), depCtr)
 	}
@@ -157,6 +167,7 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	}
 
 	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
 		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
 	}
 
@@ -301,6 +312,10 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 		return false, errors.Wrapf(ErrPodRemoved, "pod %s is not valid")
 	}
 
+	if ctrID == "" {
+		return false, ErrEmptyID
+	}
+
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
@@ -398,10 +413,12 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 	// pods out of the state
 
 	if _, ok := s.pods[pod.ID()]; !ok {
+		pod.valid = false
 		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
+		pod.valid = false
 		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 	if len(podCtrs) != 0 {
@@ -430,20 +447,19 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 	// Get pod containers
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
+		pod.valid = false
 		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 
 	// Go through container dependencies. Check to see if any are outside the pod.
 	for ctr := range podCtrs {
 		ctrDeps, ok := s.ctrDepends[ctr]
-		if !ok {
-			return errors.Wrapf(ErrInternal, "cannot find dependencies for container %s", ctr)
-		}
-
-		for _, dep := range ctrDeps {
-			_, ok := podCtrs[dep]
-			if !ok {
-				return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
+		if ok {
+			for _, dep := range ctrDeps {
+				_, ok := podCtrs[dep]
+				if !ok {
+					return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
+				}
 			}
 		}
 	}
@@ -490,6 +506,17 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), pod.ID())
 	}
 
+	// There are potential race conditions with this
+	// But in-memory state is intended purely for testing and not production
+	// use, so this should be fine.
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		_, ok = s.containers[depCtr]
+		if !ok {
+			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
+		}
+	}
+
 	// Add container to state
 	_, ok = s.containers[ctr.ID()]
 	if ok {
@@ -510,6 +537,11 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	// Add container to pod containers
 	podCtrs[ctr.ID()] = ctr
 
+	// Add containers this container depends on
+	for _, depCtr := range depCtrs {
+		s.addCtrToDependsMap(ctr.ID(), depCtr)
+	}
+
 	return nil
 }
 
@@ -523,11 +555,24 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
 	}
 
+	// Ensure we don't remove a container which other containers depend on
+	deps, ok := s.ctrDepends[ctr.ID()]
+	if ok && len(deps) != 0 {
+		depsStr := strings.Join(deps, ", ")
+		return errors.Wrapf(ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+	}
+
 	// Retrieve pod containers
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
 		return errors.Wrapf(ErrPodRemoved, "pod %s has been removed", pod.ID())
+	}
+
+	// Does the container exist?
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist in state", ctr.ID())
 	}
 
 	// Is the container in the pod?
@@ -548,6 +593,12 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 
 	// Remove the container from the pod
 	delete(podCtrs, ctr.ID())
+
+	// Remove us from container dependencies
+	depCtrs := ctr.Dependencies()
+	for _, depCtr := range depCtrs {
+		s.removeCtrFromDependsMap(ctr.ID(), depCtr)
+	}
 
 	return nil
 }
