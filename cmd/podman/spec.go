@@ -570,8 +570,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithName(c.Name))
 	}
 
-	// TODO deal with ports defined in image metadata
-	if len(c.PortBindings) > 0 || len(c.ExposedPorts) > 0 {
+	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create port bindings")
@@ -678,16 +677,6 @@ func (c *createConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
 			pm.Protocol = "tcp"
 			portBindings = append(portBindings, pm)
 		}
-	}
-	for j := range c.ExposedPorts {
-		var expose ocicni.PortMapping
-		expose.HostPort = int32(j.Int())
-		expose.ContainerPort = int32(j.Int())
-		// CNI requires us to make both udp and tcp structs
-		expose.Protocol = "udp"
-		portBindings = append(portBindings, expose)
-		expose.Protocol = "tcp"
-		portBindings = append(portBindings, expose)
 	}
 	return portBindings, nil
 }
