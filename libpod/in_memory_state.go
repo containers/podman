@@ -114,8 +114,7 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
 	}
 
-	_, ok := s.containers[ctr.ID()]
-	if ok {
+	if _, ok := s.containers[ctr.ID()]; ok {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
@@ -128,8 +127,7 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	// use, so this should be fine.
 	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
-		_, ok = s.containers[depCtr]
-		if !ok {
+		if _, ok := s.containers[depCtr]; !ok {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
 		}
 	}
@@ -309,7 +307,7 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 // PodHasContainer checks if the given pod has a container with the given ID
 func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 	if !pod.valid {
-		return false, errors.Wrapf(ErrPodRemoved, "pod %s is not valid")
+		return false, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	if ctrID == "" {
@@ -329,7 +327,7 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 // PodContainersByID returns the IDs of all containers in the given pod
 func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 	if !pod.valid {
-		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid")
+		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	podCtrs, ok := s.podContainers[pod.ID()]
@@ -354,7 +352,7 @@ func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 // PodContainers retrieves the containers from a pod
 func (s *InMemoryState) PodContainers(pod *Pod) ([]*Container, error) {
 	if !pod.valid {
-		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid")
+		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	podCtrs, ok := s.podContainers[pod.ID()]
@@ -456,8 +454,7 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 		ctrDeps, ok := s.ctrDepends[ctr]
 		if ok {
 			for _, dep := range ctrDeps {
-				_, ok := podCtrs[dep]
-				if !ok {
+				if _, ok := podCtrs[dep]; !ok {
 					return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
 				}
 			}
@@ -511,15 +508,13 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	// use, so this should be fine.
 	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
-		_, ok = s.containers[depCtr]
-		if !ok {
+		if _, ok = s.containers[depCtr]; !ok {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
 		}
 	}
 
 	// Add container to state
-	_, ok = s.containers[ctr.ID()]
-	if ok {
+	if _, ok = s.containers[ctr.ID()]; ok {
 		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
