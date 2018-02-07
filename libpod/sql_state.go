@@ -920,13 +920,11 @@ func (s *SQLState) RemovePodContainers(pod *Pod) (err error) {
 	// Remove state first, as it needs the subquery on containers
 	// Don't bother checking if we actually removed anything, we just want to
 	// empty the pod
-	_, err = tx.Exec(removeCtrState, pod.ID())
-	if err != nil {
+	if _, err := tx.Exec(removeCtrState, pod.ID()); err != nil {
 		return errors.Wrapf(err, "error removing pod %s containers from state table", pod.ID())
 	}
 
-	_, err = tx.Exec(removeCtr, pod.ID())
-	if err != nil {
+	if _, err := tx.Exec(removeCtr, pod.ID()); err != nil {
 		return errors.Wrapf(err, "error removing pod %s containers from containers table", pod.ID())
 	}
 

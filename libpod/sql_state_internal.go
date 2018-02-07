@@ -672,8 +672,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	// Retrieve the ports from disk
 	// They may not exist - if they don't, this container just doesn't have ports
 	portPath := getPortsPath(s.specsDir, id)
-	_, err = os.Stat(portPath)
-	if err != nil {
+	if _, err = os.Stat(portPath); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error stating container %s JSON ports", id)
 		}
