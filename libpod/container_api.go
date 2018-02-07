@@ -524,8 +524,8 @@ func (c *Container) Pause() error {
 	if c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is already paused", c.ID())
 	}
-	if c.state.State != ContainerStateRunning && c.state.State != ContainerStateCreated {
-		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running/created, can't pause", c.state.State)
+	if c.state.State != ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, can't pause", c.state.State)
 	}
 	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
 		return err
