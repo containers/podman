@@ -115,6 +115,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run limits test", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
 		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
 		session.Wait(45)
 		Expect(session.ExitCode()).To(Equal(0))
