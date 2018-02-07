@@ -62,7 +62,7 @@ var _ = Describe("Podman import", func() {
 		results := podmanTest.Podman([]string{"images", "-q"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(4))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman import with message flag", func() {

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -100,7 +101,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "--last", "2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).Should(Equal(4))
+		Expect(len(result.OutputToStringArray())).Should(Equal(3))
 	})
 
 	It("podman ps no-trunc", func() {
