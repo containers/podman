@@ -12,7 +12,7 @@ for Podman until an RPM becomes available.
 
 ### Installing build and runtime dependencies
 ```
-# sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
+$ sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
                                     gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
                                     atomic-registries iptables skopeo-containers containernetworking-cni \
                                     conmon
@@ -22,7 +22,7 @@ for Podman until an RPM becomes available.
 # git clone https://github.com/projectatomic/libpod/ ~/src/github.com/projectatomic/libpod
 # cd !$
 # make
-# sudo make install PREFIX=/usr
+$ sudo make install PREFIX=/usr
 ```
 
 You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](Familiarizing yourself with Podman)
@@ -38,8 +38,8 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 
 #### Installing base packages
 ```
-# sudo apt-get update
-# sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
+$ sudo apt-get update
+$ sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
                         go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev
 ```
 #### Building and installing conmon
@@ -48,28 +48,28 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 # cd ~/src/github.com/kubernetes-incubator/cri-o
 # mkdir bin
 # make conmon
-# sudo install -D -m 755 bin/conmon /usr/libexec/crio/conmon
+$ sudo install -D -m 755 bin/conmon /usr/libexec/crio/conmon
 ```
 #### Adding required configuration files
 ```
-# sudo mkdir -p /etc/containers
-# sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-# sudo curl https://raw.githubusercontent.com/projectatomic/skopeo/master/default-policy.json -o /etc/containers/policy.json
+$ sudo mkdir -p /etc/containers
+$ sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
+$ sudo curl https://raw.githubusercontent.com/projectatomic/skopeo/master/default-policy.json -o /etc/containers/policy.json
 ```
 #### Installing CNI plugins
 ```
 # git clone https://github.com/containernetworking/plugins.git ~/src/github.com/containernetworking/plugins
 # cd ~/src/github.com/containernetworking/plugins
 # ./build.sh
-# sudo mkdir -p /usr/libexec/cni
-# sudo cp bin/* /usr/libexec/cni
+$ sudo mkdir -p /usr/libexec/cni
+$ sudo cp bin/* /usr/libexec/cni
 ```
 #### Installing runc
 ```
 # git clone https://github.com/opencontainers/runc.git ~/src/github.com/opencontainers/runc
 # cd ~/src/github.com/opencontainers/runc
 # GOPATH=~/ make static BUILDTAGS="seccomp selinux"
-# sudo cp runc /usr/bin/runc
+$ sudo cp runc /usr/bin/runc
 ```
 
 ### Building and installing Podman
@@ -77,7 +77,7 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 # git clone https://github.com/projectatomic/libpod/ ~/src/github.com/projectatomic/libpod
 # cd ~/src/github.com/projectatomic/libpod
 # make
-# sudo make install PREFIX=/usr
+$ sudo make install PREFIX=/usr
 ```
 
 ## Familiarizing yourself with Podman
@@ -86,7 +86,7 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 This sample container will run a very basic httpd server that serves only its index
 page.
 ```
-# sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
+$ sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                     -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                     -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
                     registry.fedoraproject.org/f26/httpd /usr/bin/run-httpd
@@ -97,7 +97,7 @@ will print the container ID after it has run.
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
 ```
-# sudo podman ps
+$ sudo podman ps
 ```
 
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
@@ -109,8 +109,8 @@ install *iproute* in the container.  Notice here that we use the switch **--late
 created container.  You could also use the container's ID listed during *podman ps* in the previous step or
 when you ran the container.
 ```
-# sudo podman exec --latest -t dnf -y install iproute
-# sudo podman exec --latest -t ip a
+$ sudo podman exec --latest -t dnf -y install iproute
+$ sudo podman exec --latest -t ip a
 ```
 
 Note the IP address of the *ethernet* device.
@@ -126,30 +126,30 @@ containerized httpd server.
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
 ```
-# sudo podman logs --latest
+$ sudo podman logs --latest
 ```
 
 <!-- (
 ### Viewing the container's pids
 And you can observe the httpd pid in the container with *top*.
 ```
-# sudo podman top <container_id>
+$ sudo podman top <container_id>
 ``` ) -->
 ### Stopping the container
 To stop the httpd container:
 ```
-# sudo podman stop --latest
+$ sudo podman stop --latest
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
 ```
-# sudo podman ps -a
+$ sudo podman ps -a
 ```
 
 ### Removing the container
 To remove the httpd container:
 ```
-# sudo podman rm --latest
+$ sudo podman rm --latest
 ```
 You can verify the deletion of the container by running *podman ps -a*.
 ## More information

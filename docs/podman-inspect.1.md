@@ -85,7 +85,7 @@ fedora
 ```
 
 ```
-# sudo podman inspect a04 --format "{{.GraphDriver.Name}}"
+$ sudo podman inspect a04 --format "{{.GraphDriver.Name}}"
 overlay
 ```
 
