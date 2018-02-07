@@ -101,19 +101,16 @@ $ sudo podman ps
 ```
 
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
-
-### Executing a command in a running container
-You can use the *exec* subcommand to execute a command in a running container.  Eventually you will be able to
-obtain the IP address of the container through inspection, but that is not enabled yet.  Therefore, we will
-install *iproute* in the container.  Notice here that we use the switch **--latest** as a shortcut for the latest
-created container.  You could also use the container's ID listed during *podman ps* in the previous step or
-when you ran the container.
+### Inspecting a running container
+You can "inspect" a running container for metadata and details about itself.  We can even use
+the inspect subcommand to see what IP address was assigned to the container.
 ```
-$ sudo podman exec --latest -t dnf -y install iproute
-$ sudo podman exec --latest -t ip a
+$ sudo podman inspect -l | grep IPAddress\":
+        "IPAddress": "10.88.6.140",
 ```
 
-Note the IP address of the *ethernet* device.
+Note: The -l is convenience arguement for **latest container**.  You can also use the container's ID instead
+of -l.
 
 ### Testing the httpd server
 Now that we have the IP address of the container, we can test the network communication between the host
@@ -127,14 +124,22 @@ containerized httpd server.
 You can view the container's logs with Podman as well:
 ```
 $ sudo podman logs --latest
+10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
+10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
+10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
+10.88.0.1 - - [07/Feb/2018:15:22:31 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
+10.88.0.1 - - [07/Feb/2018:15:22:31 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 ```
 
-<!-- (
 ### Viewing the container's pids
 And you can observe the httpd pid in the container with *top*.
 ```
 $ sudo podman top <container_id>
-``` ) -->
+  UID   PID  PPID  C STIME TTY          TIME CMD
+    0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
+  101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
+```
+
 ### Stopping the container
 To stop the httpd container:
 ```
