@@ -57,7 +57,8 @@ Credentials (USERNAME:PASSWORD) to use for authenticating to a registry
 
 **cert-dir="PATHNAME"**
 
-Pathname of a directory containing TLS certificates and keys
+Pathname of a directory containing TLS certificates and keys.
+Default certificates directory is _/etc/containers/certs.d_.
 
 **--compress**
 
