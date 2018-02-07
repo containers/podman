@@ -45,6 +45,7 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.id = stringid.GenerateNonCryptoID()
 	pod.name = namesgenerator.GetRandomName(0)
+	pod.labels = make(map[string]string)
 	pod.runtime = runtime
 
 	// Path our lock file will reside at

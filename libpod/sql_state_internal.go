@@ -37,6 +37,7 @@ const (
                           FROM containers
                           INNER JOIN
                               containerState ON containers.Id = containerState.Id `
+	ExistsQuery = "SELECT 1 FROM pods WHERE Id=?;"
 )
 
 // Checks that the DB configuration matches the runtime's configuration
@@ -326,9 +327,7 @@ func prepareDB(db *sql.DB) (err error) {
 // Check if given pod exists
 // Internal-only version of hasPod
 func (s *SQLState) podExists(id string) (bool, error) {
-	const query = "SELECT 1 FROM pods WHERE Id=?;"
-
-	row := s.db.QueryRow(query, id)
+	row := s.db.QueryRow(ExistsQuery, id)
 
 	var check int
 	err := row.Scan(&check)
@@ -343,7 +342,26 @@ func (s *SQLState) podExists(id string) (bool, error) {
 	}
 
 	return true, nil
+}
 
+// Check if given pod exists within a transaction
+// Transaction-based version of podExists
+func podExistsTx(id string, tx *sql.Tx) (bool, error) {
+	row := tx.QueryRow(ExistsQuery, id)
+
+	var check int
+	err := row.Scan(&check)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, errors.Wrapf(err, "error questing database for existence of pod %s", id)
+	} else if check != 1 {
+		return false, errors.Wrapf(ErrInternal, "check digit for podExists query incorrect")
+	}
+
+	return true, nil
 }
 
 // Get filename for OCI spec on disk
@@ -717,7 +735,7 @@ func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
 }
 
 // Internal function for adding containers
-func (s *SQLState) addContainer(ctr *Container) (err error) {
+func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 	const (
 		addCtr = `INSERT INTO containers VALUES (
                     ?, ?, ?, ?, ?,
@@ -799,6 +817,19 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
 			}
 		}
 	}()
+
+	// First check if pod exists, if one is given
+	if pod != nil {
+		exists, err := podExistsTx(pod.ID(), tx)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+	}
 
 	// Add container to registry
 	if _, err := tx.Exec(addRegistry, ctr.ID(), ctr.Name()); err != nil {
@@ -905,11 +936,13 @@ func (s *SQLState) addContainer(ctr *Container) (err error) {
 }
 
 // Internal functions for removing containers
-func (s *SQLState) removeContainer(ctr *Container) error {
+func (s *SQLState) removeContainer(ctr *Container, pod *Pod) (err error) {
 	const (
 		removeCtr      = "DELETE FROM containers WHERE Id=?;"
 		removeState    = "DELETE FROM containerState WHERE Id=?;"
 		removeRegistry = "DELETE FROM registry WHERE Id=?;"
+		existsInPod    = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
+		ctrExists      = "SELECT 1 FROM containers WHERE Id=?;"
 	)
 
 	if !s.valid {
@@ -930,6 +963,48 @@ func (s *SQLState) removeContainer(ctr *Container) error {
 		}
 	}()
 
+	if pod != nil {
+		// Check to see if the pod exists
+		exists, err := podExistsTx(pod.ID(), tx)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+
+		var check int
+
+		// Check to see if the container exists
+		row := tx.QueryRow(ctrExists, ctr.ID())
+		err = row.Scan(&check)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				ctr.valid = false
+				return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist", ctr.ID())
+			}
+
+			return errors.Wrapf(err, "error querying database for container %s existence", ctr.ID())
+		} else if check != 1 {
+			return errors.Wrapf(ErrInternal, "check digit for ctr exists query incorrect")
+		}
+
+		// Check to see if the container is in the pod
+		row = tx.QueryRow(existsInPod, ctr.ID(), pod.ID())
+		err = row.Scan(&check)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return errors.Wrapf(ErrNoSuchCtr, "container %s is not in pod %s", ctr.ID(), pod.ID())
+			}
+
+			return errors.Wrapf(err, "error querying database for container %s existence", ctr.ID())
+		} else if check != 1 {
+			return errors.Wrapf(ErrInternal, "check digit for ctr exists in pod query incorrect")
+		}
+	}
+
 	// Check rows acted on for the first transaction, verify we actually removed something
 	result, err := tx.Exec(removeCtr, ctr.ID())
 	if err != nil {
@@ -939,6 +1014,7 @@ func (s *SQLState) removeContainer(ctr *Container) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving number of rows in transaction removing container %s", ctr.ID())
 	} else if rows == 0 {
+		ctr.valid = false
 		return ErrNoSuchCtr
 	}
 
