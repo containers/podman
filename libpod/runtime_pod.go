@@ -97,7 +97,7 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 		}
 
 		// If the container is running and force is not set we can't do anything
-		if ctr.state.State == ContainerStateRunning {
+		if ctr.state.State == ContainerStateRunning && !force {
 			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
 		}
 
