@@ -1119,7 +1119,6 @@ func TestAddPodDuplicateNameFails(t *testing.T) {
 		err = state.AddPod(testPod2)
 		assert.Error(t, err)
 
-
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
@@ -1160,7 +1159,6 @@ func TestAddPodCtrIDConflictFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.Error(t, err)
 
-
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(allPods))
@@ -1180,7 +1178,6 @@ func TestAddPodCtrNameConflictFails(t *testing.T) {
 
 		err = state.AddPod(testPod)
 		assert.Error(t, err)
-
 
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
@@ -1270,7 +1267,6 @@ func TestRemovePodNotEmptyFails(t *testing.T) {
 		err = state.RemovePod(testPod)
 		assert.Error(t, err)
 
-
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
@@ -1305,7 +1301,7 @@ func TestRemovePodAfterEmptySucceeds(t *testing.T) {
 }
 
 func TestAllPodsEmptyOnEmptyState(t *testing.T) {
-	runForAllStates(t , func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(allPods))
