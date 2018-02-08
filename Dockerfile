@@ -40,13 +40,6 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && apt-get clean
 
-# install bats
-RUN cd /tmp \
-    && git clone https://github.com/sstephenson/bats.git \
-    && cd bats \
-    && git reset --hard 03608115df2071fff4eaaff1605768c275e5f81f \
-    && ./install.sh /usr/local
-
 # install criu
 ENV CRIU_VERSION 1.7
 RUN mkdir -p /usr/src/criu \
