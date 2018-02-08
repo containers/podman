@@ -80,7 +80,26 @@ var (
 
 func buildCmd(c *cli.Context) error {
 
-	budCmdArgs := []string{"bud"}
+	budCmdArgs := []string{}
+
+	logLevel := c.GlobalString("log-level")
+	if logLevel == "debug" {
+		budCmdArgs = append(budCmdArgs, "--debug")
+	}
+	if c.GlobalIsSet("root") {
+		budCmdArgs = append(budCmdArgs, "--root", c.GlobalString("root"))
+	}
+	if c.GlobalIsSet("runroot") {
+		budCmdArgs = append(budCmdArgs, "--runroot", c.GlobalString("runroot"))
+	}
+	if c.GlobalIsSet("storage-driver") {
+		budCmdArgs = append(budCmdArgs, "--storage-driver", c.GlobalString("storage-driver"))
+	}
+	for _, storageOpt := range c.GlobalStringSlice("storage-opt") {
+		budCmdArgs = append(budCmdArgs, "--storage-opt", storageOpt)
+	}
+
+	budCmdArgs = append(budCmdArgs, "bud")
 
 	if c.IsSet("authfile") {
 		budCmdArgs = append(budCmdArgs, "--authfile", c.String("authfile"))
