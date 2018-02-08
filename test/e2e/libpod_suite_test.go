@@ -39,11 +39,12 @@ var (
 	INTEGRATION_ROOT   string
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{"alpine", "busybox", fedoraMinimal}
+	CACHE_IMAGES       = []string{"alpine", "busybox", fedoraMinimal, nginx}
 	RESTORE_IMAGES     = []string{"alpine", "busybox"}
 	ALPINE             = "docker.io/library/alpine:latest"
 	BB_GLIBC           = "docker.io/library/busybox:glibc"
 	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
+	nginx              = "docker.io/library/nginx:latest"
 	defaultWaitTimeout = 90
 )
 
@@ -422,6 +423,17 @@ func StringInSlice(s string, sl []string) bool {
 func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
 	for _, i := range s.OutputToStringArray() {
 		if strings.HasPrefix(i, term) {
+			return true
+		}
+	}
+	return false
+}
+
+//LineInOutputContains returns true if a line in a
+// session output starts with the supplied string
+func (s *PodmanSession) LineInOuputContains(term string) bool {
+	for _, i := range s.OutputToStringArray() {
+		if strings.Contains(i, term) {
 			return true
 		}
 	}

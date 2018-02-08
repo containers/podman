@@ -119,8 +119,7 @@ ginkgo:
 	ginkgo -v test/e2e/
 
 localintegration: test-binaries
-	ginkgo -v test/e2e/.
-	bash -i ./test/test_runner.sh ${TESTFLAGS}
+	ginkgo -v -cover -flakeAttempts 3 -progress -trace test/e2e/.
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
