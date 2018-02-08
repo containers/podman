@@ -17,6 +17,8 @@ const (
 	netNSName         = "net-ns"
 	runtimeConfigName = "runtime-config"
 	ctrDependsName    = "container-depends"
+	podName           = "pod"
+	podContainersName = "pod-containers"
 )
 
 var (
@@ -27,6 +29,8 @@ var (
 	netNSBkt         = []byte(netNSName)
 	runtimeConfigBkt = []byte(runtimeConfigName)
 	ctrDependsBkt    = []byte(ctrDependsName)
+	podBkt           = []byte(podName)
+	podContainersBkt = []byte(podContainersName)
 )
 
 // Check if the configuration of the database is compatible with the
@@ -154,6 +158,22 @@ func getCtrDependsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(ctrDependsBkt)
 	if bkt == nil {
 		return nil, errors.Wrapf(ErrDBBadConfig, "container dependencies bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getPodBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(podBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "pods bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getPodContainersBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(podContainersBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "pod containers bucket not found in DB")
 	}
 	return bkt, nil
 }
