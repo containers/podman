@@ -145,5 +145,5 @@ func runCmd(c *cli.Context) error {
 	if createConfig.Rm {
 		return runtime.RemoveContainer(ctr, true)
 	}
-	return ctr.CleanupStorage()
+	return ctr.Cleanup()
 }

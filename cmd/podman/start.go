@@ -138,6 +138,10 @@ func startCmd(c *cli.Context) error {
 		} else {
 			exitCode = int(ecode)
 		}
+		if lastError != nil {
+			fmt.Fprintln(os.Stderr, lastError)
+		}
+		lastError = ctr.Cleanup()
 	}
 	return lastError
 }

@@ -694,8 +694,9 @@ func (c *Container) Wait() (int32, error) {
 	return exitCode, nil
 }
 
-// CleanupStorage unmounts all mount points in container and cleans up container storage
-func (c *Container) CleanupStorage() error {
+// Cleanup unmounts all mount points in container and cleans up container storage
+// It also cleans up the network stack
+func (c *Container) Cleanup() error {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -703,6 +704,12 @@ func (c *Container) CleanupStorage() error {
 			return err
 		}
 	}
+
+	// Stop the container's network namespace (if it has one)
+	if err := c.cleanupNetwork(); err != nil {
+		logrus.Errorf("unable cleanup network for container %s: %q", c.ID(), err)
+	}
+
 	return c.cleanupStorage()
 }
 
