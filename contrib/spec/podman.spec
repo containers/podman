@@ -345,7 +345,7 @@ providing packages with %{import_path} prefix.
 %endif
 
 %prep
-%autosetup -Sgit -n %{repo}-%{commit}
+%autosetup -Sgit
 sed -i '/\/bin\/bash/d' completions/bash/%{name}
 
 %build
