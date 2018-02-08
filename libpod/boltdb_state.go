@@ -69,6 +69,14 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 		if err != nil {
 			return errors.Wrapf(err, "error creating container-depends bucket")
 		}
+		_, err = tx.CreateBucketIfNotExists(podBkt)
+		if err != nil {
+			return errors.Wrapf(err, "error creating pod bucket")
+		}
+		_, err = tx.CreateBucketIfNotExists(podContainersBkt)
+		if err != nil {
+			return errors.Wrapf(err, "error creating pod-containers bucket")
+		}
 		return nil
 	})
 	if err != nil {
