@@ -15,10 +15,9 @@ type Pod struct {
 	name   string
 	labels map[string]string
 
-	containers map[string]*Container
-
-	valid bool
-	lock  storage.Locker
+	valid   bool
+	runtime *Runtime
+	lock    storage.Locker
 }
 
 // ID retrieves the pod's ID
@@ -42,17 +41,12 @@ func (p *Pod) Labels() map[string]string {
 }
 
 // Creates a new, empty pod
-func newPod(lockDir string) (*Pod, error) {
+func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.id = stringid.GenerateNonCryptoID()
 	pod.name = namesgenerator.GetRandomName(0)
-
-	pod.containers = make(map[string]*Container)
-
-	// TODO: containers and pods share a locks folder, but not tables in the
-	// database
-	// As the locks are 256-bit pseudorandom integers, collision is unlikely
-	// But it's something worth looking into
+	pod.labels = make(map[string]string)
+	pod.runtime = runtime
 
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, pod.id)
@@ -66,47 +60,9 @@ func newPod(lockDir string) (*Pod, error) {
 	return pod, nil
 }
 
-// Adds a container to the pod
-// Does not check that container's pod ID is set correctly, or attempt to set
-// pod ID after adding
-func (p *Pod) addContainer(ctr *Container) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if !p.valid {
-		return ErrPodRemoved
-	}
-
-	if !ctr.valid {
-		return ErrCtrRemoved
-	}
-
-	if _, ok := p.containers[ctr.ID()]; ok {
-		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), p.id)
-	}
-
-	p.containers[ctr.ID()] = ctr
-
-	return nil
-}
-
-// Removes a container from the pod
-// Does not perform any checks on the container
-func (p *Pod) removeContainer(ctr *Container) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if !p.valid {
-		return ErrPodRemoved
-	}
-
-	if _, ok := p.containers[ctr.ID()]; !ok {
-		return errors.Wrapf(ErrNoSuchCtr, "no container with id %s in pod %s", ctr.ID(), p.id)
-	}
-
-	delete(p.containers, ctr.ID())
-
-	return nil
+// Init initializes all containers within a pod that have not been initialized
+func (p *Pod) Init() error {
+	return ErrNotImplemented
 }
 
 // Start starts all containers within a pod that are not already running
@@ -126,20 +82,15 @@ func (p *Pod) Kill(signal uint) error {
 
 // HasContainer checks if a container is present in the pod
 func (p *Pod) HasContainer(id string) (bool, error) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	if !p.valid {
 		return false, ErrPodRemoved
 	}
 
-	_, ok := p.containers[id]
-
-	return ok, nil
+	return p.runtime.state.PodHasContainer(p, id)
 }
 
-// GetContainers retrieves the containers in the pod
-func (p *Pod) GetContainers() ([]*Container, error) {
+// AllContainersByID returns the container IDs of all the containers in the pod
+func (p *Pod) AllContainersByID() ([]string, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -147,12 +98,19 @@ func (p *Pod) GetContainers() ([]*Container, error) {
 		return nil, ErrPodRemoved
 	}
 
-	ctrs := make([]*Container, 0, len(p.containers))
-	for _, ctr := range p.containers {
-		ctrs = append(ctrs, ctr)
+	return p.runtime.state.PodContainersByID(p)
+}
+
+// AllContainers retrieves the containers in the pod
+func (p *Pod) AllContainers() ([]*Container, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
 	}
 
-	return ctrs, nil
+	return p.runtime.state.PodContainers(p)
 }
 
 // Status gets the status of all containers in the pod

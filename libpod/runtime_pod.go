@@ -24,7 +24,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r.lockDir)
+	pod, err := newPod(r.lockDir, r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
@@ -44,12 +44,142 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	return nil, ErrNotImplemented
 }
 
-// RemovePod removes a pod and all containers in it
-// If force is specified, all containers in the pod will be stopped first
-// Otherwise, RemovePod will return an error if any container in the pod is running
-// Remove acts atomically, removing all containers or no containers
-func (r *Runtime) RemovePod(p *Pod, force bool) error {
-	return ErrNotImplemented
+// RemovePod removes a pod
+// If removeCtrs is specified, containers will be removed
+// Otherwise, a pod that is not empty will return an error and not be removed
+// If force is specified with removeCtrs, all containers will be stopped before
+// being removed
+// Otherwise, the pod will not be removed if any containers are running
+func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return ErrPodRemoved
+	}
+
+	ctrs, err := r.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+
+	numCtrs := len(ctrs)
+
+	if !removeCtrs && numCtrs > 0 {
+		return errors.Wrapf(ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
+	}
+
+	// Go through and lock all containers so we can operate on them all at once
+	dependencies := make(map[string][]string)
+	for _, ctr := range ctrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+
+		// Sync all containers
+		if err := ctr.syncContainer(); err != nil {
+			return err
+		}
+
+		// Check if the container is in a good state to be removed
+		if ctr.state.State == ContainerStatePaused {
+			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains paused container %s, cannot remove", p.ID(), ctr.ID())
+		}
+
+		if ctr.state.State == ContainerStateUnknown {
+			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s with invalid state", p.ID(), ctr.ID())
+		}
+
+		// If the container is running and force is not set we can't do anything
+		if ctr.state.State == ContainerStateRunning && !force {
+			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
+		}
+
+		deps, err := r.state.ContainerInUse(ctr)
+		if err != nil {
+			return err
+		}
+		dependencies[ctr.ID()] = deps
+	}
+
+	// Check if containers have dependencies
+	// If they do, and the dependencies are not in the pod, error
+	for ctr, deps := range dependencies {
+		for _, dep := range deps {
+			if _, ok := dependencies[dep]; !ok {
+				return errors.Wrapf(ErrCtrExists, "container %s depends on container %s not in pod %s", ctr, dep, p.ID())
+			}
+		}
+	}
+
+	// First loop through all containers and stop them
+	// Do not remove in this loop to ensure that we don't remove unless all
+	// containers are in a good state
+	if force {
+		for _, ctr := range ctrs {
+			// If force is set and the container is running, stop it now
+			if ctr.state.State == ContainerStateRunning {
+				if err := r.ociRuntime.stopContainer(ctr, ctr.StopTimeout()); err != nil {
+					return errors.Wrapf(err, "error stopping container %s to remove pod %s", ctr.ID(), p.ID())
+				}
+
+				// Sync again to pick up stopped state
+				if err := ctr.syncContainer(); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// Start removing containers
+	// We can remove containers even if they have dependencies now
+	// As we have guaranteed their dependencies are in the pod
+	for _, ctr := range ctrs {
+		// Stop network NS
+		if err := r.teardownNetNS(ctr); err != nil {
+			return err
+		}
+
+		// Stop container's storage
+		if err := ctr.teardownStorage(); err != nil {
+			return err
+		}
+
+		// Delete the container from runc (only if we are not
+		// ContainerStateConfigured)
+		if ctr.state.State != ContainerStateConfigured {
+			if err := r.ociRuntime.deleteContainer(ctr); err != nil {
+				return errors.Wrapf(err, "error removing container %s from runc", ctr.ID())
+			}
+		}
+
+	}
+
+	// Remove containers from the state
+	if err := r.state.RemovePodContainers(p); err != nil {
+		return err
+	}
+
+	// Mark containers invalid
+	for _, ctr := range ctrs {
+		ctr.valid = false
+	}
+
+	// Remove pod from state
+	if err := r.state.RemovePod(p); err != nil {
+		return err
+	}
+
+	// Mark pod invalid
+	p.valid = false
+
+	return nil
 }
 
 // GetPod retrieves a pod by its ID

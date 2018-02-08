@@ -424,7 +424,7 @@ func (c *Container) WriteStringToRundir(destFile, output string) (string, error)
 	return destFileName, nil
 }
 
-type resolv struct {
+type resolvConf struct {
 	nameServers   []string
 	searchDomains []string
 	options       []string
@@ -477,8 +477,8 @@ func (c *Container) generateResolvConf() (string, error) {
 }
 
 // createResolv creates a resolv struct from an input string
-func createResolv(input string) resolv {
-	var resolv resolv
+func createResolv(input string) resolvConf {
+	var resolv resolvConf
 	for _, line := range strings.Split(input, "\n") {
 		if strings.HasPrefix(line, "search") {
 			fields := strings.Fields(line)
@@ -507,7 +507,7 @@ func createResolv(input string) resolv {
 }
 
 //ToString returns a resolv struct in the form of a resolv.conf
-func (r resolv) ToString() string {
+func (r resolvConf) ToString() string {
 	var result string
 	// Populate the output string with search domains
 	result += fmt.Sprintf("search %s\n", strings.Join(r.searchDomains, " "))

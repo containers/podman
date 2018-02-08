@@ -17,6 +17,30 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	// Basic structure of a query to retrieve a container
+	// Just append optional WHERE clauses and end with a semicolon
+	// Contains trailing whitespace to ensure we can append without issue
+	containerQuery = `SELECT containers.*,
+                                 containerState.State,
+                                 containerState.ConfigPath,
+                                 containerState.RunDir,
+                                 containerState.MountPoint,
+                                 containerState.StartedTime,
+                                 containerState.FinishedTime,
+                                 containerState.ExitCode,
+                                 containerState.OomKilled,
+                                 containerState.Pid,
+                                 containerState.NetNSPath,
+                                 containerState.IPAddress,
+                                 containerState.SubnetMask
+                          FROM containers
+                          INNER JOIN
+                              containerState ON containers.Id = containerState.Id `
+	// ExistsQuery is a query to check if a pod exists
+	ExistsQuery = "SELECT 1 FROM pods WHERE Id=?;"
+)
+
 // Checks that the DB configuration matches the runtime's configuration
 func checkDB(db *sql.DB, r *Runtime) (err error) {
 	// Create a table to hold runtime information
@@ -151,9 +175,6 @@ func checkDB(db *sql.DB, r *Runtime) (err error) {
 // Performs database setup including by not limited to initializing tables in
 // the database
 func prepareDB(db *sql.DB) (err error) {
-	// TODO create pod tables
-	// TODO add Pod ID to CreateStaticContainer as a FOREIGN KEY referencing podStatic(Id)
-	// TODO add ctr shared namespaces information - A separate table, probably? So we can FOREIGN KEY the ID
 	// TODO schema migration might be necessary and should be handled here
 	// TODO maybe make a port mappings table instead of JSONing the array and storing it?
 	// TODO prepared statements for common queries for performance
@@ -162,6 +183,14 @@ func prepareDB(db *sql.DB) (err error) {
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return errors.Wrapf(err, "error enabling foreign key support in database")
 	}
+
+	// Create a table for holding container and pod names and IDs
+	const createRegistry = `
+        CREATE TABLE IF NOT EXISTS registry(
+            Id   TEXT NOT NULL PRIMARY KEY,
+            Name TEXT NOT NULL UNIQUE
+        );
+        `
 
 	// Create a table for unchanging container data
 	const createCtr = `
@@ -173,7 +202,6 @@ func prepareDB(db *sql.DB) (err error) {
             RootfsImageID   TEXT    NOT NULL,
             RootfsImageName TEXT    NOT NULL,
             ImageVolumes    INTEGER NOT NULL,
-            ReadOnly        INTEGER NOT NULL,
             ShmDir          TEXT    NOT NULL,
             ShmSize         INTEGER NOT NULL,
             StaticDir       TEXT    NOT NULL,
@@ -208,15 +236,16 @@ func prepareDB(db *sql.DB) (err error) {
             CgroupParent    TEXT    NOT NULL,
 
             CHECK (ImageVolumes IN (0, 1)),
-            CHECK (ReadOnly IN (0, 1)),
             CHECK (SHMSize>=0),
             CHECK (Privileged IN (0, 1)),
             CHECK (NoNewPrivs IN (0, 1)),
             CHECK (CreateNetNS IN (0, 1)),
             CHECK (Stdin IN (0, 1)),
             CHECK (StopSignal>=0),
-            FOREIGN KEY (Id)          REFERENCES containerState(Id) DEFERRABLE INITIALLY DEFERRED
-            FOREIGN KEY (Pod)         REFERENCES pod(Id)            DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Id)          REFERENCES registry(Id)       DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Id)          REFERENCES containerState(Id) DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Name)        REFERENCES registry(Name)     DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Pod)         REFERENCES pods(Id)           DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (IPCNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (MountNsCtr)  REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
             FOREIGN KEY (NetNsCtr)    REFERENCES containers(Id)     DEFERRABLE INITIALLY DEFERRED,
@@ -246,16 +275,19 @@ func prepareDB(db *sql.DB) (err error) {
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
-            FOREIGN KEY (Id) REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
+            FOREIGN KEY (Id)   REFERENCES registry(Id)   DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Id)   REFERENCES containers(Id) DEFERRABLE INITIALLY DEFERRED
         );
         `
 
 	// Create a table for pod config
 	const createPod = `
-        CREATE TABLE IF NOT EXISTS pod(
+        CREATE TABLE IF NOT EXISTS pods(
             Id     TEXT NOT NULL PRIMARY KEY,
             Name   TEXT NOT NULL UNIQUE,
-            Labels TEXT NOT NULL
+            Labels TEXT NOT NULL,
+            FOREIGN KEY (Id)   REFERENCES registry(Id)   DEFERRABLE INITIALLY DEFERRED,
+            FOREIGN KEY (Name) REFERENCES registry(Name) DEFERRABLE INITIALLY DEFERRED
         );
         `
 
@@ -273,6 +305,9 @@ func prepareDB(db *sql.DB) (err error) {
 
 	}()
 
+	if _, err := tx.Exec(createRegistry); err != nil {
+		return errors.Wrapf(err, "error creating ID and Name registry in database")
+	}
 	if _, err := tx.Exec(createCtr); err != nil {
 		return errors.Wrapf(err, "error creating containers table in database")
 	}
@@ -288,6 +323,46 @@ func prepareDB(db *sql.DB) (err error) {
 	}
 
 	return nil
+}
+
+// Check if given pod exists
+// Internal-only version of hasPod
+func (s *SQLState) podExists(id string) (bool, error) {
+	row := s.db.QueryRow(ExistsQuery, id)
+
+	var check int
+	err := row.Scan(&check)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, errors.Wrapf(err, "error questing database for existence of pod %s", id)
+	} else if check != 1 {
+		return false, errors.Wrapf(ErrInternal, "check digit for podExists query incorrect")
+	}
+
+	return true, nil
+}
+
+// Check if given pod exists within a transaction
+// Transaction-based version of podExists
+func podExistsTx(id string, tx *sql.Tx) (bool, error) {
+	row := tx.QueryRow(ExistsQuery, id)
+
+	var check int
+	err := row.Scan(&check)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, errors.Wrapf(err, "error questing database for existence of pod %s", id)
+	} else if check != 1 {
+		return false, errors.Wrapf(ErrInternal, "check digit for podExists query incorrect")
+	}
+
+	return true, nil
 }
 
 // Get filename for OCI spec on disk
@@ -358,7 +433,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		rootfsImageID   string
 		rootfsImageName string
 		imageVolumes    int
-		readOnly        int
 		shmDir          string
 		shmSize         int64
 		staticDir       string
@@ -414,7 +488,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&rootfsImageID,
 		&rootfsImageName,
 		&imageVolumes,
-		&readOnly,
 		&shmDir,
 		&shmSize,
 		&staticDir,
@@ -479,7 +552,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.RootfsImageID = rootfsImageID
 	ctr.config.RootfsImageName = rootfsImageName
 	ctr.config.ImageVolumes = boolFromSQL(imageVolumes)
-	ctr.config.ReadOnly = boolFromSQL(readOnly)
 	ctr.config.ShmDir = shmDir
 	ctr.config.ShmSize = shmSize
 	ctr.config.StaticDir = staticDir
@@ -600,8 +672,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	// Retrieve the ports from disk
 	// They may not exist - if they don't, this container just doesn't have ports
 	portPath := getPortsPath(s.specsDir, id)
-	_, err = os.Stat(portPath)
-	if err != nil {
+	if _, err = os.Stat(portPath); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error stating container %s JSON ports", id)
 		}
@@ -618,4 +689,367 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	}
 
 	return ctr, nil
+}
+
+// Read a single pod from a single row result in the database
+func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
+	var (
+		id         string
+		name       string
+		labelsJSON string
+	)
+
+	err := row.Scan(&id, &name, &labelsJSON)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoSuchPod
+		}
+
+		return nil, errors.Wrapf(err, "error parsing database row into pod")
+	}
+
+	pod := new(Pod)
+	pod.id = id
+	pod.name = name
+	pod.runtime = s.runtime
+
+	// Decode labels JSON
+	podLabels := make(map[string]string)
+	if err := json.Unmarshal([]byte(labelsJSON), &podLabels); err != nil {
+		return nil, errors.Wrapf(err, "error unmarshaling pod %s labels JSON", id)
+	}
+	pod.labels = podLabels
+
+	// Retrieve pod lock
+	// Open and set the lockfile
+	lockPath := filepath.Join(s.lockDir, id)
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving lockfile for pod %s", id)
+	}
+	pod.lock = lock
+
+	pod.valid = true
+
+	return pod, nil
+}
+
+// Internal function for adding containers
+func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
+	const (
+		addCtr = `INSERT INTO containers VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?
+                );`
+		addCtrState = `INSERT INTO containerState VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?
+                );`
+		addRegistry = "INSERT INTO registry VALUES (?, ?);"
+	)
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	mounts, err := json.Marshal(ctr.config.Mounts)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s mounts to JSON", ctr.ID())
+	}
+
+	dnsServerJSON, err := json.Marshal(ctr.config.DNSServer)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s DNS servers to JSON", ctr.ID())
+	}
+
+	dnsSearchJSON, err := json.Marshal(ctr.config.DNSSearch)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s DNS search domains to JSON", ctr.ID())
+	}
+
+	dnsOptionJSON, err := json.Marshal(ctr.config.DNSOption)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s DNS options to JSON", ctr.ID())
+	}
+
+	hostAddJSON, err := json.Marshal(ctr.config.HostAdd)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s hosts to JSON", ctr.ID())
+	}
+
+	labelsJSON, err := json.Marshal(ctr.config.Labels)
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
+	}
+
+	netNSPath := ""
+	if ctr.state.NetNS != nil {
+		netNSPath = ctr.state.NetNS.Path()
+	}
+
+	specJSON, err := json.Marshal(ctr.config.Spec)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s spec to JSON", ctr.ID())
+	}
+
+	portsJSON := []byte{}
+	if len(ctr.config.PortMappings) > 0 {
+		portsJSON, err = json.Marshal(&ctr.config.PortMappings)
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling container %s port mappings to JSON", ctr.ID())
+		}
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to add container %s: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	// First check if pod exists, if one is given
+	if pod != nil {
+		exists, err := podExistsTx(pod.ID(), tx)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+	}
+
+	// Add container to registry
+	if _, err := tx.Exec(addRegistry, ctr.ID(), ctr.Name()); err != nil {
+		return errors.Wrapf(err, "error adding container %s to name/ID registry", ctr.ID())
+	}
+
+	// Add static container information
+	_, err = tx.Exec(addCtr,
+		ctr.ID(),
+		ctr.Name(),
+		stringToNullString(ctr.PodID()),
+
+		ctr.config.RootfsImageID,
+		ctr.config.RootfsImageName,
+		boolToSQL(ctr.config.ImageVolumes),
+		ctr.config.ShmDir,
+		ctr.config.ShmSize,
+		ctr.config.StaticDir,
+		string(mounts),
+		ctr.config.LogPath,
+
+		boolToSQL(ctr.config.Privileged),
+		boolToSQL(ctr.config.NoNewPrivs),
+		ctr.config.ProcessLabel,
+		ctr.config.MountLabel,
+		ctr.config.User,
+
+		stringToNullString(ctr.config.IPCNsCtr),
+		stringToNullString(ctr.config.MountNsCtr),
+		stringToNullString(ctr.config.NetNsCtr),
+		stringToNullString(ctr.config.PIDNsCtr),
+		stringToNullString(ctr.config.UserNsCtr),
+		stringToNullString(ctr.config.UTSNsCtr),
+		stringToNullString(ctr.config.CgroupNsCtr),
+
+		boolToSQL(ctr.config.CreateNetNS),
+		string(dnsServerJSON),
+		string(dnsSearchJSON),
+		string(dnsOptionJSON),
+		string(hostAddJSON),
+
+		boolToSQL(ctr.config.Stdin),
+		string(labelsJSON),
+		ctr.config.StopSignal,
+		ctr.config.StopTimeout,
+		timeToSQL(ctr.config.CreatedTime),
+		ctr.config.CgroupParent)
+	if err != nil {
+		return errors.Wrapf(err, "error adding static information for container %s to database", ctr.ID())
+	}
+
+	// Add container state to the database
+	_, err = tx.Exec(addCtrState,
+		ctr.ID(),
+		ctr.state.State,
+		ctr.state.ConfigPath,
+		ctr.state.RunDir,
+		ctr.state.Mountpoint,
+		timeToSQL(ctr.state.StartedTime),
+		timeToSQL(ctr.state.FinishedTime),
+		ctr.state.ExitCode,
+		boolToSQL(ctr.state.OOMKilled),
+		ctr.state.PID,
+		netNSPath,
+		ctr.state.IPAddress,
+		ctr.state.SubnetMask)
+	if err != nil {
+		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
+	}
+
+	// Save the container's runtime spec to disk
+	specPath := getSpecPath(s.specsDir, ctr.ID())
+	if err := ioutil.WriteFile(specPath, specJSON, 0750); err != nil {
+		return errors.Wrapf(err, "error saving container %s spec JSON to disk", ctr.ID())
+	}
+	defer func() {
+		if err != nil {
+			if err2 := os.Remove(specPath); err2 != nil {
+				logrus.Errorf("Error removing container %s JSON spec from state: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	// If the container has port mappings, save them to disk
+	if len(ctr.config.PortMappings) > 0 {
+		portPath := getPortsPath(s.specsDir, ctr.ID())
+		if err := ioutil.WriteFile(portPath, portsJSON, 0750); err != nil {
+			return errors.Wrapf(err, "error saving container %s port JSON to disk", ctr.ID())
+		}
+		defer func() {
+			if err != nil {
+				if err2 := os.Remove(portPath); err2 != nil {
+					logrus.Errorf("Error removing container %s JSON ports from state: %v", ctr.ID(), err2)
+				}
+			}
+		}()
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing transaction to add container %s", ctr.ID())
+	}
+
+	return nil
+}
+
+// Internal functions for removing containers
+func (s *SQLState) removeContainer(ctr *Container, pod *Pod) (err error) {
+	const (
+		removeCtr      = "DELETE FROM containers WHERE Id=?;"
+		removeState    = "DELETE FROM containerState WHERE Id=?;"
+		removeRegistry = "DELETE FROM registry WHERE Id=?;"
+		existsInPod    = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
+		ctrExists      = "SELECT 1 FROM containers WHERE Id=?;"
+	)
+
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	committed := false
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrapf(err, "error beginning database transaction")
+	}
+	defer func() {
+		if err != nil && !committed {
+			if err2 := tx.Rollback(); err2 != nil {
+				logrus.Errorf("Error rolling back transaction to add container %s: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	if pod != nil {
+		// Check to see if the pod exists
+		exists, err := podExistsTx(pod.ID(), tx)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+
+		var check int
+
+		// Check to see if the container exists
+		row := tx.QueryRow(ctrExists, ctr.ID())
+		err = row.Scan(&check)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				ctr.valid = false
+				return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist", ctr.ID())
+			}
+
+			return errors.Wrapf(err, "error querying database for container %s existence", ctr.ID())
+		} else if check != 1 {
+			return errors.Wrapf(ErrInternal, "check digit for ctr exists query incorrect")
+		}
+
+		// Check to see if the container is in the pod
+		row = tx.QueryRow(existsInPod, ctr.ID(), pod.ID())
+		err = row.Scan(&check)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return errors.Wrapf(ErrNoSuchCtr, "container %s is not in pod %s", ctr.ID(), pod.ID())
+			}
+
+			return errors.Wrapf(err, "error querying database for container %s existence", ctr.ID())
+		} else if check != 1 {
+			return errors.Wrapf(ErrInternal, "check digit for ctr exists in pod query incorrect")
+		}
+	}
+
+	// Check rows acted on for the first transaction, verify we actually removed something
+	result, err := tx.Exec(removeCtr, ctr.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error removing container %s from containers table", ctr.ID())
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving number of rows in transaction removing container %s", ctr.ID())
+	} else if rows == 0 {
+		ctr.valid = false
+		return ErrNoSuchCtr
+	}
+
+	if _, err := tx.Exec(removeState, ctr.ID()); err != nil {
+		return errors.Wrapf(err, "error removing container %s from state table", ctr.ID())
+	}
+
+	// Remove registry last of all
+	// So we know the container did exist
+	if _, err := tx.Exec(removeRegistry, ctr.ID()); err != nil {
+		return errors.Wrapf(err, "error removing container %s from name/ID registry", ctr.ID())
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "error committing transaction to remove container %s", ctr.ID())
+	}
+
+	committed = true
+
+	// Remove the container's JSON from disk
+	jsonPath := getSpecPath(s.specsDir, ctr.ID())
+	if err := os.Remove(jsonPath); err != nil {
+		return errors.Wrapf(err, "error removing JSON spec from state for container %s", ctr.ID())
+	}
+
+	// Remove containers ports JSON from disk
+	// May not exist, so ignore os.IsNotExist
+	portsPath := getPortsPath(s.specsDir, ctr.ID())
+	if err := os.Remove(portsPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error removing JSON ports from state for container %s", ctr.ID())
+		}
+	}
+
+	ctr.valid = false
+
+	return nil
 }
