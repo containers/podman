@@ -1,5 +1,3 @@
-#! /bin/bash
-
 : ${PROG:=$(basename ${BASH_SOURCE})}
 
 __podman_previous_extglob_setting=$(shopt -p extglob)
