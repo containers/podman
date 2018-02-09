@@ -311,72 +311,69 @@ func isPortInImagePorts(exposedPorts map[string]struct{}, port string) bool {
 	return false
 }
 
-func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
-	var exposedPorts []string
-	var ports map[nat.Port]struct{}
-	ports = make(map[nat.Port]struct{})
-	_, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
-	if err != nil {
-		return nil, nil, err
+func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port][]nat.PortBinding, error) {
+	containerPorts := make(map[string]string)
+
+	// add expose ports from the image itself
+	for expose := range imageExposedPorts {
+		_, port := nat.SplitProtoPort(expose)
+		containerPorts[port] = ""
 	}
 
-	// Parse the ports from the image itself
-	for i := range imageExposedPorts {
-		fields := strings.Split(i, "/")
-		if len(fields) > 2 {
-			return nil, nil, errors.Errorf("invalid exposed port format in image")
-		}
-		exposedPorts = append(exposedPorts, fields[0])
-	}
-
-	// Add the ports from the image to the ports from the user
-	exposedPorts = append(exposedPorts, c.StringSlice("expose")...)
-	for _, e := range exposedPorts {
-		// Merge in exposed ports to the map of published ports
-		if strings.Contains(e, ":") {
-			return nil, nil, fmt.Errorf("invalid port format for --expose: %s", e)
-		}
+	// add the expose ports from the user (--expose)
+	// can be single or a range
+	for _, expose := range c.StringSlice("expose") {
 		//support two formats for expose, original format <portnum>/[<proto>] or <startport-endport>/[<proto>]
-		proto, port := nat.SplitProtoPort(e)
+		_, port := nat.SplitProtoPort(expose)
 		//parse the start and end port and create a sequence of ports to expose
 		//if expose a port, the start and end port are the same
 		start, end, err := nat.ParsePortRange(port)
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid range format for --expose: %s, error: %s", e, err)
+			return nil, fmt.Errorf("invalid range format for --expose: %s, error: %s", expose, err)
 		}
 		for i := start; i <= end; i++ {
-			p, err := nat.NewPort(proto, strconv.FormatUint(i, 10))
-			if err != nil {
-				return nil, nil, err
-			}
-			// check if the port in question is already being used
-			if isPortInPortBindings(portBindings, p) && !isPortInImagePorts(imageExposedPorts, p.Port()) {
-				return nil, nil, errors.Errorf("host port %s already used in --publish option", p.Port())
-			}
-
-			if c.Bool("publish-all") {
-				l, err := net.Listen("tcp", ":0")
-				if err != nil {
-					return nil, nil, errors.Wrapf(err, "unable to get free port")
-				}
-				_, randomPort, err := net.SplitHostPort(l.Addr().String())
-				if err != nil {
-					return nil, nil, errors.Wrapf(err, "unable to determine free port")
-				}
-				rp, err := strconv.Atoi(randomPort)
-				if err != nil {
-					return nil, nil, errors.Wrapf(err, "unable to convert random port to int")
-				}
-				logrus.Debug(fmt.Sprintf("Using random host port %s with container port %d", randomPort, p.Int()))
-				portBindings[p] = CreatePortBinding(rp, "")
-				continue
-			}
-			if _, exists := ports[p]; !exists {
-				ports[p] = struct{}{}
-			}
+			containerPorts[strconv.Itoa(int(i))] = ""
 		}
 	}
-	return ports, portBindings, nil
+
+	// parse user input'd port bindings
+	pbPorts, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
+	if err != nil {
+		return nil, err
+	}
+
+	// delete exposed container ports if being used by -p
+	for i := range pbPorts {
+		delete(containerPorts, i.Port())
+	}
+
+	// iterate container ports and make port bindings from them
+	if c.Bool("publish-all") {
+		for e := range containerPorts {
+			//support two formats for expose, original format <portnum>/[<proto>] or <startport-endport>/[<proto>]
+			//proto, port := nat.SplitProtoPort(e)
+			p, err := nat.NewPort("tcp", e)
+			if err != nil {
+				return nil, err
+			}
+			l, err := net.Listen("tcp", ":0")
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to get free port")
+			}
+			defer l.Close()
+			_, randomPort, err := net.SplitHostPort(l.Addr().String())
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to determine free port")
+			}
+			rp, err := strconv.Atoi(randomPort)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to convert random port to int")
+			}
+			logrus.Debug(fmt.Sprintf("Using random host port %s with container port %d", randomPort, p.Int()))
+			portBindings[p] = CreatePortBinding(rp, "")
+		}
+	}
+	return portBindings, nil
 }
 
 // imageData pulls down the image if not stored locally and extracts the
@@ -582,7 +579,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	}
 
 	// EXPOSED PORTS
-	ports, portBindings, err := exposedPorts(c, data.Config.ExposedPorts)
+	portBindings, err := exposedPorts(c, data.Config.ExposedPorts)
 	if err != nil {
 		return nil, err
 	}
@@ -617,19 +614,19 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	}
 
 	config := &createConfig{
-		Runtime:        runtime,
-		CapAdd:         c.StringSlice("cap-add"),
-		CapDrop:        c.StringSlice("cap-drop"),
-		CgroupParent:   c.String("cgroup-parent"),
-		Command:        command,
-		Detach:         c.Bool("detach"),
-		Devices:        c.StringSlice("device"),
-		DNSOpt:         c.StringSlice("dns-opt"),
-		DNSSearch:      c.StringSlice("dns-search"),
-		DNSServers:     c.StringSlice("dns"),
-		Entrypoint:     entrypoint,
-		Env:            env,
-		ExposedPorts:   ports,
+		Runtime:      runtime,
+		CapAdd:       c.StringSlice("cap-add"),
+		CapDrop:      c.StringSlice("cap-drop"),
+		CgroupParent: c.String("cgroup-parent"),
+		Command:      command,
+		Detach:       c.Bool("detach"),
+		Devices:      c.StringSlice("device"),
+		DNSOpt:       c.StringSlice("dns-opt"),
+		DNSSearch:    c.StringSlice("dns-search"),
+		DNSServers:   c.StringSlice("dns"),
+		Entrypoint:   entrypoint,
+		Env:          env,
+		//ExposedPorts:   ports,
 		GroupAdd:       groupAdd,
 		Hostname:       c.String("hostname"),
 		HostAdd:        c.StringSlice("add-host"),

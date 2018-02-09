@@ -47,7 +47,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman run network expose port 222", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
 		results := podmanTest.SystemExec("iptables", []string{"-t", "nat", "-L"})
