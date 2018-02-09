@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeuo pipefail
 
-DIST=$(cat /etc/redhat-release  | awk '{print $1}')
+DIST=${DIST:=Fedora}
 IMAGE=fedorapodmanbuild
 PYTHON=python3
 if [[ ${DIST} != "Fedora" ]]; then
