@@ -41,41 +41,20 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 
 	// Perform initial database setup
 	err = db.Update(func(tx *bolt.Tx) error {
-		_, err = tx.CreateBucketIfNotExists(idRegistryBkt)
-		if err != nil {
+		if _, err := tx.CreateBucketIfNotExists(idRegistryBkt); err != nil {
 			return errors.Wrapf(err, "error creating id-registry bucket")
 		}
-		_, err = tx.CreateBucketIfNotExists(nameRegistryBkt)
-		if err != nil {
+		if _, err := tx.CreateBucketIfNotExists(nameRegistryBkt); err != nil {
 			return errors.Wrapf(err, "error creating name-registry bucket")
 		}
-		_, err = tx.CreateBucketIfNotExists(ctrConfigBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating container-config bucket")
+		if _, err := tx.CreateBucketIfNotExists(ctrBkt); err != nil {
+			return errors.Wrapf(err, "error creating containers bucket")
 		}
-		_, err = tx.CreateBucketIfNotExists(ctrStateBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating container-state bucket")
+		if _, err := tx.CreateBucketIfNotExists(podBkt); err != nil {
+			return errors.Wrapf(err, "error creating pods bucket")
 		}
-		_, err = tx.CreateBucketIfNotExists(netNSBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating net-ns bucket")
-		}
-		_, err = tx.CreateBucketIfNotExists(runtimeConfigBkt)
-		if err != nil {
+		if _, err := tx.CreateBucketIfNotExists(runtimeConfigBkt); err != nil {
 			return errors.Wrapf(err, "error creating runtime-config bucket")
-		}
-		_, err = tx.CreateBucketIfNotExists(ctrDependsBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating container-depends bucket")
-		}
-		_, err = tx.CreateBucketIfNotExists(podBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating pod bucket")
-		}
-		_, err = tx.CreateBucketIfNotExists(podContainersBkt)
-		if err != nil {
-			return errors.Wrapf(err, "error creating pod-containers bucket")
 		}
 		return nil
 	})
@@ -117,12 +96,7 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
-		ctrStateBucket, err := getCtrStateBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netNSBucket, err := getNetNSBucket(tx)
+		ctrsBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -133,15 +107,21 @@ func (s *BoltState) Refresh() error {
 		// Then save the modified state
 		// Also clear all network namespaces
 		err = idBucket.ForEach(func(id, name []byte) error {
-			if err := netNSBucket.Delete(id); err != nil {
-				return errors.Wrapf(err, "error removing network namespace ID %s", string(id))
+			ctrBkt := ctrsBucket.Bucket(id)
+			if ctrBkt == nil {
+				// It's not a container, nothing to do
+				return nil
 			}
 
-			stateBytes := ctrStateBucket.Get(id)
+			// First, delete the network namespace
+			if err := ctrBkt.Delete(netNSKey); err != nil {
+				return errors.Wrapf(err, "error removing network namespace for container %s", string(id))
+			}
+
+			stateBytes := ctrBkt.Get(stateKey)
 			if stateBytes == nil {
-				// This is a pod, not a container
-				// Nothing to do
-				return nil
+				// Badly formatted container bucket
+				return errors.Wrapf(ErrInternal, "container %s missing state in DB", string(id))
 			}
 
 			state := new(containerState)
@@ -160,7 +140,7 @@ func (s *BoltState) Refresh() error {
 				return errors.Wrapf(err, "error marshalling modified state for container %s", string(id))
 			}
 
-			if err := ctrStateBucket.Put(id, newStateBytes); err != nil {
+			if err := ctrBkt.Put(stateKey, newStateBytes); err != nil {
 				return errors.Wrapf(err, "error updating state for container %s in DB", string(id))
 			}
 
@@ -194,28 +174,12 @@ func (s *BoltState) Container(id string) (*Container, error) {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		ctrConfigBucket, err := getCtrConfigBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		ctrStateBucket, err := getCtrStateBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		err = s.getContainerFromDB(ctrID, ctr, ctrConfigBucket,
-			ctrStateBucket, netNSBucket)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return s.getContainerFromDB(ctrID, ctr, ctrBucket)
 	})
 	if err != nil {
 		return nil, err
@@ -251,26 +215,15 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		ctrConfigBucket, err := getCtrConfigBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrStateBucket, err := getCtrStateBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netNSBucket, err := getNetNSBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
 		// First, check if the ID given was the actual container ID
-		// Query against state because it's a lot smaller than config
 		var id []byte
-		stateExists := ctrStateBucket.Get([]byte(idOrName))
-		if stateExists != nil {
+		ctrExists := ctrBucket.Bucket([]byte(idOrName))
+		if ctrExists != nil {
 			// A full container ID was given
 			id = []byte(idOrName)
 		} else {
@@ -302,13 +255,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			}
 		}
 
-		err = s.getContainerFromDB(id, ctr, ctrConfigBucket,
-			ctrStateBucket, netNSBucket)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return s.getContainerFromDB(id, ctr, ctrBucket)
 	})
 	if err != nil {
 		return nil, err
@@ -338,12 +285,12 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 	exists := false
 
 	err = db.View(func(tx *bolt.Tx) error {
-		idsBucket, err := getIDBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		ctrExists := idsBucket.Get(ctrID)
+		ctrExists := ctrBucket.Bucket(ctrID)
 		if ctrExists != nil {
 			exists = true
 		}
@@ -372,131 +319,20 @@ func (s *BoltState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "cannot add a container that belongs to a pod with AddContainer - use AddContainerToPod")
 	}
 
-	// JSON container structs to insert into DB
-	// TODO use a higher-performance struct encoding than JSON
-	configJSON, err := json.Marshal(ctr.config)
-	if err != nil {
-		return errors.Wrapf(err, "error marshalling container %s config to JSON", ctr.ID())
-	}
-	stateJSON, err := json.Marshal(ctr.state)
-	if err != nil {
-		return errors.Wrapf(err, "error marshalling container %s state to JSON", ctr.ID())
-	}
-	netNSPath := ""
-	if ctr.state.NetNS != nil {
-		netNSPath = ctr.state.NetNS.Path()
-	}
-
-	// Collect dependencies for the container. Use a map to ensure no dupes.
-	dependsCtrs := ctr.Dependencies()
-
-	ctrID := []byte(ctr.ID())
-	ctrName := []byte(ctr.Name())
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		idsBucket, err := getIDBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		namesBucket, err := getNamesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrConfigBucket, err := getCtrConfigBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrStateBucket, err := getCtrStateBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrDependsBucket, err := getCtrDependsBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		// Check if we already have a container with the given ID and name
-		idExist := idsBucket.Get(ctrID)
-		if idExist != nil {
-			return errors.Wrapf(ErrCtrExists, "container with ID %s already exists", ctr.ID())
-		}
-		nameExist := namesBucket.Get(ctrName)
-		if nameExist != nil {
-			return errors.Wrapf(ErrCtrExists, "container with name %s already exists", ctr.Name())
-		}
-
-		// No overlapping containers
-		// Add the new container to the DB
-		if err := idsBucket.Put(ctrID, ctrName); err != nil {
-			return errors.Wrapf(err, "error adding container %s ID to DB", ctr.ID())
-		}
-		if err := namesBucket.Put(ctrName, ctrID); err != nil {
-			return errors.Wrapf(err, "error adding container %s name (%s) to DB", ctr.ID(), ctr.Name())
-		}
-		if err := ctrConfigBucket.Put(ctrID, configJSON); err != nil {
-			return errors.Wrapf(err, "error adding container %s config to DB", ctr.ID())
-		}
-		if err := ctrStateBucket.Put(ctrID, stateJSON); err != nil {
-			return errors.Wrapf(err, "error adding container %s state to DB", ctr.ID())
-		}
-		if netNSPath != "" {
-			if err := netNSBucket.Put(ctrID, []byte(netNSPath)); err != nil {
-				return errors.Wrapf(err, "error adding container %s netns path to DB", ctr.ID())
-			}
-		}
-
-		// Add dependencies for the container
-		for _, dependsCtr := range dependsCtrs {
-			depCtrID := []byte(dependsCtr)
-			deps := ctrDependsBucket.Get(depCtrID)
-			depsArray := []string{}
-			if deps != nil {
-				if err := json.Unmarshal(deps, &depsArray); err != nil {
-					return errors.Wrapf(err, "error unmarshalling container %s deps JSON", dependsCtr)
-				}
-			}
-			depsArray = append(depsArray, ctr.ID())
-			depsJSON, err := json.Marshal(&depsArray)
-			if err != nil {
-				return errors.Wrapf(err, "error marshalling container %s deps JSON", dependsCtr)
-			}
-			if err := ctrDependsBucket.Put(depCtrID, depsJSON); err != nil {
-				return errors.Wrapf(err, "error adding container %s dependencies JSON to DB", dependsCtr)
-			}
-		}
-
-		return nil
-	})
-	return err
+	return s.addContainer(ctr, nil)
 }
 
 // RemoveContainer removes a container from the state
-// The container will only be removed from the state and not any pods it belongs
-// to
+// Only removes containers not in pods - for containers that are a member of a
+// pod, use RemoveContainerFromPod
 func (s *BoltState) RemoveContainer(ctr *Container) error {
 	if !s.valid {
 		return ErrDBClosed
 	}
 
-	ctrID := []byte(ctr.ID())
-	ctrName := []byte(ctr.Name())
-
-	depCtrs := ctr.Dependencies()
+	if ctr.config.Pod != "" {
+		return errors.Wrapf(ErrPodExists, "container %s is part of a pod, use RemoveContainerFromPod instead", ctr.ID())
+	}
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -505,120 +341,7 @@ func (s *BoltState) RemoveContainer(ctr *Container) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		idsBucket, err := getIDBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		namesBucket, err := getNamesBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrConfigBucket, err := getCtrConfigBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrStateBucket, err := getCtrStateBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		ctrDependsBucket, err := getCtrDependsBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		// Does the container exist?
-		ctrExists := idsBucket.Get(ctrID)
-		if ctrExists == nil {
-			return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
-		}
-
-		// Does the container have dependencies?
-		ctrDeps := ctrDependsBucket.Get(ctrID)
-		if ctrDeps != nil {
-			dependsCtrs := []string{}
-			if err := json.Unmarshal(ctrDeps, &dependsCtrs); err != nil {
-				return errors.Wrapf(err, "cannot unmarshal container %s dependencies JSON", ctr.ID())
-			}
-			if len(dependsCtrs) > 0 {
-				depsStr := strings.Join(dependsCtrs, ", ")
-
-				return errors.Wrapf(ErrCtrExists, "container %s is a dependency on the following containers: %s", ctr.ID(), depsStr)
-			}
-		}
-
-		if err := idsBucket.Delete(ctrID); err != nil {
-			return errors.Wrapf(err, "error deleting container %s ID in DB", ctr.ID())
-		}
-
-		if err := namesBucket.Delete(ctrName); err != nil {
-			return errors.Wrapf(err, "error deleting container %s name in DB", ctr.ID())
-		}
-
-		if err := ctrConfigBucket.Delete(ctrID); err != nil {
-			return errors.Wrapf(err, "error deleting container %s config in DB", ctr.ID())
-		}
-
-		if err := ctrStateBucket.Delete(ctrID); err != nil {
-			return errors.Wrapf(err, "error deleting container %s state in DB", ctr.ID())
-		}
-
-		// Can safely delete netNS even if it doesn't exist
-		// Delete on a non-existent key doesn't error
-		if err := netNSBucket.Delete(ctrID); err != nil {
-			return errors.Wrapf(err, "error deleting container %s network ns in DB", ctr.ID())
-		}
-
-		// As above, can safely delete even if it doesn't exist
-		if err := ctrDependsBucket.Delete(ctrID); err != nil {
-			return errors.Wrapf(err, "error deleting container %s dependencies in DB", ctr.ID())
-		}
-
-		// Remove us from other container's dependencies
-		for _, depCtr := range depCtrs {
-			depCtrID := []byte(depCtr)
-			dep := ctrDependsBucket.Get(depCtrID)
-			if dep == nil {
-				// Inconsistent state, but the dependency we were trying to remove doesn't exist...
-				// Just continue
-				continue
-			}
-			depStr := []string{}
-			if err := json.Unmarshal(dep, &depStr); err != nil {
-				return errors.Wrapf(err, "error unmarshaling ctr %s dependencies", ctr.ID(), depCtr)
-			}
-			newDeps := make([]string, 0, len(depStr))
-			for _, checkID := range depStr {
-				if checkID != ctr.ID() {
-					newDeps = append(newDeps, checkID)
-				}
-			}
-			if len(newDeps) == 0 {
-				// Just delete the container's deps
-				if err := ctrDependsBucket.Delete(depCtrID); err != nil {
-					return errors.Wrapf(err, "error deleting container %s dependencies in DB", depCtr)
-				}
-			} else {
-				// Store the new deps
-				depsJSON, err := json.Marshal(&newDeps)
-				if err != nil {
-					return errors.Wrapf(err, "error marshalling container %s dependencies", depCtr)
-				}
-				if err := ctrDependsBucket.Put(depCtrID, depsJSON); err != nil {
-					return errors.Wrapf(err, "error adding container %s dependencies to DB", depCtr)
-				}
-			}
-		}
-
-		return nil
+		return removeContainer(ctr, nil, tx)
 	})
 	return err
 }
@@ -645,27 +368,27 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		ctrStateBucket, err := getCtrStateBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		newStateBytes := ctrStateBucket.Get(ctrID)
-		if newStateBytes == nil {
+		ctrToUpdate := ctrBucket.Bucket(ctrID)
+		if ctrToUpdate == nil {
 			ctr.valid = false
-			return errors.Wrapf(ErrCtrRemoved, "container %s removed from database", ctr.ID())
+			return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist in database", ctr.ID())
+		}
+
+		newStateBytes := ctrToUpdate.Get(stateKey)
+		if newStateBytes == nil {
+			return errors.Wrapf(ErrInternal, "container %s does not have a state key in DB", ctr.ID())
 		}
 
 		if err := json.Unmarshal(newStateBytes, newState); err != nil {
 			return errors.Wrapf(err, "error unmarshalling container %s state", ctr.ID())
 		}
 
-		netNSBytes := netNSBucket.Get(ctrID)
+		netNSBytes := ctrToUpdate.Get(netNSKey)
 		if netNSBytes != nil {
 			netNSPath = string(netNSBytes)
 		}
@@ -736,30 +459,29 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		ctrStateBucket, err := getCtrStateBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		oldJSON := ctrStateBucket.Get(ctrID)
-		if oldJSON == nil {
-			ctr.valid = false
-			return errors.Wrapf(ErrCtrRemoved, "container %s no longer present in DB", ctr.ID())
+		ctrToSave := ctrBucket.Bucket(ctrID)
+		if ctrToSave == nil {
+			return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist in DB", ctr.ID())
 		}
 
 		// Update the state
-		if err := ctrStateBucket.Put(ctrID, stateJSON); err != nil {
+		if err := ctrToSave.Put(stateKey, stateJSON); err != nil {
 			return errors.Wrapf(err, "error updating container %s state in DB", ctr.ID())
 		}
 
 		if netNSPath != "" {
-			if err := netNSBucket.Put(ctrID, []byte(netNSPath)); err != nil {
+			if err := ctrToSave.Put(netNSKey, []byte(netNSPath)); err != nil {
 				return errors.Wrapf(err, "error updating network namespace path for container %s in DB", ctr.ID())
+			}
+		} else {
+			// Delete the existing network namespace
+			if err := ctrToSave.Delete(netNSKey); err != nil {
+				return errors.Wrapf(err, "error removing network namespace path for container %s in DB", ctr.ID())
 			}
 		}
 
@@ -789,20 +511,30 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		ctrDependsBucket, err := getCtrDependsBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		depsJSON := ctrDependsBucket.Get([]byte(ctr.ID()))
-		if depsJSON == nil {
-			// No deps, just return
-			return nil
+		ctrDB := ctrBucket.Bucket([]byte(ctr.ID()))
+		if ctrDB == nil {
+			ctr.valid = false
+			return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
 		}
 
-		// We have deps, un-JSON them
-		if err := json.Unmarshal(depsJSON, &depCtrs); err != nil {
-			return errors.Wrapf(err, "error unmarshalling container %s dependencies", ctr.ID())
+		dependsBkt := ctrDB.Bucket(dependenciesBkt)
+		if dependsBkt == nil {
+			return errors.Wrapf(ErrInternal, "container %s has no dependencies bucket", ctr.ID())
+		}
+
+		// Iterate through and add dependencies
+		err = dependsBkt.ForEach(func(id, value []byte) error {
+			depCtrs = append(depCtrs, string(id))
+
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -830,36 +562,294 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		ctrConfigBucket, err := getCtrConfigBucket(tx)
+		idBucket, err := getIDBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		ctrStateBucket, err := getCtrStateBucket(tx)
+		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		netNSBucket, err := getNetNSBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		// Iterate through all containers we know of in the state
-		// Build a full container struct for all of them and append
+		// Iterate through all IDs
+		// If they're containers, make a container from them and append
 		// it into the containers listing
-		err = ctrStateBucket.ForEach(func(id, data []byte) error {
+		err = idBucket.ForEach(func(id, name []byte) error {
+			ctrExists := ctrBucket.Bucket(id)
+			if ctrExists == nil {
+				// It's a pod not a container
+				return nil
+			}
+
 			ctr := new(Container)
 			ctr.config = new(ContainerConfig)
 			ctr.state = new(containerState)
 
-			err = s.getContainerFromDB(id, ctr, ctrConfigBucket,
-				ctrStateBucket, netNSBucket)
+			ctrs = append(ctrs, ctr)
+
+			return s.getContainerFromDB(id, ctr, ctrBucket)
+		})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ctrs, nil
+}
+
+// Pod retrieves a pod given its full ID
+func (s *BoltState) Pod(id string) (*Pod, error) {
+	if id == "" {
+		return nil, ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	podID := []byte(id)
+
+	pod := new(Pod)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		return s.getPodFromDB(podID, pod, podBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return pod, nil
+}
+
+// LookupPod retrieves a pod from full or unique partial ID or name
+func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
+	if idOrName == "" {
+		return nil, ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	pod := new(Pod)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		idBucket, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// First, check if the ID given was the actual pod ID
+		var id []byte
+		podExists := podBkt.Bucket([]byte(idOrName))
+		if podExists != nil {
+			// A full pod ID was given
+			id = []byte(idOrName)
+		} else {
+			// They did not give us a full pod ID.
+			// Search for partial ID or full name matches
+			// Use else-if in case the name is set to a partial ID
+			exists := false
+			err = idBucket.ForEach(func(checkID, checkName []byte) error {
+				if string(checkName) == idOrName {
+					if exists {
+						return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
+					}
+					id = checkID
+					exists = true
+				} else if strings.HasPrefix(string(checkID), idOrName) {
+					if exists {
+						return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
+					}
+					id = checkID
+					exists = true
+				}
+
+				return nil
+			})
 			if err != nil {
 				return err
+			} else if !exists {
+				return errors.Wrapf(ErrNoSuchCtr, "no pod with name or ID %s found", idOrName)
 			}
+		}
 
-			ctrs = append(ctrs, ctr)
+		// We might have found a container ID, but it's OK
+		// We'll just fail in getPodFromDB with ErrNoSuchPod
+
+		return s.getPodFromDB(id, pod, podBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return pod, nil
+}
+
+// HasPod checks if a pod with the given ID exists in the state
+func (s *BoltState) HasPod(id string) (bool, error) {
+	if id == "" {
+		return false, ErrEmptyID
+	}
+
+	if !s.valid {
+		return false, ErrDBClosed
+	}
+
+	podID := []byte(id)
+
+	exists := false
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return false, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podBytes := podBkt.Get(podID)
+		if podBytes != nil {
+			exists = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// PodHasContainer checks if the given pod has a container with the given ID
+func (s *BoltState) PodHasContainer(pod *Pod, id string) (bool, error) {
+	if id == "" {
+		return false, ErrEmptyID
+	}
+
+	if !s.valid {
+		return false, ErrDBClosed
+	}
+
+	if !pod.valid {
+		return false, ErrPodRemoved
+	}
+
+	ctrID := []byte(id)
+	podID := []byte(pod.ID())
+
+	exists := false
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return false, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Get pod itself
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s not found in database", pod.ID())
+		}
+
+		// Get pod containers bucket
+		podCtrs := podDB.Bucket(containersBkt)
+		if podCtrs == nil {
+			return errors.Wrapf(ErrInternal, "pod %s missing containers bucket in DB", pod.ID())
+		}
+
+		ctr := podCtrs.Get(ctrID)
+		if ctr != nil {
+			exists = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// PodContainersByID returns the IDs of all containers present in the given pod
+func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	if !pod.valid {
+		return nil, ErrPodRemoved
+	}
+
+	podID := []byte(pod.ID())
+
+	ctrs := []string{}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Get pod itself
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s not found in database", pod.ID())
+		}
+
+		// Get pod containers bucket
+		podCtrs := podDB.Bucket(containersBkt)
+		if podCtrs == nil {
+			return errors.Wrapf(ErrInternal, "pod %s missing containers bucket in DB", pod.ID())
+		}
+
+		// Iterate through all containers in the pod
+		err = podCtrs.ForEach(func(id, val []byte) error {
+			ctrs = append(ctrs, string(id))
 
 			return nil
 		})
@@ -876,65 +866,440 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
-// Pod retrieves a pod given its full ID
-func (s *BoltState) Pod(id string) (*Pod, error) {
-	return nil, ErrNotImplemented
-}
-
-// LookupPod retrieves a pod from full or unique partial ID or name
-func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
-	return nil, ErrNotImplemented
-}
-
-// HasPod checks if a pod with the given ID exists in the state
-func (s *BoltState) HasPod(id string) (bool, error) {
-	return false, ErrNotImplemented
-}
-
-// PodHasContainer checks if the given pod has a container with the given ID
-func (s *BoltState) PodHasContainer(pod *Pod, id string) (bool, error) {
-	return false, ErrNotImplemented
-}
-
-// PodContainersByID returns the IDs of all containers present in the given pod
-func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
-	return nil, ErrNotImplemented
-}
-
 // PodContainers returns all the containers present in the given pod
 func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
-	return nil, ErrNotImplemented
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	if !pod.valid {
+		return nil, ErrPodRemoved
+	}
+
+	podID := []byte(pod.ID())
+
+	ctrs := []*Container{}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Get pod itself
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s not found in database", pod.ID())
+		}
+
+		// Get pod containers bucket
+		podCtrs := podDB.Bucket(containersBkt)
+		if podCtrs == nil {
+			return errors.Wrapf(ErrInternal, "pod %s missing containers bucket in DB", pod.ID())
+		}
+
+		// Iterate through all containers in the pod
+		err = podCtrs.ForEach(func(id, val []byte) error {
+			newCtr := new(Container)
+			ctrs = append(ctrs, newCtr)
+
+			return s.getContainerFromDB(id, newCtr, ctrBkt)
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ctrs, nil
 }
 
-// AddPod adds the given pod to the state. Only empty pods can be added.
+// AddPod adds the given pod to the state.
 func (s *BoltState) AddPod(pod *Pod) error {
-	return ErrNotImplemented
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	podID := []byte(pod.ID())
+	podName := []byte(pod.Name())
+
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling pod %s JSON", pod.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		idsBkt, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		namesBkt, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check if we already have something with the given ID and name
+		idExist := idsBkt.Get(podID)
+		if idExist != nil {
+			return errors.Wrapf(ErrPodExists, "ID %s is in use", pod.ID())
+		}
+		nameExist := namesBkt.Get(podName)
+		if nameExist != nil {
+			return errors.Wrapf(ErrPodExists, "name %s is in use", pod.Name())
+		}
+
+		// We are good to add the pod
+		// Make a bucket for it
+		newPod, err := podBkt.CreateBucket(podID)
+		if err != nil {
+			return errors.Wrapf(err, "error creating bucket for pod %s", pod.ID())
+		}
+
+		// Make a subbucket for pod containers
+		if _, err := newPod.CreateBucket(containersBkt); err != nil {
+			return errors.Wrapf(err, "error creating bucket for pod %s containers", pod.ID())
+		}
+
+		if err := newPod.Put(configKey, podJSON); err != nil {
+			return errors.Wrapf(err, "error storing pod %s configuration in DB", pod.ID())
+		}
+
+		// Add us to the ID and names buckets
+		if err := idsBkt.Put(podID, podName); err != nil {
+			return errors.Wrapf(err, "error storing pod %s ID in DB", pod.ID())
+		}
+		if err := namesBkt.Put(podName, podID); err != nil {
+			return errors.Wrapf(err, "error storing pod %s name in DB", pod.Name())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RemovePod removes the given pod from the state
 // Only empty pods can be removed
 func (s *BoltState) RemovePod(pod *Pod) error {
-	return ErrNotImplemented
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	podID := []byte(pod.ID())
+	podName := []byte(pod.Name())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		idsBkt, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		namesBkt, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check if the pod exists
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in DB", pod.ID())
+		}
+
+		// Check if pod is empty
+		// This should never be nil
+		// But if it is, we can assume there are no containers in the
+		// pod.
+		// So let's eject the malformed pod without error.
+		podCtrsBkt := podDB.Bucket(containersBkt)
+		if podCtrsBkt != nil {
+			cursor := podCtrsBkt.Cursor()
+			if id, _ := cursor.First(); id != nil {
+				return errors.Wrapf(ErrCtrExists, "pod %s is not empty", pod.ID())
+			}
+		}
+
+		// Pod is empty, and ready for removal
+		// Let's kick it out
+		if err := idsBkt.Delete(podID); err != nil {
+			return errors.Wrapf(err, "error removing pod %s ID from DB", pod.ID())
+		}
+		if err := namesBkt.Delete(podName); err != nil {
+			return errors.Wrapf(err, "error removing pod %s name (%s) from DB", pod.ID(), pod.Name())
+		}
+		if err := podBkt.DeleteBucket(podID); err != nil {
+			return errors.Wrapf(err, "error removing pod %s from DB", pod.ID())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RemovePodContainers removes all containers in a pod
 func (s *BoltState) RemovePodContainers(pod *Pod) error {
-	return ErrNotImplemented
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	podID := []byte(pod.ID())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		idsBkt, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		namesBkt, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check if the pod exists
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in DB", pod.ID())
+		}
+
+		podCtrsBkt := podDB.Bucket(containersBkt)
+		if podCtrsBkt == nil {
+			return errors.Wrapf(ErrInternal, "pod %s does not have a containers bucket", pod.ID())
+		}
+
+		// Traverse all containers in the pod with a cursor
+		// for-each has issues with data mutation
+		cursor := podCtrsBkt.Cursor()
+		id, name := cursor.Last()
+		for id != nil {
+			// Remove the container from the bucker
+			if err := podCtrsBkt.Delete(id); err != nil {
+				return errors.Wrapf(err, "error removing container %s from pod %s", string(id), pod.ID())
+			}
+
+			// Get the container so we can check dependencies
+			ctr := ctrBkt.Bucket(id)
+			if ctr == nil {
+				// This should never happen
+				// State is inconsistent
+				return errors.Wrapf(ErrNoSuchCtr, "pod %s referenced nonexistant container %s", pod.ID(), string(id))
+			}
+			ctrDeps := ctr.Bucket(dependenciesBkt)
+			// This should never be nil, but if it is, we're
+			// removing it anyways, so continue if it is
+			if ctrDeps != nil {
+				err = ctrDeps.ForEach(func(depID, name []byte) error {
+					exists := podCtrsBkt.Get(depID)
+					if exists == nil {
+						// The dependency isn't in the
+						// pod
+						return errors.Wrapf(ErrCtrExists, "container %s has a dependency outside of pod %s", string(depID), pod.ID())
+					}
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+			}
+
+			// Dependencies are set, we're clear to remove
+
+			if err := ctrBkt.DeleteBucket(id); err != nil {
+				return errors.Wrapf(ErrInternal, "error deleting container %s from DB", string(id))
+			}
+
+			if err := idsBkt.Delete(id); err != nil {
+				return errors.Wrapf(err, "error deleting container %s ID in DB", string(id))
+			}
+
+			if err := namesBkt.Delete(name); err != nil {
+				return errors.Wrapf(err, "error deleting container %s name in DB", string(id))
+			}
+
+			id, name = cursor.Last()
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AddContainerToPod adds the given container to an existing pod
 // The container will be added to the state and the pod
 func (s *BoltState) AddContainerToPod(pod *Pod, ctr *Container) error {
-	return ErrNotImplemented
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	if ctr.config.Pod != pod.ID() {
+		return errors.Wrapf(ErrNoSuchCtr, "container %s is not part of pod %s", ctr.ID(), pod.ID())
+	}
+
+	return s.addContainer(ctr, pod)
 }
 
 // RemoveContainerFromPod removes a container from an existing pod
 // The container will also be removed from the state
 func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
-	return ErrNotImplemented
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	if ctr.config.Pod == "" {
+		return errors.Wrapf(ErrNoSuchPod, "container %s is not part of a pod, use RemoveContainer instead", ctr.ID())
+	}
+
+	if ctr.config.Pod != pod.ID() {
+		return errors.Wrapf(ErrInvalidArg, "container %s is not part of pod %s", ctr.ID(), pod.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		return removeContainer(ctr, pod, tx)
+	})
+	return err
 }
 
 // AllPods returns all pods present in the state
 func (s *BoltState) AllPods() ([]*Pod, error) {
-	return nil, ErrNotImplemented
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	pods := []*Pod{}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		idBucket, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podBucket, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Iterate through all IDs
+		// If they're pod, make a container from them and append it
+		err = idBucket.ForEach(func(id, name []byte) error {
+			podExists := podBucket.Bucket(id)
+			if podExists == nil {
+				// Container not pod
+				return nil
+			}
+
+			pod := new(Pod)
+
+			pods = append(pods, pod)
+
+			return s.getPodFromDB(id, pod, podBucket)
+		})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return pods, nil
 }
