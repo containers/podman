@@ -1167,6 +1167,9 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 					}
 					return nil
 				})
+				if err != nil {
+					return err
+				}
 			}
 
 			// Dependencies are set, we're clear to remove
