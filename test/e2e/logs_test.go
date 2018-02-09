@@ -28,33 +28,82 @@ var _ = Describe("Podman logs", func() {
 
 	})
 
+	//sudo bin/podman run -it --rm fedora-minimal bash -c 'for a in `seq 5`; do echo hello; done'
 	It("podman logs for container", func() {
-		_, ec, cid := podmanTest.RunLsContainer("")
-		Expect(ec).To(Equal(0))
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
 
 		results := podmanTest.Podman([]string{"logs", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(4))
 	})
 
-	It("podman logs tail three lines", func() {
-		Skip("Tail is not working correctly")
-		_, ec, cid := podmanTest.RunLsContainer("")
-		Expect(ec).To(Equal(0))
+	It("podman logs tail two lines", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
 
-		results := podmanTest.Podman([]string{"logs", "--tail", "3", cid})
+		results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 
-	It("podman logs since a given time", func() {
-		_, ec, cid := podmanTest.RunLsContainer("")
-		Expect(ec).To(Equal(0))
+	It("podman logs tail 99 lines", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(4))
+	})
+
+	It("podman logs tail 2 lines with timestamps", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
+
+	It("podman logs latest with since time", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
 
 		results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(4))
 	})
 
+	It("podman logs latest with since duration", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(4))
+	})
 })

@@ -124,7 +124,6 @@ Provides: bundled(golang(github.com/gorilla/mux)) = v1.3.0
 Provides: bundled(golang(github.com/hashicorp/errwrap)) = 7554cd9344cec97297fa6649b055a8c98c2a1e55
 Provides: bundled(golang(github.com/hashicorp/golang-lru)) = 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
 Provides: bundled(golang(github.com/hashicorp/go-multierror)) = 83588e72410abfbe4df460eeb6f30841ae47d4c4
-Provides: bundled(golang(github.com/hpcloud/tail)) = v1.0.0
 Provides: bundled(golang(github.com/imdario/mergo)) = 0.2.2
 Provides: bundled(golang(github.com/juju/ratelimit)) = 5b9ff866471762aa2ab2dced63c9fb6f53921342
 Provides: bundled(golang(github.com/kr/pty)) = v1.0.0

@@ -2,20 +2,23 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/hpcloud/tail"
+	"bufio"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 
 type logOptions struct {
-	details   bool
-	follow    bool
-	sinceTime time.Time
-	tail      uint64
+	details        bool
+	follow         bool
+	sinceTime      time.Time
+	tail           uint64
+	showTimestamps bool
 }
 
 var (
@@ -37,17 +40,22 @@ var (
 			Name:  "tail",
 			Usage: "Output the specified number of LINES at the end of the logs.  Defaults to 0, which prints all lines",
 		},
+		cli.BoolFlag{
+			Name:  "timestamps, t",
+			Usage: "Output the timestamps in the log",
+		},
 		LatestFlag,
 	}
 	logsDescription = "The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.  This does not guarantee execution" +
 		"order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs"
 	logsCommand = cli.Command{
-		Name:        "logs",
-		Usage:       "Fetch the logs of a container",
-		Description: logsDescription,
-		Flags:       logsFlags,
-		Action:      logsCmd,
-		ArgsUsage:   "CONTAINER",
+		Name:           "logs",
+		Usage:          "Fetch the logs of a container",
+		Description:    logsDescription,
+		Flags:          logsFlags,
+		Action:         logsCmd,
+		ArgsUsage:      "CONTAINER",
+		SkipArgReorder: true,
 	}
 )
 
@@ -72,7 +80,7 @@ func logsCmd(c *cli.Context) error {
 	sinceTime := time.Time{}
 	if c.IsSet("since") {
 		// parse time, error out if something is wrong
-		since, err := time.Parse("2006-01-02T15:04:05.999999999-07:00", c.String("since"))
+		since, err := parseInputTime(c.String("since"))
 		if err != nil {
 			return errors.Wrapf(err, "could not parse time: %q", c.String("since"))
 		}
@@ -80,10 +88,11 @@ func logsCmd(c *cli.Context) error {
 	}
 
 	opts := logOptions{
-		details:   c.Bool("details"),
-		follow:    c.Bool("follow"),
-		sinceTime: sinceTime,
-		tail:      c.Uint64("tail"),
+		details:        c.Bool("details"),
+		follow:         c.Bool("follow"),
+		sinceTime:      sinceTime,
+		tail:           c.Uint64("tail"),
+		showTimestamps: c.Bool("timestamps"),
 	}
 
 	if c.Bool("latest") {
@@ -95,52 +104,116 @@ func logsCmd(c *cli.Context) error {
 		return err
 	}
 
-	logs := make(chan string)
-	go func() {
-		err = getLogs(ctr, logs, opts)
-	}()
-	printLogs(logs)
+	file, err := os.Open(ctr.LogPath())
+	if err != nil {
+		return errors.Wrapf(err, "unable to read container log file")
+	}
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	if opts.follow {
+		followLog(reader, opts)
+	} else {
+		dumpLog(reader, opts)
+	}
 	return err
 }
 
-// getLogs returns the logs of a container from the log file
-// log file is created when the container is started/ran
-func getLogs(container *libpod.Container, logChan chan string, opts logOptions) error {
-	defer close(logChan)
-
-	seekInfo := &tail.SeekInfo{Offset: 0, Whence: 0}
+func followLog(reader *bufio.Reader, opts logOptions) error {
+	var cacheOutput []string
+	firstPass := false
 	if opts.tail > 0 {
-		// seek to correct position in log files
-		seekInfo.Offset = int64(opts.tail)
-		seekInfo.Whence = 2
+		firstPass = true
 	}
-
-	t, err := tail.TailFile(container.LogPath(), tail.Config{Follow: opts.follow, ReOpen: false, Location: seekInfo})
-	for line := range t.Lines {
-		if since, err := logSinceTime(opts.sinceTime, line.Text); err != nil || !since {
+	// We need to read the entire file in here until we reach EOF
+	// and then dump it out in the case that the user also wants
+	// tail output
+	for {
+		line, err := reader.ReadString('\n')
+		if err == io.EOF && opts.follow {
+			if firstPass {
+				firstPass = false
+				cacheLen := int64(len(cacheOutput))
+				start := int64(0)
+				if cacheLen > int64(opts.tail) {
+					start = cacheLen - int64(opts.tail)
+				}
+				for i := start; i < cacheLen; i++ {
+					printLine(cacheOutput[i], opts)
+				}
+				continue
+			}
+			time.Sleep(1 * time.Second)
 			continue
 		}
-		logMessage := line.Text[secondSpaceIndex(line.Text):]
-		logChan <- logMessage
+		// exits
+		if err != nil {
+			break
+		}
+		if firstPass {
+			cacheOutput = append(cacheOutput, line)
+			continue
+		}
+		printLine(line, opts)
 	}
-	return err
+	return nil
 }
 
-func printLogs(logs chan string) {
-	for line := range logs {
-		fmt.Println(line)
+func dumpLog(reader *bufio.Reader, opts logOptions) error {
+	output := readLog(reader, opts)
+	for _, line := range output {
+		printLine(line, opts)
 	}
+
+	return nil
+}
+
+func readLog(reader *bufio.Reader, opts logOptions) []string {
+	var output []string
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		output = append(output, line)
+	}
+	start := 0
+	if opts.tail > 0 {
+		if len(output) > int(opts.tail) {
+			start = len(output) - int(opts.tail)
+		}
+	}
+	return output[start:]
+}
+
+func printLine(line string, opts logOptions) {
+	start := 3
+	fields := strings.Fields(line)
+	if opts.showTimestamps || !isStringTimestamp(fields[0]) {
+		start = 0
+	}
+	if opts.sinceTime.IsZero() || logSinceTime(opts.sinceTime, fields[0]) {
+		output := strings.Join(fields[start:], " ")
+		fmt.Printf("%s\n", output)
+	}
+}
+
+func isStringTimestamp(t string) bool {
+	_, err := time.Parse("2006-01-02T15:04:05.999999999-07:00", t)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // returns true if the time stamps of the logs are equal to or after the
 // timestamp comparing to
-func logSinceTime(sinceTime time.Time, logStr string) (bool, error) {
+func logSinceTime(sinceTime time.Time, logStr string) bool {
 	timestamp := strings.Split(logStr, " ")[0]
 	logTime, err := time.Parse("2006-01-02T15:04:05.999999999-07:00", timestamp)
 	if err != nil {
-		return false, err
+		return false
 	}
-	return logTime.After(sinceTime) || logTime.Equal(sinceTime), nil
+	return logTime.After(sinceTime) || logTime.Equal(sinceTime)
 }
 
 // secondSpaceIndex returns the index of the second space in a string
@@ -157,4 +230,26 @@ func secondSpaceIndex(line string) int {
 		return 0
 	}
 	return index
+}
+
+// parseInputTime takes the users input and to determine if it is valid and
+// returns a time format and error.  The input is compared to known time formats
+// or a duration which implies no-duration
+func parseInputTime(inputTime string) (time.Time, error) {
+	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02"}
+	// iterate the supported time formats
+	for _, tf := range timeFormats {
+		t, err := time.Parse(tf, inputTime)
+		if err == nil {
+			return t, nil
+		}
+	}
+
+	// input might be a duration
+	duration, err := time.ParseDuration(inputTime)
+	if err != nil {
+		return time.Time{}, errors.Errorf("unable to interpret time value")
+	}
+	return time.Now().Add(-duration), nil
 }
