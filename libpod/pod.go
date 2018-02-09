@@ -11,13 +11,13 @@ import (
 
 // Pod represents a group of containers that may share namespaces
 type Pod struct {
-	id     string
-	name   string
-	labels map[string]string
+	id     string            `json:"id"`
+	name   string            `json:"name"`
+	labels map[string]string `json:"labels"`
 
-	valid   bool
-	runtime *Runtime
-	lock    storage.Locker
+	valid   bool           `json:"-"`
+	runtime *Runtime       `json:"-"`
+	lock    storage.Locker `json:"-"`
 }
 
 // ID retrieves the pod's ID
