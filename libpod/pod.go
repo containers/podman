@@ -11,29 +11,34 @@ import (
 
 // Pod represents a group of containers that may share namespaces
 type Pod struct {
-	id     string            `json:"id"`
-	name   string            `json:"name"`
-	labels map[string]string `json:"labels"`
+	config *PodConfig
 
-	valid   bool           `json:"-"`
-	runtime *Runtime       `json:"-"`
-	lock    storage.Locker `json:"-"`
+	valid   bool
+	runtime *Runtime
+	lock    storage.Locker
+}
+
+// PodConfig represents a pod's static configuration
+type PodConfig struct {
+	ID     string            `json:"id"`
+	Name   string            `json:"name"`
+	Labels map[string]string `json:""`
 }
 
 // ID retrieves the pod's ID
 func (p *Pod) ID() string {
-	return p.id
+	return p.config.ID
 }
 
 // Name retrieves the pod's name
 func (p *Pod) Name() string {
-	return p.name
+	return p.config.Name
 }
 
 // Labels returns the pod's labels
 func (p *Pod) Labels() map[string]string {
 	labels := make(map[string]string)
-	for key, value := range p.labels {
+	for key, value := range p.config.Labels {
 		labels[key] = value
 	}
 
@@ -43,13 +48,14 @@ func (p *Pod) Labels() map[string]string {
 // Creates a new, empty pod
 func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
-	pod.id = stringid.GenerateNonCryptoID()
-	pod.name = namesgenerator.GetRandomName(0)
-	pod.labels = make(map[string]string)
+	pod.config = new(PodConfig)
+	pod.config.ID = stringid.GenerateNonCryptoID()
+	pod.config.Name = namesgenerator.GetRandomName(0)
+	pod.config.Labels = make(map[string]string)
 	pod.runtime = runtime
 
 	// Path our lock file will reside at
-	lockPath := filepath.Join(lockDir, pod.id)
+	lockPath := filepath.Join(lockDir, pod.config.ID)
 	// Grab a lockfile at the given path
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {

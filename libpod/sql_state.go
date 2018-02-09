@@ -764,7 +764,7 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 		return ErrPodRemoved
 	}
 
-	labelsJSON, err := json.Marshal(pod.labels)
+	labelsJSON, err := json.Marshal(pod.config.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling pod %s labels to JSON", pod.ID())
 	}
