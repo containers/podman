@@ -649,7 +649,7 @@ func WithPodName(name string) PodCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
 		}
 
-		pod.name = name
+		pod.config.Name = name
 
 		return nil
 	}
@@ -662,9 +662,9 @@ func WithPodLabels(labels map[string]string) PodCreateOption {
 			return ErrPodFinalized
 		}
 
-		pod.labels = make(map[string]string)
+		pod.config.Labels = make(map[string]string)
 		for key, value := range labels {
-			pod.labels[key] = value
+			pod.config.Labels[key] = value
 		}
 
 		return nil

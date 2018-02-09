@@ -709,8 +709,9 @@ func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
 	}
 
 	pod := new(Pod)
-	pod.id = id
-	pod.name = name
+	pod.config = new(PodConfig)
+	pod.config.ID = id
+	pod.config.Name = name
 	pod.runtime = s.runtime
 
 	// Decode labels JSON
@@ -718,7 +719,7 @@ func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
 	if err := json.Unmarshal([]byte(labelsJSON), &podLabels); err != nil {
 		return nil, errors.Wrapf(err, "error unmarshaling pod %s labels JSON", id)
 	}
-	pod.labels = podLabels
+	pod.config.Labels = podLabels
 
 	// Retrieve pod lock
 	// Open and set the lockfile

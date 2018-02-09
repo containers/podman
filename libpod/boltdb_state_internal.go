@@ -216,7 +216,7 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 		return errors.Wrapf(ErrInternal, "pod %s is missing configuration key in DB", string(id))
 	}
 
-	if err := json.Unmarshal(podBytes, pod); err != nil {
+	if err := json.Unmarshal(podBytes, pod.config); err != nil {
 		return errors.Wrapf(err, "error unmarshalling pod %s from DB", string(id))
 	}
 

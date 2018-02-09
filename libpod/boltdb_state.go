@@ -466,6 +466,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 		ctrToSave := ctrBucket.Bucket(ctrID)
 		if ctrToSave == nil {
+			ctr.valid = false
 			return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist in DB", ctr.ID())
 		}
 
@@ -612,6 +613,7 @@ func (s *BoltState) Pod(id string) (*Pod, error) {
 	podID := []byte(id)
 
 	pod := new(Pod)
+	pod.config = new(PodConfig)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -645,6 +647,7 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 	}
 
 	pod := new(Pod)
+	pod.config = new(PodConfig)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -736,8 +739,8 @@ func (s *BoltState) HasPod(id string) (bool, error) {
 			return err
 		}
 
-		podBytes := podBkt.Get(podID)
-		if podBytes != nil {
+		podDB := podBkt.Bucket(podID)
+		if podDB != nil {
 			exists = true
 		}
 
@@ -913,6 +916,8 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		// Iterate through all containers in the pod
 		err = podCtrs.ForEach(func(id, val []byte) error {
 			newCtr := new(Container)
+			newCtr.config = new(ContainerConfig)
+			newCtr.state = new(containerState)
 			ctrs = append(ctrs, newCtr)
 
 			return s.getContainerFromDB(id, newCtr, ctrBkt)
@@ -943,7 +948,7 @@ func (s *BoltState) AddPod(pod *Pod) error {
 	podID := []byte(pod.ID())
 	podName := []byte(pod.Name())
 
-	podJSON, err := json.Marshal(pod)
+	podJSON, err := json.Marshal(pod.config)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling pod %s JSON", pod.ID())
 	}
@@ -1143,14 +1148,7 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 
 		// Traverse all containers in the pod with a cursor
 		// for-each has issues with data mutation
-		cursor := podCtrsBkt.Cursor()
-		id, name := cursor.Last()
-		for id != nil {
-			// Remove the container from the bucker
-			if err := podCtrsBkt.Delete(id); err != nil {
-				return errors.Wrapf(err, "error removing container %s from pod %s", string(id), pod.ID())
-			}
-
+		err = podCtrsBkt.ForEach(func(id, name []byte) error {
 			// Get the container so we can check dependencies
 			ctr := ctrBkt.Bucket(id)
 			if ctr == nil {
@@ -1165,15 +1163,10 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 				err = ctrDeps.ForEach(func(depID, name []byte) error {
 					exists := podCtrsBkt.Get(depID)
 					if exists == nil {
-						// The dependency isn't in the
-						// pod
-						return errors.Wrapf(ErrCtrExists, "container %s has a dependency outside of pod %s", string(depID), pod.ID())
+						return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", string(id), string(depID), pod.ID())
 					}
 					return nil
 				})
-				if err != nil {
-					return err
-				}
 			}
 
 			// Dependencies are set, we're clear to remove
@@ -1190,7 +1183,18 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 				return errors.Wrapf(err, "error deleting container %s name in DB", string(id))
 			}
 
-			id, name = cursor.Last()
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		// Delete and recreate the bucket to empty it
+		if err := podDB.DeleteBucket(containersBkt); err != nil {
+			return errors.Wrapf(err, "error removing pod %s containers bucket", pod.ID())
+		}
+		if _, err := podDB.CreateBucket(containersBkt); err != nil {
+			return errors.Wrapf(err, "error recreating pod %s containers bucket", pod.ID())
 		}
 
 		return nil
@@ -1290,6 +1294,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 			}
 
 			pod := new(Pod)
+			pod.config = new(PodConfig)
 
 			pods = append(pods, pod)
 
