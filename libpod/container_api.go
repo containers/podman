@@ -285,8 +285,7 @@ func (c *Container) Init() (err error) {
 	c.state.ConfigPath = jsonPath
 
 	// With the spec complete, do an OCI create
-	// TODO set cgroup parent in a sane fashion
-	if err := c.runtime.ociRuntime.createContainer(c, CgroupParent); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
 		return err
 	}
 
