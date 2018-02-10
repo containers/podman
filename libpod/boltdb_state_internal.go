@@ -15,7 +15,9 @@ const (
 	idRegistryName    = "id-registry"
 	nameRegistryName  = "name-registry"
 	ctrName           = "ctr"
+	allCtrsName       = "all-ctrs"
 	podName           = "pod"
+	allPodsName       = "allPods"
 	runtimeConfigName = "runtime-config"
 
 	configName       = "config"
@@ -30,7 +32,9 @@ var (
 	idRegistryBkt    = []byte(idRegistryName)
 	nameRegistryBkt  = []byte(nameRegistryName)
 	ctrBkt           = []byte(ctrName)
+	allCtrsBkt       = []byte(allCtrsName)
 	podBkt           = []byte(podName)
+	allPodsBkt       = []byte(allPodsName)
 	runtimeConfigBkt = []byte(runtimeConfigName)
 
 	configKey       = []byte(configName)
@@ -138,10 +142,26 @@ func getCtrBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getAllCtrsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(allCtrsBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "all containers bucket not found in DB")
+	}
+	return bkt, nil
+}
+
 func getPodBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(podBkt)
 	if bkt == nil {
 		return nil, errors.Wrapf(ErrDBBadConfig, "pods bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getAllPodsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(allPodsBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "all pods bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -279,6 +299,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			return err
 		}
 
+		allCtrsBucket, err := getAllCtrsBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// If a pod was given, check if it exists
 		var podDB *bolt.Bucket
 		var podCtrs *bolt.Bucket
@@ -318,6 +343,9 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		if err := namesBucket.Put(ctrName, ctrID); err != nil {
 			return errors.Wrapf(err, "error adding container %s name (%s) to DB", ctr.ID(), ctr.Name())
+		}
+		if err := allCtrsBucket.Put(ctrID, ctrName); err != nil {
+			return errors.Wrapf(err, "error adding container %s to all containers bucket in DB", ctr.ID())
 		}
 
 		newCtrBkt, err := ctrBucket.CreateBucket(ctrID)
@@ -405,6 +433,11 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 		return err
 	}
 
+	allCtrsBucket, err := getAllCtrsBucket(tx)
+	if err != nil {
+		return err
+	}
+
 	// Does the pod exist?
 	var podDB *bolt.Bucket
 	if pod != nil {
@@ -474,6 +507,9 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 
 	if err := namesBucket.Delete(ctrName); err != nil {
 		return errors.Wrapf(err, "error deleting container %s name in DB", ctr.ID())
+	}
+	if err := allCtrsBucket.Delete(ctrID); err != nil {
+		return errors.Wrapf(err, "error deleting container %s from all containers bucket in DB", ctr.ID())
 	}
 
 	depCtrs := ctr.Dependencies()
