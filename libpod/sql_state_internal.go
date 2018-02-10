@@ -752,12 +752,15 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?
                 );`
-		addRegistry = "INSERT INTO registry VALUES (?, ?);"
+		addRegistry   = "INSERT INTO registry VALUES (?, ?);"
+		checkCtrInPod = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
 	)
 
 	if !s.valid {
 		return ErrDBClosed
 	}
+
+	depCtrs := ctr.Dependencies()
 
 	mounts, err := json.Marshal(ctr.config.Mounts)
 	if err != nil {
@@ -829,6 +832,20 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		if !exists {
 			pod.valid = false
 			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+
+		// We also need to check if our dependencies are in the pod
+		for _, depID := range depCtrs {
+			row := tx.QueryRow(checkCtrInPod, depID, pod.ID())
+			var check int
+			err := row.Scan(&check)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s but it is not in pod %s", ctr.ID(), depID, pod.ID())
+				}
+			} else if check != 1 {
+				return errors.Wrapf(ErrInternal, "check digit for checkCtrInPod query incorrect")
+			}
 		}
 	}
 

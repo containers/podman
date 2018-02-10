@@ -511,6 +511,9 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		if _, ok = s.containers[depCtr]; !ok {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
 		}
+		if _, ok = podCtrs[depCtr]; !ok {
+			return errors.Wrapf(ErrInvalidArg, "cannot depend on container %s as it is not in pod %s", depCtr, pod.ID())
+		}
 	}
 
 	// Add container to state

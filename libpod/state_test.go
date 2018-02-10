@@ -2174,6 +2174,42 @@ func TestAddContainerToPodBadDependencyFails(t *testing.T) {
 	})
 }
 
+func TestAddContainerToPodDependencyOutsidePodFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		testCtr1, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2, err := getTestCtrN("3", lockPath)
+		assert.NoError(t, err)
+		testCtr2.config.Pod = testPod.ID()
+		testCtr2.config.IPCNsCtr = testCtr1.ID()
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr2)
+		assert.Error(t, err)
+
+		ctrs, err := state.PodContainers(testPod)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(ctrs))
+
+		allCtrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(allCtrs))
+
+		deps, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(deps))
+	})
+}
+
 func TestRemoveContainerFromPodBadPodFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		testCtr, err := getTestCtr1(lockPath)

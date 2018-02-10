@@ -23,6 +23,7 @@ const (
 	dependenciesName = "dependencies"
 	netNSName        = "netns"
 	containersName   = "containers"
+	podIDName        = "pod-id"
 )
 
 var (
@@ -37,6 +38,7 @@ var (
 	dependenciesBkt = []byte(dependenciesName)
 	netNSKey        = []byte(netNSName)
 	containersBkt   = []byte(containersName)
+	podIDKey        = []byte(podIDName)
 )
 
 // Check if the configuration of the database is compatible with the
@@ -329,6 +331,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if err := newCtrBkt.Put(stateKey, stateJSON); err != nil {
 			return errors.Wrapf(err, "error adding container %s state to DB", ctr.ID())
 		}
+		if pod != nil {
+			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
+				return errors.Wrapf(err, "error adding container %s pod to DB", ctr.ID())
+			}
+		}
 		if netNSPath != "" {
 			if err := newCtrBkt.Put(netNSKey, []byte(netNSPath)); err != nil {
 				return errors.Wrapf(err, "error adding container %s netns path to DB", ctr.ID())
@@ -346,6 +353,15 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			if depCtrBkt == nil {
 				return errors.Wrapf(ErrNoSuchCtr, "container %s depends on container %s, but it does not exist in the DB", ctr.ID(), dependsCtr)
 			}
+
+			// If we're part of a pod, make sure the dependency is part of the same pod
+			if pod != nil {
+				depCtrPod := depCtrBkt.Get(podIDKey)
+				if depCtrPod == nil {
+					return errors.Wrapf(ErrInvalidArg, "container %s depends on container%s which is not in pod %s", ctr.ID(), dependsCtr, pod.ID())
+				}
+			}
+
 			depCtrDependsBkt := depCtrBkt.Bucket(dependenciesBkt)
 			if depCtrDependsBkt == nil {
 				return errors.Wrapf(ErrInternal, "container %s does not have a dependencies bucket", dependsCtr)
