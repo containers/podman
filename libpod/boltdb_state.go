@@ -50,8 +50,14 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 		if _, err := tx.CreateBucketIfNotExists(ctrBkt); err != nil {
 			return errors.Wrapf(err, "error creating containers bucket")
 		}
+		if _, err := tx.CreateBucketIfNotExists(allCtrsBkt); err != nil {
+			return errors.Wrapf(err, "error creating all containers bucket")
+		}
 		if _, err := tx.CreateBucketIfNotExists(podBkt); err != nil {
 			return errors.Wrapf(err, "error creating pods bucket")
+		}
+		if _, err := tx.CreateBucketIfNotExists(allPodsBkt); err != nil {
+			return errors.Wrapf(err, "error creating all pods bucket")
 		}
 		if _, err := tx.CreateBucketIfNotExists(runtimeConfigBkt); err != nil {
 			return errors.Wrapf(err, "error creating runtime-config bucket")
@@ -563,7 +569,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		idBucket, err := getIDBucket(tx)
+		allCtrsBucket, err := getAllCtrsBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -573,14 +579,13 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			return err
 		}
 
-		// Iterate through all IDs
-		// If they're containers, make a container from them and append
-		// it into the containers listing
-		err = idBucket.ForEach(func(id, name []byte) error {
+		err = allCtrsBucket.ForEach(func(id, name []byte) error {
+			// If performance becomes an issue, this check can be
+			// removed. But the error messages that come back will
+			// be much less helpful.
 			ctrExists := ctrBucket.Bucket(id)
 			if ctrExists == nil {
-				// It's a pod not a container
-				return nil
+				return errors.Wrapf(ErrInternal, "state is inconsistent - container ID %s in all containers, but container not found", string(id))
 			}
 
 			ctr := new(Container)
@@ -965,6 +970,11 @@ func (s *BoltState) AddPod(pod *Pod) error {
 			return err
 		}
 
+		allPodsBkt, err := getAllPodsBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		idsBkt, err := getIDBucket(tx)
 		if err != nil {
 			return err
@@ -1008,6 +1018,9 @@ func (s *BoltState) AddPod(pod *Pod) error {
 		if err := namesBkt.Put(podName, podID); err != nil {
 			return errors.Wrapf(err, "error storing pod %s name in DB", pod.Name())
 		}
+		if err := allPodsBkt.Put(podID, podName); err != nil {
+			return errors.Wrapf(err, "error storing pod %s in all pods bucket in DB", pod.ID())
+		}
 
 		return nil
 	})
@@ -1040,6 +1053,11 @@ func (s *BoltState) RemovePod(pod *Pod) error {
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allPodsBkt, err := getAllPodsBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -1082,6 +1100,9 @@ func (s *BoltState) RemovePod(pod *Pod) error {
 		if err := namesBkt.Delete(podName); err != nil {
 			return errors.Wrapf(err, "error removing pod %s name (%s) from DB", pod.ID(), pod.Name())
 		}
+		if err := allPodsBkt.Delete(podID); err != nil {
+			return errors.Wrapf(err, "error removing pod %s ID from all pods bucket in DB", pod.ID())
+		}
 		if err := podBkt.DeleteBucket(podID); err != nil {
 			return errors.Wrapf(err, "error removing pod %s from DB", pod.ID())
 		}
@@ -1120,6 +1141,11 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 		}
 
 		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allCtrsBkt, err := getAllCtrsBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -1184,6 +1210,10 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 
 			if err := namesBkt.Delete(name); err != nil {
 				return errors.Wrapf(err, "error deleting container %s name in DB", string(id))
+			}
+
+			if err := allCtrsBkt.Delete(id); err != nil {
+				return errors.Wrapf(err, "error deleting container %s ID from all containers bucket in DB", string(id))
 			}
 
 			return nil
@@ -1277,7 +1307,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		idBucket, err := getIDBucket(tx)
+		allPodsBucket, err := getAllPodsBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -1287,13 +1317,12 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 			return err
 		}
 
-		// Iterate through all IDs
-		// If they're pod, make a container from them and append it
-		err = idBucket.ForEach(func(id, name []byte) error {
+		err = allPodsBucket.ForEach(func(id, name []byte) error {
 			podExists := podBucket.Bucket(id)
+			// This check can be removed if performance becomes an
+			// issue, but much less helpful errors will be produced
 			if podExists == nil {
-				// Container not pod
-				return nil
+				return errors.Wrapf(ErrInternal, "inconsistency in state - pod %s is in all pods bucket but pod not found", string(id))
 			}
 
 			pod := new(Pod)
