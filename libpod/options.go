@@ -342,6 +342,8 @@ func WithStdin() CtrCreateOption {
 }
 
 // WithPod adds the container to a pod
+// Containers which join a pod can only join the namespaces of other containers
+// in the same pod
 func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -426,6 +428,8 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 
 // WithIPCNSFrom indicates the the container should join the IPC namespace of
 // the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -440,6 +444,10 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.IPCNsCtr = nsCtr.ID()
 
 		return nil
@@ -448,6 +456,8 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithMountNSFrom indicates the the container should join the mount namespace
 // of the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -462,6 +472,10 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.MountNsCtr = nsCtr.ID()
 
 		return nil
@@ -470,6 +484,8 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithNetNSFrom indicates the the container should join the network namespace
 // of the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -488,6 +504,10 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "cannot join another container's net ns as we are making a new net ns")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.NetNsCtr = nsCtr.ID()
 
 		return nil
@@ -496,6 +516,8 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithPIDNSFrom indicates the the container should join the PID namespace of
 // the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -510,6 +532,10 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.PIDNsCtr = nsCtr.ID()
 
 		return nil
@@ -518,6 +544,8 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithUserNSFrom indicates the the container should join the user namespace of
 // the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -532,6 +560,10 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.UserNsCtr = nsCtr.ID()
 
 		return nil
@@ -540,6 +572,8 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithUTSNSFrom indicates the the container should join the UTS namespace of
 // the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -554,6 +588,10 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.UTSNsCtr = nsCtr.ID()
 
 		return nil
@@ -562,6 +600,8 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 
 // WithCgroupNSFrom indicates the the container should join the CGroup namespace
 // of the given container
+// If the container has joined a pod, it can only join the namespaces of
+// containers in the same pod
 func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -576,6 +616,10 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "must specify another container")
 		}
 
+		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
+			return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		}
+
 		ctr.config.CgroupNsCtr = nsCtr.ID()
 
 		return nil
@@ -585,6 +629,7 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 // WithNetNS indicates that the container should be given a new network
 // namespace with a minimal configuration
 // An optional array of port mappings can be provided
+// Conflicts with WithNetNSFrom()
 func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
