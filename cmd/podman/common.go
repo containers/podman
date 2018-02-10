@@ -173,7 +173,7 @@ var createFlags = []cli.Flag{
 		Name:  "dns-search",
 		Usage: "Set custom DNS search domains",
 	},
-	cli.StringFlag{
+	cli.StringSliceFlag{
 		Name:  "entrypoint",
 		Usage: "Overwrite the default ENTRYPOINT of the image",
 	},

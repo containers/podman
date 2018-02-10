@@ -81,7 +81,7 @@ type createConfig struct {
 	DNSOpt             []string          //dns-opt
 	DNSSearch          []string          //dns-search
 	DNSServers         []string          //dns
-	Entrypoint         string            //entrypoint
+	Entrypoint         []string          //entrypoint
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []uint32 // group-add
@@ -419,14 +419,14 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*createConfig, error) {
-	var command []string
+	var inputCommand, command []string
 	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 	var blkioWeight uint16
 
 	imageID := data.ID
 
 	if len(c.Args()) > 1 {
-		command = c.Args()[1:]
+		inputCommand = c.Args()[1:]
 	}
 
 	sysctl, err := validateSysctl(c.StringSlice("sysctl"))
@@ -567,15 +567,24 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		workDir = data.Config.WorkingDir
 	}
 
-	// COMMAND
-	if len(command) == 0 {
-		command = data.Config.Cmd
+	// ENTRYPOINT
+	// User input entrypoint takes priority over image entrypoint
+	entrypoint := c.StringSlice("entrypoint")
+	if len(entrypoint) == 0 {
+		entrypoint = data.Config.Entrypoint
 	}
 
-	// ENTRYPOINT
-	entrypoint := c.String("entrypoint")
-	if entrypoint == "" {
-		entrypoint = strings.Join(data.Config.Entrypoint, " ")
+	// Build the command
+	// If we have an entry point, it goes first
+	if len(entrypoint) > 0 {
+		command = entrypoint
+	}
+	if len(inputCommand) > 0 {
+		// User command overrides data CMD
+		command = append(command, inputCommand...)
+	} else if len(data.Config.Cmd) > 0 && !c.IsSet("entrypoint") {
+		// If not user command, add CMD
+		command = append(command, data.Config.Cmd...)
 	}
 
 	// EXPOSED PORTS

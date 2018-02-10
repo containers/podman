@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -223,7 +224,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			OpenStdin:   config.Stdin,
 			StopSignal:  config.StopSignal,
 			Cmd:         config.Spec.Process.Args,
-			Entrypoint:  createArtifact.Entrypoint,
+			Entrypoint:  strings.Join(createArtifact.Entrypoint, " "),
 		},
 	}
 	return data, nil

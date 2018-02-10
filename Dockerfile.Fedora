@@ -10,6 +10,7 @@ RUN dnf -y install btrfs-progs-devel \
               glib2-devel \
               gnupg \
               golang \
+              golang-github-cpuguy83-go-md2man \
               gpgme-devel \
               libassuan-devel \
               libseccomp-devel \
@@ -35,6 +36,14 @@ RUN set -x \
        && mkdir -p /usr/libexec/cni \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
+
+# Install buildah
+RUN set -x \
+       && export GOPATH=/go \
+       && git clone https://github.com/projectatomic/buildah "$GOPATH/src/github.com/projectatomic/buildah" \
+       && cd "$GOPATH/src/github.com/projectatomic/buildah" \
+       && make \
+       && make install
 
 # Install ginkgo
 RUN set -x \
