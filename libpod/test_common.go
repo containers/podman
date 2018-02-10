@@ -78,11 +78,11 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 func getTestPod(id, name, locksDir string) (*Pod, error) {
 	pod := &Pod{
 		config: &PodConfig{
-			ID: id,
-			Name: name,
+			ID:     id,
+			Name:   name,
 			Labels: map[string]string{"a": "b", "c": "d"},
 		},
-		valid:  true,
+		valid: true,
 	}
 
 	lockPath := filepath.Join(locksDir, id)

@@ -23,8 +23,6 @@ const (
 	dependenciesName = "dependencies"
 	netNSName        = "netns"
 	containersName   = "containers"
-
-	dbExistName = "ok"
 )
 
 var (
