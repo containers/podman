@@ -449,3 +449,14 @@ func (p *PodmanTest) GetContainerStatus() string {
 	session.WaitWithDefaultTimeout()
 	return session.OutputToString()
 }
+
+// BuildImage uses podman build and buildah to build an image
+// called imageName based on a string dockerfile
+func (p *PodmanTest) BuildImage(dockerfile, imageName string) {
+	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
+	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+	Expect(err).To(BeNil())
+	session := p.Podman([]string{"build", "-t", imageName, "--file", dockerfilePath, p.TempDir})
+	session.Wait(120)
+	Expect(session.ExitCode()).To(Equal(0))
+}

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     e2fslibs-dev \
     gawk \
     gettext \
+    go-md2man \
     iptables \
     pkg-config \
     libaio-dev \
@@ -95,6 +96,14 @@ RUN set -x \
        && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
        && cp "$GOPATH"/bin/crictl /usr/bin/ \
        && rm -rf "$GOPATH"
+
+# Install buildah
+RUN set -x \
+       && export GOPATH=/go \
+       && git clone https://github.com/projectatomic/buildah "$GOPATH/src/github.com/projectatomic/buildah" \
+       && cd "$GOPATH/src/github.com/projectatomic/buildah" \
+       && make \
+       && make install
 
 # Install ginkgo
 RUN set -x \
