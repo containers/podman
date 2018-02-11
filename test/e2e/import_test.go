@@ -101,7 +101,7 @@ var _ = Describe("Podman import", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		imageData := results.InspectImageJSON()
-		Expect(imageData.Config.Cmd[0]).To(Equal("/bin/bash"))
+		Expect(imageData.ContainerConfig.Cmd[0]).To(Equal("/bin/bash"))
 	})
 
 })

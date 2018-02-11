@@ -78,6 +78,10 @@ func inspectCmd(c *cli.Context) error {
 		inspectType = inspectTypeContainer
 	}
 	outputFormat := c.String("format")
+	if strings.Contains(outputFormat, "{{.Id}}") {
+		outputFormat = strings.Replace(outputFormat, "{{.Id}}", formats.IDString, -1)
+	}
+
 	var data interface{}
 	switch inspectType {
 	case inspectTypeContainer:
