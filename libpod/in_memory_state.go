@@ -481,10 +481,10 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 // state
 func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added to", pod.ID())
+		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be added to the pod", ctr.ID())
+		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", ctr.ID())
 	}
 
 	if ctr.config.Pod != pod.ID() {
@@ -510,6 +510,9 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	for _, depCtr := range depCtrs {
 		if _, ok = s.containers[depCtr]; !ok {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
+		}
+		if _, ok = podCtrs[depCtr]; !ok {
+			return errors.Wrapf(ErrInvalidArg, "cannot depend on container %s as it is not in pod %s", depCtr, pod.ID())
 		}
 	}
 

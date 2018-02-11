@@ -709,8 +709,9 @@ func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
 	}
 
 	pod := new(Pod)
-	pod.id = id
-	pod.name = name
+	pod.config = new(PodConfig)
+	pod.config.ID = id
+	pod.config.Name = name
 	pod.runtime = s.runtime
 
 	// Decode labels JSON
@@ -718,7 +719,7 @@ func (s *SQLState) podFromScannable(row scannable) (*Pod, error) {
 	if err := json.Unmarshal([]byte(labelsJSON), &podLabels); err != nil {
 		return nil, errors.Wrapf(err, "error unmarshaling pod %s labels JSON", id)
 	}
-	pod.labels = podLabels
+	pod.config.Labels = podLabels
 
 	// Retrieve pod lock
 	// Open and set the lockfile
@@ -751,12 +752,15 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?
                 );`
-		addRegistry = "INSERT INTO registry VALUES (?, ?);"
+		addRegistry   = "INSERT INTO registry VALUES (?, ?);"
+		checkCtrInPod = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
 	)
 
 	if !s.valid {
 		return ErrDBClosed
 	}
+
+	depCtrs := ctr.Dependencies()
 
 	mounts, err := json.Marshal(ctr.config.Mounts)
 	if err != nil {
@@ -828,6 +832,21 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		if !exists {
 			pod.valid = false
 			return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in state, cannot add container to it", pod.ID())
+		}
+
+		// We also need to check if our dependencies are in the pod
+		for _, depID := range depCtrs {
+			row := tx.QueryRow(checkCtrInPod, depID, pod.ID())
+			var check int
+			err := row.Scan(&check)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s but it is not in pod %s", ctr.ID(), depID, pod.ID())
+				}
+				return errors.Wrapf(err, "error querying for existence of container %s", depID)
+			} else if check != 1 {
+				return errors.Wrapf(ErrInternal, "check digit for checkCtrInPod query incorrect")
+			}
 		}
 	}
 

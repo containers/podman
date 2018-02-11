@@ -9,18 +9,20 @@ type State interface {
 	// Refresh clears container and pod states after a reboot
 	Refresh() error
 
-	// Accepts full ID of container
+	// Return a container from the database from its full ID
 	Container(id string) (*Container, error)
-	// Accepts full or partial IDs (as long as they are unique) and names
+	// Return a container from the database by full or partial ID or full
+	// name
 	LookupContainer(idOrName string) (*Container, error)
-	// Checks if a container with the given ID is present in the state
+	// Check if a container with the given full ID exists in the database
 	HasContainer(id string) (bool, error)
 	// Adds container to state
 	// The container cannot be part of a pod
+	// The container must have globally unique name and ID - pod names and
+	// IDs also conflict with container names and IDs
 	AddContainer(ctr *Container) error
 	// Removes container from state
-	// The container will only be removed from the state, not from the pod
-	// which the container belongs to
+	// Containers that are part of pods must use RemoveContainerFromPod
 	RemoveContainer(ctr *Container) error
 	// UpdateContainer updates a container's state from the backing store
 	UpdateContainer(ctr *Container) error

@@ -201,7 +201,7 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	// we haven't been created in the runtime yet
 	if c.state.State != ContainerStateConfigured {
 		if err := r.ociRuntime.deleteContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container %s from runc", c.ID())
+			return errors.Wrapf(err, "error removing container %s from OCI runtime", c.ID())
 		}
 	}
 

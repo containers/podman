@@ -77,10 +77,12 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 // nolint
 func getTestPod(id, name, locksDir string) (*Pod, error) {
 	pod := &Pod{
-		id:     id,
-		name:   name,
-		labels: map[string]string{"a": "b", "c": "d"},
-		valid:  true,
+		config: &PodConfig{
+			ID:     id,
+			Name:   name,
+			Labels: map[string]string{"a": "b", "c": "d"},
+		},
+		valid: true,
 	}
 
 	lockPath := filepath.Join(locksDir, id)
@@ -132,27 +134,4 @@ func testContainersEqual(a, b *Container) bool {
 	}
 
 	return reflect.DeepEqual(aStateJSON, bStateJSON)
-}
-
-// This tests pod equality
-// We cannot guarantee equality in lockfile objects so we can't simply compare
-// nolint
-func testPodsEqual(a, b *Pod) bool {
-	if a == nil && b == nil {
-		return true
-	} else if a == nil || b == nil {
-		return false
-	}
-
-	if a.id != b.id {
-		return false
-	}
-	if a.name != b.name {
-		return false
-	}
-	if a.valid != b.valid {
-		return false
-	}
-
-	return reflect.DeepEqual(a.labels, b.labels)
 }

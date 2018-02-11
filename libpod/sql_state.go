@@ -49,9 +49,6 @@ func NewSQLState(dbPath, specsDir, lockDir string, runtime *Runtime) (State, err
 	}
 	state.lockDir = lockDir
 
-	// TODO add a separate temporary database for per-boot container
-	// state
-
 	// Open the database
 	// Use loc=auto to get accurate locales for timestamps
 	db, err := sql.Open("sqlite3", dbPath+"?_loc=auto")
@@ -767,7 +764,7 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 		return ErrPodRemoved
 	}
 
-	labelsJSON, err := json.Marshal(pod.labels)
+	labelsJSON, err := json.Marshal(pod.config.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling pod %s labels to JSON", pod.ID())
 	}
