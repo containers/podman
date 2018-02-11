@@ -843,6 +843,7 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 				if err == sql.ErrNoRows {
 					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s but it is not in pod %s", ctr.ID(), depID, pod.ID())
 				}
+				return errors.Wrapf(err, "error querying for existence of container %s", depID)
 			} else if check != 1 {
 				return errors.Wrapf(ErrInternal, "check digit for checkCtrInPod query incorrect")
 			}
