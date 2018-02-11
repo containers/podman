@@ -106,24 +106,24 @@ type LogConfig struct {
 
 // ImageData holds the inspect information of an image
 type ImageData struct {
-	ID           string            `json:"ID"`
-	Digest       digest.Digest     `json:"Digest"`
-	RepoTags     []string          `json:"RepoTags"`
-	RepoDigests  []string          `json:"RepoDigests"`
-	Parent       string            `json:"Parent"`
-	Comment      string            `json:"Comment"`
-	Created      *time.Time        `json:"Created"`
-	Config       *v1.ImageConfig   `json:"Config"`
-	Version      string            `json:"Version"`
-	Author       string            `json:"Author"`
-	Architecture string            `json:"Architecture"`
-	Os           string            `json:"Os"`
-	Size         int64             `json:"Size"`
-	VirtualSize  int64             `json:"VirtualSize"`
-	GraphDriver  *Data             `json:"GraphDriver"`
-	RootFS       *RootFS           `json:"RootFS"`
-	Labels       map[string]string `json:"Labels"`
-	Annotations  map[string]string `json:"Annotations"`
+	ID              string            `json:"Id"`
+	Digest          digest.Digest     `json:"Digest"`
+	RepoTags        []string          `json:"RepoTags"`
+	RepoDigests     []string          `json:"RepoDigests"`
+	Parent          string            `json:"Parent"`
+	Comment         string            `json:"Comment"`
+	Created         *time.Time        `json:"Created"`
+	ContainerConfig *v1.ImageConfig   `json:"ContainerConfig"`
+	Version         string            `json:"Version"`
+	Author          string            `json:"Author"`
+	Architecture    string            `json:"Architecture"`
+	Os              string            `json:"Os"`
+	Size            int64             `json:"Size"`
+	VirtualSize     int64             `json:"VirtualSize"`
+	GraphDriver     *Data             `json:"GraphDriver"`
+	RootFS          *RootFS           `json:"RootFS"`
+	Labels          map[string]string `json:"Labels"`
+	Annotations     map[string]string `json:"Annotations"`
 }
 
 // RootFS holds the root fs information of an image

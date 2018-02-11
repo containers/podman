@@ -46,7 +46,7 @@ Display the total file size if the type is a container
     "Parent": "",
     "Comment": "",
     "Created": "2017-11-14T21:07:08.475840838Z",
-    "Config": {
+    "ContainerConfig": {
         "Env": [
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "DISTTAG=f27container",
