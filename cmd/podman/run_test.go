@@ -36,15 +36,15 @@ func generateAlpineImageData() *inspect.ImageData {
 	}
 
 	data := &inspect.ImageData{
-		ID:           "e21c333399e0aeedfd70e8827c9fba3f8e9b170ef8a48a29945eb7702bf6aa5f",
-		RepoTags:     []string{"docker.io/library/alpine:latest"},
-		RepoDigests:  []string{"docker.io/library/alpine@sha256:5cb04fce748f576d7b72a37850641de8bd725365519673c643ef2d14819b42c6"},
-		Comment:      "Created:2017-12-01 18:48:48.949613376 +0000",
-		Author:       "",
-		Architecture: "amd64",
-		Os:           "linux",
-		Version:      "17.06.2-ce",
-		Config:       config,
+		ID:              "e21c333399e0aeedfd70e8827c9fba3f8e9b170ef8a48a29945eb7702bf6aa5f",
+		RepoTags:        []string{"docker.io/library/alpine:latest"},
+		RepoDigests:     []string{"docker.io/library/alpine@sha256:5cb04fce748f576d7b72a37850641de8bd725365519673c643ef2d14819b42c6"},
+		Comment:         "Created:2017-12-01 18:48:48.949613376 +0000",
+		Author:          "",
+		Architecture:    "amd64",
+		Os:              "linux",
+		Version:         "17.06.2-ce",
+		ContainerConfig: config,
 	}
 	return data
 }

@@ -520,12 +520,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	// USER
 	user := c.String("user")
 	if user == "" {
-		user = data.Config.User
+		user = data.ContainerConfig.User
 	}
 
 	// STOP SIGNAL
 	stopSignal := syscall.SIGTERM
-	signalString := data.Config.StopSignal
+	signalString := data.ContainerConfig.StopSignal
 	if c.IsSet("stop-signal") {
 		signalString = c.String("stop-signal")
 	}
@@ -538,7 +538,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 
 	// ENVIRONMENT VARIABLES
 	env := defaultEnvVariables
-	for _, e := range data.Config.Env {
+	for _, e := range data.ContainerConfig.Env {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) > 1 {
 			env[split[0]] = split[1]
@@ -555,7 +555,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}
-	for key, val := range data.Config.Labels {
+	for key, val := range data.ContainerConfig.Labels {
 		if _, ok := labels[key]; !ok {
 			labels[key] = val
 		}
@@ -564,14 +564,14 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	// WORKING DIRECTORY
 	workDir := c.String("workdir")
 	if workDir == "" {
-		workDir = data.Config.WorkingDir
+		workDir = data.ContainerConfig.WorkingDir
 	}
 
 	// ENTRYPOINT
 	// User input entrypoint takes priority over image entrypoint
 	entrypoint := c.StringSlice("entrypoint")
 	if len(entrypoint) == 0 {
-		entrypoint = data.Config.Entrypoint
+		entrypoint = data.ContainerConfig.Entrypoint
 	}
 
 	// Build the command
@@ -582,13 +582,13 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
-	} else if len(data.Config.Cmd) > 0 && !c.IsSet("entrypoint") {
+	} else if len(data.ContainerConfig.Cmd) > 0 && !c.IsSet("entrypoint") {
 		// If not user command, add CMD
-		command = append(command, data.Config.Cmd...)
+		command = append(command, data.ContainerConfig.Cmd...)
 	}
 
 	// EXPOSED PORTS
-	portBindings, err := exposedPorts(c, data.Config.ExposedPorts)
+	portBindings, err := exposedPorts(c, data.ContainerConfig.ExposedPorts)
 	if err != nil {
 		return nil, err
 	}
