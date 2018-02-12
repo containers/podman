@@ -397,13 +397,16 @@ func (p *psTemplateParams) headerMap() map[string]string {
 // getTemplateOutput returns the modified container information
 func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemplateParams, error) {
 	var (
-		psOutput      []psTemplateParams
-		status, ctrID string
-		conConfig     *libpod.ContainerConfig
-		conState      libpod.ContainerStatus
-		err           error
-		exitCode      int32
-		pid           int
+		psOutput            []psTemplateParams
+		status, ctrID, size string
+		conConfig           *libpod.ContainerConfig
+		conState            libpod.ContainerStatus
+		err                 error
+		exitCode            int32
+		pid                 int
+		rootFsSize, rwSize  int64
+		ns                  *namespace
+		startedTime         time.Time
 	)
 
 	for _, ctr := range containers {
@@ -418,20 +421,41 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			if err != nil {
 				return errors.Wrapf(err, "unable to obtain container exit code")
 			}
-			pid, err = c.PID()
+			startedTime, err = c.StartedTime()
 			if err != nil {
-				return errors.Wrapf(err, "unable to obtain container pid")
+				logrus.Errorf("error getting started time for %q: %v", c.ID(), err)
 			}
+
+			if !opts.size && !opts.namespace {
+				return nil
+			}
+
+			if opts.namespace {
+				pid, err = c.PID()
+				if err != nil {
+					return errors.Wrapf(err, "unable to obtain container pid")
+				}
+			}
+			if opts.size {
+				rootFsSize, err = c.RootFsSize()
+				if err != nil {
+					logrus.Errorf("error getting root fs size for %q: %v", c.ID(), err)
+				}
+
+				rwSize, err = c.RWSize()
+				if err != nil {
+					logrus.Errorf("error getting rw size for %q: %v", c.ID(), err)
+				}
+
+				size = units.HumanSizeWithPrecision(float64(rwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(rootFsSize), 3) + ")"
+			}
+
 			return nil
 		})
 		if batchErr != nil {
 			return nil, err
 		}
 		runningFor := ""
-		startedTime, err := ctr.StartedTime()
-		if err != nil {
-			logrus.Errorf("error getting started time for %q: %v", ctr.ID(), err)
-		}
 		// If the container has not be started, the "zero" value of time is 0001-01-01 00:00:00 +0000 UTC
 		// which would make the time elapsed about a few hundred of years. So checking for the "zero" value of time.Time
 		if startedTime != (time.Time{}) {
@@ -439,14 +463,6 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		}
 		createdAt := conConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
 		imageName := conConfig.RootfsImageName
-		rootFsSize, err := ctr.RootFsSize()
-		if err != nil {
-			logrus.Errorf("error getting root fs size for %q: %v", ctr.ID(), err)
-		}
-		rwSize, err := ctr.RWSize()
-		if err != nil {
-			logrus.Errorf("error getting rw size for %q: %v", ctr.ID(), err)
-		}
 
 		var createArtifact createConfig
 		artifact, err := ctr.GetArtifact("create-config")
@@ -457,16 +473,16 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		} else {
 			logrus.Errorf("couldn't get some ps information, error getting artifact %q: %v", ctr.ID(), err)
 		}
+		if opts.namespace {
+			ns = getNamespaces(pid)
+		}
 
 		// TODO We currently dont have the ability to get many of
 		// these data items.  Uncomment as progress is made
-
-		command := strings.Join(ctr.Spec().Process.Args, " ")
-		ports := getPorts(ctr.Config().PortMappings)
+		command := strings.Join(conConfig.Spec.Process.Args, " ")
+		ports := getPorts(conConfig.PortMappings)
 		mounts := getMounts(createArtifact.Volumes, opts.noTrunc)
-		size := units.HumanSizeWithPrecision(float64(rwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(rootFsSize), 3) + ")"
 		labels := formatLabels(ctr.Labels())
-		ns := getNamespaces(pid)
 
 		switch conState {
 		case libpod.ContainerStateStopped:
@@ -502,13 +518,15 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			Labels:     labels,
 			Mounts:     mounts,
 			PID:        pid,
-			Cgroup:     ns.Cgroup,
-			IPC:        ns.IPC,
-			MNT:        ns.MNT,
-			NET:        ns.NET,
-			PIDNS:      ns.PID,
-			User:       ns.User,
-			UTS:        ns.UTS,
+		}
+		if opts.namespace {
+			params.Cgroup = ns.Cgroup
+			params.IPC = ns.IPC
+			params.MNT = ns.MNT
+			params.NET = ns.NET
+			params.PIDNS = ns.PIDNS
+			params.User = ns.User
+			params.UTS = ns.UTS
 		}
 		psOutput = append(psOutput, params)
 	}
