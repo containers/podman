@@ -88,6 +88,7 @@ func (ns LinuxNS) String() string {
 }
 
 // Container is a single OCI container
+// ffjson: skip
 type Container struct {
 	config *ContainerConfig
 

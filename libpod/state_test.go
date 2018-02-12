@@ -161,11 +161,7 @@ func TestAddAndGetContainer(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, retrievedCtr) {
-			assert.EqualValues(t, testCtr, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr, retrievedCtr)
 	})
 }
 
@@ -185,11 +181,7 @@ func TestAddAndGetContainerFromMultiple(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr1.ID())
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr1, retrievedCtr) {
-			assert.EqualValues(t, testCtr1, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr1, retrievedCtr)
 	})
 }
 
@@ -350,11 +342,7 @@ func TestLookupContainerByFullID(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, retrievedCtr) {
-			assert.EqualValues(t, testCtr, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr, retrievedCtr)
 	})
 }
 
@@ -369,11 +357,7 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.ID()[0:8])
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, retrievedCtr) {
-			assert.EqualValues(t, testCtr, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr, retrievedCtr)
 	})
 }
 
@@ -406,11 +390,7 @@ func TestLookupContainerByName(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.Name())
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, retrievedCtr) {
-			assert.EqualValues(t, testCtr, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr, retrievedCtr)
 	})
 }
 
@@ -504,11 +484,7 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 		err = state.UpdateContainer(testCtr)
 		assert.NoError(t, err)
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, retrievedCtr) {
-			assert.EqualValues(t, testCtr, retrievedCtr)
-		}
+		testContainersEqual(t, testCtr, retrievedCtr)
 	})
 }
 
@@ -600,11 +576,7 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(ctrs))
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, ctrs[0]) {
-			assert.EqualValues(t, testCtr, ctrs[0])
-		}
+		testContainersEqual(t, testCtr, ctrs[0])
 	})
 }
 
@@ -1600,11 +1572,7 @@ func TestPodContainersOneContainer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(ctrs))
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, ctrs[0]) {
-			assert.EqualValues(t, testCtr, ctrs[0])
-		}
+		testContainersEqual(t, testCtr, ctrs[0])
 	})
 }
 
@@ -1908,14 +1876,8 @@ func TestAddContainerToPodSucceeds(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allCtrs))
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr, ctrs[0]) {
-			assert.EqualValues(t, testCtr, ctrs[0])
-		}
-		if !testContainersEqual(allCtrs[0], ctrs[0]) {
-			assert.EqualValues(t, allCtrs[0], ctrs[0])
-		}
+		testContainersEqual(t, testCtr, ctrs[0])
+		testContainersEqual(t, ctrs[0], allCtrs[0])
 	})
 }
 
@@ -1980,11 +1942,7 @@ func TestAddContainerToPodWithAddContainer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(allCtrs))
 
-		// Use assert.EqualValues if the test fails to pretty print diff
-		// between actual and expected
-		if !testContainersEqual(testCtr1, ctrs[0]) {
-			assert.EqualValues(t, testCtr1, ctrs[0])
-		}
+		testContainersEqual(t, testCtr1, ctrs[0])
 	})
 }
 
