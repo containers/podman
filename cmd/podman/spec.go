@@ -330,6 +330,11 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		}
 	}
 
+	// Clear default Seccomp profile from Generator for privileged containers
+	if config.SeccompProfilePath == "unconfined" || config.Privileged {
+		configSpec.Linux.Seccomp = nil
+	}
+
 	// BIND MOUNTS
 	mounts, err := config.GetVolumeMounts()
 	if err != nil {
