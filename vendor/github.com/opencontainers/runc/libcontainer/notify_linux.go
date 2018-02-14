@@ -44,9 +44,9 @@ func registerMemoryEvent(cgDir string, evName string, arg string) (<-chan struct
 	ch := make(chan struct{})
 	go func() {
 		defer func() {
-			close(ch)
 			eventfd.Close()
 			evFile.Close()
+			close(ch)
 		}()
 		buf := make([]byte, 8)
 		for {
