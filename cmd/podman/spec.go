@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/profiles/seccomp"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -22,6 +24,9 @@ import (
 )
 
 const cpuPeriod = 100000
+
+func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
+func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
 
 func blockAccessToKernelFilesystems(config *createConfig, g *generate.Generator) {
 	if !config.Privileged {
@@ -241,9 +246,18 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// Devices
-	for _, device := range config.Devices {
-		if err := addDevice(&g, device); err != nil {
+	if config.Privileged {
+		// If privileged, we need to add all the host devices to the
+		// spec.  We do not add the user provided ones because we are
+		// already adding them all.
+		if err := config.AddPrivilegedDevices(&g); err != nil {
 			return nil, err
+		}
+	} else {
+		for _, device := range config.Devices {
+			if err := addDevice(&g, device); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -684,4 +698,32 @@ func (c *createConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
 		}
 	}
 	return portBindings, nil
+}
+
+// AddPrivilegedDevices iterates through host devices and adds all
+// host devices to the spec
+func (c *createConfig) AddPrivilegedDevices(g *generate.Generator) error {
+	hostDevices, err := devices.HostDevices()
+	if err != nil {
+		return err
+	}
+	g.ClearLinuxDevices()
+	for _, d := range hostDevices {
+		g.AddDevice(Device(d))
+	}
+	g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
+	return nil
+}
+
+// Device transforms a libcontainer configs.Device to a specs.LinuxDevice object.
+func Device(d *configs.Device) spec.LinuxDevice {
+	return spec.LinuxDevice{
+		Type:     string(d.Type),
+		Path:     d.Path,
+		Major:    d.Major,
+		Minor:    d.Minor,
+		FileMode: fmPtr(int64(d.FileMode)),
+		UID:      u32Ptr(int64(d.Uid)),
+		GID:      u32Ptr(int64(d.Gid)),
+	}
 }
