@@ -121,7 +121,35 @@ func (p *Pod) AllContainers() ([]*Container, error) {
 }
 
 // Status gets the status of all containers in the pod
-// TODO This should return a summary of the states of all containers in the pod
-func (p *Pod) Status() error {
-	return ErrNotImplemented
+// Returns a map of Container ID to Container Status
+func (p *Pod) Status() (map[string]ContainerStatus, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	// We need to lock all the containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+	}
+
+	// Now that all containers are locked, get their status
+	status := make(map[string]ContainerStatus, len(allCtrs))
+	for _, ctr := range allCtrs {
+		if err := ctr.syncContainer(); err != nil {
+			return nil, err
+		}
+
+		status[ctr.ID()] = ctr.state.State
+	}
+
+	return status, nil
 }
