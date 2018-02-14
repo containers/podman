@@ -71,12 +71,14 @@ func checkDB(db *sql.DB, r *Runtime) (err error) {
 
 	const checkRuntimeExists = "SELECT name FROM sqlite_master WHERE type='table' AND name='runtime';"
 
+	committed := false
+
 	tx, err := db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to check runtime table: %v", err2)
 			}
@@ -164,6 +166,8 @@ func checkDB(db *sql.DB, r *Runtime) (err error) {
 		return errors.Wrapf(ErrDBBadConfig, "database runroot directory %s does not match our runroot directory %s",
 			graphDriverName, r.config.StorageConfig.GraphDriverName)
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing runtime table transaction in database")
@@ -291,13 +295,15 @@ func prepareDB(db *sql.DB) (err error) {
         );
         `
 
+	committed := false
+
 	// Create the tables
 	tx, err := db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to create tables: %v", err2)
 			}
@@ -317,6 +323,8 @@ func prepareDB(db *sql.DB) (err error) {
 	if _, err := tx.Exec(createPod); err != nil {
 		return errors.Wrapf(err, "error creating pods table in database")
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing table creation transaction in database")
@@ -810,12 +818,14 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		}
 	}
 
+	committed := false
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to add container %s: %v", ctr.ID(), err2)
 			}
@@ -947,6 +957,8 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		}()
 	}
 
+	committed = true
+
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to add container %s", ctr.ID())
 	}
@@ -1047,11 +1059,11 @@ func (s *SQLState) removeContainer(ctr *Container, pod *Pod) (err error) {
 		return errors.Wrapf(err, "error removing container %s from name/ID registry", ctr.ID())
 	}
 
+	committed = true
+
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to remove container %s", ctr.ID())
 	}
-
-	committed = true
 
 	// Remove the container's JSON from disk
 	jsonPath := getSpecPath(s.specsDir, ctr.ID())
