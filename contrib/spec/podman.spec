@@ -74,6 +74,9 @@ BuildRequires:  skopeo-containers
 Requires:       runc
 Requires:       skopeo-containers
 Requires:       conmon
+Requires:       iptables
+Requires:       containernetworking-cni
+Requires:       atomic-registries
 
 # vendored libraries
 # awk '{print "Provides: bundled(golang("$1")) = "$2}' containerd-*/vendor.conf | sort
