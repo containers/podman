@@ -28,6 +28,17 @@ var _ = Describe("Podman run entrypoint", func() {
 
 	})
 
+	It("podman run no command, entrypoint, or cmd", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest
+ENTRYPOINT []
+CMD []
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
 	It("podman run entrypoint", func() {
 		dockerfile := `FROM docker.io/library/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
