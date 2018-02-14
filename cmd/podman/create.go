@@ -587,6 +587,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		command = append(command, data.ContainerConfig.Cmd...)
 	}
 
+	if len(command) == 0 {
+		return nil, errors.Errorf("No command specified on command line or as CMD or ENTRYPOINT in this image")
+	}
+
 	// EXPOSED PORTS
 	portBindings, err := exposedPorts(c, data.ContainerConfig.ExposedPorts)
 	if err != nil {
