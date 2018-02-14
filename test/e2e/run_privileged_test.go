@@ -73,4 +73,17 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect(capAmp[1]).To(Equal(capEff[1]))
 	})
 
+	It("podman non-privileged should have very few devices", func() {
+		session := podmanTest.Podman([]string{"run", "busybox", "ls", "-l", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(18))
+	})
+
+	It("podman privileged should inherit host devices", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "-l", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 20))
+	})
 })

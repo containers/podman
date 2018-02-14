@@ -28,6 +28,15 @@ func DeviceFromPath(path, permissions string) (*configs.Device, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var (
+		devNumber = stat.Rdev
+		major     = unix.Major(devNumber)
+	)
+	if major == 0 {
+		return nil, ErrNotADevice
+	}
+
 	var (
 		devType rune
 		mode    = stat.Mode
@@ -37,21 +46,16 @@ func DeviceFromPath(path, permissions string) (*configs.Device, error) {
 		devType = 'b'
 	case mode&unix.S_IFCHR == unix.S_IFCHR:
 		devType = 'c'
-	default:
-		return nil, ErrNotADevice
 	}
-	devNumber := int(stat.Rdev)
-	uid := stat.Uid
-	gid := stat.Gid
 	return &configs.Device{
 		Type:        devType,
 		Path:        path,
-		Major:       Major(devNumber),
-		Minor:       Minor(devNumber),
+		Major:       int64(major),
+		Minor:       int64(unix.Minor(devNumber)),
 		Permissions: permissions,
 		FileMode:    os.FileMode(mode),
-		Uid:         uid,
-		Gid:         gid,
+		Uid:         stat.Uid,
+		Gid:         stat.Gid,
 	}, nil
 }
 
