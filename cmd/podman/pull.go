@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"fmt"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -105,6 +106,14 @@ func pullCmd(c *cli.Context) error {
 
 	if _, err := runtime.PullImage(image, options); err != nil {
 		return errors.Wrapf(err, "error pulling image %q", image)
+	}
+
+	newImage := runtime.NewImage(image)
+	iid, err := newImage.GetImageID()
+	// Intentially choosing to ignore if there is an error because
+	// outputting the image ID is a NTH and not integral to the pull
+	if err == nil {
+		fmt.Println(iid)
 	}
 	return nil
 }
