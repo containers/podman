@@ -151,6 +151,11 @@ func main() {
 			Usage: "used to pass an option to the storage driver",
 		},
 	}
+	if _, err := os.Stat("/etc/containers/registries.conf"); err != nil {
+		if os.IsNotExist(err) {
+			logrus.Warn("unable to find /etc/containers/registries.conf. some podman (image shortnames) commands may be limited")
+		}
+	}
 	if err := app.Run(os.Args); err != nil {
 		if debug {
 			logrus.Errorf(err.Error())
