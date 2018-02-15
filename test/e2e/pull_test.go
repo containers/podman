@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"strings"
 )
 
 var _ = Describe("Podman pull", func() {
@@ -137,5 +138,23 @@ var _ = Describe("Podman pull", func() {
 
 		clean := podmanTest.SystemExec("rm", []string{"-fr", "/tmp/podmantestdir"})
 		clean.WaitWithDefaultTimeout()
+	})
+
+	It("podman pull from local directory", func() {
+		podmanTest.RestoreArtifact(ALPINE)
+		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		shortImageId := strings.Split(setup.OutputToString(), ":")[1]
+
+		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		pull := podmanTest.Podman([]string{"pull", "-q", ALPINE})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull.ExitCode()).To(Equal(0))
+
+		Expect(pull.OutputToString()).To(ContainSubstring(shortImageId))
 	})
 })

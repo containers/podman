@@ -14,7 +14,8 @@ podman pull - Pull an image from a registry
 Copies an image from a registry onto the local machine. **podman pull** pulls an
 image from Docker Hub if a registry is not specified in the command line argument.
 If an image tag is not specified, **podman pull** defaults to the image with the
-**latest** tag (if it exists) and pulls it. **podman pull** can also pull an image
+**latest** tag (if it exists) and pulls it. After the image is pulled, podman will
+print the full image ID.  **podman pull** can also pull an image
 using its digest **podman pull [image]@[digest]**. **podman pull** can be used to pull
 images from archives and local storage using different transports.
 
@@ -97,6 +98,7 @@ Copying config sha256:76da55c8019d7a47c347c0dceb7a6591144d232a7dd616242a367b8bed
  1.48 KB / 1.48 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
+04660052281190168dbb2362eb15bf7067a8dc642d2498055e0e72efa961a4b6
 ```
 
 ```
@@ -108,6 +110,7 @@ Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d
  1.41 KB / 1.41 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
 ```
 
 ```
@@ -119,6 +122,7 @@ Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d
  1.41 KB / 1.41 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
 ```
 
 ```
@@ -130,6 +134,7 @@ Copying config sha256:ad4686094d8f0186ec8249fc4917b71faa2c1030d7b5a025c29f26e19d
  1.41 KB / 1.41 KB [========================================================] 0s
 Writing manifest to image destination
 Storing signatures
+03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
 ```
 
 ## SEE ALSO
