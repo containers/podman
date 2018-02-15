@@ -262,7 +262,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(config.NoNewPrivileges)
+	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
 	g.SetProcessSelinuxLabel(config.ProcessLabel)
 	g.SetLinuxMountLabel(config.MountLabel)
@@ -644,6 +644,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	}
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
+	options = append(options, libpod.WithNoNewPrivs(c.NoNewPrivs))
 	return options, nil
 }
 

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -86,4 +87,26 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 20))
 	})
+
+	It("run no-new-privileges test", func() {
+		cap := podmanTest.SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
+		cap.WaitWithDefaultTimeout()
+		if cap.ExitCode() != 0 {
+			fmt.Println("Can't determine NoNewPrivs")
+			return
+		}
+
+		session := podmanTest.Podman([]string{"run", "busybox", "grep", "NoNewPrivs", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		privs := strings.Split(cap.OutputToString(), ":")
+
+		session = podmanTest.Podman([]string{"run", "--security-opt", "no-new-privileges", "busybox", "grep", "NoNewPrivs", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		noprivs := strings.Split(cap.OutputToString(), ":")
+
+		Expect(privs[1]).To(Not(Equal(noprivs[1])))
+	})
+
 })
