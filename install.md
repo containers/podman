@@ -25,6 +25,7 @@ Fedora, CentOS, RHEL, and related distributions:
 
 ```bash
 yum install -y \
+  atomic-registries \
   btrfs-progs-devel \
   conmon \
   containernetworking-cni \
@@ -36,6 +37,7 @@ yum install -y \
   go \
   golang-github-cpuguy83-go-md2man \
   gpgme-devel \
+  iptables \
   libassuan-devel \
   libgpg-error-devel \
   libseccomp-devel \
