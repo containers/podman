@@ -108,12 +108,14 @@ func (s *SQLState) Refresh() (err error) {
 		return ErrDBClosed
 	}
 
+	committed := false
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to refresh state: %v", err2)
 			}
@@ -134,6 +136,8 @@ func (s *SQLState) Refresh() (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to refresh database")
@@ -407,12 +411,14 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 		return ErrDBClosed
 	}
 
+	committed := false
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to add container %s: %v", ctr.ID(), err2)
 			}
@@ -446,6 +452,8 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 		ctr.valid = false
 		return ErrNoSuchCtr
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to update container %s", ctr.ID())
@@ -769,12 +777,14 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 		return errors.Wrapf(err, "error marshaling pod %s labels to JSON", pod.ID())
 	}
 
+	committed := false
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to add pod %s: %v", pod.ID(), err2)
 			}
@@ -788,6 +798,8 @@ func (s *SQLState) AddPod(pod *Pod) (err error) {
 	if _, err = tx.Exec(podQuery, pod.ID(), pod.Name(), string(labelsJSON)); err != nil {
 		return errors.Wrapf(err, "error adding pod %s to database", pod.ID())
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to add pod %s", pod.ID())
@@ -808,12 +820,14 @@ func (s *SQLState) RemovePod(pod *Pod) (err error) {
 		return ErrDBClosed
 	}
 
+	committed := false
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Wrapf(err, "error beginning database transaction")
 	}
 	defer func() {
-		if err != nil {
+		if err != nil && !committed {
 			if err2 := tx.Rollback(); err2 != nil {
 				logrus.Errorf("Error rolling back transaction to remove pod %s: %v", pod.ID(), err2)
 			}
@@ -837,6 +851,8 @@ func (s *SQLState) RemovePod(pod *Pod) (err error) {
 	if _, err := tx.Exec(removeRegistry, pod.ID()); err != nil {
 		return errors.Wrapf(err, "error removing pod %s from name/ID registry", pod.ID())
 	}
+
+	committed = true
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction to remove pod %s", pod.ID())
@@ -925,11 +941,11 @@ func (s *SQLState) RemovePodContainers(pod *Pod) (err error) {
 		return errors.Wrapf(err, "error removing pod %s containers from containers table", pod.ID())
 	}
 
+	committed = true
+
 	if err := tx.Commit(); err != nil {
 		return errors.Wrapf(err, "error committing transaction remove pod %s containers", pod.ID())
 	}
-
-	committed = true
 
 	// Remove JSON files from the containers in question
 	hasError := false
