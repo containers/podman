@@ -61,16 +61,11 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman cap-drop CapEff", func() {
-		cap := podmanTest.SystemExec("grep", []string{"CapAmb", "/proc/self/status"})
-		cap.WaitWithDefaultTimeout()
-		Expect(cap.ExitCode()).To(Equal(0))
 		session := podmanTest.Podman([]string{"run", "--cap-drop", "all", "busybox", "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-
-		capAmp := strings.Split(cap.OutputToString(), " ")
 		capEff := strings.Split(session.OutputToString(), " ")
-		Expect(capAmp[1]).To(Equal(capEff[1]))
+		Expect("0000000000000000").To(Equal(capEff[1]))
 	})
 
 	It("podman non-privileged should have very few devices", func() {

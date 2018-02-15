@@ -123,7 +123,7 @@ ginkgo:
 	ginkgo -v test/e2e/
 
 localintegration: test-binaries
-	ginkgo -v -cover -flakeAttempts 3 -progress -trace test/e2e/.
+	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
