@@ -8,7 +8,7 @@ The latest version of `runc` is expected to be installed on the system. It is pi
 
 #### conmon installed
 
-The latest version of `conmon` is expected to be installed on the system. Conmon is used to monitor OCI Runtimes
+The latest version of `conmon` is expected to be installed on the system. Conmon is used to monitor OCI Runtimes.
 
 #### Setup CNI networking
 
@@ -25,6 +25,7 @@ Fedora, CentOS, RHEL, and related distributions:
 
 ```bash
 yum install -y \
+  atomic-registries \
   btrfs-progs-devel \
   conmon \
   containernetworking-cni \
@@ -36,6 +37,7 @@ yum install -y \
   go \
   golang-github-cpuguy83-go-md2man \
   gpgme-devel \
+  iptables \
   libassuan-devel \
   libgpg-error-devel \
   libseccomp-devel \
@@ -51,27 +53,35 @@ Debian, Ubuntu, and related distributions:
 ```bash
 apt-get install -y \
   btrfs-tools \
-  cri-o \
   git \
   golang-go \
+  go-md2man \
+  iptables \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
   libc6-dev \
   libgpgme11-dev \
   libgpg-error-dev \
+  libprotobuf-dev \
+  libprotobuf-c0-dev \
   libseccomp-dev \
   libselinux1-dev \
-  pkg-config \
-  runc \
-  skopeo-containers
+  pkg-config
 ```
 
-Debian, Ubuntu, and related distributions will also need a copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
+Debian, Ubuntu, and related distributions will also need to do the following setup:
 
-If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else build your own.
+ * A copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
+ * [Add required configuration files](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#adding-required-configuration-files)
+ * Install conman, CNI plugins and runc
+   * [Install conman](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)
+   * [Install CNI plugins](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-cni-plugins)
+   * [runc Installation](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) - Although installable, the latest runc is not available in the Ubuntu repos. Version 1.0.0-rc4 is the minimal requirement.
 
 **NOTE**
+
+If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else [build](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) your own.
 
 Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
 

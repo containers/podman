@@ -47,7 +47,7 @@ showing the commands in use.
 Useful information for ops and dev transfer as it relates to infrastructure that utilizes Podman.  This page
 includes tables showing Docker commands and their Podman equivalent commands.
 
-**[Tutorials](docs/tutorials/tutorials.md)**
+**[Tutorials](docs/tutorials)**
 Tutorials on the Podman utility.
 
 ## Communication with Fellow Developers
