@@ -126,7 +126,7 @@ type createConfig struct {
 	WorkDir            string            //workdir
 	MountLabel         string            //SecurityOpts
 	ProcessLabel       string            //SecurityOpts
-	NoNewPrivileges    bool              //SecurityOpts
+	NoNewPrivs         bool              //SecurityOpts
 	ApparmorProfile    string            //SecurityOpts
 	SeccompProfilePath string            //SecurityOpts
 	SecurityOpts       []string
@@ -249,7 +249,7 @@ func parseSecurityOpt(config *createConfig, securityOpts []string) error {
 
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
-			config.NoNewPrivileges = true
+			config.NoNewPrivs = true
 		} else {
 			con := strings.SplitN(opt, "=", 2)
 			if len(con) != 2 {
