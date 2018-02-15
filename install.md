@@ -43,7 +43,8 @@ yum install -y \
   ostree-devel \
   pkgconfig \
   runc \
-  skopeo-containers
+  skopeo-containers \
+  atomic-registries
 ```
 
 Debian, Ubuntu, and related distributions:
