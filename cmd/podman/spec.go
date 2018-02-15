@@ -124,13 +124,9 @@ func addRlimits(config *createConfig, g *generate.Generator) error {
 func setupCapabilities(config *createConfig, configSpec *spec.Spec) error {
 	var err error
 	var caplist []string
-	if config.Privileged {
-		caplist = caps.GetAllCapabilities()
-	} else {
-		caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
-		if err != nil {
-			return err
-		}
+	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
+	if err != nil {
+		return err
 	}
 
 	configSpec.Process.Capabilities.Bounding = caplist
@@ -163,6 +159,7 @@ func addDevice(g *generate.Generator, device string) error {
 func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g := generate.New()
+	g.HostSpecific = true
 	if config.Privileged {
 		cgroupPerm = "rw"
 		g.RemoveMount("/sys")
@@ -319,8 +316,12 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
-	if err := setupCapabilities(config, configSpec); err != nil {
-		return nil, err
+	if !config.Privileged {
+		if err := setupCapabilities(config, configSpec); err != nil {
+			return nil, err
+		}
+	} else {
+		g.SetupPrivileged(true)
 	}
 
 	// HANDLE SECCOMP
