@@ -45,22 +45,14 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	}
 }
 
-// WithImageConfig uses the given configuration to set up image handling
-// If this is not specified, the system default configuration will be used
-// instead
-func WithImageConfig(defaultTransport string, insecureRegistries, registries []string) RuntimeOption {
+// WithDefaultTransport sets the default transport for retrieving images
+func WithDefaultTransport(defaultTransport string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
 		rt.config.ImageDefaultTransport = defaultTransport
-
-		rt.config.InsecureRegistries = make([]string, len(insecureRegistries))
-		copy(rt.config.InsecureRegistries, insecureRegistries)
-
-		rt.config.Registries = make([]string, len(registries))
-		copy(rt.config.Registries, registries)
 
 		return nil
 	}

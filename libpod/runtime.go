@@ -58,8 +58,6 @@ type Runtime struct {
 type RuntimeConfig struct {
 	StorageConfig         storage.StoreOptions
 	ImageDefaultTransport string
-	InsecureRegistries    []string
-	Registries            []string
 	SignaturePolicyPath   string
 	StateType             RuntimeStateStore
 	RuntimePath           string
