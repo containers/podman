@@ -197,6 +197,11 @@ var createFlags = []cli.Flag{
 		Name:  "hostname",
 		Usage: "Set container hostname",
 	},
+	cli.StringFlag{
+		Name:  "image-volume, builtin-volume",
+		Usage: "Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind')",
+		Value: "bind",
+	},
 	cli.BoolFlag{
 		Name:  "interactive, i",
 		Usage: "Keep STDIN open even if not attached",

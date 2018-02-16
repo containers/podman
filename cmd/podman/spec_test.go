@@ -18,7 +18,7 @@ func TestCreateConfig_GetVolumeMounts(t *testing.T) {
 	config := createConfig{
 		Volumes: []string{"foobar:/foobar:ro"},
 	}
-	specMount, err := config.GetVolumeMounts()
+	specMount, err := config.GetVolumeMounts([]spec.Mount{})
 	assert.NoError(t, err)
 	assert.True(t, reflect.DeepEqual(data, specMount[0]))
 }

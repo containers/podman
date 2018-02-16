@@ -89,6 +89,8 @@ type createConfig struct {
 	Hostname           string   //hostname
 	Image              string
 	ImageID            string
+	BuiltinImgVolumes  map[string]struct{}   // volumes defined in the image config
+	ImageVolumeType    string                // how to handle the image volume, either bind, tmpfs, or ignore
 	Interactive        bool                  //interactive
 	IpcMode            container.IpcMode     //ipc
 	IP6Address         string                //ipv6
@@ -180,6 +182,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
 	if err != nil {
@@ -190,7 +193,7 @@ func createCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "unable to parse new container options")
 	}
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, true))
+	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, useImageVolumes))
 	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
 	options = append(options, libpod.WithLabels(createConfig.Labels))
 	options = append(options, libpod.WithUser(createConfig.User))
@@ -626,19 +629,32 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
 	}
 
+	ImageVolumes := data.ContainerConfig.Volumes
+
+	var imageVolType = map[string]string{
+		"bind":   "",
+		"tmpfs":  "",
+		"ignore": "",
+	}
+	if _, ok := imageVolType[c.String("image-volume")]; !ok {
+		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
+	}
+
 	config := &createConfig{
-		Runtime:      runtime,
-		CapAdd:       c.StringSlice("cap-add"),
-		CapDrop:      c.StringSlice("cap-drop"),
-		CgroupParent: c.String("cgroup-parent"),
-		Command:      command,
-		Detach:       c.Bool("detach"),
-		Devices:      c.StringSlice("device"),
-		DNSOpt:       c.StringSlice("dns-opt"),
-		DNSSearch:    c.StringSlice("dns-search"),
-		DNSServers:   c.StringSlice("dns"),
-		Entrypoint:   entrypoint,
-		Env:          env,
+		Runtime:           runtime,
+		BuiltinImgVolumes: ImageVolumes,
+		ImageVolumeType:   c.String("image-volume"),
+		CapAdd:            c.StringSlice("cap-add"),
+		CapDrop:           c.StringSlice("cap-drop"),
+		CgroupParent:      c.String("cgroup-parent"),
+		Command:           command,
+		Detach:            c.Bool("detach"),
+		Devices:           c.StringSlice("device"),
+		DNSOpt:            c.StringSlice("dns-opt"),
+		DNSSearch:         c.StringSlice("dns-search"),
+		DNSServers:        c.StringSlice("dns"),
+		Entrypoint:        entrypoint,
+		Env:               env,
 		//ExposedPorts:   ports,
 		GroupAdd:       groupAdd,
 		Hostname:       c.String("hostname"),

@@ -1042,6 +1042,7 @@ _podman_container_run() {
 		--attach -a
 		--blkio-weight
 		--blkio-weight-device
+		--builtin-volume
 		--cap-add
 		--cap-drop
 		--cgroup-parent
@@ -1068,6 +1069,7 @@ _podman_container_run() {
 		--expose
 		--group-add
 		--hostname -h
+		--image-volume
 		--init-path
 		--ip
 		--ip6
