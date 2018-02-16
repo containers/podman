@@ -10,6 +10,7 @@ import (
 )
 
 // Pod represents a group of containers that may share namespaces
+// ffjson: skip
 type Pod struct {
 	config *PodConfig
 

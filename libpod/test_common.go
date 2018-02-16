@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"net"
 	"path/filepath"
-	"reflect"
+	"testing"
 	"time"
 
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/stretchr/testify/assert"
 )
 
 // nolint
@@ -98,40 +99,41 @@ func getTestPod(id, name, locksDir string) (*Pod, error) {
 // This horrible hack tests if containers are equal in a way that should handle
 // empty arrays being dropped to nil pointers in the spec JSON
 // nolint
-func testContainersEqual(a, b *Container) bool {
+func testContainersEqual(t *testing.T, a, b *Container) {
 	if a == nil && b == nil {
-		return true
-	} else if a == nil || b == nil {
-		return false
+		return
 	}
+	assert.NotNil(t, a)
+	assert.NotNil(t, b)
 
-	if a.valid != b.valid {
-		return false
-	}
+	aConfig := new(ContainerConfig)
+	bConfig := new(ContainerConfig)
+	aState := new(containerState)
+	bState := new(containerState)
+
+	assert.Equal(t, a.valid, b.valid)
 
 	aConfigJSON, err := json.Marshal(a.config)
-	if err != nil {
-		return false
-	}
+	assert.NoError(t, err)
+	err = json.Unmarshal(aConfigJSON, aConfig)
+	assert.NoError(t, err)
 
 	bConfigJSON, err := json.Marshal(b.config)
-	if err != nil {
-		return false
-	}
+	assert.NoError(t, err)
+	err = json.Unmarshal(bConfigJSON, bConfig)
+	assert.NoError(t, err)
 
-	if !reflect.DeepEqual(aConfigJSON, bConfigJSON) {
-		return false
-	}
+	assert.EqualValues(t, aConfig, bConfig)
 
 	aStateJSON, err := json.Marshal(a.state)
-	if err != nil {
-		return false
-	}
+	assert.NoError(t, err)
+	err = json.Unmarshal(aStateJSON, aState)
+	assert.NoError(t, err)
 
 	bStateJSON, err := json.Marshal(b.state)
-	if err != nil {
-		return false
-	}
+	assert.NoError(t, err)
+	err = json.Unmarshal(bStateJSON, bState)
+	assert.NoError(t, err)
 
-	return reflect.DeepEqual(aStateJSON, bStateJSON)
+	assert.EqualValues(t, aState, bState)
 }
