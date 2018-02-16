@@ -460,3 +460,23 @@ func (p *PodmanTest) BuildImage(dockerfile, imageName string) {
 	session.Wait(120)
 	Expect(session.ExitCode()).To(Equal(0))
 }
+
+//GetHostDistribution returns the dist in string format. If the
+//distribution cannot be determined, an empty string will be returned.
+func (p *PodmanTest) GetHostDistribution() string {
+	content, err := ioutil.ReadFile("/etc/os-release")
+	if err != nil {
+		return ""
+	}
+	for _, line := range content {
+		if strings.HasPrefix(fmt.Sprintf("%s", line), "ID") {
+			fields := strings.Split(fmt.Sprintf("%s", line), "=")
+			if len(fields) < 2 {
+				return ""
+			}
+			return strings.Trim(fields[1], "\"")
+
+		}
+	}
+	return ""
+}
