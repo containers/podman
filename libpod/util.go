@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 // Runtime API constants
@@ -95,4 +96,14 @@ func RemoveScientificNotationFromFloat(x float64) (float64, error) {
 		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
 	}
 	return result, nil
+}
+
+// MountExists returns true if dest exists in the list of mounts
+func MountExists(specMounts []spec.Mount, dest string) bool {
+	for _, m := range specMounts {
+		if m.Destination == dest {
+			return true
+		}
+	}
+	return false
 }

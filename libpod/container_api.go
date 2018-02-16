@@ -144,6 +144,13 @@ func (c *Container) Init() (err error) {
 	}
 	g.AddMount(hostnameMnt)
 
+	// Bind builtin image volumes
+	if c.config.ImageVolumes {
+		if err = c.addImageVolumes(&g); err != nil {
+			return errors.Wrapf(err, "error mounting image volumes")
+		}
+	}
+
 	if c.config.User != "" {
 		if !c.state.Mounted {
 			return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())

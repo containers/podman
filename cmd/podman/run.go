@@ -54,6 +54,7 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
 	runtimeSpec, err := createConfigToOCISpec(createConfig)
 	if err != nil {
@@ -66,7 +67,7 @@ func runCmd(c *cli.Context) error {
 	}
 
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, true))
+	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, useImageVolumes))
 	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
 	options = append(options, libpod.WithLabels(createConfig.Labels))
 	options = append(options, libpod.WithUser(createConfig.User))
