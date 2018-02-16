@@ -124,6 +124,14 @@ func imagesCmd(c *cli.Context) error {
 	referenceFilter := generateImagesFilter(params, "reference")
 	imageInputFilter := generateImagesFilter(params, "image-input")
 
+	/*
+		podman does not implement --all for images
+
+		intermediate images are only generated during the build process.  they are
+		children to the image once built. until buildah supports caching builds,
+		it will not generate these intermediate images.
+	*/
+
 	images, err := runtime.GetImages(params, labelFilter, beforeImageFilter, sinceImageFilter, danglingFilter, referenceFilter, imageInputFilter)
 	if err != nil {
 		return errors.Wrapf(err, "could not get list of images matching filter")
