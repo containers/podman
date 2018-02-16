@@ -24,8 +24,6 @@ COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
 
-PODMAN_VERSION := ${shell cat ./PODMAN_VERSION}
-
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -38,9 +36,8 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 VPATH := $(VPATH):$(GOPATH)
 SHRINKFLAGS := -s -w
 BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
-PODMAN_LDFLAGS := -X main.podmanVersion=${PODMAN_VERSION}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
-LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS} ${PODMAN_LDFLAGS}'
+LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS}'
 
 BOX="fedora_atomic"
 
