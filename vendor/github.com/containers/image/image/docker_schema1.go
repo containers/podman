@@ -95,7 +95,7 @@ func (m *manifestSchema1) imageInspectInfo() (*types.ImageInspectInfo, error) {
 // This is a horribly specific interface, but computing InformationOnly.LayerDiffIDs can be very expensive to compute
 // (most importantly it forces us to download the full layers even if they are already present at the destination).
 func (m *manifestSchema1) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUpdateOptions) bool {
-	return options.ManifestMIMEType == manifest.DockerV2Schema2MediaType
+	return (options.ManifestMIMEType == manifest.DockerV2Schema2MediaType || options.ManifestMIMEType == imgspecv1.MediaTypeImageManifest)
 }
 
 // UpdatedImage returns a types.Image modified according to options.
