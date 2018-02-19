@@ -110,7 +110,7 @@ func (p *Pod) Start() error {
 
 		// TODO remove this when we patch conmon to support restarting containers
 		if ctr.state.State == ContainerStateStopped {
-			continue;
+			continue
 		}
 
 		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
