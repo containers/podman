@@ -392,7 +392,7 @@ func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, s
 		// Pull the image
 		var writer io.Writer
 		if !c.Bool("quiet") {
-			writer = os.Stdout
+			writer = os.Stderr
 		}
 		createImage.Pull(writer)
 	}
