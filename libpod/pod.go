@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Pod represents a group of containers that may share namespaces
@@ -78,13 +79,104 @@ func (p *Pod) Start() error {
 }
 
 // Stop stops all containers within a pod that are not already stopped
+// Each container will use its own stop timeout
+// Only running containers will be stopped. Paused, stopped, or created
+// containers will be ignored.
+// If an error is encountered stopping any one container, no further containers
+// will be stopped, and an error will immediately be returned.
 func (p *Pod) Stop() error {
-	return ErrNotImplemented
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+
+	// We need to lock all the containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+
+		if err := ctr.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	// Send a signal to all containers
+	for _, ctr := range allCtrs {
+		// Ignore containers that are not running
+		if ctr.state.State != ContainerStateRunning {
+			continue
+		}
+
+		if err := ctr.runtime.ociRuntime.stopContainer(ctr, ctr.config.StopTimeout); err != nil {
+			return errors.Wrapf(err, "error stopping container %s", ctr.ID())
+		}
+
+		// Sync container state to pick up return code
+		if err := ctr.runtime.ociRuntime.updateContainerStatus(ctr); err != nil {
+			return err
+		}
+
+		// Clean up storage to ensure we don't leave dangling mounts
+		if err := ctr.cleanupStorage(); err != nil {
+			return err
+		}
+
+		logrus.Debugf("Stopped container %s", ctr.ID())
+	}
+
+	return nil
 }
 
 // Kill sends a signal to all running containers within a pod
+// Signals will only be sent to running containers. Containers that are not
+// running will be ignored.
+// If an error is encountered signalling any one container, kill will stop
+// and immediately return an error, sending no further signals
 func (p *Pod) Kill(signal uint) error {
-	return ErrNotImplemented
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+
+	// We need to lock all the containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+
+		if err := ctr.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	// Send a signal to all containers
+	for _, ctr := range allCtrs {
+		// Ignore containers that are not running
+		if ctr.state.State != ContainerStateRunning {
+			continue
+		}
+
+		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
+			return errors.Wrapf(err, "error killing container %s", ctr.ID())
+		}
+
+		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
+	}
+
+	return nil
 }
 
 // HasContainer checks if a container is present in the pod
@@ -153,3 +245,7 @@ func (p *Pod) Status() (map[string]ContainerStatus, error) {
 
 	return status, nil
 }
+
+// TODO add pod batching
+// Lock pod to avoid lock contention
+// Store and lock all containers (no RemoveContainer in batch guarantees cache will not become stale)
