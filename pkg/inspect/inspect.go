@@ -202,3 +202,18 @@ type NetworkSettings struct {
 	IPv6Gateway            string               `json:"IPv6Gateway"`
 	MacAddress             string               `json:"MacAddress"`
 }
+
+// ImageResult is used for podman images for collection and output
+type ImageResult struct {
+	Tag          string
+	Repository   string
+	RepoDigests  []string
+	RepoTags     []string
+	ID           string
+	Digest       digest.Digest
+	ConfigDigest digest.Digest
+	Created      time.Time
+	Size         *uint64
+	Labels       map[string]string
+	Dangling     bool
+}
