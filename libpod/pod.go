@@ -72,9 +72,62 @@ func (p *Pod) Init() error {
 	return ErrNotImplemented
 }
 
-// Start starts all containers within a pod that are not already running
+// Start starts all containers within a pod
+// Containers that are already running or have been paused are ignored
+// If an error is encountered starting any container, Start() will cease
+// starting containers and immediately report an error
+// Start() is not an atomic operation - if an error is reported, containers that
+// have already started will remain running
 func (p *Pod) Start() error {
-	return ErrNotImplemented
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+
+	// We need to lock all the containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+
+		if err := ctr.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	// Send a signal to all containers
+	for _, ctr := range allCtrs {
+		// Ignore containers that are not created or stopped
+		if ctr.state.State != ContainerStateCreated && ctr.state.State != ContainerStateStopped {
+			continue
+		}
+
+		// TODO remove this when we patch conmon to support restarting containers
+		if ctr.state.State == ContainerStateStopped {
+			continue;
+		}
+
+		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
+			return errors.Wrapf(err, "error starting container %s", ctr.ID())
+		}
+
+		// We can safely assume the container is running
+		ctr.state.State = ContainerStateRunning
+
+		if err := ctr.save(); err != nil {
+			return err
+		}
+
+		logrus.Debugf("Started container %s", ctr.ID())
+	}
+
+	return nil
 }
 
 // Stop stops all containers within a pod that are not already stopped
@@ -83,6 +136,8 @@ func (p *Pod) Start() error {
 // containers will be ignored.
 // If an error is encountered stopping any one container, no further containers
 // will be stopped, and an error will immediately be returned.
+// Stop() is not an atomic operation - if an error is encountered, containers
+// which have already been stopped will not be restarted
 func (p *Pod) Stop() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -138,6 +193,8 @@ func (p *Pod) Stop() error {
 // running will be ignored.
 // If an error is encountered signalling any one container, kill will stop
 // and immediately return an error, sending no further signals
+// Kill() is not an atomic operation - if an error is encountered, no further
+// signals will be sent, but some signals may already have been sent
 func (p *Pod) Kill(signal uint) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
