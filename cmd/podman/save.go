@@ -75,7 +75,7 @@ func saveCmd(c *cli.Context) error {
 
 	var writer io.Writer
 	if !c.Bool("quiet") {
-		writer = os.Stdout
+		writer = os.Stderr
 	}
 
 	output := c.String("output")

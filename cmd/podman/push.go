@@ -118,7 +118,7 @@ func pushCmd(c *cli.Context) error {
 
 	var writer io.Writer
 	if !c.Bool("quiet") {
-		writer = os.Stdout
+		writer = os.Stderr
 	}
 
 	var manifestType string
