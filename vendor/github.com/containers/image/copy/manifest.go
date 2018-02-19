@@ -46,6 +46,11 @@ func (ic *imageCopier) determineManifestConversion(destSupportedManifestMIMEType
 	if err != nil { // This should have been cached?!
 		return "", nil, errors.Wrap(err, "Error reading manifest")
 	}
+	normalizedSrcType := manifest.NormalizedMIMEType(srcType)
+	if srcType != normalizedSrcType {
+		logrus.Debugf("Source manifest MIME type %s, treating it as %s", srcType, normalizedSrcType)
+		srcType = normalizedSrcType
+	}
 
 	if forceManifestMIMEType != "" {
 		destSupportedManifestMIMETypes = []string{forceManifestMIMEType}
