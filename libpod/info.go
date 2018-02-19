@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/docker/docker/pkg/system"
 	"github.com/pkg/errors"
@@ -44,7 +45,13 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading up time")
 	}
-	info["uptime"] = up
+	// Convert uptime in seconds to a human-readable format
+	upSeconds := up + "s"
+	upDuration, err := time.ParseDuration(upSeconds)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing system uptime")
+	}
+	info["uptime"] = upDuration.String()
 
 	host, err := os.Hostname()
 	if err != nil {
