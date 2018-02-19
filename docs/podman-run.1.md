@@ -512,10 +512,10 @@ The `Z` option tells podman to label the content with a private unshared label.
 Only the current container can use a private volume.
 
 By default bind mounted volumes are `private`. That means any mounts done
-inside container will not be visible on host and vice-a-versa. One can change
+inside container will not be visible on host and vice versa. One can change
 this behavior by specifying a volume mount propagation property. Making a
 volume `shared` mounts done under that volume inside container will be
-visible on host and vice-a-versa. Making a volume `slave` enables only one
+visible on host and vice versa. Making a volume `slave` enables only one
 way mount propagation and that is mounts done on host under that volume
 will be visible inside container but not the other way around.
 
