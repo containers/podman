@@ -17,7 +17,7 @@ container and also via command line when creating the container.
 
 ## OPTIONS
 
-**--timeout, t**
+**--timeout, --time, t**
 
 Timeout to wait before forcibly stopping the container
 
