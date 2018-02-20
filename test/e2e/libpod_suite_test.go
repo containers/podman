@@ -228,8 +228,8 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 
 // InspectContainerToJSON takes the session output of an inspect
 // container and returns json
-func (s *PodmanSession) InspectContainerToJSON() inspect.ContainerData {
-	var i inspect.ContainerData
+func (s *PodmanSession) InspectContainerToJSON() []inspect.ContainerData {
+	var i []inspect.ContainerData
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
@@ -237,8 +237,8 @@ func (s *PodmanSession) InspectContainerToJSON() inspect.ContainerData {
 
 // InspectImageJSON takes the session output of an inspect
 // image and returns json
-func (s *PodmanSession) InspectImageJSON() inspect.ImageData {
-	var i inspect.ImageData
+func (s *PodmanSession) InspectImageJSON() []inspect.ImageData {
+	var i []inspect.ImageData
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i

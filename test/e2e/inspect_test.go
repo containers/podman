@@ -2,7 +2,6 @@ package integration
 
 import (
 	"os"
-
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -36,7 +35,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 		imageData := session.InspectImageJSON()
-		Expect(imageData.RepoTags[0]).To(Equal("docker.io/library/alpine:latest"))
+		Expect(imageData[0].RepoTags[0]).To(Equal("docker.io/library/alpine:latest"))
 	})
 
 	It("podman inspect bogus container", func() {
@@ -70,6 +69,24 @@ var _ = Describe("Podman inspect", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData.SizeRootFs).To(BeNumerically(">", 0))
+		Expect(conData[0].SizeRootFs).To(BeNumerically(">", 0))
 	})
+
+	It("podman inspect container and image", func() {
+		ls, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		cid := ls.OutputToString()
+
+		result := podmanTest.Podman([]string{"inspect", "--format={{.ID}}", cid, ALPINE})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman inspect -l with additional input should fail", func() {
+		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+	})
+
 })

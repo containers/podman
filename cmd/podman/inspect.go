@@ -43,7 +43,7 @@ var (
 		Description: inspectDescription,
 		Flags:       inspectFlags,
 		Action:      inspectCmd,
-		ArgsUsage:   "CONTAINER-OR-IMAGE",
+		ArgsUsage:   "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
 	}
 )
 
@@ -51,12 +51,12 @@ func inspectCmd(c *cli.Context) error {
 	args := c.Args()
 	inspectType := c.String("type")
 	latestContainer := c.Bool("latest")
-	var name string
 	if len(args) == 0 && !latestContainer {
 		return errors.Errorf("container or image name must be specified: podman inspect [options [...]] name")
 	}
-	if len(args) > 1 {
-		return errors.Errorf("too many arguments specified")
+
+	if len(args) > 0 && latestContainer {
+		return errors.Errorf("you cannot provide additional arguements with --latest")
 	}
 	if err := validateFlags(c, inspectFlags); err != nil {
 		return err
@@ -71,81 +71,103 @@ func inspectCmd(c *cli.Context) error {
 	if !libpod.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
 	}
-	if !latestContainer {
-		name = args[0]
-	}
-	if latestContainer {
-		inspectType = inspectTypeContainer
-	}
+
 	outputFormat := c.String("format")
 	if strings.Contains(outputFormat, "{{.Id}}") {
 		outputFormat = strings.Replace(outputFormat, "{{.Id}}", formats.IDString, -1)
 	}
-
-	var data interface{}
-	switch inspectType {
-	case inspectTypeContainer:
-		var ctr *libpod.Container
-		var err error
-		if latestContainer {
-			ctr, err = runtime.GetLatestContainer()
-		} else {
-			ctr, err = runtime.LookupContainer(name)
-		}
+	if latestContainer {
+		lc, err := runtime.GetLatestContainer()
 		if err != nil {
-			return errors.Wrapf(err, "error looking up container %q", name)
+			return err
 		}
-		libpodInspectData, err := ctr.Inspect(c.Bool("size"))
-		if err != nil {
-			return errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
-		}
-		data, err = getCtrInspectInfo(ctr, libpodInspectData)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing container data %q", ctr.ID())
-		}
-	case inspectTypeImage:
-		image, err := runtime.GetImage(name)
-		if err != nil {
-			return errors.Wrapf(err, "error getting image %q", name)
-		}
-		data, err = runtime.GetImageInspectInfo(*image)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing image data %q", image.ID)
-		}
-	case inspectAll:
-		ctr, err := runtime.LookupContainer(name)
-		if err != nil {
-			image, err := runtime.GetImage(name)
-			if err != nil {
-				return errors.Wrapf(err, "error getting image %q", name)
-			}
-			data, err = runtime.GetImageInspectInfo(*image)
-			if err != nil {
-				return errors.Wrapf(err, "error parsing image data %q", image.ID)
-			}
-		} else {
-			libpodInspectData, err := ctr.Inspect(c.Bool("size"))
-			if err != nil {
-				return errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
-			}
-			data, err = getCtrInspectInfo(ctr, libpodInspectData)
-			if err != nil {
-				return errors.Wrapf(err, "error parsing container data %q", ctr.ID)
-			}
-		}
+		args = append(args, lc.ID())
+		inspectType = inspectTypeContainer
 	}
+
+	inspectedObjects, iterateErr := iterateInput(c, args, runtime, inspectType)
 
 	var out formats.Writer
 	if outputFormat != "" && outputFormat != formats.JSONString {
 		//template
-		out = formats.StdoutTemplate{Output: data, Template: outputFormat}
+		out = formats.StdoutTemplateArray{Output: inspectedObjects, Template: outputFormat}
 	} else {
 		// default is json output
-		out = formats.JSONStruct{Output: data}
+		out = formats.JSONStructArray{Output: inspectedObjects}
 	}
 
 	formats.Writer(out).Out()
-	return nil
+	return iterateErr
+}
+
+// func iterateInput iterates the images|containers the user has requested and returns the inspect data and error
+func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspectType string) ([]interface{}, error) {
+	var (
+		data           interface{}
+		inspectedItems []interface{}
+		inspectError   error
+	)
+
+	for _, input := range args {
+		switch inspectType {
+		case inspectTypeContainer:
+			ctr, err := runtime.LookupContainer(input)
+			if err != nil {
+				inspectError = errors.Wrapf(err, "error looking up container %q", input)
+				break
+			}
+			libpodInspectData, err := ctr.Inspect(c.Bool("size"))
+			if err != nil {
+				inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
+				break
+			}
+			data, err = getCtrInspectInfo(ctr, libpodInspectData)
+			if err != nil {
+				inspectError = errors.Wrapf(err, "error parsing container data %q", ctr.ID())
+				break
+			}
+		case inspectTypeImage:
+			image, err := runtime.GetImage(input)
+			if err != nil {
+				inspectError = errors.Wrapf(err, "error getting image %q", input)
+				break
+			}
+			data, err = runtime.GetImageInspectInfo(*image)
+			if err != nil {
+				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID)
+				break
+			}
+		case inspectAll:
+			ctr, err := runtime.LookupContainer(input)
+			if err != nil {
+				image, err := runtime.GetImage(input)
+				if err != nil {
+					inspectError = errors.Wrapf(err, "error getting image %q", input)
+					break
+				}
+				data, err = runtime.GetImageInspectInfo(*image)
+				if err != nil {
+					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID)
+					break
+				}
+			} else {
+				libpodInspectData, err := ctr.Inspect(c.Bool("size"))
+				if err != nil {
+					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
+					break
+				}
+				data, err = getCtrInspectInfo(ctr, libpodInspectData)
+				if err != nil {
+					inspectError = errors.Wrapf(err, "error parsing container data %q", ctr.ID)
+					break
+				}
+			}
+		}
+		if inspectError == nil {
+			inspectedItems = append(inspectedItems, data)
+		}
+	}
+	return inspectedItems, inspectError
 }
 
 func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerInspectData) (*inspect.ContainerData, error) {
