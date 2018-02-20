@@ -72,7 +72,13 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
-	options = append(options, libpod.WithCgroupParent(createConfig.CgroupParent))
+
+	// Default used if not overridden on command line
+
+	if createConfig.CgroupParent != "" {
+		options = append(options, libpod.WithCgroupParent(createConfig.CgroupParent))
+	}
+
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
