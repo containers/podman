@@ -12,7 +12,7 @@ import (
 var (
 	stopFlags = []cli.Flag{
 		cli.UintFlag{
-			Name:  "timeout, t",
+			Name:  "timeout, time, t",
 			Usage: "Seconds to wait for stop before killing the container",
 			Value: libpod.CtrRemoveTimeout,
 		},
