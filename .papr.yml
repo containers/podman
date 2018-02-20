@@ -38,7 +38,7 @@ context: "CAH smoketested"
 
 inherit: true
 host:
-    distro: fedora/27/cloud
+    distro: fedora/27/cloud/pungi
     specs:
         ram: 8192
         cpus: 4

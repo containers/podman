@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	sstorage "github.com/containers/storage"
+	"github.com/containers/storage/pkg/parsers/kernel"
 	"github.com/containers/storage/pkg/reexec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -71,6 +72,10 @@ type PodmanTest struct {
 func TestLibpod(t *testing.T) {
 	if reexec.Init() {
 		os.Exit(1)
+	}
+	if os.Getenv("NOCACHE") == "1" {
+		CACHE_IMAGES = []string{}
+		RESTORE_IMAGES = []string{}
 	}
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Libpod Suite")
@@ -479,4 +484,25 @@ func (p *PodmanTest) GetHostDistribution() string {
 		}
 	}
 	return ""
+}
+
+// IsKernelNewThan compares the current kernel version to one provided.  If
+// the kernel is equal to or greater, returns true
+func IsKernelNewThan(version string) (bool, error) {
+	inputVersion, err := kernel.ParseRelease(version)
+	if err != nil {
+		return false, err
+	}
+	kv, err := kernel.GetKernelVersion()
+	if err == nil {
+		return false, err
+	}
+	// CompareKernelVersion compares two kernel.VersionInfo structs.
+	// Returns -1 if a < b, 0 if a == b, 1 it a > b
+	result := kernel.CompareKernelVersion(*kv, *inputVersion)
+	if result >= 0 {
+		return true, nil
+	}
+	return false, nil
+
 }

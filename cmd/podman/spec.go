@@ -665,7 +665,6 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	}
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
-	options = append(options, libpod.WithNoNewPrivs(c.NoNewPrivs))
 	return options, nil
 }
 
