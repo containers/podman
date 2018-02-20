@@ -308,6 +308,9 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	state := new(spec.State)
 
+	// Store old state so we know if we were already stopped
+	oldState := ctr.state.State
+
 	out, err := exec.Command(r.path, "state", ctr.ID()).Output()
 	if err != nil {
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
@@ -333,7 +336,9 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 			ctr.ID(), state.Status)
 	}
 
-	if ctr.state.State == ContainerStateStopped {
+	// Only grab exit status if we were not already stopped
+	// If we were, it should already be in the database
+	if ctr.state.State == ContainerStateStopped && oldState != ContainerStateStopped {
 		exitFile := filepath.Join(r.exitsDir, ctr.ID())
 		var fi os.FileInfo
 		err = kwait.ExponentialBackoff(
