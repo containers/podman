@@ -37,7 +37,7 @@ const (
 	ContainerStatePaused ContainerStatus = iota
 )
 
-// CgroupParent is the default prefix to a cgroup path in libpod
+// DefaultCgroupParent is the default prefix to a cgroup path in libpod
 var DefaultCgroupParent = "/libpod_parent"
 
 // LinuxNS represents a Linux namespace
