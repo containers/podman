@@ -272,18 +272,6 @@ func WithPrivileged(privileged bool) CtrCreateOption {
 	}
 }
 
-// WithNoNewPrivs sets the noNewPrivs flag in the container runtime
-func WithNoNewPrivs(noNewPrivs bool) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return ErrCtrFinalized
-		}
-
-		ctr.config.NoNewPrivs = noNewPrivs
-		return nil
-	}
-}
-
 // WithSELinuxLabels sets the mount label for SELinux
 func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	return func(ctr *Container) error {
