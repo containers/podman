@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"fmt"
+
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -90,7 +91,7 @@ func pullCmd(c *cli.Context) error {
 
 	var writer io.Writer
 	if !c.Bool("quiet") {
-		writer = os.Stdout
+		writer = os.Stderr
 	}
 
 	options := libpod.CopyOptions{
