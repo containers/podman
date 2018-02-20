@@ -16,6 +16,11 @@ var (
 			Usage: "Seconds to wait for stop before killing the container",
 			Value: libpod.CtrRemoveTimeout,
 		},
+		cli.UintFlag{
+			// Added for compatibility
+			Name:   "time",
+			Hidden: true,
+		},
 		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "stop all running containers",
@@ -60,9 +65,17 @@ func stopCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var filterFuncs []libpod.ContainerFilter
-	var containers []*libpod.Container
-	var lastError error
+	var (
+		filterFuncs   []libpod.ContainerFilter
+		containers    []*libpod.Container
+		lastError     error
+		definedTimout uint
+	)
+	if c.IsSet("time") {
+		definedTimout = c.Uint("time")
+	} else if c.IsSet("timeout") {
+		definedTimout = c.Uint("timeout")
+	}
 
 	if c.Bool("all") {
 		// only get running containers
@@ -96,8 +109,8 @@ func stopCmd(c *cli.Context) error {
 
 	for _, ctr := range containers {
 		var stopTimeout uint
-		if c.IsSet("timeout") {
-			stopTimeout = c.Uint("timeout")
+		if c.IsSet("timeout") || c.IsSet("time") {
+			stopTimeout = definedTimout
 		} else {
 			stopTimeout = ctr.StopTimeout()
 		}
