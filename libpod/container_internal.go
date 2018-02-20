@@ -146,7 +146,7 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.config.ShmSize = DefaultShmSize
-	ctr.config.CgroupParent = CgroupParent
+	ctr.config.CgroupParent = DefaultCgroupParent
 
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, ctr.config.ID)
