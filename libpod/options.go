@@ -656,6 +656,7 @@ func WithLogPath(path string) CtrCreateOption {
 }
 
 // WithCgroupParent sets the Cgroup Parent of the new container
+// Default used if not overridden on command line
 func WithCgroupParent(parent string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -663,7 +664,7 @@ func WithCgroupParent(parent string) CtrCreateOption {
 		}
 
 		if parent == "" {
-			return errors.Wrapf(ErrInvalidArg, "cgroup parent cannot be empty")
+			return nil
 		}
 
 		ctr.config.CgroupParent = parent

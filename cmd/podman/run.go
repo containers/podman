@@ -72,12 +72,17 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
+	options = append(options, libpod.WithCgroupParent(createConfig.CgroupParent))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
 	}
 
 	logrus.Debug("new container created ", ctr.ID())
+
+	p, _ := ctr.CGroupPath()("")
+	logrus.Debugf("createConfig.CgroupParent %v for %v", p, ctr.ID())
+
 	if err := ctr.Init(); err != nil {
 		// This means the command did not exist
 		exitCode = 126
