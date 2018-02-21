@@ -124,7 +124,7 @@ func (p *Pod) Start() (map[string]error, error) {
 		}
 
 		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
-			errorEncountered =  true
+			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
