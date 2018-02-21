@@ -84,10 +84,12 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	logrus.Debug("new container created ", ctr.ID())
+	if logrus.GetLevel() == logrus.DebugLevel {
+		logrus.Debugf("New container created %q", ctr.ID())
 
-	p, _ := ctr.CGroupPath()("")
-	logrus.Debugf("createConfig.CgroupParent %v for %v", p, ctr.ID())
+		p, _ := ctr.CGroupPath()("")
+		logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), p)
+	}
 
 	if err := ctr.Init(); err != nil {
 		// This means the command did not exist
@@ -106,8 +108,6 @@ func runCmd(c *cli.Context) error {
 	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
 		return err
 	}
-
-	logrus.Debug("new container created ", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		if err := libpod.WriteFile(ctr.ID(), c.String("cidfile")); err != nil {
