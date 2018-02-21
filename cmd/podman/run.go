@@ -80,9 +80,9 @@ func runCmd(c *cli.Context) error {
 	logrus.Debug("new container created ", ctr.ID())
 	if err := ctr.Init(); err != nil {
 		// This means the command did not exist
-		exitCode = 126
+		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {
-			exitCode = 127
+			exitCode = 126
 		}
 		return err
 	}

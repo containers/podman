@@ -35,13 +35,13 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run exit 126", func() {
-		result := podmanTest.Podman([]string{"run", ALPINE, "foobar"})
+		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(126))
 	})
 
 	It("podman run exit 127", func() {
-		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
+		result := podmanTest.Podman([]string{"run", ALPINE, "foobar"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(127))
 	})
