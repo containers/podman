@@ -74,21 +74,26 @@ func (p *Pod) Init() error {
 
 // Start starts all containers within a pod
 // Containers that are already running or have been paused are ignored
-// If an error is encountered starting any container, Start() will cease
-// starting containers and immediately report an error
-// Start() is not an atomic operation - if an error is reported, containers that
-// have already started will remain running
-func (p *Pod) Start() error {
+// All containers are started independently, in order dictated by their
+// dependencies.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were started
+// If map is not nil, an error was encountered when starting one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were started successfully
+func (p *Pod) Start() (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return ErrPodRemoved
+		return nil, ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// We need to lock all the containers
@@ -97,11 +102,14 @@ func (p *Pod) Start() error {
 		defer ctr.lock.Unlock()
 
 		if err := ctr.syncContainer(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	// Send a signal to all containers
+	errorEncountered := false
+	ctrErrors := make(map[string]error)
+
+	// Start all containers
 	for _, ctr := range allCtrs {
 		// Ignore containers that are not created or stopped
 		if ctr.state.State != ContainerStateCreated && ctr.state.State != ContainerStateStopped {
@@ -110,45 +118,59 @@ func (p *Pod) Start() error {
 
 		// TODO remove this when we patch conmon to support restarting containers
 		if ctr.state.State == ContainerStateStopped {
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
 			continue
 		}
 
 		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
-			return errors.Wrapf(err, "error starting container %s", ctr.ID())
+			errorEncountered =  true
+			ctrErrors[ctr.ID()] = err
+			continue
 		}
+
+		logrus.Debugf("Started container %s", ctr.ID())
 
 		// We can safely assume the container is running
 		ctr.state.State = ContainerStateRunning
 
 		if err := ctr.save(); err != nil {
-			return err
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = err
 		}
-
-		logrus.Debugf("Started container %s", ctr.ID())
 	}
 
-	return nil
+	if errorEncountered {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
+	}
+
+	return nil, nil
 }
 
 // Stop stops all containers within a pod that are not already stopped
 // Each container will use its own stop timeout
 // Only running containers will be stopped. Paused, stopped, or created
 // containers will be ignored.
-// If an error is encountered stopping any one container, no further containers
-// will be stopped, and an error will immediately be returned.
-// Stop() is not an atomic operation - if an error is encountered, containers
-// which have already been stopped will not be restarted
-func (p *Pod) Stop() error {
+// All containers are stopped independently. An error stopping one container
+// will not prevent other containers being stopped.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were stopped
+// If map is not nil, an error was encountered when stopping one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were stopped without error
+func (p *Pod) Stop() (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return ErrPodRemoved
+		return nil, ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// We need to lock all the containers
@@ -157,11 +179,14 @@ func (p *Pod) Stop() error {
 		defer ctr.lock.Unlock()
 
 		if err := ctr.syncContainer(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	// Send a signal to all containers
+	errorEncountered := false
+	ctrErrors := make(map[string]error)
+
+	// Stop to all containers
 	for _, ctr := range allCtrs {
 		// Ignore containers that are not running
 		if ctr.state.State != ContainerStateRunning {
@@ -169,43 +194,56 @@ func (p *Pod) Stop() error {
 		}
 
 		if err := ctr.runtime.ociRuntime.stopContainer(ctr, ctr.config.StopTimeout); err != nil {
-			return errors.Wrapf(err, "error stopping container %s", ctr.ID())
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = err
+			continue
 		}
+
+		logrus.Debugf("Stopped container %s", ctr.ID())
 
 		// Sync container state to pick up return code
 		if err := ctr.runtime.ociRuntime.updateContainerStatus(ctr); err != nil {
-			return err
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = err
+			continue
 		}
 
 		// Clean up storage to ensure we don't leave dangling mounts
 		if err := ctr.cleanupStorage(); err != nil {
-			return err
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = err
 		}
-
-		logrus.Debugf("Stopped container %s", ctr.ID())
 	}
 
-	return nil
+	if errorEncountered {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
+	}
+
+	return nil, nil
 }
 
 // Kill sends a signal to all running containers within a pod
 // Signals will only be sent to running containers. Containers that are not
-// running will be ignored.
-// If an error is encountered signalling any one container, kill will stop
-// and immediately return an error, sending no further signals
-// Kill() is not an atomic operation - if an error is encountered, no further
-// signals will be sent, but some signals may already have been sent
-func (p *Pod) Kill(signal uint) error {
+// running will be ignored. All signals are sent independently, and sending will
+// continue even if some containers encounter errors.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were signalled
+// If map is not nil, an error was encountered when signalling one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were signalled successfully
+func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return ErrPodRemoved
+		return nil, ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// We need to lock all the containers
@@ -214,9 +252,12 @@ func (p *Pod) Kill(signal uint) error {
 		defer ctr.lock.Unlock()
 
 		if err := ctr.syncContainer(); err != nil {
-			return err
+			return nil, err
 		}
 	}
+
+	ctrErrors := make(map[string]error)
+	errorEncountered := false
 
 	// Send a signal to all containers
 	for _, ctr := range allCtrs {
@@ -226,13 +267,19 @@ func (p *Pod) Kill(signal uint) error {
 		}
 
 		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
-			return errors.Wrapf(err, "error killing container %s", ctr.ID())
+			errorEncountered = true
+			ctrErrors[ctr.ID()] = err
+			continue
 		}
 
 		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
 	}
 
-	return nil
+	if errorEncountered {
+		return ctrErrors, nil
+	}
+
+	return nil, nil
 }
 
 // HasContainer checks if a container is present in the pod
