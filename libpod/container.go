@@ -492,7 +492,7 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
 	}
 
-	if c.state.State != ContainerStateRunning {
+	if c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused {
 		return "", errors.Wrapf(ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
 
