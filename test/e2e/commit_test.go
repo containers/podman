@@ -40,7 +40,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(StringInSlice("foobar.com/test1-image:latest", data.RepoTags)).To(BeTrue())
+		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
 	})
 
 	It("podman commit container with message", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(data.Comment).To(Equal("testing-commit"))
+		Expect(data[0].Comment).To(Equal("testing-commit"))
 	})
 
 	It("podman commit container with author", func() {
@@ -70,7 +70,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(data.Author).To(Equal("snoopy"))
+		Expect(data[0].Author).To(Equal("snoopy"))
 	})
 
 	It("podman commit container with change flag", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Podman commit", func() {
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
 		foundBlue := false
-		for _, i := range data.Labels {
+		for _, i := range data[0].Labels {
 			if i == "blue" {
 				foundBlue = true
 				break
