@@ -3,17 +3,25 @@ branches:
   - auto
   - try
 
-host:
-  distro: fedora/27/atomic
-  specs:
-     ram: 8192
-     cpus: 4
+cluster:
+  hosts:
+    - name: testnode
+      distro: fedora/27/atomic
+      specs:
+        ram: 8192
+        cpus: 4
+  container:
+    image: registry.fedoraproject.org/fedora:27
 
 required: true
 timeout: 45m
 
 tests:
-  -  sh .papr_prepare.sh
+  # Docker's iptables rules can conflict with podman; though long term we
+  # are going to have to make the two always work together
+  - ssh testnode /bin/sh -c 'systemctl stop docker && rpm-ostree override remove docker{,-common,-rhel-push-plugin} cockpit-docker'
+  - ./.papr-reboot-wait.sh testnode
+  - "scp .papr_prepare.sh testnode: && ssh testnode ./.papr_prepare.sh"
 
 context: "FAH27"
 ---
@@ -34,6 +42,9 @@ extra-repos:
 
 context: "CAH smoketested"
 
+tests:
+  - CONTAINER_RUNTIME=docker ./.papr_prepare.sh
+
 ---
 
 inherit: true
@@ -50,6 +61,6 @@ packages:
     - podman
     - buildah
 tests:
-    - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
+    - ./.papr_prepare.sh
 required: false
 context: "Fedora fedora/27/cloud Podman"
