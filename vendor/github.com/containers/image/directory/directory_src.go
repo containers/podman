@@ -52,11 +52,11 @@ func (s *dirImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, str
 func (s *dirImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 	r, err := os.Open(s.ref.layerPath(info.Digest))
 	if err != nil {
-		return nil, 0, nil
+		return nil, -1, err
 	}
 	fi, err := r.Stat()
 	if err != nil {
-		return nil, 0, nil
+		return nil, -1, err
 	}
 	return r, fi.Size(), nil
 }
@@ -84,6 +84,6 @@ func (s *dirImageSource) GetSignatures(ctx context.Context, instanceDigest *dige
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when copying, in preference to values in the manifest, if specified.
-func (s *dirImageSource) LayerInfosForCopy() []types.BlobInfo {
-	return nil
+func (s *dirImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+	return nil, nil
 }

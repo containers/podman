@@ -37,11 +37,13 @@ type ostreeImageSource struct {
 	ref    ostreeReference
 	tmpDir string
 	repo   *C.struct_OstreeRepo
+	// get the compressed layer by its uncompressed checksum
+	compressed map[digest.Digest]digest.Digest
 }
 
 // newImageSource returns an ImageSource for reading from an existing directory.
 func newImageSource(ctx *types.SystemContext, tmpDir string, ref ostreeReference) (types.ImageSource, error) {
-	return &ostreeImageSource{ref: ref, tmpDir: tmpDir}, nil
+	return &ostreeImageSource{ref: ref, tmpDir: tmpDir, compressed: nil}, nil
 }
 
 // Reference returns the reference used to set up this source.
@@ -255,7 +257,21 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 
 // GetBlob returns a stream for the specified blob, and the blob's size.
 func (s *ostreeImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+
 	blob := info.Digest.Hex()
+
+	// Ensure s.compressed is initialized.  It is build by LayerInfosForCopy.
+	if s.compressed == nil {
+		_, err := s.LayerInfosForCopy()
+		if err != nil {
+			return nil, -1, err
+		}
+
+	}
+	compressedBlob, found := s.compressed[info.Digest]
+	if found {
+		blob = compressedBlob.Hex()
+	}
 	branch := fmt.Sprintf("ociimage/%s", blob)
 
 	if s.repo == nil {
@@ -348,7 +364,45 @@ func (s *ostreeImageSource) GetSignatures(ctx context.Context, instanceDigest *d
 	return signatures, nil
 }
 
-// LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *ostreeImageSource) LayerInfosForCopy() []types.BlobInfo {
-	return nil
+// LayerInfosForCopy() returns the list of layer blobs that make up the root filesystem of
+// the image, after they've been decompressed.
+func (s *ostreeImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+	updatedBlobInfos := []types.BlobInfo{}
+	manifestBlob, manifestType, err := s.GetManifest(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	man, err := manifest.FromBlob(manifestBlob, manifestType)
+
+	s.compressed = make(map[digest.Digest]digest.Digest)
+
+	layerBlobs := man.LayerInfos()
+
+	for _, layerBlob := range layerBlobs {
+		branch := fmt.Sprintf("ociimage/%s", layerBlob.Digest.Hex())
+		found, uncompressedDigestStr, err := readMetadata(s.repo, branch, "docker.uncompressed_digest")
+		if err != nil || !found {
+			return nil, err
+		}
+
+		found, uncompressedSizeStr, err := readMetadata(s.repo, branch, "docker.uncompressed_size")
+		if err != nil || !found {
+			return nil, err
+		}
+
+		uncompressedSize, err := strconv.ParseInt(uncompressedSizeStr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		uncompressedDigest := digest.Digest(uncompressedDigestStr)
+		blobInfo := types.BlobInfo{
+			Digest:    uncompressedDigest,
+			Size:      uncompressedSize,
+			MediaType: layerBlob.MediaType,
+		}
+		s.compressed[uncompressedDigest] = layerBlob.Digest
+		updatedBlobInfos = append(updatedBlobInfos, blobInfo)
+	}
+	return updatedBlobInfos, nil
 }

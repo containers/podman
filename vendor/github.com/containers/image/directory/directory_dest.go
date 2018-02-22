@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const version = "Directory Transport Version: 1.0\n"
+const version = "Directory Transport Version: 1.1\n"
 
 // ErrNotContainerImageDir indicates that the directory doesn't match the expected contents of a directory created
 // using the 'dir' transport
