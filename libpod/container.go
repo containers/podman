@@ -258,6 +258,27 @@ func (t ContainerStatus) String() string {
 	return "bad state"
 }
 
+// Config accessors
+// Unlocked
+
+// Config returns the configuration used to create the container
+func (c *Container) Config() *ContainerConfig {
+	returnConfig := new(ContainerConfig)
+	deepcopier.Copy(c.config).To(returnConfig)
+
+	return returnConfig
+}
+
+// Spec returns the container's OCI runtime spec
+// The spec returned is the one used to create the container. The running
+// spec may differ slightly as mounts are added based on the image
+func (c *Container) Spec() *spec.Spec {
+	returnSpec := new(spec.Spec)
+	deepcopier.Copy(c.config.Spec).To(returnSpec)
+
+	return returnSpec
+}
+
 // ID returns the container's ID
 func (c *Container) ID() string {
 	return c.config.ID
@@ -274,14 +295,50 @@ func (c *Container) PodID() string {
 	return c.config.Pod
 }
 
+// Image returns the ID and name of the image used as the container's rootfs
+func (c *Container) Image() (string, string) {
+	return c.config.RootfsImageID, c.config.RootfsImageName
+}
+
+// ImageVolumes returns whether the container is configured to create
+// persistent volumes requested by the image
+func (c *Container) ImageVolumes() bool {
+	return c.config.ImageVolumes
+}
+
 // ShmDir returns the sources path to be mounted on /dev/shm in container
 func (c *Container) ShmDir() string {
 	return c.config.ShmDir
 }
 
+// ShmSize returns the size of SHM device to be mounted into the container
+func (c *Container) ShmSize() int64 {
+	return c.config.ShmSize
+}
+
+// StaticDir returns the directory used to store persistent container files
+func (c *Container) StaticDir() string {
+	return c.config.StaticDir
+}
+
+// Privileged returns whether the container is privileged
+func (c *Container) Privileged() bool {
+	return c.config.Privileged
+}
+
 // ProcessLabel returns the selinux ProcessLabel of the container
 func (c *Container) ProcessLabel() string {
 	return c.config.ProcessLabel
+}
+
+// MountLabel returns the SELinux mount label of the container
+func (c *Container) MountLabel() string {
+	return c.config.MountLabel
+}
+
+// User returns the user who the container is run as
+func (c *Container) User() string {
+	return c.config.User
 }
 
 // Dependencies gets the containers this container depends upon
@@ -322,14 +379,48 @@ func (c *Container) Dependencies() []string {
 	return depends
 }
 
-// Spec returns the container's OCI runtime spec
-// The spec returned is the one used to create the container. The running
-// spec may differ slightly as mounts are added based on the image
-func (c *Container) Spec() *spec.Spec {
-	returnSpec := new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(returnSpec)
+// NewNetNS returns whether the container will create a new network namespace
+func (c *Container) NewNetNS() bool {
+	return c.config.CreateNetNS
+}
 
-	return returnSpec
+// PortMappings returns the ports that will be mapped into a container if
+// a new network namespace is created
+// If NewNetNS() is false, this value is unused
+func (c *Container) PortMappings() []ocicni.PortMapping {
+	return c.config.PortMappings
+}
+
+// DNSServers returns DNS servers that will be used in the container's
+// resolv.conf
+// If empty, DNS server from the host's resolv.conf will be used instead
+func (c *Container) DNSServers() []net.IP {
+	return c.config.DNSServer
+}
+
+// DNSSearch returns the DNS search domains that will be used in the container's
+// resolv.conf
+// If empty, DNS Search domains from the host's resolv.conf will be used instead
+func (c *Container) DNSSearch() []string {
+	return c.config.DNSSearch
+}
+
+// DNSOption returns the DNS options that will be used in the container's
+// resolv.conf
+// If empty, options from the host's resolv.conf will be used instead
+func (c *Container) DNSOption() []string {
+	return c.config.DNSOption
+}
+
+// HostsAdd returns hosts that will be added to the container's hosts file
+// The host system's hosts file is used as a base, and these are appended to it
+func (c *Container) HostsAdd() []string {
+	return c.config.HostAdd
+}
+
+// Stdin returns whether STDIN on the container will be kept open
+func (c *Container) Stdin() bool {
+	return c.config.Stdin
 }
 
 // Labels returns the container's labels
@@ -341,17 +432,28 @@ func (c *Container) Labels() map[string]string {
 	return labels
 }
 
-// Config returns the configuration used to create the container
-func (c *Container) Config() *ContainerConfig {
-	returnConfig := new(ContainerConfig)
-	deepcopier.Copy(c.config).To(returnConfig)
-
-	return returnConfig
+// StopSignal is the signal that will be used to stop the container
+// If it fails to stop the container, SIGKILL will be used after a timeout
+// If StopSignal is 0, the default signal of SIGTERM will be used
+func (c *Container) StopSignal() uint {
+	return c.config.StopSignal
 }
 
-// RuntimeName returns the name of the runtime
-func (c *Container) RuntimeName() string {
-	return c.runtime.ociRuntime.name
+// StopTimeout returns the container's stop timeout
+// If the container's default stop signal fails to kill the container, SIGKILL
+// will be used after this timeout
+func (c *Container) StopTimeout() uint {
+	return c.config.StopTimeout
+}
+
+// CreatedTime gets the time when the container was created
+func (c *Container) CreatedTime() time.Time {
+	return c.config.CreatedTime
+}
+
+// CgroupParent gets the container's CGroup parent
+func (c *Container) CgroupParent() string {
+	return c.config.CgroupParent
 }
 
 // LogPath returns the path to the container's log file
@@ -361,36 +463,25 @@ func (c *Container) LogPath() string {
 	return c.config.LogPath
 }
 
-// IPAddress returns the IP address of the container
-// If the container does not have a network namespace, an error will be returned
-func (c *Container) IPAddress() (net.IP, error) {
-	if !c.locked {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
-		}
-	}
-
-	if !c.config.CreateNetNS || c.state.NetNS == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s does not have a network namespace", c.ID())
-	}
-
-	return c.runtime.getContainerIP(c)
+// RuntimeName returns the name of the runtime
+func (c *Container) RuntimeName() string {
+	return c.runtime.ociRuntime.name
 }
 
-// ExitCode returns the exit code of the container as
-// an int32
-func (c *Container) ExitCode() (int32, error) {
+// State Accessors
+// Require locking
+
+// State returns the current state of the container
+func (c *Container) State() (ContainerStatus, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
 		if err := c.syncContainer(); err != nil {
-			return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
+			return ContainerStateUnknown, err
 		}
 	}
-	return c.state.ExitCode, nil
+	return c.state.State, nil
 }
 
 // Mounted returns a bool as to if the container's storage
@@ -406,8 +497,9 @@ func (c *Container) Mounted() (bool, error) {
 	return c.state.Mounted, nil
 }
 
-// Mountpoint returns the path to the container's mounted
-// storage as a string
+// Mountpoint returns the path to the container's mounted storage as a string
+// If the container is not mounted, no error is returned, but the mountpoint
+// will be ""
 func (c *Container) Mountpoint() (string, error) {
 	if !c.locked {
 		c.lock.Lock()
@@ -443,17 +535,29 @@ func (c *Container) FinishedTime() (time.Time, error) {
 	return c.state.FinishedTime, nil
 }
 
-// State returns the current state of the container
-func (c *Container) State() (ContainerStatus, error) {
+// ExitCode returns the exit code of the container as
+// an int32
+func (c *Container) ExitCode() (int32, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
-
 		if err := c.syncContainer(); err != nil {
-			return ContainerStateUnknown, err
+			return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
 		}
 	}
-	return c.state.State, nil
+	return c.state.ExitCode, nil
+}
+
+// OOMKilled returns whether the container was killed by an OOM condition
+func (c *Container) OOMKilled() (bool, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return false, errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
+	}
+	return c.state.OOMKilled, nil
 }
 
 // PID returns the PID of the container
@@ -471,16 +575,26 @@ func (c *Container) PID() (int, error) {
 	return c.state.PID, nil
 }
 
-// MountPoint returns the mount point of the continer
-func (c *Container) MountPoint() (string, error) {
+// Misc Accessors
+// Most will require locking
+
+// IPAddress returns the IP address of the container
+// If the container does not have a network namespace, an error will be returned
+func (c *Container) IPAddress() (net.IP, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
 		if err := c.syncContainer(); err != nil {
-			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+			return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
 		}
 	}
-	return c.state.Mountpoint, nil
+
+	if !c.config.CreateNetNS || c.state.NetNS == nil {
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s does not have a network namespace", c.ID())
+	}
+
+	return c.runtime.getContainerIP(c)
 }
 
 // NamespacePath returns the path of one of the container's namespaces
@@ -506,11 +620,6 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
 	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
-}
-
-// StopTimeout returns a stop timeout field for this container
-func (c *Container) StopTimeout() uint {
-	return c.config.StopTimeout
 }
 
 // RootFsSize returns the root FS size of the container
