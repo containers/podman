@@ -53,8 +53,8 @@ func (s *dockerImageSource) Close() error {
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *dockerImageSource) LayerInfosForCopy() []types.BlobInfo {
-	return nil
+func (s *dockerImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+	return nil, nil
 }
 
 // simplifyContentType drops parameters from a HTTP media type (see https://tools.ietf.org/html/rfc7231#section-3.1.1.1)

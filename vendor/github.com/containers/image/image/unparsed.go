@@ -97,6 +97,6 @@ func (i *UnparsedImage) Signatures(ctx context.Context) ([][]byte, error) {
 // LayerInfosForCopy returns an updated set of layer blob information which may not match the manifest.
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
-func (i *UnparsedImage) LayerInfosForCopy() []types.BlobInfo {
+func (i *UnparsedImage) LayerInfosForCopy() ([]types.BlobInfo, error) {
 	return i.src.LayerInfosForCopy()
 }

@@ -230,33 +230,36 @@ func (d *ostreeImageDestination) ostreeCommit(repo *otbuiltin.Repo, branch strin
 	return err
 }
 
-func generateTarSplitMetadata(output *bytes.Buffer, file string) error {
+func generateTarSplitMetadata(output *bytes.Buffer, file string) (digest.Digest, int64, error) {
 	mfz := gzip.NewWriter(output)
 	defer mfz.Close()
 	metaPacker := storage.NewJSONPacker(mfz)
 
 	stream, err := os.OpenFile(file, os.O_RDONLY, 0)
 	if err != nil {
-		return err
+		return "", -1, err
 	}
 	defer stream.Close()
 
 	gzReader, err := archive.DecompressStream(stream)
 	if err != nil {
-		return err
+		return "", -1, err
 	}
 	defer gzReader.Close()
 
 	its, err := asm.NewInputTarStream(gzReader, metaPacker, nil)
 	if err != nil {
-		return err
+		return "", -1, err
 	}
 
-	_, err = io.Copy(ioutil.Discard, its)
+	digester := digest.Canonical.Digester()
+
+	written, err := io.Copy(digester.Hash(), its)
 	if err != nil {
-		return err
+		return "", -1, err
 	}
-	return nil
+
+	return digester.Digest(), written, nil
 }
 
 func (d *ostreeImageDestination) importBlob(selinuxHnd *C.struct_selabel_handle, repo *otbuiltin.Repo, blob *blobToImport) error {
@@ -271,7 +274,8 @@ func (d *ostreeImageDestination) importBlob(selinuxHnd *C.struct_selabel_handle,
 	}()
 
 	var tarSplitOutput bytes.Buffer
-	if err := generateTarSplitMetadata(&tarSplitOutput, blob.BlobPath); err != nil {
+	uncompressedDigest, uncompressedSize, err := generateTarSplitMetadata(&tarSplitOutput, blob.BlobPath)
+	if err != nil {
 		return err
 	}
 
@@ -293,6 +297,8 @@ func (d *ostreeImageDestination) importBlob(selinuxHnd *C.struct_selabel_handle,
 		}
 	}
 	return d.ostreeCommit(repo, ostreeBranch, destinationPath, []string{fmt.Sprintf("docker.size=%d", blob.Size),
+		fmt.Sprintf("docker.uncompressed_size=%d", uncompressedSize),
+		fmt.Sprintf("docker.uncompressed_digest=%s", uncompressedDigest.String()),
 		fmt.Sprintf("tarsplit.output=%s", base64.StdEncoding.EncodeToString(tarSplitOutput.Bytes()))})
 
 }
@@ -315,7 +321,17 @@ func (d *ostreeImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 	}
 	branch := fmt.Sprintf("ociimage/%s", info.Digest.Hex())
 
-	found, data, err := readMetadata(d.repo, branch, "docker.size")
+	found, data, err := readMetadata(d.repo, branch, "docker.uncompressed_digest")
+	if err != nil || !found {
+		return found, -1, err
+	}
+
+	found, data, err = readMetadata(d.repo, branch, "docker.uncompressed_size")
+	if err != nil || !found {
+		return found, -1, err
+	}
+
+	found, data, err = readMetadata(d.repo, branch, "docker.size")
 	if err != nil || !found {
 		return found, -1, err
 	}

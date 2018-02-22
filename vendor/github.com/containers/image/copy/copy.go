@@ -368,7 +368,10 @@ func (ic *imageCopier) copyLayers() error {
 	srcInfos := ic.src.LayerInfos()
 	destInfos := []types.BlobInfo{}
 	diffIDs := []digest.Digest{}
-	updatedSrcInfos := ic.src.LayerInfosForCopy()
+	updatedSrcInfos, err := ic.src.LayerInfosForCopy()
+	if err != nil {
+		return err
+	}
 	srcInfosUpdated := false
 	if updatedSrcInfos != nil && !reflect.DeepEqual(srcInfos, updatedSrcInfos) {
 		if !ic.canModifyManifest {

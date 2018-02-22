@@ -247,8 +247,8 @@ func (s *openshiftImageSource) GetSignatures(ctx context.Context, instanceDigest
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *openshiftImageSource) LayerInfosForCopy() []types.BlobInfo {
-	return nil
+func (s *openshiftImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+	return nil, nil
 }
 
 // ensureImageIsResolved sets up s.docker and s.imageStreamImageName

@@ -129,7 +129,7 @@ type ImageSource interface {
 	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
 	// The Digest field is guaranteed to be provided; Size may be -1.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfosForCopy() []BlobInfo
+	LayerInfosForCopy() ([]BlobInfo, error)
 }
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
@@ -218,7 +218,7 @@ type UnparsedImage interface {
 	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
 	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfosForCopy() []BlobInfo
+	LayerInfosForCopy() ([]BlobInfo, error)
 }
 
 // Image is the primary API for inspecting properties of images.
