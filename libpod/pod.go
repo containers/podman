@@ -107,7 +107,6 @@ func (p *Pod) Start() (map[string]error, error) {
 		}
 	}
 
-	errorEncountered := false
 	ctrErrors := make(map[string]error)
 
 	// Start all containers
@@ -119,13 +118,11 @@ func (p *Pod) Start() (map[string]error, error) {
 
 		// TODO remove this when we patch conmon to support restarting containers
 		if ctr.state.State == ContainerStateStopped {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
 			continue
 		}
 
 		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
@@ -136,12 +133,11 @@ func (p *Pod) Start() (map[string]error, error) {
 		ctr.state.State = ContainerStateRunning
 
 		if err := ctr.save(); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 		}
 	}
 
-	if errorEncountered {
+	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
 	}
 
@@ -184,7 +180,6 @@ func (p *Pod) Stop() (map[string]error, error) {
 		}
 	}
 
-	errorEncountered := false
 	ctrErrors := make(map[string]error)
 
 	// Stop to all containers
@@ -195,7 +190,6 @@ func (p *Pod) Stop() (map[string]error, error) {
 		}
 
 		if err := ctr.runtime.ociRuntime.stopContainer(ctr, ctr.config.StopTimeout); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
@@ -204,19 +198,17 @@ func (p *Pod) Stop() (map[string]error, error) {
 
 		// Sync container state to pick up return code
 		if err := ctr.runtime.ociRuntime.updateContainerStatus(ctr); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
 
 		// Clean up storage to ensure we don't leave dangling mounts
 		if err := ctr.cleanupStorage(); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 		}
 	}
 
-	if errorEncountered {
+	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
 	}
 
@@ -258,7 +250,6 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	}
 
 	ctrErrors := make(map[string]error)
-	errorEncountered := false
 
 	// Send a signal to all containers
 	for _, ctr := range allCtrs {
@@ -268,7 +259,6 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		}
 
 		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
-			errorEncountered = true
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
@@ -276,7 +266,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
 	}
 
-	if errorEncountered {
+	if len(ctrErrors) > 0 {
 		return ctrErrors, nil
 	}
 
