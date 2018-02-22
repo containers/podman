@@ -213,7 +213,6 @@ func prepareDB(db *sql.DB) (err error) {
             LogPath         TEXT    NOT NULL,
 
             Privileged      INTEGER NOT NULL,
-            NoNewPrivs      INTEGER NOT NULL,
             ProcessLabel    TEXT    NOT NULL,
             MountLabel      TEXT    NOT NULL,
             User            TEXT    NOT NULL,
@@ -242,7 +241,6 @@ func prepareDB(db *sql.DB) (err error) {
             CHECK (ImageVolumes IN (0, 1)),
             CHECK (SHMSize>=0),
             CHECK (Privileged IN (0, 1)),
-            CHECK (NoNewPrivs IN (0, 1)),
             CHECK (CreateNetNS IN (0, 1)),
             CHECK (Stdin IN (0, 1)),
             CHECK (StopSignal>=0),
@@ -448,7 +446,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		logPath         string
 
 		privileged   int
-		noNewPrivs   int
 		processLabel string
 		mountLabel   string
 		user         string
@@ -503,7 +500,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&logPath,
 
 		&privileged,
-		&noNewPrivs,
 		&processLabel,
 		&mountLabel,
 		&user,
@@ -566,7 +562,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.config.LogPath = logPath
 
 	ctr.config.Privileged = boolFromSQL(privileged)
-	ctr.config.NoNewPrivs = boolFromSQL(noNewPrivs)
 	ctr.config.ProcessLabel = processLabel
 	ctr.config.MountLabel = mountLabel
 	ctr.config.User = user
@@ -753,7 +748,7 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?
+                    ?, ?, ?
                 );`
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
@@ -881,7 +876,6 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		ctr.config.LogPath,
 
 		boolToSQL(ctr.config.Privileged),
-		boolToSQL(ctr.config.NoNewPrivs),
 		ctr.config.ProcessLabel,
 		ctr.config.MountLabel,
 		ctr.config.User,
