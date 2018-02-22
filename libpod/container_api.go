@@ -6,17 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
-	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
-	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -91,194 +86,19 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(err, "unable to copy /etc/hosts to container space")
 	}
 
-	if c.Spec().Hostname == "" {
-		id := c.ID()
-		if len(c.ID()) > 11 {
-			id = c.ID()[:12]
-		}
-		c.config.Spec.Hostname = id
-	}
-	runDirHostname, err := c.generateEtcHostname(c.config.Spec.Hostname)
+	runDirHostname, err := c.generateEtcHostname(c.Hostname())
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate hostname file for container")
 	}
 
-	// Save OCI spec to disk
-	g := generate.NewFromSpec(c.config.Spec)
-	// If network namespace was requested, add it now
-	if c.config.CreateNetNS {
-		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+	// Generate the OCI spec
+	spec, err := c.generateSpec(runDirResolv, runDirHosts, runDirHostname)
+	if err != nil {
+		return err
 	}
-	// Remove default /etc/shm mount
-	g.RemoveMount("/dev/shm")
-	// Mount ShmDir from host into container
-	shmMnt := spec.Mount{
-		Type:        "bind",
-		Source:      c.config.ShmDir,
-		Destination: "/dev/shm",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(shmMnt)
-	// Bind mount resolv.conf
-	resolvMnt := spec.Mount{
-		Type:        "bind",
-		Source:      runDirResolv,
-		Destination: "/etc/resolv.conf",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(resolvMnt)
-	// Bind mount hosts
-	hostsMnt := spec.Mount{
-		Type:        "bind",
-		Source:      runDirHosts,
-		Destination: "/etc/hosts",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(hostsMnt)
-	// Bind hostname
-	hostnameMnt := spec.Mount{
-		Type:        "bind",
-		Source:      runDirHostname,
-		Destination: "/etc/hostname",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(hostnameMnt)
+	c.runningSpec = spec
 
-	// Bind builtin image volumes
-	if c.config.ImageVolumes {
-		if err = c.addImageVolumes(&g); err != nil {
-			return errors.Wrapf(err, "error mounting image volumes")
-		}
-	}
-
-	if c.config.User != "" {
-		if !c.state.Mounted {
-			return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
-		}
-		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
-		if err != nil {
-			return err
-		}
-		// User and Group must go together
-		g.SetProcessUID(uid)
-		g.SetProcessGID(gid)
-	}
-
-	// Add shared namespaces from other containers
-	if c.config.IPCNsCtr != "" {
-		ipcCtr, err := c.runtime.state.Container(c.config.IPCNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := ipcCtr.NamespacePath(IPCNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.IPCNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.MountNsCtr != "" {
-		mountCtr, err := c.runtime.state.Container(c.config.MountNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := mountCtr.NamespacePath(MountNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.MountNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.NetNsCtr != "" {
-		netCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := netCtr.NamespacePath(NetNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.PIDNsCtr != "" {
-		pidCtr, err := c.runtime.state.Container(c.config.PIDNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := pidCtr.NamespacePath(PIDNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.UserNsCtr != "" {
-		userCtr, err := c.runtime.state.Container(c.config.UserNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := userCtr.NamespacePath(UserNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.UTSNsCtr != "" {
-		utsCtr, err := c.runtime.state.Container(c.config.UTSNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := utsCtr.NamespacePath(UTSNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.UTSNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-	if c.config.CgroupNsCtr != "" {
-		cgroupCtr, err := c.runtime.state.Container(c.config.CgroupNsCtr)
-		if err != nil {
-			return err
-		}
-
-		nsPath, err := cgroupCtr.NamespacePath(CgroupNS)
-		if err != nil {
-			return err
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, nsPath); err != nil {
-			return err
-		}
-	}
-
-	c.runningSpec = g.Spec()
-	c.runningSpec.Root.Path = c.state.Mountpoint
-	c.runningSpec.Annotations[crioAnnotations.Created] = c.config.CreatedTime.Format(time.RFC3339Nano)
-	c.runningSpec.Annotations["org.opencontainers.image.stopSignal"] = fmt.Sprintf("%d", c.config.StopSignal)
-
-	// Set the hostname in the env variables
-	c.runningSpec.Process.Env = append(c.runningSpec.Process.Env, fmt.Sprintf("HOSTNAME=%s", c.config.Spec.Hostname))
-
+	// Save the OCI spec to disk
 	fileJSON, err := json.Marshal(c.runningSpec)
 	if err != nil {
 		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())

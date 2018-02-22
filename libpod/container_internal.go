@@ -20,6 +20,8 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
+	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
@@ -271,49 +273,6 @@ func (c *Container) export(path string) error {
 
 	_, err = io.Copy(outFile, input)
 	return err
-}
-
-func (c *Container) addImageVolumes(g *generate.Generator) error {
-	mountPoint := c.state.Mountpoint
-	if !c.state.Mounted {
-		return errors.Wrapf(ErrInternal, "container is not mounted")
-	}
-
-	imageStorage, err := c.runtime.getImage(c.config.RootfsImageID)
-	if err != nil {
-		return err
-	}
-	imageData, err := c.runtime.getImageInspectInfo(*imageStorage)
-	if err != nil {
-		return err
-	}
-
-	for k := range imageData.ContainerConfig.Volumes {
-		mount := spec.Mount{
-			Destination: k,
-			Type:        "bind",
-			Options:     []string{"rbind", "rw"},
-		}
-		if MountExists(g.Mounts(), k) {
-			continue
-		}
-		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
-			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
-			}
-			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
-				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)
-			}
-			srcPath := filepath.Join(mountPoint, k)
-			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID, srcPath)
-			}
-			mount.Source = volumePath
-		}
-		g.AddMount(mount)
-	}
-	return nil
 }
 
 // Get path of artifact with a given name for this container
@@ -587,4 +546,176 @@ func (c *Container) generateHosts() (string, error) {
 // generateEtcHostname creates a containers /etc/hostname
 func (c *Container) generateEtcHostname(hostname string) (string, error) {
 	return c.WriteStringToRundir("hostname", hostname)
+}
+
+// Generate spec for a container
+func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*spec.Spec, error) {
+	g := generate.NewFromSpec(c.config.Spec)
+
+	// If network namespace was requested, add it now
+	if c.config.CreateNetNS {
+		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+	}
+	// Remove default /etc/shm mount
+	g.RemoveMount("/dev/shm")
+	// Mount ShmDir from host into container
+	shmMnt := spec.Mount{
+		Type:        "bind",
+		Source:      c.config.ShmDir,
+		Destination: "/dev/shm",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(shmMnt)
+	// Bind mount resolv.conf
+	resolvMnt := spec.Mount{
+		Type:        "bind",
+		Source:      resolvPath,
+		Destination: "/etc/resolv.conf",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(resolvMnt)
+	// Bind mount hosts
+	hostsMnt := spec.Mount{
+		Type:        "bind",
+		Source:      hostsPath,
+		Destination: "/etc/hosts",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(hostsMnt)
+	// Bind hostname
+	hostnameMnt := spec.Mount{
+		Type:        "bind",
+		Source:      hostnamePath,
+		Destination: "/etc/hostname",
+		Options:     []string{"rw", "bind"},
+	}
+	g.AddMount(hostnameMnt)
+
+	// Bind builtin image volumes
+	if c.config.ImageVolumes {
+		if err := c.addImageVolumes(&g); err != nil {
+			return nil, errors.Wrapf(err, "error mounting image volumes")
+		}
+	}
+
+	if c.config.User != "" {
+		if !c.state.Mounted {
+			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
+		}
+		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
+		if err != nil {
+			return nil, err
+		}
+		// User and Group must go together
+		g.SetProcessUID(uid)
+		g.SetProcessGID(gid)
+	}
+
+	// Add shared namespaces from other containers
+	if c.config.IPCNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, IPCNS, c.config.IPCNsCtr, spec.IPCNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.MountNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, MountNS, c.config.MountNsCtr, spec.MountNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.NetNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, NetNS, c.config.NetNsCtr, spec.NetworkNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.PIDNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, string(spec.PIDNamespace)); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.UserNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.UTSNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.CgroupNsCtr != "" {
+		if err := c.addNamespaceContainer(&g, CgroupNS, c.config.CgroupNsCtr, spec.CgroupNamespace); err != nil {
+			return nil, err
+		}
+	}
+
+	g.SetRootPath(c.state.Mountpoint)
+	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
+	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
+
+	g.SetHostname(c.Hostname())
+	g.AddProcessEnv("HOSTNAME", g.Spec().Hostname)
+
+	return g.Spec(), nil
+}
+
+// Add an existing container's namespace to the spec
+func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, nsCtrID string, specNS string) error {
+	nsCtr, err := c.runtime.state.Container(nsCtrID)
+	if err != nil {
+		return err
+	}
+
+	nsPath, err := nsCtr.NamespacePath(ns)
+	if err != nil {
+		return err
+	}
+
+	if err := g.AddOrReplaceLinuxNamespace(specNS, nsPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Container) addImageVolumes(g *generate.Generator) error {
+	mountPoint := c.state.Mountpoint
+	if !c.state.Mounted {
+		return errors.Wrapf(ErrInternal, "container is not mounted")
+	}
+
+	imageStorage, err := c.runtime.getImage(c.config.RootfsImageID)
+	if err != nil {
+		return err
+	}
+	imageData, err := c.runtime.getImageInspectInfo(*imageStorage)
+	if err != nil {
+		return err
+	}
+
+	for k := range imageData.ContainerConfig.Volumes {
+		mount := spec.Mount{
+			Destination: k,
+			Type:        "bind",
+			Options:     []string{"rbind", "rw"},
+		}
+		if MountExists(g.Mounts(), k) {
+			continue
+		}
+		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
+		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+			if err = os.MkdirAll(volumePath, 0755); err != nil {
+				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
+			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
+				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
+			srcPath := filepath.Join(mountPoint, k)
+			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID, srcPath)
+			}
+			mount.Source = volumePath
+		}
+		g.AddMount(mount)
+	}
+	return nil
 }

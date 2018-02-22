@@ -643,3 +643,15 @@ func (c *Container) RWSize() (int64, error) {
 	}
 	return c.rwSize()
 }
+
+// Hostname gets the container's hostname
+func (c *Container) Hostname() string {
+	if c.config.Spec.Hostname != "" {
+		return c.config.Spec.Hostname
+	}
+
+	if len(c.ID()) < 11 {
+		return c.ID()
+	}
+	return c.ID()[:12]
+}
