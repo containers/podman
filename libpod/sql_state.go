@@ -14,7 +14,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 10
+const DBSchema = 11
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
