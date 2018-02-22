@@ -95,7 +95,7 @@ func mountCmd(c *cli.Context) error {
 			return errors.Wrapf(err2, "error reading list of all containers")
 		}
 		for _, container := range containers {
-			mountPoint, err := container.MountPoint()
+			mountPoint, err := container.Mountpoint()
 			if err != nil {
 				return errors.Wrapf(err, "error getting mountpoint for %q", container.ID())
 			}
