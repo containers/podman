@@ -12,10 +12,12 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -269,6 +271,49 @@ func (c *Container) export(path string) error {
 
 	_, err = io.Copy(outFile, input)
 	return err
+}
+
+func (c *Container) addImageVolumes(g *generate.Generator) error {
+	mountPoint := c.state.Mountpoint
+	if !c.state.Mounted {
+		return errors.Wrapf(ErrInternal, "container is not mounted")
+	}
+
+	imageStorage, err := c.runtime.getImage(c.config.RootfsImageID)
+	if err != nil {
+		return err
+	}
+	imageData, err := c.runtime.getImageInspectInfo(*imageStorage)
+	if err != nil {
+		return err
+	}
+
+	for k := range imageData.ContainerConfig.Volumes {
+		mount := spec.Mount{
+			Destination: k,
+			Type:        "bind",
+			Options:     []string{"rbind", "rw"},
+		}
+		if MountExists(g.Mounts(), k) {
+			continue
+		}
+		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
+		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+			if err = os.MkdirAll(volumePath, 0755); err != nil {
+				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
+			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
+				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
+			srcPath := filepath.Join(mountPoint, k)
+			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID, srcPath)
+			}
+			mount.Source = volumePath
+		}
+		g.AddMount(mount)
+	}
+	return nil
 }
 
 // Get path of artifact with a given name for this container

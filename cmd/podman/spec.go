@@ -351,7 +351,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// BIND MOUNTS
-	mounts, err := config.GetVolumeMounts()
+	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
@@ -500,7 +500,7 @@ func getDefaultAnnotations() map[string]string {
 }
 
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
-func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
+func (c *createConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
 	var m []spec.Mount
 	var options []string
 	for _, i := range c.Volumes {
@@ -508,6 +508,9 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 		spliti := strings.Split(i, ":")
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
+		}
+		if libpod.MountExists(specMounts, spliti[1]) {
+			continue
 		}
 		options = append(options, "rbind")
 		var foundrw, foundro, foundz, foundZ bool
@@ -549,6 +552,23 @@ func (c *createConfig) GetVolumeMounts() ([]spec.Mount, error) {
 			Source:      spliti[0],
 			Options:     options,
 		})
+	}
+
+	// volumes from image config
+	if c.ImageVolumeType != "tmpfs" {
+		return m, nil
+	}
+	for vol := range c.BuiltinImgVolumes {
+		if libpod.MountExists(specMounts, vol) {
+			continue
+		}
+		mount := spec.Mount{
+			Destination: vol,
+			Type:        string(TypeTmpfs),
+			Source:      string(TypeTmpfs),
+			Options:     []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
+		}
+		m = append(m, mount)
 	}
 	return m, nil
 }
