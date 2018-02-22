@@ -5,14 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/directory/explicitfilepath"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -173,7 +172,7 @@ func (ref dirReference) manifestPath() string {
 // layerPath returns a path for a layer tarball within a directory using our conventions.
 func (ref dirReference) layerPath(digest digest.Digest) string {
 	// FIXME: Should we keep the digest identification?
-	return filepath.Join(ref.path, digest.Hex()+".tar")
+	return filepath.Join(ref.path, digest.Hex())
 }
 
 // signaturePath returns a path for a signature within a directory using our conventions.
