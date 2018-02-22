@@ -106,6 +106,11 @@ func testContainersEqual(t *testing.T, a, b *Container) {
 	assert.NotNil(t, a)
 	assert.NotNil(t, b)
 
+	assert.NotNil(t, a.config)
+	assert.NotNil(t, b.config)
+	assert.NotNil(t, a.state)
+	assert.NotNil(t, b.state)
+
 	aConfig := new(ContainerConfig)
 	bConfig := new(ContainerConfig)
 	aState := new(containerState)

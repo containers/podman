@@ -106,11 +106,6 @@ func (j *ContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	} else {
 		buf.WriteString(`"privileged":false`)
 	}
-	if j.NoNewPrivs {
-		buf.WriteString(`,"noNewPrivs":true`)
-	} else {
-		buf.WriteString(`,"noNewPrivs":false`)
-	}
 	buf.WriteByte(',')
 	if len(j.ProcessLabel) != 0 {
 		buf.WriteString(`"ProcessLabel":`)
@@ -343,8 +338,6 @@ const (
 
 	ffjtContainerConfigPrivileged
 
-	ffjtContainerConfigNoNewPrivs
-
 	ffjtContainerConfigProcessLabel
 
 	ffjtContainerConfigMountLabel
@@ -415,8 +408,6 @@ var ffjKeyContainerConfigStaticDir = []byte("staticDir")
 var ffjKeyContainerConfigMounts = []byte("mounts")
 
 var ffjKeyContainerConfigPrivileged = []byte("privileged")
-
-var ffjKeyContainerConfigNoNewPrivs = []byte("noNewPrivs")
 
 var ffjKeyContainerConfigProcessLabel = []byte("ProcessLabel")
 
@@ -646,11 +637,6 @@ mainparse:
 
 					if bytes.Equal(ffjKeyContainerConfigName, kn) {
 						currentKey = ffjtContainerConfigName
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigNoNewPrivs, kn) {
-						currentKey = ffjtContainerConfigNoNewPrivs
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
@@ -887,12 +873,6 @@ mainparse:
 					goto mainparse
 				}
 
-				if fflib.EqualFoldRight(ffjKeyContainerConfigNoNewPrivs, kn) {
-					currentKey = ffjtContainerConfigNoNewPrivs
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
 				if fflib.SimpleLetterEqualFold(ffjKeyContainerConfigPrivileged, kn) {
 					currentKey = ffjtContainerConfigPrivileged
 					state = fflib.FFParse_want_colon
@@ -1017,9 +997,6 @@ mainparse:
 
 				case ffjtContainerConfigPrivileged:
 					goto handle_Privileged
-
-				case ffjtContainerConfigNoNewPrivs:
-					goto handle_NoNewPrivs
 
 				case ffjtContainerConfigProcessLabel:
 					goto handle_ProcessLabel
@@ -1468,41 +1445,6 @@ handle_Privileged:
 			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
 
 				j.Privileged = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_NoNewPrivs:
-
-	/* handler: j.NoNewPrivs type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.NoNewPrivs = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.NoNewPrivs = false
 
 			} else {
 				err = errors.New("unexpected bytes for true/false value")

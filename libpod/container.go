@@ -176,8 +176,6 @@ type ContainerConfig struct {
 	// Security Config
 	// Whether the container is privileged
 	Privileged bool `json:"privileged"`
-	// Whether to set the No New Privileges flag
-	NoNewPrivs bool `json:"noNewPrivs"`
 	// SELinux process label for container
 	ProcessLabel string `json:"ProcessLabel,omitempty"`
 	// SELinux mount label for root filesystem
