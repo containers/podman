@@ -213,6 +213,8 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
+// TODO allow specifying streams to attach to
+// TODO investigate allowing exec without attaching
 func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
 	var capList []string
 
@@ -227,10 +229,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	conState := c.state.State
 
+	// TODO can probably relax this once we track exec sessions
 	if conState != ContainerStateRunning {
-		return errors.Errorf("cannot attach to container that is not running")
+		return errors.Errorf("cannot exec into container that is not running")
 	}
-	if privileged {
+	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
 	}
 	globalOpts := runcGlobalOptions{
