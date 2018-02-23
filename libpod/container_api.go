@@ -398,14 +398,17 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	if !c.locked {
 		c.lock.Lock()
-		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
+			c.lock.Unlock()
 			return err
 		}
 	}
 
 	conState := c.state.State
+
+	// Ensure we don't keep the container locked for the duration of exec
+	c.lock.Unlock()
 
 	if conState != ContainerStateRunning {
 		return errors.Errorf("cannot attach to container that is not running")
