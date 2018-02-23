@@ -2439,7 +2439,7 @@ func (j *containerState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	var obj []byte
 	_ = obj
 	_ = err
-	buf.WriteString(`{"state":`)
+	buf.WriteString(`{ "state":`)
 	fflib.FormatBits2(buf, uint64(j.State), 10, j.State < 0)
 	buf.WriteByte(',')
 	if len(j.ConfigPath) != 0 {
@@ -2515,6 +2515,24 @@ func (j *containerState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	fflib.WriteJsonString(buf, string(j.IPAddress))
 	buf.WriteString(`,"subnetMask":`)
 	fflib.WriteJsonString(buf, string(j.SubnetMask))
+	buf.WriteByte(',')
+	if len(j.ExecSessions) != 0 {
+		if j.ExecSessions == nil {
+			buf.WriteString(`"execSessions":null`)
+		} else {
+			buf.WriteString(`"execSessions":{ `)
+			for key, value := range j.ExecSessions {
+				fflib.WriteJsonString(buf, key)
+				buf.WriteString(`:`)
+				fflib.FormatBits2(buf, uint64(value), 10, value < 0)
+				buf.WriteByte(',')
+			}
+			buf.Rewind(1)
+			buf.WriteByte('}')
+		}
+		buf.WriteByte(',')
+	}
+	buf.Rewind(1)
 	buf.WriteByte('}')
 	return nil
 }
@@ -2546,6 +2564,8 @@ const (
 	ffjtcontainerStateIPAddress
 
 	ffjtcontainerStateSubnetMask
+
+	ffjtcontainerStateExecSessions
 )
 
 var ffjKeycontainerStateState = []byte("state")
@@ -2571,6 +2591,8 @@ var ffjKeycontainerStatePID = []byte("pid")
 var ffjKeycontainerStateIPAddress = []byte("ipAddress")
 
 var ffjKeycontainerStateSubnetMask = []byte("subnetMask")
+
+var ffjKeycontainerStateExecSessions = []byte("execSessions")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *containerState) UnmarshalJSON(input []byte) error {
@@ -2647,6 +2669,11 @@ mainparse:
 						currentKey = ffjtcontainerStateExitCode
 						state = fflib.FFParse_want_colon
 						goto mainparse
+
+					} else if bytes.Equal(ffjKeycontainerStateExecSessions, kn) {
+						currentKey = ffjtcontainerStateExecSessions
+						state = fflib.FFParse_want_colon
+						goto mainparse
 					}
 
 				case 'f':
@@ -2720,6 +2747,12 @@ mainparse:
 						goto mainparse
 					}
 
+				}
+
+				if fflib.EqualFoldRight(ffjKeycontainerStateExecSessions, kn) {
+					currentKey = ffjtcontainerStateExecSessions
+					state = fflib.FFParse_want_colon
+					goto mainparse
 				}
 
 				if fflib.EqualFoldRight(ffjKeycontainerStateSubnetMask, kn) {
@@ -2846,6 +2879,9 @@ mainparse:
 
 				case ffjtcontainerStateSubnetMask:
 					goto handle_SubnetMask
+
+				case ffjtcontainerStateExecSessions:
+					goto handle_ExecSessions
 
 				case ffjtcontainerStatenosuchkey:
 					err = fs.SkipField(tok)
@@ -3194,6 +3230,115 @@ handle_SubnetMask:
 			outBuf := fs.Output.Bytes()
 
 			j.SubnetMask = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_ExecSessions:
+
+	/* handler: j.ExecSessions type=map[string]int kind=map quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_bracket && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.ExecSessions = nil
+		} else {
+
+			j.ExecSessions = make(map[string]int, 0)
+
+			wantVal := true
+
+			for {
+
+				var k string
+
+				var tmpJExecSessions int
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_bracket {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: k type=string kind=string quoted=false*/
+
+				{
+
+					{
+						if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+							return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+						}
+					}
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						outBuf := fs.Output.Bytes()
+
+						k = string(string(outBuf))
+
+					}
+				}
+
+				// Expect ':' after key
+				tok = fs.Scan()
+				if tok != fflib.FFTok_colon {
+					return fs.WrapErr(fmt.Errorf("wanted colon token, but got token: %v", tok))
+				}
+
+				tok = fs.Scan()
+				/* handler: tmpJExecSessions type=int kind=int quoted=false*/
+
+				{
+					if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+						return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
+					}
+				}
+
+				{
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
+
+						if err != nil {
+							return fs.WrapErr(err)
+						}
+
+						tmpJExecSessions = int(tval)
+
+					}
+				}
+
+				j.ExecSessions[k] = tmpJExecSessions
+
+				wantVal = false
+			}
 
 		}
 	}
