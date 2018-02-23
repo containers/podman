@@ -2,10 +2,10 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
 )
 
 var _ = Describe("Podman privileged container tests", func() {
@@ -81,4 +81,32 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 20))
 	})
+
+	It("run no-new-privileges test", func() {
+		// Check if our kernel is new enough
+		k, err := IsKernelNewThan("4.14")
+		Expect(err).To(BeNil())
+		if !k {
+			Skip("Kernel is not new enough to test this feature")
+		}
+
+		cap := podmanTest.SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
+		cap.WaitWithDefaultTimeout()
+		if cap.ExitCode() != 0 {
+			Skip("Can't determine NoNewPrivs")
+		}
+
+		session := podmanTest.Podman([]string{"run", "busybox", "grep", "NoNewPrivs", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		privs := strings.Split(cap.OutputToString(), ":")
+		session = podmanTest.Podman([]string{"run", "--security-opt", "no-new-privileges", "busybox", "grep", "NoNewPrivs", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		noprivs := strings.Split(cap.OutputToString(), ":")
+		Expect(privs[1]).To(Not(Equal(noprivs[1])))
+	})
+
 })

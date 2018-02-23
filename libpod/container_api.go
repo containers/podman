@@ -236,13 +236,15 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	globalOpts := runcGlobalOptions{
 		log: c.LogPath(),
 	}
+
 	execOpts := runcExecOptions{
-		capAdd:  capList,
-		pidFile: filepath.Join(c.state.RunDir, fmt.Sprintf("%s-execpid", stringid.GenerateNonCryptoID()[:12])),
-		env:     env,
-		user:    user,
-		cwd:     c.config.Spec.Process.Cwd,
-		tty:     tty,
+		capAdd:     capList,
+		pidFile:    filepath.Join(c.state.RunDir, fmt.Sprintf("%s-execpid", stringid.GenerateNonCryptoID()[:12])),
+		env:        env,
+		noNewPrivs: c.config.Spec.Process.NoNewPrivileges,
+		user:       user,
+		cwd:        c.config.Spec.Process.Cwd,
+		tty:        tty,
 	}
 
 	return c.runtime.ociRuntime.execContainer(c, cmd, globalOpts, execOpts)

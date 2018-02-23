@@ -259,7 +259,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(config.NoNewPrivileges)
+	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
 	g.SetProcessSelinuxLabel(config.ProcessLabel)
 	g.SetLinuxMountLabel(config.MountLabel)
