@@ -67,7 +67,7 @@ func (r *storageService) CreateContainerStorage(systemContext *types.SystemConte
 		return ContainerInfo{}, ErrEmptyID
 	}
 	//// Check if we have the specified image.
-	ref, err := istorage.Transport.ParseStoreReference(r.store, imageName)
+	ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
