@@ -141,6 +141,9 @@ type containerState struct {
 	IPAddress string `json:"ipAddress"`
 	// Subnet mask of container (if network namespace was created)
 	SubnetMask string `json:"subnetMask"`
+	// ExecSessions contains active exec sessions for container
+	// Exec session ID is mapped to PID of exec process
+	ExecSessions map[string]int `json:"execSessions,omitempty"`
 }
 
 // ContainerConfig contains all information that was used to create the
@@ -574,7 +577,8 @@ func (c *Container) OOMKilled() (bool, error) {
 }
 
 // PID returns the PID of the container
-// An error is returned if the container is not running
+// If the container is not running, a pid of 0 will be returned. No error will
+// occur.
 func (c *Container) PID() (int, error) {
 	if !c.locked {
 		c.lock.Lock()
@@ -586,6 +590,26 @@ func (c *Container) PID() (int, error) {
 	}
 
 	return c.state.PID, nil
+}
+
+// ExecSessions retrieves active exec sessions running in the container
+// The result is a map from session ID to the PID of the exec process
+func (c *Container) ExecSessions() (map[string]int, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	returnMap := make(map[string]int, len(c.state.ExecSessions))
+	for k, v := range c.state.ExecSessions {
+		returnMap[k] = v
+	}
+
+	return returnMap, nil
 }
 
 // Misc Accessors

@@ -14,7 +14,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 11
+const DBSchema = 12
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -102,7 +102,8 @@ func (s *SQLState) Refresh() (err error) {
                              Pid=?,
                              NetNSPath=?,
                              IPAddress=?,
-                             SubnetMask=?;`
+                             SubnetMask=?,
+                             ExecSessions=?;`
 
 	if !s.valid {
 		return ErrDBClosed
@@ -132,7 +133,8 @@ func (s *SQLState) Refresh() (err error) {
 		0,
 		"",
 		"",
-		"")
+		"",
+		"{}")
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
 	}
@@ -269,7 +271,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               Pid,
                               NetNSPath,
                               IPAddress,
-                              SubnetMask
+                              SubnetMask,
+                              ExecSessions
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -285,6 +288,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		netNSPath          string
 		ipAddress          string
 		subnetMask         string
+		execSessions       string
 	)
 
 	if !s.valid {
@@ -308,7 +312,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&pid,
 		&netNSPath,
 		&ipAddress,
-		&subnetMask)
+		&subnetMask,
+	        &execSessions)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -332,6 +337,11 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	newState.PID = pid
 	newState.IPAddress = ipAddress
 	newState.SubnetMask = subnetMask
+
+	newState.ExecSessions = make(map[string]int)
+	if err := json.Unmarshal([]byte(execSessions), &newState.ExecSessions); err != nil {
+		return errors.Wrapf(err, "error parsing container %s exec sessions", ctr.ID())
+	}
 
 	if newState.Mountpoint != "" {
 		newState.Mounted = true
@@ -395,11 +405,17 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
                           Pid=?,
                           NetNSPath=?,
                           IPAddress=?,
-                          SubnetMask=?
+                          SubnetMask=?,
+                          ExecSessions=?
                        WHERE Id=?;`
 
 	if !ctr.valid {
 		return ErrCtrRemoved
+	}
+
+	execSessionsJSON, err := json.Marshal(ctr.state.ExecSessions)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s exec sessions", ctr.ID())
 	}
 
 	netNSPath := ""
@@ -439,6 +455,7 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 		netNSPath,
 		ctr.state.IPAddress,
 		ctr.state.SubnetMask,
+		execSessionsJSON,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
