@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/docker/docker/pkg/system"
@@ -51,7 +52,31 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing system uptime")
 	}
-	info["uptime"] = upDuration.String()
+
+	hoursFound := false
+	var timeBuffer bytes.Buffer
+	var hoursBuffer bytes.Buffer
+	for _, elem := range upDuration.String() {
+		timeBuffer.WriteRune(elem)
+		if elem == 'h' || elem == 'm' {
+			timeBuffer.WriteRune(' ')
+			if elem == 'h' {
+				hoursFound = true
+			}
+		}
+		if !hoursFound {
+			hoursBuffer.WriteRune(elem)
+		}
+	}
+
+	info["uptime"] = timeBuffer.String()
+	if hoursFound {
+		hours, err := strconv.ParseFloat(hoursBuffer.String(), 64)
+		if err == nil {
+			days := hours / 24
+			info["uptime"] = fmt.Sprintf("%s (Approximately %.2f days)", info["uptime"], days)
+		}
+	}
 
 	host, err := os.Hostname()
 	if err != nil {
