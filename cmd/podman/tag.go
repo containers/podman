@@ -30,7 +30,10 @@ func tagCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	img, err := runtime.GetImage(args[0])
+	newImage := runtime.NewImage(args[0])
+	newImage.GetLocalImageName()
+
+	img, err := runtime.GetImage(newImage.LocalName)
 	if err != nil {
 		return err
 	}
