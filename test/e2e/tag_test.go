@@ -66,4 +66,18 @@ var _ = Describe("Podman tag", func() {
 		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
 		Expect(StringInSlice("foobar:new", inspectData[0].RepoTags)).To(BeTrue())
 	})
+
+	It("podman tag shortname image no tag", func() {
+		session := podmanTest.Podman([]string{"tag", ALPINE, "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"tag", "foobar", "barfoo"})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+
+		verify := podmanTest.Podman([]string{"inspect", "barfoo"})
+		verify.WaitWithDefaultTimeout()
+		Expect(verify.ExitCode()).To(Equal(0))
+	})
 })

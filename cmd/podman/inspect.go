@@ -127,7 +127,9 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 				break
 			}
 		case inspectTypeImage:
-			image, err := runtime.GetImage(input)
+			newImage := runtime.NewImage(input)
+			newImage.GetLocalImageName()
+			image, err := runtime.GetImage(newImage.LocalName)
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error getting image %q", input)
 				break
@@ -140,7 +142,9 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 		case inspectAll:
 			ctr, err := runtime.LookupContainer(input)
 			if err != nil {
-				image, err := runtime.GetImage(input)
+				newImage := runtime.NewImage(input)
+				newImage.GetLocalImageName()
+				image, err := runtime.GetImage(newImage.LocalName)
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error getting image %q", input)
 					break
