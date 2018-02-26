@@ -441,7 +441,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 
 		switch batchInfo.conState {
 		case libpod.ContainerStateStopped:
-			status = fmt.Sprintf("Exited (%d) %s ago", exitCode, runningFor)
+			status = fmt.Sprintf("Exited (%d) %s ago", batchInfo.exitCode, runningFor)
 		case libpod.ContainerStateRunning:
 			status = "Up " + runningFor + " ago"
 		case libpod.ContainerStatePaused:
