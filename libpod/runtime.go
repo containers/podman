@@ -94,12 +94,12 @@ var (
 )
 
 func findConmonPath() string {
-	paths := []string{"/usr/libexec/crio/conmon", "/usr/local/libexec/crio/conmon", "/usr/bin/conmon", "/usr/sbin/conmon"}
+	paths := []string{"/usr/libexec/crio/conmon", "/usr/local/libexec/crio/conmon", "/usr/bin/conmon", "/usr/sbin/conmon", "/usr/lib/crio/bin/conmon"}
 	return pathHelper(paths)
 }
 
 func findRuncPath() string {
-	paths := []string{"/usr/bin/runc", "/usr/sbin/runc", "/sbin/runc", "/bin/runc"}
+	paths := []string{"/usr/bin/runc", "/usr/sbin/runc", "/sbin/runc", "/bin/runc", "/usr/lib/cri-o-runc/sbin/runc"}
 	return pathHelper(paths)
 }
 
