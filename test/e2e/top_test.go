@@ -59,14 +59,26 @@ var _ = Describe("Podman top", func() {
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
-	It("podman top on non-running container", func() {
+	It("podman top with options", func() {
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"top", session.OutputToString(), "-o", "fuser,f,comm,label"})
+		result := podmanTest.Podman([]string{"top", session.OutputToString(), "-o", "pid,fuser,f,comm,label"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
+
+	It("podman top on container invalid options", func() {
+		sleep := podmanTest.RunSleepContainer("")
+		sleep.WaitWithDefaultTimeout()
+		Expect(sleep.ExitCode()).To(Equal(0))
+		cid := sleep.OutputToString()
+
+		result := podmanTest.Podman([]string{"top", cid, "-o time"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+	})
+
 })

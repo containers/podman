@@ -70,11 +70,11 @@ func topCmd(c *cli.Context) error {
 
 	psArgs = append(psArgs, psOpts...)
 
-	results, err := container.GetContainerPidInformation(psArgs)
+	psOutput, err := container.GetContainerPidInformation(psArgs)
 	if err != nil {
 		return err
 	}
-	for _, line := range results {
+	for _, line := range psOutput {
 		fmt.Println(line)
 	}
 	return nil

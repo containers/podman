@@ -38,7 +38,7 @@ func (c *Container) getContainerPids() ([]string, error) {
 }
 
 // GetContainerPidInformation calls ps with the appropriate options and returns
-// the results as a string
+// the results as a string and the container's PIDs as a []string
 func (c *Container) GetContainerPidInformation(args []string) ([]string, error) {
 	if !c.locked {
 		c.lock.Lock()
@@ -57,5 +57,55 @@ func (c *Container) GetContainerPidInformation(args []string) ([]string, error) 
 	if err != nil {
 		return []string{}, errors.Wrapf(err, "unable to obtain information about pids")
 	}
-	return strings.Split(results, "\n"), nil
+
+	filteredOutput, err := filterPids(results, pids)
+	if err != nil {
+		return []string{}, err
+	}
+	return filteredOutput, nil
+}
+
+func filterPids(psOutput string, pids []string) ([]string, error) {
+	var output []string
+	results := strings.Split(psOutput, "\n")
+	// The headers are in the first line of the results
+	headers := fieldsASCII(results[0])
+	// We need to make sure PID in headers, so that we can filter
+	// Pids that don't belong.
+
+	// append the headers back in
+	output = append(output, results[0])
+
+	pidIndex := -1
+	for i, header := range headers {
+		if header == "PID" {
+			pidIndex = i
+		}
+	}
+	if pidIndex == -1 {
+		return []string{}, errors.Errorf("unable to find PID field in ps output. try a different set of ps arguments")
+	}
+	for _, l := range results[1:] {
+		if l == "" {
+			continue
+		}
+		cols := fieldsASCII(l)
+		pid := cols[pidIndex]
+		if StringInSlice(pid, pids) {
+			output = append(output, l)
+		}
+	}
+	return output, nil
+}
+
+// Detects ascii whitespaces
+func fieldsASCII(s string) []string {
+	fn := func(r rune) bool {
+		switch r {
+		case '\t', '\n', '\f', '\r', ' ':
+			return true
+		}
+		return false
+	}
+	return strings.FieldsFunc(s, fn)
 }
