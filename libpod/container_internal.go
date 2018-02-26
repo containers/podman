@@ -573,7 +573,9 @@ func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*s
 		Destination: "/etc/resolv.conf",
 		Options:     []string{"rw", "bind"},
 	}
-	g.AddMount(resolvMnt)
+	if !MountExists(g.Mounts(), resolvMnt.Destination) {
+		g.AddMount(resolvMnt)
+	}
 	// Bind mount hosts
 	hostsMnt := spec.Mount{
 		Type:        "bind",
@@ -581,7 +583,9 @@ func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*s
 		Destination: "/etc/hosts",
 		Options:     []string{"rw", "bind"},
 	}
-	g.AddMount(hostsMnt)
+	if !MountExists(g.Mounts(), hostsMnt.Destination) {
+		g.AddMount(hostsMnt)
+	}
 	// Bind hostname
 	hostnameMnt := spec.Mount{
 		Type:        "bind",
@@ -589,7 +593,9 @@ func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*s
 		Destination: "/etc/hostname",
 		Options:     []string{"rw", "bind"},
 	}
-	g.AddMount(hostnameMnt)
+	if !MountExists(g.Mounts(), hostnameMnt.Destination) {
+		g.AddMount(hostnameMnt)
+	}
 
 	// Bind builtin image volumes
 	if c.config.ImageVolumes {
