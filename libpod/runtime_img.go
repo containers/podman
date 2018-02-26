@@ -624,7 +624,17 @@ func (r *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string
 			}
 			pullStructs = append(pullStructs, pullInfo)
 		} else {
-			pullInfo, err := r.getPullStruct(srcRef, manifest[0].RepoTags[0])
+			var dest string
+			if len(manifest[0].RepoTags) > 0 {
+				dest = manifest[0].RepoTags[0]
+			} else {
+				// If the input image has no repotags, we need to feed it a dest anyways
+				dest, err = getImageDigest(srcRef, sc)
+				if err != nil {
+					return nil, err
+				}
+			}
+			pullInfo, err := r.getPullStruct(srcRef, dest)
 			if err != nil {
 				return nil, err
 			}
