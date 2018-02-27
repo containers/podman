@@ -467,8 +467,54 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "resume", ctr.ID())
 }
 
-//execContiner executes a command in a running container
-func (r *OCIRuntime) execContainer(c *Container, cmd []string, globalOpts runcGlobalOptions, commandOpts runcExecOptions) error {
-	r.RuncExec(c, cmd, globalOpts, commandOpts)
-	return nil
+// execContainer executes a command in a running container
+// TODO: Add --detach support
+// TODO: Convert to use conmon
+// TODO: add --pid-file and use that to generate exec session tracking
+func (r *OCIRuntime) execContainer(c *Container, cmd []string, tty bool, user string, capAdd, env []string) error {
+	args := []string{}
+
+	// TODO - should we maintain separate logpaths for exec sessions?
+	args = append(args, "--log", c.LogPath())
+
+	args = append(args, "exec")
+
+	args = append(args, "--cwd", c.config.Spec.Process.Cwd)
+
+	if tty {
+		args = append(args, "--tty")
+	}
+
+	if user != "" {
+		args = append(args, "--user", user)
+	}
+
+	if c.config.Spec.Process.NoNewPrivileges {
+		args = append(args, "--no-new-privs")
+	}
+
+	for _, cap := range capAdd {
+		args = append(args, "--cap", cap)
+	}
+
+	for _, envVar := range env {
+		args = append(args, "--env", envVar)
+	}
+
+	// Append container ID and command
+	args = append(args, c.ID())
+	args = append(args, cmd...)
+
+	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
+
+	execCmd := exec.Command(r.path, args...)
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+	execCmd.Stdin = os.Stdin
+
+	if err := execCmd.Start(); err != nil {
+		return errors.Wrapf(err, "error starting exec command for container %s", c.ID())
+	}
+
+	return execCmd.Wait()
 }
