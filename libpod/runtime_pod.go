@@ -101,6 +101,11 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
 		}
 
+		// If the container has active exec sessions and force is not set we can't do anything
+		if len(ctr.state.ExecSessions) != 0 && !force {
+			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which has active exec sessions", p.ID(), ctr.ID())
+		}
+
 		deps, err := r.state.ContainerInUse(ctr)
 		if err != nil {
 			return err
@@ -131,6 +136,12 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 
 				// Sync again to pick up stopped state
 				if err := ctr.syncContainer(); err != nil {
+					return err
+				}
+			}
+			// If the container has active exec sessions, stop them now
+			if len(ctr.state.ExecSessions) != 0 {
+				if err := r.ociRuntime.execStopContainer(ctr, ctr.StopTimeout()); err != nil {
 					return err
 				}
 			}
