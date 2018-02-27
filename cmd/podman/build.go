@@ -69,7 +69,6 @@ var (
 	buildDescription = "podman build launches the Buildah command to build an OCI Image. Buildah must be installed for this command to work."
 	buildCommand     = cli.Command{
 		Name:        "build",
-		Aliases:     []string{"build"},
 		Usage:       "Build an image using instructions in a Dockerfile",
 		Description: buildDescription,
 		Flags:       buildFlags,
