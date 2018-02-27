@@ -469,6 +469,5 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 
 //execContiner executes a command in a running container
 func (r *OCIRuntime) execContainer(c *Container, cmd []string, globalOpts runcGlobalOptions, commandOpts runcExecOptions) error {
-	r.RuncExec(c, cmd, globalOpts, commandOpts)
-	return nil
+	return r.RuncExec(c, cmd, globalOpts, commandOpts)
 }
