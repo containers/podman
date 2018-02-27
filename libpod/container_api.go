@@ -219,9 +219,16 @@ func (c *Container) Kill(signal uint) error {
 func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
 	var capList []string
 
+	locked := false
 	if !c.locked {
+		locked = true
+
 		c.lock.Lock()
-		defer c.lock.Unlock()
+		defer func() {
+			if locked {
+				c.lock.Unlock()
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -309,7 +316,20 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
 	}
 
+	// Unlock so other processes can use the container
+	c.lock.Unlock()
+	locked = false
+
 	waitErr := execCmd.Wait()
+
+	// Lock again
+	locked = true
+	c.lock.Lock()
+
+	// Sync the container again to pick up changes in state
+	if err := c.syncContainer(); err != nil {
+		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+	}
 
 	// Remove the exec session from state
 	delete(c.state.ExecSessions, sessionID)
