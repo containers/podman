@@ -5,7 +5,7 @@ outdir := $(CURDIR)
 tmpdir := build
 gitdir := $(PWD)/.git
 
-rev := $(shell sed 's/\(.......\).*/\1/' $(gitdir)/$$(sed -n '/^ref:/{s/.* //;p}' $(gitdir)/HEAD))
+rev := $(shell git rev-list HEAD | head -n1 | cut -c -7)
 date := $(shell date +%Y%m%d.%H%M)
 
 version := $(shell sed -n '/Version:/{s/.* //;p}' $(spec))
