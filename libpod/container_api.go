@@ -603,6 +603,16 @@ func (c *Container) Cleanup() error {
 		}
 	}
 
+	// Check if state is good
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
+	}
+
+	// Check if we have active exec sessions
+	if len(c.state.ExecSessions) != 0 {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
+	}
+
 	// Stop the container's network namespace (if it has one)
 	if err := c.cleanupNetwork(); err != nil {
 		logrus.Errorf("unable cleanup network for container %s: %q", c.ID(), err)
