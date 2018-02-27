@@ -102,7 +102,7 @@ func (c *Container) attachSocketPath() string {
 
 // Get PID file path for a container's exec session
 func (c *Container) execPidPath(sessionID string) string {
-	return filepath.Join(c.state.RunDir, "exec_pid_" + sessionID)
+	return filepath.Join(c.state.RunDir, "exec_pid_"+sessionID)
 }
 
 // Sync this container with on-disk state and runc status
