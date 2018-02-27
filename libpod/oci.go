@@ -471,7 +471,15 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd []string, tty bool, user string, capAdd, env []string) error {
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, user, sessionID string) (*exec.Cmd, error) {
+	if len(cmd) == 0 {
+		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
+	}
+
+	if sessionID == "" {
+		return nil, errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
+	}
+
 	args := []string{}
 
 	// TODO - should we maintain separate logpaths for exec sessions?
@@ -480,6 +488,8 @@ func (r *OCIRuntime) execContainer(c *Container, cmd []string, tty bool, user st
 	args = append(args, "exec")
 
 	args = append(args, "--cwd", c.config.Spec.Process.Cwd)
+
+	args = append(args, "--pid-file", c.execPidPath(sessionID))
 
 	if tty {
 		args = append(args, "--tty")
@@ -512,9 +522,5 @@ func (r *OCIRuntime) execContainer(c *Container, cmd []string, tty bool, user st
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
 
-	if err := execCmd.Start(); err != nil {
-		return errors.Wrapf(err, "error starting exec command for container %s", c.ID())
-	}
-
-	return execCmd.Wait()
+	return execCmd, nil
 }

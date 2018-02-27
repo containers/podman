@@ -100,6 +100,11 @@ func (c *Container) attachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
 }
 
+// Get PID file path for a container's exec session
+func (c *Container) execPidPath(sessionID string) string {
+	return filepath.Join(c.state.RunDir, "exec_pid_" + sessionID)
+}
+
 // Sync this container with on-disk state and runc status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and

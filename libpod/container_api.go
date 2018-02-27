@@ -5,8 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/docker/docker/daemon/caps"
+	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
@@ -235,7 +238,86 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		capList = caps.GetAllCapabilities()
 	}
 
-	return c.runtime.ociRuntime.execContainer(c, cmd, tty, user, capList, env)
+	// Generate exec session ID
+	// Ensure we don't conflict with an existing session ID
+	sessionID := stringid.GenerateNonCryptoID()
+	found := true
+	// This really ought to be a do-while, but Go doesn't have those...
+	for found {
+		found = false
+		for id, _ := range c.state.ExecSessions {
+			if id == sessionID {
+				found = true
+				break
+			}
+		}
+		if found == true {
+			sessionID = stringid.GenerateNonCryptoID()
+		}
+	}
+
+	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, user, sessionID)
+	if err != nil {
+		return errors.Wrapf(err, "error creating exec command for container %s", c.ID())
+	}
+
+	if err := execCmd.Start(); err != nil {
+		return errors.Wrapf(err, "error starting exec command for container %s", c.ID())
+	}
+
+	pidFile := c.execPidPath(sessionID)
+	const pidWaitTimeout = 250
+
+	// Wait until runc makes the pidfile
+	// TODO: If runc errors before the PID file is created, we have to wait for timeout here
+	if err := WaitForFile(pidFile, pidWaitTimeout * time.Millisecond); err != nil {
+		logrus.Debugf("Timed out waiting for pidfile from runc for container %s exec", c.ID())
+
+		// Check if an error occurred in the process before we made a pidfile
+		// TODO: Wait() here is a poor choice - is there a way to see if
+		// a process has finished, instead of waiting for it to finish?
+		if err := execCmd.Wait(); err != nil {
+			return err
+		}
+
+		return errors.Wrapf(err, "timed out waiting for runc to create pidfile for exec session in container %s", c.ID())
+	}
+
+	// Pidfile exists, read it
+	contents, err := ioutil.ReadFile(pidFile)
+	if err != nil {
+		// We don't know the PID of the exec session
+		// However, it may still be alive
+		// TODO handle this better
+		return errors.Wrapf(err, "could not read pidfile for exec session %s in container %s", sessionID, c.ID())
+	}
+	pid, err := strconv.ParseInt(string(contents), 10, 32)
+	if err != nil {
+		// As above, we don't have a valid PID, but the exec session is likely still alive
+		// TODO handle this better
+		return errors.Wrapf(err, "error parsing PID of exec session %s in container %s", sessionID, c.ID())
+	}
+
+	// We have the PID, add it to state
+	if c.state.ExecSessions == nil {
+		c.state.ExecSessions = make(map[string]int)
+	}
+	c.state.ExecSessions[sessionID] = int(pid)
+	if err := c.save(); err != nil {
+		// Now we have a PID but we can't save it in the DB
+		// TODO handle this better
+		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
+	}
+
+	waitErr := execCmd.Wait()
+
+	// Remove the exec session from state
+	delete(c.state.ExecSessions, sessionID)
+	if err := c.save(); err != nil {
+		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
+	}
+
+	return waitErr
 }
 
 // Attach attaches to a container
