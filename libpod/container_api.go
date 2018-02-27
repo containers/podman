@@ -252,7 +252,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	// This really ought to be a do-while, but Go doesn't have those...
 	for found {
 		found = false
-		for id, _ := range c.state.ExecSessions {
+		for id := range c.state.ExecSessions {
 			if id == sessionID {
 				found = true
 				break
@@ -277,7 +277,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	// Wait until runc makes the pidfile
 	// TODO: If runc errors before the PID file is created, we have to wait for timeout here
-	if err := WaitForFile(pidFile, pidWaitTimeout * time.Millisecond); err != nil {
+	if err := WaitForFile(pidFile, pidWaitTimeout*time.Millisecond); err != nil {
 		logrus.Debugf("Timed out waiting for pidfile from runc for container %s exec", c.ID())
 
 		// Check if an error occurred in the process before we made a pidfile
@@ -600,9 +600,8 @@ func (c *Container) Wait() (int32, error) {
 			}
 			if !stopped {
 				return false, nil
-			} else { // nolint
-				return true, nil // nolint
-			} // nolint
+			}
+			return true, nil
 		},
 	)
 	if err != nil {

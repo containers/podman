@@ -313,7 +313,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&netNSPath,
 		&ipAddress,
 		&subnetMask,
-	        &execSessions)
+		&execSessions)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {

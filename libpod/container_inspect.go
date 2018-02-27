@@ -21,7 +21,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	}
 
 	execIDs := []string{}
-	for id, _ := range c.state.ExecSessions {
+	for id := range c.state.ExecSessions {
 		execIDs = append(execIDs, id)
 	}
 
