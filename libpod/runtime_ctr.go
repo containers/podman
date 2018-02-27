@@ -165,6 +165,17 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
+	// Check that all of our exec sessions have finished
+	if len(c.state.ExecSessions) != 0 {
+		if force {
+			if err := r.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
+				return err
+			}
+		} else {
+			return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+		}
+	}
+
 	// Check that no other containers depend on the container
 	deps, err := r.state.ContainerInUse(c)
 	if err != nil {

@@ -147,6 +147,40 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 	}
 }
 
+// Wait for a set of given PIDs to stop
+func waitPidsStop(pids []int, timeout time.Duration) error {
+	done := make(chan struct{})
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				allClosed := true
+				for _, pid := range pids {
+					if err := unix.Kill(pid, 0); err != unix.ESRCH {
+						allClosed = false
+						break
+					}
+				}
+				if allClosed {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		close(chControl)
+		return errors.Errorf("given PIDs did not die within timeout")
+	}
+}
+
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
@@ -523,4 +557,63 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Stdin = os.Stdin
 
 	return execCmd, nil
+}
+
+// execStopContainer stops all active exec sessions in a container
+// It will also stop all other processes in the container. It is only intended
+// to be used to assist in cleanup when removing a container.
+// SIGTERM is used by default to stop processes. If SIGTERM fails, SIGKILL will be used.
+func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
+	// Do we have active exec sessions?
+	if len(ctr.state.ExecSessions) == 0 {
+		return nil
+	}
+
+	// Get a list of active exec sessions
+	execSessions := []int{}
+	for _, pid := range ctr.state.ExecSessions {
+		// Ping the PID with signal 0 to see if it still exists
+		if err := unix.Kill(pid, 0); err == unix.ESRCH {
+			continue
+		}
+
+		execSessions = append(execSessions, pid)
+	}
+
+	// All the sessions may be dead
+	// If they are, just return
+	if len(execSessions) == 0 {
+		return nil
+	}
+
+	// If timeout is 0, just use SIGKILL
+	if timeout > 0 {
+		// Stop using SIGTERM by default
+		// Use SIGSTOP after a timeout
+		logrus.Debugf("Killing all processes in container %s with SIGTERM", ctr.ID())
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "TERM"); err != nil {
+			return errors.Wrapf(err, "error sending SIGTERM to container %s processes", ctr.ID())
+		}
+
+		// Wait for all processes to stop
+		if err := waitPidsStop(execSessions, time.Duration(timeout)*time.Second); err != nil {
+			logrus.Warnf("Timed out stopping container %s exec sessions", ctr.ID())
+		} else {
+			// No error, all exec sessions are dead
+			return nil
+		}
+	}
+
+	// Send SIGKILL
+	logrus.Debugf("Killing all processes in container %s with SIGKILL", ctr.ID())
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+		return errors.Wrapf(err, "error sending SIGKILL to container %s processes", ctr.ID())
+	}
+
+	// Give the processes a few seconds to go down
+	if err := waitPidsStop(execSessions, killContainerTimeout); err != nil {
+		return errors.Wrapf(err, "failed to kill container %s exec sessions", ctr.ID())
+	}
+
+	return nil
 }
