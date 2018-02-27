@@ -2,13 +2,11 @@ package libpod
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
@@ -236,21 +234,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
 	}
-	globalOpts := runcGlobalOptions{
-		log: c.LogPath(),
-	}
 
-	execOpts := runcExecOptions{
-		capAdd:     capList,
-		pidFile:    filepath.Join(c.state.RunDir, fmt.Sprintf("%s-execpid", stringid.GenerateNonCryptoID()[:12])),
-		env:        env,
-		noNewPrivs: c.config.Spec.Process.NoNewPrivileges,
-		user:       user,
-		cwd:        c.config.Spec.Process.Cwd,
-		tty:        tty,
-	}
-
-	return c.runtime.ociRuntime.execContainer(c, cmd, globalOpts, execOpts)
+	return c.runtime.ociRuntime.execContainer(c, cmd, tty, user, capList, env)
 }
 
 // Attach attaches to a container
