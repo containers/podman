@@ -219,7 +219,7 @@ inside of the container.
     bind: A directory is created inside the container state directory and bind mounted into
         the container for the volumes.
     tmpfs: The volume is mounted onto the container as a tmpfs, which allows the users to create
-        content that dissapears when the container is stopped.
+        content that disappears when the container is stopped.
     ignore: All volumes are just ignored and no action is taken.
 
 **-i**, **--interactive**=*true*|*false*
