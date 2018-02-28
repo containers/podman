@@ -50,6 +50,8 @@ type Runtime struct {
 	ociRuntime     *OCIRuntime
 	lockDir        string
 	netPlugin      ocicni.CNIPlugin
+	ociRuntimePath string
+	conmonPath     string
 	valid          bool
 	lock           sync.RWMutex
 }
@@ -60,8 +62,8 @@ type RuntimeConfig struct {
 	ImageDefaultTransport string
 	SignaturePolicyPath   string
 	StateType             RuntimeStateStore
-	RuntimePath           string
-	ConmonPath            string
+	RuntimePath           []string // The first path pointing to a valid file will be used
+	ConmonPath            []string // The first path pointing to a valid file will be used
 	ConmonEnvVars         []string
 	CgroupManager         string
 	StaticDir             string
@@ -78,8 +80,20 @@ var (
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
-		RuntimePath:           findRuncPath(),
-		ConmonPath:            findConmonPath(),
+		RuntimePath: []string{
+			"/usr/bin/runc",
+			"/usr/sbin/runc",
+			"/sbin/runc",
+			"/bin/runc",
+			"/usr/lib/cri-o-runc/sbin/runc",
+		},
+		ConmonPath: []string{
+			"/usr/libexec/crio/conmon",
+			"/usr/local/libexec/crio/conmon",
+			"/usr/bin/conmon",
+			"/usr/sbin/conmon",
+			"/usr/lib/crio/bin/conmon",
+		},
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
@@ -92,25 +106,6 @@ var (
 		CNIPluginDir:  []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
 	}
 )
-
-func findConmonPath() string {
-	paths := []string{"/usr/libexec/crio/conmon", "/usr/local/libexec/crio/conmon", "/usr/bin/conmon", "/usr/sbin/conmon", "/usr/lib/crio/bin/conmon"}
-	return pathHelper(paths)
-}
-
-func findRuncPath() string {
-	paths := []string{"/usr/bin/runc", "/usr/sbin/runc", "/sbin/runc", "/bin/runc", "/usr/lib/cri-o-runc/sbin/runc"}
-	return pathHelper(paths)
-}
-
-func pathHelper(paths []string) string {
-	for _, path := range paths {
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-	return paths[0]
-}
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
@@ -128,9 +123,44 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		}
 	}
 
-	// Check for the existence of the runc binary
-	if _, err := os.Stat(runtime.config.RuntimePath); err != nil {
-		return nil, errors.Errorf("unable to find runc binary %s", runtime.config.RuntimePath)
+	// Find a working OCI runtime binary
+	foundRuntime := false
+	for _, path := range runtime.config.RuntimePath {
+		stat, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if stat.IsDir() {
+			continue
+		}
+		foundRuntime = true
+		runtime.ociRuntimePath = path
+		break
+	}
+	if !foundRuntime {
+		return nil, errors.Wrapf(ErrInvalidArg,
+			"could not find a working runc binary (configured options: %v)",
+			runtime.config.RuntimePath)
+	}
+
+	// Find a working conmon binary
+	foundConmon := false
+	for _, path := range runtime.config.ConmonPath {
+		stat, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if stat.IsDir() {
+			continue
+		}
+		foundConmon = true
+		runtime.conmonPath = path
+		break
+	}
+	if !foundConmon {
+		return nil, errors.Wrapf(ErrInvalidArg,
+			"could not find a working conmon binary (configured options: %v)",
+			runtime.config.RuntimePath)
 	}
 
 	// Set up containers/storage
@@ -165,8 +195,8 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	}
 
 	// Make an OCI runtime to perform container operations
-	ociRuntime, err := newOCIRuntime("runc", runtime.config.RuntimePath,
-		runtime.config.ConmonPath, runtime.config.ConmonEnvVars,
+	ociRuntime, err := newOCIRuntime("runc", runtime.ociRuntimePath,
+		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot)
 	if err != nil {
