@@ -1,10 +1,13 @@
 package libpod
 
 import (
+	"bytes"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -58,20 +61,56 @@ type Runtime struct {
 
 // RuntimeConfig contains configuration options used to set up the runtime
 type RuntimeConfig struct {
-	StorageConfig         storage.StoreOptions
-	ImageDefaultTransport string
-	SignaturePolicyPath   string
-	StateType             RuntimeStateStore
-	RuntimePath           []string // The first path pointing to a valid file will be used
-	ConmonPath            []string // The first path pointing to a valid file will be used
-	ConmonEnvVars         []string
-	CgroupManager         string
-	StaticDir             string
-	TmpDir                string
-	MaxLogSize            int64
-	NoPivotRoot           bool
-	CNIConfigDir          string
-	CNIPluginDir          []string
+	// StorageConfig is the configuration used by containers/storage
+	// Not included in on-disk config, use the dedicated containers/storage
+	// configuration file instead
+	StorageConfig storage.StoreOptions `toml:"-"`
+	// ImageDefaultTransport is the default transport method used to fetch
+	// images
+	ImageDefaultTransport string `toml:"image_default_transport"`
+	// SignaturePolicyPath is the path to a signature policy to use for
+	// validationg images
+	// If left empty, the containers/image default signature policy will
+	// be used
+	SignaturePolicyPath string `toml:"signature_policy_path,omitempty"`
+	// StateType is the type of the backing state store.
+	// Avoid using multiple values for this with the same containers/storage
+	// configuration on the same system. Different state types do not
+	// interact, and each will see a separate set of containers, which may
+	// cause conflicts in containers/storage
+	// As such this is not exposed via the config file
+	StateType RuntimeStateStore `toml:"-"`
+	// RuntimePath is the path to OCI runtime binary for launching
+	// containers
+	// The first path pointing to a valid file will be used
+	RuntimePath []string `toml:"runtime_path"`
+	// ConmonPath is the path to the Conmon binary used for managing
+	// containers
+	// The first path pointing to a valid file will be used
+	ConmonPath []string `toml:"conmon_path"`
+	// ConmonEnvVars are environment variables to pass to the Conmon binary
+	// when it is launched
+	ConmonEnvVars []string `toml:"conmon_env_vars"`
+	// CGroupManager is the CGroup Manager to use
+	// Valid values are "cgroupfs" and "systemd"
+	CgroupManager string `toml:"cgroup_manager"`
+	// StaticDir is the path to a persistent directory to store container
+	// files
+	StaticDir string `toml:"static_dir"`
+	// TmpDir is the path to a temporary directory to store per-boot
+	// container files
+	// Must be stored in a tmpfs
+	TmpDir string `toml:"tmp_dir"`
+	// MaxLogSize is the maximum size of container logfiles
+	MaxLogSize int64 `toml:"max_log_size,omitempty"`
+	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime
+	NoPivotRoot bool `toml:"no_pivot_root"`
+	// CNIConfigDir sets the directory where CNI configuration files are
+	// stored
+	CNIConfigDir string `toml:"cni_config_dir"`
+	// CNIPluginDir sets a number of directories where the CNI network
+	// plugins can be located
+	CNIPluginDir []string `toml:"cni_plugin_dir"`
 }
 
 var (
@@ -423,4 +462,16 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	info = append(info, InfoData{Type: "store", Data: storeInfo})
 
 	return info, nil
+}
+
+// SaveDefaultConfig saves a copy of the default config at the given path
+func SaveDefaultConfig(path string) error {
+	var w bytes.Buffer
+	e := toml.NewEncoder(&w)
+
+	if err := e.Encode(&defaultRuntimeConfig); err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, w.Bytes(), 0644)
 }
