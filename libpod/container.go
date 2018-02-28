@@ -466,7 +466,7 @@ func (c *Container) CgroupParent() string {
 
 // LogPath returns the path to the container's log file
 // This file will only be present after Init() is called to create the container
-// in runc
+// in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
 }
