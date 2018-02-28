@@ -89,7 +89,7 @@ var (
 		MaxLogSize:    -1,
 		NoPivotRoot:   false,
 		CNIConfigDir:  "/etc/cni/net.d/",
-		CNIPluginDir:  []string{"/usr/libexec/cni", "/opt/cni/bin"},
+		CNIPluginDir:  []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
 	}
 )
 
