@@ -143,7 +143,14 @@ type containerState struct {
 	SubnetMask string `json:"subnetMask"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
-	ExecSessions map[string]int `json:"execSessions,omitempty"`
+	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+}
+
+// ExecSession contains information on an active exec session
+type ExecSession struct {
+	ID      string   `json:"id"`
+	Command []string `json:"command"`
+	PID     int      `json:"pid"`
 }
 
 // ContainerConfig contains all information that was used to create the
@@ -593,8 +600,7 @@ func (c *Container) PID() (int, error) {
 }
 
 // ExecSessions retrieves active exec sessions running in the container
-// The result is a map from session ID to the PID of the exec process
-func (c *Container) ExecSessions() (map[string]int, error) {
+func (c *Container) ExecSessions() ([]string, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -604,12 +610,37 @@ func (c *Container) ExecSessions() (map[string]int, error) {
 		}
 	}
 
-	returnMap := make(map[string]int, len(c.state.ExecSessions))
-	for k, v := range c.state.ExecSessions {
-		returnMap[k] = v
+	ids := make([]string, 0, len(c.state.ExecSessions))
+	for id := range c.state.ExecSessions {
+		ids = append(ids, id)
 	}
 
-	return returnMap, nil
+	return ids, nil
+}
+
+// ExecSession retrieves detailed information on a single active exec session in
+// a container
+func (c *Container) ExecSession(id string) (*ExecSession, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	session, ok := c.state.ExecSessions[id]
+	if !ok {
+		return nil, errors.Wrapf(ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+	}
+
+	returnSession := new(ExecSession)
+	returnSession.ID = session.ID
+	returnSession.Command = session.Command
+	returnSession.PID = session.PID
+
+	return returnSession, nil
 }
 
 // Misc Accessors

@@ -338,7 +338,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	newState.IPAddress = ipAddress
 	newState.SubnetMask = subnetMask
 
-	newState.ExecSessions = make(map[string]int)
+	newState.ExecSessions = make(map[string]*ExecSession)
 	if err := json.Unmarshal([]byte(execSessions), &newState.ExecSessions); err != nil {
 		return errors.Wrapf(err, "error parsing container %s exec sessions", ctr.ID())
 	}

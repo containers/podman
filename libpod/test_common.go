@@ -49,13 +49,24 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			},
 		},
 		state: &containerState{
-			State:        ContainerStateRunning,
-			ConfigPath:   "/does/not/exist/specs/" + id,
-			RunDir:       "/does/not/exist/tmp/",
-			Mounted:      true,
-			Mountpoint:   "/does/not/exist/tmp/" + id,
-			PID:          1234,
-			ExecSessions: map[string]int{"abcd": 101, "ef01": 202},
+			State:      ContainerStateRunning,
+			ConfigPath: "/does/not/exist/specs/" + id,
+			RunDir:     "/does/not/exist/tmp/",
+			Mounted:    true,
+			Mountpoint: "/does/not/exist/tmp/" + id,
+			PID:        1234,
+			ExecSessions: map[string]*ExecSession{
+				"abcd": {
+					ID:      "1",
+					Command: []string{"2", "3"},
+					PID:     9876,
+				},
+				"ef01": {
+					ID:      "5",
+					Command: []string{"hello", "world"},
+					PID:     46765,
+				},
+			},
 		},
 		valid: true,
 	}

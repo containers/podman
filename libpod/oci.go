@@ -571,7 +571,8 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 
 	// Get a list of active exec sessions
 	execSessions := []int{}
-	for _, pid := range ctr.state.ExecSessions {
+	for _, session := range ctr.state.ExecSessions {
+		pid := session.PID
 		// Ping the PID with signal 0 to see if it still exists
 		if err := unix.Kill(pid, 0); err == unix.ESRCH {
 			continue

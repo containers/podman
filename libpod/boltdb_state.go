@@ -142,7 +142,7 @@ func (s *BoltState) Refresh() error {
 			state.State = ContainerStateConfigured
 			state.IPAddress = ""
 			state.SubnetMask = ""
-			state.ExecSessions = make(map[string]int)
+			state.ExecSessions = make(map[string]*ExecSession)
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {

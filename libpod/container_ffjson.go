@@ -2416,6 +2416,361 @@ done:
 }
 
 // MarshalJSON marshal bytes to json - template
+func (j *ExecSession) MarshalJSON() ([]byte, error) {
+	var buf fflib.Buffer
+	if j == nil {
+		buf.WriteString("null")
+		return buf.Bytes(), nil
+	}
+	err := j.MarshalJSONBuf(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// MarshalJSONBuf marshal buff to json - template
+func (j *ExecSession) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
+	if j == nil {
+		buf.WriteString("null")
+		return nil
+	}
+	var err error
+	var obj []byte
+	_ = obj
+	_ = err
+	buf.WriteString(`{"id":`)
+	fflib.WriteJsonString(buf, string(j.ID))
+	buf.WriteString(`,"command":`)
+	if j.Command != nil {
+		buf.WriteString(`[`)
+		for i, v := range j.Command {
+			if i != 0 {
+				buf.WriteString(`,`)
+			}
+			fflib.WriteJsonString(buf, string(v))
+		}
+		buf.WriteString(`]`)
+	} else {
+		buf.WriteString(`null`)
+	}
+	buf.WriteString(`,"pid":`)
+	fflib.FormatBits2(buf, uint64(j.PID), 10, j.PID < 0)
+	buf.WriteByte('}')
+	return nil
+}
+
+const (
+	ffjtExecSessionbase = iota
+	ffjtExecSessionnosuchkey
+
+	ffjtExecSessionID
+
+	ffjtExecSessionCommand
+
+	ffjtExecSessionPID
+)
+
+var ffjKeyExecSessionID = []byte("id")
+
+var ffjKeyExecSessionCommand = []byte("command")
+
+var ffjKeyExecSessionPID = []byte("pid")
+
+// UnmarshalJSON umarshall json - template of ffjson
+func (j *ExecSession) UnmarshalJSON(input []byte) error {
+	fs := fflib.NewFFLexer(input)
+	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
+}
+
+// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
+func (j *ExecSession) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
+	var err error
+	currentKey := ffjtExecSessionbase
+	_ = currentKey
+	tok := fflib.FFTok_init
+	wantedTok := fflib.FFTok_init
+
+mainparse:
+	for {
+		tok = fs.Scan()
+		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
+		if tok == fflib.FFTok_error {
+			goto tokerror
+		}
+
+		switch state {
+
+		case fflib.FFParse_map_start:
+			if tok != fflib.FFTok_left_bracket {
+				wantedTok = fflib.FFTok_left_bracket
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_key
+			continue
+
+		case fflib.FFParse_after_value:
+			if tok == fflib.FFTok_comma {
+				state = fflib.FFParse_want_key
+			} else if tok == fflib.FFTok_right_bracket {
+				goto done
+			} else {
+				wantedTok = fflib.FFTok_comma
+				goto wrongtokenerror
+			}
+
+		case fflib.FFParse_want_key:
+			// json {} ended. goto exit. woo.
+			if tok == fflib.FFTok_right_bracket {
+				goto done
+			}
+			if tok != fflib.FFTok_string {
+				wantedTok = fflib.FFTok_string
+				goto wrongtokenerror
+			}
+
+			kn := fs.Output.Bytes()
+			if len(kn) <= 0 {
+				// "" case. hrm.
+				currentKey = ffjtExecSessionnosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			} else {
+				switch kn[0] {
+
+				case 'c':
+
+					if bytes.Equal(ffjKeyExecSessionCommand, kn) {
+						currentKey = ffjtExecSessionCommand
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 'i':
+
+					if bytes.Equal(ffjKeyExecSessionID, kn) {
+						currentKey = ffjtExecSessionID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 'p':
+
+					if bytes.Equal(ffjKeyExecSessionPID, kn) {
+						currentKey = ffjtExecSessionPID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyExecSessionPID, kn) {
+					currentKey = ffjtExecSessionPID
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyExecSessionCommand, kn) {
+					currentKey = ffjtExecSessionCommand
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyExecSessionID, kn) {
+					currentKey = ffjtExecSessionID
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				currentKey = ffjtExecSessionnosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			}
+
+		case fflib.FFParse_want_colon:
+			if tok != fflib.FFTok_colon {
+				wantedTok = fflib.FFTok_colon
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_value
+			continue
+		case fflib.FFParse_want_value:
+
+			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
+				switch currentKey {
+
+				case ffjtExecSessionID:
+					goto handle_ID
+
+				case ffjtExecSessionCommand:
+					goto handle_Command
+
+				case ffjtExecSessionPID:
+					goto handle_PID
+
+				case ffjtExecSessionnosuchkey:
+					err = fs.SkipField(tok)
+					if err != nil {
+						return fs.WrapErr(err)
+					}
+					state = fflib.FFParse_after_value
+					goto mainparse
+				}
+			} else {
+				goto wantedvalue
+			}
+		}
+	}
+
+handle_ID:
+
+	/* handler: j.ID type=string kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.ID = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Command:
+
+	/* handler: j.Command type=[]string kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.Command = nil
+		} else {
+
+			j.Command = []string{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJCommand string
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJCommand type=string kind=string quoted=false*/
+
+				{
+
+					{
+						if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+							return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+						}
+					}
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						outBuf := fs.Output.Bytes()
+
+						tmpJCommand = string(string(outBuf))
+
+					}
+				}
+
+				j.Command = append(j.Command, tmpJCommand)
+
+				wantVal = false
+			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_PID:
+
+	/* handler: j.PID type=int kind=int quoted=false*/
+
+	{
+		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
+		}
+	}
+
+	{
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
+
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			j.PID = int(tval)
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+wantedvalue:
+	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+wrongtokenerror:
+	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
+tokerror:
+	if fs.BigError != nil {
+		return fs.WrapErr(fs.BigError)
+	}
+	err = fs.Error.ToError()
+	if err != nil {
+		return fs.WrapErr(err)
+	}
+	panic("ffjson-generated: unreachable, please report bug.")
+done:
+
+	return nil
+}
+
+// MarshalJSON marshal bytes to json - template
 func (j *containerState) MarshalJSON() ([]byte, error) {
 	var buf fflib.Buffer
 	if j == nil {
@@ -2517,18 +2872,11 @@ func (j *containerState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	fflib.WriteJsonString(buf, string(j.SubnetMask))
 	buf.WriteByte(',')
 	if len(j.ExecSessions) != 0 {
-		if j.ExecSessions == nil {
-			buf.WriteString(`"execSessions":null`)
-		} else {
-			buf.WriteString(`"execSessions":{ `)
-			for key, value := range j.ExecSessions {
-				fflib.WriteJsonString(buf, key)
-				buf.WriteString(`:`)
-				fflib.FormatBits2(buf, uint64(value), 10, value < 0)
-				buf.WriteByte(',')
-			}
-			buf.Rewind(1)
-			buf.WriteByte('}')
+		buf.WriteString(`"execSessions":`)
+		/* Falling back. type=map[string]*libpod.ExecSession kind=map */
+		err = buf.Encode(j.ExecSessions)
+		if err != nil {
+			return err
 		}
 		buf.WriteByte(',')
 	}
@@ -3239,7 +3587,7 @@ handle_SubnetMask:
 
 handle_ExecSessions:
 
-	/* handler: j.ExecSessions type=map[string]int kind=map quoted=false*/
+	/* handler: j.ExecSessions type=map[string]*libpod.ExecSession kind=map quoted=false*/
 
 	{
 
@@ -3253,7 +3601,7 @@ handle_ExecSessions:
 			j.ExecSessions = nil
 		} else {
 
-			j.ExecSessions = make(map[string]int, 0)
+			j.ExecSessions = make(map[string]*ExecSession, 0)
 
 			wantVal := true
 
@@ -3261,7 +3609,7 @@ handle_ExecSessions:
 
 				var k string
 
-				var tmpJExecSessions int
+				var tmpJExecSessions *ExecSession
 
 				tok = fs.Scan()
 				if tok == fflib.FFTok_error {
@@ -3310,29 +3658,25 @@ handle_ExecSessions:
 				}
 
 				tok = fs.Scan()
-				/* handler: tmpJExecSessions type=int kind=int quoted=false*/
+				/* handler: tmpJExecSessions type=*libpod.ExecSession kind=ptr quoted=false*/
 
 				{
-					if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-						return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
-					}
-				}
-
-				{
-
 					if tok == fflib.FFTok_null {
+
+						tmpJExecSessions = nil
 
 					} else {
 
-						tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
-
-						if err != nil {
-							return fs.WrapErr(err)
+						if tmpJExecSessions == nil {
+							tmpJExecSessions = new(ExecSession)
 						}
 
-						tmpJExecSessions = int(tval)
-
+						err = tmpJExecSessions.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
+						if err != nil {
+							return err
+						}
 					}
+					state = fflib.FFParse_after_value
 				}
 
 				j.ExecSessions[k] = tmpJExecSessions
