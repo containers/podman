@@ -97,6 +97,7 @@ endif
 	rm -f test/bin2img/bin2img
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
+	rm -fr build/
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
