@@ -40,7 +40,7 @@
 # https://github.com/projectatomic/libpod
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
-%global commit          367213a3943961126c6f7c1dce45c7fafea9e6b2
+%global commit          #COMMIT#
 %global shortcommit     %(c=%{commit}; echo ${c:0:7})
 
 Name:           podman
@@ -49,7 +49,7 @@ Release:        git%{shortcommit}%{?dist}
 Summary:        Manage Pods, Containers and Container Images
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
-Source0:        https://%{provider_prefix}/%{version}.tar.gz
+Source0:        https://%{provider_prefix}/podman-%{shortcommit}.tar.gz
 
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
@@ -347,7 +347,7 @@ providing packages with %{import_path} prefix.
 %endif
 
 %prep
-%autosetup -Sgit
+%autosetup -Sgit -n podman-%{shortcommit}
 sed -i '/\/bin\/bash/d' completions/bash/%{name}
 
 %build

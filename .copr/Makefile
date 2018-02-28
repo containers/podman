@@ -1,28 +1,7 @@
 #!/usr/bin/make -f
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
 
-spec := contrib/spec/podman.spec
-outdir := $(CURDIR)
-tmpdir := build
-gitdir := $(PWD)/.git
-
-rev := $(shell git rev-list HEAD | head -n1 | cut -c -7)
-date := $(shell date +%Y%m%d.%H%M)
-
-version := $(shell sed -n '/Version:/{s/.* //;p}' $(spec))
-release := $(date).git.$(rev)
-
-srpm: $(outdir)/podman-$(version)-$(release).src.rpm
-
-$(tmpdir)/podman.spec: $(spec)
-	@mkdir -p $(tmpdir)
-	sed '/^Release:/s/\(: *\).*/\1$(release)%{?dist}/' $< >$@
-
-$(tmpdir)/$(version).tar.gz: $(gitdir)/..
-	@mkdir -p $(tmpdir)
-	tar c --exclude-vcs --exclude-vcs-ignores -C $< --transform 's|^\.|podman-$(version)|' . | gzip -9 >$@
-
-$(outdir)/podman-$(version)-$(release).src.rpm: $(tmpdir)/podman.spec $(tmpdir)/$(version).tar.gz
-	@mkdir -p $(outdir)
-	rpmbuild -D'_srcrpmdir $(outdir)' -D'_sourcedir $(tmpdir)' -bs $(tmpdir)/podman.spec
-
-.PHONY: srpm
+srpm:
+	sh $(current_dir)/prepare.sh
+	rpmbuild -bs -D "dist %{nil}" -D "_sourcedir build/" -D "_srcrpmdir ./" --nodeps contrib/spec/podman.spec
