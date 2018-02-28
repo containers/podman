@@ -162,11 +162,11 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 			return err
 		}
 
-		// Delete the container from runc (only if we are not
+		// Delete the container from runtime (only if we are not
 		// ContainerStateConfigured)
 		if ctr.state.State != ContainerStateConfigured {
 			if err := r.ociRuntime.deleteContainer(ctr); err != nil {
-				return errors.Wrapf(err, "error removing container %s from runc", ctr.ID())
+				return errors.Wrapf(err, "error removing container %s from runtime", ctr.ID())
 			}
 		}
 

@@ -36,7 +36,8 @@ const (
 	// ContainerCreateTimeout represents the value of container creating timeout
 	ContainerCreateTimeout = 240 * time.Second
 
-	// Timeout before declaring that runc has failed to kill a given container
+	// Timeout before declaring that runtime has failed to kill a given
+	// container
 	killContainerTimeout = 5 * time.Second
 	// DefaultShmSize is the default shm size
 	DefaultShmSize = 64 * 1024 * 1024
@@ -299,7 +300,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	defer func() {
 		if err != nil {
 			if err2 := r.deleteContainer(ctr); err2 != nil {
-				logrus.Errorf("Error removing container %s from runc after creation failed", ctr.ID())
+				logrus.Errorf("Error removing container %s from runtime after creation failed", ctr.ID())
 			}
 		}
 	}()
@@ -366,7 +367,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	case "stopped":
 		ctr.state.State = ContainerStateStopped
 	default:
-		return errors.Wrapf(ErrInternal, "unrecognized status returned by runc for container %s: %s",
+		return errors.Wrapf(ErrInternal, "unrecognized status returned by runtime for container %s: %s",
 			ctr.ID(), state.Status)
 	}
 
@@ -477,7 +478,7 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		return errors.Wrapf(err, "error sending SIGKILL to container %s", ctr.ID())
 	}
 
-	// Give runc a few seconds to make it happen
+	// Give runtime a few seconds to make it happen
 	if err := waitContainerStop(ctr, killContainerTimeout); err != nil {
 		return err
 	}
@@ -485,7 +486,7 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	return nil
 }
 
-// deleteContainer deletes a container from runc
+// deleteContainer deletes a container from the OCI runtime
 func (r *OCIRuntime) deleteContainer(ctr *Container) error {
 	_, err := utils.ExecCmd(r.path, "delete", "--force", ctr.ID())
 	return err

@@ -117,7 +117,7 @@ func (c *Container) Init() (err error) {
 		return err
 	}
 
-	logrus.Debugf("Created container %s in runc", c.ID())
+	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
 	c.state.State = ContainerStateCreated
 
@@ -275,10 +275,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	pidFile := c.execPidPath(sessionID)
 	const pidWaitTimeout = 250
 
-	// Wait until runc makes the pidfile
-	// TODO: If runc errors before the PID file is created, we have to wait for timeout here
+	// Wait until the runtime makes the pidfile
+	// TODO: If runtime errors before the PID file is created, we have to
+	// wait for timeout here
 	if err := WaitForFile(pidFile, pidWaitTimeout*time.Millisecond); err != nil {
-		logrus.Debugf("Timed out waiting for pidfile from runc for container %s exec", c.ID())
+		logrus.Debugf("Timed out waiting for pidfile from runtime for container %s exec", c.ID())
 
 		// Check if an error occurred in the process before we made a pidfile
 		// TODO: Wait() here is a poor choice - is there a way to see if
@@ -287,7 +288,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 			return err
 		}
 
-		return errors.Wrapf(err, "timed out waiting for runc to create pidfile for exec session in container %s", c.ID())
+		return errors.Wrapf(err, "timed out waiting for runtime to create pidfile for exec session in container %s", c.ID())
 	}
 
 	// Pidfile exists, read it
@@ -693,7 +694,7 @@ func (c *Container) Sync() error {
 		return nil
 	}
 
-	// If runc knows about the container, update its status in runc
+	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
 		(c.state.State != ContainerStateConfigured) {
