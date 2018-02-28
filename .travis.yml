@@ -45,4 +45,5 @@ jobs:
         - make integration
       go: 1.8.x
 
-irc: "chat.freenode.net#podman"
+notifications:
+  irc: "chat.freenode.net#podman"
