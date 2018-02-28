@@ -778,11 +778,11 @@ func (r *layerStore) findParentAndLayer(from, to string) (fromID string, toID st
 }
 
 func (r *layerStore) Changes(from, to string) ([]archive.Change, error) {
-	from, to, _, err := r.findParentAndLayer(from, to)
+	from, to, toLayer, err := r.findParentAndLayer(from, to)
 	if err != nil {
 		return nil, ErrLayerUnknown
 	}
-	return r.driver.Changes(to, from)
+	return r.driver.Changes(to, from, toLayer.MountLabel)
 }
 
 type simpleGetCloser struct {
@@ -855,7 +855,7 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 	}
 
 	if from != toLayer.Parent {
-		diff, err := r.driver.Diff(to, from)
+		diff, err := r.driver.Diff(to, from, toLayer.MountLabel)
 		if err != nil {
 			return nil, err
 		}
@@ -867,7 +867,7 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		diff, err := r.driver.Diff(to, from)
+		diff, err := r.driver.Diff(to, from, toLayer.MountLabel)
 		if err != nil {
 			return nil, err
 		}
@@ -906,11 +906,12 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 }
 
 func (r *layerStore) DiffSize(from, to string) (size int64, err error) {
-	from, to, _, err = r.findParentAndLayer(from, to)
+	var toLayer *Layer
+	from, to, toLayer, err = r.findParentAndLayer(from, to)
 	if err != nil {
 		return -1, ErrLayerUnknown
 	}
-	return r.driver.DiffSize(to, from)
+	return r.driver.DiffSize(to, from, toLayer.MountLabel)
 }
 
 func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error) {
@@ -950,7 +951,7 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	if err != nil {
 		return -1, err
 	}
-	size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, payload)
+	size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, layer.MountLabel, payload)
 	if err != nil {
 		return -1, err
 	}
