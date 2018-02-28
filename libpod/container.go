@@ -632,7 +632,7 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
-	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
+	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s/%s", c.ID(), c.ID())))
 }
 
 // RootFsSize returns the root FS size of the container
