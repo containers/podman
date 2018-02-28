@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/opencontainers/runc/libcontainer"
+	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/vishvananda/netlink"
 )
 
 // ContainerStats contains the statistics information for a running container
@@ -55,6 +57,11 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		return stats, errors.Wrapf(err, "unable to determine container state")
 	}
 
+	netStats, err := getContainerNetIO(c)
+	if err != nil {
+		return nil, err
+	}
+
 	previousCPU := previousStats.CPUNano
 	previousSystem := previousStats.SystemNano
 	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, previousSystem)
@@ -63,13 +70,14 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
 	if conState == ContainerStateRunning {
-		stats.PIDs = cgroupStats.Pids.Current - 1
+		stats.PIDs = cgroupStats.Pids.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
 	stats.SystemNano = cgroupStats.CPU.Usage.Kernel
-	// TODO Figure out where to get the Netout stuff.
-	//stats.NetInput, stats.NetOutput = getContainerNetIO(cgroupStats)
+	stats.NetInput = netStats.TxBytes
+	stats.NetOutput = netStats.RxBytes
+
 	return stats, nil
 }
 
@@ -90,13 +98,17 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 	return cgroupLimit
 }
 
-// Returns the total number of bytes transmitted and received for the given container stats
-func getContainerNetIO(stats *libcontainer.Stats) (received uint64, transmitted uint64) { //nolint
-	for _, iface := range stats.Interfaces {
-		received += iface.RxBytes
-		transmitted += iface.TxBytes
-	}
-	return
+func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
+	var netStats *netlink.LinkStatistics
+	err := ns.WithNetNSPath(ctr.state.NetNS.Path(), func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
+		if err != nil {
+			return err
+		}
+		netStats = link.Attrs().Statistics
+		return nil
+	})
+	return netStats, err
 }
 
 func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uint64) float64 {
