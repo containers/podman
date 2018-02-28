@@ -620,7 +620,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		return nil, errors.Wrapf(err, "error parsing container %s DNS server JSON", id)
 	}
 
-	ctr.state.ExecSessions = make(map[string]int)
+	ctr.state.ExecSessions = make(map[string]*ExecSession)
 	if err := json.Unmarshal([]byte(execSessions), &ctr.state.ExecSessions); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s exec sessions JSON", id)
 	}

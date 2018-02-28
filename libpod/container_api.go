@@ -307,9 +307,13 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	// We have the PID, add it to state
 	if c.state.ExecSessions == nil {
-		c.state.ExecSessions = make(map[string]int)
+		c.state.ExecSessions = make(map[string]*ExecSession)
 	}
-	c.state.ExecSessions[sessionID] = int(pid)
+	session := new(ExecSession)
+	session.ID = sessionID
+	session.Command = cmd
+	session.PID = int(pid)
+	c.state.ExecSessions[sessionID] = session
 	if err := c.save(); err != nil {
 		// Now we have a PID but we can't save it in the DB
 		// TODO handle this better
