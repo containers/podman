@@ -44,7 +44,11 @@ const (
 	// If it is not present, the builtin default config is used instead
 	// This path can be overridden when the runtime is created by using
 	// NewRuntimeFromConfig() instead of NewRuntime()
-	ConfigPath = "/etc/containers/libpod.conf"
+	ConfigPath = "/usr/share/containers/libpod.conf"
+	// OverrideConfigPath is the path to an override for the default libpod
+	// configuration file. If OverrideConfigPath exists, it will be used in
+	// place of the configuration file pointed to by ConfigPath.
+	OverrideConfigPath = "/etc/containers/libpod.conf"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -163,20 +167,24 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// Copy the default configuration
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 
-	// Now overwrite it with the given configuration file, if it exists
-	// Do not fail on error, instead just use the builtin defaults
-	if _, err := os.Stat(ConfigPath); err == nil {
-		// Read the contents of the config file
-		contents, err := ioutil.ReadFile(ConfigPath)
-		if err == nil {
-			// Only proceed if we successfully read the file
-			_, err := toml.Decode(string(contents), runtime.config)
-			if err != nil {
-				// We may have just ruined our RuntimeConfig
-				// Make a new one to be safe
-				runtime.config = new(RuntimeConfig)
-				deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
-			}
+	configPath := ConfigPath
+	foundConfig := true
+	if _, err := os.Stat(OverrideConfigPath); err == nil {
+		// Use the override configuration path
+		configPath = OverrideConfigPath
+	} else if _, err := os.Stat(ConfigPath); err != nil {
+		// Both stat checks failed, no config found
+		foundConfig = false
+	}
+
+	// If we have a valid configuration file, load it in
+	if foundConfig {
+		contents, err := ioutil.ReadFile(configPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
+		}
+		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
+			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
 		}
 	}
 
