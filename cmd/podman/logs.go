@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -104,7 +105,24 @@ func logsCmd(c *cli.Context) error {
 		return err
 	}
 
-	file, err := os.Open(ctr.LogPath())
+	logPath := ctr.LogPath()
+
+	state, err := ctr.State()
+	if err != nil {
+		return err
+	}
+
+	// If the log file does not exist yet and the container is in the
+	// Configured state, it has never been started before and no logs exist
+	// Exit cleanly in this case
+	if _, err := os.Stat(logPath); err != nil {
+		if state == libpod.ContainerStateConfigured {
+			logrus.Debugf("Container has not been created, no logs exist yet")
+			return nil
+		}
+	}
+
+	file, err := os.Open(logPath)
 	if err != nil {
 		return errors.Wrapf(err, "unable to read container log file")
 	}
