@@ -10,9 +10,9 @@ PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
+SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
-ETCDIR_CONTAINERS ?= ${ETCDIR}/containers
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
@@ -151,7 +151,7 @@ install.man: docs
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 
 install.config:
-	install ${SELINUXOPT} -D -m 644 libpod.conf ${ETCDIR_CONTAINERS}/libpod.conf
+	install ${SELINUXOPT} -D -m 644 libpod.conf ${SHAREDIR_CONTAINERS}/libpod.conf
 	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_LIBPOD)/seccomp.json
 	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 
