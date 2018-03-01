@@ -37,6 +37,14 @@ const (
 	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
 	// SeccompOverridePath if this exists it overrides the default seccomp path
 	SeccompOverridePath = "/etc/crio/seccomp.json"
+
+	// ConfigPath is the path to the libpod configuration file
+	// This file is loaded to replace the builtin default config before
+	// runtime options (e.g. WithStorageConfig) are applied.
+	// If it is not present, the builtin default config is used instead
+	// This path can be overridden when the runtime is created by using
+	// NewRuntimeFromConfig() instead of NewRuntime()
+	ConfigPath = "/etc/containers/libpod.conf"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -155,13 +163,83 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// Copy the default configuration
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 
-	// Overwrite it with user-given configuration options
+	// Now overwrite it with the given configuration file, if it exists
+	// Do not fail on error, instead just use the builtin defaults
+	if _, err := os.Stat(ConfigPath); err == nil {
+		// Read the contents of the config file
+		contents, err := ioutil.ReadFile(ConfigPath)
+		if err == nil {
+			// Only proceed if we successfully read the file
+			_, err := toml.Decode(string(contents), runtime.config)
+			if err != nil {
+				// We may have just ruined our RuntimeConfig
+				// Make a new one to be safe
+				runtime.config = new(RuntimeConfig)
+				deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
+			}
+		}
+	}
+
+	// Overwrite config with user-given configuration options
 	for _, opt := range options {
 		if err := opt(runtime); err != nil {
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
 
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
+	}
+
+	return runtime, nil
+}
+
+// NewRuntimeFromConfig creates a new container runtime using the given
+// configuration file for its default configuration. Passed RuntimeOption
+// functions can be used to mutate this configuration further.
+// An error will be returned if the configuration file at the given path does
+// not exist or cannot be loaded
+func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+	runtime = new(Runtime)
+	runtime.config = new(RuntimeConfig)
+
+	// Set two fields not in the TOML config
+	runtime.config.StateType = defaultRuntimeConfig.StateType
+	runtime.config.StorageConfig = storage.StoreOptions{}
+
+	// Check to see if the given configuration file exists
+	if _, err := os.Stat(configPath); err != nil {
+		return nil, errors.Wrapf(err, "error stating configuration file %s", configPath)
+	}
+
+	// Read contents of the config file
+	contents, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
+	}
+
+	// Decode configuration file
+	if _, err := toml.Decode(string(contents), runtime.config); err != nil {
+		return nil, errors.Wrapf(err, "error decoding configuration from file %s", configPath)
+	}
+
+	// Overwrite the config with user-given configuration options
+	for _, opt := range options {
+		if err := opt(runtime); err != nil {
+			return nil, errors.Wrapf(err, "error configuring runtime")
+		}
+	}
+
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
+	}
+
+	return runtime, nil
+}
+
+// Make a new runtime based on the given configuration
+// Sets up containers/storage, state store, OCI runtime
+func makeRuntime(runtime *Runtime) error {
 	// Find a working OCI runtime binary
 	foundRuntime := false
 	for _, path := range runtime.config.RuntimePath {
@@ -177,7 +255,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		break
 	}
 	if !foundRuntime {
-		return nil, errors.Wrapf(ErrInvalidArg,
+		return errors.Wrapf(ErrInvalidArg,
 			"could not find a working runc binary (configured options: %v)",
 			runtime.config.RuntimePath)
 	}
@@ -197,7 +275,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		break
 	}
 	if !foundConmon {
-		return nil, errors.Wrapf(ErrInvalidArg,
+		return errors.Wrapf(ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
 			runtime.config.RuntimePath)
 	}
@@ -205,7 +283,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// Set up containers/storage
 	store, err := storage.GetStore(runtime.config.StorageConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	runtime.store = store
 	is.Transport.SetStore(store)
@@ -224,7 +302,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// images
 	storageService, err := getStorageService(runtime.store)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	runtime.storageService = storageService
 
@@ -239,7 +317,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	runtime.ociRuntime = ociRuntime
 
@@ -247,7 +325,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err := os.MkdirAll(runtime.config.StaticDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating runtime static files directory %s",
+			return errors.Wrapf(err, "error creating runtime static files directory %s",
 				runtime.config.StaticDir)
 		}
 	}
@@ -257,7 +335,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating runtime lockfiles directory %s",
+			return errors.Wrapf(err, "error creating runtime lockfiles directory %s",
 				lockDir)
 		}
 	}
@@ -267,7 +345,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating runtime temporary files directory %s",
+			return errors.Wrapf(err, "error creating runtime temporary files directory %s",
 				runtime.config.TmpDir)
 		}
 	}
@@ -275,7 +353,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// Set up the CNI net plugin
 	netPlugin, err := ocicni.InitCNI(runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error configuring CNI network plugin")
+		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}
 	runtime.netPlugin = netPlugin
 
@@ -284,7 +362,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	case InMemoryStateStore:
 		state, err := NewInMemoryState()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		runtime.state = state
 	case SQLiteStateStore:
@@ -295,14 +373,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if err := os.MkdirAll(specsDir, 0755); err != nil {
 			// The directory is allowed to exist
 			if !os.IsExist(err) {
-				return nil, errors.Wrapf(err, "error creating runtime OCI specs directory %s",
+				return errors.Wrapf(err, "error creating runtime OCI specs directory %s",
 					specsDir)
 			}
 		}
 
 		state, err := NewSQLState(dbPath, specsDir, runtime.lockDir, runtime)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		runtime.state = state
 	case BoltDBStateStore:
@@ -310,11 +388,11 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		runtime.state = state
 	default:
-		return nil, errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
+		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
 	// We now need to see if the system has restarted
@@ -324,7 +402,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
 	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error acquiring runtime init lock")
+		return errors.Wrapf(err, "error acquiring runtime init lock")
 	}
 	// Acquire the lock and hold it until we return
 	// This ensures that no two processes will be in runtime.refresh at once
@@ -340,10 +418,10 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		// As such, it's not really a performance concern
 		if os.IsNotExist(err) {
 			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-				return nil, err2
+				return err2
 			}
 		} else {
-			return nil, errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
 		}
 	}
 
@@ -351,7 +429,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	// further
 	runtime.valid = true
 
-	return runtime, nil
+	return nil
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
