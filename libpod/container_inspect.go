@@ -20,6 +20,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		args = args[1:]
 	}
 
+	execIDs := []string{}
+	for id := range c.state.ExecSessions {
+		execIDs = append(execIDs, id)
+	}
+
 	data := &inspect.ContainerInspectData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
@@ -50,7 +55,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		MountLabel:      config.MountLabel,
 		ProcessLabel:    spec.Process.SelinuxLabel,
 		AppArmorProfile: spec.Process.ApparmorProfile,
-		ExecIDs:         []string{}, //TODO
+		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
 		Mounts:          spec.Mounts,
 		NetworkSettings: &inspect.NetworkSettings{

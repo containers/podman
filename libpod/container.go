@@ -141,6 +141,16 @@ type containerState struct {
 	IPAddress string `json:"ipAddress"`
 	// Subnet mask of container (if network namespace was created)
 	SubnetMask string `json:"subnetMask"`
+	// ExecSessions contains active exec sessions for container
+	// Exec session ID is mapped to PID of exec process
+	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+}
+
+// ExecSession contains information on an active exec session
+type ExecSession struct {
+	ID      string   `json:"id"`
+	Command []string `json:"command"`
+	PID     int      `json:"pid"`
 }
 
 // ContainerConfig contains all information that was used to create the
@@ -456,7 +466,7 @@ func (c *Container) CgroupParent() string {
 
 // LogPath returns the path to the container's log file
 // This file will only be present after Init() is called to create the container
-// in runc
+// in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
 }
@@ -574,7 +584,8 @@ func (c *Container) OOMKilled() (bool, error) {
 }
 
 // PID returns the PID of the container
-// An error is returned if the container is not running
+// If the container is not running, a pid of 0 will be returned. No error will
+// occur.
 func (c *Container) PID() (int, error) {
 	if !c.locked {
 		c.lock.Lock()
@@ -586,6 +597,50 @@ func (c *Container) PID() (int, error) {
 	}
 
 	return c.state.PID, nil
+}
+
+// ExecSessions retrieves active exec sessions running in the container
+func (c *Container) ExecSessions() ([]string, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	ids := make([]string, 0, len(c.state.ExecSessions))
+	for id := range c.state.ExecSessions {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+// ExecSession retrieves detailed information on a single active exec session in
+// a container
+func (c *Container) ExecSession(id string) (*ExecSession, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	session, ok := c.state.ExecSessions[id]
+	if !ok {
+		return nil, errors.Wrapf(ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+	}
+
+	returnSession := new(ExecSession)
+	returnSession.ID = session.ID
+	returnSession.Command = session.Command
+	returnSession.PID = session.PID
+
+	return returnSession, nil
 }
 
 // Misc Accessors

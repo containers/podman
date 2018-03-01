@@ -2,10 +2,11 @@ package libpod
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/stringid"
@@ -116,7 +117,7 @@ func (c *Container) Init() (err error) {
 		return err
 	}
 
-	logrus.Debugf("Created container %s in runc", c.ID())
+	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
 	c.state.State = ContainerStateCreated
 
@@ -213,12 +214,21 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
+// TODO allow specifying streams to attach to
+// TODO investigate allowing exec without attaching
 func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
 	var capList []string
 
+	locked := false
 	if !c.locked {
+		locked = true
+
 		c.lock.Lock()
-		defer c.lock.Unlock()
+		defer func() {
+			if locked {
+				c.lock.Unlock()
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -227,27 +237,112 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	conState := c.state.State
 
+	// TODO can probably relax this once we track exec sessions
 	if conState != ContainerStateRunning {
-		return errors.Errorf("cannot attach to container that is not running")
+		return errors.Errorf("cannot exec into container that is not running")
 	}
-	if privileged {
+	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
 	}
-	globalOpts := runcGlobalOptions{
-		log: c.LogPath(),
+
+	// Generate exec session ID
+	// Ensure we don't conflict with an existing session ID
+	sessionID := stringid.GenerateNonCryptoID()
+	found := true
+	// This really ought to be a do-while, but Go doesn't have those...
+	for found {
+		found = false
+		for id := range c.state.ExecSessions {
+			if id == sessionID {
+				found = true
+				break
+			}
+		}
+		if found == true {
+			sessionID = stringid.GenerateNonCryptoID()
+		}
 	}
 
-	execOpts := runcExecOptions{
-		capAdd:     capList,
-		pidFile:    filepath.Join(c.state.RunDir, fmt.Sprintf("%s-execpid", stringid.GenerateNonCryptoID()[:12])),
-		env:        env,
-		noNewPrivs: c.config.Spec.Process.NoNewPrivileges,
-		user:       user,
-		cwd:        c.config.Spec.Process.Cwd,
-		tty:        tty,
+	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, user, sessionID)
+	if err != nil {
+		return errors.Wrapf(err, "error creating exec command for container %s", c.ID())
 	}
 
-	return c.runtime.ociRuntime.execContainer(c, cmd, globalOpts, execOpts)
+	if err := execCmd.Start(); err != nil {
+		return errors.Wrapf(err, "error starting exec command for container %s", c.ID())
+	}
+
+	pidFile := c.execPidPath(sessionID)
+	const pidWaitTimeout = 250
+
+	// Wait until the runtime makes the pidfile
+	// TODO: If runtime errors before the PID file is created, we have to
+	// wait for timeout here
+	if err := WaitForFile(pidFile, pidWaitTimeout*time.Millisecond); err != nil {
+		logrus.Debugf("Timed out waiting for pidfile from runtime for container %s exec", c.ID())
+
+		// Check if an error occurred in the process before we made a pidfile
+		// TODO: Wait() here is a poor choice - is there a way to see if
+		// a process has finished, instead of waiting for it to finish?
+		if err := execCmd.Wait(); err != nil {
+			return err
+		}
+
+		return errors.Wrapf(err, "timed out waiting for runtime to create pidfile for exec session in container %s", c.ID())
+	}
+
+	// Pidfile exists, read it
+	contents, err := ioutil.ReadFile(pidFile)
+	if err != nil {
+		// We don't know the PID of the exec session
+		// However, it may still be alive
+		// TODO handle this better
+		return errors.Wrapf(err, "could not read pidfile for exec session %s in container %s", sessionID, c.ID())
+	}
+	pid, err := strconv.ParseInt(string(contents), 10, 32)
+	if err != nil {
+		// As above, we don't have a valid PID, but the exec session is likely still alive
+		// TODO handle this better
+		return errors.Wrapf(err, "error parsing PID of exec session %s in container %s", sessionID, c.ID())
+	}
+
+	// We have the PID, add it to state
+	if c.state.ExecSessions == nil {
+		c.state.ExecSessions = make(map[string]*ExecSession)
+	}
+	session := new(ExecSession)
+	session.ID = sessionID
+	session.Command = cmd
+	session.PID = int(pid)
+	c.state.ExecSessions[sessionID] = session
+	if err := c.save(); err != nil {
+		// Now we have a PID but we can't save it in the DB
+		// TODO handle this better
+		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
+	}
+
+	// Unlock so other processes can use the container
+	c.lock.Unlock()
+	locked = false
+
+	waitErr := execCmd.Wait()
+
+	// Lock again
+	locked = true
+	c.lock.Lock()
+
+	// Sync the container again to pick up changes in state
+	if err := c.syncContainer(); err != nil {
+		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+	}
+
+	// Remove the exec session from state
+	delete(c.state.ExecSessions, sessionID)
+	if err := c.save(); err != nil {
+		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
+	}
+
+	return waitErr
 }
 
 // Attach attaches to a container
@@ -510,9 +605,8 @@ func (c *Container) Wait() (int32, error) {
 			}
 			if !stopped {
 				return false, nil
-			} else { // nolint
-				return true, nil // nolint
-			} // nolint
+			}
+			return true, nil
 		},
 	)
 	if err != nil {
@@ -531,6 +625,16 @@ func (c *Container) Cleanup() error {
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
+	}
+
+	// Check if state is good
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
+	}
+
+	// Check if we have active exec sessions
+	if len(c.state.ExecSessions) != 0 {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
 
 	// Stop the container's network namespace (if it has one)
@@ -590,7 +694,7 @@ func (c *Container) Sync() error {
 		return nil
 	}
 
-	// If runc knows about the container, update its status in runc
+	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
 		(c.state.State != ContainerStateConfigured) {

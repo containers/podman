@@ -36,7 +36,8 @@ const (
 	// ContainerCreateTimeout represents the value of container creating timeout
 	ContainerCreateTimeout = 240 * time.Second
 
-	// Timeout before declaring that runc has failed to kill a given container
+	// Timeout before declaring that runtime has failed to kill a given
+	// container
 	killContainerTimeout = 5 * time.Second
 	// DefaultShmSize is the default shm size
 	DefaultShmSize = 64 * 1024 * 1024
@@ -144,6 +145,40 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 	case <-time.After(timeout):
 		close(chControl)
 		return errors.Errorf("container %s did not die within timeout", ctr.ID())
+	}
+}
+
+// Wait for a set of given PIDs to stop
+func waitPidsStop(pids []int, timeout time.Duration) error {
+	done := make(chan struct{})
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				allClosed := true
+				for _, pid := range pids {
+					if err := unix.Kill(pid, 0); err != unix.ESRCH {
+						allClosed = false
+						break
+					}
+				}
+				if allClosed {
+					close(done)
+					return
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		close(chControl)
+		return errors.Errorf("given PIDs did not die within timeout")
 	}
 }
 
@@ -265,7 +300,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	defer func() {
 		if err != nil {
 			if err2 := r.deleteContainer(ctr); err2 != nil {
-				logrus.Errorf("Error removing container %s from runc after creation failed", ctr.ID())
+				logrus.Errorf("Error removing container %s from runtime after creation failed", ctr.ID())
 			}
 		}
 	}()
@@ -332,7 +367,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	case "stopped":
 		ctr.state.State = ContainerStateStopped
 	default:
-		return errors.Wrapf(ErrInternal, "unrecognized status returned by runc for container %s: %s",
+		return errors.Wrapf(ErrInternal, "unrecognized status returned by runtime for container %s: %s",
 			ctr.ID(), state.Status)
 	}
 
@@ -443,7 +478,7 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		return errors.Wrapf(err, "error sending SIGKILL to container %s", ctr.ID())
 	}
 
-	// Give runc a few seconds to make it happen
+	// Give runtime a few seconds to make it happen
 	if err := waitContainerStop(ctr, killContainerTimeout); err != nil {
 		return err
 	}
@@ -451,7 +486,7 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	return nil
 }
 
-// deleteContainer deletes a container from runc
+// deleteContainer deletes a container from the OCI runtime
 func (r *OCIRuntime) deleteContainer(ctr *Container) error {
 	_, err := utils.ExecCmd(r.path, "delete", "--force", ctr.ID())
 	return err
@@ -467,8 +502,120 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "resume", ctr.ID())
 }
 
-//execContiner executes a command in a running container
-func (r *OCIRuntime) execContainer(c *Container, cmd []string, globalOpts runcGlobalOptions, commandOpts runcExecOptions) error {
-	r.RuncExec(c, cmd, globalOpts, commandOpts)
+// execContainer executes a command in a running container
+// TODO: Add --detach support
+// TODO: Convert to use conmon
+// TODO: add --pid-file and use that to generate exec session tracking
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, user, sessionID string) (*exec.Cmd, error) {
+	if len(cmd) == 0 {
+		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
+	}
+
+	if sessionID == "" {
+		return nil, errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
+	}
+
+	args := []string{}
+
+	// TODO - should we maintain separate logpaths for exec sessions?
+	args = append(args, "--log", c.LogPath())
+
+	args = append(args, "exec")
+
+	args = append(args, "--cwd", c.config.Spec.Process.Cwd)
+
+	args = append(args, "--pid-file", c.execPidPath(sessionID))
+
+	if tty {
+		args = append(args, "--tty")
+	}
+
+	if user != "" {
+		args = append(args, "--user", user)
+	}
+
+	if c.config.Spec.Process.NoNewPrivileges {
+		args = append(args, "--no-new-privs")
+	}
+
+	for _, cap := range capAdd {
+		args = append(args, "--cap", cap)
+	}
+
+	for _, envVar := range env {
+		args = append(args, "--env", envVar)
+	}
+
+	// Append container ID and command
+	args = append(args, c.ID())
+	args = append(args, cmd...)
+
+	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
+
+	execCmd := exec.Command(r.path, args...)
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+	execCmd.Stdin = os.Stdin
+
+	return execCmd, nil
+}
+
+// execStopContainer stops all active exec sessions in a container
+// It will also stop all other processes in the container. It is only intended
+// to be used to assist in cleanup when removing a container.
+// SIGTERM is used by default to stop processes. If SIGTERM fails, SIGKILL will be used.
+func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
+	// Do we have active exec sessions?
+	if len(ctr.state.ExecSessions) == 0 {
+		return nil
+	}
+
+	// Get a list of active exec sessions
+	execSessions := []int{}
+	for _, session := range ctr.state.ExecSessions {
+		pid := session.PID
+		// Ping the PID with signal 0 to see if it still exists
+		if err := unix.Kill(pid, 0); err == unix.ESRCH {
+			continue
+		}
+
+		execSessions = append(execSessions, pid)
+	}
+
+	// All the sessions may be dead
+	// If they are, just return
+	if len(execSessions) == 0 {
+		return nil
+	}
+
+	// If timeout is 0, just use SIGKILL
+	if timeout > 0 {
+		// Stop using SIGTERM by default
+		// Use SIGSTOP after a timeout
+		logrus.Debugf("Killing all processes in container %s with SIGTERM", ctr.ID())
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "TERM"); err != nil {
+			return errors.Wrapf(err, "error sending SIGTERM to container %s processes", ctr.ID())
+		}
+
+		// Wait for all processes to stop
+		if err := waitPidsStop(execSessions, time.Duration(timeout)*time.Second); err != nil {
+			logrus.Warnf("Timed out stopping container %s exec sessions", ctr.ID())
+		} else {
+			// No error, all exec sessions are dead
+			return nil
+		}
+	}
+
+	// Send SIGKILL
+	logrus.Debugf("Killing all processes in container %s with SIGKILL", ctr.ID())
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+		return errors.Wrapf(err, "error sending SIGKILL to container %s processes", ctr.ID())
+	}
+
+	// Give the processes a few seconds to go down
+	if err := waitPidsStop(execSessions, killContainerTimeout); err != nil {
+		return errors.Wrapf(err, "failed to kill container %s exec sessions", ctr.ID())
+	}
+
 	return nil
 }

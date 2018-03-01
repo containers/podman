@@ -55,6 +55,18 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			Mounted:    true,
 			Mountpoint: "/does/not/exist/tmp/" + id,
 			PID:        1234,
+			ExecSessions: map[string]*ExecSession{
+				"abcd": {
+					ID:      "1",
+					Command: []string{"2", "3"},
+					PID:     9876,
+				},
+				"ef01": {
+					ID:      "5",
+					Command: []string{"hello", "world"},
+					PID:     46765,
+				},
+			},
 		},
 		valid: true,
 	}

@@ -100,7 +100,12 @@ func (c *Container) attachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
 }
 
-// Sync this container with on-disk state and runc status
+// Get PID file path for a container's exec session
+func (c *Container) execPidPath(sessionID string) string {
+	return filepath.Join(c.state.RunDir, "exec_pid_"+sessionID)
+}
+
+// Sync this container with on-disk state and runtime status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and
 // it is valid for use.
@@ -108,7 +113,7 @@ func (c *Container) syncContainer() error {
 	if err := c.runtime.state.UpdateContainer(c); err != nil {
 		return err
 	}
-	// If runc knows about the container, update its status in runc
+	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
 		(c.state.State != ContainerStateConfigured) {

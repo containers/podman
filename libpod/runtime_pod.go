@@ -101,6 +101,11 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
 		}
 
+		// If the container has active exec sessions and force is not set we can't do anything
+		if len(ctr.state.ExecSessions) != 0 && !force {
+			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which has active exec sessions", p.ID(), ctr.ID())
+		}
+
 		deps, err := r.state.ContainerInUse(ctr)
 		if err != nil {
 			return err
@@ -134,6 +139,12 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 					return err
 				}
 			}
+			// If the container has active exec sessions, stop them now
+			if len(ctr.state.ExecSessions) != 0 {
+				if err := r.ociRuntime.execStopContainer(ctr, ctr.StopTimeout()); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -151,11 +162,11 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 			return err
 		}
 
-		// Delete the container from runc (only if we are not
+		// Delete the container from runtime (only if we are not
 		// ContainerStateConfigured)
 		if ctr.state.State != ContainerStateConfigured {
 			if err := r.ociRuntime.deleteContainer(ctr); err != nil {
-				return errors.Wrapf(err, "error removing container %s from runc", ctr.ID())
+				return errors.Wrapf(err, "error removing container %s from runtime", ctr.ID())
 			}
 		}
 

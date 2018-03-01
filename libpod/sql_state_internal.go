@@ -33,7 +33,8 @@ const (
                                  containerState.Pid,
                                  containerState.NetNSPath,
                                  containerState.IPAddress,
-                                 containerState.SubnetMask
+                                 containerState.SubnetMask,
+                                 containerState.ExecSessions
                           FROM containers
                           INNER JOIN
                               containerState ON containers.Id = containerState.Id `
@@ -274,6 +275,7 @@ func prepareDB(db *sql.DB) (err error) {
             NetNSPath    TEXT    NOT NULL,
             IPAddress    TEXT    NOT NULL,
             SubnetMask   TEXT    NOT NULL,
+            ExecSessions TEXT    NOT NULL,
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
@@ -483,6 +485,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		netNSPath          string
 		ipAddress          string
 		subnetMask         string
+		execSessions       string
 	)
 
 	err := row.Scan(
@@ -536,7 +539,8 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&pid,
 		&netNSPath,
 		&ipAddress,
-		&subnetMask)
+		&subnetMask,
+		&execSessions)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -614,6 +618,11 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 
 	if err := json.Unmarshal([]byte(hostAddJSON), &ctr.config.HostAdd); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s DNS server JSON", id)
+	}
+
+	ctr.state.ExecSessions = make(map[string]*ExecSession)
+	if err := json.Unmarshal([]byte(execSessions), &ctr.state.ExecSessions); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s exec sessions JSON", id)
 	}
 
 	labels := make(map[string]string)
@@ -753,7 +762,7 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?
+                    ?, ?, ?, ?
                 );`
 		addRegistry   = "INSERT INTO registry VALUES (?, ?);"
 		checkCtrInPod = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
@@ -793,6 +802,11 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 	labelsJSON, err := json.Marshal(ctr.config.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling container %s labels to JSON", ctr.ID())
+	}
+
+	execSessionsJSON, err := json.Marshal(ctr.state.ExecSessions)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s exec sessions to JSON", ctr.ID())
 	}
 
 	netNSPath := ""
@@ -918,7 +932,8 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		ctr.state.PID,
 		netNSPath,
 		ctr.state.IPAddress,
-		ctr.state.SubnetMask)
+		ctr.state.SubnetMask,
+		execSessionsJSON)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}
