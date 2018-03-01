@@ -277,7 +277,7 @@ func makeRuntime(runtime *Runtime) error {
 	if !foundConmon {
 		return errors.Wrapf(ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
-			runtime.config.RuntimePath)
+			runtime.config.ConmonPath)
 	}
 
 	// Set up containers/storage
