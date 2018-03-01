@@ -64,28 +64,31 @@ func checkRuntimeConfig(db *bolt.DB, runtime *Runtime) error {
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "static dir",
-			runtime.config.StaticDir, staticDir); err != nil {
+			runtime.config.StaticDir, staticDir, ""); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "tmp dir",
-			runtime.config.TmpDir, tmpDir); err != nil {
+			runtime.config.TmpDir, tmpDir, ""); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "run root",
-			runtime.config.StorageConfig.RunRoot, runRoot); err != nil {
+			runtime.config.StorageConfig.RunRoot, runRoot,
+			storage.DefaultStoreOptions.RunRoot); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "graph root",
-			runtime.config.StorageConfig.GraphRoot, graphRoot); err != nil {
+			runtime.config.StorageConfig.GraphRoot, graphRoot,
+			storage.DefaultStoreOptions.GraphRoot); err != nil {
 			return err
 		}
 
 		return validateDBAgainstConfig(configBkt, "graph driver name",
 			runtime.config.StorageConfig.GraphDriverName,
-			graphDriverName)
+			graphDriverName,
+			storage.DefaultStoreOptions.GraphDriverName)
 	})
 
 	return err
@@ -93,14 +96,36 @@ func checkRuntimeConfig(db *bolt.DB, runtime *Runtime) error {
 
 // Validate a configuration entry in the DB against current runtime config
 // If the given configuration key does not exist it will be created
-func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string, keyName []byte) error {
+// If the given runtimeValue or value retrieved from the database are the empty
+// string and defaultValue is not, defaultValue will be checked instead. This
+// ensures that we will not fail on configuration changes in configured c/storage.
+func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string, keyName []byte, defaultValue string) error {
 	keyBytes := bucket.Get(keyName)
 	if keyBytes == nil {
-		if err := bucket.Put(keyName, []byte(runtimeValue)); err != nil {
+		dbValue := []byte(runtimeValue)
+		if runtimeValue == "" && defaultValue != "" {
+			dbValue = []byte(defaultValue)
+		}
+
+		if err := bucket.Put(keyName, dbValue); err != nil {
 			return errors.Wrapf(err, "error updating %s in DB runtime config", fieldName)
 		}
 	} else {
 		if runtimeValue != string(keyBytes) {
+			// If runtimeValue is the empty string, check against
+			// the default
+			if runtimeValue == "" && defaultValue != "" &&
+				string(keyBytes) == defaultValue {
+				return nil
+			}
+
+			// If DB value is the empty string, check that the
+			// runtime value is the default
+			if string(keyBytes) == "" && defaultValue != "" &&
+				runtimeValue == defaultValue {
+				return nil
+			}
+
 			return errors.Wrapf(ErrDBBadConfig, "database %s %s does not match our %s %s",
 				fieldName, string(keyBytes), fieldName, runtimeValue)
 		}
