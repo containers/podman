@@ -277,7 +277,7 @@ func prepareDB(db *sql.DB) (err error) {
             NetNSPath    TEXT    NOT NULL,
             ExecSessions TEXT    NOT NULL,
             IPs          TEXT    NOT NULL,
-            Routes       TEXT    NOT NULL.
+            Routes       TEXT    NOT NULL,
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
