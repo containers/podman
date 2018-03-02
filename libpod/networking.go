@@ -3,6 +3,7 @@ package libpod
 import (
 	"net"
 
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -37,12 +38,28 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
-	_, err = r.netPlugin.SetUpPod(podNetwork)
+	result, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
 	}
+	defer func() {
+		if err != nil {
+			if err2 := r.netPlugin.TearDownPod(podNetwork); err2 != nil {
+				logrus.Errorf("Error tearing down partially created network namespace for container %s: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	logrus.Debugf("Response from CNI plugins: %v", result.String())
+
+	resultStruct, err := cnitypes.GetResult(result)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing result from CBI plugins")
+	}
 
 	ctr.state.NetNS = ctrNS
+	ctr.state.IPs = resultStruct.IPs
+	ctr.state.Routes = resultStruct.Routes
 
 	return nil
 }

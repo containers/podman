@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containernetworking/cni/pkg/types"
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -137,13 +139,17 @@ type containerState struct {
 	// Will only be set if config.CreateNetNS is true, or the container was
 	// told to join another container's network namespace
 	NetNS ns.NetNS `json:"-"`
-	// IP address of container (if network namespace was created)
-	IPAddress string `json:"ipAddress"`
-	// Subnet mask of container (if network namespace was created)
-	SubnetMask string `json:"subnetMask"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+	// IPs contains IP addresses assigned to the container
+	// Only populated if we created a network namespace for the container,
+	// and the network namespace is currently active
+	IPs []*cnitypes.IPConfig `json:"ipAddresses,omitempty"`
+	// Routes contains network routes present in the container
+	// Only populated if we created a network namespace for the container,
+	// and the network namespace is currently active
+	Routes []*types.Route `json:"routes,omitempty"`
 }
 
 // ExecSession contains information on an active exec session
@@ -643,27 +649,65 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 	return returnSession, nil
 }
 
-// Misc Accessors
-// Most will require locking
-
-// IPAddress returns the IP address of the container
-// If the container does not have a network namespace, an error will be returned
-func (c *Container) IPAddress() (net.IP, error) {
+// IPs retrieves a container's IP address(es)
+// This will only be populated if the container is configured to created a new
+// network namespace, and that namespace is presently active
+func (c *Container) IPs() ([]net.IPNet, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
+			return nil, err
 		}
 	}
 
-	if !c.config.CreateNetNS || c.state.NetNS == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s does not have a network namespace", c.ID())
+	if !c.config.CreateNetNS {
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
 	}
 
-	return c.runtime.getContainerIP(c)
+	ips := make([]net.IPNet, 0, len(c.state.IPs))
+
+	for _, ip := range c.state.IPs {
+		ips = append(ips, ip.Address)
+	}
+
+	return ips, nil
 }
+
+// Routes retrieves a container's routes
+// This will only be populated if the container is configured to created a new
+// network namespace, and that namespace is presently active
+func (c *Container) Routes() ([]types.Route, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	if !c.config.CreateNetNS {
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+	}
+
+	routes := make([]types.Route, 0, len(c.state.Routes))
+
+	for _, route := range c.state.Routes {
+		newRoute := types.Route{
+			Dst: route.Dst,
+			GW:  route.GW,
+		}
+
+		routes = append(routes, newRoute)
+	}
+
+	return routes, nil
+}
+
+// Misc Accessors
+// Most will require locking
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned

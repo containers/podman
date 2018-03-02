@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/containernetworking/cni/pkg/types"
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -14,7 +16,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 12
+const DBSchema = 13
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -101,9 +103,9 @@ func (s *SQLState) Refresh() (err error) {
                              Mountpoint=?,
                              Pid=?,
                              NetNSPath=?,
-                             IPAddress=?,
-                             SubnetMask=?,
-                             ExecSessions=?;`
+                             ExecSessions=?,
+                             IPs=?,
+                             Routes=?;`
 
 	if !s.valid {
 		return ErrDBClosed
@@ -132,9 +134,9 @@ func (s *SQLState) Refresh() (err error) {
 		"",
 		0,
 		"",
-		"",
-		"",
-		"{}")
+		"{}",
+		"[]",
+		"[]")
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
 	}
@@ -270,9 +272,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               OomKilled,
                               Pid,
                               NetNSPath,
-                              IPAddress,
-                              SubnetMask,
-                              ExecSessions
+                              ExecSessions,
+                              IPs,
+                              Routes
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -286,9 +288,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		oomKilled          int
 		pid                int
 		netNSPath          string
-		ipAddress          string
-		subnetMask         string
 		execSessions       string
+		ipsJSON            string
+		routesJSON         string
 	)
 
 	if !s.valid {
@@ -311,9 +313,9 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&oomKilled,
 		&pid,
 		&netNSPath,
-		&ipAddress,
-		&subnetMask,
-		&execSessions)
+		&execSessions,
+		&ipsJSON,
+		&routesJSON)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -335,12 +337,26 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	newState.ExitCode = exitCode
 	newState.OOMKilled = boolFromSQL(oomKilled)
 	newState.PID = pid
-	newState.IPAddress = ipAddress
-	newState.SubnetMask = subnetMask
 
 	newState.ExecSessions = make(map[string]*ExecSession)
 	if err := json.Unmarshal([]byte(execSessions), &newState.ExecSessions); err != nil {
 		return errors.Wrapf(err, "error parsing container %s exec sessions", ctr.ID())
+	}
+
+	ips := []*cnitypes.IPConfig{}
+	if err := json.Unmarshal([]byte(ipsJSON), &ips); err != nil {
+		return errors.Wrapf(err, "error parsing container %s IPs JSON", ctr.ID())
+	}
+	if len(ips) > 0 {
+		newState.IPs = ips
+	}
+
+	routes := []*types.Route{}
+	if err := json.Unmarshal([]byte(routesJSON), &routes); err != nil {
+		return errors.Wrapf(err, "error parsing container %s routes JSON", ctr.ID())
+	}
+	if len(routes) > 0 {
+		newState.Routes = routes
 	}
 
 	if newState.Mountpoint != "" {
@@ -404,9 +420,9 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
                           OomKilled=?,
                           Pid=?,
                           NetNSPath=?,
-                          IPAddress=?,
-                          SubnetMask=?,
-                          ExecSessions=?
+                          ExecSessions=?,
+                          IPs=?,
+                          Routes=?
                        WHERE Id=?;`
 
 	if !ctr.valid {
@@ -421,6 +437,16 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 	netNSPath := ""
 	if ctr.state.NetNS != nil {
 		netNSPath = ctr.state.NetNS.Path()
+	}
+
+	ipsJSON, err := json.Marshal(ctr.state.IPs)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s IPs to JSON", ctr.ID())
+	}
+
+	routesJSON, err := json.Marshal(ctr.state.Routes)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s routes to JSON", ctr.ID())
 	}
 
 	if !s.valid {
@@ -453,9 +479,9 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 		boolToSQL(ctr.state.OOMKilled),
 		ctr.state.PID,
 		netNSPath,
-		ctr.state.IPAddress,
-		ctr.state.SubnetMask,
 		execSessionsJSON,
+		ipsJSON,
+		routesJSON,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
