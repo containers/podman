@@ -7,7 +7,9 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 // Get an OCICNI network config
@@ -54,14 +56,33 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 
 	resultStruct, err := cnitypes.GetResult(result)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing result from CBI plugins")
+		return errors.Wrapf(err, "error parsing result from CNI plugins")
 	}
 
 	ctr.state.NetNS = ctrNS
 	ctr.state.IPs = resultStruct.IPs
 	ctr.state.Routes = resultStruct.Routes
 
+	// We need to temporarily use iptables to allow the container
+	// to resolve DNS until this issue is fixed upstream.
+	// https://github.com/containernetworking/plugins/pull/75
+	if resultStruct.IPs != nil {
+		for _, ip := range resultStruct.IPs {
+			iptablesCmd := iptablesDNS("-I", ip.Address.IP.String())
+			logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
+			_, err := utils.ExecCmd("iptables", iptablesCmd...)
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
+	}
 	return nil
+}
+
+// iptablesDNS accepts an arg (-I|-D) and IP address that generates the
+// iptables command to be run
+func iptablesDNS(arg, ip string) []string {
+	return []string{"-t", "filter", arg, "FORWARD", "-s", ip, "!", "-o", ip, "-j", "ACCEPT"}
 }
 
 // Join an existing network namespace
@@ -100,6 +121,19 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {
 		// The container has no network namespace, we're set
 		return nil
+	}
+
+	// Because we are using iptables to allow the container to resolve DNS
+	// on per IP address, we also need to try to remove the iptables rule
+	// on cleanup. Remove when https://github.com/containernetworking/plugins/pull/75
+	// is merged.
+	for _, ip := range ctr.state.IPs {
+		iptablesCmd := iptablesDNS("-D", ip.Address.IP.String())
+		logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
+		_, err := utils.ExecCmd("iptables", iptablesCmd...)
+		if err != nil {
+			logrus.Error(err)
+		}
 	}
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
