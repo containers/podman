@@ -36,7 +36,7 @@ GOPATH=~/go go get github.com/onsi/gomega/...
 You can run the entire suite of integration tests with the following command:
 
 ```
-GOPATH=~/go ginkgo -v tests/e2e/.
+GOPATH=~/go ginkgo -v test/e2e/.
 ```
 
 Note the trailing period on the command above. Also, **-v** invokes verbose mode.  That
@@ -45,7 +45,7 @@ switch is optional.
 You can run a single file of integration tests using the go test command:
 
 ```
-GOPATH=~/go go test -v tests/e2e/libpod_suite_test.go tests/e2e/your_test.go
+GOPATH=~/go go test -v test/e2e/libpod_suite_test.go tests/e2e/your_test.go
 ```
 
 #### Run all tests like PAPR
