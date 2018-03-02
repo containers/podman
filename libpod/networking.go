@@ -68,21 +68,22 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 	// https://github.com/containernetworking/plugins/pull/75
 	if resultStruct.IPs != nil {
 		for _, ip := range resultStruct.IPs {
-			iptablesCmd := iptablesDNS("-I", ip.Address.IP.String())
-			logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
-			_, err := utils.ExecCmd("iptables", iptablesCmd...)
-			if err != nil {
-				logrus.Error(err)
-			}
+			iptablesDNS("-I", ip.Address.IP.String())
 		}
 	}
 	return nil
 }
 
-// iptablesDNS accepts an arg (-I|-D) and IP address that generates the
-// iptables command to be run
-func iptablesDNS(arg, ip string) []string {
-	return []string{"-t", "filter", arg, "FORWARD", "-s", ip, "!", "-o", ip, "-j", "ACCEPT"}
+// iptablesDNS accepts an arg (-I|-D) and IP address of the container and then
+// generates an iptables command to either add or subtract the needed rule
+func iptablesDNS(arg, ip string) error {
+	iptablesCmd := []string{"-t", "filter", arg, "FORWARD", "-s", ip, "!", "-o", ip, "-j", "ACCEPT"}
+	logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
+	_, err := utils.ExecCmd("iptables", iptablesCmd...)
+	if err != nil {
+		logrus.Error(err)
+	}
+	return err
 }
 
 // Join an existing network namespace
@@ -128,12 +129,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	// on cleanup. Remove when https://github.com/containernetworking/plugins/pull/75
 	// is merged.
 	for _, ip := range ctr.state.IPs {
-		iptablesCmd := iptablesDNS("-D", ip.Address.IP.String())
-		logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
-		_, err := utils.ExecCmd("iptables", iptablesCmd...)
-		if err != nil {
-			logrus.Error(err)
-		}
+		iptablesDNS("-D", ip.Address.IP.String())
 	}
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
