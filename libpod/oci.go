@@ -394,7 +394,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 		if err != nil {
 			ctr.state.ExitCode = -1
 			ctr.state.FinishedTime = time.Now()
-			logrus.Errorf("No exit file for container %s found: %v", ctr.ID())
+			logrus.Errorf("No exit file for container %s found: %v", ctr.ID(), err)
 			return nil
 		}
 
