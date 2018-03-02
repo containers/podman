@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containernetworking/cni/pkg/types"
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -32,9 +34,9 @@ const (
                                  containerState.OomKilled,
                                  containerState.Pid,
                                  containerState.NetNSPath,
-                                 containerState.IPAddress,
-                                 containerState.SubnetMask,
-                                 containerState.ExecSessions
+                                 containerState.ExecSessions,
+                                 containerState.IPs,
+                                 containerState.Routes
                           FROM containers
                           INNER JOIN
                               containerState ON containers.Id = containerState.Id `
@@ -273,9 +275,9 @@ func prepareDB(db *sql.DB) (err error) {
             OomKilled    INTEGER NOT NULL,
             Pid          INTEGER NOT NULL,
             NetNSPath    TEXT    NOT NULL,
-            IPAddress    TEXT    NOT NULL,
-            SubnetMask   TEXT    NOT NULL,
             ExecSessions TEXT    NOT NULL,
+            IPs          TEXT    NOT NULL,
+            Routes       TEXT    NOT NULL.
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
@@ -483,9 +485,9 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		oomKilled          int
 		pid                int
 		netNSPath          string
-		ipAddress          string
-		subnetMask         string
 		execSessions       string
+		ipsJSON            string
+		routesJSON         string
 	)
 
 	err := row.Scan(
@@ -538,9 +540,9 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&oomKilled,
 		&pid,
 		&netNSPath,
-		&ipAddress,
-		&subnetMask,
-		&execSessions)
+		&execSessions,
+		&ipsJSON,
+		&routesJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -592,8 +594,6 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.state.ExitCode = exitCode
 	ctr.state.OOMKilled = boolFromSQL(oomKilled)
 	ctr.state.PID = pid
-	ctr.state.IPAddress = ipAddress
-	ctr.state.SubnetMask = subnetMask
 
 	// TODO should we store this in the database separately instead?
 	if ctr.state.Mountpoint != "" {
@@ -623,6 +623,22 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	ctr.state.ExecSessions = make(map[string]*ExecSession)
 	if err := json.Unmarshal([]byte(execSessions), &ctr.state.ExecSessions); err != nil {
 		return nil, errors.Wrapf(err, "error parsing container %s exec sessions JSON", id)
+	}
+
+	ips := []*cnitypes.IPConfig{}
+	if err := json.Unmarshal([]byte(ipsJSON), &ips); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s IP addresses JSON", id)
+	}
+	if len(ips) > 0 {
+		ctr.state.IPs = ips
+	}
+
+	routes := []*types.Route{}
+	if err := json.Unmarshal([]byte(routesJSON), &routes); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s routes JSON", id)
+	}
+	if len(routes) > 0 {
+		ctr.state.Routes = routes
 	}
 
 	labels := make(map[string]string)
@@ -809,6 +825,16 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		return errors.Wrapf(err, "error marshalling container %s exec sessions to JSON", ctr.ID())
 	}
 
+	ipsJSON, err := json.Marshal(ctr.state.IPs)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s IPs to JSON", ctr.ID())
+	}
+
+	routesJSON, err := json.Marshal(ctr.state.Routes)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s routes to JSON", ctr.ID())
+	}
+
 	netNSPath := ""
 	if ctr.state.NetNS != nil {
 		netNSPath = ctr.state.NetNS.Path()
@@ -931,9 +957,9 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		boolToSQL(ctr.state.OOMKilled),
 		ctr.state.PID,
 		netNSPath,
-		ctr.state.IPAddress,
-		ctr.state.SubnetMask,
-		execSessionsJSON)
+		execSessionsJSON,
+		ipsJSON,
+		routesJSON)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}

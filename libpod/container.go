@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containernetworking/cni/pkg/types"
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -137,13 +139,17 @@ type containerState struct {
 	// Will only be set if config.CreateNetNS is true, or the container was
 	// told to join another container's network namespace
 	NetNS ns.NetNS `json:"-"`
-	// IP address of container (if network namespace was created)
-	IPAddress string `json:"ipAddress"`
-	// Subnet mask of container (if network namespace was created)
-	SubnetMask string `json:"subnetMask"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+	// IPs contains IP addresses assigned to the container
+	// Only populated if we created a network namespace for the container,
+	// and the network namespace is currently active
+	IPs          []*cnitypes.IPConfig `json:"ipAddresses,omitempty"`
+	// Routes contains network routes present in the container
+	// Only populated if we created a network namespace for the container,
+	// and the network namespace is currently active
+	Routes       []*types.Route `json:"routes,omitempty"`
 }
 
 // ExecSession contains information on an active exec session
@@ -641,6 +647,55 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 	returnSession.PID = session.PID
 
 	return returnSession, nil
+}
+
+// IPs() retrieves a container's IP addresses
+// This will only be populated if the container is configured to created a new
+// network namespace, and that namespace is presently active
+func (c *Container) IPs() ([]net.IPNet, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	ips := make([]net.IPNet, 0, len(c.state.IPs))
+
+	for _, ip := range c.state.IPs {
+		ips = append(ips, ip.Address)
+	}
+
+	return ips, nil
+}
+
+// Routes retrieves a container's routes
+// This will only be populated if the container is configured to created a new
+// network namespace, and that namespace is presently active
+func (c *Container) Routes() ([]types.Route, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	routes := make([]types.Route, 0, len(c.state.Routes))
+
+	for _, route := range c.state.Routes {
+		newRoute := types.Route{
+			Dst: route.Dst,
+			GW: route.GW,
+		}
+
+		routes = append(routes, newRoute)
+	}
+
+	return routes, nil
 }
 
 // Misc Accessors
