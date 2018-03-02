@@ -81,7 +81,7 @@ type RuntimeConfig struct {
 	// images
 	ImageDefaultTransport string `toml:"image_default_transport"`
 	// SignaturePolicyPath is the path to a signature policy to use for
-	// validationg images
+	// validating images
 	// If left empty, the containers/image default signature policy will
 	// be used
 	SignaturePolicyPath string `toml:"signature_policy_path,omitempty"`
@@ -217,7 +217,7 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 
 	// Check to see if the given configuration file exists
 	if _, err := os.Stat(configPath); err != nil {
-		return nil, errors.Wrapf(err, "error stating configuration file %s", configPath)
+		return nil, errors.Wrapf(err, "error checking existence of configuration file %s", configPath)
 	}
 
 	// Read contents of the config file
