@@ -129,14 +129,14 @@ func logsCmd(c *cli.Context) error {
 	defer file.Close()
 	reader := bufio.NewReader(file)
 	if opts.follow {
-		followLog(reader, opts)
+		followLog(reader, opts, ctr)
 	} else {
 		dumpLog(reader, opts)
 	}
 	return err
 }
 
-func followLog(reader *bufio.Reader, opts logOptions) error {
+func followLog(reader *bufio.Reader, opts logOptions, ctr *libpod.Container) error {
 	var cacheOutput []string
 	firstPass := false
 	if opts.tail > 0 {
@@ -161,6 +161,14 @@ func followLog(reader *bufio.Reader, opts logOptions) error {
 				continue
 			}
 			time.Sleep(1 * time.Second)
+			// Check if container is still running or paused
+			state, err := ctr.State()
+			if err != nil {
+				return err
+			}
+			if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+				break
+			}
 			continue
 		}
 		// exits
