@@ -382,8 +382,8 @@ func (c *Container) cleanupNetwork() error {
 	}
 
 	c.state.NetNS = nil
-	c.state.SubnetMask = ""
-	c.state.IPAddress = ""
+	c.state.IPs = nil
+	c.state.Routes = nil
 	return c.save()
 }
 
