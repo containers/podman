@@ -663,7 +663,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
 	}
 
 	ips := make([]net.IPNet, 0, len(c.state.IPs))
@@ -688,11 +688,11 @@ func (c *Container) Routes() ([]types.Route, error) {
 		}
 	}
 
-	routes := make([]types.Route, 0, len(c.state.Routes))
-
 	if !c.config.CreateNetNS {
-		return errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
 	}
+
+	routes := make([]types.Route, 0, len(c.state.Routes))
 
 	for _, route := range c.state.Routes {
 		newRoute := types.Route{
@@ -708,25 +708,6 @@ func (c *Container) Routes() ([]types.Route, error) {
 
 // Misc Accessors
 // Most will require locking
-
-// IPAddress returns the IP address of the container
-// If the container does not have a network namespace, an error will be returned
-func (c *Container) IPAddress() (net.IP, error) {
-	if !c.locked {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, errors.Wrapf(err, "error updating container %s state", c.ID())
-		}
-	}
-
-	if !c.config.CreateNetNS || c.state.NetNS == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s does not have a network namespace", c.ID())
-	}
-
-	return c.runtime.getContainerIP(c)
-}
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
