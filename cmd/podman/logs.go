@@ -117,7 +117,7 @@ func logsCmd(c *cli.Context) error {
 	// Exit cleanly in this case
 	if _, err := os.Stat(logPath); err != nil {
 		if state == libpod.ContainerStateConfigured {
-			logrus.Debugf("Container has not been created, no logs exist yet")
+			logrus.Debugf("Container has not been started, no logs exist yet")
 			return nil
 		}
 	}
