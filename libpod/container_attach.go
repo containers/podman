@@ -56,17 +56,17 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		term.SetRawTerminal(inputStream.Fd())
 	}
 
-	controlPath := filepath.Join(c.bundlePath(), "ctl")
-	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open container ctl file")
-	}
-	defer controlFile.Close()
-
 	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
-		logrus.Debugf("Received a resize event: %+v", size)
-		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
+		controlPath := filepath.Join(c.bundlePath(), "ctl")
+		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 		if err != nil {
+			logrus.Debugf("Could not open ctl file: %v", err)
+			return
+		}
+		defer controlFile.Close()
+
+		logrus.Debugf("Received a resize event: %+v", size)
+		if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width); err != nil {
 			logrus.Warnf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
