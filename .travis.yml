@@ -27,16 +27,14 @@ jobs:
       script:
         - make gofmt
         - make lint
+      go: 1.9.x
+    - script:
         - make testunit
-        - make docs
         - make
       go: 1.8.x
     - stage: Build and Verify
       script:
-        - make gofmt
-        - make lint
         - make testunit
-        - make docs
         - make
       go: 1.9.x
     - stage: Integration Test
