@@ -33,6 +33,9 @@ Attach container's STDIN. The default is false.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+**--sig-proxy**=*true*|*false*
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is false.
+
 ## EXAMPLE
 
 podman start mywebserver

@@ -13,11 +13,16 @@ import (
 
 var runDescription = "Runs a command in a new container from the given image"
 
+var runFlags []cli.Flag = append(createFlags, cli.BoolTFlag{
+	Name:  "sig-proxy",
+	Usage: "proxy received signals to the process (default true)",
+})
+
 var runCommand = cli.Command{
 	Name:                   "run",
 	Usage:                  "run a command in a new container",
 	Description:            runDescription,
-	Flags:                  createFlags,
+	Flags:                  runFlags,
 	Action:                 runCmd,
 	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
 	SkipArgReorder:         true,
@@ -131,6 +136,10 @@ func runCmd(c *cli.Context) error {
 	attachChan, err := ctr.StartAndAttach(false, c.String("detach-keys"))
 	if err != nil {
 		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
+	}
+
+	if c.BoolT("sig-proxy") {
+		ProxySignals(ctr)
 	}
 
 	// Wait for attach to complete

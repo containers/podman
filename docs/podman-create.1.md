@@ -419,9 +419,6 @@ its root filesystem mounted as read only prohibiting any writes.
    Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
    If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 
-**--sig-proxy**=*true*|*false*
-   Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
-
 **--stop-signal**=*SIGTERM*
   Signal to stop a container. Default is SIGTERM.
 

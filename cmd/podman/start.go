@@ -25,6 +25,10 @@ var (
 			Name:  "interactive, i",
 			Usage: "Keep STDIN open even if not attached",
 		},
+		cli.BoolFlag{
+			Name:  "sig-proxy",
+			Usage: "proxy received signals to the process",
+		},
 		LatestFlag,
 	}
 	startDescription = `
@@ -58,6 +62,10 @@ func startCmd(c *cli.Context) error {
 
 	if err := validateFlags(c, startFlags); err != nil {
 		return err
+	}
+
+	if c.Bool("sig-proxy") && !attach {
+		return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
 	}
 
 	runtime, err := getRuntime(c)
@@ -104,6 +112,10 @@ func startCmd(c *cli.Context) error {
 			attachChan, err := ctr.StartAndAttach(noStdIn, c.String("detach-keys"))
 			if err != nil {
 				return errors.Wrapf(err, "unable to start container %s", ctr.ID())
+			}
+
+			if c.Bool("sig-proxy") {
+				ProxySignals(ctr)
 			}
 
 			// Wait for attach to complete
