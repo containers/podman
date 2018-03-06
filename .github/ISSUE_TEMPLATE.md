@@ -42,4 +42,10 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
+**Output of `podman info`:**
+
+```
+(paste your output here)
+```
+
 **Additional environment details (AWS, VirtualBox, physical, etc.):**
