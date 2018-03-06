@@ -33,10 +33,10 @@ to run containers such as CRI-O, the last started container could be from either
 ```
 
 ```
-#podman --log-level=debug top f5a62a71b07 -o fuser,f,comm,label
-FUSER    F COMMAND         LABEL
-root     4 bash            system_u:system_r:container_t:s0:c429,c1016
-root     0 vi              system_u:system_r:container_t:s0:c429,c1016
+#podman --log-level=debug top f5a62a71b07 -o pid,fuser,f,comm,label
+  PID FUSER    F COMMAND         LABEL
+18715 root     4 bash            system_u:system_r:container_t:s0:c429,c1016
+18741 root     0 vi              system_u:system_r:container_t:s0:c429,c1016
 #
 ```
 ## SEE ALSO
