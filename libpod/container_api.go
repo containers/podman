@@ -4,17 +4,20 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	gosignal "os/signal"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/docker/docker/daemon/caps"
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -345,6 +348,31 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	return waitErr
 }
 
+func resizeTty(resize chan remotecommand.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	gosignal.Notify(sigchan, signal.SIGWINCH)
+	sendUpdate := func() {
+		winsize, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			logrus.Warnf("Could not get terminal size %v", err)
+			return
+		}
+		resize <- remotecommand.TerminalSize{
+			Width:  winsize.Width,
+			Height: winsize.Height,
+		}
+	}
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		sendUpdate()
+		for range sigchan {
+			sendUpdate()
+		}
+	}()
+}
+
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
 func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
@@ -373,8 +401,11 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 	}
 
 	resize := make(chan remotecommand.TerminalSize)
-	defer close(resize)
-
+	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		resizeTty(resize)
+	} else {
+		defer close(resize)
+	}
 	err = c.attachContainerSocket(resize, noStdin, detachKeys, attached)
 	return err
 }
