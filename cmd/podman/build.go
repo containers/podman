@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -11,6 +12,8 @@ import (
 
 var (
 	buildFlags = []cli.Flag{
+		// The following flags are emulated from:
+		// src/github.com/projectatomic/buildah/cmd/bud.go
 		cli.StringFlag{
 			Name:  "authfile",
 			Usage: "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
@@ -65,6 +68,61 @@ var (
 			Name:  "tls-verify",
 			Usage: "require HTTPS and verify certificates when accessing the registry",
 		},
+		// The following flags are emulated from:
+		// src/github.com/projectatomic/buildah/cmd/common.go fromAndBudFlags
+		cli.StringSliceFlag{
+			Name:  "add-host",
+			Usage: "add a custom host-to-IP mapping (host:ip) (default [])",
+		},
+		cli.StringFlag{
+			Name:  "cgroup-parent",
+			Usage: "optional parent cgroup for the container",
+		},
+		cli.Uint64Flag{
+			Name:  "cpu-period",
+			Usage: "limit the CPU CFS (Completely Fair Scheduler) period",
+		},
+		cli.Int64Flag{
+			Name:  "cpu-quota",
+			Usage: "limit the CPU CFS (Completely Fair Scheduler) quota",
+		},
+		cli.Uint64Flag{
+			Name:  "cpu-shares",
+			Usage: "CPU shares (relative weight)",
+		},
+		cli.StringFlag{
+			Name:  "cpuset-cpus",
+			Usage: "CPUs in which to allow execution (0-3, 0,1)",
+		},
+		cli.StringFlag{
+			Name:  "cpuset-mems",
+			Usage: "memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
+		},
+		cli.StringFlag{
+			Name:  "memory, m",
+			Usage: "memory limit (format: <number>[<unit>], where unit = b, k, m or g)",
+		},
+		cli.StringFlag{
+			Name:  "memory-swap",
+			Usage: "swap limit equal to memory plus swap: '-1' to enable unlimited swap",
+		},
+		cli.StringSliceFlag{
+			Name:  "security-opt",
+			Usage: "security Options (default [])",
+		},
+		cli.StringFlag{
+			Name:  "shm-size",
+			Usage: "size of `/dev/shm`. The format is `<number><unit>`.",
+			Value: "65536k",
+		},
+		cli.StringSliceFlag{
+			Name:  "ulimit",
+			Usage: "ulimit options (default [])",
+		},
+		cli.StringSliceFlag{
+			Name:  "volume, v",
+			Usage: "bind mount a volume into the container (default [])",
+		},
 	}
 	buildDescription = "podman build launches the Buildah command to build an OCI Image. Buildah must be installed for this command to work."
 	buildCommand     = cli.Command{
@@ -81,6 +139,7 @@ func buildCmd(c *cli.Context) error {
 
 	budCmdArgs := []string{}
 
+	// Handle Global Options
 	logLevel := c.GlobalString("log-level")
 	if logLevel == "debug" {
 		budCmdArgs = append(budCmdArgs, "--debug")
@@ -100,6 +159,7 @@ func buildCmd(c *cli.Context) error {
 
 	budCmdArgs = append(budCmdArgs, "bud")
 
+	// Buildah bud specific options
 	if c.IsSet("authfile") {
 		budCmdArgs = append(budCmdArgs, "--authfile", c.String("authfile"))
 	}
@@ -140,6 +200,47 @@ func buildCmd(c *cli.Context) error {
 	if c.IsSet("tls-verify") {
 		tlsParam := "--tls-verify=" + strconv.FormatBool(c.Bool("tls-verify"))
 		budCmdArgs = append(budCmdArgs, tlsParam)
+	}
+
+	// Buildah bud and from options from cmd/buildah/common.go
+	for _, addHostArg := range c.StringSlice("add-host") {
+		budCmdArgs = append(budCmdArgs, "--add-host", addHostArg)
+	}
+	if c.IsSet("cgroup-parent") {
+		budCmdArgs = append(budCmdArgs, "--cgroup-parent", c.String("cgroup-parent"))
+	}
+	if c.IsSet("cpu-period") {
+		budCmdArgs = append(budCmdArgs, "--cpu-period", fmt.Sprintf("%v", c.Int64("cpu-period")))
+	}
+	if c.IsSet("cpu-quota") {
+		budCmdArgs = append(budCmdArgs, "--cpu-quota", fmt.Sprintf("%v", c.Uint64("cpu-quota")))
+	}
+	if c.IsSet("cpu-shares") {
+		budCmdArgs = append(budCmdArgs, "--cpu-shares", fmt.Sprintf("%v", c.Uint64("cpu-shares")))
+	}
+	if c.IsSet("cpuset-cpus") {
+		budCmdArgs = append(budCmdArgs, "--cpuset-cpus", c.String("cpuset-cpus"))
+	}
+	if c.IsSet("cpuset-mems") {
+		budCmdArgs = append(budCmdArgs, "--cpuset-mems", c.String("cpuset-mems"))
+	}
+	if c.IsSet("memory") {
+		budCmdArgs = append(budCmdArgs, "--memory", c.String("memory"))
+	}
+	if c.IsSet("memory-swap") {
+		budCmdArgs = append(budCmdArgs, "--memory-swap", c.String("memory-swap"))
+	}
+	for _, securityOptArg := range c.StringSlice("security-opt") {
+		budCmdArgs = append(budCmdArgs, "--security-opt", securityOptArg)
+	}
+	if c.IsSet("shm-size") {
+		budCmdArgs = append(budCmdArgs, "--shm-size", c.String("shm-size"))
+	}
+	for _, ulimitArg := range c.StringSlice("ulimit") {
+		budCmdArgs = append(budCmdArgs, "--ulimit", ulimitArg)
+	}
+	for _, volumeArg := range c.StringSlice("volume") {
+		budCmdArgs = append(budCmdArgs, "--volume", volumeArg)
 	}
 
 	if len(c.Args()) > 0 {
