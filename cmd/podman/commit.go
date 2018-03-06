@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -24,6 +27,10 @@ var (
 		cli.BoolTFlag{
 			Name:  "pause, p",
 			Usage: "Pause container during commit",
+		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Suppress output",
 		},
 	}
 	commitDescription = `Create an image from a container's changes.
@@ -84,10 +91,19 @@ func commitCmd(c *cli.Context) error {
 		Author:  c.String("author"),
 	}
 	opts.ImageConfig = config
+	opts.Writer = nil
+
+	if !c.Bool("quiet") {
+		opts.Writer = os.Stderr
+	}
 
 	ctr, err := runtime.LookupContainer(container)
 	if err != nil {
 		return errors.Wrapf(err, "error looking up container %q", container)
 	}
-	return ctr.Commit(c.BoolT("pause"), opts)
+	img, err := ctr.Commit(c.BoolT("pause"), opts)
+	if err == nil {
+		fmt.Println(img.ID)
+	}
+	return nil
 }

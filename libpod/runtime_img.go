@@ -1032,30 +1032,30 @@ func (r *Runtime) GetHistory(image string) ([]ociv1.History, []types.BlobInfo, s
 }
 
 // ImportImage imports an OCI format image archive into storage as an image
-func (r *Runtime) ImportImage(path string, options CopyOptions) error {
+func (r *Runtime) ImportImage(path string, options CopyOptions) (*storage.Image, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return nil, ErrRuntimeStopped
 	}
 
 	file := TarballTransport + ":" + path
 	src, err := alltransports.ParseImageName(file)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing image name %q", path)
+		return nil, errors.Wrapf(err, "error parsing image name %q", path)
 	}
 
 	updater, ok := src.(tarball.ConfigUpdater)
 	if !ok {
-		return errors.Wrapf(err, "unexpected type, a tarball reference should implement tarball.ConfigUpdater")
+		return nil, errors.Wrapf(err, "unexpected type, a tarball reference should implement tarball.ConfigUpdater")
 	}
 
 	annotations := make(map[string]string)
 
 	err = updater.ConfigUpdate(options.ImageConfig, annotations)
 	if err != nil {
-		return errors.Wrapf(err, "error updating image config")
+		return nil, errors.Wrapf(err, "error updating image config")
 	}
 
 	var reference = options.Reference
@@ -1065,24 +1065,26 @@ func (r *Runtime) ImportImage(path string, options CopyOptions) error {
 	if reference == "" {
 		reference, err = getImageDigest(src, sc)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer policyContext.Destroy()
-
-	copyOptions := common.GetCopyOptions(os.Stdout, "", nil, nil, common.SigningOptions{}, "", "", false)
+	copyOptions := common.GetCopyOptions(options.Writer, "", nil, nil, common.SigningOptions{}, "", "", false)
 
 	dest, err := is.Transport.ParseStoreReference(r.store, reference)
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", options.Reference)
 	}
-
-	return cp.Image(policyContext, dest, src, copyOptions)
+	if err = cp.Image(policyContext, dest, src, copyOptions); err != nil {
+		return nil, err
+	}
+	// Use no lock version of GetImage
+	return r.getImage(reference)
 }
 
 // GetImageInspectInfo returns the inspect information of an image

@@ -12,6 +12,7 @@ podman commit - Create new image based on the changed container
 [**--change**|**-c**]
 [**--message**|**-m**]
 [**--help**|**-h**]
+[**--verbose**]
 
 ## DESCRIPTION
 **podman commit** creates an image based on a changed container. The author of the
@@ -19,7 +20,8 @@ image can be set using the **--author** flag. Various image instructions can be
 configured with the **--change** flag and a commit message can be set using the
 **--message** flag. The container and its processes are paused while the image is
 committed. This minimizes the likelihood of data corruption when creating the new
-image. If this is not desired, the **--pause** flag can be set to false.
+image. If this is not desired, the **--pause** flag can be set to false. When the commit
+is complete, podman will print out the ID of the new image.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -43,6 +45,9 @@ Set commit message for committed image
 **--pause, -p**
 Pause the container when creating an image
 
+**--quiet, -q**
+Suppress output
+
 ## EXAMPLES
 
 ```
@@ -54,39 +59,22 @@ Copying config sha256:c16a6d30f3782288ec4e7521c754acc29d37155629cb39149756f486da
  448 B / 448 B [============================================================] 0s
 Writing manifest to image destination
 Storing signatures
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit --message "committing container to image" reverent_golick image-commited
-Getting image source signatures
-Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
- 25.80 MB / 25.80 MB [======================================================] 0s
-Copying config sha256:af376cdda5c0ac1d9592bf56567253d203f8de6a8edf356c683a645d75221540
- 376 B / 376 B [============================================================] 0s
-Writing manifest to image destination
-Storing signatures
+# podman commit -q --message "committing container to image" reverent_golick image-commited
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit --author "firstName lastName" reverent_golick
-Getting image source signatures
-Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
- 25.80 MB / 25.80 MB [======================================================] 0s
-Copying config sha256:d61387b4d5edf65edee5353e2340783703074ffeaaac529cde97a8357eea7645
- 378 B / 378 B [============================================================] 0s
-Writing manifest to image destination
-Storing signatures
+# podman commit -q --author "firstName lastName" reverent_golick
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit --pause=false reverent_golick image-commited
-Getting image source signatures
-Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
- 25.80 MB / 25.80 MB [======================================================] 0s
-Copying config sha256:5813fe8a3b18696089fd09957a12e88bda43dc1745b5240879ffffe93240d29a
- 419 B / 419 B [============================================================] 0s
-Writing manifest to image destination
-Storing signatures
+# podman commit -q --pause=false reverent_golick image-commited
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ## SEE ALSO

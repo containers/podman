@@ -25,6 +25,10 @@ var (
 			Name:  "message, m",
 			Usage: "Set commit message for imported image",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Suppress output",
+		},
 	}
 	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
 	 Note remote tar balls can be specified, via web address.
@@ -84,6 +88,11 @@ func importCmd(c *cli.Context) error {
 	}
 
 	opts.ImageConfig = config
+	opts.Writer = nil
+
+	if !c.Bool("quiet") {
+		opts.Writer = os.Stderr
+	}
 
 	// if source is a url, download it and save to a temp file
 	u, err := url.ParseRequestURI(source)
@@ -96,7 +105,11 @@ func importCmd(c *cli.Context) error {
 		source = file
 	}
 
-	return runtime.ImportImage(source, opts)
+	img, err := runtime.ImportImage(source, opts)
+	if err == nil {
+		fmt.Println(img.ID)
+	}
+	return err
 }
 
 // donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
@@ -588,19 +589,19 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit(pause bool, options CopyOptions) error {
+func (c *Container) Commit(pause bool, options CopyOptions) (*storage.Image, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if c.state.State == ContainerStateRunning && pause {
 		if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
-			return errors.Wrapf(err, "error pausing container %q", c.ID())
+			return nil, errors.Wrapf(err, "error pausing container %q", c.ID())
 		}
 		defer func() {
 			if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
@@ -611,13 +612,13 @@ func (c *Container) Commit(pause bool, options CopyOptions) error {
 
 	tempFile, err := ioutil.TempFile(c.runtime.config.TmpDir, "podman-commit")
 	if err != nil {
-		return errors.Wrapf(err, "error creating temp file")
+		return nil, errors.Wrapf(err, "error creating temp file")
 	}
 	defer os.Remove(tempFile.Name())
 	defer tempFile.Close()
 
 	if err := c.export(tempFile.Name()); err != nil {
-		return err
+		return nil, err
 	}
 	return c.runtime.ImportImage(tempFile.Name(), options)
 }
