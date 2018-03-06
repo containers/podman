@@ -101,7 +101,11 @@ func WithOCIRuntime(runtimePath string) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.RuntimePath = runtimePath
+		if runtimePath == "" {
+			return errors.Wrapf(ErrInvalidArg, "must provide a valid path")
+		}
+
+		rt.config.RuntimePath = []string{runtimePath}
 
 		return nil
 	}
@@ -114,10 +118,13 @@ func WithConmonPath(path string) RuntimeOption {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
-		// TODO Once libkpod is eliminated, "" should throw an error
-		if path != "" {
-			rt.config.ConmonPath = path
+
+		if path == "" {
+			return errors.Wrapf(ErrInvalidArg, "must provide a valid path")
 		}
+
+		rt.config.ConmonPath = []string{path}
+
 		return nil
 	}
 }
