@@ -36,7 +36,8 @@ const (
                                  containerState.NetNSPath,
                                  containerState.ExecSessions,
                                  containerState.IPs,
-                                 containerState.Routes
+                                 containerState.Routes,
+                                 containerState.BindMounts
                           FROM containers
                           INNER JOIN
                               containerState ON containers.Id = containerState.Id `
@@ -278,6 +279,7 @@ func prepareDB(db *sql.DB) (err error) {
             ExecSessions TEXT    NOT NULL,
             IPs          TEXT    NOT NULL,
             Routes       TEXT    NOT NULL,
+            BindMounts   TEXT    NOT NULL,
 
             CHECK (State>0),
             CHECK (OomKilled IN (0, 1)),
@@ -488,6 +490,7 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		execSessions       string
 		ipsJSON            string
 		routesJSON         string
+		bindMountsJSON     string
 	)
 
 	err := row.Scan(
@@ -542,7 +545,8 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 		&netNSPath,
 		&execSessions,
 		&ipsJSON,
-		&routesJSON)
+		&routesJSON,
+		&bindMountsJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoSuchCtr
@@ -640,6 +644,12 @@ func (s *SQLState) ctrFromScannable(row scannable) (*Container, error) {
 	if len(routes) > 0 {
 		ctr.state.Routes = routes
 	}
+
+	bindMounts := make(map[string]string)
+	if err := json.Unmarshal([]byte(bindMountsJSON), &bindMounts); err != nil {
+		return nil, errors.Wrapf(err, "error parsing container %s bind mounts JSON", id)
+	}
+	ctr.state.BindMounts = bindMounts
 
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(labelsJSON), &labels); err != nil {
@@ -778,7 +788,7 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		addCtrState = `INSERT INTO containerState VALUES (
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?
+                    ?, ?, ?, ?, ?
                 );`
 		addRegistry   = "INSERT INTO registry VALUES (?, ?);"
 		checkCtrInPod = "SELECT 1 FROM containers WHERE Id=? AND Pod=?;"
@@ -833,6 +843,11 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 	routesJSON, err := json.Marshal(ctr.state.Routes)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s routes to JSON", ctr.ID())
+	}
+
+	bindMountsJSON, err := json.Marshal(ctr.state.BindMounts)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s bind mounts to JSON", ctr.ID())
 	}
 
 	netNSPath := ""
@@ -959,7 +974,8 @@ func (s *SQLState) addContainer(ctr *Container, pod *Pod) (err error) {
 		netNSPath,
 		execSessionsJSON,
 		ipsJSON,
-		routesJSON)
+		routesJSON,
+		bindMountsJSON)
 	if err != nil {
 		return errors.Wrapf(err, "error adding container %s state to database", ctr.ID())
 	}

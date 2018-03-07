@@ -67,6 +67,10 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 					PID:     46765,
 				},
 			},
+			BindMounts: map[string]string{
+				"/1/2/3":          "/4/5/6",
+				"/test/file.test": "/test2/file2.test",
+			},
 		},
 		valid: true,
 	}
