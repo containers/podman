@@ -35,8 +35,7 @@ GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
 
 # Update VPATH so make finds .gopathok
 VPATH := $(VPATH):$(GOPATH)
-SHRINKFLAGS := -s -w
-BASE_LDFLAGS := ${SHRINKFLAGS} -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
+BASE_LDFLAGS := -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
 LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS}'
 
