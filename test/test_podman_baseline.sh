@@ -7,19 +7,29 @@
 #
 # To run this command:
 #
+# /bin/bash -v test_podman_baseline.sh -d # Install and then deinstall Docker
 # /bin/bash -v test_podman_baseline.sh -e # Stop on error
 # /bin/bash -v test_podman_baseline.sh    # Continue on error
 
 #######
-# See if we want to stop on errors or not.
+# See if we want to stop on errors and/or install and then remove Docker.
 #######
 showerror=0
-while getopts "e" opt; do
+installdocker=0
+while getopts "de" opt; do
     case "$opt" in
+    d) installdocker=1
+       ;;
     e) showerror=1
        ;;
     esac
 done
+
+if [ "$installdocker" -eq 1 ]
+then
+    echo "Script will install and then deinstall Docker."
+    set -eu
+fi
 
 if [ "$showerror" -eq 1 ]
 then
@@ -131,11 +141,14 @@ podman images
 ########
 podman rm -a
 
-########
-# Install Docker, but not for long!
-########
-dnf -y install docker
-systemctl start docker
+if [ "$installdocker" -eq 1 ]
+then
+    ########
+    # Install Docker, but not for long!
+    ########
+    dnf -y install docker
+fi
+systemctl restart docker
 
 ########
 # Push fedora-bashecho to the Docker daemon
@@ -147,10 +160,13 @@ podman push runecho docker-daemon:fedora-bashecho:latest
 ########
 docker run fedora-bashecho ./tmp/runecho.sh
 
-########
-# Time to remove Docker
-########
-dnf -y remove docker
+if [ "$installdocker" -eq 1 ]
+then
+    ########
+    # Time to remove Docker
+    ########
+    dnf -y remove docker
+fi
 
 ########
 # Build Dockerfile
