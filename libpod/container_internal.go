@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -728,5 +729,38 @@ func (c *Container) addImageVolumes(g *generate.Generator) error {
 		}
 		g.AddMount(mount)
 	}
+	return nil
+}
+
+// Save OCI spec to disk, replacing any existing specs for the container
+func (c *Container) saveSpec(spec *spec.Spec) error {
+	// If the OCI spec already exists, we need to replace it
+	// Cannot guarantee some things, e.g. network namespaces, have the same
+	// paths
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	if _, err := os.Stat(jsonPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
+		}
+		// The spec does not exist, we're fine
+	} else {
+		// The spec exists, need to remove it
+		if err := os.Remove(jsonPath); err != nil {
+			return errors.Wrapf(err, "error replacing runtime spec for container %s", c.ID())
+		}
+	}
+
+	fileJSON, err := json.Marshal(spec)
+	if err != nil {
+		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
+	}
+	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
+		return errors.Wrapf(err, "error writing runtime spec JSON for container %s to disk", c.ID())
+	}
+
+	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+
+	c.state.ConfigPath = jsonPath
+
 	return nil
 }
