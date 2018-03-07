@@ -13,7 +13,7 @@ export GITVALIDATE_TIP=$(cd $GOSRC; git log -2 --pretty='%H' | tail -n 1)
 export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
 
 make gofmt TAGS="${TAGS}"
-make testunit TAGS="${TAGS}"
+make localunit TAGS="${TAGS}"
 
 make install.tools TAGS="${TAGS}"
 
