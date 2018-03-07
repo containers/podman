@@ -414,8 +414,8 @@ func (c *Container) cleanupStorage() error {
 	return c.save()
 }
 
-// WriteStringToRundir copies the provided file to the runtimedir
-func (c *Container) WriteStringToRundir(destFile, output string) (string, error) {
+// writeStringToRundir copies the provided file to the runtimedir
+func (c *Container) writeStringToRundir(destFile, output string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
 	f, err := os.Create(destFileName)
 	if err != nil {
@@ -455,7 +455,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
 	}
 	if len(c.config.DNSServer) == 0 && len(c.config.DNSSearch) == 0 && len(c.config.DNSOption) == 0 {
-		return c.WriteStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
+		return c.writeStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
 	}
 
 	// Read and organize the hosts /etc/resolv.conf
@@ -483,7 +483,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		resolv.options = nil
 		resolv.options = append(resolv.options, c.Config().DNSOption...)
 	}
-	return c.WriteStringToRundir("resolv.conf", resolv.ToString())
+	return c.writeStringToRundir("resolv.conf", resolv.ToString())
 }
 
 // createResolv creates a resolv struct from an input string
@@ -546,12 +546,12 @@ func (c *Container) generateHosts() (string, error) {
 			hosts += fmt.Sprintf("%s %s\n", fields[0], fields[1])
 		}
 	}
-	return c.WriteStringToRundir("hosts", hosts)
+	return c.writeStringToRundir("hosts", hosts)
 }
 
 // generateEtcHostname creates a containers /etc/hostname
 func (c *Container) generateEtcHostname(hostname string) (string, error) {
-	return c.WriteStringToRundir("hostname", hostname)
+	return c.writeStringToRundir("hostname", hostname)
 }
 
 // Generate spec for a container
