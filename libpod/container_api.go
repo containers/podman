@@ -3,13 +3,11 @@ package libpod
 import (
 	"io/ioutil"
 	"os"
-	gosignal "os/signal"
 	"strconv"
 	"time"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
@@ -320,31 +318,6 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	}
 
 	return waitErr
-}
-
-func resizeTty(resize chan remotecommand.TerminalSize) {
-	sigchan := make(chan os.Signal, 1)
-	gosignal.Notify(sigchan, signal.SIGWINCH)
-	sendUpdate := func() {
-		winsize, err := term.GetWinsize(os.Stdin.Fd())
-		if err != nil {
-			logrus.Warnf("Could not get terminal size %v", err)
-			return
-		}
-		resize <- remotecommand.TerminalSize{
-			Width:  winsize.Width,
-			Height: winsize.Height,
-		}
-	}
-	go func() {
-		defer close(resize)
-		// Update the terminal size immediately without waiting
-		// for a SIGWINCH to get the correct initial size.
-		sendUpdate()
-		for range sigchan {
-			sendUpdate()
-		}
-	}()
 }
 
 // Attach attaches to a container
