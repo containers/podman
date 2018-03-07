@@ -25,6 +25,25 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		execIDs = append(execIDs, id)
 	}
 
+	if c.state.BindMounts == nil {
+		c.state.BindMounts = make(map[string]string)
+	}
+
+	resolvPath := ""
+	if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+		resolvPath = path
+	}
+
+	hostsPath := ""
+	if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+		hostsPath = path
+	}
+
+	hostnamePath := ""
+	if path, ok := c.state.BindMounts["/etc/hostname"]; ok {
+		hostnamePath = path
+	}
+
 	data := &inspect.ContainerInspectData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
@@ -45,9 +64,9 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		},
 		ImageID:         config.RootfsImageID,
 		ImageName:       config.RootfsImageName,
-		ResolvConfPath:  "",                                                   // TODO get from networking path
-		HostnamePath:    spec.Annotations["io.kubernetes.cri-o.HostnamePath"], // not sure
-		HostsPath:       "",                                                   // can't get yet
+		ResolvConfPath:  resolvPath,
+		HostnamePath:    hostnamePath,
+		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
 		LogPath:         config.LogPath,
 		Name:            config.Name,
