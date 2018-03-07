@@ -59,25 +59,12 @@ func (c *Container) Init() (err error) {
 		}
 	}()
 
-	// Copy /etc/resolv.conf to the container's rundir
-	runDirResolv, err := c.generateResolvConf()
-	if err != nil {
+	if err := c.makeBindMounts(); err != nil {
 		return err
 	}
 
-	// Copy /etc/hosts to the container's rundir
-	runDirHosts, err := c.generateHosts()
-	if err != nil {
-		return errors.Wrapf(err, "unable to copy /etc/hosts to container space")
-	}
-
-	runDirHostname, err := c.generateEtcHostname(c.Hostname())
-	if err != nil {
-		return errors.Wrapf(err, "unable to generate hostname file for container")
-	}
-
 	// Generate the OCI spec
-	spec, err := c.generateSpec(runDirResolv, runDirHosts, runDirHostname)
+	spec, err := c.generateSpec()
 	if err != nil {
 		return err
 	}

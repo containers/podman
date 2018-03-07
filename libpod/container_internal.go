@@ -162,6 +162,8 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr.config.ShmSize = DefaultShmSize
 	ctr.config.CgroupParent = DefaultCgroupParent
 
+	ctr.state.BindMounts = make(map[string]string)
+
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, ctr.config.ID)
 	// Grab a lockfile at the given path
@@ -444,6 +446,56 @@ func (c *Container) cleanupStorage() error {
 	return c.save()
 }
 
+// Make standard bind mounts to include in the container
+func (c *Container) makeBindMounts() error {
+	if c.state.BindMounts == nil {
+		c.state.BindMounts = make(map[string]string)
+	}
+
+	// SHM is always added when we mount the container
+	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
+
+	// Make /etc/resolv.conf
+	if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+		// If it already exists, delete so we can recreate
+		if err := os.Remove(path); err != nil {
+			return errors.Wrapf(err, "error removing resolv.conf for container %s", c.ID())
+		}
+		delete(c.state.BindMounts, "/etc/resolv.conf")
+	}
+	newResolv, err := c.generateResolvConf()
+	if err != nil {
+		return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+	}
+	c.state.BindMounts["/etc/resolv.conf"] = newResolv
+
+	// Make /etc/hosts
+	if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+		// If it already exists, delete so we can recreate
+		if err := os.Remove(path); err != nil {
+			return errors.Wrapf(err, "error removing hosts file for container %s", c.ID())
+		}
+		delete(c.state.BindMounts, "/etc/hosts")
+	}
+	newHosts, err := c.generateHosts()
+	if err != nil {
+		return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+	}
+	c.state.BindMounts["/etc/hosts"] = newHosts
+
+	// Make /etc/hostname
+	// This should never change, so no need to recreate if it exists
+	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
+		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
+		if err != nil {
+			return errors.Wrapf(err, "error creating hostname file for container %s", c.ID())
+		}
+		c.state.BindMounts["/etc/hostname"] = hostnamePath
+	}
+
+	return nil
+}
+
 // writeStringToRundir copies the provided file to the runtimedir
 func (c *Container) writeStringToRundir(destFile, output string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
@@ -579,58 +631,29 @@ func (c *Container) generateHosts() (string, error) {
 	return c.writeStringToRundir("hosts", hosts)
 }
 
-// generateEtcHostname creates a containers /etc/hostname
-func (c *Container) generateEtcHostname(hostname string) (string, error) {
-	return c.writeStringToRundir("hostname", hostname)
-}
-
 // Generate spec for a container
-func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*spec.Spec, error) {
+func (c *Container) generateSpec() (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 	}
-	// Remove default /etc/shm mount
+
+	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
-	// Mount ShmDir from host into container
-	shmMnt := spec.Mount{
-		Type:        "bind",
-		Source:      c.config.ShmDir,
-		Destination: "/dev/shm",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(shmMnt)
-	// Bind mount resolv.conf
-	resolvMnt := spec.Mount{
-		Type:        "bind",
-		Source:      resolvPath,
-		Destination: "/etc/resolv.conf",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), resolvMnt.Destination) {
-		g.AddMount(resolvMnt)
-	}
-	// Bind mount hosts
-	hostsMnt := spec.Mount{
-		Type:        "bind",
-		Source:      hostsPath,
-		Destination: "/etc/hosts",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), hostsMnt.Destination) {
-		g.AddMount(hostsMnt)
-	}
-	// Bind hostname
-	hostnameMnt := spec.Mount{
-		Type:        "bind",
-		Source:      hostnamePath,
-		Destination: "/etc/hostname",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), hostnameMnt.Destination) {
-		g.AddMount(hostnameMnt)
+
+	// Add bind mounts to container
+	for dstPath, srcPath := range c.state.BindMounts {
+		newMount := spec.Mount{
+			Type:        "bind",
+			Source:      srcPath,
+			Destination: dstPath,
+			Options:     []string{"rw", "bind"},
+		}
+		if !MountExists(g.Mounts(), dstPath) {
+			g.AddMount(newMount)
+		}
 	}
 
 	// Bind builtin image volumes
