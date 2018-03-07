@@ -148,6 +148,12 @@ type containerState struct {
 	// Only populated if we created a network namespace for the container,
 	// and the network namespace is currently active
 	Routes []*types.Route `json:"routes,omitempty"`
+	// BindMounts contains files that will be bind-mounted into the
+	// container when it is mounted.
+	// These include /etc/hosts and /etc/resolv.conf
+	// This maps the path the file will be mounted to in the container to
+	// the path of the file on disk outside the container
+	BindMounts map[string]string `json:"bindMounts,omitempty"`
 }
 
 // ExecSession contains information on an active exec session

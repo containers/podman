@@ -16,7 +16,7 @@ import (
 
 // DBSchema is the current DB schema version
 // Increments every time a change is made to the database's tables
-const DBSchema = 13
+const DBSchema = 14
 
 // SQLState is a state implementation backed by a persistent SQLite3 database
 type SQLState struct {
@@ -105,7 +105,8 @@ func (s *SQLState) Refresh() (err error) {
                              NetNSPath=?,
                              ExecSessions=?,
                              IPs=?,
-                             Routes=?;`
+                             Routes=?,
+                             BindMounts=?;`
 
 	if !s.valid {
 		return ErrDBClosed
@@ -136,7 +137,8 @@ func (s *SQLState) Refresh() (err error) {
 		"",
 		"{}",
 		"[]",
-		"[]")
+		"[]",
+		"{}")
 	if err != nil {
 		return errors.Wrapf(err, "error refreshing database state")
 	}
@@ -274,7 +276,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
                               NetNSPath,
                               ExecSessions,
                               IPs,
-                              Routes
+                              Routes,
+                              BindMounts
                        FROM containerState WHERE ID=?;`
 
 	var (
@@ -291,6 +294,7 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		execSessions       string
 		ipsJSON            string
 		routesJSON         string
+		bindMountsJSON     string
 	)
 
 	if !s.valid {
@@ -315,7 +319,8 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 		&netNSPath,
 		&execSessions,
 		&ipsJSON,
-		&routesJSON)
+		&routesJSON,
+		&bindMountsJSON)
 	if err != nil {
 		// The container may not exist in the database
 		if err == sql.ErrNoRows {
@@ -358,6 +363,12 @@ func (s *SQLState) UpdateContainer(ctr *Container) error {
 	if len(routes) > 0 {
 		newState.Routes = routes
 	}
+
+	bindMounts := make(map[string]string)
+	if err := json.Unmarshal([]byte(bindMountsJSON), &bindMounts); err != nil {
+		return errors.Wrapf(err, "error parsing container %s bind mounts JSON", ctr.ID())
+	}
+	newState.BindMounts = bindMounts
 
 	if newState.Mountpoint != "" {
 		newState.Mounted = true
@@ -422,7 +433,8 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
                           NetNSPath=?,
                           ExecSessions=?,
                           IPs=?,
-                          Routes=?
+                          Routes=?,
+                          BindMounts=?
                        WHERE Id=?;`
 
 	if !ctr.valid {
@@ -447,6 +459,11 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 	routesJSON, err := json.Marshal(ctr.state.Routes)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s routes to JSON", ctr.ID())
+	}
+
+	bindMountsJSON, err := json.Marshal(ctr.state.BindMounts)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling container %s bind mounts to JSON", ctr.ID())
 	}
 
 	if !s.valid {
@@ -482,6 +499,7 @@ func (s *SQLState) SaveContainer(ctr *Container) (err error) {
 		execSessionsJSON,
 		ipsJSON,
 		routesJSON,
+		bindMountsJSON,
 		ctr.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error updating container %s state in database", ctr.ID())
