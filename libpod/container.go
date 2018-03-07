@@ -94,8 +94,6 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	runningSpec *spec.Spec
-
 	state *containerState
 
 	// Locked indicates that a container has been locked as part of a
