@@ -672,6 +672,8 @@ _podman_commit() {
 	-h
 	--pause
 	-p
+	--quiet
+	-q
      "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -816,6 +818,8 @@ _podman_import() {
     local boolean_options="
 	--help
 	-h
+	--quiet
+	-q
      "
     _complete_ "$options_with_args" "$boolean_options"
 
@@ -1409,7 +1413,8 @@ _podman_save() {
      "
      local boolean_options="
 	 --compress
-     --quiet -q
+	 -q
+	 --quiet
      "
      _complete_ "$options_with_args" "$boolean_options"
 }
@@ -1529,7 +1534,8 @@ _podman_load() {
     --signature-policy
     "
     local boolean_options="
-    --quiet -q
+    --quiet
+    -q
     "
     _complete_ "$options_with_args" "$boolean_options"
 }
