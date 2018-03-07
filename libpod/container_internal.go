@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	gosignal "os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -16,7 +17,9 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -26,6 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -327,6 +331,32 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	return c.cleanupStorage()
+}
+
+// resizeTty handles TTY resizing for Attach()
+func resizeTty(resize chan remotecommand.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	gosignal.Notify(sigchan, signal.SIGWINCH)
+	sendUpdate := func() {
+		winsize, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			logrus.Warnf("Could not get terminal size %v", err)
+			return
+		}
+		resize <- remotecommand.TerminalSize{
+			Width:  winsize.Width,
+			Height: winsize.Height,
+		}
+	}
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		sendUpdate()
+		for range sigchan {
+			sendUpdate()
+		}
+	}()
 }
 
 // mountStorage sets up the container's root filesystem
