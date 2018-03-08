@@ -1,15 +1,26 @@
 package image
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
-	"os"
+	"strings"
+	"syscall"
+	"time"
 
+	types2 "github.com/containernetworking/cni/pkg/types"
+	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
+	is "github.com/containers/image/storage"
+	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/reexec"
+	"github.com/opencontainers/go-digest"
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/util"
 )
 
 // Image is the primary struct for dealing with images
@@ -18,63 +29,113 @@ type Image struct {
 	inspect.ImageData
 	InputName string
 	Local     bool
-	runtime   *libpod.Runtime
-	image     *storage.Image
+	//runtime   *libpod.Runtime
+	image        *storage.Image
+	imageruntime *Runtime
+}
+
+// Runtime contains the store
+type Runtime struct {
+	store storage.Store
+}
+
+// NewImageRuntime creates an Image Runtime including the store given
+// store options
+func NewImageRuntime(options storage.StoreOptions) (*Runtime, error) {
+	if reexec.Init() {
+		return nil, errors.Errorf("unable to reexec")
+	}
+	store, err := setStore(options)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Runtime{
+		store: store,
+	}, nil
+}
+
+func setStore(options storage.StoreOptions) (storage.Store, error) {
+	store, err := storage.GetStore(options)
+	if err != nil {
+		return nil, err
+	}
+	is.Transport.SetStore(store)
+	return store, nil
+}
+
+// newFromStorage creates a new image object from a storage.Image
+func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
+	image := Image{
+		InputName:    img.ID,
+		Local:        true,
+		imageruntime: ir,
+		image:        img,
+	}
+	return &image
 }
 
 // NewFromLocal creates a new image object that is intended
 // to only deal with local images already in the store (or
 // its aliases)
-func NewFromLocal(name string, runtime *libpod.Runtime) (Image, error) {
+func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
+
 	image := Image{
-		InputName: name,
-		Local:     true,
-		runtime:   runtime,
+		InputName:    name,
+		Local:        true,
+		imageruntime: ir,
 	}
 	localImage, err := image.getLocalImage()
 	if err != nil {
-		return Image{}, err
+		return nil, err
 	}
 	image.image = localImage
-	return image, nil
+	return &image, nil
 }
 
 // New creates a new image object where the image could be local
 // or remote
-func New(name string, runtime *libpod.Runtime) (Image, error) {
+func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions) (*Image, error) {
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
-		InputName: name,
-		Local:     false,
-		runtime:   runtime,
+		InputName:    name,
+		Local:        false,
+		imageruntime: ir,
 	}
 	localImage, err := newImage.getLocalImage()
 	if err == nil {
 		newImage.Local = true
 		newImage.image = localImage
-		return newImage, nil
+		return &newImage, nil
 	}
 
 	// The image is not local
-	pullNames, err := newImage.createNamesToPull()
+
+	imageName, err := newImage.pullImage(writer, authfile, signaturePolicyPath, signingoptions, dockeroptions)
 	if err != nil {
-		return newImage, err
+		return &newImage, errors.Errorf("unable to pull %s", name)
 	}
-	if len(pullNames) == 0 {
-		return newImage, errors.Errorf("unable to pull %s", newImage.InputName)
+
+	newImage.InputName = imageName
+	img, err := newImage.getLocalImage()
+	newImage.image = img
+	return &newImage, nil
+}
+
+// Shutdown closes down the storage and require a bool arg as to
+// whether it should do so forcibly.
+func (ir *Runtime) Shutdown(force bool) error {
+	_, err := ir.store.Shutdown(force)
+	return err
+}
+
+func (i *Image) reloadImage() error {
+	newImage, err := i.imageruntime.getImage(i.ID())
+	if err != nil {
+		return errors.Wrapf(err, "unable to reload image")
 	}
-	var writer io.Writer
-	writer = os.Stderr
-	for _, p := range pullNames {
-		_, err := newImage.pull(p, writer, runtime)
-		if err == nil {
-			newImage.InputName = p
-			img, err := newImage.getLocalImage()
-			newImage.image = img
-			return newImage, err
-		}
-	}
-	return newImage, errors.Errorf("unable to find %s", name)
+	i.image = newImage.image
+	return nil
 }
 
 // getLocalImage resolves an unknown input describing an image and
@@ -85,9 +146,9 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return nil, errors.Errorf("input name is blank")
 	}
 	var taggedName string
-	img, err := i.runtime.GetImage(i.InputName)
+	img, err := i.imageruntime.getImage(i.InputName)
 	if err == nil {
-		return img, err
+		return img.image, err
 	}
 
 	// container-storage wasn't able to find it in its current form
@@ -100,9 +161,9 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	// the inputname isn't tagged, so we assume latest and try again
 	if !decomposedImage.isTagged {
 		taggedName = fmt.Sprintf("%s:latest", i.InputName)
-		img, err = i.runtime.GetImage(taggedName)
+		img, err = i.imageruntime.getImage(taggedName)
 		if err == nil {
-			return img, nil
+			return img.image, nil
 		}
 	}
 	hasReg, err := i.hasRegistry()
@@ -116,7 +177,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	}
 
 	// grab all the local images
-	images, err := i.runtime.GetImages(&libpod.ImageFilterParams{})
+	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
@@ -149,43 +210,226 @@ func (i *Image) ID() string {
 	return i.image.ID
 }
 
-// createNamesToPull looks at a decomposed image and determines the possible
-// images names to try pulling in combination with the registries.conf file as well
-func (i *Image) createNamesToPull() ([]string, error) {
-	var pullNames []string
-	decomposedImage, err := decompose(i.InputName)
+// Digest returns the image's Manifest
+func (i *Image) Digest() digest.Digest {
+	return i.image.Digest
+}
+
+// Names returns a string array of names associated with the image
+func (i *Image) Names() []string {
+	return i.image.Names
+}
+
+// Created returns the time the image was created
+func (i *Image) Created() time.Time {
+	return i.image.Created
+}
+
+// TopLayer returns the top layer id as a string
+func (i *Image) TopLayer() string {
+	return i.image.TopLayer
+}
+
+// Remove an image; container removal for the image must be done
+// outside the context of images
+func (i *Image) Remove(force bool) error {
+	_, err := i.imageruntime.store.DeleteImage(i.ID(), true)
+	return err
+}
+
+func annotations(manifest []byte, manifestType string) map[string]string {
+	annotations := make(map[string]string)
+	switch manifestType {
+	case ociv1.MediaTypeImageManifest:
+		var m ociv1.Manifest
+		if err := json.Unmarshal(manifest, &m); err == nil {
+			for k, v := range m.Annotations {
+				annotations[k] = v
+			}
+		}
+	}
+	return annotations
+}
+
+// Decompose an Image
+func (i *Image) Decompose() error {
+	return types2.NotImplementedError
+}
+
+// TODO: Rework this method to not require an assembly of the fq name with transport
+/*
+// GetManifest tries to GET an images manifest, returns nil on success and err on failure
+func (i *Image) GetManifest() error {
+	pullRef, err := alltransports.ParseImageName(i.assembleFqNameTransport())
+	if err != nil {
+		return errors.Errorf("unable to parse '%s'", i.Names()[0])
+	}
+	imageSource, err := pullRef.NewImageSource(nil)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create new image source")
+	}
+	_, _, err = imageSource.GetManifest(nil)
+	if err == nil {
+		return nil
+	}
+	return err
+}
+*/
+
+// getImage retrieves an image matching the given name or hash from system
+// storage
+// If no matching image can be found, an error is returned
+func (ir *Runtime) getImage(image string) (*Image, error) {
+	var img *storage.Image
+	ref, err := is.Transport.ParseStoreReference(ir.store, image)
+	if err == nil {
+		img, err = is.Transport.GetStoreImage(ir.store, ref)
+	}
+	if err != nil {
+		img2, err2 := ir.store.Image(image)
+		if err2 != nil {
+			if ref == nil {
+				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
+			}
+			return nil, errors.Wrapf(err, "unable to locate image %q", image)
+		}
+		img = img2
+	}
+	newImage := ir.newFromStorage(img)
+	return newImage, nil
+}
+
+// GetImages retrieves all images present in storage
+func (ir *Runtime) GetImages() ([]*Image, error) {
+	var newImages []*Image
+	images, err := ir.store.Images()
 	if err != nil {
 		return nil, err
 	}
+	for _, i := range images {
+		newImages = append(newImages, ir.newFromStorage(&i))
+	}
+	return newImages, nil
+}
 
-	if decomposedImage.hasRegistry {
-		pullNames = append(pullNames, i.InputName)
-	} else {
-		registries, err := libpod.GetRegistries()
+// getImageDigest creates an image object and uses the hex value of the digest as the image ID
+// for parsing the store reference
+func getImageDigest(src types.ImageReference, ctx *types.SystemContext) (string, error) {
+	newImg, err := src.NewImage(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer newImg.Close()
+	digest := newImg.ConfigInfo().Digest
+	if err = digest.Validate(); err != nil {
+		return "", errors.Wrapf(err, "error getting config info")
+	}
+	return "@" + digest.Hex(), nil
+}
+
+// TagImage adds a tag to the given image
+func (i *Image) TagImage(tag string) error {
+	tags := i.Names()
+	if util.StringInSlice(tag, tags) {
+		return nil
+	}
+	tags = append(tags, tag)
+	i.reloadImage()
+	return i.imageruntime.store.SetNames(i.ID(), tags)
+}
+
+// PushImage pushes the given image to a location described by the given path
+func (i *Image) PushImage(destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions) error {
+	// PushImage pushes the src image to the destination
+	//func PushImage(source, destination string, options CopyOptions) error {
+	if destination == "" {
+		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
+	}
+
+	// Get the destination Image Reference
+	dest, err := alltransports.ParseImageName(destination)
+	if err != nil {
+		if hasTransport(destination) {
+			return errors.Wrapf(err, "error getting destination imageReference for %q", destination)
+		}
+		// Try adding the images default transport
+		destination2 := DefaultTransport + destination
+		dest, err = alltransports.ParseImageName(destination2)
 		if err != nil {
-			return nil, err
-		}
-		for _, registry := range registries {
-			decomposedImage.registry = registry
-			pullNames = append(pullNames, decomposedImage.assemble())
+			return err
 		}
 	}
-	return pullNames, nil
-}
 
-// pull is a temporary function for stage1 to be able to pull images during the image
-// resolution tests.  it will be replaced in stage2 with a more robust function.
-func (i *Image) pull(name string, writer io.Writer, r *libpod.Runtime) (string, error) {
-	options := libpod.CopyOptions{
-		Writer:              writer,
-		SignaturePolicyPath: r.GetConfig().SignaturePolicyPath,
+	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+
+	policyContext, err := getPolicyContext(sc)
+	if err != nil {
+		return err
 	}
-	return i.runtime.PullImage(name, options)
+	defer policyContext.Destroy()
+
+	// Look up the source image, expecting it to be in local storage
+	src, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+	if err != nil {
+		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
+	}
+
+	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress)
+
+	// Copy the image to the remote destination
+	err = cp.Image(policyContext, dest, src, copyOptions)
+	if err != nil {
+		return errors.Wrapf(err, "Error copying image to the remote destination")
+	}
+	return nil
 }
 
-// Remove an image
-// This function is only complete enough for the stage 1 tests.
-func (i *Image) Remove(force bool) error {
-	_, err := i.runtime.RemoveImage(i.image, force)
-	return err
+// MatchesID returns a bool based on if the input id
+// matches the image's id
+func (i *Image) MatchesID(id string) bool {
+	return strings.HasPrefix(i.ID(), id)
+}
+
+// toStorageReference returns a *storageReference from an Image
+func (i *Image) toStorageReference() (types.ImageReference, error) {
+	return is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+}
+
+// toImageRef returns an Image Reference type from an image
+func (i *Image) toImageRef() (types.Image, error) {
+	ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
+	}
+	imgRef, err := ref.NewImage(nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading image %q", i.ID())
+	}
+	return imgRef, nil
+}
+
+// sizer knows its size.
+type sizer interface {
+	Size() (int64, error)
+}
+
+//Size returns the size of the image
+func (i *Image) Size() (*uint64, error) {
+	storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+	if err != nil {
+		return nil, err
+	}
+	systemContext := &types.SystemContext{}
+	img, err := storeRef.NewImageSource(systemContext)
+	if err != nil {
+		return nil, err
+	}
+	if s, ok := img.(sizer); ok {
+		if sum, err := s.Size(); err == nil {
+			usum := uint64(sum)
+			return &usum, nil
+		}
+	}
+	return nil, errors.Errorf("unable to determine size")
+
 }

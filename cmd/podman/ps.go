@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/fields"
@@ -275,7 +276,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return false
 		}, nil
 	case "status":
-		if !libpod.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
+		if !util.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(c *libpod.Container) bool {

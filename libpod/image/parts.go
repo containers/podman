@@ -47,10 +47,16 @@ func decompose(input string) (imageParts, error) {
 		name:        imageName,
 		tag:         tag,
 		isTagged:    isTagged,
+		transport:   DefaultTransport,
 	}, nil
 }
 
 // assemble concatenates an image's parts into a string
 func (ip *imageParts) assemble() string {
 	return fmt.Sprintf("%s/%s:%s", ip.registry, ip.name, ip.tag)
+}
+
+// assemble concatenates an image's parts with transport into a string
+func (ip *imageParts) assembleWithTransport() string {
+	return fmt.Sprintf("%s%s/%s:%s", ip.transport, ip.registry, ip.name, ip.tag)
 }

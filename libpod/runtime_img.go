@@ -29,6 +29,7 @@ import (
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/util"
 )
 
 // Runtime API
@@ -312,7 +313,7 @@ func (k *Image) Decompose() error {
 		if err != nil {
 			return nil
 		}
-		if StringInSlice(k.Registry, registries) {
+		if util.StringInSlice(k.Registry, registries) {
 			return nil
 		}
 		// We need to check if the registry name is legit

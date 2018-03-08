@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 
@@ -89,7 +90,7 @@ func execCmd(c *cli.Context) error {
 	// key and value to the environment variables.  this is needed to set
 	// PATH for example.
 	for k, v := range defaultEnvVariables {
-		if !libpod.StringInSlice(k, userEnvKeys) {
+		if !util.StringInSlice(k, userEnvKeys) {
 			envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 		}
 	}

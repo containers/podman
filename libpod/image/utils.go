@@ -1,9 +1,16 @@
 package image
 
 import (
+	"io"
+
+	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+
+	"github.com/containers/image/signature"
+	"github.com/containers/image/types"
+	"strings"
 )
 
 func getTags(nameInput string) (reference.NamedTagged, bool, error) {
@@ -18,17 +25,17 @@ func getTags(nameInput string) (reference.NamedTagged, bool, error) {
 
 // findImageInRepotags takes an imageParts struct and searches images' repotags for
 // a match on name:tag
-func findImageInRepotags(search imageParts, images []*storage.Image) (*storage.Image, error) {
+func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, error) {
 	var results []*storage.Image
 	for _, image := range images {
-		for _, name := range image.Names {
+		for _, name := range image.Names() {
 			d, err := decompose(name)
 			// if we get an error, ignore and keep going
 			if err != nil {
 				continue
 			}
 			if d.name == search.name && d.tag == search.tag {
-				results = append(results, image)
+				results = append(results, image.image)
 				break
 			}
 		}
@@ -39,4 +46,43 @@ func findImageInRepotags(search imageParts, images []*storage.Image) (*storage.I
 		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", search)
 	}
 	return results[0], nil
+}
+
+// getCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
+func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool) *cp.Options {
+	if srcDockerRegistry == nil {
+		srcDockerRegistry = &DockerRegistryOptions{}
+	}
+	if destDockerRegistry == nil {
+		destDockerRegistry = &DockerRegistryOptions{}
+	}
+	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	return &cp.Options{
+		RemoveSignatures:      signing.RemoveSignatures,
+		SignBy:                signing.SignBy,
+		ReportWriter:          reportWriter,
+		SourceCtx:             srcContext,
+		DestinationCtx:        destContext,
+		ForceManifestMIMEType: manifestType,
+	}
+}
+
+// getPolicyContext sets up, intializes and returns a new context for the specified policy
+func getPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error) {
+	policy, err := signature.DefaultPolicy(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return nil, err
+	}
+	return policyContext, nil
+}
+
+// hasTransport determines if the image string contains '://', returns bool
+func hasTransport(image string) bool {
+	return strings.Contains(image, "://")
 }
