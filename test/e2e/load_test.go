@@ -44,6 +44,26 @@ var _ = Describe("Podman load", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
+	It("podman load compressed tar file", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
+
+		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
+		save.WaitWithDefaultTimeout()
+		Expect(save.ExitCode()).To(Equal(0))
+
+		compress := podmanTest.SystemExec("gzip", []string{outfile})
+		compress.WaitWithDefaultTimeout()
+		outfile = outfile + ".gz"
+
+		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"load", "-i", outfile})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
+
 	It("podman load oci-archive image", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
