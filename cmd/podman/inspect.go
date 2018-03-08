@@ -9,6 +9,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -68,7 +69,7 @@ func inspectCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	if !libpod.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
+	if !util.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
 	}
 
