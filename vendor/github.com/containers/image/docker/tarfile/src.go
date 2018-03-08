@@ -3,6 +3,7 @@ package tarfile
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/types"
@@ -19,7 +21,8 @@ import (
 
 // Source is a partial implementation of types.ImageSource for reading from tarPath.
 type Source struct {
-	tarPath string
+	tarPath              string
+	removeTarPathOnClose bool // Remove temp file on close if true
 	// The following data is only available after ensureCachedDataIsPresent() succeeds
 	tarManifest       *ManifestItem // nil if not available yet.
 	configBytes       []byte
@@ -35,14 +38,58 @@ type layerInfo struct {
 	size int64
 }
 
-// NewSource returns a tarfile.Source for the specified path.
-func NewSource(path string) *Source {
-	// TODO: We could add support for multiple images in a single archive, so
-	//       that people could use docker-archive:opensuse.tar:opensuse:leap as
-	//       the source of an image.
-	return &Source{
-		tarPath: path,
+// TODO: We could add support for multiple images in a single archive, so
+//       that people could use docker-archive:opensuse.tar:opensuse:leap as
+//       the source of an image.
+// 	To do for both the NewSourceFromFile and NewSourceFromStream functions
+
+// NewSourceFromFile returns a tarfile.Source for the specified path
+// NewSourceFromFile supports both conpressed and uncompressed input
+func NewSourceFromFile(path string) (*Source, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error opening file %q", path)
 	}
+	defer file.Close()
+
+	reader, err := gzip.NewReader(file)
+	if err != nil {
+		return &Source{
+			tarPath: path,
+		}, nil
+	}
+	defer reader.Close()
+
+	return NewSourceFromStream(reader)
+}
+
+// NewSourceFromStream returns a tarfile.Source for the specified inputStream, which must be uncompressed.
+// The caller can close the inputStream immediately after NewSourceFromFile returns.
+func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
+	// FIXME: use SystemContext here.
+	// Save inputStream to a temporary file
+	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(), "docker-tar")
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating temporary file")
+	}
+	defer tarCopyFile.Close()
+
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			os.Remove(tarCopyFile.Name())
+		}
+	}()
+
+	if _, err := io.Copy(tarCopyFile, inputStream); err != nil {
+		return nil, errors.Wrapf(err, "error copying contents to temporary file %q", tarCopyFile.Name())
+	}
+	succeeded = true
+
+	return &Source{
+		tarPath:              tarCopyFile.Name(),
+		removeTarPathOnClose: true,
+	}, nil
 }
 
 // tarReadCloser is a way to close the backing file of a tar.Reader when the user no longer needs the tar component.
@@ -187,6 +234,14 @@ func (s *Source) loadTarManifest() ([]ManifestItem, error) {
 		return nil, errors.Wrap(err, "Error decoding tar manifest.json")
 	}
 	return items, nil
+}
+
+// Close removes resources associated with an initialized Source, if any.
+func (s *Source) Close() error {
+	if s.removeTarPathOnClose {
+		return os.Remove(s.tarPath)
+	}
+	return nil
 }
 
 // LoadTarManifest loads and decodes the manifest.json
