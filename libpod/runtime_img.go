@@ -606,7 +606,10 @@ func (r *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string
 
 	// supports pulling from docker-archive, oci, and registries
 	if srcRef.Transport().Name() == DockerArchive {
-		tarSource := tarfile.NewSource(archFile)
+		tarSource, err := tarfile.NewSourceFromFile(archFile)
+		if err != nil {
+			return nil, err
+		}
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
 			return nil, errors.Errorf("error retrieving manifest.json: %v", err)
