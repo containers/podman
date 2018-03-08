@@ -884,9 +884,11 @@ func (r *Runtime) RemoveImage(image *storage.Image, force bool) (string, error) 
 	if len(image.Names) > 1 && !force {
 		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
 	}
-	// If it is forced, we have to untag the image so that it can be deleted
-	image.Names = image.Names[:0]
 
+	// If it is forced, we have to untag the image so that it can be deleted
+	if err = r.store.SetNames(image.ID, image.Names[:0]); err != nil {
+		return "", err
+	}
 	_, err = r.store.DeleteImage(image.ID, true)
 	if err != nil {
 		return "", err
