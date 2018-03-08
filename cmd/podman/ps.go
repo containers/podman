@@ -435,6 +435,11 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		}
 
 		command := strings.Join(batchInfo.conConfig.Spec.Process.Args, " ")
+		if !opts.noTrunc {
+			if len(command) > 20 {
+				command = command[:19] + "..."
+			}
+		}
 		ports := portsToString(batchInfo.conConfig.PortMappings)
 		mounts := getMounts(createArtifact.Volumes, opts.noTrunc)
 		labels := formatLabels(ctr.Labels())
@@ -471,6 +476,7 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			Mounts:     mounts,
 			PID:        batchInfo.pid,
 		}
+
 		if opts.namespace {
 			params.Cgroup = ns.Cgroup
 			params.IPC = ns.IPC
