@@ -1,10 +1,12 @@
 package libpod
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	gosignal "os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -15,7 +17,9 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -25,6 +29,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -156,6 +161,8 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 
 	ctr.config.ShmSize = DefaultShmSize
 	ctr.config.CgroupParent = DefaultCgroupParent
+
+	ctr.state.BindMounts = make(map[string]string)
 
 	// Path our lock file will reside at
 	lockPath := filepath.Join(lockDir, ctr.config.ID)
@@ -328,6 +335,32 @@ func (c *Container) stop(timeout uint) error {
 	return c.cleanupStorage()
 }
 
+// resizeTty handles TTY resizing for Attach()
+func resizeTty(resize chan remotecommand.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	gosignal.Notify(sigchan, signal.SIGWINCH)
+	sendUpdate := func() {
+		winsize, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			logrus.Warnf("Could not get terminal size %v", err)
+			return
+		}
+		resize <- remotecommand.TerminalSize{
+			Width:  winsize.Width,
+			Height: winsize.Height,
+		}
+	}
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		sendUpdate()
+		for range sigchan {
+			sendUpdate()
+		}
+	}()
+}
+
 // mountStorage sets up the container's root filesystem
 // It mounts the image and any other requested mounts
 // TODO: Add ability to override mount label so we can use this for Mount() too
@@ -413,8 +446,58 @@ func (c *Container) cleanupStorage() error {
 	return c.save()
 }
 
-// WriteStringToRundir copies the provided file to the runtimedir
-func (c *Container) WriteStringToRundir(destFile, output string) (string, error) {
+// Make standard bind mounts to include in the container
+func (c *Container) makeBindMounts() error {
+	if c.state.BindMounts == nil {
+		c.state.BindMounts = make(map[string]string)
+	}
+
+	// SHM is always added when we mount the container
+	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
+
+	// Make /etc/resolv.conf
+	if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+		// If it already exists, delete so we can recreate
+		if err := os.Remove(path); err != nil {
+			return errors.Wrapf(err, "error removing resolv.conf for container %s", c.ID())
+		}
+		delete(c.state.BindMounts, "/etc/resolv.conf")
+	}
+	newResolv, err := c.generateResolvConf()
+	if err != nil {
+		return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+	}
+	c.state.BindMounts["/etc/resolv.conf"] = newResolv
+
+	// Make /etc/hosts
+	if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+		// If it already exists, delete so we can recreate
+		if err := os.Remove(path); err != nil {
+			return errors.Wrapf(err, "error removing hosts file for container %s", c.ID())
+		}
+		delete(c.state.BindMounts, "/etc/hosts")
+	}
+	newHosts, err := c.generateHosts()
+	if err != nil {
+		return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+	}
+	c.state.BindMounts["/etc/hosts"] = newHosts
+
+	// Make /etc/hostname
+	// This should never change, so no need to recreate if it exists
+	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
+		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
+		if err != nil {
+			return errors.Wrapf(err, "error creating hostname file for container %s", c.ID())
+		}
+		c.state.BindMounts["/etc/hostname"] = hostnamePath
+	}
+
+	return nil
+}
+
+// writeStringToRundir copies the provided file to the runtimedir
+func (c *Container) writeStringToRundir(destFile, output string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
 	f, err := os.Create(destFileName)
 	if err != nil {
@@ -454,7 +537,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
 	}
 	if len(c.config.DNSServer) == 0 && len(c.config.DNSSearch) == 0 && len(c.config.DNSOption) == 0 {
-		return c.WriteStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
+		return c.writeStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
 	}
 
 	// Read and organize the hosts /etc/resolv.conf
@@ -482,7 +565,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		resolv.options = nil
 		resolv.options = append(resolv.options, c.Config().DNSOption...)
 	}
-	return c.WriteStringToRundir("resolv.conf", resolv.ToString())
+	return c.writeStringToRundir("resolv.conf", resolv.ToString())
 }
 
 // createResolv creates a resolv struct from an input string
@@ -545,61 +628,32 @@ func (c *Container) generateHosts() (string, error) {
 			hosts += fmt.Sprintf("%s %s\n", fields[0], fields[1])
 		}
 	}
-	return c.WriteStringToRundir("hosts", hosts)
-}
-
-// generateEtcHostname creates a containers /etc/hostname
-func (c *Container) generateEtcHostname(hostname string) (string, error) {
-	return c.WriteStringToRundir("hostname", hostname)
+	return c.writeStringToRundir("hosts", hosts)
 }
 
 // Generate spec for a container
-func (c *Container) generateSpec(resolvPath, hostsPath, hostnamePath string) (*spec.Spec, error) {
+func (c *Container) generateSpec() (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 	}
-	// Remove default /etc/shm mount
+
+	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
-	// Mount ShmDir from host into container
-	shmMnt := spec.Mount{
-		Type:        "bind",
-		Source:      c.config.ShmDir,
-		Destination: "/dev/shm",
-		Options:     []string{"rw", "bind"},
-	}
-	g.AddMount(shmMnt)
-	// Bind mount resolv.conf
-	resolvMnt := spec.Mount{
-		Type:        "bind",
-		Source:      resolvPath,
-		Destination: "/etc/resolv.conf",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), resolvMnt.Destination) {
-		g.AddMount(resolvMnt)
-	}
-	// Bind mount hosts
-	hostsMnt := spec.Mount{
-		Type:        "bind",
-		Source:      hostsPath,
-		Destination: "/etc/hosts",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), hostsMnt.Destination) {
-		g.AddMount(hostsMnt)
-	}
-	// Bind hostname
-	hostnameMnt := spec.Mount{
-		Type:        "bind",
-		Source:      hostnamePath,
-		Destination: "/etc/hostname",
-		Options:     []string{"rw", "bind"},
-	}
-	if !MountExists(g.Mounts(), hostnameMnt.Destination) {
-		g.AddMount(hostnameMnt)
+
+	// Add bind mounts to container
+	for dstPath, srcPath := range c.state.BindMounts {
+		newMount := spec.Mount{
+			Type:        "bind",
+			Source:      srcPath,
+			Destination: dstPath,
+			Options:     []string{"rw", "bind"},
+		}
+		if !MountExists(g.Mounts(), dstPath) {
+			g.AddMount(newMount)
+		}
 	}
 
 	// Bind builtin image volumes
@@ -728,5 +782,38 @@ func (c *Container) addImageVolumes(g *generate.Generator) error {
 		}
 		g.AddMount(mount)
 	}
+	return nil
+}
+
+// Save OCI spec to disk, replacing any existing specs for the container
+func (c *Container) saveSpec(spec *spec.Spec) error {
+	// If the OCI spec already exists, we need to replace it
+	// Cannot guarantee some things, e.g. network namespaces, have the same
+	// paths
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	if _, err := os.Stat(jsonPath); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
+		}
+		// The spec does not exist, we're fine
+	} else {
+		// The spec exists, need to remove it
+		if err := os.Remove(jsonPath); err != nil {
+			return errors.Wrapf(err, "error replacing runtime spec for container %s", c.ID())
+		}
+	}
+
+	fileJSON, err := json.Marshal(spec)
+	if err != nil {
+		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
+	}
+	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
+		return errors.Wrapf(err, "error writing runtime spec JSON for container %s to disk", c.ID())
+	}
+
+	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
+
+	c.state.ConfigPath = jsonPath
+
 	return nil
 }

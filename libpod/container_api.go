@@ -1,17 +1,13 @@
 package libpod
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
-	gosignal "os/signal"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
@@ -63,58 +59,20 @@ func (c *Container) Init() (err error) {
 		}
 	}()
 
-	// If the OCI spec already exists, we need to replace it
-	// Cannot guarantee some things, e.g. network namespaces, have the same
-	// paths
-	jsonPath := filepath.Join(c.bundlePath(), "config.json")
-	if _, err := os.Stat(jsonPath); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
-		}
-		// The spec does not exist, we're fine
-	} else {
-		// The spec exists, need to remove it
-		if err := os.Remove(jsonPath); err != nil {
-			return errors.Wrapf(err, "error replacing runtime spec for container %s", c.ID())
-		}
-	}
-
-	// Copy /etc/resolv.conf to the container's rundir
-	runDirResolv, err := c.generateResolvConf()
-	if err != nil {
+	if err := c.makeBindMounts(); err != nil {
 		return err
-	}
-
-	// Copy /etc/hosts to the container's rundir
-	runDirHosts, err := c.generateHosts()
-	if err != nil {
-		return errors.Wrapf(err, "unable to copy /etc/hosts to container space")
-	}
-
-	runDirHostname, err := c.generateEtcHostname(c.Hostname())
-	if err != nil {
-		return errors.Wrapf(err, "unable to generate hostname file for container")
 	}
 
 	// Generate the OCI spec
-	spec, err := c.generateSpec(runDirResolv, runDirHosts, runDirHostname)
+	spec, err := c.generateSpec()
 	if err != nil {
 		return err
 	}
-	c.runningSpec = spec
 
 	// Save the OCI spec to disk
-	fileJSON, err := json.Marshal(c.runningSpec)
-	if err != nil {
-		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
+	if err := c.saveSpec(spec); err != nil {
+		return err
 	}
-	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
-		return errors.Wrapf(err, "error writing runtime spec JSON to file for container %s", c.ID())
-	}
-
-	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
-
-	c.state.ConfigPath = jsonPath
 
 	// With the spec complete, do an OCI create
 	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
@@ -347,31 +305,6 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	}
 
 	return waitErr
-}
-
-func resizeTty(resize chan remotecommand.TerminalSize) {
-	sigchan := make(chan os.Signal, 1)
-	gosignal.Notify(sigchan, signal.SIGWINCH)
-	sendUpdate := func() {
-		winsize, err := term.GetWinsize(os.Stdin.Fd())
-		if err != nil {
-			logrus.Warnf("Could not get terminal size %v", err)
-			return
-		}
-		resize <- remotecommand.TerminalSize{
-			Width:  winsize.Width,
-			Height: winsize.Height,
-		}
-	}
-	go func() {
-		defer close(resize)
-		// Update the terminal size immediately without waiting
-		// for a SIGWINCH to get the correct initial size.
-		sendUpdate()
-		for range sigchan {
-			sendUpdate()
-		}
-	}()
 }
 
 // Attach attaches to a container

@@ -143,6 +143,7 @@ func (s *BoltState) Refresh() error {
 			state.ExecSessions = make(map[string]*ExecSession)
 			state.IPs = nil
 			state.Routes = nil
+			state.BindMounts = make(map[string]string)
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {

@@ -94,8 +94,6 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	runningSpec *spec.Spec
-
 	state *containerState
 
 	// Locked indicates that a container has been locked as part of a
@@ -150,6 +148,12 @@ type containerState struct {
 	// Only populated if we created a network namespace for the container,
 	// and the network namespace is currently active
 	Routes []*types.Route `json:"routes,omitempty"`
+	// BindMounts contains files that will be bind-mounted into the
+	// container when it is mounted.
+	// These include /etc/hosts and /etc/resolv.conf
+	// This maps the path the file will be mounted to in the container to
+	// the path of the file on disk outside the container
+	BindMounts map[string]string `json:"bindMounts,omitempty"`
 }
 
 // ExecSession contains information on an active exec session
@@ -704,6 +708,35 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	return routes, nil
+}
+
+// BindMounts retrieves bind mounts that were created by libpod and will be
+// added to the container
+// All these mounts except /dev/shm are ignored if a mount in the given spec has
+// the same destination
+// These mounts include /etc/resolv.conf, /etc/hosts, and /etc/hostname
+// The return is formatted as a map from destination (mountpoint in the
+// container) to source (path of the file that will be mounted into the
+// container)
+// If the container has not been started yet, an empty map will be returned, as
+// the files in question are only created when the container is started.
+func (c *Container) BindMounts() (map[string]string, error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	newMap := make(map[string]string, len(c.state.BindMounts))
+
+	for key, val := range c.state.BindMounts {
+		newMap[key] = val
+	}
+
+	return newMap, nil
 }
 
 // Misc Accessors
