@@ -405,6 +405,14 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 	for _, ctr := range containers {
 		batchInfo, err := batchContainerOp(ctr, opts)
 		if err != nil {
+			// If the error was ErrNoSuchCtr, it was probably
+			// removed sometime after we got the initial list.
+			// Just ignore it.
+			if errors.Cause(err) == libpod.ErrNoSuchCtr {
+				logrus.Debugf("Container %s removed before batch, ignoring in output", ctr.ID())
+				continue
+			}
+
 			return nil, err
 		}
 		ctrID := ctr.ID()
