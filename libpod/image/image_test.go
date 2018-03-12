@@ -17,7 +17,7 @@ import (
 var (
 	bbNames      = []string{"docker.io/library/busybox:latest", "docker.io/library/busybox", "docker.io/busybox:latest", "docker.io/busybox", "busybox:latest", "busybox"}
 	bbGlibcNames = []string{"docker.io/library/busybox:glibc", "docker.io/busybox:glibc", "busybox:glibc"}
-	fedoraNames  = []string{"registry.fedoraproject.org/fedora-minimal:latest", "registry.fedoraproject.org/fedora-minimal", "fedora-minimal:latest", "fedora-minimal"}
+	//fedoraNames  = []string{"registry.fedoraproject.org/fedora-minimal:latest", "registry.fedoraproject.org/fedora-minimal", "fedora-minimal:latest", "fedora-minimal"}
 )
 
 // setup a runtime for the tests in an alternative location on the filesystem
@@ -91,16 +91,16 @@ func makeLocalMatrix(r *libpod.Runtime) ([]localImageTest, error) {
 	busybox.names = append(busybox.names, []string{"bb:latest", "bb", b.ID, b.ID[0:7], fmt.Sprintf("busybox@%s", b.Digest.String())}...)
 
 	//fedora
-	fedora := localImageTest{
-		fqname:     "registry.fedoraproject.org/fedora-minimal:latest",
-		taggedName: "f27:latest",
-	}
-	f, err := getImage(r, fedora.fqname)
-	if err != nil {
-		return nil, err
-	}
-	fedora.img = f
-	fedora.names = fedoraNames
+	//fedora := localImageTest{
+	//	fqname:     "registry.fedoraproject.org/fedora-minimal:latest",
+	//	taggedName: "f27:latest",
+	//}
+	//f, err := getImage(r, fedora.fqname)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//fedora.img = f
+	//fedora.names = fedoraNames
 
 	// busybox-glibc
 	busyboxGlibc := localImageTest{
@@ -114,7 +114,7 @@ func makeLocalMatrix(r *libpod.Runtime) ([]localImageTest, error) {
 	busyboxGlibc.img = bg
 	busyboxGlibc.names = bbGlibcNames
 
-	l = append(l, busybox, fedora)
+	//l = append(l, busybox, fedora)
 	return l, nil
 
 }
@@ -132,8 +132,8 @@ func TestImage_NewFromLocal(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = runtime.PullImage("docker.io/library/busybox:glibc", libpod.CopyOptions{})
 	assert.NoError(t, err)
-	_, err = runtime.PullImage("registry.fedoraproject.org/fedora-minimal:latest", libpod.CopyOptions{})
-	assert.NoError(t, err)
+	//_, err = runtime.PullImage("registry.fedoraproject.org/fedora-minimal:latest", libpod.CopyOptions{})
+	//assert.NoError(t, err)
 
 	tm, err := makeLocalMatrix(runtime)
 	assert.NoError(t, err)
@@ -163,7 +163,7 @@ func TestImage_New(t *testing.T) {
 
 	// Build the list of pull names
 	names = append(names, bbNames...)
-	names = append(names, fedoraNames...)
+	//names = append(names, fedoraNames...)
 
 	// Iterate over the names and delete the image
 	// after the pull
