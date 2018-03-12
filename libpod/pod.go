@@ -185,34 +185,6 @@ func (p *Pod) Start() (map[string]error, error) {
 		}
 	}
 
-	// Start all containers
-	for _, ctr := range allCtrs {
-		// Ignore containers that are not created or stopped
-		if ctr.state.State != ContainerStateCreated && ctr.state.State != ContainerStateStopped {
-			continue
-		}
-
-		// TODO remove this when we patch conmon to support restarting containers
-		if ctr.state.State == ContainerStateStopped {
-			ctrErrors[ctr.ID()] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
-			continue
-		}
-
-		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		logrus.Debugf("Started container %s", ctr.ID())
-
-		// We can safely assume the container is running
-		ctr.state.State = ContainerStateRunning
-
-		if err := ctr.save(); err != nil {
-			ctrErrors[ctr.ID()] = err
-		}
-	}
-
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
 	}
