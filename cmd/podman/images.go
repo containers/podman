@@ -182,15 +182,20 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []inspect.ImageResu
 		if !opts.noTrunc {
 			imageID = shortID(img.ID)
 		}
-		params := imagesTemplateParams{
-			Repository: img.Repository,
-			Tag:        img.Tag,
-			ID:         imageID,
-			Digest:     img.Digest,
-			Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
-			Size:       units.HumanSizeWithPrecision(float64(*img.Size), 3),
+		// get all specified repo:tag pairs and print them separately
+		for repo, tags := range libpod.ReposToMap(img.RepoTags) {
+			for _, tag := range tags {
+				params := imagesTemplateParams{
+					Repository: repo,
+					Tag:        tag,
+					ID:         imageID,
+					Digest:     img.Digest,
+					Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
+					Size:       units.HumanSizeWithPrecision(float64(*img.Size), 3),
+				}
+				imagesOutput = append(imagesOutput, params)
+			}
 		}
-		imagesOutput = append(imagesOutput, params)
 	}
 	return
 }
