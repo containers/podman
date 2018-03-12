@@ -125,7 +125,7 @@ a31ebbee9cee7   k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-c
 Print a list of containers
 
 ## SEE ALSO
-podman(1), crio(8), crio.conf(5)
+podman(1), crio(8)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

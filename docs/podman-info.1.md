@@ -95,4 +95,4 @@ map[registries:[docker.io registry.fedoraproject.org registry.access.redhat.com]
 ```
 
 ## SEE ALSO
-crio(8), crio.conf(5)
+podman(1), crio(8)

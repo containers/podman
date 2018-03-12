@@ -152,7 +152,7 @@ Display the version information
 Wait on one or more containers to stop and print their exit codes
 
 ## SEE ALSO
-crio(8), crio.conf(5)
+crio(8)
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

@@ -18,7 +18,7 @@ OS, and Architecture.
 **podman version**
 
 ## SEE ALSO
-podman(1), crio(8), crio.conf(5)
+podman(1), crio(8)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

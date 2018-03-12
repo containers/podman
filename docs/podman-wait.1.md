@@ -36,7 +36,7 @@ to run containers such as CRI-O, the last started container could be from either
   podman wait mywebserver myftpserver
 
 ## SEE ALSO
-podman(1), crio(8), crio.conf(5)
+podman(1), crio(8)
 
 ## HISTORY
 September 2017, Originally compiled by Brent Baude<bbaude@redhat.com>
