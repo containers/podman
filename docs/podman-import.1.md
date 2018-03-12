@@ -83,7 +83,7 @@ db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ## SEE ALSO
-podman(1), podman-export(1), crio(8), crio.conf(5)
+podman(1), podman-export(1), crio(8)
 
 ## HISTORY
 November 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

@@ -22,7 +22,7 @@ the IMAGE and the TARGET_NAME.
   podman tag httpd myregistryhost:5000/fedora/httpd:v2
 
 ## SEE ALSO
-podman(1), crio(8), crio.conf(5)
+podman(1), crio(8)
 
 ## HISTORY
 July 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

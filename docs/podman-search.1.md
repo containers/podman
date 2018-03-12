@@ -109,7 +109,7 @@ fedoraproject.org   fedoraproject.org/fedora-minimal
 ```
 
 ## SEE ALSO
-podman(1), crio(8), crio.conf(5)
+podman(1), crio(8)
 
 ## HISTORY
 January 2018, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

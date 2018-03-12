@@ -3,7 +3,6 @@
 /conmon/conmon.o
 /docs/*.[158]
 /docs/*.[158].gz
-/crio.conf
 *.o
 *.orig
 /pause/pause.o
