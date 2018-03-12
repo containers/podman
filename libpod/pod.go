@@ -68,12 +68,13 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	return pod, nil
 }
 
-// Init initializes all containers within a pod that have not been initialized
-func (p *Pod) Init() error {
-	return ErrNotImplemented
-}
+// TODO: need function to produce a directed graph of containers
+// This would allow us to properly determine stop/start order
 
 // Start starts all containers within a pod
+// It combines the effects of Init() and Start() on a container
+// If a container has already been initialized it will be started,
+// otherwise it will be initialized then started.
 // Containers that are already running or have been paused are ignored
 // All containers are started independently, in order dictated by their
 // dependencies.
@@ -97,6 +98,11 @@ func (p *Pod) Start() (map[string]error, error) {
 		return nil, err
 	}
 
+	// Maintain a map of containers still to start
+	ctrsToStart := make(map[string]*Container)
+	// Maintain a map of all containers so we can easily look up dependencies
+	allCtrsMap := make(map[string]*Container)
+
 	// We need to lock all the containers
 	for _, ctr := range allCtrs {
 		ctr.lock.Lock()
@@ -105,35 +111,77 @@ func (p *Pod) Start() (map[string]error, error) {
 		if err := ctr.syncContainer(); err != nil {
 			return nil, err
 		}
+
+		if ctr.state.State == ContainerStateConfigured ||
+			ctr.state.State == ContainerStateCreated ||
+			ctr.state.State == ContainerStateStopped {
+			ctrsToStart[ctr.ID()] = ctr
+		}
+		allCtrsMap[ctr.ID()] = ctr
 	}
 
 	ctrErrors := make(map[string]error)
 
-	// Start all containers
-	for _, ctr := range allCtrs {
-		// Ignore containers that are not created or stopped
-		if ctr.state.State != ContainerStateCreated && ctr.state.State != ContainerStateStopped {
-			continue
+	// Loop at most 10 times, to prevent potential infinite loops in
+	// dependencies
+	loopCounter := 10
+
+	// Loop while we still have containers to start
+	for len(ctrsToStart) > 0 {
+		// Loop through all containers, attempting to start them
+		for id, ctr := range ctrsToStart {
+			// TODO remove this when we support restarting containers
+			if ctr.state.State == ContainerStateStopped {
+				ctrErrors[id] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
+
+				delete(ctrsToStart, id)
+				continue
+			}
+
+			// TODO should we only do a dependencies check if we are not ContainerStateCreated?
+			depsOK := true
+			var depErr error
+			// Check container dependencies
+			for _, depID := range ctr.Dependencies() {
+				depCtr := allCtrsMap[depID]
+				if depCtr.state.State != ContainerStateRunning &&
+					depCtr.state.State != ContainerStatePaused {
+					// We are definitely not OK to init, a dependency is not up
+					depsOK = false
+					// Check to see if the dependency errored
+					// If it did, error here too
+					if _, ok := ctrErrors[depID]; ok {
+						depErr = errors.Wrapf(ErrCtrStateInvalid, "dependency %s of container %s failed to start", depID, id)
+					}
+
+					break
+				}
+			}
+			if !depsOK {
+				// Only if one of the containers dependencies failed should we stop trying
+				// Otherwise, assume it's just yet to start, retry starting this container later
+				if depErr != nil {
+					ctrErrors[id] = depErr
+					delete(ctrsToStart, id)
+				}
+				continue
+			}
+
+			// Initialize and start the container
+			if err := ctr.initAndStart(); err != nil {
+				ctrErrors[id] = err
+			}
+			delete(ctrsToStart, id)
 		}
 
-		// TODO remove this when we patch conmon to support restarting containers
-		if ctr.state.State == ContainerStateStopped {
-			ctrErrors[ctr.ID()] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
-			continue
-		}
+		loopCounter = loopCounter - 1
+		if loopCounter == 0 {
+			// Loop through all remaining containers and add an error
+			for id := range ctrsToStart {
+				ctrErrors[id] = errors.Wrapf(ErrInternal, "exceeded maximum attempts trying to start container %s", id)
+			}
 
-		if err := ctr.runtime.ociRuntime.startContainer(ctr); err != nil {
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		logrus.Debugf("Started container %s", ctr.ID())
-
-		// We can safely assume the container is running
-		ctr.state.State = ContainerStateRunning
-
-		if err := ctr.save(); err != nil {
-			ctrErrors[ctr.ID()] = err
+			break
 		}
 	}
 
@@ -148,6 +196,8 @@ func (p *Pod) Start() (map[string]error, error) {
 // Each container will use its own stop timeout
 // Only running containers will be stopped. Paused, stopped, or created
 // containers will be ignored.
+// If cleanup is true, mounts and network namespaces will be cleaned up after
+// the container is stopped.
 // All containers are stopped independently. An error stopping one container
 // will not prevent other containers being stopped.
 // An error and a map[string]error are returned
@@ -157,7 +207,7 @@ func (p *Pod) Start() (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrCtrExists
 // If both error and the map are nil, all containers were stopped without error
-func (p *Pod) Stop() (map[string]error, error) {
+func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -182,6 +232,9 @@ func (p *Pod) Stop() (map[string]error, error) {
 
 	ctrErrors := make(map[string]error)
 
+	// TODO: There may be cases where it makes sense to order stops based on
+	// dependencies. Should we bother with this?
+
 	// Stop to all containers
 	for _, ctr := range allCtrs {
 		// Ignore containers that are not running
@@ -189,22 +242,22 @@ func (p *Pod) Stop() (map[string]error, error) {
 			continue
 		}
 
-		if err := ctr.runtime.ociRuntime.stopContainer(ctr, ctr.config.StopTimeout); err != nil {
+		if err := ctr.stop(ctr.config.StopTimeout); err != nil {
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
 
-		logrus.Debugf("Stopped container %s", ctr.ID())
+		if cleanup {
+			// Clean up storage to ensure we don't leave dangling mounts
+			if err := ctr.cleanupStorage(); err != nil {
+				ctrErrors[ctr.ID()] = err
+				continue
+			}
 
-		// Sync container state to pick up return code
-		if err := ctr.runtime.ociRuntime.updateContainerStatus(ctr); err != nil {
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		// Clean up storage to ensure we don't leave dangling mounts
-		if err := ctr.cleanupStorage(); err != nil {
-			ctrErrors[ctr.ID()] = err
+			// Clean up network namespace
+			if err := ctr.cleanupNetwork(); err != nil {
+				ctrErrors[ctr.ID()] = err
+			}
 		}
 	}
 

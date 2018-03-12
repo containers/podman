@@ -313,15 +313,110 @@ func (c *Container) save() error {
 	return nil
 }
 
+// Initialize a container, creating it in the runtime
+func (c *Container) init() error {
+	if err := c.makeBindMounts(); err != nil {
+		return err
+	}
+
+	// Generate the OCI spec
+	spec, err := c.generateSpec()
+	if err != nil {
+		return err
+	}
+
+	// Save the OCI spec to disk
+	if err := c.saveSpec(spec); err != nil {
+		return err
+	}
+
+	// With the spec complete, do an OCI create
+	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Created container %s in OCI runtime", c.ID())
+
+	c.state.State = ContainerStateCreated
+
+	return c.save()
+}
+
+// Initialize (if necessary) and start a container
+// Performs all necessary steps to start a container that is not running
+// Does not lock or check validity
+func (c *Container) initAndStart() (err error) {
+	// If we are ContainerStateUnknown, throw an error
+	if c.state.State == ContainerStateUnknown {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+	}
+
+	// If we are running, do nothing
+	if c.state.State == ContainerStateRunning {
+		return nil
+	}
+	// If we are paused, throw an error
+	if c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
+	}
+	// TODO remove this once we can restart containers
+	if c.state.State == ContainerStateStopped {
+		return errors.Wrapf(ErrNotImplemented, "restarting containers is not yet implemented")
+	}
+
+	// Mount if necessary
+	if err := c.mountStorage(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	// Create a network namespace if necessary
+	if c.config.CreateNetNS && c.state.NetNS == nil {
+		if err := c.runtime.createNetNS(c); err != nil {
+			return err
+		}
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
+				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	// If we are ContainerStateConfigured we need to init()
+	if c.state.State == ContainerStateConfigured {
+		if err := c.init(); err != nil {
+			return err
+		}
+	}
+
+	// Now start the container
+	return c.start()
+}
+
+// Internal, non-locking function to start a container
+func (c *Container) start() error {
+	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Started container %s", c.ID())
+
+	c.state.State = ContainerStateRunning
+
+	return c.save()
+}
+
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
-
-	if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
-	}
 
 	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
 		return err
