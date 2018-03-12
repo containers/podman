@@ -59,35 +59,11 @@ func (c *Container) Init() (err error) {
 		}
 	}()
 
-	if err := c.makeBindMounts(); err != nil {
-		return err
-	}
-
-	// Generate the OCI spec
-	spec, err := c.generateSpec()
-	if err != nil {
-		return err
-	}
-
-	// Save the OCI spec to disk
-	if err := c.saveSpec(spec); err != nil {
-		return err
-	}
-
-	// With the spec complete, do an OCI create
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
-		return err
-	}
-
-	logrus.Debugf("Created container %s in OCI runtime", c.ID())
-
-	c.state.State = ContainerStateCreated
-
-	return c.save()
+	return c.init()
 }
 
 // Start starts a container
-func (c *Container) Start() error {
+func (c *Container) Start() (err error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -107,20 +83,33 @@ func (c *Container) Start() error {
 		return errors.Wrapf(ErrNotImplemented, "restarting a stopped container is not yet supported")
 	}
 
-	// Mount storage for the container
+	// Mount storage for the container if necessary
 	if err := c.mountStorage(); err != nil {
 		return err
 	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
 
-	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
-		return err
+	// Create a network namespace if necessary
+	if c.config.CreateNetNS && c.state.NetNS == nil {
+		if err := c.runtime.createNetNS(c); err != nil {
+			return err
+		}
 	}
+	defer func() {
+		if err != nil {
+			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
+				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
 
-	logrus.Debugf("Started container %s", c.ID())
-
-	c.state.State = ContainerStateRunning
-
-	return c.save()
+	return c.start()
 }
 
 // Stop uses the container's stop signal (or SIGTERM if no signal was specified)
@@ -138,6 +127,12 @@ func (c *Container) Stop() error {
 		}
 	}
 
+	if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+	}
+
 	return c.stop(c.config.StopTimeout)
 }
 
@@ -152,6 +147,12 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
+	}
+
+	if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateUnknown ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
 	}
 
 	return c.stop(timeout)
