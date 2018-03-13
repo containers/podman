@@ -57,3 +57,12 @@ make integration.fedora
 
 This will run lint, git-validation, and gofmt tests and then execute unit and integration
 tests as well.
+
+### Run tests in a container
+In case you have issue running the tests locally on your machine, you can run
+them in a container:
+```
+make shell
+```
+
+This will run a container and give you a shell and you can follow the instructions above.
