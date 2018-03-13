@@ -104,18 +104,8 @@ func startCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse annotations in %s", ctr.ID())
 		}
-		err = ctr.Start()
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to start %s", container)
-			continue
-		}
 		// We only get a terminal session if both a tty was specified in the spec and
 		// -a on the command-line was given.
-		// Must be done after Start() because we might be restarting
-		// If so, the attach socket might be removed & recreated
 		if attach && tty {
 			// We increment the wg counter because we need to do the attach
 			wg.Add(1)
@@ -130,6 +120,14 @@ func startCmd(c *cli.Context) error {
 			if !<-attached {
 				return errors.Errorf("unable to attach to container %s", ctr.ID())
 			}
+		}
+		err = ctr.Start()
+		if err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to start %s", container)
+			continue
 		}
 		if !attach {
 			fmt.Println(ctr.ID())
@@ -147,6 +145,8 @@ func startCmd(c *cli.Context) error {
 		// Otherwise the container is probably still running
 		if attach && tty {
 			lastError = ctr.Cleanup()
+			// No need for LastError as we can only have one ctr
+			// with attach
 		}
 	}
 	return lastError
