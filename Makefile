@@ -117,6 +117,9 @@ integration.fedora:
 integration.centos:
 	DIST=CentOS sh .papr_prepare.sh
 
+shell: libpodimage
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} sh
+
 testunit: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
@@ -223,4 +226,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	install \
 	lint \
 	pause \
-	uninstall
+	uninstall \
+	shell
