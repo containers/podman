@@ -106,8 +106,6 @@ type Container struct {
 	runtime *Runtime
 }
 
-// TODO fetch IP and Subnet Mask from networks once we have updated OCICNI
-
 // containerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
 type containerState struct {

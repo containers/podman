@@ -130,14 +130,6 @@ func (p *Pod) Start() (map[string]error, error) {
 	for len(ctrsToStart) > 0 {
 		// Loop through all containers, attempting to start them
 		for id, ctr := range ctrsToStart {
-			// TODO remove this when we support restarting containers
-			if ctr.state.State == ContainerStateStopped {
-				ctrErrors[id] = errors.Wrapf(ErrNotImplemented, "starting stopped containers is not yet supported")
-
-				delete(ctrsToStart, id)
-				continue
-			}
-
 			// TODO should we only do a dependencies check if we are not ContainerStateCreated?
 			depsOK := true
 			var depErr error
