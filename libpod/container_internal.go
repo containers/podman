@@ -255,6 +255,38 @@ func (c *Container) refresh() error {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
 	}
 
+	// Remove ctl and attach files, which may persist across reboot
+	if err := c.removeConmonFiles(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Remove conmon attach socket and terminal resize FIFO
+// This is necessary for restarting containers
+func (c *Container) removeConmonFiles() error {
+	// Files are allowed to not exist, so ignore ENOENT
+	attachFile := filepath.Join(c.bundlePath(), "attach")
+	if err := os.Remove(attachFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s attach file", c.ID())
+	}
+
+	ctlFile := filepath.Join(c.bundlePath(), "ctl")
+	if err := os.Remove(ctlFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s ctl file", c.ID())
+	}
+
+	oomFile := filepath.Join(c.bundlePath(), "oom")
+	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
+	}
+
+	exitFile := filepath.Join(c.runtime.ociRuntime.exitsDir, c.ID())
+	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s exit file", c.ID())
+	}
+
 	return nil
 }
 
@@ -360,10 +392,6 @@ func (c *Container) initAndStart() (err error) {
 	if c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
 	}
-	// TODO remove this once we can restart containers
-	if c.state.State == ContainerStateStopped {
-		return errors.Wrapf(ErrNotImplemented, "restarting containers is not yet implemented")
-	}
 
 	// Mount if necessary
 	if err := c.mountStorage(); err != nil {
@@ -390,6 +418,29 @@ func (c *Container) initAndStart() (err error) {
 			}
 		}
 	}()
+
+	// If we are ContainerStateStopped we need to remove from runtime
+	// And reset to ContainerStateConfigured
+	if c.state.State == ContainerStateStopped {
+		// If necessary, delete attach and ctl files
+		if err := c.removeConmonFiles(); err != nil {
+			return err
+		}
+
+		// Delete the container in the runtime
+		if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
+			return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+		}
+
+		// Our state is now Configured, as we've removed ourself from
+		// the runtime
+		// Set and save now to make sure that, if the init() below fails
+		// we still have a valid state
+		c.state.State = ContainerStateConfigured
+		if err := c.save(); err != nil {
+			return err
+		}
+	}
 
 	// If we are ContainerStateConfigured we need to init()
 	if c.state.State == ContainerStateConfigured {

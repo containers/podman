@@ -63,6 +63,9 @@ func (c *Container) Init() (err error) {
 }
 
 // Start starts a container
+// Start can start created or stopped containers
+// Stopped containers will be deleted and re-created in runc, undergoing a fresh
+// Init()
 func (c *Container) Start() (err error) {
 	if !c.locked {
 		c.lock.Lock()
@@ -76,11 +79,6 @@ func (c *Container) Start() (err error) {
 	// Container must be created or stopped to be started
 	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
-	}
-
-	// TODO remove this when we patch conmon to support restarting containers
-	if c.state.State == ContainerStateStopped {
-		return errors.Wrapf(ErrNotImplemented, "restarting a stopped container is not yet supported")
 	}
 
 	// Mount storage for the container if necessary
@@ -109,6 +107,34 @@ func (c *Container) Start() (err error) {
 		}
 	}()
 
+	// Reinitialize the container if we need to
+	if c.state.State == ContainerStateStopped {
+		// If necessary, delete attach and ctl files
+		if err := c.removeConmonFiles(); err != nil {
+			return err
+		}
+
+		// Delete the container in the runtime
+		if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
+			return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+		}
+
+		// Our state is now Configured, as we've removed ourself from
+		// the runtime
+		// Set and save now to make sure that, if the init() below fails
+		// we still have a valid state
+		c.state.State = ContainerStateConfigured
+		if err := c.save(); err != nil {
+			return err
+		}
+
+		// Reinitialize the container
+		if err := c.init(); err != nil {
+			return err
+		}
+	}
+
+	// Start the container
 	return c.start()
 }
 
