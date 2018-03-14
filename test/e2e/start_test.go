@@ -56,12 +56,21 @@ var _ = Describe("Podman start", func() {
 		session := podmanTest.Podman([]string{"create", "-d", "--name", "foobar99", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		cid1 := session.OutputToString()
-		session2 := podmanTest.Podman([]string{"create", "-d", "--name", "foobar99", ALPINE, "ls"})
+		session2 := podmanTest.Podman([]string{"create", "-d", "--name", "foobar100", ALPINE, "ls"})
 		session2.WaitWithDefaultTimeout()
 		cid2 := session2.OutputToString()
 		session = podmanTest.Podman([]string{"start", cid1, cid2})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman start multiple containers with bogus", func() {
+		session := podmanTest.Podman([]string{"create", "-d", "--name", "foobar99", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		cid1 := session.OutputToString()
+		session = podmanTest.Podman([]string{"start", cid1, "doesnotexist"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 	It("podman multiple containers -- attach should fail", func() {
