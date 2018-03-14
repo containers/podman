@@ -1,11 +1,8 @@
 package main
 
 import (
-	"sync"
-
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -65,27 +62,10 @@ func attachCmd(c *cli.Context) error {
 	if conState != libpod.ContainerStateRunning {
 		return errors.Errorf("you can only attach to running containers")
 	}
-	// Create a bool channel to track that the console socket attach
-	// is successful.
-	attached := make(chan bool)
-	// Create a waitgroup so we can sync and wait for all goroutines
-	// to finish before exiting main
-	var wg sync.WaitGroup
 
-	// We increment the wg counter because we need to do the attach
-	wg.Add(1)
-	// Attach to the running container
-	go func() {
-		logrus.Debugf("trying to attach to the container %s", ctr.ID())
-		defer wg.Done()
-		if err := ctr.Attach(c.Bool("no-stdin"), c.String("detach-keys"), attached); err != nil {
-			logrus.Errorf("unable to attach to container %s: %q", ctr.ID(), err)
-		}
-	}()
-	if !<-attached {
-		return errors.Errorf("unable to attach to container %s", ctr.ID())
+	if err := ctr.Attach(c.Bool("no-stdin"), c.String("detach-keys")); err != nil {
+		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
-	wg.Wait()
 
 	return nil
 }
