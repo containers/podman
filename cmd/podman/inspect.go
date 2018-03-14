@@ -241,6 +241,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			Memory:               createArtifact.Resources.Memory,
 			Ulimits:              createArtifact.Resources.Ulimit,
 			SecurityOpt:          createArtifact.SecurityOpts,
+			Tmpfs:                createArtifact.Tmpfs,
 		},
 		&inspect.CtrConfig{
 			Hostname:    spec.Hostname,
