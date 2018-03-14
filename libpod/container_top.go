@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -91,7 +92,7 @@ func filterPids(psOutput string, pids []string) ([]string, error) {
 		}
 		cols := fieldsASCII(l)
 		pid := cols[pidIndex]
-		if StringInSlice(pid, pids) {
+		if util.StringInSlice(pid, pids) {
 			output = append(output, l)
 		}
 	}

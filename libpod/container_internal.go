@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
@@ -642,7 +643,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	if len(c.config.DNSSearch) > 0 {
 		resolv.searchDomains = nil
 		// The . character means the user doesnt want any search domains in the container
-		if !StringInSlice(".", c.config.DNSSearch) {
+		if !util.StringInSlice(".", c.config.DNSSearch) {
 			resolv.searchDomains = append(resolv.searchDomains, c.Config().DNSSearch...)
 		}
 	}

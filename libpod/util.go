@@ -39,16 +39,6 @@ func WriteFile(content string, path string) error {
 	return nil
 }
 
-// StringInSlice determines if a string is in a string slice, returns bool
-func StringInSlice(s string, sl []string) bool {
-	for _, i := range sl {
-		if i == s {
-			return true
-		}
-	}
-	return false
-}
-
 // FuncTimer helps measure the execution time of a function
 // For debug purposes, do not leave in code
 // used like defer FuncTimer("foo")

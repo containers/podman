@@ -2,15 +2,12 @@ package image
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"testing"
 
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,43 +17,9 @@ var (
 	fedoraNames  = []string{"registry.fedoraproject.org/fedora-minimal:latest", "registry.fedoraproject.org/fedora-minimal", "fedora-minimal:latest", "fedora-minimal"}
 )
 
-// setup a runtime for the tests in an alternative location on the filesystem
-func setupRuntime(workdir string) (*libpod.Runtime, error) {
-	if reexec.Init() {
-		return nil, errors.Errorf("dude")
-	}
-	sc := libpod.WithStorageConfig(storage.StoreOptions{
-		GraphRoot: workdir,
-		RunRoot:   workdir,
-	})
-	sd := libpod.WithStaticDir(path.Join(workdir, "libpod_tmp"))
-	td := libpod.WithTmpDir(path.Join(workdir, "tmpdir"))
-
-	options := []libpod.RuntimeOption{sc, sd, td}
-	return libpod.NewRuntime(options...)
-}
-
-// getImage is only used to build a test matrix for testing local images
-func getImage(r *libpod.Runtime, fqImageName string) (*storage.Image, error) {
-	img, err := NewFromLocal(fqImageName, r)
-	if err != nil {
-		return nil, err
-	}
-	return img.image, nil
-}
-
-func tagImage(r *libpod.Runtime, fqImageName, tagName string) error {
-	img, err := NewFromLocal(fqImageName, r)
-	if err != nil {
-		return err
-	}
-	r.TagImage(img.image, tagName)
-	return nil
-}
-
 type localImageTest struct {
 	fqname, taggedName string
-	img                *storage.Image
+	img                *Image
 	names              []string
 }
 
@@ -66,8 +29,11 @@ func mkWorkDir() (string, error) {
 }
 
 // shutdown the runtime and clean behind it
-func cleanup(r *libpod.Runtime, workdir string) {
-	r.Shutdown(true)
+func cleanup(workdir string, ir *Runtime) {
+	if err := ir.Shutdown(false); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	err := os.RemoveAll(workdir)
 	if err != nil {
 		fmt.Println(err)
@@ -75,46 +41,27 @@ func cleanup(r *libpod.Runtime, workdir string) {
 	}
 }
 
-func makeLocalMatrix(r *libpod.Runtime) ([]localImageTest, error) {
+func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
 	var l []localImageTest
 	// busybox
 	busybox := localImageTest{
 		fqname:     "docker.io/library/busybox:latest",
 		taggedName: "bb:latest",
 	}
-	b, err := getImage(r, busybox.fqname)
-	if err != nil {
-		return nil, err
-	}
 	busybox.img = b
-	busybox.names = bbNames
-	busybox.names = append(busybox.names, []string{"bb:latest", "bb", b.ID, b.ID[0:7], fmt.Sprintf("busybox@%s", b.Digest.String())}...)
-
-	//fedora
-	fedora := localImageTest{
-		fqname:     "registry.fedoraproject.org/fedora-minimal:latest",
-		taggedName: "f27:latest",
-	}
-	f, err := getImage(r, fedora.fqname)
-	if err != nil {
-		return nil, err
-	}
-	fedora.img = f
-	fedora.names = fedoraNames
+	busybox.names = b.Names()
+	busybox.names = append(busybox.names, []string{"bb:latest", "bb", b.ID(), b.ID()[0:7], fmt.Sprintf("busybox@%s", b.Digest())}...)
 
 	// busybox-glibc
 	busyboxGlibc := localImageTest{
 		fqname:     "docker.io/library/busybox:glibc",
 		taggedName: "bb:glibc",
 	}
-	bg, err := getImage(r, busyboxGlibc.fqname)
-	if err != nil {
-		return nil, err
-	}
+
 	busyboxGlibc.img = bg
 	busyboxGlibc.names = bbGlibcNames
 
-	l = append(l, busybox, fedora)
+	l = append(l, busybox, busyboxGlibc)
 	return l, nil
 
 }
@@ -124,32 +71,37 @@ func makeLocalMatrix(r *libpod.Runtime) ([]localImageTest, error) {
 func TestImage_NewFromLocal(t *testing.T) {
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-	runtime, err := setupRuntime(workdir)
-	assert.NoError(t, err)
+	so := storage.StoreOptions{
+		RunRoot:   workdir,
+		GraphRoot: workdir,
+	}
+	var writer io.Writer
+	writer = os.Stdout
 
 	// Need images to be present for this test
-	_, err = runtime.PullImage("docker.io/library/busybox:latest", libpod.CopyOptions{})
+	ir, err := NewImageRuntime(so)
 	assert.NoError(t, err)
-	_, err = runtime.PullImage("docker.io/library/busybox:glibc", libpod.CopyOptions{})
+	bb, err := ir.New("docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{})
 	assert.NoError(t, err)
-	_, err = runtime.PullImage("registry.fedoraproject.org/fedora-minimal:latest", libpod.CopyOptions{})
+	bbglibc, err := ir.New("docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{})
 	assert.NoError(t, err)
 
-	tm, err := makeLocalMatrix(runtime)
+	tm, err := makeLocalMatrix(bb, bbglibc)
 	assert.NoError(t, err)
+
 	for _, image := range tm {
 		// tag our images
-		err = tagImage(runtime, image.fqname, image.taggedName)
+		image.img.TagImage(image.taggedName)
 		assert.NoError(t, err)
 		for _, name := range image.names {
-			newImage, err := NewFromLocal(name, runtime)
+			newImage, err := ir.NewFromLocal(name)
 			assert.NoError(t, err)
-			assert.Equal(t, newImage.ID(), image.img.ID)
+			assert.Equal(t, newImage.ID(), image.img.ID())
 		}
 	}
 
 	// Shutdown the runtime and remove the temporary storage
-	cleanup(runtime, workdir)
+	cleanup(workdir, ir)
 }
 
 // TestImage_New tests pulling the image by various names, tags, and from
@@ -158,21 +110,23 @@ func TestImage_New(t *testing.T) {
 	var names []string
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
-	runtime, err := setupRuntime(workdir)
-	assert.NoError(t, err)
 
+	so := storage.StoreOptions{
+		RunRoot:   workdir,
+		GraphRoot: workdir,
+	}
+	ir, err := NewImageRuntime(so)
+	assert.NoError(t, err)
 	// Build the list of pull names
 	names = append(names, bbNames...)
 	names = append(names, fedoraNames...)
+	var writer io.Writer
+	writer = os.Stdout
 
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		_, err := runtime.GetImage(img)
-		if err == nil {
-			os.Exit(1)
-		}
-		newImage, err := New(img, runtime)
+		newImage, err := ir.New(img, "", "", writer, nil, SigningOptions{})
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(false)
@@ -180,5 +134,5 @@ func TestImage_New(t *testing.T) {
 	}
 
 	// Shutdown the runtime and remove the temporary storage
-	cleanup(runtime, workdir)
+	cleanup(workdir, ir)
 }

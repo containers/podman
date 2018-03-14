@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -299,7 +300,7 @@ func isPortInPortBindings(pb map[nat.Port][]nat.PortBinding, port nat.Port) bool
 	for _, i := range pb {
 		hostPorts = append(hostPorts, i[0].HostPort)
 	}
-	return libpod.StringInSlice(port.Port(), hostPorts)
+	return util.StringInSlice(port.Port(), hostPorts)
 }
 
 // isPortInImagePorts determines if an exposed host port was given to us by metadata
@@ -625,7 +626,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	}
 
 	// Check for . and dns-search domains
-	if libpod.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
+	if util.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
 		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
 	}
 
