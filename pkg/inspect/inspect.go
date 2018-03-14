@@ -74,6 +74,7 @@ type HostConfig struct {
 	CPUPercent           int                         `json:"CPUPercent"`         //check type, TODO
 	IOMaximumIOps        int                         `json:"IOMaximumIOps"`      //check type, TODO
 	IOMaximumBandwidth   int                         `json:"IOMaximumBandwidth"` //check type, TODO
+	Tmpfs                []string                    `json:"Tmpfs"`
 }
 
 // CtrConfig holds information about the container configuration
