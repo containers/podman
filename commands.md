@@ -6,7 +6,7 @@
 | :------------------------------------------------------- | :------------------------------------------------------------------------ | :----|
 | [podman(1)](/docs/podman.1.md)                           | Simple management tool for pods and images                                ||
 | [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             |[![...](/docs/play.png)](https://asciinema.org/a/XDlocUrHVETFECg4zlO9nBbLf)|
-| [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                                             ||
+| [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                        ||
 | [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
@@ -31,7 +31,9 @@
 | [podman-push(1)](/docs/podman-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
 | [podman-rm(1)](/docs/podman-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [podman-rmi(1)](/docs/podman-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
+| [podman-run(1)](/docs/podman-run.1.md)                   | Run a command in a container                                              ||
 | [podman-save(1)](/docs/podman-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
+| [podman-search(1)](/docs/podman-search.1.md)             | Search a registry for an image                                            ||
 | [podman-start(1)](/docs/podman-start.1.md)               | Starts one or more containers
 | [podman-stats(1)](/docs/podman-stats.1.md)               | Display a live stream of one or more containers' resource usage statistics|[![...](/docs/play.png)](https://asciinema.org/a/vfUPbAA5tsNWhsfB9p25T6xdr)|
 | [podman-stop(1)](/docs/podman-stop.1.md)                 | Stops one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/KNRF9xVXeaeNTNjBQVogvZBcp)|
