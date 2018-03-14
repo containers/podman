@@ -9,14 +9,11 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/stringid"
-	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // Init creates a container in the OCI runtime
@@ -34,27 +31,13 @@ func (c *Container) Init() (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	if err := c.mountStorage(); err != nil {
+	if err := c.prepare(); err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanupStorage(); err2 != nil {
-				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
-
-	// Make a network namespace for the container
-	if c.config.CreateNetNS && c.state.NetNS == nil {
-		if err := c.runtime.createNetNS(c); err != nil {
-			return err
-		}
-	}
-	defer func() {
-		if err != nil {
-			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
-				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
 	}()
@@ -81,61 +64,86 @@ func (c *Container) Start() (err error) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
-	// Mount storage for the container if necessary
-	if err := c.mountStorage(); err != nil {
+	if err := c.prepare(); err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanupStorage(); err2 != nil {
-				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
-
-	// Create a network namespace if necessary
-	if c.config.CreateNetNS && c.state.NetNS == nil {
-		if err := c.runtime.createNetNS(c); err != nil {
-			return err
-		}
-	}
-	defer func() {
-		if err != nil {
-			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
-				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
 	}()
 
 	// Reinitialize the container if we need to
 	if c.state.State == ContainerStateStopped {
-		// If necessary, delete attach and ctl files
-		if err := c.removeConmonFiles(); err != nil {
-			return err
-		}
-
-		// Delete the container in the runtime
-		if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
-		}
-
-		// Our state is now Configured, as we've removed ourself from
-		// the runtime
-		// Set and save now to make sure that, if the init() below fails
-		// we still have a valid state
-		c.state.State = ContainerStateConfigured
-		if err := c.save(); err != nil {
-			return err
-		}
-
-		// Reinitialize the container
-		if err := c.init(); err != nil {
+		if err := c.reinit(); err != nil {
 			return err
 		}
 	}
 
 	// Start the container
 	return c.start()
+}
+
+// StartAndAttach starts a container and attaches to it
+// StartAndAttach can start created or stopped containers
+// Stopped containers will be deleted and re-created in runc, undergoing a fresh
+// Init()
+// If successful, an error channel will be returned containing the result of the
+// attach call.
+// The channel will be closed automatically after the result of attach has been
+// sent
+func (c *Container) StartAndAttach(noStdin bool, keys string) (attachResChan <-chan error, err error) {
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Container must be created or stopped to be started
+	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
+		return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+	}
+
+	if err := c.prepare(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	// Reinitialize the container if we need to
+	if c.state.State == ContainerStateStopped {
+		if err := c.reinit(); err != nil {
+			return nil, err
+		}
+	}
+
+	attachChan := make(chan error)
+
+	// Attach to the container before starting it
+	go func() {
+		if err := c.attach(noStdin, keys); err != nil {
+			attachChan <- err
+		}
+		close(attachChan)
+	}()
+
+	// Start the container
+	if err := c.start(); err != nil {
+		// TODO: interrupt the attach here if we error
+		return nil, err
+	}
+
+	return attachChan, nil
 }
 
 // Stop uses the container's stop signal (or SIGTERM if no signal was specified)
@@ -336,7 +344,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 // Attach attaches to a container
 // Returns fully qualified URL of streaming server for the container
-func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) error {
+func (c *Container) Attach(noStdin bool, keys string) error {
 	if !c.locked {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -351,24 +359,7 @@ func (c *Container) Attach(noStdin bool, keys string, attached chan<- bool) erro
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	// Check the validity of the provided keys first
-	var err error
-	detachKeys := []byte{}
-	if len(keys) > 0 {
-		detachKeys, err = term.ToBytes(keys)
-		if err != nil {
-			return errors.Wrapf(err, "invalid detach keys")
-		}
-	}
-
-	resize := make(chan remotecommand.TerminalSize)
-	if terminal.IsTerminal(int(os.Stdin.Fd())) {
-		resizeTty(resize)
-	} else {
-		defer close(resize)
-	}
-	err = c.attachContainerSocket(resize, noStdin, detachKeys, attached)
-	return err
+	return c.attach(noStdin, keys)
 }
 
 // Mount mounts a container's filesystem on the host
@@ -398,7 +389,6 @@ func (c *Container) Mount(label string) (string, error) {
 	}
 	c.state.Mountpoint = mountPoint
 	c.state.Mounted = true
-	c.config.MountLabel = mountLabel
 
 	if err := c.save(); err != nil {
 		return "", err
@@ -629,12 +619,7 @@ func (c *Container) Cleanup() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
 
-	// Stop the container's network namespace (if it has one)
-	if err := c.cleanupNetwork(); err != nil {
-		logrus.Errorf("unable cleanup network for container %s: %q", c.ID(), err)
-	}
-
-	return c.cleanupStorage()
+	return c.cleanup()
 }
 
 // Batch starts a batch operation on the given container

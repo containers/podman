@@ -5,8 +5,10 @@ import (
 	"io"
 	"net"
 	"os"
+	gosignal "os/signal"
 	"path/filepath"
 
+	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/utils"
@@ -24,8 +26,59 @@ const (
 	AttachPipeStderr = 3
 )
 
+// resizeTty handles TTY resizing for Attach()
+func resizeTty(resize chan remotecommand.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	gosignal.Notify(sigchan, signal.SIGWINCH)
+	sendUpdate := func() {
+		winsize, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			logrus.Warnf("Could not get terminal size %v", err)
+			return
+		}
+		resize <- remotecommand.TerminalSize{
+			Width:  winsize.Width,
+			Height: winsize.Height,
+		}
+	}
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		sendUpdate()
+		for range sigchan {
+			sendUpdate()
+		}
+	}()
+}
+
+func (c *Container) attach(noStdin bool, keys string) error {
+	// Check the validity of the provided keys first
+	var err error
+	detachKeys := []byte{}
+	if len(keys) > 0 {
+		detachKeys, err = term.ToBytes(keys)
+		if err != nil {
+			return errors.Wrapf(err, "invalid detach keys")
+		}
+	}
+
+	// TODO: allow resize channel to be passed in for CRI-O use
+	resize := make(chan remotecommand.TerminalSize)
+	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		resizeTty(resize)
+	} else {
+		defer close(resize)
+	}
+
+	logrus.Debugf("Attaching to container %s", c.ID())
+
+	return c.attachContainerSocket(resize, noStdin, detachKeys)
+}
+
 // attachContainerSocket connects to the container's attach socket and deals with the IO
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte, attached chan<- bool) error {
+// TODO add a channel to allow interruptiong
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, noStdIn bool, detachKeys []byte) error {
 	inputStream := os.Stdin
 	outputStream := os.Stdout
 	errorStream := os.Stderr
@@ -77,9 +130,6 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
 	}
 	defer conn.Close()
-
-	// signal back that the connection was made
-	attached <- true
 
 	receiveStdoutError := make(chan error)
 	if outputStream != nil || errorStream != nil {

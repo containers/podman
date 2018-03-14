@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -116,38 +115,30 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	// Create a bool channel to track that the console socket attach
-	// is successful.
-	attached := make(chan bool)
-	// Create a waitgroup so we can sync and wait for all goroutines
-	// to finish before exiting main
-	var wg sync.WaitGroup
-
-	if !createConfig.Detach {
-		// We increment the wg counter because we need to do the attach
-		wg.Add(1)
-		// Attach to the running container
-		go func() {
-			logrus.Debugf("trying to attach to the container %s", ctr.ID())
-			defer wg.Done()
-			if err := ctr.Attach(false, c.String("detach-keys"), attached); err != nil {
-				logrus.Errorf("unable to attach to container %s: %q", ctr.ID(), err)
-			}
-		}()
-		if !<-attached {
-			return errors.Errorf("unable to attach to container %s", ctr.ID())
-		}
-	}
-	// Start the container
-	if err := ctr.Start(); err != nil {
-		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
-	}
+	// Handle detached start
 	if createConfig.Detach {
+		if err := ctr.Start(); err != nil {
+			return errors.Wrapf(err, "unable to start container %q", ctr.ID())
+		}
+
 		fmt.Printf("%s\n", ctr.ID())
 		exitCode = 0
 		return nil
 	}
-	wg.Wait()
+
+	// TODO: that "false" should probably be linked to -i
+	// Handle this when we split streams to allow attaching just stdin/out/err
+	attachChan, err := ctr.StartAndAttach(false, c.String("detach-keys"))
+	if err != nil {
+		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
+	}
+
+	// Wait for attach to complete
+	err = <-attachChan
+	if err != nil {
+		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+	}
+
 	if ecode, err := ctr.ExitCode(); err != nil {
 		logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
 	} else {

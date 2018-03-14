@@ -240,14 +240,7 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 		}
 
 		if cleanup {
-			// Clean up storage to ensure we don't leave dangling mounts
-			if err := ctr.cleanupStorage(); err != nil {
-				ctrErrors[ctr.ID()] = err
-				continue
-			}
-
-			// Clean up network namespace
-			if err := ctr.cleanupNetwork(); err != nil {
+			if err := ctr.cleanup(); err != nil {
 				ctrErrors[ctr.ID()] = err
 			}
 		}

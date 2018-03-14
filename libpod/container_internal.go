@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	gosignal "os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -17,9 +16,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/namesgenerator"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/stringid"
-	"github.com/docker/docker/pkg/term"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -30,7 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -375,6 +371,33 @@ func (c *Container) init() error {
 	return c.save()
 }
 
+// Reinitialize a container
+// Deletes and recreates a container in the runtime
+// Should only be done on ContainerStateStopped containers
+func (c *Container) reinit() error {
+	// If necessary, delete attach and ctl files
+	if err := c.removeConmonFiles(); err != nil {
+		return err
+	}
+
+	// Delete the container in the runtime
+	if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
+		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+	}
+
+	// Our state is now Configured, as we've removed ourself from
+	// the runtime
+	// Set and save now to make sure that, if the init() below fails
+	// we still have a valid state
+	c.state.State = ContainerStateConfigured
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	// Initialize the container again
+	return c.init()
+}
+
 // Initialize (if necessary) and start a container
 // Performs all necessary steps to start a container that is not running
 // Does not lock or check validity
@@ -393,28 +416,13 @@ func (c *Container) initAndStart() (err error) {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
 	}
 
-	// Mount if necessary
-	if err := c.mountStorage(); err != nil {
+	if err := c.prepare(); err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanupStorage(); err2 != nil {
-				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
-
-	// Create a network namespace if necessary
-	if c.config.CreateNetNS && c.state.NetNS == nil {
-		if err := c.runtime.createNetNS(c); err != nil {
-			return err
-		}
-	}
-	defer func() {
-		if err != nil {
-			if err2 := c.runtime.teardownNetNS(c); err2 != nil {
-				logrus.Errorf("Error tearing down network namespace for container %s: %v", c.ID(), err2)
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
 	}()
@@ -482,32 +490,6 @@ func (c *Container) stop(timeout uint) error {
 	return c.cleanupStorage()
 }
 
-// resizeTty handles TTY resizing for Attach()
-func resizeTty(resize chan remotecommand.TerminalSize) {
-	sigchan := make(chan os.Signal, 1)
-	gosignal.Notify(sigchan, signal.SIGWINCH)
-	sendUpdate := func() {
-		winsize, err := term.GetWinsize(os.Stdin.Fd())
-		if err != nil {
-			logrus.Warnf("Could not get terminal size %v", err)
-			return
-		}
-		resize <- remotecommand.TerminalSize{
-			Width:  winsize.Width,
-			Height: winsize.Height,
-		}
-	}
-	go func() {
-		defer close(resize)
-		// Update the terminal size immediately without waiting
-		// for a SIGWINCH to get the correct initial size.
-		sendUpdate()
-		for range sigchan {
-			sendUpdate()
-		}
-	}()
-}
-
 // mountStorage sets up the container's root filesystem
 // It mounts the image and any other requested mounts
 // TODO: Add ability to override mount label so we can use this for Mount() too
@@ -554,6 +536,29 @@ func (c *Container) mountStorage() (err error) {
 	return c.save()
 }
 
+// prepare mounts the container and sets up other required resources like net
+// namespaces
+func (c *Container) prepare() (err error) {
+	// Mount storage if not mounted
+	if err := c.mountStorage(); err != nil {
+		return err
+	}
+
+	// Set up network namespace if not already set up
+	if c.config.CreateNetNS && c.state.NetNS == nil {
+		if err := c.runtime.createNetNS(c); err != nil {
+			// Tear down storage before exiting to make sure we
+			// don't leak mounts
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
 	// Stop the container's network namespace (if it has one)
@@ -591,6 +596,27 @@ func (c *Container) cleanupStorage() error {
 	c.state.Mounted = false
 
 	return c.save()
+}
+
+// Unmount the a container and free its resources
+func (c *Container) cleanup() error {
+	var lastError error
+
+	// Clean up network namespace, if present
+	if err := c.cleanupNetwork(); err != nil {
+		lastError = nil
+	}
+
+	// Unmount storage
+	if err := c.cleanupStorage(); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
+	}
+
+	return lastError
 }
 
 // Make standard bind mounts to include in the container
