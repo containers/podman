@@ -370,7 +370,7 @@ func (p *PodmanTest) RunSleepContainer(name string) *PodmanSession {
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "sleep", "90")
+	podmanArgs = append(podmanArgs, "-d", fedoraMinimal, "sleep", "90")
 	return p.Podman(podmanArgs)
 }
 
