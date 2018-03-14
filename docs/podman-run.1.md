@@ -397,8 +397,6 @@ its root filesystem mounted as read only prohibiting any writes.
 
 **--rm**=*true*|*false*
    Automatically remove the container when it exits. The default is *false*.
-   `--rm` flag can work together with `-d`, and auto-removal will be done on daemon side. Note that it's
-incompatible with any restart policy other than `none`.
 
 **--security-opt**=[]
    Security Options
