@@ -71,10 +71,10 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman top on container invalid options", func() {
-		sleep := podmanTest.RunSleepContainer("")
-		sleep.WaitWithDefaultTimeout()
-		Expect(sleep.ExitCode()).To(Equal(0))
-		cid := sleep.OutputToString()
+		top := podmanTest.RunTopContainer("")
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(Equal(0))
+		cid := top.OutputToString()
 
 		result := podmanTest.Podman([]string{"top", cid, "-o time"})
 		result.WaitWithDefaultTimeout()

@@ -58,7 +58,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause a running container by id", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -75,7 +75,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman unpause a running container by id", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -89,7 +89,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman remove a paused container by id", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -130,7 +130,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman stop a paused container by id", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -167,7 +167,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause a running container by name", func() {
-		session := podmanTest.RunSleepContainer("test1")
+		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -183,11 +183,11 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause a running container by id and another by name", func() {
-		session1 := podmanTest.RunSleepContainer("test1")
+		session1 := podmanTest.RunTopContainer("test1")
 		session1.WaitWithDefaultTimeout()
 		Expect(session1.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.RunSleepContainer("")
+		session2 := podmanTest.RunTopContainer("")
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 		cid2 := session2.OutputToString()

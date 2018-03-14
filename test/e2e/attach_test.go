@@ -45,11 +45,11 @@ var _ = Describe("Podman attach", func() {
 	})
 
 	It("podman attach to multiple containers", func() {
-		session := podmanTest.RunSleepContainer("test1")
+		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.RunSleepContainer("test2")
+		session = podmanTest.RunTopContainer("test2")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
