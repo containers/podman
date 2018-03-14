@@ -38,7 +38,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm refuse to remove a running container", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -60,7 +60,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm created container", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -97,7 +97,7 @@ var _ = Describe("Podman rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.RunSleepContainer("")
+		session = podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

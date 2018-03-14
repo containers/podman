@@ -35,7 +35,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill a running container by id", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -48,7 +48,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill a running container by id with TERM", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -60,7 +60,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill a running container by name", func() {
-		session := podmanTest.RunSleepContainer("test1")
+		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -71,7 +71,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill a running container by id with a bogus signal", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -83,7 +83,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill latest container", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
