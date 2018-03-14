@@ -363,14 +363,14 @@ func (p *PodmanTest) RestoreAllArtifacts() error {
 	return nil
 }
 
-//RunSleepContainer runs a simple container in the background that
-// sleeps.  If the name passed != "", it will have a name
-func (p *PodmanTest) RunSleepContainer(name string) *PodmanSession {
+//RunTopContainer runs a simple container in the background that
+// runs top.  If the name passed != "", it will have a name
+func (p *PodmanTest) RunTopContainer(name string) *PodmanSession {
 	var podmanArgs = []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "sleep", "90")
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
 }
 

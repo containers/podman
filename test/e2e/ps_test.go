@@ -37,7 +37,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps default", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -164,7 +164,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps id filter flag", func() {
-		session := podmanTest.RunSleepContainer("")
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		fullCid := session.OutputToString()

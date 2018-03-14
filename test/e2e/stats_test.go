@@ -39,8 +39,8 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
-	It("podman on a running container", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-t", ALPINE, "sleep", "99"})
+	It("podman stats on a running container", func() {
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -49,8 +49,8 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
-	It("podman on a running container no id", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-t", ALPINE, "sleep", "99"})
+	It("podman stats on a running container no id", func() {
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"stats", "--no-stream"})
@@ -59,7 +59,7 @@ var _ = Describe("Podman stats", func() {
 	})
 
 	It("podman stats on all containers", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-t", ALPINE, "sleep", "99"})
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
@@ -68,7 +68,7 @@ var _ = Describe("Podman stats", func() {
 	})
 
 	It("podman stats only output cids", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-t", ALPINE, "sleep", "99"})
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "\"{{.Container}}\""})
@@ -77,7 +77,7 @@ var _ = Describe("Podman stats", func() {
 	})
 
 	It("podman stats with json output", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-t", ALPINE, "sleep", "99"})
+		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "json"})

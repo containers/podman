@@ -41,7 +41,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec simple command", func() {
-		setup := podmanTest.RunSleepContainer("test1")
+		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
@@ -51,7 +51,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec simple command using latest", func() {
-		setup := podmanTest.RunSleepContainer("test1")
+		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
