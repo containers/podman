@@ -1298,9 +1298,11 @@ func imageSize(img types.ImageSource) *uint64 {
 	return nil
 }
 
-func reposToMap(repotags []string) map[string]string {
+// ReposToMap parses the specified repotags and returns a map with repositories
+// as keys and the corresponding arrays of tags as values.
+func ReposToMap(repotags []string) map[string][]string {
 	// map format is repo -> tag
-	repos := make(map[string]string)
+	repos := make(map[string][]string)
 	for _, repo := range repotags {
 		var repository, tag string
 		if len(repo) > 0 {
@@ -1308,10 +1310,10 @@ func reposToMap(repotags []string) map[string]string {
 			repository = repo[0:li]
 			tag = repo[li+1:]
 		}
-		repos[repository] = tag
+		repos[repository] = append(repos[repository], tag)
 	}
 	if len(repos) == 0 {
-		repos["<none>"] = "<none"
+		repos["<none>"] = []string{"<none>"}
 	}
 	return repos
 }
@@ -1348,18 +1350,20 @@ func (r *Runtime) GetImageResults() ([]inspect.ImageResult, error) {
 			dangling = true
 		}
 
-		for repo, tag := range reposToMap(image.Names) {
+		for repo, tags := range ReposToMap(image.Names) {
+			// use the first pair as the image's default repo and tag
 			results = append(results, inspect.ImageResult{
 				ID:         image.ID,
 				Repository: repo,
 				RepoTags:   image.Names,
-				Tag:        tag,
+				Tag:        tags[0],
 				Size:       imageSize(img),
 				Digest:     image.Digest,
 				Created:    image.Created,
 				Labels:     imgInspect.Labels,
 				Dangling:   dangling,
 			})
+			break
 		}
 
 	}

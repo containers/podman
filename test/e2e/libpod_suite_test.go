@@ -445,6 +445,42 @@ func (s *PodmanSession) LineInOuputContains(term string) bool {
 	return false
 }
 
+//tagOutPutToMap parses each string in imagesOutput and returns
+// a map of repo:tag pairs.  Notice, the first array item will
+// be skipped as it's considered to be the header.
+func tagOutputToMap(imagesOutput []string) map[string]string {
+	m := make(map[string]string)
+	// iterate over output but skip the header
+	for _, i := range imagesOutput[1:] {
+		tmp := []string{}
+		for _, x := range strings.Split(i, " ") {
+			if x != "" {
+				tmp = append(tmp, x)
+			}
+		}
+		// podman-images(1) return a list like output
+		// in the format of "Repository Tag [...]"
+		if len(tmp) < 2 {
+			continue
+		}
+		m[tmp[0]] = tmp[1]
+	}
+	return m
+}
+
+//LineInOutputContainsTag returns true if a line in the
+// session's output contains the repo-tag pair as returned
+// by podman-images(1).
+func (s *PodmanSession) LineInOutputContainsTag(repo, tag string) bool {
+	tagMap := tagOutputToMap(s.OutputToStringArray())
+	for r, t := range tagMap {
+		if repo == r && tag == t {
+			return true
+		}
+	}
+	return false
+}
+
 //GetContainerStatus returns the containers state.
 // This function assumes only one container is active.
 func (p *PodmanTest) GetContainerStatus() string {
