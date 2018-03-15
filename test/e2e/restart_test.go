@@ -62,7 +62,7 @@ var _ = Describe("Podman restart", func() {
 		ok := WaitForContainer(&podmanTest)
 		Expect(ok).To(BeTrue())
 
-		session := podmanTest.Podman([]string{"restart", "test1"})
+		session := podmanTest.Podman([]string{"restart", "--latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
