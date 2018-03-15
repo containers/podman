@@ -128,31 +128,27 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 				break
 			}
 		case inspectTypeImage:
-			newImage := runtime.NewImage(input)
-			newImage.GetLocalImageName()
-			image, err := runtime.GetImage(newImage.LocalName)
+			image, err := runtime.ImageRuntime().NewFromLocal(input)
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error getting image %q", input)
 				break
 			}
-			data, err = runtime.GetImageInspectInfo(*image)
+			data, err = libpod.GetImageData(image)
 			if err != nil {
-				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID)
+				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 				break
 			}
 		case inspectAll:
 			ctr, err := runtime.LookupContainer(input)
 			if err != nil {
-				newImage := runtime.NewImage(input)
-				newImage.GetLocalImageName()
-				image, err := runtime.GetImage(newImage.LocalName)
+				image, err := runtime.ImageRuntime().NewFromLocal(input)
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error getting image %q", input)
 					break
 				}
-				data, err = runtime.GetImageInspectInfo(*image)
+				data, err = libpod.GetImageData(image)
 				if err != nil {
-					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID)
+					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 					break
 				}
 			} else {

@@ -7,8 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"os"
 )
 
 var runDescription = "Runs a command in a new container from the given image"
@@ -49,12 +51,15 @@ func runCmd(c *cli.Context) error {
 		return errors.Errorf("image name or ID is required")
 	}
 
-	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	rtc := runtime.GetConfig()
+	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{})
+
+	data, err := libpod.GetImageData(newImage)
 	if err != nil {
 		return err
 	}
 
-	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
+	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
 	if err != nil {
 		return err
 	}

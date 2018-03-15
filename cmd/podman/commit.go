@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -58,8 +59,11 @@ func commitCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var opts libpod.CopyOptions
-	var container string
+	var (
+		container string
+		reference string
+		writer    io.Writer
+	)
 	args := c.Args()
 	switch len(args) {
 	case 0:
@@ -68,7 +72,7 @@ func commitCmd(c *cli.Context) error {
 		container = args[0]
 	case 2:
 		container = args[0]
-		opts.Reference = args[1]
+		reference = args[1]
 	default:
 		return errors.Errorf("too many arguments. Usage CONTAINER [REFERENCE]")
 	}
@@ -90,20 +94,18 @@ func commitCmd(c *cli.Context) error {
 		History: history,
 		Author:  c.String("author"),
 	}
-	opts.ImageConfig = config
-	opts.Writer = nil
 
 	if !c.Bool("quiet") {
-		opts.Writer = os.Stderr
+		writer = os.Stderr
 	}
 
 	ctr, err := runtime.LookupContainer(container)
 	if err != nil {
 		return errors.Wrapf(err, "error looking up container %q", container)
 	}
-	img, err := ctr.Commit(c.BoolT("pause"), opts)
+	newImage, err := ctr.Commit(c.BoolT("pause"), reference, writer, image.SigningOptions{}, config)
 	if err == nil {
-		fmt.Println(img.ID)
+		fmt.Println(newImage.ID())
 	}
 	return nil
 }

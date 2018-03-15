@@ -1,16 +1,18 @@
 package libpod
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/containers/storage"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/stringid"
+	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -532,7 +534,7 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit(pause bool, options CopyOptions) (*storage.Image, error) {
+func (c *Container) Commit(pause bool, reference string, writer io.Writer, signingOptions image.SigningOptions, imageConfig ociv1.Image) (*image.Image, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -563,7 +565,7 @@ func (c *Container) Commit(pause bool, options CopyOptions) (*storage.Image, err
 	if err := c.export(tempFile.Name()); err != nil {
 		return nil, err
 	}
-	return c.runtime.ImportImage(tempFile.Name(), options)
+	return image.Import(tempFile.Name(), reference, writer, signingOptions, imageConfig, c.runtime.imageRuntime)
 }
 
 // Wait blocks on a container to exit and returns its exit code

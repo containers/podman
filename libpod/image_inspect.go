@@ -4,18 +4,22 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/containers/image/types"
-	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
-func getImageData(img storage.Image, imgRef types.Image, size int64, driver *inspect.Data) (*inspect.ImageData, error) {
-	imgSize, err := imgRef.Size()
+// GetImageData returns an image's inspect data
+func GetImageData(img *image.Image) (*inspect.ImageData, error) {
+	imgRef, err := img.ToImageRef()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading size of image %q", img.ID)
+		return nil, err
+	}
+	size, err := imgRef.Size()
+	if err != nil {
+		return nil, err
 	}
 	manifest, manifestType, err := imgRef.Manifest()
 	if err != nil {
@@ -37,13 +41,17 @@ func getImageData(img storage.Image, imgRef types.Image, size int64, driver *ins
 	}
 
 	var repoDigests []string
-	for _, name := range img.Names {
+	for _, name := range img.Names() {
 		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+imgDigest.String())
 	}
 
+	driver, err := img.DriverData()
+	if err != nil {
+		return nil, err
+	}
 	data := &inspect.ImageData{
-		ID:              img.ID,
-		RepoTags:        img.Names,
+		ID:              img.ID(),
+		RepoTags:        img.Names(),
 		RepoDigests:     repoDigests,
 		Comment:         ociv1Img.History[0].Comment,
 		Created:         ociv1Img.Created,
@@ -53,7 +61,7 @@ func getImageData(img storage.Image, imgRef types.Image, size int64, driver *ins
 		ContainerConfig: &ociv1Img.Config,
 		Version:         info.DockerVersion,
 		Size:            size,
-		VirtualSize:     size + imgSize,
+		VirtualSize:     size,
 		Annotations:     annotations,
 		Digest:          imgDigest,
 		Labels:          info.Labels,

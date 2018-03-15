@@ -27,7 +27,7 @@ import (
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/common"
-	"github.com/projectatomic/libpod/libpod/driver"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/projectatomic/libpod/pkg/util"
 )
@@ -152,7 +152,7 @@ func (r *Runtime) IsImageID(input string) (bool, error) {
 		return false, errors.Wrapf(err, "unable to get images")
 	}
 	for _, image := range images {
-		if strings.HasPrefix(image.ID, input) {
+		if strings.HasPrefix(image.ID(), input) {
 			return true, nil
 		}
 	}
@@ -167,8 +167,8 @@ func (k *Image) GetNameByID() (string, error) {
 		return "", errors.Wrapf(err, "unable to get images")
 	}
 	for _, image := range images {
-		if strings.HasPrefix(image.ID, k.Name) {
-			return image.Names[0], nil
+		if strings.HasPrefix(image.ID(), k.Name) {
+			return image.Names()[0], nil
 		}
 	}
 	return "", errors.Errorf("unable to determine image for %s", k.Name)
@@ -196,13 +196,13 @@ func (k *Image) GetImageID() (string, error) {
 	}
 	for _, image := range images {
 		// Check if we have an ID match
-		if strings.HasPrefix(image.ID, k.Name) {
-			return image.ID, nil
+		if strings.HasPrefix(image.ID(), k.Name) {
+			return image.ID(), nil
 		}
 		// Check if we have a name match, perhaps a tagged name
-		for _, name := range image.Names {
+		for _, name := range image.Names() {
 			if k.Name == name {
-				return image.ID, nil
+				return image.ID(), nil
 			}
 		}
 	}
@@ -364,7 +364,7 @@ func (k *Image) GetLocalImageName() (string, string, error) {
 		return "", "", err
 	}
 	for _, image := range localImages {
-		for _, name := range image.Names {
+		for _, name := range image.Names() {
 			imgRef, err := reference.Parse(name)
 			if err != nil {
 				continue
@@ -383,13 +383,13 @@ func (k *Image) GetLocalImageName() (string, string, error) {
 
 			if imageName == k.Name {
 				k.LocalName = name
-				return name, image.ID, nil
+				return name, image.ID(), nil
 			}
 			imageSplit := strings.Split(imageName, "/")
 			baseName := imageSplit[len(imageSplit)-1]
 			if baseName == k.Name {
 				k.LocalName = name
-				return name, image.ID, nil
+				return name, image.ID(), nil
 			}
 		}
 	}
@@ -429,26 +429,6 @@ func (k *Image) Pull(writer io.Writer) error {
 	}
 	k.runtime.PullImage(k.PullName, CopyOptions{Writer: writer, SignaturePolicyPath: k.runtime.config.SignaturePolicyPath})
 	return nil
-}
-
-// Remove calls into container storage and deletes the image
-func (k *Image) Remove(force bool) (string, error) {
-	if k.LocalName == "" {
-		// This populates the images local name
-		_, _, err := k.GetLocalImageName()
-		if err != nil {
-			return "", errors.Wrapf(err, "unable to find %s locally", k.Name)
-		}
-	}
-	iid, err := k.GetImageID()
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to get image id")
-	}
-	image, err := k.runtime.GetImage(iid)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to remove %s", iid)
-	}
-	return k.runtime.RemoveImage(image, force)
 }
 
 // GetRegistries gets the searchable registries from the global registration file.
@@ -497,7 +477,7 @@ func getRegistries() ([]string, error) {
 // ImageFilter is a function to determine whether an image is included in
 // command output. Images to be outputted are tested using the function. A true
 // return will include the image, a false return will exclude it.
-type ImageFilter func(*storage.Image, *inspect.ImageData) bool
+type ImageFilter func(*image.Image, *inspect.ImageData) bool
 
 func (ips imageDecomposeStruct) returnFQName() string {
 	return fmt.Sprintf("%s%s/%s:%s", ips.transport, ips.registry, ips.imageName, ips.tag)
@@ -854,50 +834,52 @@ func (r *Runtime) UntagImage(image *storage.Image, tag string) (string, error) {
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(image *storage.Image, force bool) (string, error) {
+func (r *Runtime) RemoveImage(image *image.Image, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return "", ErrRuntimeStopped
+		return ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return "", err
+		return err
 	}
 	imageCtrs := []*Container{}
 	for _, ctr := range ctrs {
-		if ctr.config.RootfsImageID == image.ID {
+		if ctr.config.RootfsImageID == image.ID() {
 			imageCtrs = append(imageCtrs, ctr)
 		}
 	}
-	if len(imageCtrs) > 0 && len(image.Names) <= 1 {
+	if len(imageCtrs) > 0 && len(image.Names()) <= 1 {
 		if force {
 			for _, ctr := range imageCtrs {
 				if err := r.removeContainer(ctr, true); err != nil {
-					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
+					return errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
 				}
 			}
 		} else {
-			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
+			return fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
 		}
 	}
 
-	if len(image.Names) > 1 && !force {
-		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
+	if len(image.Names()) > 1 && !force {
+		return fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
 	}
 
-	// If it is forced, we have to untag the image so that it can be deleted
-	if err = r.store.SetNames(image.ID, image.Names[:0]); err != nil {
-		return "", err
+	if len(image.Names()) > 1 && force {
+		// If it is forced, we have to untag the image so that it can be deleted
+		if err = r.store.SetNames(image.ID(), image.Names()[:0]); err != nil {
+			return err
+		}
 	}
-	_, err = r.store.DeleteImage(image.ID, true)
-	if err != nil {
-		return "", err
+
+	if err = image.Remove(force); err != nil {
+		return err
 	}
-	return image.ID, nil
+	return nil
 }
 
 // GetImage retrieves an image matching the given name or hash from system
@@ -964,7 +946,7 @@ func (r *Runtime) getImageRef(image string) (types.Image, error) {
 // Filters can be provided which will determine which images are included in the
 // output. Multiple filters are handled by ANDing their output, so only images
 // matching all filters are included
-func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) ([]*storage.Image, error) {
+func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) ([]*image.Image, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -972,21 +954,21 @@ func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) (
 		return nil, ErrRuntimeStopped
 	}
 
-	images, err := r.store.Images()
+	images, err := r.imageRuntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
-
-	var imagesFiltered []*storage.Image
+	var imagesFiltered []*image.Image
 
 	for _, img := range images {
-		info, err := r.getImageInspectInfo(img)
+		info, err := GetImageData(img)
+
 		if err != nil {
 			return nil, err
 		}
 		var names []string
-		if len(img.Names) > 0 {
-			names = img.Names
+		if len(img.Names()) > 0 {
+			names = img.Names()
 		} else {
 			names = append(names, "<none>")
 		}
@@ -996,13 +978,14 @@ func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) (
 				params.ImageName = name
 			}
 			for _, filter := range filters {
-				include = include && filter(&img, info)
+				include = include && filter(img, info)
 			}
 
 			if include {
 				newImage := img
-				newImage.Names = []string{name}
-				imagesFiltered = append(imagesFiltered, &newImage)
+				// TODO I dont think this is needed.  Will verify along the way
+				//newImage.Names = []string{name}
+				imagesFiltered = append(imagesFiltered, newImage)
 			}
 		}
 	}
@@ -1037,92 +1020,9 @@ func (r *Runtime) GetHistory(image string) ([]ociv1.History, []types.BlobInfo, s
 	return oci.History, src.LayerInfos(), img.ID, nil
 }
 
-// ImportImage imports an OCI format image archive into storage as an image
-func (r *Runtime) ImportImage(path string, options CopyOptions) (*storage.Image, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	if !r.valid {
-		return nil, ErrRuntimeStopped
-	}
-
-	file := TarballTransport + ":" + path
-	src, err := alltransports.ParseImageName(file)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing image name %q", path)
-	}
-
-	updater, ok := src.(tarball.ConfigUpdater)
-	if !ok {
-		return nil, errors.Wrapf(err, "unexpected type, a tarball reference should implement tarball.ConfigUpdater")
-	}
-
-	annotations := make(map[string]string)
-
-	err = updater.ConfigUpdate(options.ImageConfig, annotations)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error updating image config")
-	}
-
-	var reference = options.Reference
-	sc := common.GetSystemContext("", "", false)
-
-	// if reference not given, get the image digest
-	if reference == "" {
-		reference, err = getImageDigest(src, sc)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	policyContext, err := getPolicyContext(sc)
-	if err != nil {
-		return nil, err
-	}
-	defer policyContext.Destroy()
-	copyOptions := common.GetCopyOptions(options.Writer, "", nil, nil, common.SigningOptions{}, "", "", false)
-
-	dest, err := is.Transport.ParseStoreReference(r.store, reference)
-	if err != nil {
-		errors.Wrapf(err, "error getting image reference for %q", options.Reference)
-	}
-	if err = cp.Image(policyContext, dest, src, copyOptions); err != nil {
-		return nil, err
-	}
-	// Use no lock version of GetImage
-	return r.getImage(reference)
-}
-
-// GetImageInspectInfo returns the inspect information of an image
-func (r *Runtime) GetImageInspectInfo(image storage.Image) (*inspect.ImageData, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	if !r.valid {
-		return nil, ErrRuntimeStopped
-	}
-	return r.getImageInspectInfo(image)
-}
-
-func (r *Runtime) getImageInspectInfo(image storage.Image) (*inspect.ImageData, error) {
-	imgRef, err := r.getImageRef("@" + image.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading image %q", image.ID)
-	}
-
-	layer, err := r.store.Layer(image.TopLayer)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading information about layer %q", image.TopLayer)
-	}
-	size, err := r.store.DiffSize(layer.Parent, layer.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error determining size of layer %q", layer.ID)
-	}
-	driverData, err := driver.GetDriverData(r.store, layer.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting graph driver info %q", image.ID)
-	}
-	return getImageData(image, imgRef, size, driverData)
+//Import imports an oci format image archive into storage as an image
+func (r *Runtime) Import(path, reference string, writer io.Writer, signingOptions image.SigningOptions, imageConfig ociv1.Image) (*image.Image, error) {
+	return image.Import(path, reference, writer, signingOptions, imageConfig, r.imageRuntime)
 }
 
 // ParseImageFilter takes a set of images and a filter string as input, and returns the libpod.ImageFilterParams struct
@@ -1145,7 +1045,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 		return &params, nil
 	}
 
-	images, err := r.store.Images()
+	images, err := r.imageRuntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
@@ -1164,7 +1064,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 			params.Label = pair[1]
 		case "before":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				info, err := r.GetImageInspectInfo(img)
+				info, err := GetImageData(img)
 				if err != nil {
 					return nil, err
 				}
@@ -1174,7 +1074,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 			}
 		case "since":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				info, err := r.GetImageInspectInfo(img)
+				info, err := GetImageData(img)
 				if err != nil {
 					return nil, err
 				}
@@ -1240,18 +1140,18 @@ func ParseImageNames(names []string) (tags, digests []string, err error) {
 	return tags, digests, nil
 }
 
-func findImageInSlice(images []storage.Image, ref string) (storage.Image, error) {
+func findImageInSlice(images []*image.Image, ref string) (*image.Image, error) {
 	for _, image := range images {
-		if MatchesID(image.ID, ref) {
+		if MatchesID(image.ID(), ref) {
 			return image, nil
 		}
-		for _, name := range image.Names {
+		for _, name := range image.Names() {
 			if MatchesReference(name, ref) {
 				return image, nil
 			}
 		}
 	}
-	return storage.Image{}, errors.New("could not find image")
+	return nil, errors.New("could not find image")
 }
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID

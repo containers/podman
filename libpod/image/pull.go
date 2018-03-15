@@ -177,8 +177,8 @@ func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string
 	copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false)
 	for _, imageInfo := range pullStructs {
 		// Print the following statement only when pulling from a docker or atomic registry
-		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
-			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...\n", imageInfo.image))
+		if writer != nil && (strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
+			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
 		}
 		if err = cp.Image(policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
 			if writer != nil {

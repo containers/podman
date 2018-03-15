@@ -140,7 +140,7 @@ var _ = Describe("Podman pull", func() {
 		clean.WaitWithDefaultTimeout()
 	})
 
-	It("podman pull from local directory", func() {
+	It("podman pull check quiet", func() {
 		podmanTest.RestoreArtifact(ALPINE)
 		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
 		setup.WaitWithDefaultTimeout()

@@ -79,7 +79,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 	writer = os.Stdout
 
 	// Need images to be present for this test
-	ir, err := NewImageRuntime(so)
+	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
 	bb, err := ir.New("docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{})
 	assert.NoError(t, err)
@@ -115,7 +115,7 @@ func TestImage_New(t *testing.T) {
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
-	ir, err := NewImageRuntime(so)
+	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
 	// Build the list of pull names
 	names = append(names, bbNames...)
