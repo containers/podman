@@ -166,6 +166,18 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 	return &PodmanSession{session}
 }
 
+
+//WaitForContainer waits on a started container
+func WaitForContainer(p *PodmanTest) bool {
+	for i := 0; i < 10; i++ {
+		if p.NumberOfContainers() == 1 {
+			return true
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return false
+}
+
 // Cleanup cleans up the temporary store
 func (p *PodmanTest) Cleanup() {
 	// Remove all containers
