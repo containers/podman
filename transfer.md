@@ -38,36 +38,37 @@ There are other equivalents for these tools
 
 | Existing Step | PODMAN (and friends) |
 | :--- | :--- |
-| `docker attach` | [`podman exec`](./docs/podman-attach.1.md)|
-| `docker build`  | [`podman build`](./docs/podman-build.1.md) |
-| `docker commit` | [`podman commit`](./docs/podman-commit.1.md)|
-| `docker cp`     | [`podman mount`](./docs/podman-cp.1.md) ****   |
-| `docker create` | [`podman create`](./docs/podman-create.1.md)  |
-| `docker diff`   | [`podman diff`](./docs/podman-diff.1.md)      |
-| `docker export` | [`podman export`](./docs/podman-export.1.md)  |
-| `docker history`| [`podman history`](./docs/podman-history.1.md)|
-| `docker images` | [`podman images`](./docs/podman-images.1.md)  |
-| `docker import` | [`podman import`](./docs/podman-import.1.md)  |
-| `docker kill`   | [`podman kill`](./docs/podman-kill.1.md)      |
-| `docker load`   | [`podman load`](./docs/podman-load.1.md)      |
-| `docker login`  | [`podman login`](./docs/podman-login.1.md)    |
-| `docker logout` | [`podman logout`](./docs/podman-logout.1.md)  |
-| `docker pause`  | [`podman pause`](./docs/podman-pause.1.md)    |
-| `docker ps`     | [`podman ps`](./docs/podman-ps.1.md)          |
-| `docker pull`   | [`podman pull`](./docs/podman-pull.1.md)      |
-| `docker push`   | [`podman push`](./docs/podman-push.1.md)      |
-| `docker rm`     | [`podman rm`](./docs/podman-rm.1.md)          |
-| `docker rmi`    | [`podman rmi`](./docs/podman-rmi.1.md)        |
-| `docker run`    | [`podman run`](./docs/podman-run.1.md)        |
-| `docker save`   | [`podman save`](./docs/podman-save.1.md)      |
-| `docker search` | [`podman search`](./docs/podman-search.1.md)  |
-| `docker start`  | [`podman start`](./docs/podman-start.1.md)    |
-| `docker stop`   | [`podman stop`](./docs/podman-stop.1.md)      |
-| `docker tag`    | [`podman tag`](./docs/podman-tag.1.md)        |
-| `docker top`    | [`podman top`](./docs/podman-top.1.md)        |
-| `docker unpause`| [`podman unpause`](./docs/podman-unpause.1.md)|
-| `docker version`| [`podman version`](./docs/podman-version.1.md)|
-| `docker wait`   | [`podman wait`](./docs/podman-wait.1.md)   |
+| `docker attach`  | [`podman exec`](./docs/podman-attach.1.md)      |
+| `docker build`   | [`podman build`](./docs/podman-build.1.md)      |
+| `docker commit`  | [`podman commit`](./docs/podman-commit.1.md)    |
+| `docker cp`      | [`podman mount`](./docs/podman-cp.1.md) ****    |
+| `docker create`  | [`podman create`](./docs/podman-create.1.md)    |
+| `docker diff`    | [`podman diff`](./docs/podman-diff.1.md)        |
+| `docker export`  | [`podman export`](./docs/podman-export.1.md)    |
+| `docker history` | [`podman history`](./docs/podman-history.1.md)  |
+| `docker images`  | [`podman images`](./docs/podman-images.1.md)    |
+| `docker import`  | [`podman import`](./docs/podman-import.1.md)    |
+| `docker kill`    | [`podman kill`](./docs/podman-kill.1.md)        |
+| `docker load`    | [`podman load`](./docs/podman-load.1.md)        |
+| `docker login`   | [`podman login`](./docs/podman-login.1.md)      |
+| `docker logout`  | [`podman logout`](./docs/podman-logout.1.md)    |
+| `docker pause`   | [`podman pause`](./docs/podman-pause.1.md)      |
+| `docker ps`      | [`podman ps`](./docs/podman-ps.1.md)            |
+| `docker pull`    | [`podman pull`](./docs/podman-pull.1.md)        |
+| `docker push`    | [`podman push`](./docs/podman-push.1.md)        |
+| `docker restart` | [`podman restart`](./docs/podman-restart.1.md)] |
+| `docker rm`      | [`podman rm`](./docs/podman-rm.1.md)            |
+| `docker rmi`     | [`podman rmi`](./docs/podman-rmi.1.md)          |
+| `docker run`     | [`podman run`](./docs/podman-run.1.md)          |
+| `docker save`    | [`podman save`](./docs/podman-save.1.md)        |
+| `docker search`  | [`podman search`](./docs/podman-search.1.md)    |
+| `docker start`   | [`podman start`](./docs/podman-start.1.md)      |
+| `docker stop`    | [`podman stop`](./docs/podman-stop.1.md)        |
+| `docker tag`     | [`podman tag`](./docs/podman-tag.1.md)          |
+| `docker top`     | [`podman top`](./docs/podman-top.1.md)          |
+| `docker unpause` | [`podman unpause`](./docs/podman-unpause.1.md)  |
+| `docker version` | [`podman version`](./docs/podman-version.1.md)  |
+| `docker wait`    | [`podman wait`](./docs/podman-wait.1.md)        |
 
 **** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/podman-cp.1.md) for more information.
 
@@ -85,7 +86,6 @@ Those Docker commands currently do not have equivalents in `podman`:
 | `docker plugin`   |podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
 | `docker port`     ||
 | `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
-| `docker restart`  | podman does not support restart.  We recommend that you put your podman containers into a systemd unit file and use it for restarting applications.|
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||

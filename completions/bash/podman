@@ -1313,6 +1313,16 @@ _podman_run() {
 	_podman_container_run
 }
 
+_podman_restart() {
+     local options_with_args="
+     --timeout -t
+     "
+     local boolean_options="
+     --latest
+     -l"
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_rm() {
     local boolean_options="
     --all
