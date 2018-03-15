@@ -24,10 +24,6 @@ var (
 			Usage: "do not truncate output",
 		},
 		cli.StringFlag{
-			Name:  "label",
-			Usage: "SELinux label for the mount point",
-		},
-		cli.StringFlag{
 			Name:  "format",
 			Usage: "Change the output format to Go template",
 		},
@@ -83,7 +79,7 @@ func mountCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", args[0])
 		}
-		mountPoint, err := ctr.Mount(c.String("label"))
+		mountPoint, err := ctr.Mount(ctr.MountLabel())
 		if err != nil {
 			return errors.Wrapf(err, "error mounting container %q", ctr.ID())
 		}

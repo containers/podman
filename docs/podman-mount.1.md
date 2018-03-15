@@ -30,10 +30,6 @@ returned.
 
 Do not truncate IDs in output.
 
-**--label**
-
-SELinux label for the mount point
-
 ## EXAMPLE
 
 podman mount c831414b10a3
