@@ -36,4 +36,18 @@ var _ = Describe("Podman run restart containers", func() {
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 	})
+
+	It("Podman start after signal kill", func() {
+		session := podmanTest.RunTopContainer("test1")
+		ok := WaitForContainer(&podmanTest)
+		Expect(ok).To(BeTrue())
+
+		killSession := podmanTest.Podman([]string{"kill", "-s", "9", "test1"})
+		killSession.WaitWithDefaultTimeout()
+		Expect(killSession.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"start", "--attach", "test1"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+	})
 })
