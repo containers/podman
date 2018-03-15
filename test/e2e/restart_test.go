@@ -71,7 +71,7 @@ var _ = Describe("Podman restart", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
-		_, exitCode, _ := podmanTest.RunLsContainer("test2")
+		_, exitCode, _ = podmanTest.RunLsContainer("test2")
 		Expect(exitCode).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"restart", "test1", "test2"})
