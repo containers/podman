@@ -58,7 +58,12 @@ func restartCmd(c *cli.Context) error {
 		if err != nil {
 			lastError = errors.Wrapf(err, "unable to get latest container")
 		} else {
-			lastError = restartCtr(timeout, useTimeout, lastCtr)
+			ctrTimeout := lastCtr.StopTimeout()
+			if useTimeout {
+				ctrTimeout = timeout
+			}
+
+			lastError = restartCtr(ctrTimeout, lastCtr)
 		}
 	}
 
@@ -72,7 +77,12 @@ func restartCmd(c *cli.Context) error {
 			continue
 		}
 
-		if err := restartCtr(timeout, useTimeout, ctr); err != nil {
+		ctrTimeout := ctr.StopTimeout()
+		if useTimeout {
+			ctrTimeout = timeout
+		}
+
+		if err := restartCtr(ctrTimeout, ctr); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
@@ -84,12 +94,7 @@ func restartCmd(c *cli.Context) error {
 }
 
 // Restart a single container
-func restartCtr(cliTimeout uint, useTimeout bool, ctr *libpod.Container) error {
-	timeout := ctr.StopTimeout()
-	if useTimeout {
-		timeout = cliTimeout
-	}
-
+func restartCtr(timeout uint, ctr *libpod.Container) error {
 	state, err := ctr.State()
 	if err != nil {
 		return err
