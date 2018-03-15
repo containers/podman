@@ -368,7 +368,7 @@ func (c *Container) Attach(noStdin bool, keys string) error {
 
 // Mount mounts a container's filesystem on the host
 // The path where the container has been mounted is returned
-func (c *Container) Mount(label string) (string, error) {
+func (c *Container) Mount() (string, error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -378,27 +378,11 @@ func (c *Container) Mount(label string) (string, error) {
 		}
 	}
 
-	// return mountpoint if container already mounted
-	if c.state.Mounted {
-		return c.state.Mountpoint, nil
-	}
-
-	mountLabel := label
-	if label == "" {
-		mountLabel = c.config.MountLabel
-	}
-	mountPoint, err := c.runtime.store.Mount(c.ID(), mountLabel)
-	if err != nil {
-		return "", err
-	}
-	c.state.Mountpoint = mountPoint
-	c.state.Mounted = true
-
-	if err := c.save(); err != nil {
+	if err := c.mountStorage(); err != nil {
 		return "", err
 	}
 
-	return mountPoint, nil
+	return c.state.Mountpoint, nil
 }
 
 // Unmount unmounts a container's filesystem on the host
@@ -414,6 +398,11 @@ func (c *Container) Unmount() error {
 
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+	}
+
+	// Check if we have active exec sessions
+	if len(c.state.ExecSessions) != 0 {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
 
 	return c.cleanupStorage()

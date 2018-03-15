@@ -1000,7 +1000,6 @@ _podman_mount() {
  "
 
     local options_with_args="
-    --label
     --format
  "
 
