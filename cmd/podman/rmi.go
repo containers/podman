@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -51,28 +52,37 @@ func rmiCmd(c *cli.Context) error {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
 
-	imagesToDelete := args[:]
+	images := args[:]
 	var lastError error
+	var imagesToDelete []*image.Image
 	if removeAll {
-		localImages, err := runtime.GetImages(&libpod.ImageFilterParams{})
+		imagesToDelete, err = runtime.GetImages(&libpod.ImageFilterParams{})
 		if err != nil {
 			return errors.Wrapf(err, "unable to query local images")
 		}
-		for _, image := range localImages {
-			imagesToDelete = append(imagesToDelete, image.ID)
+	} else {
+		// Create image.image objects for deletion from user input
+		for _, i := range images {
+			newImage, err := runtime.ImageRuntime().NewFromLocal(i)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+			imagesToDelete = append(imagesToDelete, newImage)
 		}
 	}
-
-	for _, arg := range imagesToDelete {
-		image := runtime.NewImage(arg)
-		iid, err := image.Remove(c.Bool("force"))
+	if len(imagesToDelete) == 0 {
+		return errors.Errorf("no valid images to delete")
+	}
+	for _, img := range imagesToDelete {
+		err := runtime.RemoveImage(img, c.Bool("force"))
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
 			lastError = err
 		} else {
-			fmt.Println(iid)
+			fmt.Println(img.ID())
 		}
 	}
 	return lastError

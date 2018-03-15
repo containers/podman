@@ -12,6 +12,7 @@ import (
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	is "github.com/containers/image/storage"
+	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -19,6 +20,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/projectatomic/libpod/pkg/util"
 )
@@ -36,12 +39,20 @@ type Image struct {
 
 // Runtime contains the store
 type Runtime struct {
-	store storage.Store
+	store               storage.Store
+	SignaturePolicyPath string
 }
 
-// NewImageRuntime creates an Image Runtime including the store given
+// NewImageRuntimeFromStore creates an ImageRuntime based on a provided store
+func NewImageRuntimeFromStore(store storage.Store) *Runtime {
+	return &Runtime{
+		store: store,
+	}
+}
+
+// NewImageRuntimeFromOptions creates an Image Runtime including the store given
 // store options
-func NewImageRuntime(options storage.StoreOptions) (*Runtime, error) {
+func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) {
 	if reexec.Init() {
 		return nil, errors.Errorf("unable to reexec")
 	}
@@ -110,10 +121,12 @@ func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Wri
 	}
 
 	// The image is not local
-
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = ir.SignaturePolicyPath
+	}
 	imageName, err := newImage.pullImage(writer, authfile, signaturePolicyPath, signingoptions, dockeroptions)
 	if err != nil {
-		return &newImage, errors.Errorf("unable to pull %s", name)
+		return nil, errors.Errorf("unable to pull %s", name)
 	}
 
 	newImage.InputName = imageName
@@ -141,7 +154,7 @@ func (i *Image) reloadImage() error {
 // getLocalImage resolves an unknown input describing an image and
 // returns a storage.Image or an error. It is used by NewFromLocal.
 func (i *Image) getLocalImage() (*storage.Image, error) {
-	imageError := fmt.Sprintf("unable to find '%s' in local storage\n", i.InputName)
+	imageError := fmt.Sprintf("unable to find '%s' in local storage", i.InputName)
 	if i.InputName == "" {
 		return nil, errors.Errorf("input name is blank")
 	}
@@ -187,8 +200,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if err == nil {
 		return repoImage, nil
 	}
-
-	return nil, errors.Errorf("%s", imageError)
+	return nil, errors.Wrapf(err, imageError)
 }
 
 // hasRegistry returns a bool/err response if the image has a registry in its
@@ -307,7 +319,11 @@ func (ir *Runtime) GetImages() ([]*Image, error) {
 		return nil, err
 	}
 	for _, i := range images {
-		newImages = append(newImages, ir.newFromStorage(&i))
+		// iterating over these, be careful to not iterate on the literal
+		// pointer.
+		image := i
+		img := ir.newFromStorage(&image)
+		newImages = append(newImages, img)
 	}
 	return newImages, nil
 }
@@ -338,10 +354,24 @@ func (i *Image) TagImage(tag string) error {
 	return i.imageruntime.store.SetNames(i.ID(), tags)
 }
 
+// UntagImage removes a tag from the given image
+func (i *Image) UntagImage(tag string) error {
+	var newTags []string
+	tags := i.Names()
+	if !util.StringInSlice(tag, tags) {
+		return nil
+	}
+	for _, t := range tags {
+		if tag != t {
+			newTags = append(newTags, t)
+		}
+	}
+	i.reloadImage()
+	return i.imageruntime.store.SetNames(i.ID(), newTags)
+}
+
 // PushImage pushes the given image to a location described by the given path
 func (i *Image) PushImage(destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions) error {
-	// PushImage pushes the src image to the destination
-	//func PushImage(source, destination string, options CopyOptions) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -395,6 +425,12 @@ func (i *Image) toStorageReference() (types.ImageReference, error) {
 	return is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
 }
 
+// ToImageRef returns an image reference type from an image
+// TODO: Hopefully we can remove this exported function for mheon
+func (i *Image) ToImageRef() (types.Image, error) {
+	return i.toImageRef()
+}
+
 // toImageRef returns an Image Reference type from an image
 func (i *Image) toImageRef() (types.Image, error) {
 	ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
@@ -431,5 +467,77 @@ func (i *Image) Size() (*uint64, error) {
 		}
 	}
 	return nil, errors.Errorf("unable to determine size")
+}
 
+// DriverData gets the driver data from the store on a layer
+func (i *Image) DriverData() (*inspect.Data, error) {
+	topLayer, err := i.Layer()
+	if err != nil {
+		return nil, err
+	}
+	return driver.GetDriverData(i.imageruntime.store, topLayer.ID)
+}
+
+// Layer returns the image's top layer
+func (i *Image) Layer() (*storage.Layer, error) {
+	return i.imageruntime.store.Layer(i.image.TopLayer)
+}
+
+// History gets the history of an image and information about its layers
+func (i *Image) History() ([]ociv1.History, []types.BlobInfo, error) {
+	img, err := i.toImageRef()
+	if err != nil {
+		return nil, nil, err
+	}
+	oci, err := img.OCIConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	return oci.History, img.LayerInfos(), nil
+}
+
+// Import imports and image into the store and returns an image
+func Import(path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image, runtime *Runtime) (*Image, error) {
+	file := TarballTransport + ":" + path
+	src, err := alltransports.ParseImageName(file)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing image name %q", path)
+	}
+
+	updater, ok := src.(tarball.ConfigUpdater)
+	if !ok {
+		return nil, errors.Wrapf(err, "unexpected type, a tarball reference should implement tarball.ConfigUpdater")
+	}
+
+	annotations := make(map[string]string)
+
+	//	config imgspecv1.Image
+	err = updater.ConfigUpdate(imageConfig, annotations)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error updating image config")
+	}
+
+	sc := common.GetSystemContext("", "", false)
+
+	// if reference not given, get the image digest
+	if reference == "" {
+		reference, err = getImageDigest(src, sc)
+		if err != nil {
+			return nil, err
+		}
+	}
+	policyContext, err := getPolicyContext(sc)
+	if err != nil {
+		return nil, err
+	}
+	defer policyContext.Destroy()
+	copyOptions := getCopyOptions(writer, "", nil, nil, signingOptions, "", "", false)
+	dest, err := is.Transport.ParseStoreReference(runtime.store, reference)
+	if err != nil {
+		errors.Wrapf(err, "error getting image reference for %q", reference)
+	}
+	if err = cp.Image(policyContext, dest, src, copyOptions); err != nil {
+		return nil, err
+	}
+	return runtime.NewFromLocal(reference)
 }

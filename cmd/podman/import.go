@@ -11,7 +11,7 @@ import (
 
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -55,8 +55,12 @@ func importCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var opts libpod.CopyOptions
-	var source string
+	var (
+		source    string
+		reference string
+		writer    io.Writer
+	)
+
 	args := c.Args()
 	switch len(args) {
 	case 0:
@@ -65,7 +69,7 @@ func importCmd(c *cli.Context) error {
 		source = args[0]
 	case 2:
 		source = args[0]
-		opts.Reference = args[1]
+		reference = args[1]
 	default:
 		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
 	}
@@ -87,11 +91,9 @@ func importCmd(c *cli.Context) error {
 		History: history,
 	}
 
-	opts.ImageConfig = config
-	opts.Writer = nil
-
+	writer = nil
 	if !c.Bool("quiet") {
-		opts.Writer = os.Stderr
+		writer = os.Stderr
 	}
 
 	// if source is a url, download it and save to a temp file
@@ -105,9 +107,9 @@ func importCmd(c *cli.Context) error {
 		source = file
 	}
 
-	img, err := runtime.ImportImage(source, opts)
+	newImage, err := runtime.Import(source, reference, writer, image.SigningOptions{}, config)
 	if err == nil {
-		fmt.Println(img.ID)
+		fmt.Println(newImage.ID())
 	}
 	return err
 }

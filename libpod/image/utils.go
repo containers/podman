@@ -2,15 +2,14 @@ package image
 
 import (
 	"io"
+	"strings"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/storage"
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
-	"strings"
+	"github.com/containers/storage"
+	"github.com/pkg/errors"
 )
 
 func getTags(nameInput string) (reference.NamedTagged, bool, error) {
@@ -36,14 +35,19 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 			}
 			if d.name == search.name && d.tag == search.tag {
 				results = append(results, image.image)
-				break
+				continue
+			}
+			// account for registry:/somedir/image
+			if strings.HasSuffix(d.name, search.name) && d.tag == search.tag {
+				results = append(results, image.image)
+				continue
 			}
 		}
 	}
 	if len(results) == 0 {
-		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", search)
+		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", search.name)
 	} else if len(results) > 1 {
-		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", search)
+		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", search.name)
 	}
 	return results[0], nil
 }

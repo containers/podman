@@ -3,13 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
-	"os"
-	"strconv"
-	"strings"
-	"syscall"
-
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
@@ -17,10 +10,16 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"net"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
 )
 
 type mountType string
@@ -154,6 +153,7 @@ var createCommand = cli.Command{
 func createCmd(c *cli.Context) error {
 	// TODO should allow user to create based off a directory on the host not just image
 	// Need CLI support for this
+
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -174,11 +174,14 @@ func createCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	imageName, _, data, err := imageData(c, runtime, c.Args()[0])
+	rtc := runtime.GetConfig()
+
+	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{})
 	if err != nil {
 		return err
 	}
-	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
+	data, err := libpod.GetImageData(newImage)
+	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
 	if err != nil {
 		return err
 	}
@@ -377,46 +380,6 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 		}
 	}
 	return portBindings, nil
-}
-
-// imageData pulls down the image if not stored locally and extracts the
-// default container runtime data out of it. imageData returns the data
-// to the caller.  Example Data: Entrypoint, Env, WorkingDir, Labels ...
-func imageData(c *cli.Context, runtime *libpod.Runtime, image string) (string, string, *inspect.ImageData, error) {
-	var (
-		err                error
-		imageName, imageID string
-	)
-	// Deal with the image after all the args have been checked
-	createImage := runtime.NewImage(image)
-	imageName, imageID, _ = createImage.GetLocalImageName()
-	if createImage.LocalName == "" {
-		// The image wasnt found by the user input'd name or its fqname
-		// Pull the image
-		var writer io.Writer
-		if !c.Bool("quiet") {
-			writer = os.Stderr
-		}
-		createImage.Pull(writer)
-	}
-
-	createImage.LocalName = imageName
-	if imageName == "" {
-		imageName, err = createImage.GetFQName()
-		_, imageID, _ = createImage.GetLocalImageName()
-	}
-	if err != nil {
-		return "", "", nil, err
-	}
-	storageImage, err := runtime.GetImage(imageName)
-	if err != nil {
-		return "", "", nil, errors.Wrapf(err, "error getting storage image %q", image)
-	}
-	data, err := runtime.GetImageInspectInfo(*storageImage)
-	if err != nil {
-		return "", "", nil, errors.Wrapf(err, "error parsing image data %q", image)
-	}
-	return imageName, imageID, data, err
 }
 
 // Parses CLI options related to container creation into a config which can be

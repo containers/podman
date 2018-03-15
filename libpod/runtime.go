@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -69,6 +70,7 @@ type Runtime struct {
 	conmonPath     string
 	valid          bool
 	lock           sync.RWMutex
+	imageRuntime   *image.Runtime
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -194,11 +196,9 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-
 	if err := makeRuntime(runtime); err != nil {
 		return nil, err
 	}
-
 	return runtime, nil
 }
 
@@ -293,8 +293,20 @@ func makeRuntime(runtime *Runtime) error {
 	if err != nil {
 		return err
 	}
+
 	runtime.store = store
 	is.Transport.SetStore(store)
+
+	// Set up image runtime and store in runtime
+	ir := image.NewImageRuntimeFromStore(runtime.store)
+	if err != nil {
+		return err
+	}
+
+	runtime.imageRuntime = ir
+
+	// Setting signaturepolicypath
+	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
 	defer func() {
 		if err != nil {
 			// Don't forcibly shut down
@@ -575,4 +587,9 @@ func SaveDefaultConfig(path string) error {
 	}
 
 	return ioutil.WriteFile(path, w.Bytes(), 0644)
+}
+
+// ImageRuntime returns the imageruntime for image resolution
+func (r *Runtime) ImageRuntime() *image.Runtime {
+	return r.imageRuntime
 }

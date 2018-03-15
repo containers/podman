@@ -926,16 +926,14 @@ func (c *Container) addImageVolumes(g *generate.Generator) error {
 	if !c.state.Mounted {
 		return errors.Wrapf(ErrInternal, "container is not mounted")
 	}
-
-	imageStorage, err := c.runtime.getImage(c.config.RootfsImageID)
+	newImage, err := c.runtime.imageRuntime.NewFromLocal(c.config.RootfsImageID)
 	if err != nil {
 		return err
 	}
-	imageData, err := c.runtime.getImageInspectInfo(*imageStorage)
+	imageData, err := GetImageData(newImage)
 	if err != nil {
 		return err
 	}
-
 	for k := range imageData.ContainerConfig.Volumes {
 		mount := spec.Mount{
 			Destination: k,
