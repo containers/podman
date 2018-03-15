@@ -375,6 +375,8 @@ func (c *Container) init() error {
 // Deletes and recreates a container in the runtime
 // Should only be done on ContainerStateStopped containers
 func (c *Container) reinit() error {
+	logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
+
 	// If necessary, delete attach and ctl files
 	if err := c.removeConmonFiles(); err != nil {
 		return err
@@ -393,6 +395,8 @@ func (c *Container) reinit() error {
 	if err := c.save(); err != nil {
 		return err
 	}
+
+	logrus.Debugf("Successfully cleaned up container %s", c.ID())
 
 	// Initialize the container again
 	return c.init()
@@ -430,6 +434,8 @@ func (c *Container) initAndStart() (err error) {
 	// If we are ContainerStateStopped we need to remove from runtime
 	// And reset to ContainerStateConfigured
 	if c.state.State == ContainerStateStopped {
+		logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
+
 		// If necessary, delete attach and ctl files
 		if err := c.removeConmonFiles(); err != nil {
 			return err
