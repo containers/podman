@@ -390,6 +390,5 @@ var createFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "workdir, w",
 		Usage: "Working `directory inside the container",
-		Value: "/",
 	},
 }
