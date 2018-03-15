@@ -1615,6 +1615,7 @@ _podman_podman() {
     ps
     pull
     push
+    restart
     rm
     rmi
     run
