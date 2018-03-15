@@ -566,8 +566,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	}
 
 	// WORKING DIRECTORY
-	workDir := c.String("workdir")
-	if workDir == "" {
+	workDir := "/"
+	if c.IsSet("workdir") {
+		workDir = c.String("workdir")
+	} else if data.ContainerConfig.WorkingDir != "" {
 		workDir = data.ContainerConfig.WorkingDir
 	}
 
