@@ -119,4 +119,22 @@ var _ = Describe("Podman logs", func() {
 		output := results.OutputToStringArray()
 		Expect(len(output)).To(Equal(3))
 	})
+
+	It("podman logs follow a running conatiner", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		logc := podmanTest.Podman([]string{"run", "-dt", fedoraMinimal, "bash", "-c", "for i in `seq 5 -1 1`; do echo $i; sleep 1; done"})
+		logc.WaitWithDefaultTimeout()
+		start := time.Now()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "-f", cid})
+		results.WaitWithDefaultTimeout()
+		end := time.Now()
+		Expect(results.ExitCode()).To(Equal(0))
+		output := results.OutputToStringArray()
+		Expect(len(output)).To(Equal(6))
+		Expect(output[len(output)-2]).To(Equal("1"))
+		Expect(end.Sub(start)).To(BeNumerically(">", 5))
+	})
 })
