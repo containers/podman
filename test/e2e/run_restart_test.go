@@ -38,7 +38,7 @@ var _ = Describe("Podman run restart containers", func() {
 	})
 
 	It("Podman start after signal kill", func() {
-		session := podmanTest.RunTopContainer("test1")
+		_ = podmanTest.RunTopContainer("test1")
 		ok := WaitForContainer(&podmanTest)
 		Expect(ok).To(BeTrue())
 
