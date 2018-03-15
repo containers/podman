@@ -260,6 +260,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		}
 	}
 
+	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
+
 	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, user, sessionID)
 	if err != nil {
 		return errors.Wrapf(err, "error creating exec command for container %s", c.ID())
@@ -317,6 +319,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		// TODO handle this better
 		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
 	}
+
+	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())
 
 	// Unlock so other processes can use the container
 	c.lock.Unlock()
