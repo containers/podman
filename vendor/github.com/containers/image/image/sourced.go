@@ -97,10 +97,6 @@ func (i *sourcedImage) Manifest() ([]byte, string, error) {
 	return i.manifestBlob, i.manifestMIMEType, nil
 }
 
-func (i *sourcedImage) Inspect() (*types.ImageInspectInfo, error) {
-	return inspectManifest(i.genericManifest)
-}
-
 func (i *sourcedImage) LayerInfosForCopy() ([]types.BlobInfo, error) {
-	return i.UnparsedImage.LayerInfosForCopy()
+	return i.UnparsedImage.src.LayerInfosForCopy()
 }

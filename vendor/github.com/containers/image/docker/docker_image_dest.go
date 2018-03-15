@@ -131,7 +131,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusAccepted {
 		logrus.Debugf("Error initiating layer upload, response %#v", *res)
-		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error initiating layer upload to %s", uploadPath)
+		return types.BlobInfo{}, errors.Wrapf(client.HandleErrorResponse(res), "Error initiating layer upload to %s in %s", uploadPath, d.c.registry)
 	}
 	uploadLocation, err := res.Location()
 	if err != nil {
@@ -196,7 +196,7 @@ func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 		return true, getBlobSize(res), nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
-		return false, -1, client.HandleErrorResponse(res)
+		return false, -1, errors.Wrapf(client.HandleErrorResponse(res), "Error checking whether a blob %s exists in %s", info.Digest, d.ref.ref.Name())
 	case http.StatusNotFound:
 		logrus.Debugf("... not present")
 		return false, -1, nil
@@ -237,7 +237,7 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 	}
 	defer res.Body.Close()
 	if !successStatus(res.StatusCode) {
-		err = errors.Wrapf(client.HandleErrorResponse(res), "Error uploading manifest to %s", path)
+		err = errors.Wrapf(client.HandleErrorResponse(res), "Error uploading manifest %s to %s", refTail, d.ref.ref.Name())
 		if isManifestInvalidError(errors.Cause(err)) {
 			err = types.ManifestTypeRejectedError{Err: err}
 		}
@@ -447,7 +447,7 @@ sigExists:
 				logrus.Debugf("Error body %s", string(body))
 			}
 			logrus.Debugf("Error uploading signature, status %d, %#v", res.StatusCode, res)
-			return errors.Wrapf(client.HandleErrorResponse(res), "Error uploading signature to %s", path)
+			return errors.Wrapf(client.HandleErrorResponse(res), "Error uploading signature to %s in %s", path, d.c.registry)
 		}
 	}
 

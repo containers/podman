@@ -95,7 +95,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, "", client.HandleErrorResponse(res)
+		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.ref.ref.Name())
 	}
 	manblob, err := ioutil.ReadAll(res.Body)
 	if err != nil {

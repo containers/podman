@@ -87,7 +87,8 @@ func (m *manifestSchema1) EmbeddedDockerReferenceConflicts(ref reference.Named) 
 	return m.m.Name != name || m.m.Tag != tag
 }
 
-func (m *manifestSchema1) imageInspectInfo() (*types.ImageInspectInfo, error) {
+// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
+func (m *manifestSchema1) Inspect() (*types.ImageInspectInfo, error) {
 	return m.m.Inspect(nil)
 }
 
@@ -187,7 +188,7 @@ func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.Bl
 			diffIDs = append(diffIDs, d)
 		}
 	}
-	configJSON, err := m.m.ToSchema2(diffIDs)
+	configJSON, err := m.m.ToSchema2Config(diffIDs)
 	if err != nil {
 		return nil, err
 	}
