@@ -78,6 +78,7 @@ has the capability to debug pods/images created by crio.
 | [podman-ps(1)](podman-ps.1.md)            | Prints out information about containers.                                       |
 | [podman-pull(1)](podman-pull.1.md)        | Pull an image from a registry.                                                 |
 | [podman-push(1)](podman-push.1.md)        | Push an image from local storage to elsewhere.                                 |
+| [podman-restart(1)](podman-restart.1.md)  | Restart one or more containers.                                                |
 | [podman-rm(1)](podman-rm.1.md)            | Remove one or more containers.                                                 |
 | [podman-rmi(1)](podman-rmi.1.md)          | Removes one or more locally stored images.                                     |
 | [podman-run(1)](podman-run.1.md)          | Run a command in a container.                                                  |
