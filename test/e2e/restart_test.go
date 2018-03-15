@@ -52,7 +52,7 @@ var _ = Describe("Podman restart", func() {
 		startSession.WaitWithDefaultTimeout()
 		Expect(startSession.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"restart", "test1"})
+		session2 := podmanTest.Podman([]string{"restart", cid})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 	})
