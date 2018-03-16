@@ -39,8 +39,12 @@ const (
 	ContainerStatePaused ContainerStatus = iota
 )
 
-// DefaultCgroupParent is the default prefix to a cgroup path in libpod
-var DefaultCgroupParent = "/libpod_parent"
+// CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
+const CgroupfsDefaultCgroupParent = "/libpod_parent"
+
+// SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
+// manager in libpod
+const SystemdDefaultCgroupParent = "system.slice"
 
 // LinuxNS represents a Linux namespace
 type LinuxNS int
@@ -851,7 +855,8 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() cgroups.Path {
-	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s/%s", c.ID(), c.ID())))
+	// TODO add support for systemd cgroup paths
+	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())))
 }
 
 // RootFsSize returns the root FS size of the container
