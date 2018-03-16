@@ -57,11 +57,6 @@ func (i *memoryImage) Signatures(ctx context.Context) ([][]byte, error) {
 	return nil, errors.New("Internal error: Image.Signatures() is not supported for images modified in memory")
 }
 
-// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
-func (i *memoryImage) Inspect() (*types.ImageInspectInfo, error) {
-	return inspectManifest(i.genericManifest)
-}
-
 // LayerInfosForCopy returns an updated set of layer blob information which may not match the manifest.
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.

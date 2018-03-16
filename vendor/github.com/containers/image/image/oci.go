@@ -110,7 +110,8 @@ func (m *manifestOCI1) EmbeddedDockerReferenceConflicts(ref reference.Named) boo
 	return false
 }
 
-func (m *manifestOCI1) imageInspectInfo() (*types.ImageInspectInfo, error) {
+// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
+func (m *manifestOCI1) Inspect() (*types.ImageInspectInfo, error) {
 	getter := func(info types.BlobInfo) ([]byte, error) {
 		if info.Digest != m.ConfigInfo().Digest {
 			// Shouldn't ever happen

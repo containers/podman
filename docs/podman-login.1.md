@@ -66,12 +66,21 @@ Login Succeeded!
 ```
 
 ```
-$ podman login --tls-verify=false -u test -p test localhost:5000
+# podman login --tls-verify=false -u test -p test localhost:5000
 Login Succeeded!
 ```
 
 ```
-$ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
+# podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
+Login Succeeded!
+```
+
+The `-E` flag preserves the existing environment variables. To ensure that the credentials
+are received for other podman commands, use `sudo -E` if not in a root session.
+```
+# sudo -E podman login docker.io
+Username: umohnani
+Password:
 Login Succeeded!
 ```
 
