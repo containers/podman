@@ -170,7 +170,7 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 //WaitForContainer waits on a started container
 func WaitForContainer(p *PodmanTest) bool {
 	for i := 0; i < 10; i++ {
-		if p.NumberOfContainers() == 1 {
+		if p.NumberOfRunningContainers() == 1 {
 			return true
 		}
 		time.Sleep(1 * time.Second)
@@ -414,11 +414,26 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 	return len(containers)
 }
 
-//NumberOfContainersreturns an int of how many
+// NumberOfContainers returns an int of how many
 // containers are currently defined.
 func (p *PodmanTest) NumberOfContainers() int {
 	var containers []string
 	ps := p.Podman([]string{"ps", "-aq"})
+	ps.WaitWithDefaultTimeout()
+	Expect(ps.ExitCode()).To(Equal(0))
+	for _, i := range ps.OutputToStringArray() {
+		if i != "" {
+			containers = append(containers, i)
+		}
+	}
+	return len(containers)
+}
+
+// NumberOfRunningContainers returns an int of how many containers are currently
+// running
+func (p *PodmanTest) NumberOfRunningContainers() int {
+	var containers []string
+	ps := p.Podman([]string{"ps", "-q"})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
