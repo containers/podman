@@ -554,7 +554,7 @@ func getRegistriesToTry(image string, store storage.Store, defaultTransport stri
 				" the image name '%s' is incomplete.", imageName)
 		}
 		for _, searchRegistry := range searchRegistries {
-			pImage.registry = searchRegistry
+			pImage.registry = strings.TrimRight(searchRegistry, "/")
 			srcRef, err := alltransports.ParseImageName(pImage.returnFQName())
 			if err != nil {
 				return nil, errors.Errorf("unable to parse '%s'", pImage.returnFQName())
