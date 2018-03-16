@@ -160,7 +160,6 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.config.ShmSize = DefaultShmSize
-	ctr.config.CgroupParent = DefaultCgroupParent
 
 	ctr.state.BindMounts = make(map[string]string)
 
@@ -1128,6 +1127,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if !foundContainerEnv {
 		g.AddProcessEnv("container", "libpod")
 	}
+
+	cgroupPath, err := c.CGroupPath()("")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving CGroup path for container %s", c.ID())
+	}
+	logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
+	g.SetLinuxCgroupsPath(cgroupPath)
 
 	return g.Spec(), nil
 }
