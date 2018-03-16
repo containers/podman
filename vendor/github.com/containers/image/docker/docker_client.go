@@ -495,7 +495,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		defer resp.Body.Close()
 		logrus.Debugf("Ping %s status %d", url, resp.StatusCode)
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
-			return errors.Errorf("error pinging repository, response code %d", resp.StatusCode)
+			return errors.Errorf("error pinging registry %s, response code %d", c.registry, resp.StatusCode)
 		}
 		c.challenges = parseAuthHeader(resp.Header)
 		c.scheme = scheme
@@ -547,7 +547,7 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, client.HandleErrorResponse(res)
+		return nil, errors.Wrapf(client.HandleErrorResponse(res), "Error downloading signatures for %s in %s", manifestDigest, ref.ref.Name())
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {

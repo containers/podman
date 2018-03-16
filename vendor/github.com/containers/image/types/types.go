@@ -215,10 +215,6 @@ type UnparsedImage interface {
 	Manifest() ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures(ctx context.Context) ([][]byte, error)
-	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
-	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
-	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfosForCopy() ([]BlobInfo, error)
 }
 
 // Image is the primary API for inspecting properties of images.
@@ -242,6 +238,10 @@ type Image interface {
 	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
 	LayerInfos() []BlobInfo
+	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
+	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+	// WARNING: The list may contain duplicates, and they are semantically relevant.
+	LayerInfosForCopy() ([]BlobInfo, error)
 	// EmbeddedDockerReferenceConflicts whether a Docker reference embedded in the manifest, if any, conflicts with destination ref.
 	// It returns false if the manifest does not embed a Docker reference.
 	// (This embedding unfortunately happens for Docker schema1, please do not add support for this in any new formats.)
@@ -292,7 +292,7 @@ type ManifestUpdateInformation struct {
 // for other manifest types.
 type ImageInspectInfo struct {
 	Tag           string
-	Created       time.Time
+	Created       *time.Time
 	DockerVersion string
 	Labels        map[string]string
 	Architecture  string
