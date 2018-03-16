@@ -105,4 +105,21 @@ var _ = Describe("Podman rm", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})
+
+	It("podman rm the latest container", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"rm", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+	})
 })
