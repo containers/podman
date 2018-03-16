@@ -1,6 +1,8 @@
 package sysregistries
 
 import (
+	"strings"
+
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
 	"io/ioutil"
@@ -27,6 +29,14 @@ type tomlConfig struct {
 		Insecure registries `toml:"insecure"`
 		Block    registries `toml:"block"`
 	} `toml:"registries"`
+}
+
+// normalizeRegistries removes a trailing slash from registries, which is a
+// common pitfall when configuring registries (e.g., "docker.io/library/).
+func normalizeRegistries(regs *registries) {
+	for i := range regs.Registries {
+		regs.Registries[i] = strings.TrimSuffix(regs.Registries[i], "/")
+	}
 }
 
 // Reads the global registry file from the filesystem. Returns
@@ -58,6 +68,9 @@ func loadRegistryConf(ctx *types.SystemContext) (*tomlConfig, error) {
 	}
 
 	err = toml.Unmarshal(configBytes, &config)
+	normalizeRegistries(&config.Registries.Search)
+	normalizeRegistries(&config.Registries.Insecure)
+	normalizeRegistries(&config.Registries.Block)
 	return config, err
 }
 

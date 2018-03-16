@@ -34,7 +34,8 @@ type genericManifest interface {
 	// It returns false if the manifest does not embed a Docker reference.
 	// (This embedding unfortunately happens for Docker schema1, please do not add support for this in any new formats.)
 	EmbeddedDockerReferenceConflicts(ref reference.Named) bool
-	imageInspectInfo() (*types.ImageInspectInfo, error) // To be called by inspectManifest
+	// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
+	Inspect() (*types.ImageInspectInfo, error)
 	// UpdatedImageNeedsLayerDiffIDs returns true iff UpdatedImage(options) needs InformationOnly.LayerDiffIDs.
 	// This is a horribly specific interface, but computing InformationOnly.LayerDiffIDs can be very expensive to compute
 	// (most importantly it forces us to download the full layers even if they are already present at the destination).
@@ -59,9 +60,4 @@ func manifestInstanceFromBlob(ctx *types.SystemContext, src types.ImageSource, m
 	default: // Note that this may not be reachable, manifest.NormalizedMIMEType has a default for unknown values.
 		return nil, fmt.Errorf("Unimplemented manifest MIME type %s", mt)
 	}
-}
-
-// inspectManifest is an implementation of types.Image.Inspect
-func inspectManifest(m genericManifest) (*types.ImageInspectInfo, error) {
-	return m.imageInspectInfo()
 }

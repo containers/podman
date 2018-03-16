@@ -44,15 +44,13 @@ var (
 
 type storageImageSource struct {
 	imageRef       storageReference
-	ID             string
+	image          *storage.Image
 	layerPosition  map[digest.Digest]int // Where we are in reading a blob's layers
 	cachedManifest []byte                // A cached copy of the manifest, if already known, or nil
 	SignatureSizes []int                 `json:"signature-sizes,omitempty"` // List of sizes of each signature slice
 }
 
 type storageImageDestination struct {
-	image          types.ImageCloser
-	systemContext  *types.SystemContext
 	imageRef       storageReference                // The reference we'll use to name the image
 	publicRef      storageReference                // The reference we return when asked about the name we'll give to the image
 	directory      string                          // Temporary directory where we store blobs until Commit() time
@@ -81,7 +79,7 @@ func newImageSource(imageRef storageReference) (*storageImageSource, error) {
 	// Build the reader object.
 	image := &storageImageSource{
 		imageRef:       imageRef,
-		ID:             img.ID,
+		image:          img,
 		layerPosition:  make(map[digest.Digest]int),
 		SignatureSizes: []int{},
 	}
@@ -124,7 +122,7 @@ func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadC
 	layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(info.Digest)
 	// If it's not a layer, then it must be a data item.
 	if len(layers) == 0 {
-		b, err := s.imageRef.transport.store.ImageBigData(s.ID, info.Digest.String())
+		b, err := s.imageRef.transport.store.ImageBigData(s.image.ID, info.Digest.String())
 		if err != nil {
 			return nil, -1, "", err
 		}
@@ -166,7 +164,7 @@ func (s *storageImageSource) GetManifest(instanceDigest *digest.Digest) (manifes
 	}
 	if len(s.cachedManifest) == 0 {
 		// We stored the manifest as an item named after storage.ImageDigestBigDataKey.
-		cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.ID, storage.ImageDigestBigDataKey)
+		cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, storage.ImageDigestBigDataKey)
 		if err != nil {
 			return nil, "", err
 		}
@@ -178,15 +176,10 @@ func (s *storageImageSource) GetManifest(instanceDigest *digest.Digest) (manifes
 // LayerInfosForCopy() returns the list of layer blobs that make up the root filesystem of
 // the image, after they've been decompressed.
 func (s *storageImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
-	simg, err := s.imageRef.transport.store.Image(s.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading image %q", s.ID)
-	}
 	updatedBlobInfos := []types.BlobInfo{}
-	layerID := simg.TopLayer
 	_, manifestType, err := s.GetManifest(nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading image manifest for %q", s.ID)
+		return nil, errors.Wrapf(err, "error reading image manifest for %q", s.image.ID)
 	}
 	uncompressedLayerType := ""
 	switch manifestType {
@@ -196,10 +189,11 @@ func (s *storageImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
 		// This is actually a compressed type, but there's no uncompressed type defined
 		uncompressedLayerType = manifest.DockerV2Schema2LayerMediaType
 	}
+	layerID := s.image.TopLayer
 	for layerID != "" {
 		layer, err := s.imageRef.transport.store.Layer(layerID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading layer %q in image %q", layerID, s.ID)
+			return nil, errors.Wrapf(err, "error reading layer %q in image %q", layerID, s.image.ID)
 		}
 		if layer.UncompressedDigest == "" {
 			return nil, errors.Errorf("uncompressed digest for layer %q is unknown", layerID)
@@ -227,9 +221,9 @@ func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *
 	sigslice := [][]byte{}
 	signature := []byte{}
 	if len(s.SignatureSizes) > 0 {
-		signatureBlob, err := s.imageRef.transport.store.ImageBigData(s.ID, "signatures")
+		signatureBlob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, "signatures")
 		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up signatures data for image %q", s.ID)
+			return nil, errors.Wrapf(err, "error looking up signatures data for image %q", s.image.ID)
 		}
 		signature = signatureBlob
 	}
@@ -257,7 +251,6 @@ func newImageDestination(ctx *types.SystemContext, imageRef storageReference) (*
 	publicRef := imageRef
 	publicRef.name = nil
 	image := &storageImageDestination{
-		systemContext:  ctx,
 		imageRef:       imageRef,
 		publicRef:      publicRef,
 		directory:      directory,
@@ -412,17 +405,11 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) string {
 	// fill in the DiffIDs.  It's expected (but not enforced by us) that the number of
 	// diffIDs corresponds to the number of non-EmptyLayer entries in the history.
 	var diffIDs []digest.Digest
-	switch m.(type) {
+	switch m := m.(type) {
 	case *manifest.Schema1:
 		// Build a list of the diffIDs we've generated for the non-throwaway FS layers,
 		// in reverse of the order in which they were originally listed.
-		s1, ok := m.(*manifest.Schema1)
-		if !ok {
-			// Shouldn't happen
-			logrus.Debugf("internal error reading schema 1 manifest")
-			return ""
-		}
-		for i, history := range s1.History {
+		for i, history := range m.History {
 			compat := manifest.Schema1V1Compatibility{}
 			if err := json.Unmarshal([]byte(history.V1Compatibility), &compat); err != nil {
 				logrus.Debugf("internal error reading schema 1 history: %v", err)
@@ -431,7 +418,7 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) string {
 			if compat.ThrowAway {
 				continue
 			}
-			blobSum := s1.FSLayers[i].BlobSum
+			blobSum := m.FSLayers[i].BlobSum
 			diffID, ok := s.blobDiffIDs[blobSum]
 			if !ok {
 				logrus.Infof("error looking up diffID for layer %q", blobSum.String())
@@ -442,6 +429,8 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) string {
 	case *manifest.Schema2, *manifest.OCI1:
 		// We know the ID calculation for these formats doesn't actually use the diffIDs,
 		// so we don't need to populate the diffID list.
+	default:
+		return ""
 	}
 	id, err := m.ImageID(diffIDs)
 	if err != nil {
@@ -566,9 +555,9 @@ func (s *storageImageDestination) Commit() error {
 	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image
 	// was originally created, in case we're just copying it.  If not, no harm done.
 	options := &storage.ImageOptions{}
-	if inspect, err := man.Inspect(s.getConfigBlob); err == nil {
+	if inspect, err := man.Inspect(s.getConfigBlob); err == nil && inspect.Created != nil {
 		logrus.Debugf("setting image creation date to %s", inspect.Created)
-		options.CreationDate = inspect.Created
+		options.CreationDate = *inspect.Created
 	}
 	if manifestDigest, err := manifest.Digest(s.manifest); err == nil {
 		options.Digest = manifestDigest
@@ -735,14 +724,14 @@ func (s *storageImageDestination) PutSignatures(signatures [][]byte) error {
 func (s *storageImageSource) getSize() (int64, error) {
 	var sum int64
 	// Size up the data blobs.
-	dataNames, err := s.imageRef.transport.store.ListImageBigData(s.ID)
+	dataNames, err := s.imageRef.transport.store.ListImageBigData(s.image.ID)
 	if err != nil {
-		return -1, errors.Wrapf(err, "error reading image %q", s.ID)
+		return -1, errors.Wrapf(err, "error reading image %q", s.image.ID)
 	}
 	for _, dataName := range dataNames {
-		bigSize, err := s.imageRef.transport.store.ImageBigDataSize(s.ID, dataName)
+		bigSize, err := s.imageRef.transport.store.ImageBigDataSize(s.image.ID, dataName)
 		if err != nil {
-			return -1, errors.Wrapf(err, "error reading data blob size %q for %q", dataName, s.ID)
+			return -1, errors.Wrapf(err, "error reading data blob size %q for %q", dataName, s.image.ID)
 		}
 		sum += bigSize
 	}
@@ -750,13 +739,8 @@ func (s *storageImageSource) getSize() (int64, error) {
 	for _, sigSize := range s.SignatureSizes {
 		sum += int64(sigSize)
 	}
-	// Prepare to walk the layer list.
-	img, err := s.imageRef.transport.store.Image(s.ID)
-	if err != nil {
-		return -1, errors.Wrapf(err, "error reading image info %q", s.ID)
-	}
 	// Walk the layer list.
-	layerID := img.TopLayer
+	layerID := s.image.TopLayer
 	for layerID != "" {
 		layer, err := s.imageRef.transport.store.Layer(layerID)
 		if err != nil {

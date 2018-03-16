@@ -2,7 +2,6 @@ package manifest
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
@@ -95,13 +94,9 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 	}
 	d1 := &Schema2V1Image{}
 	json.Unmarshal(config, d1)
-	created := time.Time{}
-	if v1.Created != nil {
-		created = *v1.Created
-	}
 	i := &types.ImageInspectInfo{
 		Tag:           "",
-		Created:       created,
+		Created:       v1.Created,
 		DockerVersion: d1.DockerVersion,
 		Labels:        v1.Config.Labels,
 		Architecture:  v1.Architecture,
