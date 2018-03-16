@@ -16,6 +16,10 @@ var (
 			Name:  "no-stdin",
 			Usage: "Do not attach STDIN. The default is false.",
 		},
+		cli.BoolTFlag{
+			Name:  "sig-proxy",
+			Usage: "proxy received signals to the process (default true)",
+		},
 		LatestFlag,
 	}
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
@@ -61,6 +65,10 @@ func attachCmd(c *cli.Context) error {
 	}
 	if conState != libpod.ContainerStateRunning {
 		return errors.Errorf("you can only attach to running containers")
+	}
+
+	if c.BoolT("sig-proxy") {
+		ProxySignals(ctr)
 	}
 
 	if err := ctr.Attach(c.Bool("no-stdin"), c.String("detach-keys")); err != nil {

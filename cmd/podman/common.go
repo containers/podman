@@ -334,10 +334,6 @@ var createFlags = []cli.Flag{
 		Usage: "Size of `/dev/shm`. The format is `<number><unit>`.",
 		Value: "65536k",
 	},
-	cli.BoolFlag{
-		Name:  "sig-proxy",
-		Usage: "Proxy received signals to the process (default true)",
-	},
 	cli.StringFlag{
 		Name:  "stop-signal",
 		Usage: "Signal to stop a container. Default is SIGTERM",

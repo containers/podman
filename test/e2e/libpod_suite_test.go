@@ -162,7 +162,7 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
-		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
+		Fail(fmt.Sprintf("unable to run podman command: %s\n%v", strings.Join(podmanOptions, " "), err))
 	}
 	return &PodmanSession{session}
 }

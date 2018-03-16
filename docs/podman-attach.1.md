@@ -27,6 +27,9 @@ to run containers such as CRI-O, the last started container could be from either
 **--no-stdin**
 Do not attach STDIN. The default is false.
 
+**--sig-proxy**=*true*|*false*
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
+
 ## EXAMPLES ##
 
 ```

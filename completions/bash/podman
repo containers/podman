@@ -654,6 +654,7 @@ _podman_attach() {
      --latest
      -l
      --no-stdin
+     --sig-proxy
      "
      _complete_ "$options_with_args" "$boolean_options"
 }
@@ -1487,7 +1488,9 @@ _podman_start() {
      -i
      --interactive
      --latest
-     -l"
+     -l
+     --sig-proxy
+     "
      _complete_ "$options_with_args" "$boolean_options"
 }
 _podman_stop() {

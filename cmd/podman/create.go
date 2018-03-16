@@ -117,7 +117,6 @@ type createConfig struct {
 	Resources          createResourceConfig
 	Rm                 bool //rm
 	ShmDir             string
-	SigProxy           bool              //sig-proxy
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
 	Sysctl             map[string]string //sysctl
@@ -715,7 +714,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		},
 		Rm:          c.Bool("rm"),
 		ShmDir:      shmDir,
-		SigProxy:    c.Bool("sig-proxy"),
 		StopSignal:  stopSignal,
 		StopTimeout: c.Uint("stop-timeout"),
 		Sysctl:      sysctl,
