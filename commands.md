@@ -29,7 +29,7 @@
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
 | [podman-pull(1)](/docs/podman-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
 | [podman-push(1)](/docs/podman-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
-| [podman-restart](/docs/podman-restart.1.md)              | Restarts one or more containers                                           ||
+| [podman-restart](/docs/podman-restart.1.md)              | Restarts one or more containers                                           |[![...](/docs/play.png)](https://asciinema.org/a/jiqxJAxcVXw604xdzMLTkQvHM)|
 | [podman-rm(1)](/docs/podman-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [podman-rmi(1)](/docs/podman-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
 | [podman-run(1)](/docs/podman-run.1.md)                   | Run a command in a container                                              ||
