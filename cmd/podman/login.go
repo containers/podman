@@ -67,7 +67,10 @@ func loginCmd(c *cli.Context) error {
 	sc := common.GetSystemContext("", c.String("authfile"), false)
 
 	// username of user logged in to server (if one exists)
-	userFromAuthFile := config.GetUserLoggedIn(sc, server)
+	userFromAuthFile, err := config.GetUserLoggedIn(sc, server)
+	if err != nil {
+		return errors.Wrapf(err, "error getting logged-in user")
+	}
 	username, password, err := getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
