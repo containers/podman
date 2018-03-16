@@ -79,7 +79,7 @@ func mountCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", args[0])
 		}
-		mountPoint, err := ctr.Mount(ctr.MountLabel())
+		mountPoint, err := ctr.Mount()
 		if err != nil {
 			return errors.Wrapf(err, "error mounting container %q", ctr.ID())
 		}
