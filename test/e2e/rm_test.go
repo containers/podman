@@ -59,7 +59,7 @@ var _ = Describe("Podman rm", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
-	It("podman rm created container", func() {
+	It("podman rm running container with -f", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
