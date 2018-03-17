@@ -45,3 +45,10 @@ jobs:
 
 notifications:
   irc: "chat.freenode.net#podman"
+
+after_success:
+    - make ginkgo
+    - cp ./test/e2e/coverage.txt .
+    - bash <(curl -s https://codecov.io/bash) -t 52d2da88-a97c-442b-8c9f-1f77a5a26b7c
+    - ls -alF ./test/e2e/coverage.txt
+    - cat ./test/e2e/coverage.txt

@@ -146,10 +146,10 @@ localunit: varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
-	ginkgo -v test/e2e/
+	ginkgo -v test/e2e/ -cover -coverprofile=coverage.txt -covermode=atomic
 
 localintegration: varlink_generate test-binaries clientintegration
-	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v -coverprofile=coverage.txt -covermode=atomic -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 clientintegration:
 	$(MAKE) -C contrib/python integration
