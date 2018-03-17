@@ -1,6 +1,8 @@
 GO ?= go
 EPOCH_TEST_COMMIT ?= c08a1e0b11
 HEAD ?= HEAD
+CHANGELOG_BASE ?= HEAD~
+CHANGELOG_TARGET ?= HEAD
 PROJECT := github.com/projectatomic/libpod
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
@@ -24,6 +26,7 @@ PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/proj
 COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
+ISODATE := $(shell date --iso-8601)
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -150,6 +153,16 @@ docs: $(MANPAGES)
 docker-docs: docs
 	(cd docs; ./dckrman.sh *.1)
 
+changelog:
+	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
+	$(eval TMPFILE := $(shell mktemp))
+	$(shell cat changelog.txt > $(TMPFILE))
+	$(shell echo "- Changelog for $(CHANGELOG_TARGET) ($(ISODATE)):" > changelog.txt)
+	$(shell git log --no-merges --format="  * %s" $(CHANGELOG_BASE)..$(CHANGELOG_TARGET) >> changelog.txt)
+	$(shell echo "" >> changelog.txt)
+	$(shell cat $(TMPFILE) >> changelog.txt)
+	$(shell rm $(TMPFILE))
+
 install: .gopathok install.bin install.man install.cni
 
 install.bin:
@@ -227,4 +240,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	lint \
 	pause \
 	uninstall \
-	shell
+	shell \
+	changelog
