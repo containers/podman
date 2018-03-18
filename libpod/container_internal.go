@@ -15,7 +15,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -150,7 +149,6 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr.state = new(containerState)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()
-	ctr.config.Name = namesgenerator.GetRandomName(0)
 
 	ctr.config.Spec = new(spec.Spec)
 	deepcopier.Copy(rspec).To(ctr.config.Spec)
