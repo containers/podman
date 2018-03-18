@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
@@ -575,6 +576,31 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	insecureRegistries["registries"] = i
 	info = append(info, InfoData{Type: "insecure registries", Data: insecureRegistries})
 	return info, nil
+}
+
+// generateName generates a unigue name for a container or pod.
+func (r *Runtime) generateName() (string, error) {
+	for {
+		name := namesgenerator.GetRandomName(0)
+		// Make sure container with this name does not exist
+		if _, err := r.state.LookupContainer(name); err == nil {
+			continue
+		} else {
+			if errors.Cause(err) != ErrNoSuchCtr {
+				return "", err
+			}
+		}
+		// Make sure pod with this name does not exist
+		if _, err := r.state.LookupPod(name); err == nil {
+			continue
+		} else {
+			if errors.Cause(err) != ErrNoSuchPod {
+				return "", err
+			}
+		}
+		return name, nil
+	}
+	// The code should never reach here.
 }
 
 // SaveDefaultConfig saves a copy of the default config at the given path

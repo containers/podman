@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage"
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,7 +51,6 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
-	pod.config.Name = namesgenerator.GetRandomName(0)
 	pod.config.Labels = make(map[string]string)
 	pod.runtime = runtime
 

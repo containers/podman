@@ -50,6 +50,15 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
+	if ctr.config.Name == "" {
+		name, err := r.generateName()
+		if err != nil {
+			return nil, err
+		}
+
+		ctr.config.Name = name
+	}
+
 	// Set up storage for the container
 	if err := ctr.setupStorage(); err != nil {
 		return nil, errors.Wrapf(err, "error configuring storage for container")

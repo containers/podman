@@ -35,6 +35,14 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		}
 	}
 
+	if pod.config.Name == "" {
+		name, err := r.generateName()
+		if err != nil {
+			return nil, err
+		}
+		pod.config.Name = name
+	}
+
 	pod.valid = true
 
 	if err := r.state.AddPod(pod); err != nil {
