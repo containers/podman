@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -81,6 +81,10 @@ var (
 )
 
 func imagesCmd(c *cli.Context) error {
+	var (
+		filterFuncs []libpod.ImageResultFilter
+		newImage    *image.Image
+	)
 	if err := validateFlags(c, imagesFlags); err != nil {
 		return err
 	}
@@ -90,18 +94,19 @@ func imagesCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-	var filterFuncs []libpod.ImageResultFilter
-	var imageInput string
 	if len(c.Args()) == 1 {
-		imageInput = c.Args().Get(0)
+		newImage, err = runtime.ImageRuntime().NewFromLocal(c.Args().Get(0))
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(c.Args()) > 1 {
 		return errors.New("'podman images' requires at most 1 argument")
 	}
 
-	if len(c.StringSlice("filter")) > 0 || len(strings.TrimSpace(imageInput)) != 0 {
-		filterFuncs, err = CreateFilterFuncs(runtime, c, imageInput)
+	if len(c.StringSlice("filter")) > 0 || newImage != nil {
+		filterFuncs, err = CreateFilterFuncs(runtime, c, newImage)
 		if err != nil {
 			return err
 		}
@@ -123,14 +128,14 @@ func imagesCmd(c *cli.Context) error {
 		children to the image once built. until buildah supports caching builds,
 		it will not generate these intermediate images.
 	*/
-	images, err := runtime.GetImageResults()
+	images, err := runtime.ImageRuntime().GetImages()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
 	}
 
-	var filteredImages []inspect.ImageResult
+	var filteredImages []*image.Image
 	// filter the images
-	if len(c.StringSlice("filter")) > 0 || len(strings.TrimSpace(imageInput)) != 0 {
+	if len(c.StringSlice("filter")) > 0 || newImage != nil {
 		filteredImages = libpod.FilterImages(images, filterFuncs)
 	} else {
 		filteredImages = images
@@ -174,24 +179,28 @@ func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSON
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(runtime *libpod.Runtime, images []inspect.ImageResult, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
+func getImagesTemplateOutput(runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
 	for _, img := range images {
-		createdTime := img.Created
+		createdTime := img.Created()
 
-		imageID := "sha256:" + img.ID
+		imageID := "sha256:" + img.ID()
 		if !opts.noTrunc {
-			imageID = shortID(img.ID)
+			imageID = shortID(img.ID())
 		}
 		// get all specified repo:tag pairs and print them separately
-		for repo, tags := range libpod.ReposToMap(img.RepoTags) {
+		for repo, tags := range image.ReposToMap(img.Names()) {
 			for _, tag := range tags {
+				size, err := img.Size()
+				if err != nil {
+					size = nil
+				}
 				params := imagesTemplateParams{
 					Repository: repo,
 					Tag:        tag,
 					ID:         imageID,
-					Digest:     img.Digest,
+					Digest:     img.Digest(),
 					Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
-					Size:       units.HumanSizeWithPrecision(float64(*img.Size), 3),
+					Size:       units.HumanSizeWithPrecision(float64(*size), 3),
 				}
 				imagesOutput = append(imagesOutput, params)
 			}
@@ -201,14 +210,18 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []inspect.ImageResu
 }
 
 // getImagesJSONOutput returns the images information in its raw form
-func getImagesJSONOutput(runtime *libpod.Runtime, images []inspect.ImageResult) (imagesOutput []imagesJSONParams) {
+func getImagesJSONOutput(runtime *libpod.Runtime, images []*image.Image) (imagesOutput []imagesJSONParams) {
 	for _, img := range images {
+		size, err := img.Size()
+		if err != nil {
+			size = nil
+		}
 		params := imagesJSONParams{
-			ID:      img.ID,
-			Name:    img.RepoTags,
-			Digest:  img.Digest,
-			Created: img.Created,
-			Size:    img.Size,
+			ID:      img.ID(),
+			Name:    img.Names(),
+			Digest:  img.Digest(),
+			Created: img.Created(),
+			Size:    size,
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
@@ -217,7 +230,7 @@ func getImagesJSONOutput(runtime *libpod.Runtime, images []inspect.ImageResult) 
 
 // generateImagesOutput generates the images based on the format provided
 
-func generateImagesOutput(runtime *libpod.Runtime, images []inspect.ImageResult, opts imagesOptions) error {
+func generateImagesOutput(runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -253,35 +266,23 @@ func (i *imagesTemplateParams) HeaderMap() map[string]string {
 
 // CreateFilterFuncs returns an array of filter functions based on the user inputs
 // and is later used to filter images for output
-func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, userInput string) ([]libpod.ImageResultFilter, error) {
+func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, image *image.Image) ([]libpod.ImageResultFilter, error) {
 	var filterFuncs []libpod.ImageResultFilter
 	for _, filter := range c.StringSlice("filter") {
 		splitFilter := strings.Split(filter, "=")
 		switch splitFilter[0] {
 		case "before":
-			before := r.NewImage(splitFilter[1])
-			_, beforeID, _ := before.GetLocalImageName()
-
-			if before.LocalName == "" {
-				return nil, errors.Errorf("unable to find image % in local stores", splitFilter[1])
-			}
-			img, err := r.GetImage(beforeID)
+			before, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, libpod.ImageCreatedBefore(img.Created))
+			filterFuncs = append(filterFuncs, libpod.ImageCreatedBefore(before.Created()))
 		case "after":
-			after := r.NewImage(splitFilter[1])
-			_, afterID, _ := after.GetLocalImageName()
-
-			if after.LocalName == "" {
-				return nil, errors.Errorf("unable to find image % in local stores", splitFilter[1])
-			}
-			img, err := r.GetImage(afterID)
+			after, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, libpod.ImageCreatedAfter(img.Created))
+			filterFuncs = append(filterFuncs, libpod.ImageCreatedAfter(after.Created()))
 		case "dangling":
 			filterFuncs = append(filterFuncs, libpod.ImageDangling())
 		case "label":
@@ -291,8 +292,8 @@ func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, userInput string) ([]l
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}
 	}
-	if len(strings.TrimSpace(userInput)) != 0 {
-		filterFuncs = append(filterFuncs, libpod.OutputImageFilter(userInput))
+	if image != nil {
+		filterFuncs = append(filterFuncs, libpod.OutputImageFilter(image))
 	}
 	return filterFuncs, nil
 }
