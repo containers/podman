@@ -61,7 +61,7 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 
 	// Set up storage for the container
 	if err := ctr.setupStorage(); err != nil {
-		return nil, errors.Wrapf(err, "error configuring storage for container")
+		return nil, err
 	}
 	defer func() {
 		if err != nil {
