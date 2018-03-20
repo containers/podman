@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/types"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -123,8 +124,61 @@ func (r *Runtime) RemoveImage(image *image.Image, force bool) (string, error) {
 		// reponames and no force is applied, we error out.
 		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID())
 	}
+	err = image.Remove(force)
+	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
+		if errStorage := r.rmStorageContainers(force, image); errStorage == nil {
+			// Containers associated with the image should be deleted now,
+			// let's try removing the image again.
+			err = image.Remove(force)
+		} else {
+			err = errStorage
+		}
+	}
+	return image.ID(), err
+}
 
-	return image.ID(), image.Remove(force)
+// Remove containers that are in storage rather than Podman.
+func (r *Runtime) rmStorageContainers(force bool, image *image.Image) error {
+	ctrIDs, err := storageContainers(image.ID(), r.store)
+	if err != nil {
+		return errors.Wrapf(err, "error getting containers for image %q", image.ID())
+	}
+
+	if len(ctrIDs) > 0 && !force {
+		return storage.ErrImageUsedByContainer
+	}
+
+	if len(ctrIDs) > 0 && force {
+		if err = removeStorageContainers(ctrIDs, r.store); err != nil {
+			return errors.Wrapf(err, "error removing containers %v for image %q", ctrIDs, image.ID())
+		}
+	}
+	return nil
+}
+
+// Returns a list of storage containers associated with the given ImageReference
+func storageContainers(imageID string, store storage.Store) ([]string, error) {
+	ctrIDs := []string{}
+	containers, err := store.Containers()
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range containers {
+		if ctr.ImageID == imageID {
+			ctrIDs = append(ctrIDs, ctr.ID)
+		}
+	}
+	return ctrIDs, nil
+}
+
+// Removes the containers passed in the array.
+func removeStorageContainers(ctrIDs []string, store storage.Store) error {
+	for _, ctrID := range ctrIDs {
+		if err := store.DeleteContainer(ctrID); err != nil {
+			return errors.Wrapf(err, "could not remove container %q", ctrID)
+		}
+	}
+	return nil
 }
 
 // GetRegistries gets the searchable registries from the global registration file.
