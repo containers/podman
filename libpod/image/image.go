@@ -29,12 +29,16 @@ import (
 // Image is the primary struct for dealing with images
 // It is still very much a work in progress
 type Image struct {
+	// Adding these two structs for now but will cull when we near
+	// completion of this library.
 	inspect.ImageData
+	inspect.ImageResult
 	InputName string
 	Local     bool
 	//runtime   *libpod.Runtime
 	image        *storage.Image
 	imageruntime *Runtime
+	repotagsMap  map[string][]string
 }
 
 // Runtime contains the store
@@ -494,6 +498,28 @@ func (i *Image) History() ([]ociv1.History, []types.BlobInfo, error) {
 		return nil, nil, err
 	}
 	return oci.History, img.LayerInfos(), nil
+}
+
+// Dangling returns a bool if the image is "dangling"
+func (i *Image) Dangling() bool {
+	return len(i.Names()) == 0
+}
+
+// Labels returns the image's labels
+func (i *Image) Labels() (map[string]string, error) {
+	sr, err := i.toStorageReference()
+	if err != nil {
+		return nil, err
+	}
+	ic, err := sr.NewImage(&types.SystemContext{})
+	if err != nil {
+		return nil, err
+	}
+	imgInspect, err := ic.Inspect()
+	if err != nil {
+		return nil, err
+	}
+	return imgInspect.Labels, nil
 }
 
 // Import imports and image into the store and returns an image

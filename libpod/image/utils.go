@@ -90,3 +90,23 @@ func getPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error
 func hasTransport(image string) bool {
 	return strings.Contains(image, "://")
 }
+
+// ReposToMap parses the specified repotags and returns a map with repositories
+// as keys and the corresponding arrays of tags as values.
+func ReposToMap(repotags []string) map[string][]string {
+	// map format is repo -> tag
+	repos := make(map[string][]string)
+	for _, repo := range repotags {
+		var repository, tag string
+		if len(repo) > 0 {
+			li := strings.LastIndex(repo, ":")
+			repository = repo[0:li]
+			tag = repo[li+1:]
+		}
+		repos[repository] = append(repos[repository], tag)
+	}
+	if len(repos) == 0 {
+		repos["<none>"] = []string{"<none>"}
+	}
+	return repos
+}
