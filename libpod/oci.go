@@ -321,19 +321,26 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
-		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, createUnitName("libpod-conmon", ctr.ID()))
-		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, createUnitName("libpod-conmon", ctr.ID())); err != nil {
+		unitName := createUnitName("libpod", ctr.ID())
+
+		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, unitName)
+		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, unitName); err != nil {
 			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 		}
 	} else {
-		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(filepath.Join(cgroupParent, "/libpod-conmon-"+ctr.ID())), &spec.LinuxResources{})
+		cgroupPath, err := ctr.CGroupPath()
 		if err != nil {
-			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			logrus.Errorf("Failed to generate CGroup path for conmon: %v", err)
 		} else {
-			// we need to remove this defer and delete the cgroup once conmon exits
-			// maybe need a conmon monitor?
-			if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
+			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			} else {
+				// we need to remove this defer and delete the cgroup once conmon exits
+				// maybe need a conmon monitor?
+				if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				}
 			}
 		}
 	}
