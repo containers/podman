@@ -1,8 +1,24 @@
 #!/bin/bash
 set -xeuo pipefail
 
+# Provision the previous version of podman to use for our tests by default
+cat >/etc/yum.repos.d/crio-copr.repo <<EOF
+[crio-copr]
+baseurl=https://copr-be.cloud.fedoraproject.org/results/baude/Upstream_CRIO_Family/fedora-27-x86_64/
+gpgcheck=0
+EOF
+
+pkg_install() {
+    if test -x /usr/bin/yum; then
+        yum -y install "$@"
+    else
+        rpm-ostree install "$@" && rpm-ostree ex livefs
+    fi
+}
+pkg_install podman buildah
+
 DIST=${DIST:=Fedora}
-CONTAINER_RUNTIME=${CONTAINER_RUNTIME:=docker}
+CONTAINER_RUNTIME=${CONTAINER_RUNTIME:=podman}
 IMAGE=fedorapodmanbuild
 PYTHON=python3
 if [[ ${DIST} != "Fedora" ]]; then
