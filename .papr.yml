@@ -8,17 +8,17 @@ host:
   specs:
      ram: 8192
      cpus: 4
-
+packages:
+    - podman
 required: true
 timeout: 45m
 
 tests:
-  -  sh .papr_prepare.sh
+  - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 
 context: "FAH27"
 ---
 
-inherit: true
 host:
   distro: centos/7/atomic/smoketested
   specs:
@@ -32,7 +32,14 @@ extra-repos:
       baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
       gpgcheck: 0
 
+required: true
+timeout: 45m
+
+tests:
+  - sh .papr_prepare.sh
+
 context: "CAH smoketested"
+
 
 ---
 
