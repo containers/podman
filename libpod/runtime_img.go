@@ -961,7 +961,7 @@ func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) (
 	var imagesFiltered []*image.Image
 
 	for _, img := range images {
-		info, err := GetImageData(img)
+		info, err := img.Inspect()
 
 		if err != nil {
 			return nil, err
@@ -1062,7 +1062,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 			params.Label = pair[1]
 		case "before":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				info, err := GetImageData(img)
+				info, err := img.Inspect()
 				if err != nil {
 					return nil, err
 				}
@@ -1072,7 +1072,7 @@ func (r *Runtime) ParseImageFilter(imageInput, filter string) (*ImageFilterParam
 			}
 		case "since":
 			if img, err := findImageInSlice(images, pair[1]); err == nil {
-				info, err := GetImageData(img)
+				info, err := img.Inspect()
 				if err != nil {
 					return nil, err
 				}

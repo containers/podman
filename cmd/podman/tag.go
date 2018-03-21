@@ -1,10 +1,7 @@
 package main
 
 import (
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 
@@ -30,51 +27,15 @@ func tagCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	newImage := runtime.NewImage(args[0])
-	newImage.GetLocalImageName()
-
-	img, err := runtime.GetImage(newImage.LocalName)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(args[0])
 	if err != nil {
 		return err
 	}
-	if img == nil {
-		return errors.New("null image")
-	}
-	err = addImageNames(runtime, img, args[1:])
-	if err != nil {
-		return errors.Wrapf(err, "error adding names %v to image %q", args[1:], args[0])
-	}
-	return nil
-}
 
-func addImageNames(runtime *libpod.Runtime, image *storage.Image, addNames []string) error {
-	// Add tags to the names if applicable
-	names, err := expandedTags(addNames)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		if err := runtime.TagImage(image, name); err != nil {
-			return errors.Wrapf(err, "error adding name (%v) to image %q", name, image.ID)
+	for _, tagName := range args[1:] {
+		if err := newImage.TagImage(tagName); err != nil {
+			return errors.Wrapf(err, "error adding '%s' to image %q", tagName, newImage.InputName)
 		}
 	}
 	return nil
-}
-
-func expandedTags(tags []string) ([]string, error) {
-	expandedNames := []string{}
-	for _, tag := range tags {
-		var labelName string
-		name, err := reference.Parse(tag)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing tag %q", name)
-		}
-		if _, ok := name.(reference.NamedTagged); ok {
-			labelName = name.String()
-		} else {
-			labelName = name.String() + ":latest"
-		}
-		expandedNames = append(expandedNames, labelName)
-	}
-	return expandedNames, nil
 }

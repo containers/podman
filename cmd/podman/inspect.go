@@ -133,7 +133,7 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 				inspectError = errors.Wrapf(err, "error getting image %q", input)
 				break
 			}
-			data, err = libpod.GetImageData(image)
+			data, err = image.Inspect()
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 				break
@@ -146,7 +146,7 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 					inspectError = errors.Wrapf(err, "error getting image %q", input)
 					break
 				}
-				data, err = libpod.GetImageData(image)
+				data, err = image.Inspect()
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 					break
