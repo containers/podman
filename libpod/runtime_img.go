@@ -834,18 +834,18 @@ func (r *Runtime) UntagImage(image *storage.Image, tag string) (string, error) {
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(image *image.Image, force bool) error {
+func (r *Runtime) RemoveImage(image *image.Image, force bool) (string, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return "", ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return err
+		return "", err
 	}
 	imageCtrs := []*Container{}
 	for _, ctr := range ctrs {
@@ -857,29 +857,33 @@ func (r *Runtime) RemoveImage(image *image.Image, force bool) error {
 		if force {
 			for _, ctr := range imageCtrs {
 				if err := r.removeContainer(ctr, true); err != nil {
-					return errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
+					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
 				}
 			}
 		} else {
-			return fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
+			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
 		}
 	}
 
-	if len(image.Names()) > 1 && !force {
-		return fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID)
-	}
-
-	if len(image.Names()) > 1 && force {
-		// If it is forced, we have to untag the image so that it can be deleted
-		if err = r.store.SetNames(image.ID(), image.Names()[:0]); err != nil {
-			return err
+	if len(image.Names()) > 1 && !image.InputIsID() {
+		// If the image has multiple reponames, we do not technically delete
+		// the image. we figure out which repotag the user is trying to refer
+		// to and untag it.
+		repoName, err := image.MatchRepoTag(image.InputName)
+		if err != nil {
+			return "", err
 		}
+		if err := image.UntagImage(repoName); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("Untagged: %s", repoName), nil
+	} else if len(image.Names()) > 1 && image.InputIsID() && !force {
+		// If the user requests to delete an image by ID and the image has multiple
+		// reponames and no force is applied, we error out.
+		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", image.ID())
 	}
 
-	if err = image.Remove(force); err != nil {
-		return err
-	}
-	return nil
+	return image.ID(), image.Remove(force)
 }
 
 // GetImage retrieves an image matching the given name or hash from system
