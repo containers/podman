@@ -27,9 +27,9 @@ func (c *Container) GetContainerPids() ([]string, error) {
 // Gets the pids for a container without locking.  should only be called from a func where
 // locking has already been established.
 func (c *Container) getContainerPids() ([]string, error) {
-	cgroupPath, err := c.CGroupPath()("")
+	cgroupPath, err := c.CGroupPath()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting cgroup path for container %s", c.ID())
+		return nil, err
 	}
 
 	taskFile := filepath.Join("/sys/fs/cgroup/pids", cgroupPath, "tasks")

@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -1128,12 +1129,19 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	cgroupPath, err := c.CGroupPath()("")
-	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving CGroup path for container %s", c.ID())
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		// When runc is set to use Systemd as a cgroup manager, it
+		// expects cgroups to be passed as follows:
+		// slice:prefix:name
+		g.SetLinuxCgroupsPath(path.Base(c.config.CgroupParent) + ":" + "libpod" + ":" + c.ID())
+	} else {
+		cgroupPath, err := c.CGroupPath()
+		if err != nil {
+			return nil, err
+		}
+		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
+		g.SetLinuxCgroupsPath(cgroupPath)
 	}
-	logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
-	g.SetLinuxCgroupsPath(cgroupPath)
 
 	return g.Spec(), nil
 }

@@ -123,11 +123,13 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	if logrus.GetLevel() == logrus.DebugLevel {
-		logrus.Debugf("New container created %q", ctr.ID())
+	logrus.Debugf("New container created %q", ctr.ID())
 
-		p, _ := ctr.CGroupPath()("")
-		logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), p)
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cgroupPath, err := ctr.CGroupPath()
+		if err == nil {
+			logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), cgroupPath)
+		}
 	}
 
 	createConfigJSON, err := json.Marshal(createConfig)
