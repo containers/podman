@@ -110,7 +110,7 @@ type imageDecomposeStruct struct {
 }
 
 // ImageResultFilter is a mock function for image filtering
-type ImageResultFilter func(inspect.ImageResult) bool
+type ImageResultFilter func(*image.Image) bool
 
 func (k *Image) assembleFqName() string {
 	return fmt.Sprintf("%s/%s:%s", k.Registry, k.ImageName, k.Tag)
@@ -983,8 +983,6 @@ func (r *Runtime) GetImages(params *ImageFilterParams, filters ...ImageFilter) (
 
 			if include {
 				newImage := img
-				// TODO I dont think this is needed.  Will verify along the way
-				//newImage.Names = []string{name}
 				imagesFiltered = append(imagesFiltered, newImage)
 			}
 		}
@@ -1184,98 +1182,11 @@ func getPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error
 	return policyContext, nil
 }
 
-// sizer knows its size.
-type sizer interface {
-	Size() (int64, error)
-}
-
-func imageSize(img types.ImageSource) *uint64 {
-	if s, ok := img.(sizer); ok {
-		if sum, err := s.Size(); err == nil {
-			usum := uint64(sum)
-			return &usum
-		}
-	}
-	return nil
-}
-
-// ReposToMap parses the specified repotags and returns a map with repositories
-// as keys and the corresponding arrays of tags as values.
-func ReposToMap(repotags []string) map[string][]string {
-	// map format is repo -> tag
-	repos := make(map[string][]string)
-	for _, repo := range repotags {
-		var repository, tag string
-		if len(repo) > 0 {
-			li := strings.LastIndex(repo, ":")
-			repository = repo[0:li]
-			tag = repo[li+1:]
-		}
-		repos[repository] = append(repos[repository], tag)
-	}
-	if len(repos) == 0 {
-		repos["<none>"] = []string{"<none>"}
-	}
-	return repos
-}
-
-// GetImageResults gets the images for podman images and returns them as
-// an array of ImageResults
-func (r *Runtime) GetImageResults() ([]inspect.ImageResult, error) {
-	var results []inspect.ImageResult
-
-	images, err := r.store.Images()
-	if err != nil {
-		return nil, err
-	}
-	for _, image := range images {
-		storeRef, err := is.Transport.ParseStoreReference(r.store, image.ID)
-		if err != nil {
-			return nil, err
-		}
-		systemContext := &types.SystemContext{}
-		img, err := storeRef.NewImageSource(systemContext)
-		if err != nil {
-			return nil, err
-		}
-		ic, err := storeRef.NewImage(&types.SystemContext{})
-		if err != nil {
-			return nil, err
-		}
-		imgInspect, err := ic.Inspect()
-		if err != nil {
-			return nil, err
-		}
-		dangling := false
-		if len(image.Names) == 0 {
-			dangling = true
-		}
-
-		for repo, tags := range ReposToMap(image.Names) {
-			// use the first pair as the image's default repo and tag
-			results = append(results, inspect.ImageResult{
-				ID:         image.ID,
-				Repository: repo,
-				RepoTags:   image.Names,
-				Tag:        tags[0],
-				Size:       imageSize(img),
-				Digest:     image.Digest,
-				Created:    image.Created,
-				Labels:     imgInspect.Labels,
-				Dangling:   dangling,
-			})
-			break
-		}
-
-	}
-	return results, nil
-}
-
 // ImageCreatedBefore allows you to filter on images created before
 // the given time.Time
 func ImageCreatedBefore(createTime time.Time) ImageResultFilter {
-	return func(i inspect.ImageResult) bool {
-		if i.Created.Before(createTime) {
+	return func(i *image.Image) bool {
+		if i.Created().Before(createTime) {
 			return true
 		}
 		return false
@@ -1285,8 +1196,8 @@ func ImageCreatedBefore(createTime time.Time) ImageResultFilter {
 // ImageCreatedAfter allows you to filter on images created after
 // the given time.Time
 func ImageCreatedAfter(createTime time.Time) ImageResultFilter {
-	return func(i inspect.ImageResult) bool {
-		if i.Created.After(createTime) {
+	return func(i *image.Image) bool {
+		if i.Created().After(createTime) {
 			return true
 		}
 		return false
@@ -1295,8 +1206,8 @@ func ImageCreatedAfter(createTime time.Time) ImageResultFilter {
 
 // ImageDangling allows you to filter images for dangling images
 func ImageDangling() ImageResultFilter {
-	return func(i inspect.ImageResult) bool {
-		if i.Dangling {
+	return func(i *image.Image) bool {
+		if i.Dangling() {
 			return true
 		}
 		return false
@@ -1306,51 +1217,34 @@ func ImageDangling() ImageResultFilter {
 // ImageLabel allows you to filter by images labels key and/or value
 func ImageLabel(labelfilter string) ImageResultFilter {
 	// We need to handle both label=key and label=key=value
-	return func(i inspect.ImageResult) bool {
+	return func(i *image.Image) bool {
 		var value string
 		splitFilter := strings.Split(labelfilter, "=")
 		key := splitFilter[0]
 		if len(splitFilter) > 1 {
 			value = splitFilter[1]
 		}
-		for labelKey, labelValue := range i.Labels {
-			// handles label=key
-			if key == labelKey && len(strings.TrimSpace(value)) == 0 {
-				return true
-			}
-			//handles label=key=value
-			if key == labelKey && value == labelValue {
-				return true
-			}
+		labels, err := i.Labels()
+		if err != nil {
+			return false
 		}
-		return false
+		if len(strings.TrimSpace(labels[key])) > 0 && len(strings.TrimSpace(value)) == 0 {
+			return true
+		}
+		return labels[key] == value
 	}
 }
 
 // OutputImageFilter allows you to filter by an a specific image name
-func OutputImageFilter(name string) ImageResultFilter {
-	return func(i inspect.ImageResult) bool {
-		li := strings.LastIndex(name, ":")
-		var repository, tag string
-		if li < 0 {
-			repository = name
-		} else {
-			repository = name[0:li]
-			tag = name[li+1:]
-		}
-		if repository == i.Repository && len(strings.TrimSpace(tag)) == 0 {
-			return true
-		}
-		if repository == i.Repository && tag == i.Tag {
-			return true
-		}
-		return false
+func OutputImageFilter(userImage *image.Image) ImageResultFilter {
+	return func(i *image.Image) bool {
+		return userImage.ID() == i.ID()
 	}
 }
 
 // FilterImages filters images using a set of predefined fitler funcs
-func FilterImages(images []inspect.ImageResult, filters []ImageResultFilter) []inspect.ImageResult {
-	var filteredImages []inspect.ImageResult
+func FilterImages(images []*image.Image, filters []ImageResultFilter) []*image.Image {
+	var filteredImages []*image.Image
 	for _, image := range images {
 		include := true
 		for _, filter := range filters {
