@@ -23,6 +23,9 @@ has the capability to debug pods/images created by crio.
 **--help, -h**
   Print usage statement
 
+**--cgroup-manager**
+   CGroup manager to use for container cgroups. Supported values are cgroupfs (default) or systemd. Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
+
 **--config value, -c**=**"config.file"**
    Path of a config file detailing container server configuration options
 
