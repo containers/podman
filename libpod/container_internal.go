@@ -930,7 +930,7 @@ func (c *Container) addImageVolumes(g *generate.Generator) error {
 	if err != nil {
 		return err
 	}
-	imageData, err := GetImageData(newImage)
+	imageData, err := newImage.Inspect()
 	if err != nil {
 		return err
 	}

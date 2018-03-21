@@ -180,7 +180,7 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	data, err := libpod.GetImageData(newImage)
+	data, err := newImage.Inspect()
 	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
 	if err != nil {
 		return err

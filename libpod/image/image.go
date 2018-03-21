@@ -26,15 +26,23 @@ import (
 	"github.com/projectatomic/libpod/pkg/util"
 )
 
+// imageConversions is used to cache image "cast" types
+type imageConversions struct {
+	imgRef   types.Image
+	storeRef types.ImageReference
+}
+
 // Image is the primary struct for dealing with images
 // It is still very much a work in progress
 type Image struct {
 	// Adding these two structs for now but will cull when we near
 	// completion of this library.
+	imageConversions
 	inspect.ImageData
 	inspect.ImageResult
-	InputName string
-	Local     bool
+	inspectInfo *types.ImageInspectInfo
+	InputName   string
+	Local       bool
 	//runtime   *libpod.Runtime
 	image        *storage.Image
 	imageruntime *Runtime
@@ -226,9 +234,20 @@ func (i *Image) ID() string {
 	return i.image.ID
 }
 
-// Digest returns the image's Manifest
+// Digest returns the image's digest
 func (i *Image) Digest() digest.Digest {
 	return i.image.Digest
+}
+
+// Manifest returns the image's manifest as a byte array
+// and manifest type as a string.  The manifest type is
+// MediaTypeImageManifest from ociv1.
+func (i *Image) Manifest() ([]byte, string, error) {
+	imgRef, err := i.toImageRef()
+	if err != nil {
+		return nil, "", err
+	}
+	return imgRef.Manifest()
 }
 
 // Names returns a string array of names associated with the image
@@ -251,20 +270,6 @@ func (i *Image) TopLayer() string {
 func (i *Image) Remove(force bool) error {
 	_, err := i.imageruntime.store.DeleteImage(i.ID(), true)
 	return err
-}
-
-func annotations(manifest []byte, manifestType string) map[string]string {
-	annotations := make(map[string]string)
-	switch manifestType {
-	case ociv1.MediaTypeImageManifest:
-		var m ociv1.Manifest
-		if err := json.Unmarshal(manifest, &m); err == nil {
-			for k, v := range m.Annotations {
-				annotations[k] = v
-			}
-		}
-	}
-	return annotations
 }
 
 // Decompose an Image
@@ -349,6 +354,14 @@ func getImageDigest(src types.ImageReference, ctx *types.SystemContext) (string,
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
+	decomposedTag, err := decompose(tag)
+	if err != nil {
+		return err
+	}
+	// If the input does not have a tag, we need to add one (latest)
+	if !decomposedTag.isTagged {
+		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
+	}
 	tags := i.Names()
 	if util.StringInSlice(tag, tags) {
 		return nil
@@ -426,7 +439,14 @@ func (i *Image) MatchesID(id string) bool {
 
 // toStorageReference returns a *storageReference from an Image
 func (i *Image) toStorageReference() (types.ImageReference, error) {
-	return is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+	if i.storeRef == nil {
+		storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+		if err != nil {
+			return nil, err
+		}
+		i.storeRef = storeRef
+	}
+	return i.storeRef, nil
 }
 
 // ToImageRef returns an image reference type from an image
@@ -437,15 +457,18 @@ func (i *Image) ToImageRef() (types.Image, error) {
 
 // toImageRef returns an Image Reference type from an image
 func (i *Image) toImageRef() (types.Image, error) {
-	ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
-	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
+	if i.imgRef == nil {
+		ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
+		}
+		imgRef, err := ref.NewImage(nil)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading image %q", i.ID())
+		}
+		i.imgRef = imgRef
 	}
-	imgRef, err := ref.NewImage(nil)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading image %q", i.ID())
-	}
-	return imgRef, nil
+	return i.imgRef, nil
 }
 
 // sizer knows its size.
@@ -507,19 +530,114 @@ func (i *Image) Dangling() bool {
 
 // Labels returns the image's labels
 func (i *Image) Labels() (map[string]string, error) {
-	sr, err := i.toStorageReference()
+	imgInspect, err := i.imageInspectInfo()
 	if err != nil {
-		return nil, err
-	}
-	ic, err := sr.NewImage(&types.SystemContext{})
-	if err != nil {
-		return nil, err
-	}
-	imgInspect, err := ic.Inspect()
-	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 	return imgInspect.Labels, nil
+}
+
+// Annotations returns the annotations of an image
+func (i *Image) Annotations() (map[string]string, error) {
+	manifest, manifestType, err := i.Manifest()
+	if err != nil {
+		return nil, err
+	}
+	annotations := make(map[string]string)
+	switch manifestType {
+	case ociv1.MediaTypeImageManifest:
+		var m ociv1.Manifest
+		if err := json.Unmarshal(manifest, &m); err == nil {
+			for k, v := range m.Annotations {
+				annotations[k] = v
+			}
+		}
+	}
+	return annotations, nil
+}
+
+// ociv1Image converts and image to an imgref and then an
+// ociv1 image type
+func (i *Image) ociv1Image() (*ociv1.Image, error) {
+	imgRef, err := i.toImageRef()
+	if err != nil {
+		return nil, err
+	}
+	return imgRef.OCIConfig()
+}
+
+func (i *Image) imageInspectInfo() (*types.ImageInspectInfo, error) {
+	if i.inspectInfo == nil {
+		sr, err := i.toStorageReference()
+		if err != nil {
+			return nil, err
+		}
+		ic, err := sr.NewImage(&types.SystemContext{})
+		if err != nil {
+			return nil, err
+		}
+		imgInspect, err := ic.Inspect()
+		if err != nil {
+			return nil, err
+		}
+		i.inspectInfo = imgInspect
+	}
+	return i.inspectInfo, nil
+}
+
+// Inspect returns an image's inspect data
+func (i *Image) Inspect() (*inspect.ImageData, error) {
+	ociv1Img, err := i.ociv1Image()
+	if err != nil {
+		return nil, err
+	}
+	info, err := i.imageInspectInfo()
+	if err != nil {
+		return nil, err
+	}
+	annotations, err := i.Annotations()
+	if err != nil {
+		return nil, err
+	}
+
+	size, err := i.Size()
+	if err != nil {
+		return nil, err
+	}
+
+	var repoDigests []string
+	for _, name := range i.Names() {
+		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+	}
+
+	driver, err := i.DriverData()
+	if err != nil {
+		return nil, err
+	}
+
+	data := &inspect.ImageData{
+		ID:              i.ID(),
+		RepoTags:        i.Names(),
+		RepoDigests:     repoDigests,
+		Comment:         ociv1Img.History[0].Comment,
+		Created:         ociv1Img.Created,
+		Author:          ociv1Img.Author,
+		Architecture:    ociv1Img.Architecture,
+		Os:              ociv1Img.OS,
+		ContainerConfig: &ociv1Img.Config,
+		Version:         info.DockerVersion,
+		Size:            int64(*size),
+		VirtualSize:     int64(*size),
+		Annotations:     annotations,
+		Digest:          i.Digest(),
+		Labels:          info.Labels,
+		RootFS: &inspect.RootFS{
+			Type:   ociv1Img.RootFS.Type,
+			Layers: ociv1Img.RootFS.DiffIDs,
+		},
+		GraphDriver: driver,
+	}
+	return data, nil
 }
 
 // Import imports and image into the store and returns an image

@@ -54,7 +54,7 @@ func runCmd(c *cli.Context) error {
 	rtc := runtime.GetConfig()
 	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{})
 
-	data, err := libpod.GetImageData(newImage)
+	data, err := newImage.Inspect()
 	if err != nil {
 		return err
 	}
