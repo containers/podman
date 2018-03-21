@@ -75,14 +75,14 @@ func rmiCmd(c *cli.Context) error {
 		return errors.Errorf("no valid images to delete")
 	}
 	for _, img := range imagesToDelete {
-		err := runtime.RemoveImage(img, c.Bool("force"))
+		msg, err := runtime.RemoveImage(img, c.Bool("force"))
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
 			lastError = err
 		} else {
-			fmt.Println(img.ID())
+			fmt.Println(msg)
 		}
 	}
 	return lastError

@@ -567,3 +567,60 @@ func Import(path, reference string, writer io.Writer, signingOptions SigningOpti
 	}
 	return runtime.NewFromLocal(reference)
 }
+
+// MatchRepoTag takes a string and tries to match it against an
+// image's repotags
+func (i *Image) MatchRepoTag(input string) (string, error) {
+	results := make(map[int][]string)
+	var maxCount int
+	// first check if we have an exact match with the input
+	if util.StringInSlice(input, i.Names()) {
+		return input, nil
+	}
+	// next check if we are missing the tag
+	dcImage, err := decompose(input)
+	if err != nil {
+		return "", err
+	}
+	for _, repoName := range i.Names() {
+		count := 0
+		dcRepoName, err := decompose(repoName)
+		if err != nil {
+			return "", err
+		}
+		if dcRepoName.registry == dcImage.registry && dcImage.registry != "" {
+			count++
+		}
+		if dcRepoName.name == dcImage.name && dcImage.name != "" {
+			count++
+		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
+			count++
+		}
+		if dcRepoName.tag == dcImage.tag {
+			count++
+		}
+		results[count] = append(results[count], repoName)
+		if count > maxCount {
+			maxCount = count
+		}
+	}
+	if maxCount == 0 {
+		return "", errors.Errorf("unable to match user input to any specific repotag")
+	}
+	if len(results[maxCount]) > 1 {
+		return "", errors.Errorf("user input matched multiple repotags for the image")
+	}
+	return results[maxCount][0], nil
+}
+
+// splitString splits input string by / and returns the last array item
+func splitString(input string) string {
+	split := strings.Split(input, "/")
+	return split[len(split)-1]
+}
+
+// InputIsID returns a bool if the user input for an image
+// is the image's partial or full id
+func (i *Image) InputIsID() bool {
+	return strings.HasPrefix(i.ID(), i.InputName)
+}

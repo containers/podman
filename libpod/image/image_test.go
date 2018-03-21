@@ -136,3 +136,52 @@ func TestImage_New(t *testing.T) {
 	// Shutdown the runtime and remove the temporary storage
 	cleanup(workdir, ir)
 }
+
+// TestImage_MatchRepoTag tests the various inputs we need to match
+// against an image's reponames
+func TestImage_MatchRepoTag(t *testing.T) {
+	//Set up
+	workdir, err := mkWorkDir()
+	assert.NoError(t, err)
+
+	so := storage.StoreOptions{
+		RunRoot:   workdir,
+		GraphRoot: workdir,
+	}
+	ir, err := NewImageRuntimeFromOptions(so)
+	assert.NoError(t, err)
+	newImage, err := ir.New("busybox", "", "", os.Stdout, nil, SigningOptions{})
+	assert.NoError(t, err)
+	err = newImage.TagImage("foo:latest")
+	assert.NoError(t, err)
+	err = newImage.TagImage("foo:bar")
+	assert.NoError(t, err)
+
+	// Tests start here.
+	for _, name := range bbNames {
+		repoTag, err := newImage.MatchRepoTag(name)
+		assert.NoError(t, err)
+		assert.Equal(t, "docker.io/library/busybox:latest", repoTag)
+	}
+
+	// Test against tagged images of busybox
+	// foo should resolve to foo:latest
+	repoTag, err := newImage.MatchRepoTag("foo")
+	assert.NoError(t, err)
+	assert.Equal(t, "foo:latest", repoTag)
+
+	// foo:bar should resolve to foo:bar
+	repoTag, err = newImage.MatchRepoTag("foo:bar")
+	assert.NoError(t, err)
+	assert.Equal(t, "foo:bar", repoTag)
+	// Shutdown the runtime and remove the temporary storage
+	cleanup(workdir, ir)
+}
+
+// Test_splitString tests the splitString function in image that
+// takes input and splits on / and returns the last array item
+func Test_splitString(t *testing.T) {
+	assert.Equal(t, splitString("foo/bar"), "bar")
+	assert.Equal(t, splitString("a/foo/bar"), "bar")
+	assert.Equal(t, splitString("bar"), "bar")
+}
