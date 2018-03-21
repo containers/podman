@@ -1133,7 +1133,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
-		g.SetLinuxCgroupsPath(path.Base(c.config.CgroupParent) + ":" + "libpod" + ":" + c.ID())
+		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
+		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
+		g.SetLinuxCgroupsPath(systemdCgroups)
 	} else {
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {

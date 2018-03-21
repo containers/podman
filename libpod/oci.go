@@ -321,7 +321,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
-		unitName := createUnitName("libpod", ctr.ID())
+		unitName := createUnitName("libpod-conmon", ctr.ID())
 
 		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, unitName)
 		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, unitName); err != nil {

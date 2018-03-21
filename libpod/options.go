@@ -152,6 +152,11 @@ func WithCgroupManager(manager string) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
+		if manager != CgroupfsCgroupsManager && manager != SystemdCgroupsManager {
+			return errors.Wrapf(ErrInvalidArg, "CGroup manager must be one of %s and %s",
+				CgroupfsCgroupsManager, SystemdCgroupsManager)
+		}
+
 		rt.config.CgroupManager = manager
 
 		return nil
