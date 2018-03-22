@@ -35,20 +35,16 @@ var _ = Describe("Podman push", func() {
 
 		session = podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"rmi", "busybox:test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
-
-		session = podmanTest.Podman([]string{"rmi", "-f", "busybox:test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	// push to oci-archive, docker-archive, and dir are tested in pull_test.go
 
-	It("podman push to containers/storage", func() {
+	It("podman push to dir", func() {
 		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE, "dir:/tmp/busybox"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

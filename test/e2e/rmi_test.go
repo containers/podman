@@ -67,4 +67,40 @@ var _ = Describe("Podman rmi", func() {
 
 	})
 
+	It("podman rmi tagged image", func() {
+		setup := podmanTest.Podman([]string{"images", "-q", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"tag", "alpine", "foo:bar", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"images", "-q", "foo"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		Expect(result.LineInOuputContains(setup.OutputToString())).To(BeTrue())
+	})
+
+	It("podman rmi image with tags by ID cannot be done without force", func() {
+		setup := podmanTest.Podman([]string{"images", "-q", ALPINE})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		alpineId := setup.OutputToString()
+
+		session := podmanTest.Podman([]string{"tag", "alpine", "foo:bar", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Trying without --force should fail
+		result := podmanTest.Podman([]string{"rmi", alpineId})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).ToNot(Equal(0))
+
+		// With --force it should work
+		resultForce := podmanTest.Podman([]string{"rmi", "-f", alpineId})
+		resultForce.WaitWithDefaultTimeout()
+		Expect(resultForce.ExitCode()).To(Equal(0))
+	})
 })
