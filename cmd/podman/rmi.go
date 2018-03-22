@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
@@ -56,7 +55,7 @@ func rmiCmd(c *cli.Context) error {
 	var lastError error
 	var imagesToDelete []*image.Image
 	if removeAll {
-		imagesToDelete, err = runtime.GetImages(&libpod.ImageFilterParams{})
+		imagesToDelete, err = runtime.ImageRuntime().GetImages()
 		if err != nil {
 			return errors.Wrapf(err, "unable to query local images")
 		}

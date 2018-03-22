@@ -8,11 +8,10 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/containers/storage/pkg/archive"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/common"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
@@ -135,23 +134,22 @@ func pushCmd(c *cli.Context) error {
 		}
 	}
 
-	options := libpod.CopyOptions{
-		Compression:         archive.Uncompressed,
-		SignaturePolicyPath: c.String("signature-policy"),
-		DockerRegistryOptions: common.DockerRegistryOptions{
-			DockerRegistryCreds:         registryCreds,
-			DockerCertPath:              certPath,
-			DockerInsecureSkipTLSVerify: skipVerify,
-		},
-		SigningOptions: common.SigningOptions{
-			RemoveSignatures: removeSignatures,
-			SignBy:           signBy,
-		},
-		AuthFile:         c.String("authfile"),
-		Writer:           writer,
-		ManifestMIMEType: manifestType,
-		ForceCompress:    c.Bool("compress"),
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds:         registryCreds,
+		DockerCertPath:              certPath,
+		DockerInsecureSkipTLSVerify: skipVerify,
 	}
 
-	return runtime.PushImage(srcName, destName, options)
+	so := image.SigningOptions{
+		RemoveSignatures: removeSignatures,
+		SignBy:           signBy,
+	}
+
+	newImage, err := runtime.ImageRuntime().NewFromLocal(srcName)
+	if err != nil {
+		return err
+	}
+
+	//return runtime.PushImage(srcName, destName, options)
+	return newImage.PushImage(destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions)
 }
