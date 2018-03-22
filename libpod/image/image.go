@@ -641,7 +641,7 @@ func (i *Image) Inspect() (*inspect.ImageData, error) {
 }
 
 // Import imports and image into the store and returns an image
-func Import(path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image, runtime *Runtime) (*Image, error) {
+func (ir *Runtime) Import(path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
 	file := TarballTransport + ":" + path
 	src, err := alltransports.ParseImageName(file)
 	if err != nil {
@@ -676,14 +676,14 @@ func Import(path, reference string, writer io.Writer, signingOptions SigningOpti
 	}
 	defer policyContext.Destroy()
 	copyOptions := getCopyOptions(writer, "", nil, nil, signingOptions, "", "", false)
-	dest, err := is.Transport.ParseStoreReference(runtime.store, reference)
+	dest, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)
 	}
 	if err = cp.Image(policyContext, dest, src, copyOptions); err != nil {
 		return nil, err
 	}
-	return runtime.NewFromLocal(reference)
+	return ir.NewFromLocal(reference)
 }
 
 // MatchRepoTag takes a string and tries to match it against an

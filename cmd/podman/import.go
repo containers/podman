@@ -107,7 +107,7 @@ func importCmd(c *cli.Context) error {
 		source = file
 	}
 
-	newImage, err := runtime.Import(source, reference, writer, image.SigningOptions{}, config)
+	newImage, err := runtime.ImageRuntime().Import(source, reference, writer, image.SigningOptions{}, config)
 	if err == nil {
 		fmt.Println(newImage.ID())
 	}

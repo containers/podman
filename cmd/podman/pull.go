@@ -8,8 +8,7 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/common"
+	image2 "github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -94,27 +93,19 @@ func pullCmd(c *cli.Context) error {
 		writer = os.Stderr
 	}
 
-	options := libpod.CopyOptions{
-		SignaturePolicyPath: c.String("signature-policy"),
-		AuthFile:            c.String("authfile"),
-		DockerRegistryOptions: common.DockerRegistryOptions{
-			DockerRegistryCreds:         registryCreds,
-			DockerCertPath:              c.String("cert-dir"),
-			DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
-		},
-		Writer: writer,
+	dockerRegistryOptions := image2.DockerRegistryOptions{
+		DockerRegistryCreds:         registryCreds,
+		DockerCertPath:              c.String("cert-dir"),
+		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 	}
 
-	if _, err := runtime.PullImage(image, options); err != nil {
+	newImage, err := runtime.ImageRuntime().New(image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{})
+	if err != nil {
 		return errors.Wrapf(err, "error pulling image %q", image)
 	}
 
-	newImage := runtime.NewImage(image)
-	iid, err := newImage.GetImageID()
 	// Intentially choosing to ignore if there is an error because
 	// outputting the image ID is a NTH and not integral to the pull
-	if err == nil {
-		fmt.Println(iid)
-	}
+	fmt.Println(newImage.ID())
 	return nil
 }
