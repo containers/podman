@@ -672,6 +672,16 @@ func (c *Container) makeBindMounts() error {
 		c.state.BindMounts["/etc/hostname"] = hostnamePath
 	}
 
+	// Make .containerenv
+	if _, ok := c.state.BindMounts["/.containerenv"]; !ok {
+		// Empty string for now, but we may consider populating this later
+		containerenvPath, err := c.writeStringToRundir(".containerenv", "")
+		if err != nil {
+			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
+		}
+		c.state.BindMounts["/.containerenv"] = containerenvPath
+	}
+
 	return nil
 }
 
