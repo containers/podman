@@ -37,6 +37,9 @@ func runCmd(c *cli.Context) error {
 	}
 
 	if c.String("cidfile") != "" {
+		if _, err := os.Stat(c.String("cidfile")); err == nil {
+			return errors.Errorf("container id file exists. ensure another container is not using it or delete %s", c.String("cidfile"))
+		}
 		if err := libpod.WriteFile("", c.String("cidfile")); err != nil {
 			return errors.Wrapf(err, "unable to write cidfile %s", c.String("cidfile"))
 		}
