@@ -673,13 +673,14 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Make .containerenv
-	if _, ok := c.state.BindMounts["/.containerenv"]; !ok {
+	// Empty file, so no need to recreate if it exists
+	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
 		// Empty string for now, but we may consider populating this later
 		containerenvPath, err := c.writeStringToRundir(".containerenv", "")
 		if err != nil {
 			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
 		}
-		c.state.BindMounts["/.containerenv"] = containerenvPath
+		c.state.BindMounts["/run/.containerenv"] = containerenvPath
 	}
 
 	return nil
