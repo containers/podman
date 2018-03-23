@@ -1,0 +1,18 @@
+- Changelog for v0.3.4 (2018-03-23):
+  * Bump version to v0.3.4
+  * Make container env variable conditional
+  * Stage 4 Image cleanup
+  * Add CONTAINER environment variable
+  * Small manpage reword
+  * Document .containerenv in manpages. Move it to /run.
+  * Add .containerenv file
+  * Add script to determine dependency sizes
+  * If cidfile exists, do not proceed
+  * Removing tagged images change in behavior
+  * Use podman to test podman on FAH
+  * Migrate podman inspect and tag to image library
+  * Migrate podman images to image library
+  * Makefile: add changelog target
+  * Image library stage 4 - create and commit
+  * Add 'podman restart' asciinema
+  * Fix Travis tests for sig-proxy
