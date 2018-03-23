@@ -195,6 +195,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	for sysctlKey, sysctlVal := range config.Sysctl {
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
+	g.AddProcessEnv("container", "podman")
 
 	// RESOURCES - MEMORY
 	if config.Resources.Memory != 0 {
