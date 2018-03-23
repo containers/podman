@@ -94,8 +94,37 @@ has the capability to debug pods/images created by crio.
 | [podman-version(1)](podman-version.1.md)  | Display the Podman version information.                                        |
 | [podman-wait(1)](podman-wait.1.md)        | Wait on one or more containers to stop and print their exit codes.             |
 
+## FILES
+
+
+**libpod.conf** (`/etc/containers/libpod.conf`)
+
+	libpod.conf is the configuration file for all tools using libpod to manage containers
+
+**storage.conf** (`/etc/containers/storage.conf`)
+
+	storage.conf is the storage configuration file for all tools using containers/storage
+
+	The storage configuration file specifies all of the available container storage options for tools using shared container storage.
+
+**mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
+
+	The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image if you do a `podman commit`.
+
+	Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
+
+	For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
+
+	The format of the mounts.conf is the volume format /SRC:/DEST, one mount per line. Users can create an `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container. Podman by default reads /usr/share/containers/mounts.conf and the /etc/containers/mounts.conf if it exists.
+
+	Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
+
+**registries.conf** (`/etc/containers/registries.conf`)
+
+	registries.conf is the configuration file which specifies which registries should be consulted when completing image names which do not include a registry or domain portion.
+
 ## SEE ALSO
-crio(8)
+crio(8), storage.conf(5)
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
