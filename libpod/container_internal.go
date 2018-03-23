@@ -909,6 +909,7 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 
 	g.SetHostname(c.Hostname())
 	g.AddProcessEnv("HOSTNAME", g.Spec().Hostname)
+	g.AddProcessEnv("container", "libpod")
 
 	return g.Spec(), nil
 }
