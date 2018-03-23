@@ -11,12 +11,12 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/kubeutils"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 /* Sync with stdpipe_t in conmon.c */
@@ -109,7 +109,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		term.SetRawTerminal(inputStream.Fd())
 	}
 
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		controlPath := filepath.Join(c.bundlePath(), "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 		if err != nil {

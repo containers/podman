@@ -18,8 +18,39 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
+
+const (
+	Protocol_TCP Protocol = 0
+	Protocol_UDP Protocol = 1
+)
+
+type Protocol int32
+
+// PortMapping specifies the port mapping configurations of a sandbox.
+type PortMapping struct {
+	// Protocol of the port mapping.
+	Protocol Protocol `protobuf:"varint,1,opt,name=protocol,proto3,enum=runtime.Protocol" json:"protocol,omitempty"`
+	// Port number within the container. Default: 0 (not specified).
+	ContainerPort int32 `protobuf:"varint,2,opt,name=container_port,json=containerPort,proto3" json:"container_port,omitempty"`
+	// Port number on the host. Default: 0 (not specified).
+	HostPort int32 `protobuf:"varint,3,opt,name=host_port,json=hostPort,proto3" json:"host_port,omitempty"`
+	// Host IP.
+	HostIp string `protobuf:"bytes,4,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`
+}
+
+// Device specifies a host device to mount into a container.
+type HostDevice struct {
+	// Path of the device within the container.
+	ContainerPath string `protobuf:"bytes,1,opt,name=container_path,json=containerPath,proto3" json:"container_path,omitempty"`
+	// Path of the device on the host.
+	HostPath string `protobuf:"bytes,2,opt,name=host_path,json=hostPath,proto3" json:"host_path,omitempty"`
+	// Cgroups permissions of the device, candidates are one or more of
+	// * r - allows container to read from the specified device.
+	// * w - allows container to write to the specified device.
+	// * m - allows container to create device files that do not yet exist.
+	Permissions string `protobuf:"bytes,3,opt,name=permissions,proto3" json:"permissions,omitempty"`
+}
 
 // Note: for flags that are in the form <number><unit>, use the RAMInBytes function
 // from the units package in docker/go-units/size.go
@@ -112,7 +143,7 @@ func validateweightDevice(val string) (*weightDevice, error) {
 
 // parseDevice parses a device mapping string to a container.DeviceMapping struct
 // for device flag
-func parseDevice(device string) (*pb.Device, error) { //nolint
+func parseDevice(device string) (*HostDevice, error) { //nolint
 	_, err := validateDevice(device)
 	if err != nil {
 		return nil, errors.Wrapf(err, "device string not valid %q", device)
@@ -143,7 +174,7 @@ func parseDevice(device string) (*pb.Device, error) { //nolint
 		dst = src
 	}
 
-	deviceMapping := &pb.Device{
+	deviceMapping := &HostDevice{
 		ContainerPath: dst,
 		HostPath:      src,
 		Permissions:   permissions,
@@ -504,8 +535,8 @@ func (n NsPid) Container() string {
 // parsePortSpecs receives port specs in the format of ip:public:private/proto and parses
 // these in to the internal types
 // for publish, publish-all, and expose flags
-func parsePortSpecs(ports []string) ([]*pb.PortMapping, error) { //nolint
-	var portMappings []*pb.PortMapping
+func parsePortSpecs(ports []string) ([]*PortMapping, error) { //nolint
+	var portMappings []*PortMapping
 	for _, rawPort := range ports {
 		portMapping, err := parsePortSpec(rawPort)
 		if err != nil {
@@ -527,7 +558,7 @@ func validateProto(proto string) bool {
 }
 
 // parsePortSpec parses a port specification string into a slice of PortMappings
-func parsePortSpec(rawPort string) ([]*pb.PortMapping, error) {
+func parsePortSpec(rawPort string) ([]*PortMapping, error) {
 	var proto string
 	rawIP, hostPort, containerPort := splitParts(rawPort)
 	proto, containerPort = splitProtoPort(containerPort)
@@ -570,12 +601,12 @@ func parsePortSpec(rawPort string) ([]*pb.PortMapping, error) {
 		return nil, fmt.Errorf("invalid proto: %s", proto)
 	}
 
-	protocol := pb.Protocol_TCP
+	protocol := Protocol_TCP
 	if strings.ToLower(proto) == "udp" {
-		protocol = pb.Protocol_UDP
+		protocol = Protocol_UDP
 	}
 
-	var ports []*pb.PortMapping
+	var ports []*PortMapping
 	for i := uint64(0); i <= (endPort - startPort); i++ {
 		containerPort = strconv.FormatUint(startPort+i, 10)
 		if len(hostPort) > 0 {
@@ -596,7 +627,7 @@ func parsePortSpec(rawPort string) ([]*pb.PortMapping, error) {
 			return nil, err
 		}
 
-		port := &pb.PortMapping{
+		port := &PortMapping{
 			Protocol:      protocol,
 			ContainerPort: int32(ctrPort),
 			HostPort:      int32(hPort),
