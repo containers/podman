@@ -909,7 +909,18 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 
 	g.SetHostname(c.Hostname())
 	g.AddProcessEnv("HOSTNAME", g.Spec().Hostname)
-	g.AddProcessEnv("container", "libpod")
+
+	// Only add container environment variable if not already present
+	foundContainerEnv := false
+	for _, env := range g.Spec().Process.Env {
+		if strings.HasPrefix(env, "container=") {
+			foundContainerEnv = true
+			break
+		}
+	}
+	if !foundContainerEnv {
+		g.AddProcessEnv("container", "libpod")
+	}
 
 	return g.Spec(), nil
 }
