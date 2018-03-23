@@ -47,11 +47,6 @@ func FuncTimer(funcName string) {
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
 }
 
-// hasTransport determines if the image string contains '://', returns bool
-func hasTransport(image string) bool {
-	return strings.Contains(image, "://")
-}
-
 // CopyStringStringMap deep copies a map[string]string and returns the result
 func CopyStringStringMap(m map[string]string) map[string]string {
 	n := map[string]string{}

@@ -565,7 +565,7 @@ func (c *Container) Commit(pause bool, reference string, writer io.Writer, signi
 	if err := c.export(tempFile.Name()); err != nil {
 		return nil, err
 	}
-	return image.Import(tempFile.Name(), reference, writer, signingOptions, imageConfig, c.runtime.imageRuntime)
+	return c.runtime.imageRuntime.Import(tempFile.Name(), reference, writer, signingOptions, imageConfig)
 }
 
 // Wait blocks on a container to exit and returns its exit code

@@ -82,7 +82,7 @@ var (
 
 func imagesCmd(c *cli.Context) error {
 	var (
-		filterFuncs []libpod.ImageResultFilter
+		filterFuncs []image.ResultFilter
 		newImage    *image.Image
 	)
 	if err := validateFlags(c, imagesFlags); err != nil {
@@ -136,7 +136,7 @@ func imagesCmd(c *cli.Context) error {
 	var filteredImages []*image.Image
 	// filter the images
 	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filteredImages = libpod.FilterImages(images, filterFuncs)
+		filteredImages = image.FilterImages(images, filterFuncs)
 	} else {
 		filteredImages = images
 	}
@@ -266,8 +266,8 @@ func (i *imagesTemplateParams) HeaderMap() map[string]string {
 
 // CreateFilterFuncs returns an array of filter functions based on the user inputs
 // and is later used to filter images for output
-func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, image *image.Image) ([]libpod.ImageResultFilter, error) {
-	var filterFuncs []libpod.ImageResultFilter
+func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, img *image.Image) ([]image.ResultFilter, error) {
+	var filterFuncs []image.ResultFilter
 	for _, filter := range c.StringSlice("filter") {
 		splitFilter := strings.Split(filter, "=")
 		switch splitFilter[0] {
@@ -276,24 +276,24 @@ func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, image *image.Image) ([
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, libpod.ImageCreatedBefore(before.Created()))
+			filterFuncs = append(filterFuncs, image.CreatedBeforeFilter(before.Created()))
 		case "after":
 			after, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, libpod.ImageCreatedAfter(after.Created()))
+			filterFuncs = append(filterFuncs, image.CreatedAfterFilter(after.Created()))
 		case "dangling":
-			filterFuncs = append(filterFuncs, libpod.ImageDangling())
+			filterFuncs = append(filterFuncs, image.DanglingFilter())
 		case "label":
 			labelFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, libpod.ImageLabel(labelFilter))
+			filterFuncs = append(filterFuncs, image.LabelFilter(labelFilter))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}
 	}
-	if image != nil {
-		filterFuncs = append(filterFuncs, libpod.OutputImageFilter(image))
+	if img != nil {
+		filterFuncs = append(filterFuncs, image.OutputImageFilter(img))
 	}
 	return filterFuncs, nil
 }

@@ -9,6 +9,7 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	libpodImage "github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -104,13 +105,6 @@ func saveCmd(c *cli.Context) error {
 		return errors.Errorf("unknown format option %q", c.String("format"))
 	}
 
-	saveOpts := libpod.CopyOptions{
-		SignaturePolicyPath: "",
-		Writer:              writer,
-		ManifestMIMEType:    manifestType,
-		ForceCompress:       c.Bool("compress"),
-	}
-
 	// only one image is supported for now
 	// future pull requests will fix this
 	for _, image := range args {
@@ -119,7 +113,11 @@ func saveCmd(c *cli.Context) error {
 		if strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive) {
 			dest = dst + ":" + image
 		}
-		if err := runtime.PushImage(image, dest, saveOpts); err != nil {
+		newImage, err := runtime.ImageRuntime().NewFromLocal(image)
+		if err != nil {
+			return err
+		}
+		if err := newImage.PushImage(dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}); err != nil {
 			if err2 := os.Remove(output); err2 != nil {
 				logrus.Errorf("error deleting %q: %v", output, err)
 			}

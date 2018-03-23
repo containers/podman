@@ -27,7 +27,7 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 // If the id matches a layer, the top layer id is returned
 func (r *Runtime) getLayerID(id string) (string, error) {
 	var toLayer string
-	toImage, err := r.GetImage(id)
+	toImage, err := r.imageRuntime.NewFromLocal(id)
 	if err != nil {
 		toCtr, err := r.store.Container(id)
 		if err != nil {
@@ -39,7 +39,7 @@ func (r *Runtime) getLayerID(id string) (string, error) {
 			toLayer = toCtr.LayerID
 		}
 	} else {
-		toLayer = toImage.TopLayer
+		toLayer = toImage.TopLayer()
 	}
 	return toLayer, nil
 }
