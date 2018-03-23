@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -214,6 +215,33 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		fmt.Println(session.OutputToString())
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run with secrets", func() {
+		containersDir := "/usr/share/containers"
+		err := os.MkdirAll(containersDir, 0755)
+		Expect(err).To(BeNil())
+
+		secretsDir := filepath.Join(podmanTest.TempDir, "rhel", "secrets")
+		err = os.MkdirAll(secretsDir, 0755)
+		Expect(err).To(BeNil())
+
+		mountsFile := filepath.Join(containersDir, "mounts.conf")
+		mountString := secretsDir + ":/run/secrets"
+		err = ioutil.WriteFile(mountsFile, []byte(mountString), 0755)
+		Expect(err).To(BeNil())
+
+		secretsFile := filepath.Join(secretsDir, "test.txt")
+		secretsString := "Testing secrets mount. I am mounted!"
+		err = ioutil.WriteFile(secretsFile, []byte(secretsString), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/run/secrets/test.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Equal(secretsString))
+
+		err = os.RemoveAll(containersDir)
+		Expect(err).To(BeNil())
 	})
 
 })

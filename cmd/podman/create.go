@@ -3,6 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
@@ -15,11 +21,6 @@ import (
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"net"
-	"os"
-	"strconv"
-	"strings"
-	"syscall"
 )
 
 type mountType string
