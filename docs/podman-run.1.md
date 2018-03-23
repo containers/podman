@@ -21,13 +21,13 @@ If the IMAGE is not already loaded then **podman run** will pull the IMAGE, and
 all image dependencies, from the repository in the same way running **podman
 pull** IMAGE, before it starts the container from that image.
 
-Several files will be automatically created within the container when it is run.
-These include `/etc/hosts`, `/etc/hostname`, and `/etc/resolv.conf` to manage
-networking. These will be based on the host's version of the files, though they
-can be customized with options (for example, **--dns** will override the host's
-DNS servers in the created `resolv.conf`). Additionally, an empty file is
-created in each container to indicate to programs they are running in a
-container. This file is located at `/run/.containerenv`.
+Several files will be automatically created within the container. These include
+`/etc/hosts`, `/etc/hostname`, and `/etc/resolv.conf` to manage networking.
+These will be based on the host's version of the files, though they can be
+customized with options (for example, **--dns** will override the host's DNS
+servers in the created `resolv.conf`). Additionally, an empty file is created in
+each container to indicate to programs they are running in a container. This file
+is located at `/run/.containerenv`.
 
 ## OPTIONS
 **--add-host**=[]
