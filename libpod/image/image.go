@@ -354,6 +354,7 @@ func getImageDigest(src types.ImageReference, ctx *types.SystemContext) (string,
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
+	i.reloadImage()
 	decomposedTag, err := decompose(tag)
 	if err != nil {
 		return err
@@ -367,12 +368,16 @@ func (i *Image) TagImage(tag string) error {
 		return nil
 	}
 	tags = append(tags, tag)
+	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
+		return err
+	}
 	i.reloadImage()
-	return i.imageruntime.store.SetNames(i.ID(), tags)
+	return nil
 }
 
 // UntagImage removes a tag from the given image
 func (i *Image) UntagImage(tag string) error {
+	i.reloadImage()
 	var newTags []string
 	tags := i.Names()
 	if !util.StringInSlice(tag, tags) {
@@ -383,8 +388,11 @@ func (i *Image) UntagImage(tag string) error {
 			newTags = append(newTags, t)
 		}
 	}
+	if err := i.imageruntime.store.SetNames(i.ID(), newTags); err != nil {
+		return err
+	}
 	i.reloadImage()
-	return i.imageruntime.store.SetNames(i.ID(), newTags)
+	return nil
 }
 
 // PushImage pushes the given image to a location described by the given path
