@@ -2350,6 +2350,41 @@ func stringSliceWithoutValue(slice []string, value string) []string {
 	return modified
 }
 
+func copyStringSlice(slice []string) []string {
+	if len(slice) == 0 {
+		return nil
+	}
+	ret := make([]string, len(slice))
+	copy(ret, slice)
+	return ret
+}
+
+func copyStringInt64Map(m map[string]int64) map[string]int64 {
+	ret := make(map[string]int64, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
+func copyStringDigestMap(m map[string]digest.Digest) map[string]digest.Digest {
+	ret := make(map[string]digest.Digest, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
+// copyStringInterfaceMap still forces us to assume that the interface{} is
+// a non-pointer scalar value
+func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
+	ret := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
 const configFile = "/etc/containers/storage.conf"
 
 // OptionsConfig represents the "storage.options" TOML config table.

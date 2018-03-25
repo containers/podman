@@ -223,10 +223,29 @@ type layerStore struct {
 	byuncompressedsum map[digest.Digest][]string
 }
 
+func copyLayer(l *Layer) *Layer {
+	return &Layer{
+		ID:                 l.ID,
+		Names:              copyStringSlice(l.Names),
+		Parent:             l.Parent,
+		Metadata:           l.Metadata,
+		MountLabel:         l.MountLabel,
+		MountPoint:         l.MountPoint,
+		MountCount:         l.MountCount,
+		Created:            l.Created,
+		CompressedDigest:   l.CompressedDigest,
+		CompressedSize:     l.CompressedSize,
+		UncompressedDigest: l.UncompressedDigest,
+		UncompressedSize:   l.UncompressedSize,
+		CompressionType:    l.CompressionType,
+		Flags:              copyStringInterfaceMap(l.Flags),
+	}
+}
+
 func (r *layerStore) Layers() ([]Layer, error) {
 	layers := make([]Layer, len(r.layers))
 	for i := range r.layers {
-		layers[i] = *(r.layers[i])
+		layers[i] = *copyLayer(r.layers[i])
 	}
 	return layers, nil
 }
@@ -558,7 +577,7 @@ func (r *layerStore) Put(id, parent string, names []string, mountLabel string, o
 			return nil, -1, err
 		}
 	}
-	return layer, size, err
+	return copyLayer(layer), size, err
 }
 
 func (r *layerStore) CreateWithFlags(id, parent string, names []string, mountLabel string, options map[string]string, writeable bool, flags map[string]interface{}) (layer *Layer, err error) {
@@ -731,7 +750,7 @@ func (r *layerStore) Exists(id string) bool {
 
 func (r *layerStore) Get(id string) (*Layer, error) {
 	if layer, ok := r.lookup(id); ok {
-		return layer, nil
+		return copyLayer(layer), nil
 	}
 	return nil, ErrLayerUnknown
 }
@@ -1003,7 +1022,7 @@ func (r *layerStore) layersByDigestMap(m map[digest.Digest][]string, d digest.Di
 		if !ok {
 			return nil, ErrLayerUnknown
 		}
-		layers = append(layers, *layer)
+		layers = append(layers, *copyLayer(layer))
 	}
 	return layers, nil
 }

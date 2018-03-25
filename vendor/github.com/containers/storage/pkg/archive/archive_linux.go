@@ -5,21 +5,27 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/containers/storage/pkg/system"
 	"golang.org/x/sys/unix"
 )
 
-func getWhiteoutConverter(format WhiteoutFormat) tarWhiteoutConverter {
+func getWhiteoutConverter(format WhiteoutFormat, data interface{}) tarWhiteoutConverter {
 	if format == OverlayWhiteoutFormat {
-		return overlayWhiteoutConverter{}
+		if rolayers, ok := data.([]string); ok && len(rolayers) > 0 {
+			return overlayWhiteoutConverter{rolayers: rolayers}
+		}
+		return overlayWhiteoutConverter{rolayers: nil}
 	}
 	return nil
 }
 
-type overlayWhiteoutConverter struct{}
+type overlayWhiteoutConverter struct {
+	rolayers []string
+}
 
-func (overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os.FileInfo) (wo *tar.Header, err error) {
+func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os.FileInfo) (wo *tar.Header, err error) {
 	// convert whiteouts to AUFS format
 	if fi.Mode()&os.ModeCharDevice != 0 && hdr.Devmajor == 0 && hdr.Devminor == 0 {
 		// we just rename the file and make it normal
@@ -31,7 +37,7 @@ func (overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os
 	}
 
 	if fi.Mode()&os.ModeDir != 0 {
-		// convert opaque dirs to AUFS format by writing an empty file with the prefix
+		// convert opaque dirs to AUFS format by writing an empty file with the whiteout prefix
 		opaque, err := system.Lgetxattr(path, "trusted.overlay.opaque")
 		if err != nil {
 			return nil, err
@@ -40,20 +46,64 @@ func (overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os
 			if hdr.Xattrs != nil {
 				delete(hdr.Xattrs, "trusted.overlay.opaque")
 			}
-
-			// create a header for the whiteout file
-			// it should inherit some properties from the parent, but be a regular file
-			wo = &tar.Header{
-				Typeflag:   tar.TypeReg,
-				Mode:       hdr.Mode & int64(os.ModePerm),
-				Name:       filepath.Join(hdr.Name, WhiteoutOpaqueDir),
-				Size:       0,
-				Uid:        hdr.Uid,
-				Uname:      hdr.Uname,
-				Gid:        hdr.Gid,
-				Gname:      hdr.Gname,
-				AccessTime: hdr.AccessTime,
-				ChangeTime: hdr.ChangeTime,
+			// If there are no lower layers, then it can't have been deleted in this layer.
+			if len(o.rolayers) == 0 {
+				return nil, nil
+			}
+			// At this point, we have a directory that's opaque.  If it appears in one of the lower
+			// layers, then it was newly-created here, so it wasn't also deleted here.
+			for _, rolayer := range o.rolayers {
+				stat, statErr := os.Stat(filepath.Join(rolayer, hdr.Name))
+				if statErr != nil && !os.IsNotExist(statErr) && !isENOTDIR(statErr) {
+					// Not sure what happened here.
+					return nil, statErr
+				}
+				if statErr == nil {
+					if stat.Mode()&os.ModeCharDevice != 0 {
+						// It's a whiteout for this directory, so it can't have been
+						// both deleted and recreated in the layer we're diffing.
+						s := stat.Sys().(*syscall.Stat_t)
+						if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+							return nil, nil
+						}
+					}
+					// It's not whiteout, so it was there in the older layer, so we need to
+					// add a whiteout for this item in this layer.
+					// create a header for the whiteout file
+					// it should inherit some properties from the parent, but be a regular file
+					wo = &tar.Header{
+						Typeflag:   tar.TypeReg,
+						Mode:       hdr.Mode & int64(os.ModePerm),
+						Name:       filepath.Join(hdr.Name, WhiteoutOpaqueDir),
+						Size:       0,
+						Uid:        hdr.Uid,
+						Uname:      hdr.Uname,
+						Gid:        hdr.Gid,
+						Gname:      hdr.Gname,
+						AccessTime: hdr.AccessTime,
+						ChangeTime: hdr.ChangeTime,
+					}
+					break
+				}
+				for dir := filepath.Dir(hdr.Name); dir != "" && dir != "." && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
+					// Check for whiteout for a parent directory in a parent layer.
+					stat, statErr := os.Stat(filepath.Join(rolayer, dir))
+					if statErr != nil && !os.IsNotExist(statErr) && !isENOTDIR(statErr) {
+						// Not sure what happened here.
+						return nil, statErr
+					}
+					if statErr == nil {
+						if stat.Mode()&os.ModeCharDevice != 0 {
+							// If it's whiteout for a parent directory, then the
+							// original directory wasn't inherited into this layer,
+							// so we don't need to emit whiteout for it.
+							s := stat.Sys().(*syscall.Stat_t)
+							if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+								return nil, nil
+							}
+						}
+					}
+				}
 			}
 		}
 	}
