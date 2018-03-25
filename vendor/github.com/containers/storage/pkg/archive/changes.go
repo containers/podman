@@ -81,7 +81,7 @@ func sameFsTimeSpec(a, b syscall.Timespec) bool {
 // Changes walks the path rw and determines changes for the files in the path,
 // with respect to the parent layers
 func Changes(layers []string, rw string) ([]Change, error) {
-	return changes(layers, rw, aufsDeletedFile, aufsMetadataSkip)
+	return changes(layers, rw, aufsDeletedFile, aufsMetadataSkip, aufsWhiteoutPresent)
 }
 
 func aufsMetadataSkip(path string) (skip bool, err error) {
@@ -104,10 +104,35 @@ func aufsDeletedFile(root, path string, fi os.FileInfo) (string, error) {
 	return "", nil
 }
 
+func aufsWhiteoutPresent(root, path string) (bool, error) {
+	f := filepath.Join(filepath.Dir(path), WhiteoutPrefix+filepath.Base(path))
+	_, err := os.Stat(filepath.Join(root, f))
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) || isENOTDIR(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func isENOTDIR(err error) bool {
+	if err == nil {
+		return false
+	}
+	if perror, ok := err.(*os.PathError); ok {
+		if errno, ok := perror.Err.(syscall.Errno); ok {
+			return errno == syscall.ENOTDIR
+		}
+	}
+	return false
+}
+
 type skipChange func(string) (bool, error)
 type deleteChange func(string, string, os.FileInfo) (string, error)
+type whiteoutChange func(string, string) (bool, error)
 
-func changes(layers []string, rw string, dc deleteChange, sc skipChange) ([]Change, error) {
+func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whiteoutChange) ([]Change, error) {
 	var (
 		changes     []Change
 		changedDirs = make(map[string]struct{})
@@ -156,7 +181,28 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange) ([]Chan
 			change.Kind = ChangeAdd
 
 			// ...Unless it already existed in a top layer, in which case, it's a modification
+		layerScan:
 			for _, layer := range layers {
+				if wc != nil {
+					// ...Unless a lower layer also had whiteout for this directory or one of its parents,
+					// in which case, it's new
+					ignore, err := wc(layer, path)
+					if err != nil {
+						return err
+					}
+					if ignore {
+						break layerScan
+					}
+					for dir := filepath.Dir(path); dir != "" && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
+						ignore, err = wc(layer, dir)
+						if err != nil {
+							return err
+						}
+						if ignore {
+							break layerScan
+						}
+					}
+				}
 				stat, err := os.Stat(filepath.Join(layer, path))
 				if err != nil && !os.IsNotExist(err) {
 					return err
@@ -187,10 +233,15 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange) ([]Chan
 		}
 		if change.Kind == ChangeAdd || change.Kind == ChangeDelete {
 			parent := filepath.Dir(path)
-			if _, ok := changedDirs[parent]; !ok && parent != "/" {
-				changes = append(changes, Change{Path: parent, Kind: ChangeModify})
-				changedDirs[parent] = struct{}{}
+			tail := []Change{}
+			for parent != "/" {
+				if _, ok := changedDirs[parent]; !ok && parent != "/" {
+					tail = append([]Change{{Path: parent, Kind: ChangeModify}}, tail...)
+					changedDirs[parent] = struct{}{}
+				}
+				parent = filepath.Dir(parent)
 			}
+			changes = append(changes, tail...)
 		}
 
 		// Record change

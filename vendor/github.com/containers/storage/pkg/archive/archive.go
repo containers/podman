@@ -45,6 +45,10 @@ type (
 		// This format will be converted to the standard format on pack
 		// and from the standard format on unpack.
 		WhiteoutFormat WhiteoutFormat
+		// This is additional data to be used by the converter.  It will
+		// not survive a round trip through JSON, so it's primarily
+		// intended for generating archives (i.e., converting writes).
+		WhiteoutData interface{}
 		// When unpacking, specifies whether overwriting a directory with a
 		// non-directory is allowed and vice versa.
 		NoOverwriteDirNonDir bool
@@ -702,7 +706,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			compressWriter,
 			options.ChownOpts,
 		)
-		ta.WhiteoutConverter = getWhiteoutConverter(options.WhiteoutFormat)
+		ta.WhiteoutConverter = getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 
 		defer func() {
 			// Make sure to check the error on Close.
@@ -860,7 +864,7 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 	var dirs []*tar.Header
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 	rootIDs := idMappings.RootPair()
-	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat)
+	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 
 	// Iterate through the files in the archive.
 loop:

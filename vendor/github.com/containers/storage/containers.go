@@ -106,10 +106,25 @@ type containerStore struct {
 	byname     map[string]*Container
 }
 
+func copyContainer(c *Container) *Container {
+	return &Container{
+		ID:             c.ID,
+		Names:          copyStringSlice(c.Names),
+		ImageID:        c.ImageID,
+		LayerID:        c.LayerID,
+		Metadata:       c.Metadata,
+		BigDataNames:   copyStringSlice(c.BigDataNames),
+		BigDataSizes:   copyStringInt64Map(c.BigDataSizes),
+		BigDataDigests: copyStringDigestMap(c.BigDataDigests),
+		Created:        c.Created,
+		Flags:          copyStringInterfaceMap(c.Flags),
+	}
+}
+
 func (r *containerStore) Containers() ([]Container, error) {
 	containers := make([]Container, len(r.containers))
 	for i := range r.containers {
-		containers[i] = *(r.containers[i])
+		containers[i] = *copyContainer(r.containers[i])
 	}
 	return containers, nil
 }
@@ -277,7 +292,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 		}
 		err = r.Save()
 	}
-	return container, err
+	return copyContainer(container), err
 }
 
 func (r *containerStore) Metadata(id string) (string, error) {
@@ -355,7 +370,7 @@ func (r *containerStore) Delete(id string) error {
 
 func (r *containerStore) Get(id string) (*Container, error) {
 	if container, ok := r.lookup(id); ok {
-		return container, nil
+		return copyContainer(container), nil
 	}
 	return nil, ErrContainerUnknown
 }
@@ -444,7 +459,7 @@ func (r *containerStore) BigDataNames(id string) ([]string, error) {
 	if !ok {
 		return nil, ErrContainerUnknown
 	}
-	return c.BigDataNames, nil
+	return copyStringSlice(c.BigDataNames), nil
 }
 
 func (r *containerStore) SetBigData(id, key string, data []byte) error {
