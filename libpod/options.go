@@ -766,3 +766,14 @@ func WithHosts(hosts []string) CtrCreateOption {
 		return nil
 	}
 }
+
+// WithConmonPidFile specifies the path to the file that receives the pid of conmon
+func WithConmonPidFile(path string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.ConmonPidFile = path
+		return nil
+	}
+}
