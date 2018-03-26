@@ -30,6 +30,7 @@ const (
 	// reboot
 	InMemoryStateStore RuntimeStateStore = iota
 	// SQLiteStateStore is a state backed by a SQLite database
+	// It is presently disabled
 	SQLiteStateStore RuntimeStateStore = iota
 	// BoltDBStateStore is a state backed by a BoltDB database
 	BoltDBStateStore RuntimeStateStore = iota
@@ -386,23 +387,7 @@ func makeRuntime(runtime *Runtime) error {
 		}
 		runtime.state = state
 	case SQLiteStateStore:
-		dbPath := filepath.Join(runtime.config.StaticDir, "sql_state.db")
-		specsDir := filepath.Join(runtime.config.StaticDir, "ocispec")
-
-		// Make a directory to hold JSON versions of container OCI specs
-		if err := os.MkdirAll(specsDir, 0755); err != nil {
-			// The directory is allowed to exist
-			if !os.IsExist(err) {
-				return errors.Wrapf(err, "error creating runtime OCI specs directory %s",
-					specsDir)
-			}
-		}
-
-		state, err := NewSQLState(dbPath, specsDir, runtime.lockDir, runtime)
-		if err != nil {
-			return err
-		}
-		runtime.state = state
+		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
 	case BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
 
