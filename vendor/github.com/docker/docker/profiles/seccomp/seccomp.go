@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/stringutils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
@@ -36,17 +37,6 @@ var nativeToSeccomp = map[string]types.Arch{
 	"mipsel64":    types.ArchMIPSEL64,
 	"mipsel64n32": types.ArchMIPSEL64N32,
 	"s390x":       types.ArchS390X,
-}
-
-// inSlice tests whether a string is contained in a slice of strings or not.
-// Comparison is case sensitive
-func inSlice(slice []string, s string) bool {
-	for _, ss := range slice {
-		if s == ss {
-			return true
-		}
-	}
-	return false
 }
 
 func setupSeccomp(config *types.Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
@@ -99,25 +89,25 @@ Loop:
 	// Loop through all syscall blocks and convert them to libcontainer format after filtering them
 	for _, call := range config.Syscalls {
 		if len(call.Excludes.Arches) > 0 {
-			if inSlice(call.Excludes.Arches, arch) {
+			if stringutils.InSlice(call.Excludes.Arches, arch) {
 				continue Loop
 			}
 		}
 		if len(call.Excludes.Caps) > 0 {
 			for _, c := range call.Excludes.Caps {
-				if inSlice(rs.Process.Capabilities.Effective, c) {
+				if stringutils.InSlice(rs.Process.Capabilities.Effective, c) {
 					continue Loop
 				}
 			}
 		}
 		if len(call.Includes.Arches) > 0 {
-			if !inSlice(call.Includes.Arches, arch) {
+			if !stringutils.InSlice(call.Includes.Arches, arch) {
 				continue Loop
 			}
 		}
 		if len(call.Includes.Caps) > 0 {
 			for _, c := range call.Includes.Caps {
-				if !inSlice(rs.Process.Capabilities.Effective, c) {
+				if !stringutils.InSlice(rs.Process.Capabilities.Effective, c) {
 					continue Loop
 				}
 			}

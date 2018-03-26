@@ -1,7 +1,5 @@
 # Go support for Protocol Buffers
 
-[![Build Status](https://travis-ci.org/golang/protobuf.svg?branch=master)](https://travis-ci.org/golang/protobuf)
-
 Google's data interchange format.
 Copyright 2010 The Go Authors.
 https://github.com/golang/protobuf
@@ -24,7 +22,7 @@ To use this software, you must:
   for details or, if you are using gccgo, follow the instructions at
 	https://golang.org/doc/install/gccgo
 - Grab the code from the repository and install the proto package.
-  The simplest way is to run `go get -u github.com/golang/protobuf/protoc-gen-go`.
+  The simplest way is to run `go get -u github.com/golang/protobuf/{proto,protoc-gen-go}`.
   The compiler plugin, protoc-gen-go, will be installed in $GOBIN,
   defaulting to $GOPATH/bin.  It must be in your $PATH for the protocol
   compiler, protoc, to find it.
@@ -106,6 +104,7 @@ for a protocol buffer variable v:
 When the .proto file specifies `syntax="proto3"`, there are some differences:
 
   - Non-repeated fields of non-message type are values instead of pointers.
+  - Getters are only generated for message and oneof fields.
   - Enum types do not get an Enum method.
 
 Consider file test.proto, containing

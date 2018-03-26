@@ -50,6 +50,9 @@ type Selector interface {
 
 	// String returns a human readable string that represents this selector.
 	String() string
+
+	// Make a deep copy of the selector.
+	DeepCopySelector() Selector
 }
 
 // Everything returns a selector that matches all fields.
@@ -99,6 +102,15 @@ func (t *hasTerm) String() string {
 	return fmt.Sprintf("%v=%v", t.field, EscapeValue(t.value))
 }
 
+func (t *hasTerm) DeepCopySelector() Selector {
+	if t == nil {
+		return nil
+	}
+	out := new(hasTerm)
+	*out = *t
+	return out
+}
+
 type notHasTerm struct {
 	field, value string
 }
@@ -136,6 +148,15 @@ func (t *notHasTerm) Requirements() Requirements {
 
 func (t *notHasTerm) String() string {
 	return fmt.Sprintf("%v!=%v", t.field, EscapeValue(t.value))
+}
+
+func (t *notHasTerm) DeepCopySelector() Selector {
+	if t == nil {
+		return nil
+	}
+	out := new(notHasTerm)
+	*out = *t
+	return out
 }
 
 type andTerm []Selector
@@ -205,6 +226,17 @@ func (t andTerm) String() string {
 		terms = append(terms, q.String())
 	}
 	return strings.Join(terms, ",")
+}
+
+func (t andTerm) DeepCopySelector() Selector {
+	if t == nil {
+		return nil
+	}
+	out := make([]Selector, len(t))
+	for i := range t {
+		out[i] = t[i].DeepCopySelector()
+	}
+	return andTerm(out)
 }
 
 // SelectorFromSet returns a Selector which will match exactly the given Set. A
@@ -364,7 +396,7 @@ const (
 var termOperators = []string{notEqualOperator, doubleEqualOperator, equalOperator}
 
 // splitTerm returns the lhs, operator, and rhs parsed from the given term, along with an indicator of whether the parse was successful.
-// no escaping of special characters is supported in the lhs value, so the first occurance of a recognized operator is used as the split point.
+// no escaping of special characters is supported in the lhs value, so the first occurrence of a recognized operator is used as the split point.
 // the literal rhs is returned, and the caller is responsible for applying any desired unescaping.
 func splitTerm(term string) (lhs, op, rhs string, ok bool) {
 	for i := range term {

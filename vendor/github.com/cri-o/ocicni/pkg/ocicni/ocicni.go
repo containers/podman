@@ -107,6 +107,23 @@ func (plugin *cniNetworkPlugin) monitorNetDir() {
 	}
 	defer watcher.Close()
 
+	if err = watcher.Add(plugin.pluginDir); err != nil {
+		logrus.Errorf("Failed to add watch on %q: %v", plugin.pluginDir, err)
+		return
+	}
+
+	// Now that `watcher` is running and watching the `pluginDir`
+	// gather the initial configuration, before starting the
+	// goroutine which will actually process events. It has to be
+	// done in this order to avoid missing any updates which might
+	// otherwise occur between gathering the initial configuration
+	// and starting the watcher.
+	if err := plugin.syncNetworkConfig(); err != nil {
+		logrus.Infof("Initial CNI setting failed, continue monitoring: %v", err)
+	} else {
+		logrus.Infof("Initial CNI setting succeeded")
+	}
+
 	go func() {
 		for {
 			select {
@@ -132,11 +149,6 @@ func (plugin *cniNetworkPlugin) monitorNetDir() {
 		}
 	}()
 
-	if err = watcher.Add(plugin.pluginDir); err != nil {
-		logrus.Error(err)
-		return
-	}
-
 	<-plugin.monitorNetDirChan
 }
 
@@ -161,18 +173,13 @@ func InitCNI(pluginDir string, cniDirs ...string) (CNIPlugin, error) {
 		return nil, err
 	}
 
-	// Fail loudly if plugin directory doesn't exist, because fsnotify watcher
-	// won't be able to watch it.
-	if _, err := os.Stat(pluginDir); err != nil {
+	// Ensure plugin directory exists, because the following monitoring logic
+	// relies on that.
+	if err := os.MkdirAll(pluginDir, 0755); err != nil {
 		return nil, err
 	}
 
-	if err := plugin.syncNetworkConfig(); err != nil {
-		// We do not have a valid default network, so start the
-		// monitoring thread.  Network setup/teardown requests
-		// will fail until we have a valid default network.
-		go plugin.monitorNetDir()
-	}
+	go plugin.monitorNetDir()
 
 	return plugin, nil
 }
@@ -343,6 +350,9 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) (stri
 	defer plugin.podUnlock(podNetwork)
 
 	ip, err := getContainerIP(plugin.nsenterPath, podNetwork.NetNS, DefaultInterfaceName, "-4")
+	if err != nil {
+		ip, err = getContainerIP(plugin.nsenterPath, podNetwork.NetNS, DefaultInterfaceName, "-6")
+	}
 	if err != nil {
 		return "", err
 	}

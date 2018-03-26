@@ -124,6 +124,12 @@ func process(dst interface{}, src interface{}, args ...Options) error {
 
 		// Valuer -> ptr
 		if isNullableType(srcFieldType.Type) && dstFieldValue.Kind() == reflect.Ptr && force {
+			// We have same nullable type on both sides
+			if srcFieldValue.Type().AssignableTo(dstFieldType.Type) {
+				dstFieldValue.Set(srcFieldValue)
+				continue
+			}
+
 			v, _ := srcFieldValue.Interface().(driver.Valuer).Value()
 			if v == nil {
 				continue
@@ -143,6 +149,12 @@ func process(dst interface{}, src interface{}, args ...Options) error {
 
 		// Valuer -> value
 		if isNullableType(srcFieldType.Type) {
+			// We have same nullable type on both sides
+			if srcFieldValue.Type().AssignableTo(dstFieldType.Type) {
+				dstFieldValue.Set(srcFieldValue)
+				continue
+			}
+
 			if force {
 				v, _ := srcFieldValue.Interface().(driver.Valuer).Value()
 				if v == nil {

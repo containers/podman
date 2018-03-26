@@ -40,6 +40,7 @@ var SignalMap = map[string]syscall.Signal{
 	"TSTP":     unix.SIGTSTP,
 	"TTIN":     unix.SIGTTIN,
 	"TTOU":     unix.SIGTTOU,
+	"UNUSED":   unix.SIGUNUSED,
 	"URG":      unix.SIGURG,
 	"USR1":     unix.SIGUSR1,
 	"USR2":     unix.SIGUSR2,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 
 	"github.com/docker/docker/api/types"
@@ -18,7 +19,10 @@ func (cli *Client) ServiceInspectWithRaw(ctx context.Context, serviceID string, 
 	query.Set("insertDefaults", fmt.Sprintf("%v", opts.InsertDefaults))
 	serverResp, err := cli.get(ctx, "/services/"+serviceID, query, nil)
 	if err != nil {
-		return swarm.Service{}, nil, wrapResponseError(err, serverResp, "service", serviceID)
+		if serverResp.statusCode == http.StatusNotFound {
+			return swarm.Service{}, nil, serviceNotFoundError{serviceID}
+		}
+		return swarm.Service{}, nil, err
 	}
 	defer ensureReaderClosed(serverResp)
 

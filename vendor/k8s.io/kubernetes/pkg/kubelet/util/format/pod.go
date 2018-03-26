@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 type podHandler func(*v1.Pod) string
@@ -51,7 +51,7 @@ func PodWithDeletionTimestamp(pod *v1.Pod) string {
 	return Pod(pod) + deletionTimestamp
 }
 
-// Pods returns a string representating a list of pods in a human
+// Pods returns a string representation a list of pods in a human
 // readable format.
 func Pods(pods []*v1.Pod) string {
 	return aggregatePods(pods, Pod)
