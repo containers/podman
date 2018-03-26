@@ -465,6 +465,9 @@ func (i *Image) ToImageRef() (types.Image, error) {
 
 // toImageRef returns an Image Reference type from an image
 func (i *Image) toImageRef() (types.Image, error) {
+	if i == nil {
+		return nil, errors.Errorf("cannot convert nil image to image reference")
+	}
 	if i.imgRef == nil {
 		ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
 		if err != nil {

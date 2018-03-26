@@ -56,6 +56,9 @@ func runCmd(c *cli.Context) error {
 
 	rtc := runtime.GetConfig()
 	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "unable to find image")
+	}
 
 	data, err := newImage.Inspect()
 	if err != nil {
