@@ -24,7 +24,6 @@ const (
 
 var (
 	testedStates = map[string]emptyStateFunc{
-		"sql":       getEmptySQLState,
 		"in-memory": getEmptyInMemoryState,
 		"boltdb":    getEmptyBoltState,
 	}
@@ -77,35 +76,6 @@ func getEmptyInMemoryState() (s State, p string, p2 string, err error) {
 	// Don't need a separate locks dir as InMemoryState stores nothing on
 	// disk
 	return state, tmpDir, tmpDir, nil
-}
-
-// Get an empty SQL state for use in tests
-// An empty Runtime is provided
-func getEmptySQLState() (s State, p string, p2 string, err error) {
-	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
-	if err != nil {
-		return nil, "", "", err
-	}
-	defer func() {
-		if err != nil {
-			os.RemoveAll(tmpDir)
-		}
-	}()
-
-	dbPath := filepath.Join(tmpDir, "db.sql")
-	specsDir := filepath.Join(tmpDir, "specs")
-	lockDir := filepath.Join(tmpDir, "locks")
-
-	runtime := new(Runtime)
-	runtime.config = new(RuntimeConfig)
-	runtime.config.StorageConfig = storage.StoreOptions{}
-
-	state, err := NewSQLState(dbPath, specsDir, lockDir, runtime)
-	if err != nil {
-		return nil, "", "", err
-	}
-
-	return state, tmpDir, lockDir, nil
 }
 
 func runForAllStates(t *testing.T, testFunc func(*testing.T, State, string)) {
