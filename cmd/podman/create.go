@@ -74,6 +74,7 @@ type createConfig struct {
 	CapAdd             []string // cap-add
 	CapDrop            []string // cap-drop
 	CidFile            string
+	ConmonPidFile      string
 	CgroupParent       string // cgroup-parent
 	Command            []string
 	Detach             bool              // detach
@@ -201,6 +202,7 @@ func createCmd(c *cli.Context) error {
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, useImageVolumes))
 	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
+	options = append(options, libpod.WithConmonPidFile(createConfig.ConmonPidFile))
 	options = append(options, libpod.WithLabels(createConfig.Labels))
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
@@ -611,6 +613,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	config := &createConfig{
 		Runtime:           runtime,
 		BuiltinImgVolumes: ImageVolumes,
+		ConmonPidFile:     c.String("conmon-pidfile"),
 		ImageVolumeType:   c.String("image-volume"),
 		CapAdd:            c.StringSlice("cap-add"),
 		CapDrop:           c.StringSlice("cap-drop"),

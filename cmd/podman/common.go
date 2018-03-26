@@ -101,6 +101,10 @@ var createFlags = []cli.Flag{
 		Name:  "cidfile",
 		Usage: "Write the container ID to the file",
 	},
+	cli.StringFlag{
+		Name:  "conmon-pidfile",
+		Usage: "path to the file that will receive the PID of conmon",
+	},
 	cli.Uint64Flag{
 		Name:  "cpu-period",
 		Usage: "Limit the CPU CFS (Completely Fair Scheduler) period",
