@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/docker/docker/api/types/swarm"
 	"golang.org/x/net/context"
@@ -16,7 +17,10 @@ func (cli *Client) SecretInspectWithRaw(ctx context.Context, id string) (swarm.S
 	}
 	resp, err := cli.get(ctx, "/secrets/"+id, nil, nil)
 	if err != nil {
-		return swarm.Secret{}, nil, wrapResponseError(err, resp, "secret", id)
+		if resp.statusCode == http.StatusNotFound {
+			return swarm.Secret{}, nil, secretNotFoundError{id}
+		}
+		return swarm.Secret{}, nil, err
 	}
 	defer ensureReaderClosed(resp)
 

@@ -18,7 +18,7 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
-	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	pb "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 )
 
 // Note: for flags that are in the form <number><unit>, use the RAMInBytes function

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 
 	"github.com/docker/docker/api/types"
@@ -32,7 +33,10 @@ func (cli *Client) NetworkInspectWithRaw(ctx context.Context, networkID string, 
 	}
 	resp, err = cli.get(ctx, "/networks/"+networkID, query, nil)
 	if err != nil {
-		return networkResource, nil, wrapResponseError(err, resp, "network", networkID)
+		if resp.statusCode == http.StatusNotFound {
+			return networkResource, nil, networkNotFoundError{networkID}
+		}
+		return networkResource, nil, err
 	}
 	defer ensureReaderClosed(resp)
 

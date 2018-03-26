@@ -251,7 +251,7 @@ func HashIdToHash(id byte) (h crypto.Hash, ok bool) {
 }
 
 // HashIdToString returns the name of the hash function corresponding to the
-// given OpenPGP hash id, or panics if id is unknown.
+// given OpenPGP hash id.
 func HashIdToString(id byte) (name string, ok bool) {
 	for _, m := range hashToHashIdMapping {
 		if m.id == id {

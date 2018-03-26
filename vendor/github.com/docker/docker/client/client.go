@@ -1,6 +1,10 @@
 /*
 Package client is a Go client for the Docker Engine API.
 
+The "docker" command uses this package to communicate with the daemon. It can also
+be used by your own Go applications to do anything the command-line interface does
+- running containers, pulling images, managing swarms, etc.
+
 For more information about the Engine API, see the documentation:
 https://docs.docker.com/engine/reference/api/
 
@@ -47,7 +51,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -156,7 +159,7 @@ func NewEnvClient() (*Client, error) {
 // highly recommended that you set a version or your client may break if the
 // server is upgraded.
 func NewClient(host string, version string, client *http.Client, httpHeaders map[string]string) (*Client, error) {
-	hostURL, err := ParseHostURL(host)
+	proto, addr, basePath, err := ParseHost(host)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +170,7 @@ func NewClient(host string, version string, client *http.Client, httpHeaders map
 		}
 	} else {
 		transport := new(http.Transport)
-		sockets.ConfigureTransport(transport, hostURL.Scheme, hostURL.Host)
+		sockets.ConfigureTransport(transport, proto, addr)
 		client = &http.Client{
 			Transport:     transport,
 			CheckRedirect: CheckRedirect,
@@ -185,24 +188,28 @@ func NewClient(host string, version string, client *http.Client, httpHeaders map
 		scheme = "https"
 	}
 
-	// TODO: store URL instead of proto/addr/basePath
 	return &Client{
 		scheme:            scheme,
 		host:              host,
-		proto:             hostURL.Scheme,
-		addr:              hostURL.Host,
-		basePath:          hostURL.Path,
+		proto:             proto,
+		addr:              addr,
+		basePath:          basePath,
 		client:            client,
 		version:           version,
 		customHTTPHeaders: httpHeaders,
 	}, nil
 }
 
-// Close the transport used by the client
+// Close ensures that transport.Client is closed
+// especially needed while using NewClient with *http.Client = nil
+// for example
+// client.NewClient("unix:///var/run/docker.sock", nil, "v1.18", map[string]string{"User-Agent": "engine-api-cli-1.0"})
 func (cli *Client) Close() error {
+
 	if t, ok := cli.client.Transport.(*http.Transport); ok {
 		t.CloseIdleConnections()
 	}
+
 	return nil
 }
 
@@ -212,27 +219,37 @@ func (cli *Client) getAPIPath(p string, query url.Values) string {
 	var apiPath string
 	if cli.version != "" {
 		v := strings.TrimPrefix(cli.version, "v")
-		apiPath = path.Join(cli.basePath, "/v"+v, p)
+		apiPath = cli.basePath + "/v" + v + p
 	} else {
-		apiPath = path.Join(cli.basePath, p)
+		apiPath = cli.basePath + p
 	}
-	return (&url.URL{Path: apiPath, RawQuery: query.Encode()}).String()
+
+	u := &url.URL{
+		Path: apiPath,
+	}
+	if len(query) > 0 {
+		u.RawQuery = query.Encode()
+	}
+	return u.String()
 }
 
-// ClientVersion returns the API version used by this client.
+// ClientVersion returns the version string associated with this
+// instance of the Client. Note that this value can be changed
+// via the DOCKER_API_VERSION env var.
+// This operation doesn't acquire a mutex.
 func (cli *Client) ClientVersion() string {
 	return cli.version
 }
 
-// NegotiateAPIVersion queries the API and updates the version to match the
-// API version. Any errors are silently ignored.
+// NegotiateAPIVersion updates the version string associated with this
+// instance of the Client to match the latest version the server supports
 func (cli *Client) NegotiateAPIVersion(ctx context.Context) {
 	ping, _ := cli.Ping(ctx)
 	cli.NegotiateAPIVersionPing(ping)
 }
 
-// NegotiateAPIVersionPing updates the client version to match the Ping.APIVersion
-// if the ping version is less than the default version.
+// NegotiateAPIVersionPing updates the version string associated with this
+// instance of the Client to match the latest version the server supports
 func (cli *Client) NegotiateAPIVersionPing(p types.Ping) {
 	if cli.manualOverride {
 		return
@@ -248,34 +265,23 @@ func (cli *Client) NegotiateAPIVersionPing(p types.Ping) {
 		cli.version = api.DefaultVersion
 	}
 
-	// if server version is lower than the client version, downgrade
-	if versions.LessThan(p.APIVersion, cli.version) {
+	// if server version is lower than the maximum version supported by the Client, downgrade
+	if versions.LessThan(p.APIVersion, api.DefaultVersion) {
 		cli.version = p.APIVersion
 	}
 }
 
-// DaemonHost returns the host address used by the client
+// DaemonHost returns the host associated with this instance of the Client.
+// This operation doesn't acquire a mutex.
 func (cli *Client) DaemonHost() string {
 	return cli.host
 }
 
-// ParseHost parses a url string, validates the strings is a host url, and returns
-// the parsed host as: protocol, address, and base path
-// Deprecated: use ParseHostURL
+// ParseHost verifies that the given host strings is valid.
 func ParseHost(host string) (string, string, string, error) {
-	hostURL, err := ParseHostURL(host)
-	if err != nil {
-		return "", "", "", err
-	}
-	return hostURL.Scheme, hostURL.Host, hostURL.Path, nil
-}
-
-// ParseHostURL parses a url string, validates the string is a host url, and
-// returns the parsed URL
-func ParseHostURL(host string) (*url.URL, error) {
 	protoAddrParts := strings.SplitN(host, "://", 2)
 	if len(protoAddrParts) == 1 {
-		return nil, fmt.Errorf("unable to parse docker host `%s`", host)
+		return "", "", "", fmt.Errorf("unable to parse docker host `%s`", host)
 	}
 
 	var basePath string
@@ -283,19 +289,16 @@ func ParseHostURL(host string) (*url.URL, error) {
 	if proto == "tcp" {
 		parsed, err := url.Parse("tcp://" + addr)
 		if err != nil {
-			return nil, err
+			return "", "", "", err
 		}
 		addr = parsed.Host
 		basePath = parsed.Path
 	}
-	return &url.URL{
-		Scheme: proto,
-		Host:   addr,
-		Path:   basePath,
-	}, nil
+	return proto, addr, basePath, nil
 }
 
-// CustomHTTPHeaders returns the custom http headers stored by the client.
+// CustomHTTPHeaders returns the custom http headers associated with this
+// instance of the Client. This operation doesn't acquire a mutex.
 func (cli *Client) CustomHTTPHeaders() map[string]string {
 	m := make(map[string]string)
 	for k, v := range cli.customHTTPHeaders {
@@ -304,7 +307,8 @@ func (cli *Client) CustomHTTPHeaders() map[string]string {
 	return m
 }
 
-// SetCustomHTTPHeaders that will be set on every HTTP request made by the client.
+// SetCustomHTTPHeaders updates the custom http headers associated with this
+// instance of the Client. This operation doesn't acquire a mutex.
 func (cli *Client) SetCustomHTTPHeaders(headers map[string]string) {
 	cli.customHTTPHeaders = headers
 }

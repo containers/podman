@@ -15,7 +15,7 @@ func (cli *Client) NodeList(ctx context.Context, options types.NodeListOptions) 
 	query := url.Values{}
 
 	if options.Filters.Len() > 0 {
-		filterJSON, err := filters.ToJSON(options.Filters)
+		filterJSON, err := filters.ToParam(options.Filters)
 
 		if err != nil {
 			return nil, err

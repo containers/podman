@@ -83,7 +83,6 @@ Requires:       atomic-registries
 # [thanks to Carl George <carl@george.computer> for containerd.spec]
 Provides: bundled(golang(github.com/asaskevich/govalidator)) = v6
 Provides: bundled(golang(github.com/Azure/go-ansiterm)) = 19f72df4d05d31cbe1c56bfc8045c96babff6c7e
-Provides: bundled(golang(github.com/beorn7/perks)) = 3ac7bf7a47d159a033b107610db8a1b6575507a4
 Provides: bundled(golang(github.com/blang/semver)) = v3.5.0
 Provides: bundled(golang(github.com/buger/goterm)) = 2f8dfbc7dbbff5dd1d391ed91482c24df243b2d3
 Provides: bundled(golang(github.com/BurntSushi/toml)) = v0.2.0
@@ -174,7 +173,6 @@ Provides: bundled(golang(golang.org/x/crypto)) = 3fbbcd23f1cb824e69491a5930cfeff
 Provides: bundled(golang(golang.org/x/net)) = c427ad74c6d7a814201695e9ffde0c5d400a7674
 Provides: bundled(golang(golang.org/x/sys)) = 9aade4d3a3b7e6d876cd3823ad20ec45fc035402
 Provides: bundled(golang(golang.org/x/text)) = f72d8390a633d5dfb0cc84043294db9f6c935756
-Provides: bundled(golang(google.golang.org/grpc)) = v1.0.4
 Provides: bundled(golang(gopkg.in/cheggaaa/pb.v1)) = v1.0.7
 Provides: bundled(golang(gopkg.in/fsnotify.v1)) = v1.4.2
 Provides: bundled(golang(gopkg.in/inf.v0)) = v0.9.0
@@ -227,7 +225,6 @@ BuildRequires: golang(github.com/docker/docker/pkg/term)
 BuildRequires: golang(github.com/docker/docker/pkg/truncindex)
 BuildRequires: golang(github.com/ghodss/yaml)
 BuildRequires: golang(github.com/godbus/dbus)
-BuildRequires: golang(github.com/mattn/go-sqlite3)
 BuildRequires: golang(github.com/mrunalp/fileutils)
 BuildRequires: golang(github.com/opencontainers/go-digest)
 BuildRequires: golang(github.com/opencontainers/image-spec/specs-go/v1)
@@ -280,7 +277,6 @@ Requires:      golang(github.com/docker/docker/pkg/term)
 Requires:      golang(github.com/docker/docker/pkg/truncindex)
 Requires:      golang(github.com/ghodss/yaml)
 Requires:      golang(github.com/godbus/dbus)
-Requires:      golang(github.com/mattn/go-sqlite3)
 Requires:      golang(github.com/mrunalp/fileutils)
 Requires:      golang(github.com/opencontainers/go-digest)
 Requires:      golang(github.com/opencontainers/image-spec/specs-go/v1)

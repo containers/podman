@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,25 +17,20 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1alpha1 "k8s.io/api/admissionregistration/v1alpha1"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
-	v1alpha1 "k8s.io/client-go/pkg/apis/admissionregistration/v1alpha1"
 	rest "k8s.io/client-go/rest"
 )
 
 type AdmissionregistrationV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	ExternalAdmissionHookConfigurationsGetter
 	InitializerConfigurationsGetter
 }
 
 // AdmissionregistrationV1alpha1Client is used to interact with features provided by the admissionregistration.k8s.io group.
 type AdmissionregistrationV1alpha1Client struct {
 	restClient rest.Interface
-}
-
-func (c *AdmissionregistrationV1alpha1Client) ExternalAdmissionHookConfigurations() ExternalAdmissionHookConfigurationInterface {
-	return newExternalAdmissionHookConfigurations(c)
 }
 
 func (c *AdmissionregistrationV1alpha1Client) InitializerConfigurations() InitializerConfigurationInterface {

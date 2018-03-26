@@ -23,7 +23,14 @@ type Winsize struct {
 	Width  uint16
 }
 
-// vtInputSupported is true if winterm.ENABLE_VIRTUAL_TERMINAL_INPUT is supported by the console
+const (
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms683167(v=vs.85).aspx
+	enableVirtualTerminalInput      = 0x0200
+	enableVirtualTerminalProcessing = 0x0004
+	disableNewlineAutoReturn        = 0x0008
+)
+
+// vtInputSupported is true if enableVirtualTerminalInput is supported by the console
 var vtInputSupported bool
 
 // StdStreams returns the standard streams (stdin, stdout, stderr).
@@ -33,8 +40,8 @@ func StdStreams() (stdIn io.ReadCloser, stdOut, stdErr io.Writer) {
 	var emulateStdin, emulateStdout, emulateStderr bool
 	fd := os.Stdin.Fd()
 	if mode, err := winterm.GetConsoleMode(fd); err == nil {
-		// Validate that winterm.ENABLE_VIRTUAL_TERMINAL_INPUT is supported, but do not set it.
-		if err = winterm.SetConsoleMode(fd, mode|winterm.ENABLE_VIRTUAL_TERMINAL_INPUT); err != nil {
+		// Validate that enableVirtualTerminalInput is supported, but do not set it.
+		if err = winterm.SetConsoleMode(fd, mode|enableVirtualTerminalInput); err != nil {
 			emulateStdin = true
 		} else {
 			vtInputSupported = true
@@ -46,21 +53,21 @@ func StdStreams() (stdIn io.ReadCloser, stdOut, stdErr io.Writer) {
 
 	fd = os.Stdout.Fd()
 	if mode, err := winterm.GetConsoleMode(fd); err == nil {
-		// Validate winterm.DISABLE_NEWLINE_AUTO_RETURN is supported, but do not set it.
-		if err = winterm.SetConsoleMode(fd, mode|winterm.ENABLE_VIRTUAL_TERMINAL_PROCESSING|winterm.DISABLE_NEWLINE_AUTO_RETURN); err != nil {
+		// Validate disableNewlineAutoReturn is supported, but do not set it.
+		if err = winterm.SetConsoleMode(fd, mode|enableVirtualTerminalProcessing|disableNewlineAutoReturn); err != nil {
 			emulateStdout = true
 		} else {
-			winterm.SetConsoleMode(fd, mode|winterm.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+			winterm.SetConsoleMode(fd, mode|enableVirtualTerminalProcessing)
 		}
 	}
 
 	fd = os.Stderr.Fd()
 	if mode, err := winterm.GetConsoleMode(fd); err == nil {
-		// Validate winterm.DISABLE_NEWLINE_AUTO_RETURN is supported, but do not set it.
-		if err = winterm.SetConsoleMode(fd, mode|winterm.ENABLE_VIRTUAL_TERMINAL_PROCESSING|winterm.DISABLE_NEWLINE_AUTO_RETURN); err != nil {
+		// Validate disableNewlineAutoReturn is supported, but do not set it.
+		if err = winterm.SetConsoleMode(fd, mode|enableVirtualTerminalProcessing|disableNewlineAutoReturn); err != nil {
 			emulateStderr = true
 		} else {
-			winterm.SetConsoleMode(fd, mode|winterm.ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+			winterm.SetConsoleMode(fd, mode|enableVirtualTerminalProcessing)
 		}
 	}
 
@@ -176,9 +183,9 @@ func SetRawTerminalOutput(fd uintptr) (*State, error) {
 		return nil, err
 	}
 
-	// Ignore failures, since winterm.DISABLE_NEWLINE_AUTO_RETURN might not be supported on this
+	// Ignore failures, since disableNewlineAutoReturn might not be supported on this
 	// version of Windows.
-	winterm.SetConsoleMode(fd, state.mode|winterm.DISABLE_NEWLINE_AUTO_RETURN)
+	winterm.SetConsoleMode(fd, state.mode|disableNewlineAutoReturn)
 	return state, err
 }
 
@@ -208,7 +215,7 @@ func MakeRaw(fd uintptr) (*State, error) {
 	mode |= winterm.ENABLE_INSERT_MODE
 	mode |= winterm.ENABLE_QUICK_EDIT_MODE
 	if vtInputSupported {
-		mode |= winterm.ENABLE_VIRTUAL_TERMINAL_INPUT
+		mode |= enableVirtualTerminalInput
 	}
 
 	err = winterm.SetConsoleMode(fd, mode)

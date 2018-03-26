@@ -245,6 +245,15 @@ func (w *Watcher) readEvents() {
 
 			mask := uint32(raw.Mask)
 			nameLen := uint32(raw.Len)
+
+			if mask&unix.IN_Q_OVERFLOW != 0 {
+				select {
+				case w.Errors <- ErrEventOverflow:
+				case <-w.done:
+					return
+				}
+			}
+
 			// If the event happened to the watched directory or the watched file, the kernel
 			// doesn't append the filename to the event, but we would like to always fill the
 			// the "Name" field with a valid filename. We retrieve the path of the watch from
