@@ -10,7 +10,8 @@ find_files() {
         -wholename '*/vendor/*' \
       \) -prune \
     \) -name '*.go' \
-    -not \( -wholename './_output/*' \)
+    -not \( -wholename './_output/*' \) \
+    -not \( -wholename './cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go' \)
 }
 FIX=0
 GOFMT="gofmt -s"

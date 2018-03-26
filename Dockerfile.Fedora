@@ -79,4 +79,6 @@ RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
+# Install varlink stuff
+RUN pip3 install varlink
 WORKDIR /go/src/github.com/projectatomic/libpod

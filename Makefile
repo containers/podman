@@ -15,7 +15,9 @@ MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
+SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
+PYTHON ?= /usr/bin/python3
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -65,7 +67,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch "$(GOPATH)/.gopathok"
 
-lint: .gopathok
+lint: .gopathok varlink_generate
 	@echo "checking lint"
 	@./.tool/lint
 
@@ -101,6 +103,7 @@ endif
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -fr build/
+	rm -f cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
@@ -126,19 +129,20 @@ shell: libpodimage
 testunit: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
-localunit:
+localunit: varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
 	ginkgo -v test/e2e/
 
-localintegration: test-binaries
+localintegration: varlink_generate test-binaries
 	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	sh test/varlink/run_varlink_tests.sh
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: podman
+binaries: varlink_generate podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -163,7 +167,7 @@ changelog:
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
-install: .gopathok install.bin install.man install.cni
+install: .gopathok install.bin install.man install.cni install.systemd
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
@@ -188,6 +192,10 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
+
+install.systemd:
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
@@ -228,6 +236,14 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		./autogen.sh --prefix=/usr/local; \
 		make all install; \
 	fi
+
+.install.varlink: .gopathok
+	$(GO) get -u github.com/varlink/go/varlink
+	$(GO) get -u github.com/varlink/go/cmd/varlink-go-interface-generator
+
+varlink_generate: .gopathok .install.varlink
+	rm -f cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
+	$(GO) generate ./cmd/podman/ioprojectatomicpodman/...
 
 validate: gofmt .gitvalidation
 

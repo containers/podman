@@ -42,5 +42,6 @@
 | [podman-top(1)](/docs/podman-top.1.md)                   | Display the running processes of a container              |[![...](/docs/play.png)](https://asciinema.org/a/5WCCi1LXwSuRbvaO9cBUYf3fk)|
 | [podman-umount(1)](/docs/podman-umount.1.md)             | Unmount a working container's root filesystem                             |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
 | [podman-unpause(1)](/docs/podman-unpause.1.md)           | Unpause one or more running containers                                    |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
+| [podman-varlink(1)](/docs/podman-varlink.1.md)           | Run the varlink backend                                           ||
 | [podman-version(1)](/docs/podman-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
 | [podman-wait(1)](/docs/podman-wait.1.md)                 | Wait on one or more containers to stop and print their exit codes  |[![...](/docs/play.png)](https://asciinema.org/a/QNPGKdjWuPgI96GcfkycQtah0)|
