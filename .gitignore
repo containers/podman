@@ -11,3 +11,4 @@
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
 /build/
+cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go

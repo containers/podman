@@ -70,6 +70,7 @@ func main() {
 		topCommand,
 		umountCommand,
 		unpauseCommand,
+		varlinkCommand,
 		versionCommand,
 		waitCommand,
 	}
