@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 
@@ -48,7 +47,6 @@ var (
 )
 
 func execCmd(c *cli.Context) error {
-	var envs []string
 	args := c.Args()
 	var ctr *libpod.Container
 	var err error
@@ -77,22 +75,24 @@ func execCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])
 	}
-	// Create a list of keys provided by the user
-	var userEnvKeys []string
-	for _, env := range c.StringSlice("env") {
-		splitEnv := strings.Split(env, "=")
-		userEnvKeys = append(userEnvKeys, splitEnv[0])
+
+	// ENVIRONMENT VARIABLES
+	env := defaultEnvVariables
+	for _, e := range c.StringSlice("env") {
+		split := strings.SplitN(e, "=", 2)
+		if len(split) > 1 {
+			env[split[0]] = split[1]
+		} else {
+			env[split[0]] = ""
+		}
 	}
 
-	envs = append(envs, c.StringSlice("env")...)
-
-	// if the default key isnt in the user-provided list, add the default
-	// key and value to the environment variables.  this is needed to set
-	// PATH for example.
-	for k, v := range defaultEnvVariables {
-		if !util.StringInSlice(k, userEnvKeys) {
-			envs = append(envs, fmt.Sprintf("%s=%s", k, v))
-		}
+	if err := readKVStrings(env, []string{}, c.StringSlice("env")); err != nil {
+		return errors.Wrapf(err, "unable to process environment variables")
+	}
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	return ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"))

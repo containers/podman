@@ -59,4 +59,32 @@ var _ = Describe("Podman exec", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman exec environment test", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "-l", "--env", "FOO=BAR", "printenv", "FOO"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("BAR")
+		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"exec", "-l", "--env", "PATH=/bin", "printenv", "PATH"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("/bin")
+		Expect(match).Should(BeTrue())
+
+		os.Setenv("FOO", "BAR")
+		session = podmanTest.Podman([]string{"exec", "-l", "--env", "FOO", "printenv", "FOO"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("BAR")
+		Expect(match).Should(BeTrue())
+		os.Unsetenv("FOO")
+
+	})
+
 })
