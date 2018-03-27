@@ -98,11 +98,11 @@ func (r *Runtime) RemoveImage(image *image.Image, force bool) (string, error) {
 		if force {
 			for _, ctr := range imageCtrs {
 				if err := r.removeContainer(ctr, true); err != nil {
-					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID, ctr.ID())
+					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID(), ctr.ID())
 				}
 			}
 		} else {
-			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID, len(imageCtrs))
+			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", image.ID(), len(imageCtrs))
 		}
 	}
 

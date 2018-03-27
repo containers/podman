@@ -143,6 +143,9 @@ func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Wri
 
 	newImage.InputName = imageName
 	img, err := newImage.getLocalImage()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
+	}
 	newImage.image = img
 	return &newImage, nil
 }
