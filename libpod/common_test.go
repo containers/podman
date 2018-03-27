@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// nolint
 func getTestContainer(id, name, locksDir string) (*Container, error) {
 	ctr := &Container{
 		config: &ContainerConfig{
@@ -91,7 +91,6 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 	return ctr, nil
 }
 
-// nolint
 func getTestPod(id, name, locksDir string) (*Pod, error) {
 	pod := &Pod{
 		config: &PodConfig{
@@ -112,9 +111,32 @@ func getTestPod(id, name, locksDir string) (*Pod, error) {
 	return pod, nil
 }
 
+func getTestCtrN(n, lockPath string) (*Container, error) {
+	return getTestContainer(strings.Repeat(n, 32), "test"+n, lockPath)
+}
+
+func getTestCtr1(lockPath string) (*Container, error) {
+	return getTestCtrN("1", lockPath)
+}
+
+func getTestCtr2(lockPath string) (*Container, error) {
+	return getTestCtrN("2", lockPath)
+}
+
+func getTestPodN(n, lockPath string) (*Pod, error) {
+	return getTestPod(strings.Repeat(n, 32), "test"+n, lockPath)
+}
+
+func getTestPod1(lockPath string) (*Pod, error) {
+	return getTestPodN("1", lockPath)
+}
+
+func getTestPod2(lockPath string) (*Pod, error) {
+	return getTestPodN("2", lockPath)
+}
+
 // This horrible hack tests if containers are equal in a way that should handle
 // empty arrays being dropped to nil pointers in the spec JSON
-// nolint
 func testContainersEqual(t *testing.T, a, b *Container) {
 	if a == nil && b == nil {
 		return

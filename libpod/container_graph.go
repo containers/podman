@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type containerNode struct {
@@ -73,7 +74,8 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 	return graph, nil
 }
 
-// Detect cycles in a container graph
+// Detect cycles in a container graph using Tarjan's strongly connected
+// components algorithm
 // Return true if a cycle is found, false otherwise
 func detectCycles(graph *containerGraph) (bool, error) {
 	type nodeInfo struct {
@@ -89,6 +91,8 @@ func detectCycles(graph *containerGraph) (bool, error) {
 
 	var strongConnect func(*containerNode) (bool, error)
 	strongConnect = func(node *containerNode) (bool, error) {
+		logrus.Debugf("Strongconnecting node %s", node.id)
+
 		info := new(nodeInfo)
 		info.index = index
 		info.lowLink = index
@@ -100,9 +104,13 @@ func detectCycles(graph *containerGraph) (bool, error) {
 
 		info.onStack = true
 
+		logrus.Debugf("Pushed %s onto stack", node.id)
+
 		// Work through all nodes we point to
 		for _, successor := range node.dependsOn {
 			if _, ok := nodes[successor.id]; !ok {
+				logrus.Debugf("Recursing to successor node %s", successor.id)
+
 				cycle, err := strongConnect(successor)
 				if err != nil {
 					return false, err
@@ -131,6 +139,15 @@ func detectCycles(graph *containerGraph) (bool, error) {
 			// Pop off the stack
 			topOfStack := stack[l-1]
 			stack = stack[:l-1]
+
+			// Popped item is no longer on the stack, mark as such
+			topInfo, ok := nodes[topOfStack.id]
+			if !ok {
+				return false, errors.Wrapf(ErrInternal, "error finding node info for %s", topOfStack.id)
+			}
+			topInfo.onStack = false
+
+			logrus.Debugf("Finishing node %s. Popped %s off stack", node.id, topOfStack.id)
 
 			// If the top of the stack is not us, we have found a
 			// cycle
