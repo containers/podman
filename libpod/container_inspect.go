@@ -30,18 +30,18 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	}
 
 	resolvPath := ""
-	if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-		resolvPath = path
+	if getPath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+		resolvPath = getPath
 	}
 
 	hostsPath := ""
-	if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
-		hostsPath = path
+	if getPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
+		hostsPath = getPath
 	}
 
 	hostnamePath := ""
-	if path, ok := c.state.BindMounts["/etc/hostname"]; ok {
-		hostnamePath = path
+	if getPath, ok := c.state.BindMounts["/etc/hostname"]; ok {
+		hostnamePath = getPath
 	}
 
 	data := &inspect.ContainerInspectData{

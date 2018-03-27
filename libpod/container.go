@@ -743,10 +743,12 @@ func (c *Container) BindMounts() (map[string]string, error) {
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
 func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	if !c.locked {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+		}
 	}
 
 	if c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused {
