@@ -273,6 +273,38 @@ func TestAddCtrInPodFails(t *testing.T) {
 	})
 }
 
+func TestAddCtrDepInPodFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		testCtr1, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr1.config.Pod = testPod.ID()
+
+		testCtr2, err := getTestCtrN("3", lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.UserNsCtr = testCtr1.ID()
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.Error(t, err)
+
+		ctrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ctrs))
+
+		testContainersEqual(t, testCtr1, ctrs[0])
+	})
+}
+
 func TestGetNonexistentContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		_, err := state.Container("does not exist")
@@ -1746,38 +1778,6 @@ func TestRemovePodContainerDependencyInPod(t *testing.T) {
 		ctrs, err := state.PodContainersByID(testPod)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(ctrs))
-	})
-}
-
-func TestRemovePodContainerDependencyNotInPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
-		assert.NoError(t, err)
-
-		testCtr1, err := getTestCtr2(lockPath)
-		assert.NoError(t, err)
-		testCtr1.config.Pod = testPod.ID()
-
-		testCtr2, err := getTestCtrN("3", lockPath)
-		assert.NoError(t, err)
-		testCtr2.config.IPCNsCtr = testCtr1.ID()
-
-		err = state.AddPod(testPod)
-		assert.NoError(t, err)
-
-		err = state.AddContainerToPod(testPod, testCtr1)
-		assert.NoError(t, err)
-
-		err = state.AddContainer(testCtr2)
-		assert.NoError(t, err)
-
-		err = state.RemovePodContainers(testPod)
-		t.Logf("Err %v", err)
-		assert.Error(t, err)
-
-		ctrs, err := state.PodContainersByID(testPod)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
 	})
 }
 
