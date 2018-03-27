@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
+	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -681,6 +682,21 @@ func (c *Container) makeBindMounts() error {
 			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
 		}
 		c.state.BindMounts["/run/.containerenv"] = containerenvPath
+	}
+
+	// Add secrets mounts
+	mountsFiles := []string{secrets.OverrideMountsFile, secrets.DefaultMountsFile}
+	for _, file := range mountsFiles {
+		secretMounts, err := secrets.SecretMounts(file, c.config.MountLabel, c.state.RunDir)
+		if err != nil {
+			logrus.Warn("error mounting secrets, skipping...: %s", err)
+			continue
+		}
+		for _, mount := range secretMounts {
+			if _, ok := c.state.BindMounts[mount.Destination]; !ok {
+				c.state.BindMounts[mount.Destination] = mount.Source
+			}
+		}
 	}
 
 	return nil
