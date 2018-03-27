@@ -18,7 +18,7 @@ func (cli *Client) SecretList(ctx context.Context, options types.SecretListOptio
 	query := url.Values{}
 
 	if options.Filters.Len() > 0 {
-		filterJSON, err := filters.ToJSON(options.Filters)
+		filterJSON, err := filters.ToParam(options.Filters)
 		if err != nil {
 			return nil, err
 		}

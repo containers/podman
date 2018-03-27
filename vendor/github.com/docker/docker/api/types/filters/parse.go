@@ -1,45 +1,38 @@
-/*Package filters provides tools for encoding a mapping of keys to a set of
-multiple values.
-*/
+// Package filters provides helper function to parse and handle command line
+// filter, used for example in docker ps or docker images commands.
 package filters
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/docker/docker/api/types/versions"
 )
 
-// Args stores a mapping of keys to a set of multiple values.
+// Args stores filter arguments as map key:{map key: bool}.
+// It contains an aggregation of the map of arguments (which are in the form
+// of -f 'key=value') based on the key, and stores values for the same key
+// in a map with string keys and boolean values.
+// e.g given -f 'label=label1=1' -f 'label=label2=2' -f 'image.name=ubuntu'
+// the args will be {"image.name":{"ubuntu":true},"label":{"label1=1":true,"label2=2":true}}
 type Args struct {
 	fields map[string]map[string]bool
 }
 
-// KeyValuePair are used to initialize a new Args
-type KeyValuePair struct {
-	Key   string
-	Value string
+// NewArgs initializes a new Args struct.
+func NewArgs() Args {
+	return Args{fields: map[string]map[string]bool{}}
 }
 
-// Arg creates a new KeyValuePair for initializing Args
-func Arg(key, value string) KeyValuePair {
-	return KeyValuePair{Key: key, Value: value}
-}
-
-// NewArgs returns a new Args populated with the initial args
-func NewArgs(initialArgs ...KeyValuePair) Args {
-	args := Args{fields: map[string]map[string]bool{}}
-	for _, arg := range initialArgs {
-		args.Add(arg.Key, arg.Value)
-	}
-	return args
-}
-
-// ParseFlag parses a key=value string and adds it to an Args.
+// ParseFlag parses the argument to the filter flag. Like
 //
-// Deprecated: Use Args.Add()
+//   `docker ps -f 'created=today' -f 'image.name=ubuntu*'`
+//
+// If prev map is provided, then it is appended to, and returned. By default a new
+// map is created.
 func ParseFlag(arg string, prev Args) (Args, error) {
 	filters := prev
 	if len(arg) == 0 {
@@ -60,95 +53,74 @@ func ParseFlag(arg string, prev Args) (Args, error) {
 	return filters, nil
 }
 
-// ErrBadFormat is an error returned when a filter is not in the form key=value
-//
-// Deprecated: this error will be removed in a future version
+// ErrBadFormat is an error returned in case of bad format for a filter.
 var ErrBadFormat = errors.New("bad format of filter (expected name=value)")
 
-// ToParam encodes the Args as args JSON encoded string
-//
-// Deprecated: use ToJSON
+// ToParam packs the Args into a string for easy transport from client to server.
 func ToParam(a Args) (string, error) {
-	return ToJSON(a)
-}
-
-// MarshalJSON returns a JSON byte representation of the Args
-func (args Args) MarshalJSON() ([]byte, error) {
-	if len(args.fields) == 0 {
-		return []byte{}, nil
-	}
-	return json.Marshal(args.fields)
-}
-
-// ToJSON returns the Args as a JSON encoded string
-func ToJSON(a Args) (string, error) {
+	// this way we don't URL encode {}, just empty space
 	if a.Len() == 0 {
 		return "", nil
 	}
-	buf, err := json.Marshal(a)
-	return string(buf), err
+
+	buf, err := json.Marshal(a.fields)
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
 }
 
-// ToParamWithVersion encodes Args as a JSON string. If version is less than 1.22
-// then the encoded format will use an older legacy format where the values are a
-// list of strings, instead of a set.
-//
-// Deprecated: Use ToJSON
+// ToParamWithVersion packs the Args into a string for easy transport from client to server.
+// The generated string will depend on the specified version (corresponding to the API version).
 func ToParamWithVersion(version string, a Args) (string, error) {
+	// this way we don't URL encode {}, just empty space
 	if a.Len() == 0 {
 		return "", nil
 	}
 
+	// for daemons older than v1.10, filter must be of the form map[string][]string
+	var buf []byte
+	var err error
 	if version != "" && versions.LessThan(version, "1.22") {
-		buf, err := json.Marshal(convertArgsToSlice(a.fields))
-		return string(buf), err
+		buf, err = json.Marshal(convertArgsToSlice(a.fields))
+	} else {
+		buf, err = json.Marshal(a.fields)
 	}
-
-	return ToJSON(a)
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
 }
 
-// FromParam decodes a JSON encoded string into Args
-//
-// Deprecated: use FromJSON
+// FromParam unpacks the filter Args.
 func FromParam(p string) (Args, error) {
-	return FromJSON(p)
+	if len(p) == 0 {
+		return NewArgs(), nil
+	}
+
+	r := strings.NewReader(p)
+	d := json.NewDecoder(r)
+
+	m := map[string]map[string]bool{}
+	if err := d.Decode(&m); err != nil {
+		r.Seek(0, 0)
+
+		// Allow parsing old arguments in slice format.
+		// Because other libraries might be sending them in this format.
+		deprecated := map[string][]string{}
+		if deprecatedErr := d.Decode(&deprecated); deprecatedErr == nil {
+			m = deprecatedArgs(deprecated)
+		} else {
+			return NewArgs(), err
+		}
+	}
+	return Args{m}, nil
 }
 
-// FromJSON decodes a JSON encoded string into Args
-func FromJSON(p string) (Args, error) {
-	args := NewArgs()
-
-	if p == "" {
-		return args, nil
-	}
-
-	raw := []byte(p)
-	err := json.Unmarshal(raw, &args)
-	if err == nil {
-		return args, nil
-	}
-
-	// Fallback to parsing arguments in the legacy slice format
-	deprecated := map[string][]string{}
-	if legacyErr := json.Unmarshal(raw, &deprecated); legacyErr != nil {
-		return args, err
-	}
-
-	args.fields = deprecatedArgs(deprecated)
-	return args, nil
-}
-
-// UnmarshalJSON populates the Args from JSON encode bytes
-func (args Args) UnmarshalJSON(raw []byte) error {
-	if len(raw) == 0 {
-		return nil
-	}
-	return json.Unmarshal(raw, &args.fields)
-}
-
-// Get returns the list of values associated with the key
-func (args Args) Get(key string) []string {
-	values := args.fields[key]
+// Get returns the list of values associates with a field.
+// It returns a slice of strings to keep backwards compatibility with old code.
+func (filters Args) Get(field string) []string {
+	values := filters.fields[field]
 	if values == nil {
 		return make([]string, 0)
 	}
@@ -159,34 +131,37 @@ func (args Args) Get(key string) []string {
 	return slice
 }
 
-// Add a new value to the set of values
-func (args Args) Add(key, value string) {
-	if _, ok := args.fields[key]; ok {
-		args.fields[key][value] = true
+// Add adds a new value to a filter field.
+func (filters Args) Add(name, value string) {
+	if _, ok := filters.fields[name]; ok {
+		filters.fields[name][value] = true
 	} else {
-		args.fields[key] = map[string]bool{value: true}
+		filters.fields[name] = map[string]bool{value: true}
 	}
 }
 
-// Del removes a value from the set
-func (args Args) Del(key, value string) {
-	if _, ok := args.fields[key]; ok {
-		delete(args.fields[key], value)
-		if len(args.fields[key]) == 0 {
-			delete(args.fields, key)
+// Del removes a value from a filter field.
+func (filters Args) Del(name, value string) {
+	if _, ok := filters.fields[name]; ok {
+		delete(filters.fields[name], value)
+		if len(filters.fields[name]) == 0 {
+			delete(filters.fields, name)
 		}
 	}
 }
 
-// Len returns the number of keys in the mapping
-func (args Args) Len() int {
-	return len(args.fields)
+// Len returns the number of fields in the arguments.
+func (filters Args) Len() int {
+	return len(filters.fields)
 }
 
-// MatchKVList returns true if all the pairs in sources exist as key=value
-// pairs in the mapping at key, or if there are no values at key.
-func (args Args) MatchKVList(key string, sources map[string]string) bool {
-	fieldValues := args.fields[key]
+// MatchKVList returns true if the values for the specified field matches the ones
+// from the sources.
+// e.g. given Args are {'label': {'label1=1','label2=1'}, 'image.name', {'ubuntu'}},
+//      field is 'label' and sources are {'label1': '1', 'label2': '2'}
+//      it returns true.
+func (filters Args) MatchKVList(field string, sources map[string]string) bool {
+	fieldValues := filters.fields[field]
 
 	//do not filter if there is no filter set or cannot determine filter
 	if len(fieldValues) == 0 {
@@ -197,8 +172,8 @@ func (args Args) MatchKVList(key string, sources map[string]string) bool {
 		return false
 	}
 
-	for value := range fieldValues {
-		testKV := strings.SplitN(value, "=", 2)
+	for name2match := range fieldValues {
+		testKV := strings.SplitN(name2match, "=", 2)
 
 		v, ok := sources[testKV[0]]
 		if !ok {
@@ -212,13 +187,16 @@ func (args Args) MatchKVList(key string, sources map[string]string) bool {
 	return true
 }
 
-// Match returns true if any of the values at key match the source string
-func (args Args) Match(field, source string) bool {
-	if args.ExactMatch(field, source) {
+// Match returns true if the values for the specified field matches the source string
+// e.g. given Args are {'label': {'label1=1','label2=1'}, 'image.name', {'ubuntu'}},
+//      field is 'image.name' and source is 'ubuntu'
+//      it returns true.
+func (filters Args) Match(field, source string) bool {
+	if filters.ExactMatch(field, source) {
 		return true
 	}
 
-	fieldValues := args.fields[field]
+	fieldValues := filters.fields[field]
 	for name2match := range fieldValues {
 		match, err := regexp.MatchString(name2match, source)
 		if err != nil {
@@ -231,9 +209,9 @@ func (args Args) Match(field, source string) bool {
 	return false
 }
 
-// ExactMatch returns true if the source matches exactly one of the values.
-func (args Args) ExactMatch(key, source string) bool {
-	fieldValues, ok := args.fields[key]
+// ExactMatch returns true if the source matches exactly one of the filters.
+func (filters Args) ExactMatch(field, source string) bool {
+	fieldValues, ok := filters.fields[field]
 	//do not filter if there is no filter set or cannot determine filter
 	if !ok || len(fieldValues) == 0 {
 		return true
@@ -243,15 +221,14 @@ func (args Args) ExactMatch(key, source string) bool {
 	return fieldValues[source]
 }
 
-// UniqueExactMatch returns true if there is only one value and the source
-// matches exactly the value.
-func (args Args) UniqueExactMatch(key, source string) bool {
-	fieldValues := args.fields[key]
+// UniqueExactMatch returns true if there is only one filter and the source matches exactly this one.
+func (filters Args) UniqueExactMatch(field, source string) bool {
+	fieldValues := filters.fields[field]
 	//do not filter if there is no filter set or cannot determine filter
 	if len(fieldValues) == 0 {
 		return true
 	}
-	if len(args.fields[key]) != 1 {
+	if len(filters.fields[field]) != 1 {
 		return false
 	}
 
@@ -259,14 +236,14 @@ func (args Args) UniqueExactMatch(key, source string) bool {
 	return fieldValues[source]
 }
 
-// FuzzyMatch returns true if the source matches exactly one value,  or the
-// source has one of the values as a prefix.
-func (args Args) FuzzyMatch(key, source string) bool {
-	if args.ExactMatch(key, source) {
+// FuzzyMatch returns true if the source matches exactly one of the filters,
+// or the source has one of the filters as a prefix.
+func (filters Args) FuzzyMatch(field, source string) bool {
+	if filters.ExactMatch(field, source) {
 		return true
 	}
 
-	fieldValues := args.fields[key]
+	fieldValues := filters.fields[field]
 	for prefix := range fieldValues {
 		if strings.HasPrefix(source, prefix) {
 			return true
@@ -275,47 +252,30 @@ func (args Args) FuzzyMatch(key, source string) bool {
 	return false
 }
 
-// Include returns true if the key exists in the mapping
-//
-// Deprecated: use Contains
-func (args Args) Include(field string) bool {
-	_, ok := args.fields[field]
+// Include returns true if the name of the field to filter is in the filters.
+func (filters Args) Include(field string) bool {
+	_, ok := filters.fields[field]
 	return ok
 }
 
-// Contains returns true if the key exists in the mapping
-func (args Args) Contains(field string) bool {
-	_, ok := args.fields[field]
-	return ok
-}
-
-type invalidFilter string
-
-func (e invalidFilter) Error() string {
-	return "Invalid filter '" + string(e) + "'"
-}
-
-func (invalidFilter) InvalidParameter() {}
-
-// Validate compared the set of accepted keys against the keys in the mapping.
-// An error is returned if any mapping keys are not in the accepted set.
-func (args Args) Validate(accepted map[string]bool) error {
-	for name := range args.fields {
+// Validate ensures that all the fields in the filter are valid.
+// It returns an error as soon as it finds an invalid field.
+func (filters Args) Validate(accepted map[string]bool) error {
+	for name := range filters.fields {
 		if !accepted[name] {
-			return invalidFilter(name)
+			return fmt.Errorf("Invalid filter '%s'", name)
 		}
 	}
 	return nil
 }
 
-// WalkValues iterates over the list of values for a key in the mapping and calls
-// op() for each value. If op returns an error the iteration stops and the
-// error is returned.
-func (args Args) WalkValues(field string, op func(value string) error) error {
-	if _, ok := args.fields[field]; !ok {
+// WalkValues iterates over the list of filtered values for a field.
+// It stops the iteration if it finds an error and it returns that error.
+func (filters Args) WalkValues(field string, op func(value string) error) error {
+	if _, ok := filters.fields[field]; !ok {
 		return nil
 	}
-	for v := range args.fields[field] {
+	for v := range filters.fields[field] {
 		if err := op(v); err != nil {
 			return err
 		}

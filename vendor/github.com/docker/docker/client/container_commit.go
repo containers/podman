@@ -39,7 +39,7 @@ func (cli *Client) ContainerCommit(ctx context.Context, container string, option
 	for _, change := range options.Changes {
 		query.Add("changes", change)
 	}
-	if !options.Pause {
+	if options.Pause != true {
 		query.Set("pause", "0")
 	}
 

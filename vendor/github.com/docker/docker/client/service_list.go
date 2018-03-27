@@ -15,7 +15,7 @@ func (cli *Client) ServiceList(ctx context.Context, options types.ServiceListOpt
 	query := url.Values{}
 
 	if options.Filters.Len() > 0 {
-		filterJSON, err := filters.ToJSON(options.Filters)
+		filterJSON, err := filters.ToParam(options.Filters)
 		if err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/docker/docker/api/types/swarm"
 	"golang.org/x/net/context"
@@ -16,7 +17,10 @@ func (cli *Client) ConfigInspectWithRaw(ctx context.Context, id string) (swarm.C
 	}
 	resp, err := cli.get(ctx, "/configs/"+id, nil, nil)
 	if err != nil {
-		return swarm.Config{}, nil, wrapResponseError(err, resp, "config", id)
+		if resp.statusCode == http.StatusNotFound {
+			return swarm.Config{}, nil, configNotFoundError{id}
+		}
+		return swarm.Config{}, nil, err
 	}
 	defer ensureReaderClosed(resp)
 
