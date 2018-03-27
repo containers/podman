@@ -126,9 +126,12 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	// But in-memory state is intended purely for testing and not production
 	// use, so this should be fine.
 	depCtrs := ctr.Dependencies()
-	for _, depCtr := range depCtrs {
-		if _, ok := s.containers[depCtr]; !ok {
-			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
+	for _, depID := range depCtrs {
+		depCtr, ok := s.containers[depID]
+		if !ok {
+			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depID)
+		} else if depCtr.config.Pod != "" {
+			return errors.Wrapf(ErrInvalidArg, "cannot depend on container in a pod if not part of same pod")
 		}
 	}
 
