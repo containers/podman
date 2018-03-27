@@ -66,9 +66,6 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	return pod, nil
 }
 
-// TODO: need function to produce a directed graph of containers
-// This would allow us to properly determine stop/start order
-
 // Start starts all containers within a pod
 // It combines the effects of Init() and Start() on a container
 // If a container has already been initialized it will be started,
@@ -96,11 +93,6 @@ func (p *Pod) Start() (map[string]error, error) {
 		return nil, err
 	}
 
-	// Maintain a map of containers still to start
-	ctrsToStart := make(map[string]*Container)
-	// Maintain a map of all containers so we can easily look up dependencies
-	allCtrsMap := make(map[string]*Container)
-
 	// We need to lock all the containers
 	for _, ctr := range allCtrs {
 		ctr.lock.Lock()
@@ -109,77 +101,83 @@ func (p *Pod) Start() (map[string]error, error) {
 		if err := ctr.syncContainer(); err != nil {
 			return nil, err
 		}
+	}
 
-		if ctr.state.State == ContainerStateConfigured ||
-			ctr.state.State == ContainerStateCreated ||
-			ctr.state.State == ContainerStateStopped {
-			ctrsToStart[ctr.ID()] = ctr
-		}
-		allCtrsMap[ctr.ID()] = ctr
+	// Build a dependency graph of containers in the pod
+	graph, err := buildContainerGraph(allCtrs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
 
 	ctrErrors := make(map[string]error)
+	ctrsVisited := make(map[string]bool)
 
-	// Loop at most 10 times, to prevent potential infinite loops in
-	// dependencies
-	loopCounter := 10
-
-	// Loop while we still have containers to start
-	for len(ctrsToStart) > 0 {
-		// Loop through all containers, attempting to start them
-		for id, ctr := range ctrsToStart {
-			// TODO should we only do a dependencies check if we are not ContainerStateCreated?
-			depsOK := true
-			var depErr error
-			// Check container dependencies
-			for _, depID := range ctr.Dependencies() {
-				depCtr := allCtrsMap[depID]
-				if depCtr.state.State != ContainerStateRunning &&
-					depCtr.state.State != ContainerStatePaused {
-					// We are definitely not OK to init, a dependency is not up
-					depsOK = false
-					// Check to see if the dependency errored
-					// If it did, error here too
-					if _, ok := ctrErrors[depID]; ok {
-						depErr = errors.Wrapf(ErrCtrStateInvalid, "dependency %s of container %s failed to start", depID, id)
-					}
-
-					break
-				}
-			}
-			if !depsOK {
-				// Only if one of the containers dependencies failed should we stop trying
-				// Otherwise, assume it's just yet to start, retry starting this container later
-				if depErr != nil {
-					ctrErrors[id] = depErr
-					delete(ctrsToStart, id)
-				}
-				continue
-			}
-
-			// Initialize and start the container
-			if err := ctr.initAndStart(); err != nil {
-				ctrErrors[id] = err
-			}
-			delete(ctrsToStart, id)
-		}
-
-		loopCounter = loopCounter - 1
-		if loopCounter == 0 {
-			// Loop through all remaining containers and add an error
-			for id := range ctrsToStart {
-				ctrErrors[id] = errors.Wrapf(ErrInternal, "exceeded maximum attempts trying to start container %s", id)
-			}
-
-			break
-		}
+	// If there are no containers without dependencies, we can't start
+	// Error out
+	if len(graph.noDepNodes) == 0 {
+		return nil, errors.Wrapf(ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
 	}
 
-	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
+	// Traverse the graph beginning at nodes with no dependencies
+	for _, node := range graph.noDepNodes {
+		startNode(node, false, ctrErrors, ctrsVisited)
 	}
 
-	return nil, nil
+	return ctrErrors, nil
+}
+
+// Visit a node on a container graph and start the container, or set an error if
+// a dependency failed to start
+func startNode(node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool) {
+	// First, check if we have already visited the node
+	if ctrsVisited[node.id] {
+		return
+	}
+
+	// If setError is true, a dependency of us failed
+	// Mark us as failed and recurse
+	if setError {
+		// Mark us as visited, and set an error
+		ctrsVisited[node.id] = true
+		ctrErrors[node.id] = errors.Wrapf(ErrCtrStateInvalid, "a dependency of container %s failed to start", node.id)
+
+		// Hit anyone who depends on us, and set errors on them too
+		for _, successor := range node.dependedOn {
+			startNode(successor, true, ctrErrors, ctrsVisited)
+		}
+
+		return
+	}
+
+	// Have all our dependencies started?
+	// If not, don't visit the node yet
+	depsVisited := true
+	for _, dep := range node.dependsOn {
+		depsVisited = depsVisited && ctrsVisited[dep.id]
+	}
+	if !depsVisited {
+		// Don't visit us yet, all dependencies are not up
+		// We'll hit the dependencies eventually, and when we do it will
+		// recurse here
+		return
+	}
+
+	// Going to start the container, mark us as visited
+	ctrsVisited[node.id] = true
+
+	// Start the container
+	ctrErrored := false
+	if err := node.container.initAndStart(); err != nil {
+		ctrErrored = true
+		ctrErrors[node.id] = err
+	}
+
+	// Recurse to anyone who depends on us and start them
+	for _, successor := range node.dependedOn {
+		startNode(successor, ctrErrored, ctrErrors, ctrsVisited)
+	}
+
+	return
 }
 
 // Stop stops all containers within a pod that are not already stopped
