@@ -35,7 +35,7 @@ func TestBuildContainerGraphOneCtr(t *testing.T) {
 	assert.Equal(t, ctr1.ID(), node.id)
 
 	assert.Equal(t, ctr1.ID(), graph.noDepNodes[0].id)
-	assert.Equal(t, ctr1.ID(), graph.notDependedOnNodes[0].id)
+	assert.Equal(t, ctr1.ID(), graph.notDependedOnNodes[ctr1.ID()].id)
 }
 
 func TestBuildContainerGraphTwoCtrNoEdge(t *testing.T) {
@@ -81,7 +81,7 @@ func TestBuildContainerGraphTwoCtrOneEdge(t *testing.T) {
 	assert.Equal(t, 1, len(graph.notDependedOnNodes))
 
 	assert.Equal(t, ctr1.ID(), graph.noDepNodes[0].id)
-	assert.Equal(t, ctr2.ID(), graph.notDependedOnNodes[0].id)
+	assert.Equal(t, ctr2.ID(), graph.notDependedOnNodes[ctr2.ID()].id)
 }
 
 func TestBuildContainerGraphTwoCtrCycle(t *testing.T) {
@@ -190,7 +190,7 @@ func TestBuildContainerGraphThreeContainersNoCycle(t *testing.T) {
 	assert.Equal(t, 1, len(graph.notDependedOnNodes))
 
 	assert.Equal(t, ctr3.ID(), graph.noDepNodes[0].id)
-	assert.Equal(t, ctr1.ID(), graph.notDependedOnNodes[0].id)
+	assert.Equal(t, ctr1.ID(), graph.notDependedOnNodes[ctr1.ID()].id)
 }
 
 func TestBuildContainerGraphFourContainersNoEdges(t *testing.T) {
