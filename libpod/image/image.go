@@ -102,7 +102,6 @@ func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
 // to only deal with local images already in the store (or
 // its aliases)
 func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
-
 	image := Image{
 		InputName:    name,
 		Local:        true,
@@ -166,6 +165,14 @@ func (i *Image) reloadImage() error {
 	return nil
 }
 
+// stringSha256 strips sha256 from user input
+func stripSha256(name string) string {
+	if strings.HasPrefix(name, "sha256:") && len(name) > 7 {
+		return name[7:]
+	}
+	return name
+}
+
 // getLocalImage resolves an unknown input describing an image and
 // returns a storage.Image or an error. It is used by NewFromLocal.
 func (i *Image) getLocalImage() (*storage.Image, error) {
@@ -174,7 +181,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return nil, errors.Errorf("input name is blank")
 	}
 	var taggedName string
-	img, err := i.imageruntime.getImage(i.InputName)
+	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
 	if err == nil {
 		return img.image, err
 	}

@@ -165,6 +165,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 
 	// Test against tagged images of busybox
+
 	// foo should resolve to foo:latest
 	repoTag, err := newImage.MatchRepoTag("foo")
 	assert.NoError(t, err)
@@ -184,4 +185,15 @@ func Test_splitString(t *testing.T) {
 	assert.Equal(t, splitString("foo/bar"), "bar")
 	assert.Equal(t, splitString("a/foo/bar"), "bar")
 	assert.Equal(t, splitString("bar"), "bar")
+}
+
+// Test_stripSha256 tests test the stripSha256 function which removes
+// the prefix "sha256:" from a string if it is present
+func Test_stripSha256(t *testing.T) {
+	assert.Equal(t, stripSha256(""), "")
+	assert.Equal(t, stripSha256("test1"), "test1")
+	assert.Equal(t, stripSha256("sha256:9110ae7f579f35ee0c3938696f23fe0f5fbe641738ea52eb83c2df7e9995fa17"), "9110ae7f579f35ee0c3938696f23fe0f5fbe641738ea52eb83c2df7e9995fa17")
+	assert.Equal(t, stripSha256("sha256:9110ae7f"), "9110ae7f")
+	assert.Equal(t, stripSha256("sha256:"), "sha256:")
+	assert.Equal(t, stripSha256("sha256:a"), "a")
 }
