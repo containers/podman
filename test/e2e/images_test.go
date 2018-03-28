@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -129,4 +130,17 @@ var _ = Describe("Podman images", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(1))
 	})
+
+	It("podman check for image with sha256: prefix", func() {
+		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		imageData := session.InspectImageJSON()
+
+		result := podmanTest.Podman([]string{"images", fmt.Sprintf("sha256:%s", imageData[0].ID)})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
+
 })
