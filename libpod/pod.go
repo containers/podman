@@ -167,11 +167,13 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 	// Going to start the container, mark us as visited
 	ctrsVisited[node.id] = true
 
-	// Start the container
+	// Start the container (only if it is not running)
 	ctrErrored := false
-	if err := node.container.initAndStart(); err != nil {
-		ctrErrored = true
-		ctrErrors[node.id] = err
+	if node.container.state.State != ContainerStateRunning {
+		if err := node.container.initAndStart(); err != nil {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
 	}
 
 	// Recurse to anyone who depends on us and start them
