@@ -413,6 +413,10 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				if depCtrPod == nil {
 					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s which is not in pod %s", ctr.ID(), dependsCtr, pod.ID())
 				}
+
+				if string(depCtrPod) != pod.ID() {
+					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s which is in a different pod (%s)", ctr.ID(), dependsCtr, string(depCtrPod))
+				}
 			} else {
 				// If we're not part of a pod, we cannot depend on containets in a pod
 				if depCtrPod != nil {
