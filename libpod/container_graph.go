@@ -15,12 +15,13 @@ type containerNode struct {
 type containerGraph struct {
 	nodes              map[string]*containerNode
 	noDepNodes         []*containerNode
-	notDependedOnNodes []*containerNode
+	notDependedOnNodes map[string]*containerNode
 }
 
 func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 	graph := new(containerGraph)
 	graph.nodes = make(map[string]*containerNode)
+	graph.notDependedOnNodes = make(map[string]*containerNode)
 
 	// Start by building all nodes, with no edges
 	for _, ctr := range ctrs {
@@ -29,6 +30,7 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 		ctrNode.container = ctr
 
 		graph.nodes[ctr.ID()] = ctrNode
+		graph.notDependedOnNodes[ctr.ID()] = ctrNode
 	}
 
 	// Now add edges based on dependencies
@@ -45,20 +47,15 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 			// And add the node to the dependent node's dependedOn
 			node.dependsOn = append(node.dependsOn, depNode)
 			depNode.dependedOn = append(depNode.dependedOn, node)
+
+			// The dependency now has something depending on it
+			delete(graph.notDependedOnNodes, dep)
 		}
 
 		// Maintain a list of nodes with no dependencies
 		// (no edges coming from them)
 		if len(deps) == 0 {
 			graph.noDepNodes = append(graph.noDepNodes, node)
-		}
-	}
-
-	// Need one more loop to get nodes that have nothing depending on them
-	// (no edges pointing to them)
-	for _, node := range graph.nodes {
-		if len(node.dependedOn) == 0 {
-			graph.notDependedOnNodes = append(graph.notDependedOnNodes, node)
 		}
 	}
 
