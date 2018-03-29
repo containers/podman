@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -214,6 +215,19 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "bb", "ls"})
 		session.WaitWithDefaultTimeout()
 		fmt.Println(session.OutputToString())
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman test hooks", func() {
+		hcheck := "/run/hookscheck"
+		hooksDir := "/tmp/hooks"
+		os.Mkdir(hooksDir, 0755)
+		fileutils.CopyFile("hooks/hooks.json", hooksDir)
+		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir-path=%s", hooksDir))
+		os.Remove(hcheck)
+		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
+		session.Wait(10)
+		os.Unsetenv("HOOK_OPTION")
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 

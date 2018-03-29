@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/pkg/hooks"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -127,6 +128,8 @@ type RuntimeConfig struct {
 	// CNIPluginDir sets a number of directories where the CNI network
 	// plugins can be located
 	CNIPluginDir []string `toml:"cni_plugin_dir"`
+	// HooksDir Path to the directory containing hooks configuration files
+	HooksDir string `toml:"hooks_dir"`
 }
 
 var (
@@ -153,6 +156,7 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager: "cgroupfs",
+		HooksDir:      hooks.DefaultHooksDir,
 		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:        "/var/run/libpod",
 		MaxLogSize:    -1,
