@@ -156,6 +156,9 @@ func (p *PodmanTest) MakeOptions() []string {
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTest) Podman(args []string) *PodmanSession {
 	podmanOptions := p.MakeOptions()
+	if os.Getenv("HOOK_OPTION") != "" {
+		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
+	}
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))

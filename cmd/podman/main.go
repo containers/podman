@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/hooks"
 	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -121,6 +122,12 @@ func main() {
 		cli.StringFlag{
 			Name:  "cpu-profile",
 			Usage: "path for the cpu profiling results",
+		},
+		cli.StringFlag{
+			Name:   "hooks-dir-path",
+			Usage:  "set the OCI hooks directory path",
+			Value:  hooks.DefaultHooksDir,
+			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "log-level",

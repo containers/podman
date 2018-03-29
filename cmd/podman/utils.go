@@ -48,6 +48,7 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	if c.GlobalIsSet("cni-config-dir") {
 		options = append(options, libpod.WithCNIConfigDir(c.GlobalString("cni-config-dir")))
 	}
+	options = append(options, libpod.WithHooksDir(c.GlobalString("hooks-dir-path")))
 
 	// TODO flag to set CNI plugins dir?
 
