@@ -251,6 +251,8 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// File containing the conmon PID
+	ConmonPidFile string `json:"conmonPidFile,omitempty"`
 	// TODO log options for log drivers
 }
 
