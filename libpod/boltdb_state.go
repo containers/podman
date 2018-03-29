@@ -706,7 +706,7 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 			if err != nil {
 				return err
 			} else if !exists {
-				return errors.Wrapf(ErrNoSuchCtr, "no pod with name or ID %s found", idOrName)
+				return errors.Wrapf(ErrNoSuchPod, "no pod with name or ID %s found", idOrName)
 			}
 		}
 
