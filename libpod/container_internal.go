@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
+	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -681,7 +682,25 @@ func (c *Container) makeBindMounts() error {
 		c.state.BindMounts["/run/.containerenv"] = containerenvPath
 	}
 
+	// Add Secret Mounts
+	secretMounts := c.getSecretMounts(secrets.OverrideMountsFile)
+	secretMounts = append(secretMounts, c.getSecretMounts(secrets.DefaultMountsFile)...)
+	for _, mount := range secretMounts {
+		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
+			c.state.BindMounts[mount.Destination] = mount.Source
+		}
+	}
+
 	return nil
+}
+
+// addSecrets mounts the secrets from the override and/or default mounts file
+func (c *Container) getSecretMounts(mountFile string) (secretMounts []spec.Mount) {
+	secretMounts, err := secrets.SecretMounts(mountFile, c.config.MountLabel, c.state.RunDir)
+	if err != nil {
+		logrus.Warn("error mounting secrets, skipping...")
+	}
+	return secretMounts
 }
 
 // writeStringToRundir copies the provided file to the runtimedir
