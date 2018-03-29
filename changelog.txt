@@ -1,3 +1,28 @@
+- Changelog for v0.3.5 (2018-03-29):
+  * Allow sha256: prefix for input
+  * Add secrets patch to podman
+  * Fix tests
+  * Remove a loop in container graph
+  * Only start containers that are not running in pod start
+  * Change pod Start() to use container dependency graph
+  * Add tests for container graphs
+  * Initial implementation of container graph generation
+  * Error is already wrapped properly.
+  * Check for duplicate names when generating new container and pod names.
+  * podman: new option --conmon-pidfile=
+  * Ensure container dependencies are part of the same pod
+  * Prevent ctrs not in pods from depending on pod ctrs
+  * Disable --sig-proxy tests due to race conditions
+  * Remove dependency on kubernetes
+  * Vendor in lots of kubernetes stuff to shrink image size
+  * Fix some minor issues lint has been picking up
+  * cmd/podman/run.go: Error nicely when no image found
+  * podman exec should handle options --env foo
+  * Remove current SQLite DB driver
+  * Update containers/storage to pick up overlay driver fix
+  * First tag, untag THEN reload the image
+  * Add files section to podman man page
+
 - Changelog for v0.3.4 (2018-03-23):
   * Bump version to v0.3.4
   * Make container env variable conditional
