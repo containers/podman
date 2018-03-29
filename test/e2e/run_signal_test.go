@@ -2,16 +2,18 @@ package integration
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
-
-	"github.com/onsi/gomega/gexec"
-	"golang.org/x/sys/unix"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	"golang.org/x/sys/unix"
 )
 
 // PodmanPID execs podman and returns its PID
@@ -28,7 +30,7 @@ func (p *PodmanTest) PodmanPID(args []string) (*PodmanSession, int) {
 	return &PodmanSession{session}, command.Process.Pid
 }
 
-const sigCatch = "for NUM in `seq 1 64`; do trap \"echo Received $NUM\" $NUM; done; echo READY; while :; do sleep 0.1; done"
+const sigCatch = "trap \"echo FOO >> /h/fifo \" 8; echo READY >> /h/fifo; while :; do sleep 0.25; done"
 
 var _ = Describe("Podman run with --sig-proxy", func() {
 	var (
@@ -53,27 +55,63 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are forwarded to container using sig-proxy", func() {
-		Skip("Race condition issues on CI seem unfixable")
-		signal := syscall.SIGPOLL
-		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test1", fedoraMinimal, "bash", "-c", sigCatch})
+		signal := syscall.SIGFPE
+		// Set up a socket for communication
+		udsDir := filepath.Join(tmpdir, "socket")
+		os.Mkdir(udsDir, 0700)
+		udsPath := filepath.Join(udsDir, "fifo")
+		syscall.Mkfifo(udsPath, 0600)
 
-		ok := WaitForContainer(&podmanTest)
-		Expect(ok).To(BeTrue())
+		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
-		// Kill with given signal
+		uds, _ := os.OpenFile(udsPath, os.O_RDONLY, 0600)
+		defer uds.Close()
+
+		// Wait for the script in the container to alert us that it is READY
+		counter := 0
+		for {
+			buf := make([]byte, 1024)
+			n, err := uds.Read(buf[:])
+			if err != nil && err != io.EOF {
+				fmt.Println(err)
+				return
+			}
+			data := string(buf[0:n])
+			if strings.Contains(data, "READY") {
+				break
+			}
+			time.Sleep(1 * time.Second)
+			if counter == 15 {
+				os.Exit(1)
+			}
+			counter++
+		}
+		// Ok, container is up and running now and so is the script
+
 		if err := unix.Kill(pid, signal); err != nil {
 			Fail(fmt.Sprintf("error killing podman process %d: %v", pid, err))
 		}
 
-		// Kill with -9 to guarantee the container dies
-		killSession := podmanTest.Podman([]string{"kill", "-s", "9", "test1"})
-		killSession.WaitWithDefaultTimeout()
-		Expect(killSession.ExitCode()).To(Equal(0))
-
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		ok, _ = session.GrepString(fmt.Sprintf("Received %d", signal))
-		Expect(ok).To(BeTrue())
+		// The sending of the signal above will send FOO to the socket; here we
+		// listen to the socket for that.
+		counter = 0
+		for {
+			buf := make([]byte, 1024)
+			n, err := uds.Read(buf[:])
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			data := string(buf[0:n])
+			if strings.Contains(data, "FOO") {
+				break
+			}
+			time.Sleep(1 * time.Second)
+			if counter == 15 {
+				os.Exit(1)
+			}
+			counter++
+		}
 	})
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
@@ -99,4 +137,5 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		ok, _ = session.GrepString(fmt.Sprintf("Received %d", signal))
 		Expect(ok).To(BeFalse())
 	})
+
 })
