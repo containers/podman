@@ -96,30 +96,6 @@ func runForAllStates(t *testing.T, testFunc func(*testing.T, State, string)) {
 	}
 }
 
-func getTestCtrN(n, lockPath string) (*Container, error) {
-	return getTestContainer(strings.Repeat(n, 32), "test"+n, lockPath)
-}
-
-func getTestCtr1(lockPath string) (*Container, error) {
-	return getTestCtrN("1", lockPath)
-}
-
-func getTestCtr2(lockPath string) (*Container, error) {
-	return getTestCtrN("2", lockPath)
-}
-
-func getTestPodN(n, lockPath string) (*Pod, error) {
-	return getTestPod(strings.Repeat(n, 32), "test"+n, lockPath)
-}
-
-func getTestPod1(lockPath string) (*Pod, error) {
-	return getTestPodN("1", lockPath)
-}
-
-func getTestPod2(lockPath string) (*Pod, error) {
-	return getTestPodN("2", lockPath)
-}
-
 func TestAddAndGetContainer(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		testCtr, err := getTestCtr1(lockPath)
