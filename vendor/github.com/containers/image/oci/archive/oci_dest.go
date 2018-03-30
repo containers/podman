@@ -54,9 +54,8 @@ func (d *ociArchiveImageDestination) SupportsSignatures() error {
 	return d.unpackedDest.SupportsSignatures()
 }
 
-// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination
-func (d *ociArchiveImageDestination) ShouldCompressLayers() bool {
-	return d.unpackedDest.ShouldCompressLayers()
+func (d *ociArchiveImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return d.unpackedDest.DesiredLayerCompression()
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -73,8 +72,8 @@ func (d *ociArchiveImageDestination) MustMatchRuntimeOS() bool {
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.
-func (d *ociArchiveImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
-	return d.unpackedDest.PutBlob(stream, inputInfo)
+func (d *ociArchiveImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+	return d.unpackedDest.PutBlob(stream, inputInfo, isConfig)
 }
 
 // HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob

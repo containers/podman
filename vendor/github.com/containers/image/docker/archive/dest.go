@@ -46,6 +46,11 @@ func newImageDestination(ctx *types.SystemContext, ref archiveReference) (types.
 	}, nil
 }
 
+// DesiredLayerCompression indicates if layers must be compressed, decompressed or preserved
+func (d *archiveImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.Decompress
+}
+
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
 // e.g. it should use the public hostname instead of the result of resolving CNAMEs or following redirects.
 func (d *archiveImageDestination) Reference() types.ImageReference {

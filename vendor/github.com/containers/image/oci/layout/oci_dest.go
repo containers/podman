@@ -84,9 +84,8 @@ func (d *ociImageDestination) SupportsSignatures() error {
 	return errors.Errorf("Pushing signatures for OCI images is not supported")
 }
 
-// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
-func (d *ociImageDestination) ShouldCompressLayers() bool {
-	return true
+func (d *ociImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.Compress
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -106,7 +105,7 @@ func (d *ociImageDestination) MustMatchRuntimeOS() bool {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
+func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	blobFile, err := ioutil.TempFile(d.ref.dir, "oci-put-blob")
 	if err != nil {
 		return types.BlobInfo{}, err

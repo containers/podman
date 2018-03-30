@@ -132,6 +132,19 @@ type ImageSource interface {
 	LayerInfosForCopy() ([]BlobInfo, error)
 }
 
+// LayerCompression indicates if layers must be compressed, decompressed or preserved
+type LayerCompression int
+
+const (
+	// PreserveOriginal indicates the layer must be preserved, ie
+	// no compression or decompression.
+	PreserveOriginal LayerCompression = iota
+	// Decompress indicates the layer must be decompressed
+	Decompress
+	// Compress indicates the layer must be compressed
+	Compress
+)
+
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
 //
 // There is a specific required order for some of the calls:
@@ -154,8 +167,8 @@ type ImageDestination interface {
 	// SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 	// Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
 	SupportsSignatures() error
-	// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
-	ShouldCompressLayers() bool
+	// DesiredLayerCompression indicates the kind of compression to apply on layers
+	DesiredLayerCompression() LayerCompression
 	// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
 	// uploaded to the image destination, true otherwise.
 	AcceptsForeignLayerURLs() bool
@@ -168,7 +181,7 @@ type ImageDestination interface {
 	// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 	// to any other readers for download using the supplied digest.
 	// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-	PutBlob(stream io.Reader, inputInfo BlobInfo) (BlobInfo, error)
+	PutBlob(stream io.Reader, inputInfo BlobInfo, isConfig bool) (BlobInfo, error)
 	// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
 	// Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
 	// If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
