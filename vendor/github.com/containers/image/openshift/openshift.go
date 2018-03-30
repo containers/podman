@@ -354,9 +354,8 @@ func (d *openshiftImageDestination) SupportsSignatures() error {
 	return nil
 }
 
-// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
-func (d *openshiftImageDestination) ShouldCompressLayers() bool {
-	return true
+func (d *openshiftImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.Compress
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -376,8 +375,8 @@ func (d *openshiftImageDestination) MustMatchRuntimeOS() bool {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *openshiftImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
-	return d.docker.PutBlob(stream, inputInfo)
+func (d *openshiftImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+	return d.docker.PutBlob(stream, inputInfo, isConfig)
 }
 
 // HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.

@@ -475,7 +475,7 @@ func (c *copier) copyConfig(src types.Image) error {
 		if err != nil {
 			return errors.Wrapf(err, "Error reading config blob %s", srcInfo.Digest)
 		}
-		destInfo, err := c.copyBlobFromStream(bytes.NewReader(configBlob), srcInfo, nil, false)
+		destInfo, err := c.copyBlobFromStream(bytes.NewReader(configBlob), srcInfo, nil, false, true)
 		if err != nil {
 			return err
 		}
@@ -573,7 +573,7 @@ func (ic *imageCopier) copyLayerFromStream(srcStream io.Reader, srcInfo types.Bl
 			return pipeWriter
 		}
 	}
-	blobInfo, err := ic.c.copyBlobFromStream(srcStream, srcInfo, getDiffIDRecorder, ic.canModifyManifest) // Sets err to nil on success
+	blobInfo, err := ic.c.copyBlobFromStream(srcStream, srcInfo, getDiffIDRecorder, ic.canModifyManifest, false) // Sets err to nil on success
 	return blobInfo, diffIDChan, err
 	// We need the defer … pipeWriter.CloseWithError() to happen HERE so that the caller can block on reading from diffIDChan
 }
@@ -609,7 +609,7 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 // and returns a complete blobInfo of the copied blob.
 func (c *copier) copyBlobFromStream(srcStream io.Reader, srcInfo types.BlobInfo,
 	getOriginalLayerCopyWriter func(decompressor compression.DecompressorFunc) io.Writer,
-	canCompress bool) (types.BlobInfo, error) {
+	canModifyBlob bool, isConfig bool) (types.BlobInfo, error) {
 	// The copying happens through a pipeline of connected io.Readers.
 	// === Input: srcStream
 
@@ -650,12 +650,9 @@ func (c *copier) copyBlobFromStream(srcStream io.Reader, srcInfo types.BlobInfo,
 		originalLayerReader = destStream
 	}
 
-	// === Compress the layer if it is uncompressed and compression is desired
+	// === Deal with layer compression/decompression if necessary
 	var inputInfo types.BlobInfo
-	if !canCompress || isCompressed || !c.dest.ShouldCompressLayers() {
-		logrus.Debugf("Using original blob without modification")
-		inputInfo = srcInfo
-	} else {
+	if canModifyBlob && c.dest.DesiredLayerCompression() == types.Compress && !isCompressed {
 		logrus.Debugf("Compressing blob on the fly")
 		pipeReader, pipeWriter := io.Pipe()
 		defer pipeReader.Close()
@@ -667,6 +664,17 @@ func (c *copier) copyBlobFromStream(srcStream io.Reader, srcInfo types.BlobInfo,
 		destStream = pipeReader
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
+	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Decompress && isCompressed {
+		logrus.Debugf("Blob will be decompressed")
+		destStream, err = decompressor(destStream)
+		if err != nil {
+			return types.BlobInfo{}, err
+		}
+		inputInfo.Digest = ""
+		inputInfo.Size = -1
+	} else {
+		logrus.Debugf("Using original blob without modification")
+		inputInfo = srcInfo
 	}
 
 	// === Report progress using the c.progress channel, if required.
@@ -681,7 +689,7 @@ func (c *copier) copyBlobFromStream(srcStream io.Reader, srcInfo types.BlobInfo,
 	}
 
 	// === Finally, send the layer stream to dest.
-	uploadedInfo, err := c.dest.PutBlob(destStream, inputInfo)
+	uploadedInfo, err := c.dest.PutBlob(destStream, inputInfo, isConfig)
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrap(err, "Error writing blob")
 	}

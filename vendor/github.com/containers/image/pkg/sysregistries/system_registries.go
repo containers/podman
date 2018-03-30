@@ -31,11 +31,11 @@ type tomlConfig struct {
 	} `toml:"registries"`
 }
 
-// normalizeRegistries removes a trailing slash from registries, which is a
+// normalizeRegistries removes trailing slashes from registries, which is a
 // common pitfall when configuring registries (e.g., "docker.io/library/).
 func normalizeRegistries(regs *registries) {
 	for i := range regs.Registries {
-		regs.Registries[i] = strings.TrimSuffix(regs.Registries[i], "/")
+		regs.Registries[i] = strings.TrimRight(regs.Registries[i], "/")
 	}
 }
 

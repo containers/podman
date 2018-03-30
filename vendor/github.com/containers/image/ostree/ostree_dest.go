@@ -108,8 +108,8 @@ func (d *ostreeImageDestination) SupportsSignatures() error {
 }
 
 // ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
-func (d *ostreeImageDestination) ShouldCompressLayers() bool {
-	return false
+func (d *ostreeImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.PreserveOriginal
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -123,7 +123,7 @@ func (d *ostreeImageDestination) MustMatchRuntimeOS() bool {
 	return true
 }
 
-func (d *ostreeImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
+func (d *ostreeImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	tmpDir, err := ioutil.TempDir(d.tmpDirPath, "blob")
 	if err != nil {
 		return types.BlobInfo{}, err

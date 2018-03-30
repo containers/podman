@@ -80,9 +80,8 @@ func (d *dockerImageDestination) SupportsSignatures() error {
 	}
 }
 
-// ShouldCompressLayers returns true iff it is desirable to compress layer blobs written to this destination.
-func (d *dockerImageDestination) ShouldCompressLayers() bool {
-	return true
+func (d *dockerImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.Compress
 }
 
 // AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -110,7 +109,7 @@ func (c *sizeCounter) Write(p []byte) (n int, err error) {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo) (types.BlobInfo, error) {
+func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	if inputInfo.Digest.String() != "" {
 		haveBlob, size, err := d.HasBlob(inputInfo)
 		if err != nil {

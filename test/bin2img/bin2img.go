@@ -154,7 +154,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer img.Close()
-		layer, err := img.PutBlob(layerBuffer, layerInfo)
+		layer, err := img.PutBlob(layerBuffer, layerInfo, false)
 		if err != nil {
 			logrus.Errorf("error preparing to write image: %v", err)
 			os.Exit(1)
@@ -182,7 +182,7 @@ func main() {
 			Digest: digest.Canonical.FromBytes(cbytes),
 			Size:   int64(len(cbytes)),
 		}
-		configInfo, err = img.PutBlob(bytes.NewBuffer(cbytes), configInfo)
+		configInfo, err = img.PutBlob(bytes.NewBuffer(cbytes), configInfo, false)
 		if err != nil {
 			logrus.Errorf("error saving configuration: %v", err)
 			os.Exit(1)

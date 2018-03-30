@@ -274,17 +274,16 @@ func (s *storageImageDestination) Close() error {
 	return os.RemoveAll(s.directory)
 }
 
-// ShouldCompressLayers indicates whether or not a caller should compress not-already-compressed
-// data when handing it to us.
-func (s storageImageDestination) ShouldCompressLayers() bool {
-	// We ultimately have to decompress layers to populate trees on disk, so callers shouldn't
-	// bother compressing them before handing them to us, if they're not already compressed.
-	return false
+func (s storageImageDestination) DesiredLayerCompression() types.LayerCompression {
+	// We ultimately have to decompress layers to populate trees on disk,
+	// so callers shouldn't bother compressing them before handing them to
+	// us, if they're not already compressed.
+	return types.PreserveOriginal
 }
 
 // PutBlob stores a layer or data blob in our temporary directory, checking that any information
 // in the blobinfo matches the incoming data.
-func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobInfo) (types.BlobInfo, error) {
+func (s *storageImageDestination) PutBlob(stream io.Reader, blobinfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	errorBlobInfo := types.BlobInfo{
 		Digest: "",
 		Size:   -1,

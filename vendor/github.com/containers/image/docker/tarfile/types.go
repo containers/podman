@@ -9,11 +9,11 @@ import (
 
 // Based on github.com/docker/docker/image/tarexport/tarexport.go
 const (
-	manifestFileName = "manifest.json"
-	// legacyLayerFileName        = "layer.tar"
-	// legacyConfigFileName       = "json"
-	// legacyVersionFileName      = "VERSION"
-	// legacyRepositoriesFileName = "repositories"
+	manifestFileName           = "manifest.json"
+	legacyLayerFileName        = "layer.tar"
+	legacyConfigFileName       = "json"
+	legacyVersionFileName      = "VERSION"
+	legacyRepositoriesFileName = "repositories"
 )
 
 // ManifestItem is an element of the array stored in the top-level manifest.json file.

@@ -85,6 +85,11 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 	defer resp.Body.Close()
 }
 
+// DesiredLayerCompression indicates if layers must be compressed, decompressed or preserved
+func (d *daemonImageDestination) DesiredLayerCompression() types.LayerCompression {
+	return types.PreserveOriginal
+}
+
 // MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
 func (d *daemonImageDestination) MustMatchRuntimeOS() bool {
 	return d.mustMatchRuntimeOS
