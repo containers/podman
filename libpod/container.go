@@ -205,6 +205,8 @@ type ContainerConfig struct {
 	// Namespace Config
 	// IDs of container to share namespaces with
 	// NetNsCtr conflicts with the CreateNetNS bool
+	// These containers are considered dependencies of the given container
+	// They must be started before the given container is started
 	IPCNsCtr    string `json:"ipcNsCtr,omitempty"`
 	MountNsCtr  string `json:"mountNsCtr,omitempty"`
 	NetNsCtr    string `json:"netNsCtr,omitempty"`
@@ -212,6 +214,10 @@ type ContainerConfig struct {
 	UserNsCtr   string `json:"userNsCtr,omitempty"`
 	UTSNsCtr    string `json:"utsNsCtr,omitempty"`
 	CgroupNsCtr string `json:"cgroupNsCtr,omitempty"`
+
+	// IDs of dependency containers
+	// These containers must be started before this container is started
+	Dependencies []string
 
 	// Network Config
 	// CreateNetNS indicates that libpod should create and configure a new
@@ -363,6 +369,8 @@ func (c *Container) User() string {
 func (c *Container) Dependencies() []string {
 	// Collect in a map first to remove dupes
 	dependsCtrs := map[string]bool{}
+
+	// First add all namespace containers
 	if c.config.IPCNsCtr != "" {
 		dependsCtrs[c.config.IPCNsCtr] = true
 	}
@@ -383,6 +391,11 @@ func (c *Container) Dependencies() []string {
 	}
 	if c.config.CgroupNsCtr != "" {
 		dependsCtrs[c.config.CgroupNsCtr] = true
+	}
+
+	// Add all generic dependencies
+	for _, id := range c.config.Dependencies {
+		dependsCtrs[id] = true
 	}
 
 	if len(dependsCtrs) == 0 {

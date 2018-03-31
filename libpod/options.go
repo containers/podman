@@ -625,6 +625,38 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
+// WithDependencies sets dependency containers of the given container
+// Dependency containers must be running before this container is started
+func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		deps := make([]string, 0, len(ctrs))
+
+		for _, dep := range ctrs {
+			if !dep.valid {
+				return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", dep.ID())
+			}
+
+			if dep.ID() == ctr.ID() {
+				return errors.Wrapf(ErrInvalidArg, "must specify another container")
+			}
+
+			if ctr.config.Pod != "" && dep.config.Pod != ctr.config.Pod {
+				return errors.Wrapf(ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, dep.ID())
+			}
+
+			deps = append(deps, dep.ID())
+		}
+
+		ctr.config.Dependencies = deps
+
+		return nil
+	}
+}
+
 // WithNetNS indicates that the container should be given a new network
 // namespace with a minimal configuration
 // An optional array of port mappings can be provided
