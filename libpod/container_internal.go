@@ -352,12 +352,38 @@ func (c *Container) save() error {
 
 // Initialize a container, creating it in the runtime
 func (c *Container) init() error {
+	deps := c.Dependencies()
+	depCtrs := make(map[string]*Container, len(deps))
+	// Ensure that dependencies are up before we begin
+	for _, dep := range deps {
+		// Get the dependency container
+		depCtr, err := c.runtime.state.Container(dep)
+		if err != nil {
+			return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", dep, c.ID())
+		}
+
+		// Check the status
+		state, err := depCtr.State()
+		if err != nil {
+			return errors.Wrapf(err, "error retrieving state of dependency %s of container %s", dep, c.ID())
+		}
+		if state != ContainerStateRunning {
+			return errors.Wrapf(ErrCtrStateInvalid, "dependency %s of container %s is not running, cannot initialize container", dep, c.ID())
+		}
+		depCtrs[dep] = depCtr
+
+		// There is potential race here
+		// A dep container may stop before this container starts
+		// We can't really control this, but it probably can't cause
+		// anything insidious.
+	}
+
 	if err := c.makeBindMounts(); err != nil {
 		return err
 	}
 
 	// Generate the OCI spec
-	spec, err := c.generateSpec()
+	spec, err := c.generateSpec(depCtrs)
 	if err != nil {
 		return err
 	}
@@ -848,7 +874,8 @@ func (c *Container) generateHosts() (string, error) {
 }
 
 // Generate spec for a container
-func (c *Container) generateSpec() (*spec.Spec, error) {
+// Accepts a map of the container's dependencies
+func (c *Container) generateSpec(deps map[string]*Container) (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
@@ -894,37 +921,37 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 
 	// Add shared namespaces from other containers
 	if c.config.IPCNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, IPCNS, c.config.IPCNsCtr, spec.IPCNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, IPCNS, deps[c.config.IPCNsCtr], spec.IPCNamespace); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.MountNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, MountNS, c.config.MountNsCtr, spec.MountNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, MountNS, deps[c.config.MountNsCtr], spec.MountNamespace); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.NetNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, NetNS, c.config.NetNsCtr, spec.NetworkNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, NetNS, deps[c.config.NetNsCtr], spec.NetworkNamespace); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.PIDNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, string(spec.PIDNamespace)); err != nil {
+		if err := c.addNamespaceContainer(&g, PIDNS, deps[c.config.PIDNsCtr], string(spec.PIDNamespace)); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.UserNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, UserNS, deps[c.config.UserNsCtr], spec.UserNamespace); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.UTSNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, UTSNS, deps[c.config.UTSNsCtr], spec.UTSNamespace); err != nil {
 			return nil, err
 		}
 	}
 	if c.config.CgroupNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, CgroupNS, c.config.CgroupNsCtr, spec.CgroupNamespace); err != nil {
+		if err := c.addNamespaceContainer(&g, CgroupNS, deps[c.config.CgroupNsCtr], spec.CgroupNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -952,10 +979,9 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 }
 
 // Add an existing container's namespace to the spec
-func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, nsCtrID string, specNS string) error {
-	nsCtr, err := c.runtime.state.Container(nsCtrID)
-	if err != nil {
-		return err
+func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, nsCtr *Container, specNS string) error {
+	if nsCtr == nil {
+		return errors.Wrapf(ErrNoSuchCtr, "nil container passed to addNamespaceContainer")
 	}
 
 	nsPath, err := nsCtr.NamespacePath(ns)
