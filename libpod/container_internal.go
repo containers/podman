@@ -223,6 +223,15 @@ func (c *Container) teardownStorage() error {
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
+		// If the container has already been removed, warn but do not
+		// error - we wanted it gone, it is already gone.
+		// Potentially another tool using containers/storage already
+		// removed it?
+		if err == storage.ErrNotAContainer {
+			logrus.Errorf("Storage for container %s already removed", c.ID())
+			return nil
+		}
+
 		return errors.Wrapf(err, "error removing container %s root filesystem", c.ID())
 	}
 
