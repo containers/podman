@@ -149,8 +149,8 @@ type ContainerInspectData struct {
 	ImageID         string                 `json:"Image"`
 	ImageName       string                 `json:"ImageName"`
 	ResolvConfPath  string                 `json:"ResolvConfPath"`
-	HostnamePath    string                 `json:"HostnamePath"` //TODO
-	HostsPath       string                 `json:"HostsPath"`    //TODO
+	HostnamePath    string                 `json:"HostnamePath"`
+	HostsPath       string                 `json:"HostsPath"`
 	StaticDir       string                 `json:"StaticDir"`
 	LogPath         string                 `json:"LogPath"`
 	Name            string                 `json:"Name"`
@@ -159,11 +159,12 @@ type ContainerInspectData struct {
 	MountLabel      string                 `json:"MountLabel"`
 	ProcessLabel    string                 `json:"ProcessLabel"`
 	AppArmorProfile string                 `json:"AppArmorProfile"`
-	ExecIDs         []string               `json:"ExecIDs"` //TODO
+	ExecIDs         []string               `json:"ExecIDs"`
 	GraphDriver     *Data                  `json:"GraphDriver"`
 	SizeRw          int64                  `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                  `json:"SizeRootFs,omitempty"`
 	Mounts          []specs.Mount          `json:"Mounts"`
+	Dependencies    []string               `json:"Dependencies"`
 	NetworkSettings *NetworkSettings       `json:"NetworkSettings"` //TODO
 }
 
