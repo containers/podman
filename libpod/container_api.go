@@ -48,7 +48,9 @@ func (c *Container) Init() (err error) {
 }
 
 // Start starts a container
-// Start can start created or stopped containers
+// Start can start configured, created or stopped containers
+// For configured containers, the container will be initialized first, then
+// started
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
 // Init()
 func (c *Container) Start() (err error) {
@@ -62,7 +64,9 @@ func (c *Container) Start() (err error) {
 	}
 
 	// Container must be created or stopped to be started
-	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateCreated ||
+		c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -77,9 +81,14 @@ func (c *Container) Start() (err error) {
 		}
 	}()
 
-	// Reinitialize the container if we need to
 	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
 		if err := c.reinit(); err != nil {
+			return err
+		}
+	} else if c.state.State == ContainerStateConfigured {
+		// Or initialize it for the first time if necessary
+		if err := c.init(); err != nil {
 			return err
 		}
 	}
@@ -89,7 +98,9 @@ func (c *Container) Start() (err error) {
 }
 
 // StartAndAttach starts a container and attaches to it
-// StartAndAttach can start created or stopped containers
+// StartAndAttach can start configured, created or stopped containers
+// For configured containers, the container will be initialized first, then
+// started
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
 // Init()
 // If successful, an error channel will be returned containing the result of the
@@ -107,7 +118,9 @@ func (c *Container) StartAndAttach(noStdin bool, keys string) (attachResChan <-c
 	}
 
 	// Container must be created or stopped to be started
-	if !(c.state.State == ContainerStateCreated || c.state.State == ContainerStateStopped) {
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateCreated ||
+		c.state.State == ContainerStateStopped) {
 		return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -122,9 +135,14 @@ func (c *Container) StartAndAttach(noStdin bool, keys string) (attachResChan <-c
 		}
 	}()
 
-	// Reinitialize the container if we need to
 	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
 		if err := c.reinit(); err != nil {
+			return nil, err
+		}
+	} else if c.state.State == ContainerStateConfigured {
+		// Or initialize it for the first time if necessary
+		if err := c.init(); err != nil {
 			return nil, err
 		}
 	}
