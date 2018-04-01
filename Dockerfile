@@ -86,17 +86,6 @@ RUN set -x \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
 
-# Install crictl
-ENV CRICTL_COMMIT 16e6fe4d7199c5689db4630a9330e6a8a12cecd1
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
-       && git clone https://github.com/kubernetes-incubator/cri-tools.git "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && cd "$GOPATH/src/github.com/kubernetes-incubator/cri-tools" \
-       && git checkout -q "$CRICTL_COMMIT" \
-       && go install github.com/kubernetes-incubator/cri-tools/cmd/crictl \
-       && cp "$GOPATH"/bin/crictl /usr/bin/ \
-       && rm -rf "$GOPATH"
-
 # Install buildah
 RUN set -x \
        && export GOPATH=/go \
