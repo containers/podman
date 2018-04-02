@@ -69,7 +69,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman non-privileged should have very few devices", func() {
-		session := podmanTest.Podman([]string{"run", "busybox", "ls", "-l", "/dev"})
+		session := podmanTest.Podman([]string{"run", "-t", "busybox", "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(18))
