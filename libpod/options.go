@@ -625,7 +625,7 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithDependencies sets dependency containers of the given container
+// WithDependencyCtrs sets dependency containers of the given container
 // Dependency containers must be running before this container is started
 func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 	return func(ctr *Container) error {
