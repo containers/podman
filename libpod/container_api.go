@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/daemon/caps"
@@ -31,6 +32,15 @@ func (c *Container) Init() (err error) {
 
 	if c.state.State != ContainerStateConfigured {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
+	}
+
+	notRunning, err := c.checkDependenciesRunning()
+	if err != nil {
+		return errors.Wrapf(err, "error checking dependencies for container %s")
+	}
+	if len(notRunning) > 0 {
+		depString := strings.Join(notRunning, ",")
+		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
 	if err := c.prepare(); err != nil {
@@ -68,6 +78,15 @@ func (c *Container) Start() (err error) {
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+	}
+
+	notRunning, err := c.checkDependenciesRunning()
+	if err != nil {
+		return errors.Wrapf(err, "error checking dependencies for container %s")
+	}
+	if len(notRunning) > 0 {
+		depString := strings.Join(notRunning, ",")
+		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
 	if err := c.prepare(); err != nil {
@@ -122,6 +141,15 @@ func (c *Container) StartAndAttach(noStdin bool, keys string) (attachResChan <-c
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped) {
 		return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+	}
+
+	notRunning, err := c.checkDependenciesRunning()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking dependencies for container %s")
+	}
+	if len(notRunning) > 0 {
+		depString := strings.Join(notRunning, ",")
+		return nil, errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
 	if err := c.prepare(); err != nil {

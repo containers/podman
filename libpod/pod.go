@@ -165,6 +165,11 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 	// Going to start the container, mark us as visited
 	ctrsVisited[node.id] = true
 
+	// TODO: Maybe have a checkDependenciesRunningLocked here?
+	// Graph traversal should ensure our deps have been started, but some
+	// might have stopped since?
+	// Potentially will hurt our perf, though
+
 	// Start the container (only if it is not running)
 	ctrErrored := false
 	if node.container.state.State != ContainerStateRunning {
