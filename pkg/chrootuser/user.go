@@ -9,7 +9,7 @@ import (
 )
 
 // GetUser will return the uid, gid of the user specified in the userspec
-// it will use the /etc/password and /etc/shadow files inside of the rootdir
+// it will use the /etc/passwd and /etc/group files inside of the rootdir
 // to return this information.
 // userspace format [user | user:group | uid | uid:gid | user:gid | uid:group ]
 func GetUser(rootdir, userspec string) (uint32, uint32, error) {
