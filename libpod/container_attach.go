@@ -83,18 +83,6 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	outputStream := os.Stdout
 	errorStream := os.Stderr
 	defer inputStream.Close()
-
-	// TODO Renable this when tty/terminal discussion is had.
-	/*
-		tty, err := strconv.ParseBool(c.runningSpec.Annotations["io.kubernetes.cri-o.TTY"])
-		if err != nil {
-			return errors.Wrapf(err, "unable to parse annotations in %s", c.ID)
-		}
-		if !tty {
-			return errors.Errorf("no tty available for %s", c.ID())
-		}
-	*/
-
 	if terminal.IsTerminal(int(inputStream.Fd())) {
 		oldTermState, err := term.SaveState(inputStream.Fd())
 		if err != nil {
@@ -104,8 +92,8 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		defer term.RestoreTerminal(inputStream.Fd(), oldTermState)
 	}
 
-	// Put both input and output into raw
-	if !noStdIn {
+	// Put both input and output into raw when we have a terminal
+	if !noStdIn && c.config.Spec.Process.Terminal {
 		term.SetRawTerminal(inputStream.Fd())
 	}
 

@@ -447,13 +447,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		return nil, err
 	}
 
-	// Because we cannot do a non-terminal attach, we need to set tty to true
-	// if detach is not false
-	// TODO Allow non-terminal attach
 	tty := c.Bool("tty")
-	if !c.Bool("detach") && !tty {
-		tty = true
-	}
 
 	pidMode := container.PidMode(c.String("pid"))
 	if !pidMode.Valid() {
