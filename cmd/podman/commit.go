@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
-	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/libpod/buildah"
 	"github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 
@@ -52,7 +55,6 @@ func commitCmd(c *cli.Context) error {
 	if err := validateFlags(c, commitFlags); err != nil {
 		return err
 	}
-
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -60,52 +62,48 @@ func commitCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	var (
-		container string
-		reference string
-		writer    io.Writer
+		writer io.Writer
 	)
 	args := c.Args()
-	switch len(args) {
-	case 0:
-		return errors.Errorf("need to give container name or id")
-	case 1:
-		container = args[0]
-	case 2:
-		container = args[0]
-		reference = args[1]
-	default:
-		return errors.Errorf("too many arguments. Usage CONTAINER [REFERENCE]")
+	if len(args) != 2 {
+		return errors.Errorf("you must provide a container name or ID and a target image name")
 	}
-
-	changes := v1.ImageConfig{}
+	container := args[0]
+	reference := args[1]
 	if c.IsSet("change") {
-		changes, err = getImageConfig(c.StringSlice("change"))
-		if err != nil {
-			return errors.Wrapf(err, "error adding config changes to image %q", container)
+		for _, change := range c.StringSlice("change") {
+			splitChange := strings.Split(strings.ToUpper(change), "=")
+			if !util.StringInSlice(splitChange[0], []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}) {
+				return errors.Errorf("invalid syntax for --change ", change)
+			}
 		}
-	}
-
-	history := []v1.History{
-		{Comment: c.String("message")},
-	}
-
-	config := v1.Image{
-		Config:  changes,
-		History: history,
-		Author:  c.String("author"),
 	}
 
 	if !c.Bool("quiet") {
 		writer = os.Stderr
 	}
-
 	ctr, err := runtime.LookupContainer(container)
 	if err != nil {
 		return errors.Wrapf(err, "error looking up container %q", container)
 	}
-	newImage, err := ctr.Commit(c.BoolT("pause"), reference, writer, image.SigningOptions{}, config)
-	if err == nil {
-		fmt.Println(newImage.ID())
+
+	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
+	coptions := buildah.CommitOptions{
+		SignaturePolicyPath: runtime.GetConfig().SignaturePolicyPath,
+		ReportWriter:        writer,
+		SystemContext:       sc,
 	}
+	options := libpod.ContainerCommitOptions{
+		CommitOptions: coptions,
+		Pause:         c.Bool("pause"),
+		Message:       c.String("message"),
+		Changes:       c.StringSlice("change"),
+		Author:        c.String("author"),
+	}
+	newImage, err := ctr.Commit(reference, options)
+	if err != nil {
+		return err
+	}
+	fmt.Println(newImage.ID())
 	return nil
 }

@@ -457,8 +457,14 @@ func (i *Image) MatchesID(id string) bool {
 
 // toStorageReference returns a *storageReference from an Image
 func (i *Image) toStorageReference() (types.ImageReference, error) {
+	var lookupName string
 	if i.storeRef == nil {
-		storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+		if i.image != nil {
+			lookupName = i.ID()
+		} else {
+			lookupName = i.InputName
+		}
+		storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, lookupName)
 		if err != nil {
 			return nil, err
 		}
