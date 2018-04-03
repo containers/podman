@@ -32,6 +32,7 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
+	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -64,8 +65,12 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
+	if len(newImage.Names()) < 1 {
+		imageName = newImage.ID()
+	} else {
+		imageName = newImage.Names()[0]
+	}
+	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
