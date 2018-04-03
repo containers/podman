@@ -91,10 +91,6 @@ func startCmd(c *cli.Context) error {
 			continue
 		}
 
-		if err := ctr.Init(); err != nil && errors.Cause(err) != libpod.ErrCtrExists {
-			return err
-		}
-
 		// We can only be interactive if both the config and the command-line say so
 		if c.Bool("interactive") && !ctr.Config().Stdin {
 			return errors.Errorf("the container was not created with the interactive option")

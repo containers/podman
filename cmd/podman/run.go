@@ -108,16 +108,6 @@ func runCmd(c *cli.Context) error {
 		logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), p)
 	}
 
-	if err := ctr.Init(); err != nil {
-		// This means the command did not exist
-		exitCode = 127
-		if strings.Index(err.Error(), "permission denied") > -1 {
-			exitCode = 126
-		}
-		return err
-	}
-	logrus.Debugf("container storage created for %q", ctr.ID())
-
 	createConfigJSON, err := json.Marshal(createConfig)
 	if err != nil {
 		return err
@@ -135,7 +125,12 @@ func runCmd(c *cli.Context) error {
 	// Handle detached start
 	if createConfig.Detach {
 		if err := ctr.Start(); err != nil {
-			return errors.Wrapf(err, "unable to start container %q", ctr.ID())
+			// This means the command did not exist
+			exitCode = 127
+			if strings.Index(err.Error(), "permission denied") > -1 {
+				exitCode = 126
+			}
+			return err
 		}
 
 		fmt.Printf("%s\n", ctr.ID())
@@ -147,7 +142,12 @@ func runCmd(c *cli.Context) error {
 	// Handle this when we split streams to allow attaching just stdin/out/err
 	attachChan, err := ctr.StartAndAttach(false, c.String("detach-keys"))
 	if err != nil {
-		return errors.Wrapf(err, "unable to start container %q", ctr.ID())
+		// This means the command did not exist
+		exitCode = 127
+		if strings.Index(err.Error(), "permission denied") > -1 {
+			exitCode = 126
+		}
+		return err
 	}
 
 	if c.BoolT("sig-proxy") {

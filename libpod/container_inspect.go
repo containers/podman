@@ -77,6 +77,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
 		Mounts:          spec.Mounts,
+		Dependencies:    c.Dependencies(),
 		NetworkSettings: &inspect.NetworkSettings{
 			Bridge:                 "",    // TODO
 			SandboxID:              "",    // TODO - is this even relevant?

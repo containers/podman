@@ -350,6 +350,64 @@ func (c *Container) save() error {
 	return nil
 }
 
+// Check if a container's dependencies are running
+// Returns a []string containing the IDs of dependencies that are not running
+func (c *Container) checkDependenciesRunning() ([]string, error) {
+	deps := c.Dependencies()
+	notRunning := []string{}
+
+	// We were not passed a set of dependency containers
+	// Make it ourselves
+	depCtrs := make(map[string]*Container, len(deps))
+	for _, dep := range deps {
+		// Get the dependency container
+		depCtr, err := c.runtime.state.Container(dep)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving dependency %s of container %s from state", dep, c.ID())
+		}
+
+		// Check the status
+		state, err := depCtr.State()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving state of dependency %s of container %s", dep, c.ID())
+		}
+		if state != ContainerStateRunning {
+			notRunning = append(notRunning, dep)
+		}
+		depCtrs[dep] = depCtr
+	}
+
+	return notRunning, nil
+}
+
+// Check if a container's dependencies are running
+// Returns a []string containing the IDs of dependencies that are not running
+// Assumes depencies are already locked, and will be passed in
+// Accepts a map[string]*Container containing, at a minimum, the locked
+// dependency containers
+// (This must be a map from container ID to container)
+func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container) ([]string, error) {
+	deps := c.Dependencies()
+	notRunning := []string{}
+
+	for _, dep := range deps {
+		depCtr, ok := depCtrs[dep]
+		if !ok {
+			return nil, errors.Wrapf(ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
+		}
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+
+		if depCtr.state.State != ContainerStateRunning {
+			notRunning = append(notRunning, dep)
+		}
+	}
+
+	return notRunning, nil
+}
+
 // Initialize a container, creating it in the runtime
 func (c *Container) init() error {
 	if err := c.makeBindMounts(); err != nil {
@@ -848,6 +906,7 @@ func (c *Container) generateHosts() (string, error) {
 }
 
 // Generate spec for a container
+// Accepts a map of the container's dependencies
 func (c *Container) generateSpec() (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
@@ -952,12 +1011,13 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 }
 
 // Add an existing container's namespace to the spec
-func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, nsCtrID string, specNS string) error {
-	nsCtr, err := c.runtime.state.Container(nsCtrID)
+func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS string) error {
+	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", ctr, c.ID())
 	}
 
+	// TODO need unlocked version of this for use in pods
 	nsPath, err := nsCtr.NamespacePath(ns)
 	if err != nil {
 		return err

@@ -656,6 +656,83 @@ func TestContainerInUseOneContainerMultipleDependencies(t *testing.T) {
 	})
 }
 
+func TestContainerInUseGenericDependency(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		ids, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ids))
+		assert.Equal(t, testCtr2.config.ID, ids[0])
+	})
+}
+
+func TestContainerInUseMultipleGenericDependencies(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+		testCtr3, err := getTestCtrN("3", lockPath)
+		assert.NoError(t, err)
+
+		testCtr3.config.Dependencies = []string{testCtr1.config.ID, testCtr2.config.ID}
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr3)
+		assert.NoError(t, err)
+
+		ids1, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ids1))
+		assert.Equal(t, testCtr3.config.ID, ids1[0])
+
+		ids2, err := state.ContainerInUse(testCtr2)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ids2))
+		assert.Equal(t, testCtr3.config.ID, ids2[0])
+	})
+}
+
+func TestContainerInUseGenericAndNamespaceDependencies(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
+		testCtr2.config.IPCNsCtr = testCtr1.config.ID
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		ids, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ids))
+		assert.Equal(t, testCtr2.config.ID, ids[0])
+	})
+}
+
 func TestCannotRemoveContainerWithDependency(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		testCtr1, err := getTestCtr1(lockPath)
@@ -664,6 +741,30 @@ func TestCannotRemoveContainerWithDependency(t *testing.T) {
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		err = state.RemoveContainer(testCtr1)
+		assert.Error(t, err)
+
+		ctrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(ctrs))
+	})
+}
+
+func TestCannotRemoveContainerWithGenericDependency(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
 
 		err = state.AddContainer(testCtr1)
 		assert.NoError(t, err)
@@ -763,6 +864,22 @@ func TestCannotUseBadIDAsDependency(t *testing.T) {
 		assert.NoError(t, err)
 
 		testCtr.config.UserNsCtr = strings.Repeat("5", 32)
+
+		err = state.AddContainer(testCtr)
+		assert.Error(t, err)
+
+		ctrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(ctrs))
+	})
+}
+
+func TestCannotUseBadIDAsGenericDependency(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+
+		testCtr.config.Dependencies = []string{strings.Repeat("5", 32)}
 
 		err = state.AddContainer(testCtr)
 		assert.Error(t, err)
