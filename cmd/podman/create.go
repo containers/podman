@@ -86,7 +86,7 @@ type createConfig struct {
 	Entrypoint         []string          //entrypoint
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
-	GroupAdd           []uint32 // group-add
+	GroupAdd           []string // group-add
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
 	Image              string
@@ -208,6 +208,7 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
+	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
 	ctr, err := runtime.NewContainer(runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -404,11 +405,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	sysctl, err := validateSysctl(c.StringSlice("sysctl"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid value for sysctl")
-	}
-
-	groupAdd, err := stringSlicetoUint32Slice(c.StringSlice("group-add"))
-	if err != nil {
-		return nil, errors.Wrapf(err, "invalid value for groups provided")
 	}
 
 	if c.String("memory") != "" {
@@ -625,7 +621,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		Entrypoint:        entrypoint,
 		Env:               env,
 		//ExposedPorts:   ports,
-		GroupAdd:       groupAdd,
+		GroupAdd:       c.StringSlice("group-add"),
 		Hostname:       c.String("hostname"),
 		HostAdd:        c.StringSlice("add-host"),
 		Image:          imageName,

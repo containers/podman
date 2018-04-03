@@ -69,3 +69,8 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 	}
 	return 0, 0, err
 }
+
+// GetAdditionalGroupsForUser returns a list of gids that userid is associated with
+func GetAdditionalGroupsForUser(rootdir string, userid uint64) ([]uint32, error) {
+	return lookupAdditionalGroupsForUIDInContainer(rootdir, userid)
+}

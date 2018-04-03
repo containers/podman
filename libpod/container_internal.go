@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -954,6 +955,29 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 		// User and Group must go together
 		g.SetProcessUID(uid)
 		g.SetProcessGID(gid)
+	}
+
+	// Add addition groups if c.config.GroupAdd is not empty
+	if len(c.config.Groups) > 0 {
+		if !c.state.Mounted {
+			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to add additional groups", c.ID())
+		}
+		for _, group := range c.config.Groups {
+			_, gid, err := chrootuser.GetUser(c.state.Mountpoint, strconv.Itoa(int(g.Spec().Process.User.UID))+":"+group)
+			if err != nil {
+				return nil, err
+			}
+			g.AddProcessAdditionalGid(uint32(gid))
+		}
+	}
+
+	// Look up and add groups the user belongs to
+	groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Spec().Process.User.UID))
+	if err != nil {
+		return nil, err
+	}
+	for _, gid := range groups {
+		g.AddProcessAdditionalGid(gid)
 	}
 
 	// Add shared namespaces from other containers
