@@ -101,7 +101,7 @@ func TestPIDsLimit(t *testing.T) {
 // TestBLKIOWeightDevice verifies the inputed blkio weigh device is correctly defined in the spec
 func TestBLKIOWeightDevice(t *testing.T) {
 	a := createCLI()
-	args := []string{"--blkio-weight-device", "/dev/sda:100"}
+	args := []string{"--blkio-weight-device", "/dev/zero:100"}
 	a.Run(append(cmd, args...))
 	runtimeSpec, err := getRuntimeSpec(CLI)
 	if err != nil {

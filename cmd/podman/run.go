@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -10,7 +11,6 @@ import (
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"os"
 )
 
 var runDescription = "Runs a command in a new container from the given image"
@@ -94,6 +94,7 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithUser(createConfig.User))
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
+	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
 
 	// Default used if not overridden on command line
 

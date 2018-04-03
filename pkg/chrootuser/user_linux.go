@@ -88,6 +88,7 @@ type lookupPasswdEntry struct {
 type lookupGroupEntry struct {
 	name string
 	gid  uint64
+	user string
 }
 
 func readWholeLine(rc *bufio.Reader) ([]byte, error) {
@@ -153,6 +154,7 @@ func parseNextGroup(rc *bufio.Reader) *lookupGroupEntry {
 	return &lookupGroupEntry{
 		name: fields[0],
 		gid:  gid,
+		user: fields[3],
 	}
 }
 
@@ -206,6 +208,36 @@ func lookupGroupForUIDInContainer(rootdir string, userid uint64) (username strin
 	}
 
 	return "", 0, user.UnknownUserError(fmt.Sprintf("error looking up user with UID %d", userid))
+}
+
+func lookupAdditionalGroupsForUIDInContainer(rootdir string, userid uint64) (gid []uint32, err error) {
+	// Get the username associated with userid
+	username, _, err := lookupGroupForUIDInContainer(rootdir, userid)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, f, err := openChrootedFile(rootdir, "/etc/group")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = cmd.Wait()
+	}()
+	rc := bufio.NewReader(f)
+	defer f.Close()
+
+	lookupGroup.Lock()
+	defer lookupGroup.Unlock()
+
+	grp := parseNextGroup(rc)
+	for grp != nil {
+		if strings.Contains(grp.user, username) {
+			gid = append(gid, uint32(grp.gid))
+		}
+		grp = parseNextGroup(rc)
+	}
+	return gid, nil
 }
 
 func lookupGroupInContainer(rootdir, groupname string) (gid uint64, err error) {

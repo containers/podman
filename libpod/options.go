@@ -823,3 +823,14 @@ func WithConmonPidFile(path string) CtrCreateOption {
 		return nil
 	}
 }
+
+// WithGroups sets additional groups for the container, which are defined by the user
+func WithGroups(groups []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.Groups = groups
+		return nil
+	}
+}
