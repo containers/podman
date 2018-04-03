@@ -1051,6 +1051,7 @@ _podman_container_run() {
 		--cap-drop
 		--cgroup-parent
 		--cidfile
+		--conmon-pidfile
 		--cpu-period
 		--cpu-quota
 		--cpu-rt-period
