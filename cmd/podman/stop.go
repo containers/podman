@@ -101,7 +101,7 @@ func stopCmd(c *cli.Context) error {
 		} else {
 			stopTimeout = ctr.StopTimeout()
 		}
-		if err := ctr.StopWithTimeout(stopTimeout); err != nil {
+		if err := ctr.StopWithTimeout(stopTimeout); err != nil && err != libpod.ErrCtrStopped {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

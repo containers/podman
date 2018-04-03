@@ -215,6 +215,10 @@ func (c *Container) Stop() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
 	}
 
+	if c.state.State == ContainerStateStopped {
+		return ErrCtrStopped
+	}
+
 	return c.stop(c.config.StopTimeout)
 }
 
@@ -235,6 +239,10 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		c.state.State == ContainerStateUnknown ||
 		c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+	}
+
+	if c.state.State == ContainerStateStopped {
+		return ErrCtrStopped
 	}
 
 	return c.stop(timeout)
