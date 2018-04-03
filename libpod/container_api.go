@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -10,10 +9,8 @@ import (
 
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/stringid"
-	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
-	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -584,42 +581,6 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 	}
 
 	return c.getContainerInspectData(size, driverData)
-}
-
-// Commit commits the changes between a container and its image, creating a new
-// image
-func (c *Container) Commit(pause bool, reference string, writer io.Writer, signingOptions image.SigningOptions, imageConfig ociv1.Image) (*image.Image, error) {
-	if !c.locked {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
-	if c.state.State == ContainerStateRunning && pause {
-		if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
-			return nil, errors.Wrapf(err, "error pausing container %q", c.ID())
-		}
-		defer func() {
-			if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
-				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
-			}
-		}()
-	}
-
-	tempFile, err := ioutil.TempFile(c.runtime.config.TmpDir, "podman-commit")
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating temp file")
-	}
-	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
-
-	if err := c.export(tempFile.Name()); err != nil {
-		return nil, err
-	}
-	return c.runtime.imageRuntime.Import(tempFile.Name(), reference, writer, signingOptions, imageConfig)
 }
 
 // Wait blocks on a container to exit and returns its exit code

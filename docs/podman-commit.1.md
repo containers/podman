@@ -6,13 +6,7 @@
 podman commit - Create new image based on the changed container
 
 ## SYNOPSIS
-**podman commit**
-**TARBALL**
-[**--author**|**-a**]
-[**--change**|**-c**]
-[**--message**|**-m**]
-[**--help**|**-h**]
-[**--verbose**]
+**podman commit** [*options* [...]] CONTAINER IMAGE
 
 ## DESCRIPTION
 **podman commit** creates an image based on a changed container. The author of the
@@ -22,12 +16,6 @@ configured with the **--change** flag and a commit message can be set using the
 committed. This minimizes the likelihood of data corruption when creating the new
 image. If this is not desired, the **--pause** flag can be set to false. When the commit
 is complete, podman will print out the ID of the new image.
-
-**podman [GLOBAL OPTIONS]**
-
-**podman commit [GLOBAL OPTIONS]**
-
-**podman commit [OPTIONS] CONTAINER**
 
 ## OPTIONS
 
@@ -68,7 +56,7 @@ e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit -q --author "firstName lastName" reverent_golick
+# podman commit -q --author "firstName lastName" reverent_golick image-commited
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
