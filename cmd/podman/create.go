@@ -547,7 +547,10 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	if len(entrypoint) == 0 {
 		entrypoint = data.ContainerConfig.Entrypoint
 	}
-
+	// if entrypoint=, we need to clear the entrypoint
+	if len(entrypoint) == 1 && c.IsSet("entrypoint") && strings.Join(c.StringSlice("entrypoint"), "") == "" {
+		entrypoint = []string{}
+	}
 	// Build the command
 	// If we have an entry point, it goes first
 	if len(entrypoint) > 0 {
