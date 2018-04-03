@@ -467,6 +467,15 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 
 	if timeout > 0 {
 		if err := r.killContainer(ctr, stopSignal); err != nil {
+			// Is the container gone?
+			// If so, it probably died between the first check and
+			// our sending the signal
+			// The container is stopped, so exit cleanly
+			err := unix.Kill(ctr.state.PID, 0)
+			if err == unix.ESRCH {
+				return nil
+			}
+
 			return err
 		}
 
@@ -479,6 +488,12 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	}
 
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+		// Again, check if the container is gone. If it is, exit cleanly.
+		err := unix.Kill(ctr.state.PID, 0)
+		if err == unix.ESRCH {
+			return nil
+		}
+
 		return errors.Wrapf(err, "error sending SIGKILL to container %s", ctr.ID())
 	}
 
