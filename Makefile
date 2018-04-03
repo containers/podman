@@ -229,6 +229,8 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		make all install; \
 	fi
 
+validate: gofmt .gitvalidation
+
 .PHONY: \
 	binaries \
 	clean \
@@ -241,4 +243,5 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	pause \
 	uninstall \
 	shell \
-	changelog
+	changelog \
+	validate
