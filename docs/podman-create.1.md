@@ -52,6 +52,9 @@ each of stdin, stdout, and stderr.
 **--cidfile**=""
    Write the container ID to the file
 
+**--conmon-pidfile**=""
+   Write the pid of the `conmon` process to a file. `conmon` daemonizes separate from Podman, so this is necessary when using systemd to restart Podman containers.
+
 **--cpu-count**=*0*
     Limit the number of CPUs available for execution by the container.
 
