@@ -89,7 +89,7 @@ page.
 $ sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                     -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                     -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
-                    registry.fedoraproject.org/f26/httpd /usr/bin/run-httpd
+                    registry.fedoraproject.org/f26/httpd:latest /usr/bin/run-httpd
 ```
 Because the container is being run in detached mode, represented by the *-d* in the podman run command, podman
 will print the container ID after it has run.
