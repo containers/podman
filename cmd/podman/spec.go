@@ -378,7 +378,6 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	/*
-			Hooks: &configSpec.Hooks{},
 			//Annotations
 				Resources: &configSpec.LinuxResources{
 					BlockIO: &blkio,

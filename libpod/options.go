@@ -172,6 +172,20 @@ func WithStaticDir(dir string) RuntimeOption {
 	}
 }
 
+// WithHooksDir sets the directory to look for OCI runtime hooks config
+// Note we are not saving this in database, since this is really just for used
+// for testing
+func WithHooksDir(hooksDir string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.HooksDir = hooksDir
+		return nil
+	}
+}
+
 // WithTmpDir sets the directory that temporary runtime files which are not
 // expected to survive across reboots will be stored
 // This should be located on a tmpfs mount (/tmp or /var/run for example)
