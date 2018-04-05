@@ -472,7 +472,7 @@ func (d *Driver) Cleanup() error {
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
 // The layer should be mounted when calling this function
-func (d *Driver) Diff(id, parent, mountLabel string) (_ io.ReadCloser, err error) {
+func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (_ io.ReadCloser, err error) {
 	panicIfUsedByLcow()
 	rID, err := d.resolveID(id)
 	if err != nil {
@@ -509,7 +509,7 @@ func (d *Driver) Diff(id, parent, mountLabel string) (_ io.ReadCloser, err error
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
 // The layer should not be mounted when calling this function.
-func (d *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error) {
+func (d *Driver) Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error) {
 	panicIfUsedByLcow()
 	rID, err := d.resolveID(id)
 	if err != nil {
@@ -565,7 +565,7 @@ func (d *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
 // The layer should not be mounted when calling this function
-func (d *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (int64, error) {
+func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent, mountLabel string, diff io.Reader) (int64, error) {
 	panicIfUsedByLcow()
 	var layerChain []string
 	if parent != "" {
@@ -600,14 +600,14 @@ func (d *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (int64
 // DiffSize calculates the changes between the specified layer
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
-func (d *Driver) DiffSize(id, parent, mountLabel string) (size int64, err error) {
+func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
 	panicIfUsedByLcow()
 	rPId, err := d.resolveID(parent)
 	if err != nil {
 		return
 	}
 
-	changes, err := d.Changes(id, rPId, mountLabel)
+	changes, err := d.Changes(id, idMappings, rPId, parentMappings, mountLabel)
 	if err != nil {
 		return
 	}
@@ -938,6 +938,17 @@ func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 // AdditionalImageStores returns additional image stores supported by the driver
 func (d *Driver) AdditionalImageStores() []string {
 	return nil
+}
+
+// AdditionalImageStores returns additional image stores supported by the driver
+func (d *Driver) AdditionalImageStores() []string {
+	return nil
+}
+
+// UpdateLayerIDMap changes ownerships in the layer's filesystem tree from
+// matching those in toContainer to matching those in toHost.
+func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
+	return fmt.Errorf("windows doesn't support changing ID mappings")
 }
 
 type storageOptions struct {

@@ -119,7 +119,7 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 		gidMaps:          gidMaps,
 		ctr:              graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
 	}
-	return graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps), nil
+	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
 }
 
 func parseOptions(opt []string) (zfsOptions, error) {

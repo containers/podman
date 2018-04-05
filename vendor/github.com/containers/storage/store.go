@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -136,9 +137,8 @@ type StoreOptions struct {
 	GraphDriverName string `json:"driver,omitempty"`
 	// GraphDriverOptions are driver-specific options.
 	GraphDriverOptions []string `json:"driver-options,omitempty"`
-	// UIDMap and GIDMap are used mainly for deciding on the ownership of
-	// files in layers as they're stored on disk, which is often necessary
-	// when user namespaces are being used.
+	// UIDMap and GIDMap are used for setting up a container's root filesystem
+	// for use inside of a user namespace where UID mapping is being used.
 	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
 	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
 }
@@ -152,6 +152,8 @@ type Store interface {
 	GraphRoot() string
 	GraphDriverName() string
 	GraphOptions() []string
+	UIDMap() []idtools.IDMap
+	GIDMap() []idtools.IDMap
 
 	// GraphDriver obtains and returns a handle to the graph Driver object used
 	// by the Store.
@@ -161,7 +163,7 @@ type Store interface {
 	// optionally having the specified ID (one will be assigned if none is
 	// specified), with the specified layer (or no layer) as its parent,
 	// and with optional names.  (The writeable flag is ignored.)
-	CreateLayer(id, parent string, names []string, mountLabel string, writeable bool) (*Layer, error)
+	CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions) (*Layer, error)
 
 	// PutLayer combines the functions of CreateLayer and ApplyDiff,
 	// marking the layer for automatic removal if applying the diff fails
@@ -174,7 +176,7 @@ type Store interface {
 	//   if reexec.Init {
 	//       return
 	//   }
-	PutLayer(id, parent string, names []string, mountLabel string, writeable bool, diff io.Reader) (*Layer, int64, error)
+	PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions, diff io.Reader) (*Layer, int64, error)
 
 	// CreateImage creates a new image, optionally with the specified ID
 	// (one will be assigned if none is specified), with optional names,
@@ -303,6 +305,11 @@ type Store interface {
 	// if we don't have a value on hand.
 	LayerSize(id string) (int64, error)
 
+	// LayerParentOwners returns the UIDs and GIDs of owners of parents of
+	// the layer's mountpoint for which the layer's UID and GID maps (if
+	// any are defined) don't contain corresponding IDs.
+	LayerParentOwners(id string) ([]int, []int, error)
+
 	// Layers returns a list of the currently known layers.
 	Layers() ([]Layer, error)
 
@@ -413,6 +420,11 @@ type Store interface {
 	// directory.
 	FromContainerRunDirectory(id, file string) ([]byte, error)
 
+	// ContainerParentOwners returns the UIDs and GIDs of owners of parents
+	// of the container's layer's mountpoint for which the layer's UID and
+	// GID maps (if any are defined) don't contain corresponding IDs.
+	ContainerParentOwners(id string) ([]int, []int, error)
+
 	// Lookup returns the ID of a layer, image, or container with the specified
 	// name or ID.
 	Lookup(name string) (string, error)
@@ -429,6 +441,33 @@ type Store interface {
 	Version() ([][2]string, error)
 }
 
+// IDMappingOptions are used for specifying how ID mapping should be set up for
+// a layer or container.
+type IDMappingOptions struct {
+	// UIDMap and GIDMap are used for setting up a layer's root filesystem
+	// for use inside of a user namespace where ID mapping is being used.
+	// If HostUIDMapping/HostGIDMapping is true, no mapping of the
+	// respective type will be used.  Otherwise, if UIDMap and/or GIDMap
+	// contain at least one mapping, one or both will be used.  By default,
+	// if neither of those conditions apply, if the layer has a parent
+	// layer, the parent layer's mapping will be used, and if it does not
+	// have a parent layer, the mapping which was passed to the Store
+	// object when it was initialized will be used.
+	HostUIDMapping bool
+	HostGIDMapping bool
+	UIDMap         []idtools.IDMap
+	GIDMap         []idtools.IDMap
+}
+
+// LayerOptions is used for passing options to a Store's CreateLayer() and PutLayer() methods.
+type LayerOptions struct {
+	// IDMappingOptions specifies the type of ID mapping which should be
+	// used for this layer.  If nothing is specified, the layer will
+	// inherit settings from its parent layer or, if it has no parent
+	// layer, the Store object.
+	IDMappingOptions
+}
+
 // ImageOptions is used for passing options to a Store's CreateImage() method.
 type ImageOptions struct {
 	// CreationDate, if not zero, will override the default behavior of marking the image as having been
@@ -440,6 +479,11 @@ type ImageOptions struct {
 
 // ContainerOptions is used for passing options to a Store's CreateContainer() method.
 type ContainerOptions struct {
+	// IDMappingOptions specifies the type of ID mapping which should be
+	// used for this container's layer.  If nothing is specified, the
+	// container's layer will inherit settings from the image's top layer
+	// or, if it is not being created based on an image, the Store object.
+	IDMappingOptions
 }
 
 type store struct {
@@ -558,6 +602,14 @@ func (s *store) GraphOptions() []string {
 	return s.graphOptions
 }
 
+func (s *store) UIDMap() []idtools.IDMap {
+	return copyIDMap(s.uidMap)
+}
+
+func (s *store) GIDMap() []idtools.IDMap {
+	return copyIDMap(s.gidMap)
+}
+
 func (s *store) load() error {
 	driver, err := s.GraphDriver()
 	if err != nil {
@@ -662,7 +714,7 @@ func (s *store) LayerStore() (LayerStore, error) {
 	if err := os.MkdirAll(glpath, 0700); err != nil {
 		return nil, err
 	}
-	rls, err := newLayerStore(rlpath, glpath, driver)
+	rls, err := newLayerStore(rlpath, glpath, driver, s.uidMap, s.gidMap)
 	if err != nil {
 		return nil, err
 	}
@@ -742,7 +794,8 @@ func (s *store) ContainerStore() (ContainerStore, error) {
 	return nil, ErrLoadError
 }
 
-func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, diff io.Reader) (*Layer, int64, error) {
+func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions, diff io.Reader) (*Layer, int64, error) {
+	var parentLayer *Layer
 	rlstore, err := s.LayerStore()
 	if err != nil {
 		return nil, -1, err
@@ -768,9 +821,27 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	if id == "" {
 		id = stringid.GenerateRandomID()
 	}
+	if options == nil {
+		options = &LayerOptions{}
+	}
+	if options.HostUIDMapping {
+		options.UIDMap = nil
+	}
+	if options.HostGIDMapping {
+		options.GIDMap = nil
+	}
+	uidMap := options.UIDMap
+	gidMap := options.GIDMap
 	if parent != "" {
 		var ilayer *Layer
 		for _, lstore := range append([]ROLayerStore{rlstore}, rlstores...) {
+			if lstore != rlstore {
+				lstore.Lock()
+				defer lstore.Unlock()
+				if modified, err := lstore.Modified(); modified || err != nil {
+					lstore.Load()
+				}
+			}
 			if l, err := lstore.Get(parent); err == nil && l != nil {
 				ilayer = l
 				parent = ilayer.ID
@@ -780,6 +851,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		if ilayer == nil {
 			return nil, -1, ErrLayerUnknown
 		}
+		parentLayer = ilayer
 		containers, err := rcstore.Containers()
 		if err != nil {
 			return nil, -1, err
@@ -789,12 +861,33 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 				return nil, -1, ErrParentIsContainer
 			}
 		}
+		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+			uidMap = ilayer.UIDMap
+		}
+		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+			gidMap = ilayer.GIDMap
+		}
+	} else {
+		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+			uidMap = s.uidMap
+		}
+		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+			gidMap = s.gidMap
+		}
 	}
-	return rlstore.Put(id, parent, names, mountLabel, nil, writeable, nil, diff)
+	layerOptions := &LayerOptions{
+		IDMappingOptions: IDMappingOptions{
+			HostUIDMapping: options.HostUIDMapping,
+			HostGIDMapping: options.HostGIDMapping,
+			UIDMap:         copyIDMap(uidMap),
+			GIDMap:         copyIDMap(gidMap),
+		},
+	}
+	return rlstore.Put(id, parentLayer, names, mountLabel, nil, layerOptions, writeable, nil, diff)
 }
 
-func (s *store) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool) (*Layer, error) {
-	layer, _, err := s.PutLayer(id, parent, names, mountLabel, writeable, nil)
+func (s *store) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions) (*Layer, error) {
+	layer, _, err := s.PutLayer(id, parent, names, mountLabel, writeable, options, nil)
 	return layer, err
 }
 
@@ -849,6 +942,15 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 }
 
 func (s *store) CreateContainer(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error) {
+	if options == nil {
+		options = &ContainerOptions{}
+	}
+	if options.HostUIDMapping {
+		options.UIDMap = nil
+	}
+	if options.HostGIDMapping {
+		options.GIDMap = nil
+	}
 	rlstore, err := s.LayerStore()
 	if err != nil {
 		return nil, err
@@ -862,8 +964,10 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		id = stringid.GenerateRandomID()
 	}
 
-	imageTopLayer := ""
+	var imageTopLayer *Layer
 	imageID := ""
+	uidMap := options.UIDMap
+	gidMap := options.GIDMap
 	if image != "" {
 		istore, err := s.ImageStore()
 		if err != nil {
@@ -888,10 +992,53 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		if cimage == nil {
 			return nil, ErrImageUnknown
 		}
-		imageTopLayer = cimage.TopLayer
 		imageID = cimage.ID
+
+		lstores, err := s.ROLayerStores()
+		if err != nil {
+			return nil, err
+		}
+		var ilayer *Layer
+		for _, store := range append([]ROLayerStore{rlstore}, lstores...) {
+			if store != rlstore {
+				store.Lock()
+				defer store.Unlock()
+				if modified, err := store.Modified(); modified || err != nil {
+					store.Load()
+				}
+			}
+			ilayer, err = store.Get(cimage.TopLayer)
+			if err == nil {
+				break
+			}
+		}
+		if ilayer == nil {
+			return nil, ErrLayerUnknown
+		}
+		imageTopLayer = ilayer
+		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+			uidMap = ilayer.UIDMap
+		}
+		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+			gidMap = ilayer.GIDMap
+		}
+	} else {
+		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+			uidMap = s.uidMap
+		}
+		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+			gidMap = s.gidMap
+		}
 	}
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, "", nil, true)
+	layerOptions := &LayerOptions{
+		IDMappingOptions: IDMappingOptions{
+			HostUIDMapping: options.HostUIDMapping,
+			HostGIDMapping: options.HostGIDMapping,
+			UIDMap:         copyIDMap(uidMap),
+			GIDMap:         copyIDMap(gidMap),
+		},
+	}
+	clayer, err := rlstore.Create(layer, imageTopLayer, nil, "", nil, layerOptions, true)
 	if err != nil {
 		return nil, err
 	}
@@ -905,7 +1052,15 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if modified, err := rcstore.Modified(); modified || err != nil {
 		rcstore.Load()
 	}
-	container, err := rcstore.Create(id, names, imageID, layer, metadata)
+	options = &ContainerOptions{
+		IDMappingOptions: IDMappingOptions{
+			HostUIDMapping: len(clayer.UIDMap) == 0,
+			HostGIDMapping: len(clayer.GIDMap) == 0,
+			UIDMap:         copyIDMap(clayer.UIDMap),
+			GIDMap:         copyIDMap(clayer.GIDMap),
+		},
+	}
+	container, err := rcstore.Create(id, names, imageID, layer, metadata, options)
 	if err != nil || container == nil {
 		rlstore.Delete(layer)
 	}
@@ -1944,6 +2099,51 @@ func (s *store) LayerSize(id string) (int64, error) {
 	return -1, ErrLayerUnknown
 }
 
+func (s *store) LayerParentOwners(id string) ([]int, []int, error) {
+	rlstore, err := s.LayerStore()
+	if err != nil {
+		return nil, nil, err
+	}
+	rlstore.Lock()
+	defer rlstore.Unlock()
+	if modified, err := rlstore.Modified(); modified || err != nil {
+		rlstore.Load()
+	}
+	if rlstore.Exists(id) {
+		return rlstore.ParentOwners(id)
+	}
+	return nil, nil, ErrLayerUnknown
+}
+
+func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
+	rlstore, err := s.LayerStore()
+	if err != nil {
+		return nil, nil, err
+	}
+	rcstore, err := s.ContainerStore()
+	if err != nil {
+		return nil, nil, err
+	}
+	rlstore.Lock()
+	defer rlstore.Unlock()
+	if modified, err := rlstore.Modified(); modified || err != nil {
+		rlstore.Load()
+	}
+	rcstore.Lock()
+	defer rcstore.Unlock()
+	if modified, err := rcstore.Modified(); modified || err != nil {
+		rcstore.Load()
+	}
+	container, err := rcstore.Get(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	if rlstore.Exists(container.LayerID) {
+		return rlstore.ParentOwners(container.LayerID)
+	}
+	return nil, nil, ErrLayerUnknown
+}
+
 func (s *store) Layers() ([]Layer, error) {
 	var layers []Layer
 	lstore, err := s.LayerStore()
@@ -2399,6 +2599,18 @@ type OptionsConfig struct {
 
 	// OverrideKernelCheck
 	OverrideKernelCheck string `toml:"override_kernel_check"`
+
+	// RemapUIDs is a list of default UID mappings to use for layers.
+	RemapUIDs string `toml:"remap-uids"`
+	// RemapGIDs is a list of default GID mappings to use for layers.
+	RemapGIDs string `toml:"remap-gids"`
+
+	// RemapUser is the name of one or more entries in /etc/subuid which
+	// should be used to set up default UID mappings.
+	RemapUser string `toml:"remap-user"`
+	// RemapGroup is the name of one or more entries in /etc/subgid which
+	// should be used to set up default GID mappings.
+	RemapGroup string `toml:"remap-group"`
 }
 
 // TOML-friendly explicit tables used for conversions.
@@ -2448,6 +2660,71 @@ func init() {
 	if config.Storage.Options.OverrideKernelCheck != "" {
 		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("%s.override_kernel_check=%s", config.Storage.Driver, config.Storage.Options.OverrideKernelCheck))
 	}
+	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup == "" {
+		config.Storage.Options.RemapGroup = config.Storage.Options.RemapUser
+	}
+	if config.Storage.Options.RemapGroup != "" && config.Storage.Options.RemapUser == "" {
+		config.Storage.Options.RemapUser = config.Storage.Options.RemapGroup
+	}
+	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup != "" {
+		mappings, err := idtools.NewIDMappings(config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup)
+		if err != nil {
+			fmt.Printf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
+			return
+		}
+		DefaultStoreOptions.UIDMap = mappings.UIDs()
+		DefaultStoreOptions.GIDMap = mappings.GIDs()
+	}
+	nonDigitsToWhitespace := func(r rune) rune {
+		if strings.IndexRune("0123456789", r) == -1 {
+			return ' '
+		} else {
+			return r
+		}
+	}
+	parseTriple := func(spec []string) (container, host, size uint32, err error) {
+		cid, err := strconv.ParseUint(spec[0], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
+		}
+		hid, err := strconv.ParseUint(spec[1], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
+		}
+		sz, err := strconv.ParseUint(spec[2], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
+		}
+		return uint32(cid), uint32(hid), uint32(sz), nil
+	}
+	parseIDMap := func(idMapSpec, mapSetting string) (idmap []idtools.IDMap) {
+		if len(idMapSpec) > 0 {
+			idSpec := strings.Fields(strings.Map(nonDigitsToWhitespace, idMapSpec))
+			if len(idSpec)%3 != 0 {
+				fmt.Printf("Error initializing ID mappings: %s setting is malformed.\n", mapSetting)
+				return nil
+			}
+			for i := range idSpec {
+				if i%3 != 0 {
+					continue
+				}
+				cid, hid, size, err := parseTriple(idSpec[i : i+3])
+				if err != nil {
+					fmt.Printf("Error initializing ID mappings: %s setting is malformed.\n", mapSetting)
+					return nil
+				}
+				mapping := idtools.IDMap{
+					ContainerID: int(cid),
+					HostID:      int(hid),
+					Size:        int(size),
+				}
+				idmap = append(idmap, mapping)
+			}
+		}
+		return idmap
+	}
+	DefaultStoreOptions.UIDMap = append(DefaultStoreOptions.UIDMap, parseIDMap(config.Storage.Options.RemapUIDs, "remap-uids")...)
+	DefaultStoreOptions.GIDMap = append(DefaultStoreOptions.GIDMap, parseIDMap(config.Storage.Options.RemapGIDs, "remap-gids")...)
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		DefaultStoreOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
 	}

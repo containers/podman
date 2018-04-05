@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	"golang.org/x/sys/unix"
 )
@@ -22,10 +23,12 @@ import (
 // directly. Eliminating stat calls in this way can save up to seconds on large
 // images.
 type walker struct {
-	dir1  string
-	dir2  string
-	root1 *FileInfo
-	root2 *FileInfo
+	dir1   string
+	dir2   string
+	root1  *FileInfo
+	root2  *FileInfo
+	idmap1 *idtools.IDMappings
+	idmap2 *idtools.IDMappings
 }
 
 // collectFileInfoForChanges returns a complete representation of the trees
@@ -34,12 +37,12 @@ type walker struct {
 // and dir2 will be pruned from the results. This method is *only* to be used
 // to generating a list of changes between the two directories, as it does not
 // reflect the full contents.
-func collectFileInfoForChanges(dir1, dir2 string) (*FileInfo, *FileInfo, error) {
+func collectFileInfoForChanges(dir1, dir2 string, idmap1, idmap2 *idtools.IDMappings) (*FileInfo, *FileInfo, error) {
 	w := &walker{
 		dir1:  dir1,
 		dir2:  dir2,
-		root1: newRootFileInfo(),
-		root2: newRootFileInfo(),
+		root1: newRootFileInfo(idmap1),
+		root2: newRootFileInfo(idmap2),
 	}
 
 	i1, err := os.Lstat(w.dir1)
@@ -69,9 +72,10 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 		return fmt.Errorf("walkchunk: Unexpectedly no parent for %s", path)
 	}
 	info := &FileInfo{
-		name:     filepath.Base(path),
-		children: make(map[string]*FileInfo),
-		parent:   parent,
+		name:       filepath.Base(path),
+		children:   make(map[string]*FileInfo),
+		parent:     parent,
+		idMappings: root.idMappings,
 	}
 	cpath := filepath.Join(dir, path)
 	stat, err := system.FromStatT(fi.Sys().(*syscall.Stat_t))

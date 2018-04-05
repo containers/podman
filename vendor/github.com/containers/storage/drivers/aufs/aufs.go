@@ -167,7 +167,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		}
 	}
 
-	a.naiveDiff = graphdriver.NewNaiveDiffDriver(a, uidMaps, gidMaps)
+	a.naiveDiff = graphdriver.NewNaiveDiffDriver(a, a)
 	return a, nil
 }
 
@@ -250,7 +250,7 @@ func (a *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 		return fmt.Errorf("--storage-opt is not supported for aufs")
 	}
 
-	if err := a.createDirsFor(id); err != nil {
+	if err := a.createDirsFor(id, parent); err != nil {
 		return err
 	}
 	// Write the layers metadata
@@ -281,21 +281,26 @@ func (a *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 
 // createDirsFor creates two directories for the given id.
 // mnt and diff
-func (a *Driver) createDirsFor(id string) error {
+func (a *Driver) createDirsFor(id, parent string) error {
 	paths := []string{
 		"mnt",
 		"diff",
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(a.uidMaps, a.gidMaps)
-	if err != nil {
-		return err
-	}
 	// Directory permission is 0755.
 	// The path of directories are <aufs_root_path>/mnt/<image_id>
 	// and <aufs_root_path>/diff/<image_id>
 	for _, p := range paths {
-		if err := idtools.MkdirAllAs(path.Join(a.rootPath(), p, id), 0755, rootUID, rootGID); err != nil {
+		rootPair := idtools.NewIDMappingsFromMaps(a.uidMaps, a.gidMaps).RootPair()
+		if parent != "" {
+			st, err := system.Stat(path.Join(a.rootPath(), p, parent))
+			if err != nil {
+				return err
+			}
+			rootPair.UID = int(st.UID())
+			rootPair.GID = int(st.GID())
+		}
+		if err := idtools.MkdirAllAndChownNew(path.Join(a.rootPath(), p, id), os.FileMode(0755), rootPair); err != nil {
 			return err
 		}
 	}
@@ -463,17 +468,21 @@ func (a *Driver) isParent(id, parent string) bool {
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (a *Driver) Diff(id, parent, mountLabel string) (io.ReadCloser, error) {
+func (a *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.Diff(id, parent, mountLabel)
+		return a.naiveDiff.Diff(id, idMappings, parent, parentMappings, mountLabel)
+	}
+
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
 	}
 
 	// AUFS doesn't need the parent layer to produce a diff.
 	return archive.TarWithOptions(path.Join(a.rootPath(), "diff", id), &archive.TarOptions{
 		Compression:     archive.Uncompressed,
 		ExcludePatterns: []string{archive.WhiteoutMetaPrefix + "*", "!" + archive.WhiteoutOpaqueDir},
-		UIDMaps:         a.uidMaps,
-		GIDMaps:         a.gidMaps,
+		UIDMaps:         idMappings.UIDs(),
+		GIDMaps:         idMappings.GIDs(),
 	})
 }
 
@@ -492,19 +501,22 @@ func (a *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 	return fileGetNilCloser{storage.NewPathFileGetter(p)}, nil
 }
 
-func (a *Driver) applyDiff(id string, diff io.Reader) error {
+func (a *Driver) applyDiff(id string, idMappings *idtools.IDMappings, diff io.Reader) error {
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
+	}
 	return chrootarchive.UntarUncompressed(diff, path.Join(a.rootPath(), "diff", id), &archive.TarOptions{
-		UIDMaps: a.uidMaps,
-		GIDMaps: a.gidMaps,
+		UIDMaps: idMappings.UIDs(),
+		GIDMaps: idMappings.GIDs(),
 	})
 }
 
 // DiffSize calculates the changes between the specified id
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
-func (a *Driver) DiffSize(id, parent, mountLabel string) (size int64, err error) {
+func (a *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.DiffSize(id, parent, mountLabel)
+		return a.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 	// AUFS doesn't need the parent layer to calculate the diff size.
 	return directory.Size(path.Join(a.rootPath(), "diff", id))
@@ -513,24 +525,24 @@ func (a *Driver) DiffSize(id, parent, mountLabel string) (size int64, err error)
 // ApplyDiff extracts the changeset from the given diff into the
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
-func (a *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (size int64, err error) {
+func (a *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent, mountLabel string, diff io.Reader) (size int64, err error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.ApplyDiff(id, parent, mountLabel, diff)
+		return a.naiveDiff.ApplyDiff(id, idMappings, parent, mountLabel, diff)
 	}
 
 	// AUFS doesn't need the parent id to apply the diff if it is the direct parent.
-	if err = a.applyDiff(id, diff); err != nil {
+	if err = a.applyDiff(id, idMappings, diff); err != nil {
 		return
 	}
 
-	return a.DiffSize(id, parent, mountLabel)
+	return directory.Size(path.Join(a.rootPath(), "diff", id))
 }
 
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
-func (a *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error) {
+func (a *Driver) Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.Changes(id, parent, mountLabel)
+		return a.naiveDiff.Changes(id, idMappings, parent, parentMappings, mountLabel)
 	}
 
 	// AUFS doesn't have snapshots, so we need to get changes from all parent
@@ -688,4 +700,10 @@ func useDirperm() bool {
 		}
 	})
 	return enableDirperm
+}
+
+// UpdateLayerIDMap updates ID mappings in a layer from matching the ones
+// specified by toContainer to those specified by toHost.
+func (a *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
+	return fmt.Errorf("aufs doesn't support changing ID mappings")
 }

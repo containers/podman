@@ -257,6 +257,7 @@ func changes(layers []string, rw string, dc deleteChange, sc skipChange, wc whit
 // FileInfo describes the information of a file.
 type FileInfo struct {
 	parent     *FileInfo
+	idMappings *idtools.IDMappings
 	name       string
 	stat       *system.StatT
 	children   map[string]*FileInfo
@@ -329,7 +330,7 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 			// be visible when actually comparing the stat fields. The only time this
 			// breaks down is if some code intentionally hides a change by setting
 			// back mtime
-			if statDifferent(oldStat, newStat) ||
+			if statDifferent(oldStat, oldInfo, newStat, info) ||
 				!bytes.Equal(oldChild.capability, newChild.capability) {
 				change := Change{
 					Path: newChild.path(),
@@ -379,18 +380,19 @@ func (info *FileInfo) Changes(oldInfo *FileInfo) []Change {
 	return changes
 }
 
-func newRootFileInfo() *FileInfo {
+func newRootFileInfo(idMappings *idtools.IDMappings) *FileInfo {
 	// As this runs on the daemon side, file paths are OS specific.
 	root := &FileInfo{
-		name:     string(os.PathSeparator),
-		children: make(map[string]*FileInfo),
+		name:       string(os.PathSeparator),
+		idMappings: idMappings,
+		children:   make(map[string]*FileInfo),
 	}
 	return root
 }
 
 // ChangesDirs compares two directories and generates an array of Change objects describing the changes.
 // If oldDir is "", then all files in newDir will be Add-Changes.
-func ChangesDirs(newDir, oldDir string) ([]Change, error) {
+func ChangesDirs(newDir string, newMappings *idtools.IDMappings, oldDir string, oldMappings *idtools.IDMappings) ([]Change, error) {
 	var (
 		oldRoot, newRoot *FileInfo
 	)
@@ -402,7 +404,7 @@ func ChangesDirs(newDir, oldDir string) ([]Change, error) {
 		defer os.Remove(emptyDir)
 		oldDir = emptyDir
 	}
-	oldRoot, newRoot, err := collectFileInfoForChanges(oldDir, newDir)
+	oldRoot, newRoot, err := collectFileInfoForChanges(oldDir, newDir, oldMappings, newMappings)
 	if err != nil {
 		return nil, err
 	}

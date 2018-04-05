@@ -169,7 +169,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		options:       *opts,
 	}
 
-	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps)
+	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, d)
 
 	if backingFs == "xfs" {
 		// Try to enable project quota support over xfs.
@@ -267,16 +267,22 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(lower2Dir, 0700, rootUID, rootGID)
 		flags := fmt.Sprintf("lowerdir=%s:%s", lower1Dir, lower2Dir)
 		if len(flags) < unix.Getpagesize() {
-			if mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags) == nil {
+			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
+			if err == nil {
 				logrus.Debugf("overlay test mount with multiple lowers succeeded")
 				return supportsDType, nil
+			} else {
+				logrus.Debugf("overlay test mount with multiple lowers failed %v", err)
 			}
 		}
 		flags = fmt.Sprintf("lowerdir=%s", lower1Dir)
 		if len(flags) < unix.Getpagesize() {
-			if mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags) == nil {
+			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
+			if err == nil {
 				logrus.Errorf("overlay test mount with multiple lowers failed, but succeeded with a single lower")
 				return supportsDType, errors.Wrap(graphdriver.ErrNotSupported, "kernel too old to provide multiple lowers feature for overlay")
+			} else {
+				logrus.Debugf("overlay test mount with a single lower failed %v", err)
 			}
 		}
 		logrus.Errorf("'overlay' is not supported over %s at %q", backingFs, home)
@@ -386,6 +392,14 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 	}
 	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUID, rootGID); err != nil {
 		return err
+	}
+	if parent != "" {
+		st, err := system.Stat(d.dir(parent))
+		if err != nil {
+			return err
+		}
+		rootUID = int(st.UID())
+		rootGID = int(st.GID())
 	}
 	if err := idtools.MkdirAs(dir, 0700, rootUID, rootGID); err != nil {
 		return err
@@ -562,8 +576,32 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 		return "", err
 	}
 
-	newlowers := ""
+	// absLowers is the list of lowers as absolute paths, which works well with additional stores.
+	absLowers := []string{}
+	// relLowers is the list of lowers as paths relative to the driver's home directory.
+	relLowers := []string{}
+
+	// Check if $link/../diff{1-*} exist.  If they do, add them, in order, as the front of the lowers
+	// lists that we're building.  "diff" itself is the upper, so it won't be in the lists.
+	link, err := ioutil.ReadFile(path.Join(dir, "link"))
+	if err != nil {
+		return "", err
+	}
+	diffN := 1
+	_, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
+	for err == nil {
+		absLowers = append(absLowers, filepath.Join(dir, nameWithSuffix("diff", diffN)))
+		relLowers = append(relLowers, dumbJoin(string(link), "..", nameWithSuffix("diff", diffN)))
+		diffN++
+		_, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
+	}
+
+	// For each lower, resolve its path, and append it and any additional diffN
+	// directories to the lowers list.
 	for _, l := range strings.Split(string(lowers), ":") {
+		if l == "" {
+			continue
+		}
 		lower := ""
 		newpath := path.Join(d.home, l)
 		if _, err := os.Stat(newpath); err != nil {
@@ -580,15 +618,23 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 		} else {
 			lower = newpath
 		}
-		if newlowers == "" {
-			newlowers = lower
-		} else {
-			newlowers = newlowers + ":" + lower
+		absLowers = append(absLowers, lower)
+		relLowers = append(relLowers, l)
+		diffN = 1
+		_, err = os.Stat(dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
+		for err == nil {
+			absLowers = append(absLowers, dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
+			relLowers = append(relLowers, dumbJoin(l, "..", nameWithSuffix("diff", diffN)))
+			diffN++
+			_, err = os.Stat(dumbJoin(lower, "..", nameWithSuffix("diff", diffN)))
 		}
 	}
-	if len(lowers) == 0 {
-		newlowers = path.Join(dir, "empty")
-		lowers = []byte(newlowers)
+
+	// If the lowers list is still empty, use an empty lower so that we can still force an
+	// SELinux context for the mount.
+	if len(absLowers) == 0 {
+		absLowers = append(absLowers, path.Join(dir, "empty"))
+		relLowers = append(relLowers, path.Join(id, "empty"))
 	}
 
 	mergedDir := path.Join(dir, "merged")
@@ -606,7 +652,7 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 	}()
 
 	workDir := path.Join(dir, "work")
-	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", newlowers, diffDir, workDir)
+	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workDir)
 	mountData := label.FormatMountLabel(opts, mountLabel)
 	mount := unix.Mount
 	mountTarget := mergedDir
@@ -619,7 +665,7 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 	// smaller at the expense of requiring a fork exec to chroot.
 	if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores
-		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", string(lowers), path.Join(id, "diff"), path.Join(id, "work"))
+		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
 		mountData = label.FormatMountLabel(opts, mountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
@@ -697,9 +743,13 @@ func (d *Driver) isParent(id, parent string) bool {
 }
 
 // ApplyDiff applies the new layer into a root
-func (d *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (size int64, err error) {
+func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent string, mountLabel string, diff io.Reader) (size int64, err error) {
 	if !d.isParent(id, parent) {
-		return d.naiveDiff.ApplyDiff(id, parent, mountLabel, diff)
+		return d.naiveDiff.ApplyDiff(id, idMappings, parent, mountLabel, diff)
+	}
+
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
 	}
 
 	applyDir := d.getDiffPath(id)
@@ -707,8 +757,8 @@ func (d *Driver) ApplyDiff(id, parent, mountLabel string, diff io.Reader) (size 
 	logrus.Debugf("Applying tar in %s", applyDir)
 	// Overlay doesn't need the parent id to apply the diff
 	if err := untar(diff, applyDir, &archive.TarOptions{
-		UIDMaps:        d.uidMaps,
-		GIDMaps:        d.gidMaps,
+		UIDMaps:        idMappings.UIDs(),
+		GIDMaps:        idMappings.GIDs(),
 		WhiteoutFormat: archive.OverlayWhiteoutFormat,
 	}); err != nil {
 		return 0, err
@@ -726,18 +776,22 @@ func (d *Driver) getDiffPath(id string) string {
 // DiffSize calculates the changes between the specified id
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
-func (d *Driver) DiffSize(id, parent, mountLabel string) (size int64, err error) {
+func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.DiffSize(id, parent, mountLabel)
+		return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 	}
 	return directory.Size(d.getDiffPath(id))
 }
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (d *Driver) Diff(id, parent, mountLabel string) (io.ReadCloser, error) {
+func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.Diff(id, parent, mountLabel)
+		return d.naiveDiff.Diff(id, idMappings, parent, parentMappings, mountLabel)
+	}
+
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
 	}
 
 	lowerDirs, err := d.getLowerDirs(id)
@@ -749,8 +803,8 @@ func (d *Driver) Diff(id, parent, mountLabel string) (io.ReadCloser, error) {
 	logrus.Debugf("Tar with options on %s", diffPath)
 	return archive.TarWithOptions(diffPath, &archive.TarOptions{
 		Compression:    archive.Uncompressed,
-		UIDMaps:        d.uidMaps,
-		GIDMaps:        d.gidMaps,
+		UIDMaps:        idMappings.UIDs(),
+		GIDMaps:        idMappings.GIDs(),
 		WhiteoutFormat: archive.OverlayWhiteoutFormat,
 		WhiteoutData:   lowerDirs,
 	})
@@ -758,9 +812,9 @@ func (d *Driver) Diff(id, parent, mountLabel string) (io.ReadCloser, error) {
 
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
-func (d *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error) {
+func (d *Driver) Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error) {
 	if useNaiveDiff(d.home) || !d.isParent(id, parent) {
-		return d.naiveDiff.Changes(id, parent, mountLabel)
+		return d.naiveDiff.Changes(id, idMappings, parent, parentMappings, mountLabel)
 	}
 	// Overlay doesn't have snapshots, so we need to get changes from all parent
 	// layers.
@@ -776,4 +830,74 @@ func (d *Driver) Changes(id, parent, mountLabel string) ([]archive.Change, error
 // AdditionalImageStores returns additional image stores supported by the driver
 func (d *Driver) AdditionalImageStores() []string {
 	return d.options.imageStores
+}
+
+// UpdateLayerIDMap updates ID mappings in a from matching the ones specified
+// by toContainer to those specified by toHost.
+func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
+	var err error
+	dir := d.dir(id)
+	diffDir := filepath.Join(dir, "diff")
+
+	rootUID, rootGID := 0, 0
+	if toHost != nil {
+		rootUID, rootGID, err = idtools.GetRootUIDGID(toHost.UIDs(), toHost.GIDs())
+		if err != nil {
+			return err
+		}
+	}
+
+	// Mount the new layer and handle ownership changes and possible copy_ups in it.
+	layerFs, err := d.Get(id, mountLabel)
+	if err != nil {
+		return err
+	}
+	err = graphdriver.ChownPathByMaps(layerFs, toContainer, toHost)
+	if err != nil {
+		if err2 := d.Put(id); err2 != nil {
+			logrus.Errorf("%v; error unmounting %v: %v", err, id, err2)
+		}
+		return err
+	}
+	if err = d.Put(id); err != nil {
+		return err
+	}
+
+	// Rotate the diff directories.
+	i := 0
+	_, err = os.Stat(nameWithSuffix(diffDir, i))
+	for err == nil {
+		i++
+		_, err = os.Stat(nameWithSuffix(diffDir, i))
+	}
+	for i > 0 {
+		err = os.Rename(nameWithSuffix(diffDir, i-1), nameWithSuffix(diffDir, i))
+		if err != nil {
+			return err
+		}
+		i--
+	}
+
+	// Re-create the directory that we're going to use as the upper layer.
+	if err := idtools.MkdirAs(diffDir, 0755, rootUID, rootGID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// dumbJoin is more or less a dumber version of filepath.Join, but one which
+// won't Clean() the path, allowing us to append ".." as a component and trust
+// pathname resolution to do some non-obvious work.
+func dumbJoin(names ...string) string {
+	if len(names) == 0 {
+		return string(os.PathSeparator)
+	}
+	return strings.Join(names, string(os.PathSeparator))
+}
+
+func nameWithSuffix(name string, number int) string {
+	if number == 0 {
+		return name
+	}
+	return fmt.Sprintf("%s%d", name, number)
 }
