@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
@@ -76,6 +77,9 @@ func rmiCmd(c *cli.Context) error {
 	for _, img := range imagesToDelete {
 		msg, err := runtime.RemoveImage(img, c.Bool("force"))
 		if err != nil {
+			if errors.Cause(err) == storage.ErrImageUsedByContainer {
+				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
+			}
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
