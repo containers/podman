@@ -192,7 +192,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				srcData = tmpFile
 			}
 
-			if err := remapIDs(idMappings, srcHdr); err != nil {
+			if err := remapIDs(nil, idMappings, options.ChownOpts, srcHdr); err != nil {
 				return 0, err
 			}
 

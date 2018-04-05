@@ -43,7 +43,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 			continue
 		}
 	}
-	return graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps), nil
+	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
 }
 
 // Driver holds information about the driver, home directory of the driver.
@@ -90,6 +90,14 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	rootIDs := d.idMappings.RootPair()
 	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0700, rootIDs); err != nil {
 		return err
+	}
+	if parent != "" {
+		st, err := system.Stat(d.dir(parent))
+		if err != nil {
+			return err
+		}
+		rootIDs.UID = int(st.UID())
+		rootIDs.GID = int(st.GID())
 	}
 	if err := idtools.MkdirAndChown(dir, 0755, rootIDs); err != nil {
 		return err
