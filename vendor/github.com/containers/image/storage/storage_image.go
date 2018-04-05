@@ -544,7 +544,7 @@ func (s *storageImageDestination) Commit() error {
 			return errors.Errorf("error applying blob %q: content not found", blob.Digest)
 		}
 		// Build the new layer using the diff, regardless of where it came from.
-		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, diff)
+		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, diff)
 		if err != nil {
 			return errors.Wrapf(err, "error adding layer with blob %q", blob.Digest)
 		}

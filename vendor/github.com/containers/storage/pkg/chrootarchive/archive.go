@@ -16,7 +16,18 @@ func NewArchiver(idMappings *idtools.IDMappings) *archive.Archiver {
 	if idMappings == nil {
 		idMappings = &idtools.IDMappings{}
 	}
-	return &archive.Archiver{Untar: Untar, IDMappings: idMappings}
+	return &archive.Archiver{Untar: Untar, TarIDMappings: idMappings, UntarIDMappings: idMappings}
+}
+
+// NewArchiverWithChown returns a new Archiver which uses chrootarchive.Untar and the provided ID mapping configuration on both ends
+func NewArchiverWithChown(tarIDMappings *idtools.IDMappings, chownOpts *idtools.IDPair, untarIDMappings *idtools.IDMappings) *archive.Archiver {
+	if tarIDMappings == nil {
+		tarIDMappings = &idtools.IDMappings{}
+	}
+	if untarIDMappings == nil {
+		untarIDMappings = &idtools.IDMappings{}
+	}
+	return &archive.Archiver{Untar: Untar, TarIDMappings: tarIDMappings, ChownOpts: chownOpts, UntarIDMappings: untarIDMappings}
 }
 
 // Untar reads a stream of bytes from `archive`, parses it as a tar archive,
