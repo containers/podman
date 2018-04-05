@@ -181,9 +181,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	g.SetProcessCwd(config.WorkDir)
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
-	for _, gid := range config.GroupAdd {
-		g.AddProcessAdditionalGid(gid)
-	}
+
 	for key, val := range config.GetAnnotations() {
 		g.AddAnnotation(key, val)
 	}
@@ -369,7 +367,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	// BLOCK IO
-	blkio, err := config.CreateBlockIO()
+	blkio, err := config.createBlockIO()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating block io")
 	}
@@ -403,7 +401,12 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	return configSpec, nil
 }
 
-func (c *createConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
+const (
+	bps = iota
+	iops
+)
+
+func (c *createConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 	bio := &spec.LinuxBlockIO{}
 	bio.Weight = &c.Resources.BlkioWeight
 	if len(c.Resources.BlkioWeightDevice) > 0 {
@@ -413,7 +416,10 @@ func (c *createConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 			if err != nil {
 				return bio, errors.Wrapf(err, "invalid values for blkio-weight-device")
 			}
-			wdStat := getStatFromPath(wd.path)
+			wdStat, err := getStatFromPath(wd.path)
+			if err != nil {
+				return bio, errors.Wrapf(err, "error getting stat from path %q", wd.path)
+			}
 			lwd := spec.LinuxWeightDevice{
 				Weight: &wd.weight,
 			}
@@ -424,34 +430,63 @@ func (c *createConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 		bio.WeightDevice = lwds
 	}
 	if len(c.Resources.DeviceReadBps) > 0 {
-		readBps, err := makeThrottleArray(c.Resources.DeviceReadBps)
+		readBps, err := makeThrottleArray(c.Resources.DeviceReadBps, bps)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleReadBpsDevice = readBps
 	}
 	if len(c.Resources.DeviceWriteBps) > 0 {
-		writeBpds, err := makeThrottleArray(c.Resources.DeviceWriteBps)
+		writeBpds, err := makeThrottleArray(c.Resources.DeviceWriteBps, bps)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleWriteBpsDevice = writeBpds
 	}
 	if len(c.Resources.DeviceReadIOps) > 0 {
-		readIOps, err := makeThrottleArray(c.Resources.DeviceReadIOps)
+		readIOps, err := makeThrottleArray(c.Resources.DeviceReadIOps, iops)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleReadIOPSDevice = readIOps
 	}
 	if len(c.Resources.DeviceWriteIOps) > 0 {
-		writeIOps, err := makeThrottleArray(c.Resources.DeviceWriteIOps)
+		writeIOps, err := makeThrottleArray(c.Resources.DeviceWriteIOps, iops)
 		if err != nil {
 			return bio, err
 		}
 		bio.ThrottleWriteIOPSDevice = writeIOps
 	}
 	return bio, nil
+}
+
+func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrottleDevice, error) {
+	var (
+		ltds []spec.LinuxThrottleDevice
+		t    *throttleDevice
+		err  error
+	)
+	for _, i := range throttleInput {
+		if rateType == bps {
+			t, err = validateBpsDevice(i)
+		} else {
+			t, err = validateIOpsDevice(i)
+		}
+		if err != nil {
+			return []spec.LinuxThrottleDevice{}, err
+		}
+		ltdStat, err := getStatFromPath(t.path)
+		if err != nil {
+			return ltds, errors.Wrapf(err, "error getting stat from path %q", t.path)
+		}
+		ltd := spec.LinuxThrottleDevice{
+			Rate: t.rate,
+		}
+		ltd.Major = int64(unix.Major(ltdStat.Rdev))
+		ltd.Minor = int64(unix.Minor(ltdStat.Rdev))
+		ltds = append(ltds, ltd)
+	}
+	return ltds, nil
 }
 
 // GetAnnotations returns the all the annotations for the container
@@ -668,27 +703,10 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	return options, nil
 }
 
-func getStatFromPath(path string) unix.Stat_t {
+func getStatFromPath(path string) (unix.Stat_t, error) {
 	s := unix.Stat_t{}
-	_ = unix.Stat(path, &s)
-	return s
-}
-
-func makeThrottleArray(throttleInput []string) ([]spec.LinuxThrottleDevice, error) {
-	var ltds []spec.LinuxThrottleDevice
-	for _, i := range throttleInput {
-		t, err := validateBpsDevice(i)
-		if err != nil {
-			return []spec.LinuxThrottleDevice{}, err
-		}
-		ltd := spec.LinuxThrottleDevice{}
-		ltd.Rate = t.rate
-		ltdStat := getStatFromPath(t.path)
-		ltd.Major = int64(unix.Major(ltdStat.Rdev))
-		ltd.Minor = int64(unix.Major(ltdStat.Rdev))
-		ltds = append(ltds, ltd)
-	}
-	return ltds, nil
+	err := unix.Stat(path, &s)
+	return s, err
 }
 
 // CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands

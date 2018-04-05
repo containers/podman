@@ -201,6 +201,8 @@ type ContainerConfig struct {
 	// User and group to use in the container
 	// Can be specified by name or UID/GID
 	User string `json:"user,omitempty"`
+	// Additional groups to add
+	Groups []string `json:"groups, omitempty"`
 
 	// Namespace Config
 	// IDs of container to share namespaces with
