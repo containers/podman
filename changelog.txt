@@ -1,3 +1,29 @@
+- Changelog for HEAD (2018-04-05):
+  * Remove image via storage if a buildah container is associated
+  * Add hooks support to podman
+  * Run images with no names
+  * Prevent a potential race when stopping containers
+  * Only allocate tty when -t
+  * Stopping a stopped container should not be an error
+  * Add conmon-pidfile flag to bash completions/manpages
+  * --entrypoint= should delete existing entrypoint
+  * Fix golint
+  * Remove explicit Init() calls in run and start
+  * Refactor dependency checks from init() into public API
+  * Do not require Init() before Start()
+  * Ensure dependencies are running before initializing containers
+  * Add container dependencies to Inspect output
+  * Add backend code for generic dependencies
+  * Vendor in latest containers/image
+  * Makefile: Fix typo podmon -> podman
+  * Correct a godoc comment
+  * Sleep for 5 seconds before pushing to registry in tests
+  * Change errorf to warnf in warning removing ctr storage
+  * Don't return an ImageConfig when creating storage
+  * More gracefully handle unexpected storage deletion
+  * Remove crictl from Dockerfile
+  * Eliminate raceyness of sig-proxy test
+
 - Changelog for v0.3.5 (2018-03-29):
   * Allow sha256: prefix for input
   * Add secrets patch to podman
