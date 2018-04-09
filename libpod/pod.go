@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/stringid"
@@ -93,16 +94,6 @@ func (p *Pod) Start() (map[string]error, error) {
 		return nil, err
 	}
 
-	// We need to lock all the containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-		defer ctr.lock.Unlock()
-
-		if err := ctr.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
 	// Build a dependency graph of containers in the pod
 	graph, err := buildContainerGraph(allCtrs)
 	if err != nil {
@@ -165,10 +156,32 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 	// Going to start the container, mark us as visited
 	ctrsVisited[node.id] = true
 
-	// TODO: Maybe have a checkDependenciesRunningLocked here?
-	// Graph traversal should ensure our deps have been started, but some
-	// might have stopped since?
-	// Potentially will hurt our perf, though
+	// Lock before we start
+	node.container.lock.Lock()
+
+	// Check if dependencies are running
+	// Graph traversal means we should have started them
+	// But they could have died before we got here
+	depsStopped, err := node.container.checkDependenciesRunning()
+	if err != nil {
+		node.container.lock.Unlock()
+
+		ctrErrors[node.id] = err
+		for _, successor := range node.dependedOn {
+			startNode(successor, true, ctrErrors, ctrsVisited)
+		}
+		return
+	} else if len(depsStopped) > 0 {
+		node.container.lock.Unlock()
+
+		// Our dependencies are not running
+		depsList := strings.Join(depsStopped, ",")
+		ctrErrors[node.id] = errors.Wrapf(ErrCtrStateInvalid, "the following dependencies of container %s are not running: %s", node.id, depsList)
+		for _, successor := range node.dependedOn {
+			startNode(successor, true, ctrErrors, ctrsVisited)
+		}
+		return
+	}
 
 	// Start the container (only if it is not running)
 	ctrErrored := false
@@ -178,6 +191,8 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 			ctrErrors[node.id] = err
 		}
 	}
+
+	node.container.lock.Unlock()
 
 	// Recurse to anyone who depends on us and start them
 	for _, successor := range node.dependedOn {
