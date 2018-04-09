@@ -298,26 +298,26 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		return nil, err
 	}
 
-	// We need to lock all the containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-		defer ctr.lock.Unlock()
-
-		if err := ctr.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
 	ctrErrors := make(map[string]error)
 
 	// Send a signal to all containers
 	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
 		// Ignore containers that are not running
 		if ctr.state.State != ContainerStateRunning {
+			ctr.lock.Unlock()
 			continue
 		}
 
 		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
+			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
