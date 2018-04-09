@@ -37,7 +37,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.syncContainer(); err != nil {
-		return stats, errors.Wrapf(err, "error updating container %s state", c.ID())
+		return stats, err
 	}
 	if c.state.State != ContainerStateRunning {
 		return stats, nil
