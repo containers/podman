@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -55,12 +56,23 @@ type YAMLStruct struct {
 	Output interface{}
 }
 
+func setJSONFormatEncoder(isTerminal bool, w io.Writer) *json.Encoder {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "    ")
+	if isTerminal {
+		enc.SetEscapeHTML(false)
+	}
+	return enc
+}
+
 // Out method for JSON Arrays
 func (j JSONStructArray) Out() error {
-	data, err := json.MarshalIndent(j.Output, "", "    ")
-	if err != nil {
+	buf := bytes.NewBuffer(nil)
+	enc := setJSONFormatEncoder(terminal.IsTerminal(int(os.Stdout.Fd())), buf)
+	if err := enc.Encode(j.Output); err != nil {
 		return err
 	}
+	data := buf.Bytes()
 
 	// JSON returns a byte array with a literal null [110 117 108 108] in it
 	// if it is passed empty data.  We used bytes.Compare to see if that is
