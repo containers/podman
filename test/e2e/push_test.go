@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -56,12 +55,13 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		// Give the registry 5 seconds to warm up before pushing
-		time.Sleep(5 * time.Second)
+		if !WaitContainerReady(&podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Can not start docker registry.")
+		}
 
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
@@ -108,7 +108,9 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		time.Sleep(5 * time.Second)
+		if !WaitContainerReady(&podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Can not start docker registry.")
+		}
 
 		session = podmanTest.Podman([]string{"logs", "registry"})
 		session.WaitWithDefaultTimeout()
