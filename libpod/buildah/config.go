@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/docker"
@@ -581,7 +581,7 @@ func (b *Builder) SetDefaultMountsFilePath(path string) {
 }
 
 // Comment returns the comment which will be set in the container and in
-//containers built using images buiilt from the container
+//containers built using images built from the container
 func (b *Builder) Comment() string {
 	return b.Docker.Comment
 }

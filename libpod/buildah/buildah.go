@@ -2,13 +2,14 @@ package buildah
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
-	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/docker"
@@ -20,7 +21,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "0.15"
+	Version = "0.16"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -31,6 +32,21 @@ const (
 	// per-container state.  If it isn't there, then the container isn't
 	// one of our build containers.
 	stateFile = Package + ".json"
+)
+
+const (
+	// PullIfMissing is one of the values that BuilderOptions.PullPolicy
+	// can take, signalling that the source image should be pulled from a
+	// registry if a local copy of it is not already present.
+	PullIfMissing = iota
+	// PullAlways is one of the values that BuilderOptions.PullPolicy can
+	// take, signalling that a fresh, possibly updated, copy of the image
+	// should be pulled from a registry before the build proceeds.
+	PullAlways
+	// PullNever is one of the values that BuilderOptions.PullPolicy can
+	// take, signalling that the source image should not be pulled from a
+	// registry if a local copy of it is not already present.
+	PullNever
 )
 
 // Builder objects are used to represent containers which are being used to
@@ -81,6 +97,46 @@ type Builder struct {
 	CommonBuildOpts       *CommonBuildOptions
 }
 
+// BuilderInfo are used as objects to display container information
+type BuilderInfo struct {
+	Type                  string
+	FromImage             string
+	FromImageID           string
+	Config                string
+	Manifest              string
+	Container             string
+	ContainerID           string
+	MountPoint            string
+	ProcessLabel          string
+	MountLabel            string
+	ImageAnnotations      map[string]string
+	ImageCreatedBy        string
+	OCIv1                 v1.Image
+	Docker                docker.V2Image
+	DefaultMountsFilePath string
+}
+
+// GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
+// This is used in the inspect command to display Manifest and Config as string and not []byte.
+func GetBuildInfo(b *Builder) BuilderInfo {
+	return BuilderInfo{
+		Type:                  b.Type,
+		FromImage:             b.FromImage,
+		FromImageID:           b.FromImageID,
+		Config:                string(b.Config),
+		Manifest:              string(b.Manifest),
+		Container:             b.Container,
+		ContainerID:           b.ContainerID,
+		MountPoint:            b.MountPoint,
+		ProcessLabel:          b.ProcessLabel,
+		ImageAnnotations:      b.ImageAnnotations,
+		ImageCreatedBy:        b.ImageCreatedBy,
+		OCIv1:                 b.OCIv1,
+		Docker:                b.Docker,
+		DefaultMountsFilePath: b.DefaultMountsFilePath,
+	}
+}
+
 // CommonBuildOptions are reseources that can be defined by flags for both buildah from and bud
 type CommonBuildOptions struct {
 	// AddHost is the list of hostnames to add to the resolv.conf
@@ -113,6 +169,48 @@ type CommonBuildOptions struct {
 	Volumes []string
 }
 
+// BuilderOptions are used to initialize a new Builder.
+type BuilderOptions struct {
+	// FromImage is the name of the image which should be used as the
+	// starting point for the container.  It can be set to an empty value
+	// or "scratch" to indicate that the container should not be based on
+	// an image.
+	FromImage string
+	// Container is a desired name for the build container.
+	Container string
+	// PullPolicy decides whether or not we should pull the image that
+	// we're using as a base image.  It should be PullIfMissing,
+	// PullAlways, or PullNever.
+	PullPolicy int
+	// Registry is a value which is prepended to the image's name, if it
+	// needs to be pulled and the image name alone can not be resolved to a
+	// reference to a source image.  No separator is implicitly added.
+	Registry string
+	// Transport is a value which is prepended to the image's name, if it
+	// needs to be pulled and the image name alone, or the image name and
+	// the registry together, can not be resolved to a reference to a
+	// source image.  No separator is implicitly added.
+	Transport string
+	// Mount signals to NewBuilder() that the container should be mounted
+	// immediately.
+	Mount bool
+	// SignaturePolicyPath specifies an override location for the signature
+	// policy which should be used for verifying the new image as it is
+	// being written.  Except in specific circumstances, no value should be
+	// specified, indicating that the shared, system-wide default policy
+	// should be used.
+	SignaturePolicyPath string
+	// ReportWriter is an io.Writer which will be used to log the reading
+	// of the source image from a registry, if we end up pulling the image.
+	ReportWriter io.Writer
+	// github.com/containers/image/types SystemContext to hold credentials
+	// and other authentication/authorization information.
+	SystemContext *types.SystemContext
+	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
+	DefaultMountsFilePath string
+	CommonBuildOpts       *CommonBuildOptions
+}
+
 // ImportOptions are used to initialize a Builder from an existing container
 // which was created elsewhere.
 type ImportOptions struct {
@@ -126,94 +224,122 @@ type ImportOptions struct {
 	SignaturePolicyPath string
 }
 
+// ImportFromImageOptions are used to initialize a Builder from an image.
+type ImportFromImageOptions struct {
+	// Image is the name or ID of the image we'd like to examine.
+	Image string
+	// SignaturePolicyPath specifies an override location for the signature
+	// policy which should be used for verifying the new image as it is
+	// being written.  Except in specific circumstances, no value should be
+	// specified, indicating that the shared, system-wide default policy
+	// should be used.
+	SignaturePolicyPath string
+	// github.com/containers/image/types SystemContext to hold information
+	// about which registries we should check for completing image names
+	// that don't include a domain portion.
+	SystemContext *types.SystemContext
+}
+
+// NewBuilder creates a new build container.
+func NewBuilder(store storage.Store, options BuilderOptions) (*Builder, error) {
+	return newBuilder(store, options)
+}
+
 // ImportBuilder creates a new build configuration using an already-present
 // container.
 func ImportBuilder(store storage.Store, options ImportOptions) (*Builder, error) {
 	return importBuilder(store, options)
 }
 
-func importBuilder(store storage.Store, options ImportOptions) (*Builder, error) {
-	if options.Container == "" {
-		return nil, errors.Errorf("container name must be specified")
-	}
-
-	c, err := store.Container(options.Container)
-	if err != nil {
-		return nil, err
-	}
-
-	systemContext := getSystemContext(&types.SystemContext{}, options.SignaturePolicyPath)
-
-	builder, err := importBuilderDataFromImage(store, systemContext, c.ImageID, options.Container, c.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	if builder.FromImageID != "" {
-		if d, err2 := digest.Parse(builder.FromImageID); err2 == nil {
-			builder.Docker.Parent = docker.ID(d)
-		} else {
-			builder.Docker.Parent = docker.ID(digest.NewDigestFromHex(digest.Canonical.String(), builder.FromImageID))
-		}
-	}
-	if builder.FromImage != "" {
-		builder.Docker.ContainerConfig.Image = builder.FromImage
-	}
-
-	err = builder.Save()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error saving builder state")
-	}
-
-	return builder, nil
+// ImportBuilderFromImage creates a new builder configuration using an image.
+// The returned object can be modified and examined, but it can not be saved
+// or committed because it is not associated with a working container.
+func ImportBuilderFromImage(store storage.Store, options ImportFromImageOptions) (*Builder, error) {
+	return importBuilderFromImage(store, options)
 }
 
-func importBuilderDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
-	manifest := []byte{}
-	config := []byte{}
-	imageName := ""
+// OpenBuilder loads information about a build container given its name or ID.
+func OpenBuilder(store storage.Store, container string) (*Builder, error) {
+	cdir, err := store.ContainerDirectory(container)
+	if err != nil {
+		return nil, err
+	}
+	buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
+	if err != nil {
+		return nil, err
+	}
+	b := &Builder{}
+	err = json.Unmarshal(buildstate, &b)
+	if err != nil {
+		return nil, err
+	}
+	if b.Type != containerType {
+		return nil, errors.Errorf("container is not a %s container", Package)
+	}
+	b.store = store
+	b.fixupConfig()
+	return b, nil
+}
 
-	if imageID != "" {
-		ref, err := is.Transport.ParseStoreReference(store, imageID)
+// OpenBuilderByPath loads information about a build container given a
+// path to the container's root filesystem
+func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
+	containers, err := store.Containers()
+	if err != nil {
+		return nil, err
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	builderMatchesPath := func(b *Builder, path string) bool {
+		return (b.MountPoint == path)
+	}
+	for _, container := range containers {
+		cdir, err := store.ContainerDirectory(container.ID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "no such image %q", imageID)
+			return nil, err
 		}
-		src, err2 := ref.NewImage(systemContext)
-		if err2 != nil {
-			return nil, errors.Wrapf(err2, "error instantiating image")
-		}
-		defer src.Close()
-		config, err = src.ConfigBlob()
+		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image configuration")
+			return nil, err
 		}
-		manifest, _, err = src.Manifest()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image manifest")
-		}
-		if img, err3 := store.Image(imageID); err3 == nil {
-			if len(img.Names) > 0 {
-				imageName = img.Names[0]
-			}
+		b := &Builder{}
+		err = json.Unmarshal(buildstate, &b)
+		if err == nil && b.Type == containerType && builderMatchesPath(b, abs) {
+			b.store = store
+			b.fixupConfig()
+			return b, nil
 		}
 	}
+	return nil, storage.ErrContainerUnknown
+}
 
-	builder := &Builder{
-		store:            store,
-		Type:             containerType,
-		FromImage:        imageName,
-		FromImageID:      imageID,
-		Config:           config,
-		Manifest:         manifest,
-		Container:        containerName,
-		ContainerID:      containerID,
-		ImageAnnotations: map[string]string{},
-		ImageCreatedBy:   "",
+// OpenAllBuilders loads all containers which have a state file that we use in
+// their data directory, typically so that they can be listed.
+func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
+	containers, err := store.Containers()
+	if err != nil {
+		return nil, err
 	}
-
-	builder.initConfig()
-
-	return builder, nil
+	for _, container := range containers {
+		cdir, err := store.ContainerDirectory(container.ID)
+		if err != nil {
+			return nil, err
+		}
+		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
+		if err != nil && os.IsNotExist(err) {
+			continue
+		}
+		b := &Builder{}
+		err = json.Unmarshal(buildstate, &b)
+		if err == nil && b.Type == containerType {
+			b.store = store
+			b.fixupConfig()
+			builders = append(builders, b)
+		}
+	}
+	return builders, nil
 }
 
 // Save saves the builder's current state to the build container's metadata.

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -107,7 +108,7 @@ func (b *Builder) Commit(dest types.ImageReference, options CommitOptions) error
 			if err != nil {
 				return errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
 			}
-			err = AddImageNames(b.store, img, options.AdditionalTags)
+			err = util.AddImageNames(b.store, img, options.AdditionalTags)
 			if err != nil {
 				return errors.Wrapf(err, "error setting image names to %v", append(img.Names, options.AdditionalTags...))
 			}
