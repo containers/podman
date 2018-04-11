@@ -140,7 +140,7 @@ func statsCmd(c *cli.Context) error {
 				containerStats[id] = initialStats
 			}
 			stats, err := ctr.GetContainerStats(containerStats[id])
-			if err != nil {
+			if err != nil && errors.Cause(err) != libpod.ErrNoSuchCtr {
 				return err
 			}
 			// replace the previous measurement with the current one
