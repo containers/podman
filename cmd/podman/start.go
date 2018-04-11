@@ -110,19 +110,8 @@ func startCmd(c *cli.Context) error {
 				inputStream = nil
 			}
 
-			attachChan, err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"))
-			if err != nil {
+			if err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.Bool("sig-proxy")); err != nil {
 				return errors.Wrapf(err, "unable to start container %s", ctr.ID())
-			}
-
-			if c.Bool("sig-proxy") {
-				ProxySignals(ctr)
-			}
-
-			// Wait for attach to complete
-			err = <-attachChan
-			if err != nil {
-				return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 			}
 
 			if ecode, err := ctr.ExitCode(); err != nil {

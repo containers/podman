@@ -65,8 +65,9 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 }
 
 // Attach to a container
-func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string) error {
+func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
 	resize := make(chan remotecommand.TerminalSize)
+	defer close(resize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
@@ -87,12 +88,17 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
 	}
 
+	if sigProxy {
+		ProxySignals(ctr)
+	}
+
 	return ctr.Attach(stdout, stderr, stdin, detachKeys, resize)
 }
 
 // Start and attach to a container
-func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string) (<-chan error, error) {
+func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
 	resize := make(chan remotecommand.TerminalSize)
+	defer close(resize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
@@ -105,7 +111,7 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 
 		oldTermState, err := term.SaveState(os.Stdin.Fd())
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to save terminal state")
+			return errors.Wrapf(err, "unable to save terminal state")
 		}
 
 		term.SetRawTerminal(os.Stdin.Fd())
@@ -113,7 +119,21 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
 	}
 
-	return ctr.StartAndAttach(stdout, stderr, stdin, detachKeys, resize)
+	attachChan, err := ctr.StartAndAttach(stdout, stderr, stdin, detachKeys, resize)
+	if err != nil {
+		return err
+	}
+
+	if sigProxy {
+		ProxySignals(ctr)
+	}
+
+	err = <-attachChan
+	if err != nil {
+		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+	}
+
+	return nil
 }
 
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
