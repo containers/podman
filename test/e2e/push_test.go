@@ -78,14 +78,15 @@ var _ = Describe("Podman push", func() {
 		cwd, _ := os.Getwd()
 		certPath := filepath.Join(cwd, "../", "certs")
 
-		setup := podmanTest.SystemExec("getenforce", []string{})
-		setup.WaitWithDefaultTimeout()
-		if setup.OutputToString() == "Enforcing" {
+		if IsCommandAvailable("getenforce") {
+			ge := podmanTest.SystemExec("getenforce", []string{})
+			ge.WaitWithDefaultTimeout()
+			if ge.OutputToString() == "Enforcing" {
+				se := podmanTest.SystemExec("setenforce", []string{"0"})
+				se.WaitWithDefaultTimeout()
 
-			setup = podmanTest.SystemExec("setenforce", []string{"0"})
-			setup.WaitWithDefaultTimeout()
-
-			defer podmanTest.SystemExec("setenforce", []string{"1"})
+				defer podmanTest.SystemExec("setenforce", []string{"1"})
+			}
 		}
 
 		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", "registry:2", "-Bbn", "podmantest", "test"})
@@ -123,7 +124,7 @@ var _ = Describe("Podman push", func() {
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
-		setup = podmanTest.SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
+		setup := podmanTest.SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
 		setup.WaitWithDefaultTimeout()
 		defer os.RemoveAll("/etc/containers/certs.d/localhost:5000")
 
@@ -186,17 +187,14 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local ostree", func() {
-		setup := podmanTest.SystemExec("which", []string{"ostree"})
-		setup.WaitWithDefaultTimeout()
-
-		if setup.ExitCode() != 0 {
+		if !IsCommandAvailable("ostree") {
 			Skip("ostree is not installed")
 		}
 
 		ostreePath := filepath.Join(podmanTest.TempDir, "ostree/repo")
 		os.MkdirAll(ostreePath, os.ModePerm)
 
-		setup = podmanTest.SystemExec("ostree", []string{strings.Join([]string{"--repo=", ostreePath}, ""), "init"})
+		setup := podmanTest.SystemExec("ostree", []string{strings.Join([]string{"--repo=", ostreePath}, ""), "init"})
 		setup.WaitWithDefaultTimeout()
 
 		session := podmanTest.Podman([]string{"push", ALPINE, strings.Join([]string{"ostree:alp@", ostreePath}, "")})

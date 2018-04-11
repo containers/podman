@@ -612,3 +612,13 @@ func WaitContainerReady(p *PodmanTest, id string, expStr string, timeout int, st
 		s.WaitWithDefaultTimeout()
 	}
 }
+
+//IsCommandAvaible check if command exist
+func IsCommandAvailable(command string) bool {
+	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
+	err := check.Run()
+	if err != nil {
+		return false
+	}
+	return true
+}
