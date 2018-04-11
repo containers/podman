@@ -69,16 +69,12 @@ func attachCmd(c *cli.Context) error {
 		return errors.Errorf("you can only attach to running containers")
 	}
 
-	if c.BoolT("sig-proxy") {
-		ProxySignals(ctr)
-	}
-
 	inputStream := os.Stdin
 	if c.Bool("no-stdin") {
 		inputStream = nil
 	}
 
-	if err := attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys")); err != nil {
+	if err := attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy")); err != nil {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 

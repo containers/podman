@@ -179,24 +179,13 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	attachChan, err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"))
-	if err != nil {
+	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy")); err != nil {
 		// This means the command did not exist
 		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {
 			exitCode = 126
 		}
 		return err
-	}
-
-	if c.BoolT("sig-proxy") {
-		ProxySignals(ctr)
-	}
-
-	// Wait for attach to complete
-	err = <-attachChan
-	if err != nil {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 
 	if ecode, err := ctr.ExitCode(); err != nil {
