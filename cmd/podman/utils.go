@@ -1,9 +1,18 @@
 package main
 
 import (
+	"os"
+	gosignal "os/signal"
+
 	"github.com/containers/storage"
+	"github.com/docker/docker/pkg/signal"
+	"github.com/docker/docker/pkg/term"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // Generate a new libpod runtime configured by command line options
@@ -53,4 +62,82 @@ func getRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	// TODO flag to set CNI plugins dir?
 
 	return libpod.NewRuntime(options...)
+}
+
+// Attach to a container
+func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string) error {
+	resize := make(chan remotecommand.TerminalSize)
+
+	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+
+	// Check if we are attached to a terminal. If we are, generate resize
+	// events, and set the terminal to raw mode
+	if haveTerminal {
+		logrus.Debugf("Handling terminal attach")
+
+		resizeTty(resize)
+
+		oldTermState, err := term.SaveState(os.Stdin.Fd())
+		if err != nil {
+			return errors.Wrapf(err, "unable to save terminal state")
+		}
+
+		term.SetRawTerminal(os.Stdin.Fd())
+
+		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
+	}
+
+	return ctr.Attach(stdout, stderr, stdin, detachKeys, resize)
+}
+
+// Start and attach to a container
+func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string) (<-chan error, error) {
+	resize := make(chan remotecommand.TerminalSize)
+
+	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+
+	// Check if we are attached to a terminal. If we are, generate resize
+	// events, and set the terminal to raw mode
+	if haveTerminal && ctr.Spec().Process.Terminal {
+		logrus.Debugf("Handling terminal attach")
+
+		resizeTty(resize)
+
+		oldTermState, err := term.SaveState(os.Stdin.Fd())
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to save terminal state")
+		}
+
+		term.SetRawTerminal(os.Stdin.Fd())
+
+		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
+	}
+
+	return ctr.StartAndAttach(stdout, stderr, stdin, detachKeys, resize)
+}
+
+// Helper for prepareAttach - set up a goroutine to generate terminal resize events
+func resizeTty(resize chan remotecommand.TerminalSize) {
+	sigchan := make(chan os.Signal, 1)
+	gosignal.Notify(sigchan, signal.SIGWINCH)
+	sendUpdate := func() {
+		winsize, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			logrus.Warnf("Could not get terminal size %v", err)
+			return
+		}
+		resize <- remotecommand.TerminalSize{
+			Width:  winsize.Width,
+			Height: winsize.Height,
+		}
+	}
+	go func() {
+		defer close(resize)
+		// Update the terminal size immediately without waiting
+		// for a SIGWINCH to get the correct initial size.
+		sendUpdate()
+		for range sigchan {
+			sendUpdate()
+		}
+	}()
 }

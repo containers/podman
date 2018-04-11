@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
@@ -71,7 +73,12 @@ func attachCmd(c *cli.Context) error {
 		ProxySignals(ctr)
 	}
 
-	if err := ctr.Attach(c.Bool("no-stdin"), c.String("detach-keys")); err != nil {
+	inputStream := os.Stdin
+	if c.Bool("no-stdin") {
+		inputStream = nil
+	}
+
+	if err := attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys")); err != nil {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 
