@@ -20,6 +20,10 @@ var (
 			Usage: "Give the process extended Linux capabilities inside the container.  The default is false",
 		},
 		cli.BoolFlag{
+			Name:  "interactive, i",
+			Usage: "Not supported.  All exec commands are interactive by default.",
+		},
+		cli.BoolFlag{
 			Name:  "tty, t",
 			Usage: "Allocate a pseudo-TTY. The default is false",
 		},
@@ -36,13 +40,14 @@ var (
 `
 
 	execCommand = cli.Command{
-		Name:           "exec",
-		Usage:          "Run a process in a running container",
-		Description:    execDescription,
-		Flags:          execFlags,
-		Action:         execCmd,
-		ArgsUsage:      "CONTAINER-NAME",
-		SkipArgReorder: true,
+		Name:                   "exec",
+		Usage:                  "Run a process in a running container",
+		Description:            execDescription,
+		Flags:                  execFlags,
+		Action:                 execCmd,
+		ArgsUsage:              "CONTAINER-NAME",
+		SkipArgReorder:         true,
+		UseShortOptionHandling: true,
 	}
 )
 
