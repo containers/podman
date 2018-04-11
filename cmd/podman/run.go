@@ -144,9 +144,42 @@ func runCmd(c *cli.Context) error {
 		return nil
 	}
 
-	// TODO: that "false" should probably be linked to -i
-	// Handle this when we split streams to allow attaching just stdin/out/err
-	attachChan, err := ctr.StartAndAttach(false, c.String("detach-keys"))
+	outputStream := os.Stdout
+	errorStream := os.Stderr
+	inputStream := os.Stdin
+
+	// If -i is not set, clear stdin
+	if !c.Bool("interactive") {
+		inputStream = nil
+	}
+
+	// If attach is set, clear stdin/stdout/stderr and only attach requested
+	if c.IsSet("attach") {
+		outputStream = nil
+		errorStream = nil
+		inputStream = nil
+
+		attachTo := c.StringSlice("attach")
+		for _, stream := range attachTo {
+			switch strings.ToLower(stream) {
+			case "stdout":
+				outputStream = os.Stdout
+			case "stderr":
+				errorStream = os.Stderr
+			case "stdin":
+				inputStream = os.Stdin
+			default:
+				return errors.Wrapf(libpod.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
+			}
+		}
+
+		// If --interactive is set, restore stdin
+		if c.Bool("interactive") {
+			inputStream = os.Stdin
+		}
+	}
+
+	attachChan, err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"))
 	if err != nil {
 		// This means the command did not exist
 		exitCode = 127

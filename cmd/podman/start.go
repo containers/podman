@@ -95,7 +95,7 @@ func startCmd(c *cli.Context) error {
 		if c.Bool("interactive") && !ctr.Config().Stdin {
 			return errors.Errorf("the container was not created with the interactive option")
 		}
-		noStdIn := c.Bool("interactive")
+
 		tty, err := strconv.ParseBool(ctr.Spec().Annotations["io.kubernetes.cri-o.TTY"])
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse annotations in %s", ctr.ID())
@@ -105,7 +105,12 @@ func startCmd(c *cli.Context) error {
 		// We only get a terminal session if both a tty was specified in the spec and
 		// -a on the command-line was given.
 		if attach && tty {
-			attachChan, err := ctr.StartAndAttach(noStdIn, c.String("detach-keys"))
+			inputStream := os.Stdin
+			if !c.Bool("interactive") {
+				inputStream = nil
+			}
+
+			attachChan, err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"))
 			if err != nil {
 				return errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
