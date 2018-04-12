@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -125,7 +124,7 @@ func (c *Container) Start() (err error) {
 // attach call.
 // The channel will be closed automatically after the result of attach has been
 // sent
-func (c *Container) StartAndAttach(outputStream, errorStream io.WriteCloser, inputStream io.Reader, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
+func (c *Container) StartAndAttach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
 	if !c.locked {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -178,7 +177,7 @@ func (c *Container) StartAndAttach(outputStream, errorStream io.WriteCloser, inp
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(outputStream, errorStream, inputStream, keys, resize); err != nil {
+		if err := c.attach(streams, keys, resize); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
@@ -406,7 +405,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 }
 
 // Attach attaches to a container
-func (c *Container) Attach(outputStream, errorStream io.WriteCloser, inputStream io.Reader, keys string, resize <-chan remotecommand.TerminalSize) error {
+func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
 	if !c.locked {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
@@ -421,7 +420,7 @@ func (c *Container) Attach(outputStream, errorStream io.WriteCloser, inputStream
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	return c.attach(outputStream, errorStream, inputStream, keys, resize)
+	return c.attach(streams, keys, resize)
 }
 
 // Mount mounts a container's filesystem on the host

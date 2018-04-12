@@ -23,16 +23,35 @@ const (
 	AttachPipeStderr = 3
 )
 
+// AttachStreams contains streams that will be attached to the container
+type AttachStreams struct {
+	// OutputStream will be attached to container's STDOUT
+	OutputStream io.WriteCloser
+	// ErrorStream will be attached to container's STDERR
+	ErrorStream io.WriteCloser
+	// InputStream will be attached to container's STDIN
+	InputStream io.Reader
+	// AttachOutput is whether to attach to STDOUT
+	// If false, stdout will not be attached
+	AttachOutput bool
+	// AttachError is whether to attach to STDERR
+	// If false, stdout will not be attached
+	AttachError bool
+	// AttachInput is whether to attach to STDIN
+	// If false, stdout will not be attached
+	AttachInput bool
+}
+
 // Attach to the given container
 // Does not check if state is appropriate
-func (c *Container) attach(outputStream, errorStream io.WriteCloser, inputStream io.Reader, keys string, resize <-chan remotecommand.TerminalSize) error {
-	if outputStream == nil && errorStream == nil && inputStream == nil {
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
+	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 
 	// Do not allow stdin on containers without Stdin set
 	// Conmon was not configured properly
-	if inputStream != nil && !c.config.Stdin {
+	if streams.AttachInput && !c.config.Stdin {
 		return errors.Wrapf(ErrInvalidArg, "this container was not created as interactive, cannot attach stdin")
 	}
 
@@ -48,12 +67,12 @@ func (c *Container) attach(outputStream, errorStream io.WriteCloser, inputStream
 
 	logrus.Debugf("Attaching to container %s", c.ID())
 
-	return c.attachContainerSocket(resize, detachKeys, outputStream, errorStream, inputStream)
+	return c.attachContainerSocket(resize, detachKeys, streams)
 }
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO
 // TODO add a channel to allow interruptiong
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, outputStream, errorStream io.WriteCloser, inputStream io.Reader) error {
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams) error {
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		controlPath := filepath.Join(c.bundlePath(), "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
@@ -77,17 +96,17 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	defer conn.Close()
 
 	receiveStdoutError := make(chan error)
-	if outputStream != nil || errorStream != nil {
+	if streams.AttachOutput || streams.AttachError {
 		go func() {
-			receiveStdoutError <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+			receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, conn)
 		}()
 	}
 
 	stdinDone := make(chan error)
 	go func() {
 		var err error
-		if inputStream != nil {
-			_, err = utils.CopyDetachable(conn, inputStream, detachKeys)
+		if streams.AttachInput {
+			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
 			conn.CloseWrite()
 		}
 		stdinDone <- err
@@ -100,7 +119,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		if _, ok := err.(utils.DetachError); ok {
 			return nil
 		}
-		if outputStream != nil || errorStream != nil {
+		if streams.AttachOutput || streams.AttachError {
 			return <-receiveStdoutError
 		}
 	}
