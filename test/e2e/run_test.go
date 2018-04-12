@@ -278,9 +278,25 @@ var _ = Describe("Podman run", func() {
 		err = ioutil.WriteFile(secretsFile, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
+		targetDir := "/tmp/symlink/target"
+		err = os.MkdirAll(targetDir, 0755)
+		Expect(err).To(BeNil())
+		keyFile := filepath.Join(targetDir, "key.pem")
+		err = ioutil.WriteFile(keyFile, []byte(mountString), 0755)
+		Expect(err).To(BeNil())
+		execSession := podmanTest.SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
+		execSession.WaitWithDefaultTimeout()
+		Expect(execSession.ExitCode()).To(Equal(0))
+
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/run/secrets/test.txt"})
 		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal(secretsString))
+
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/run/secrets/mysymlink"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("key.pem"))
 
 		err = os.RemoveAll(containersDir)
 		Expect(err).To(BeNil())
