@@ -92,7 +92,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	receiveStdoutError := make(chan error)
 	if streams.AttachOutput || streams.AttachError {
 		go func() {
-			receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, conn)
+			receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, streams.AttachOutput, streams.AttachError, conn)
 		}()
 	}
 
@@ -120,23 +120,26 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	return nil
 }
 
-func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, conn io.Reader) error {
+func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeOutput, writeError bool, conn io.Reader) error {
 	var err error
 	buf := make([]byte, 8192+1) /* Sync with conmon STDIO_BUF_SIZE */
 	for {
 		nr, er := conn.Read(buf)
 		if nr > 0 {
 			var dst io.Writer
+			var doWrite bool
 			switch buf[0] {
 			case AttachPipeStdout:
 				dst = outputStream
+				doWrite = writeOutput
 			case AttachPipeStderr:
 				dst = errorStream
+				doWrite = writeError
 			default:
 				logrus.Infof("Received unexpected attach type %+d", buf[0])
 			}
 
-			if dst != nil {
+			if doWrite {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {
 					err = ew
