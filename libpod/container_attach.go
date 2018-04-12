@@ -49,12 +49,6 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 
-	// Do not allow stdin on containers without Stdin set
-	// Conmon was not configured properly
-	if streams.AttachInput && !c.config.Stdin {
-		return errors.Wrapf(ErrInvalidArg, "this container was not created as interactive, cannot attach stdin")
-	}
-
 	// Check the validity of the provided keys first
 	var err error
 	detachKeys := []byte{}
