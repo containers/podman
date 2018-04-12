@@ -310,7 +310,6 @@ var _ = Describe("Podman run", func() {
 	It("podman run with attach stdout does not print stderr", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdout", ALPINE, "ls", "/doesnotexist"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal(""))
 	})
 
