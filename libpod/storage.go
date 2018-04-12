@@ -102,7 +102,13 @@ func (r *storageService) CreateContainerStorage(systemContext *types.SystemConte
 	// Build the container.
 	names := []string{containerName}
 
-	container, err := r.store.CreateContainer(containerID, names, img.ID, "", string(mdata), nil)
+	options := storage.ContainerOptions{
+		IDMappingOptions: storage.IDMappingOptions{
+			HostUIDMapping: true,
+			HostGIDMapping: true,
+		},
+	}
+	container, err := r.store.CreateContainer(containerID, names, img.ID, "", string(mdata), &options)
 	if err != nil {
 		logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 
