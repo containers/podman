@@ -73,7 +73,7 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode
-	if haveTerminal {
+	if haveTerminal && ctr.Spec().Process.Terminal {
 		logrus.Debugf("Handling terminal attach")
 
 		resizeTty(resize)
@@ -88,11 +88,32 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
 	}
 
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = stdout
+	streams.ErrorStream = stderr
+	streams.InputStream = stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	if stdout == nil {
+		logrus.Debugf("Not attaching to stdout")
+		streams.AttachOutput = false
+	}
+	if stderr == nil {
+		logrus.Debugf("Not attaching to stderr")
+		streams.AttachError = false
+	}
+	if stdin == nil {
+		logrus.Debugf("Not attaching to stdin")
+		streams.AttachInput = false
+	}
+
 	if sigProxy {
 		ProxySignals(ctr)
 	}
 
-	return ctr.Attach(stdout, stderr, stdin, detachKeys, resize)
+	return ctr.Attach(streams, detachKeys, resize)
 }
 
 // Start and attach to a container
@@ -119,7 +140,28 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
 	}
 
-	attachChan, err := ctr.StartAndAttach(stdout, stderr, stdin, detachKeys, resize)
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = stdout
+	streams.ErrorStream = stderr
+	streams.InputStream = stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	if stdout == nil {
+		logrus.Debugf("Not attaching to stdout")
+		streams.AttachOutput = false
+	}
+	if stderr == nil {
+		logrus.Debugf("Not attaching to stderr")
+		streams.AttachError = false
+	}
+	if stdin == nil {
+		logrus.Debugf("Not attaching to stdin")
+		streams.AttachInput = false
+	}
+
+	attachChan, err := ctr.StartAndAttach(streams, detachKeys, resize)
 	if err != nil {
 		return err
 	}
