@@ -106,11 +106,11 @@ var _ = Describe("Podman run", func() {
 
 		// This currently does not work
 		// Re-enable when hostname is an env variable
-		//session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "printenv"})
-		//session.Wait(10)
-		//Expect(session.ExitCode()).To(Equal(0))
-		//match, _ = session.GrepString("HOSTNAME")
-		//Expect(match).Should(BeTrue())
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "sh", "-c", "printenv"})
+		session.Wait(10)
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("HOSTNAME")
+		Expect(match).Should(BeTrue())
 	})
 
 	It("podman run limits test", func() {
@@ -298,6 +298,33 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),18(audio),20(dialout),26(tape),27(video),777,65533(nogroup)"))
+	})
+
+	It("podman run with attach stdin has no output", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdin", ALPINE, "printenv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(""))
+	})
+
+	It("podman run with attach stdout does not print stderr", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdout", ALPINE, "ls", "/doesnotexist"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(""))
+	})
+
+	It("podman run with attach stderr does not print stdout", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stderr", ALPINE, "ls", "/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(""))
+	})
+
+	It("podman run attach nonsense errors", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "asdfasdf", ALPINE, "ls", "/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 })
