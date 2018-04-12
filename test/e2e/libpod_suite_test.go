@@ -326,6 +326,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	storeOptions.GraphRoot = p.CrioRoot
 	storeOptions.RunRoot = p.RunRoot
 	store, err := sstorage.GetStore(storeOptions)
+	defer store.Shutdown(false)
 
 	options := &copy.Options{}
 	if err != nil {
