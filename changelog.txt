@@ -1,4 +1,26 @@
-- Changelog for HEAD (2018-04-05):
+- Changelog for v0.4.2 (2018-04-13):
+  * Fix podman run --attach tests
+  * Fix another comparison of a Go interface against nil
+  * Allowing attaching stdin to non-interactive containers
+  * Add tests for podman attach
+  * Change attach to accept a struct containing streams
+  * Fix terminal attach
+  * Changes to attach to enable per-stream attaching
+  * HACK temporary fix for test suite
+  * Fix locking interaction in batched Exec() on container
+  * Fix leaking files in Ginkgo
+  * Force host UID/GID mapping when creating containers
+  * Do not lock all containers during pod kill
+  * Make pod stop lock one container at a time
+  * Do not lock all containers during pod start
+  * Containers transitioning to stop should not break stats
+  * Add -i to exec for compatibility reasons
+  * Unescape characters in inspect JSON format output
+  * Use buildah commit for podman commit
+  * Functionality changes to the following flags
+  * Vendor in latest containers/storage and containers/image
+
+- Changelog for v0.4.1 (2018-04-05):
   * Remove image via storage if a buildah container is associated
   * Add hooks support to podman
   * Run images with no names
