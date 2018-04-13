@@ -376,14 +376,18 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())
 
 	// Unlock so other processes can use the container
-	c.lock.Unlock()
-	locked = false
+	if !c.locked {
+		c.lock.Unlock()
+		locked = false
+	}
 
 	waitErr := execCmd.Wait()
 
 	// Lock again
-	locked = true
-	c.lock.Lock()
+	if !c.locked {
+		locked = true
+		c.lock.Lock()
+	}
 
 	// Sync the container again to pick up changes in state
 	if err := c.syncContainer(); err != nil {
