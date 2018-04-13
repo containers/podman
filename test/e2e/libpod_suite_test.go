@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -78,6 +79,19 @@ func TestLibpod(t *testing.T) {
 		CACHE_IMAGES = []string{}
 		RESTORE_IMAGES = []string{}
 	}
+
+	// HACK HACK HACK
+	// We leak file descriptors through c/storage locks and image caching
+	// Until we come up with a better solution, just set rlimits on open
+	// files really high
+	rlimits := new(syscall.Rlimit)
+	rlimits.Cur = 99999
+	rlimits.Max = 99999
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+		fmt.Printf("Error setting new rlimits: %v", err)
+		os.Exit(1)
+	}
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Libpod Suite")
 }
@@ -326,9 +340,6 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	storeOptions.GraphRoot = p.CrioRoot
 	storeOptions.RunRoot = p.RunRoot
 	store, err := sstorage.GetStore(storeOptions)
-	defer store.Shutdown(false)
-
-	options := &copy.Options{}
 	if err != nil {
 		return errors.Errorf("error opening storage: %v", err)
 	}
@@ -337,6 +348,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	}()
 
 	storage.Transport.SetStore(store)
+
 	ref, err := storage.Transport.ParseStoreReference(store, image)
 	if err != nil {
 		return errors.Errorf("error parsing image name: %v", err)
@@ -348,6 +360,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	if err != nil {
 		return errors.Errorf("error parsing image name %v: %v", image, err)
 	}
+
 	systemContext := types.SystemContext{
 		SignaturePolicyPath: p.SignaturePolicyPath,
 	}
@@ -355,6 +368,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	if err != nil {
 		return errors.Errorf("error loading signature policy: %v", err)
 	}
+
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
 		return errors.Errorf("error loading signature policy: %v", err)
@@ -362,6 +376,8 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	defer func() {
 		_ = policyContext.Destroy()
 	}()
+
+	options := &copy.Options{}
 	err = copy.Image(policyContext, ref, importRef, options)
 	if err != nil {
 		return errors.Errorf("error importing %s: %v", importFrom, err)
