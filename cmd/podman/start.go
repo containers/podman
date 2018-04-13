@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -91,20 +90,7 @@ func startCmd(c *cli.Context) error {
 			continue
 		}
 
-		// We can only be interactive if both the config and the command-line say so
-		if c.Bool("interactive") && !ctr.Config().Stdin {
-			return errors.Errorf("the container was not created with the interactive option")
-		}
-
-		tty, err := strconv.ParseBool(ctr.Spec().Annotations["io.kubernetes.cri-o.TTY"])
-		if err != nil {
-			return errors.Wrapf(err, "unable to parse annotations in %s", ctr.ID())
-		}
-
-		// Handle start --attach
-		// We only get a terminal session if both a tty was specified in the spec and
-		// -a on the command-line was given.
-		if attach && tty {
+		if attach {
 			inputStream := os.Stdin
 			if !c.Bool("interactive") {
 				inputStream = nil
