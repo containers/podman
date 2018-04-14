@@ -81,9 +81,9 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	bb, err := ir.New("docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{})
+	bb, err := ir.New("docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, false)
 	assert.NoError(t, err)
-	bbglibc, err := ir.New("docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{})
+	bbglibc, err := ir.New("docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, false)
 	assert.NoError(t, err)
 
 	tm, err := makeLocalMatrix(bb, bbglibc)
@@ -126,7 +126,7 @@ func TestImage_New(t *testing.T) {
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(img, "", "", writer, nil, SigningOptions{})
+		newImage, err := ir.New(img, "", "", writer, nil, SigningOptions{}, false)
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
 		err = newImage.Remove(false)
@@ -150,7 +150,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	newImage, err := ir.New("busybox", "", "", os.Stdout, nil, SigningOptions{})
+	newImage, err := ir.New("busybox", "", "", os.Stdout, nil, SigningOptions{}, false)
 	assert.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
 	assert.NoError(t, err)

@@ -99,7 +99,7 @@ func pullCmd(c *cli.Context) error {
 		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 	}
 
-	newImage, err := runtime.ImageRuntime().New(image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{})
+	newImage, err := runtime.ImageRuntime().New(image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
 	if err != nil {
 		return errors.Wrapf(err, "error pulling image %q", image)
 	}
