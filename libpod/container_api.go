@@ -19,7 +19,7 @@ import (
 
 // Init creates a container in the OCI runtime
 func (c *Container) Init() (err error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -62,7 +62,7 @@ func (c *Container) Init() (err error) {
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
 // Init()
 func (c *Container) Start() (err error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -125,7 +125,7 @@ func (c *Container) Start() (err error) {
 // The channel will be closed automatically after the result of attach has been
 // sent
 func (c *Container) StartAndAttach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -198,7 +198,7 @@ func (c *Container) StartAndAttach(streams *AttachStreams, keys string, resize <
 // Default stop timeout is 10 seconds, but can be overridden when the container
 // is created
 func (c *Container) Stop() error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -224,7 +224,7 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -248,7 +248,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 
 // Kill sends a signal to a container
 func (c *Container) Kill(signal uint) error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -271,7 +271,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	var capList []string
 
 	locked := false
-	if !c.locked {
+	if !c.batched {
 		locked = true
 
 		c.lock.Lock()
@@ -377,7 +377,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())
 
 	// Unlock so other processes can use the container
-	if !c.locked {
+	if !c.batched {
 		c.lock.Unlock()
 		locked = false
 	}
@@ -385,7 +385,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	waitErr := execCmd.Wait()
 
 	// Lock again
-	if !c.locked {
+	if !c.batched {
 		locked = true
 		c.lock.Lock()
 	}
@@ -406,7 +406,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 // Attach attaches to a container
 func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
 			c.lock.Unlock()
@@ -426,7 +426,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 // Mount mounts a container's filesystem on the host
 // The path where the container has been mounted is returned
 func (c *Container) Mount() (string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -444,7 +444,7 @@ func (c *Container) Mount() (string, error) {
 
 // Unmount unmounts a container's filesystem on the host
 func (c *Container) Unmount() error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -467,7 +467,7 @@ func (c *Container) Unmount() error {
 
 // Pause pauses a container
 func (c *Container) Pause() error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -495,7 +495,7 @@ func (c *Container) Pause() error {
 
 // Unpause unpauses a container
 func (c *Container) Unpause() error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -521,7 +521,7 @@ func (c *Container) Unpause() error {
 // Export exports a container's root filesystem as a tar archive
 // The archive will be saved as a file at the given path
 func (c *Container) Export(path string) error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -562,7 +562,7 @@ func (c *Container) RemoveArtifact(name string) error {
 
 // Inspect a container for low-level information
 func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -615,7 +615,7 @@ func (c *Container) Wait() (int32, error) {
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
 func (c *Container) Cleanup() error {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -664,13 +664,13 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	newCtr.lock = c.lock
 	newCtr.valid = true
 
-	newCtr.locked = true
+	newCtr.batched = true
 
 	if err := batchFunc(newCtr); err != nil {
 		return err
 	}
 
-	newCtr.locked = false
+	newCtr.batched = false
 
 	return c.save()
 }
@@ -681,7 +681,7 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 // automatically.
 // When called outside Batch(), Sync() is a no-op
 func (c *Container) Sync() error {
-	if !c.locked {
+	if !c.batched {
 		return nil
 	}
 

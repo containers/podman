@@ -15,7 +15,7 @@ import (
 // GetContainerPids reads sysfs to obtain the pids associated with the container's cgroup
 // and uses locking
 func (c *Container) GetContainerPids() ([]string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -41,7 +41,7 @@ func (c *Container) getContainerPids() ([]string, error) {
 // GetContainerPidInformation calls ps with the appropriate options and returns
 // the results as a string and the container's PIDs as a []string
 func (c *Container) GetContainerPidInformation(args []string) ([]string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {

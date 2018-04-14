@@ -96,10 +96,10 @@ type Container struct {
 
 	state *containerState
 
-	// Locked indicates that a container has been locked as part of a
+	// Batched indicates that a container has been locked as part of a
 	// Batch() operation
-	// Functions called on a locked container will not lock or sync
-	locked bool
+	// Functions called on a batched container will not lock or sync
+	batched bool
 
 	valid   bool
 	lock    storage.Locker
@@ -521,7 +521,7 @@ func (c *Container) Hostname() string {
 
 // State returns the current state of the container
 func (c *Container) State() (ContainerStatus, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -535,7 +535,7 @@ func (c *Container) State() (ContainerStatus, error) {
 // Mounted returns a bool as to if the container's storage
 // is mounted
 func (c *Container) Mounted() (bool, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -549,7 +549,7 @@ func (c *Container) Mounted() (bool, error) {
 // If the container is not mounted, no error is returned, but the mountpoint
 // will be ""
 func (c *Container) Mountpoint() (string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -561,7 +561,7 @@ func (c *Container) Mountpoint() (string, error) {
 
 // StartedTime is the time the container was started
 func (c *Container) StartedTime() (time.Time, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -573,7 +573,7 @@ func (c *Container) StartedTime() (time.Time, error) {
 
 // FinishedTime is the time the container was stopped
 func (c *Container) FinishedTime() (time.Time, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -586,7 +586,7 @@ func (c *Container) FinishedTime() (time.Time, error) {
 // ExitCode returns the exit code of the container as
 // an int32
 func (c *Container) ExitCode() (int32, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -598,7 +598,7 @@ func (c *Container) ExitCode() (int32, error) {
 
 // OOMKilled returns whether the container was killed by an OOM condition
 func (c *Container) OOMKilled() (bool, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -612,7 +612,7 @@ func (c *Container) OOMKilled() (bool, error) {
 // If the container is not running, a pid of 0 will be returned. No error will
 // occur.
 func (c *Container) PID() (int, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -626,7 +626,7 @@ func (c *Container) PID() (int, error) {
 
 // ExecSessions retrieves active exec sessions running in the container
 func (c *Container) ExecSessions() ([]string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -646,7 +646,7 @@ func (c *Container) ExecSessions() ([]string, error) {
 // ExecSession retrieves detailed information on a single active exec session in
 // a container
 func (c *Container) ExecSession(id string) (*ExecSession, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -672,7 +672,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 // This will only be populated if the container is configured to created a new
 // network namespace, and that namespace is presently active
 func (c *Container) IPs() ([]net.IPNet, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -698,7 +698,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 // This will only be populated if the container is configured to created a new
 // network namespace, and that namespace is presently active
 func (c *Container) Routes() ([]types.Route, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -736,7 +736,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 // If the container has not been started yet, an empty map will be returned, as
 // the files in question are only created when the container is started.
 func (c *Container) BindMounts() (map[string]string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
@@ -760,7 +760,7 @@ func (c *Container) BindMounts() (map[string]string, error) {
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
 func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -786,7 +786,7 @@ func (c *Container) CGroupPath() cgroups.Path {
 
 // RootFsSize returns the root FS size of the container
 func (c *Container) RootFsSize() (int64, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
@@ -798,7 +798,7 @@ func (c *Container) RootFsSize() (int64, error) {
 
 // RWSize returns the rw size of the container
 func (c *Container) RWSize() (int64, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {

@@ -334,7 +334,7 @@ func (c *Container) getArtifactPath(name string) string {
 
 // Used with Wait() to determine if a container has exited
 func (c *Container) isStopped() (bool, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 	}
