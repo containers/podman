@@ -25,7 +25,7 @@ type ContainerCommitOptions struct {
 // Commit commits the changes between a container and its image, creating a new
 // image
 func (c *Container) Commit(destImage string, options ContainerCommitOptions) (*image.Image, error) {
-	if !c.locked {
+	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
