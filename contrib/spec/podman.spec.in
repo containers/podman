@@ -77,6 +77,7 @@ Requires:       conmon
 Requires:       iptables
 Requires:       containernetworking-cni
 Requires:       atomic-registries
+Requires:       oci-systemd-hook
 
 # vendored libraries
 # awk '{print "Provides: bundled(golang("$1")) = "$2}' containerd-*/vendor.conf | sort
