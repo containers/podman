@@ -20,13 +20,16 @@ Alter the output into a different format.  The only valid format for diff is `js
 
 ## EXAMPLE
 
-podman diff redis:alpine
+```
+# podman diff redis:alpine
 C /usr
 C /usr/local
 C /usr/local/bin
 A /usr/local/bin/docker-entrypoint.sh
+```
 
-podman diff --format json redis:alpine
+```
+# podman diff --format json redis:alpine
 {
   "changed": [
     "/usr",
@@ -37,6 +40,7 @@ podman diff --format json redis:alpine
     "/usr/local/bin/docker-entrypoint.sh"
   ]
 }
+```
 
 ## SEE ALSO
 podman(1)
