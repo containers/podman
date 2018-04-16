@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +39,7 @@ func TestGetRegistries(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(registryPath)
 	os.Setenv("REGISTRIES_CONFIG_PATH", registryPath)
-	registries, err := GetRegistries()
+	registries, err := sysreg.GetRegistries()
 	assert.NoError(t, err)
 	assert.True(t, reflect.DeepEqual(registries, []string{"one"}))
 }
@@ -48,7 +49,7 @@ func TestGetInsecureRegistries(t *testing.T) {
 	assert.NoError(t, err)
 	os.Setenv("REGISTRIES_CONFIG_PATH", registryPath)
 	defer os.Remove(registryPath)
-	registries, err := GetInsecureRegistries()
+	registries, err := sysreg.GetInsecureRegistries()
 	assert.NoError(t, err)
 	assert.True(t, reflect.DeepEqual(registries, []string{"two"}))
 }

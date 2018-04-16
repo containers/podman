@@ -117,7 +117,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool) (*Image, error) {
+func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull, forceSecure bool) (*Image, error) {
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
@@ -137,7 +137,7 @@ func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Wri
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := newImage.pullImage(writer, authfile, signaturePolicyPath, signingoptions, dockeroptions)
+	imageName, err := newImage.pullImage(writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
 	if err != nil {
 		return nil, errors.Errorf("unable to pull %s", name)
 	}

@@ -9,8 +9,8 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/common"
+	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -110,7 +110,7 @@ func searchCmd(c *cli.Context) error {
 	if len(c.StringSlice("registry")) > 0 {
 		registries = c.StringSlice("registry")
 	} else {
-		registries, err = libpod.GetRegistries()
+		registries, err = sysreg.GetRegistries()
 		if err != nil {
 			return errors.Wrapf(err, "error getting registries to search")
 		}
