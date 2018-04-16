@@ -17,11 +17,12 @@ unspecified type. If a format is specified, the given template will be executed 
 
 **--type, t="TYPE"**
 
-Return data on items of the specified type.  Type can be 'container', 'image' or 'all' (default: all)
+Return JSON for the specified type.  Type can be 'container', 'image' or 'all' (default: all)
 
 **--format, -f="FORMAT"**
 
-Format the output using the given Go template
+Format the output using the given Go template.
+The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
 **--latest, -l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
@@ -87,8 +88,13 @@ fedora
 ```
 
 ```
-$ sudo podman inspect a04 --format "{{.GraphDriver.Name}}"
+# podman inspect a04 --format "{{.GraphDriver.Name}}"
 overlay
+```
+
+```
+# podman inspect --format "size: {{.Size}}" alpine
+size:   4405240
 ```
 
 ## SEE ALSO
