@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
@@ -18,6 +19,9 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/registries"
+	"github.com/projectatomic/libpod/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -151,7 +155,7 @@ func (ir *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName strin
 // pullImage pulls an image from configured registries
 // By default, only the latest tag (or a specific tag if requested) will be
 // pulled.
-func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) (string, error) {
+func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) (string, error) {
 	// pullImage copies the image from the source to the destination
 	var pullStructs []*pullStruct
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
@@ -174,8 +178,25 @@ func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string
 	}
 	defer policyContext.Destroy()
 
-	copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false)
+	insecureRegistries, err := registries.GetInsecureRegistries()
+	if err != nil {
+		return "", err
+	}
+
 	for _, imageInfo := range pullStructs {
+		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false)
+		if imageInfo.srcRef.Transport().Name() == DockerTransport {
+			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
+			if err != nil {
+				return "", err
+			}
+			registry := reference.Domain(imgRef.(reference.Named))
+
+			if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
+				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = true
+				logrus.Info(fmt.Sprintf("%s is an insecure registry; pulling with tls-verify=false", registry))
+			}
+		}
 		// Print the following statement only when pulling from a docker or atomic registry
 		if writer != nil && (strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))

@@ -58,6 +58,7 @@ var (
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
 func pullCmd(c *cli.Context) error {
+	forceSecure := true
 	runtime, err := getRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -98,8 +99,11 @@ func pullCmd(c *cli.Context) error {
 		DockerCertPath:              c.String("cert-dir"),
 		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 	}
+	if !c.IsSet("tls-verify") {
+		forceSecure = false
+	}
 
-	newImage, err := runtime.ImageRuntime().New(image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
+	newImage, err := runtime.ImageRuntime().New(image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
 	if err != nil {
 		return errors.Wrapf(err, "error pulling image %q", image)
 	}
