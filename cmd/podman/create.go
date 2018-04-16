@@ -593,6 +593,12 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
 	}
 
+	// Validate domains are good
+	for _, dom := range c.StringSlice("dns-search") {
+		if _, err := validateDomain(dom); err != nil {
+			return nil, err
+		}
+	}
 	ImageVolumes := data.ContainerConfig.Volumes
 
 	var imageVolType = map[string]string{
