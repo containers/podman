@@ -650,7 +650,6 @@ _podman_attach() {
      "
      local boolean_options="
      --help
-     -h
      --latest
      -l
      --no-stdin
@@ -670,7 +669,6 @@ _podman_commit() {
      "
     local boolean_options="
 	--help
-	-h
 	--pause
 	-p
 	--quiet
@@ -692,7 +690,6 @@ _podman_build() {
      local boolean_options="
      --build
      --help
-     -h
      --pull
      --pull-always
      --quiet
@@ -818,7 +815,6 @@ _podman_import() {
      "
     local boolean_options="
 	--help
-	-h
 	--quiet
 	-q
      "
@@ -837,7 +833,6 @@ _podman_import() {
 _podman_info() {
     local boolean_options="
      --help
-     -h
      --debug
      "
     local options_with_args="
@@ -859,7 +854,6 @@ _podman_info() {
 _podman_images() {
     local boolean_options="
      --help
-     -h
      --quiet
      -q
      --noheading
@@ -885,7 +879,6 @@ _podman_images() {
 _podman_inspect() {
     local boolean_options="
      --help
-     -h
      --latest
      -l
      "
@@ -911,7 +904,6 @@ _podman_kill() {
      "
      local boolean_options="
      --help
-     -h
      --latest
      -l
      "
@@ -979,7 +971,6 @@ _podman_unmount() {
 _podman_umount() {
     local boolean_options="
     --help
-    -h
  "
     local options_with_args="
  "
@@ -996,7 +987,6 @@ _podman_umount() {
 _podman_mount() {
     local boolean_options="
     --help
-    -h
     --notruncate
  "
 
@@ -1352,7 +1342,6 @@ _podman_rm() {
 _podman_rmi() {
     local boolean_options="
      --help
-     -h
      --force
      -f
      -a
@@ -1402,7 +1391,6 @@ podman_top() {
     "
     local boolean_options="
     --help
-    -h
     --latest
     -l
     "
@@ -1441,7 +1429,7 @@ _podman_export() {
 
 _podman_pause() {
      local options_with_args="
-     --help -h
+     --help
      "
      local boolean_options=""
      _complete_ "$options_with_args" "$boolean_options"
@@ -1449,7 +1437,7 @@ _podman_pause() {
 
 _podman_port() {
      local options_with_args="
-     --help -h
+     --help
      "
      local boolean_options="
      --all
@@ -1482,7 +1470,6 @@ _podman_start() {
      "
 
      local boolean_options="
-     -h
      --help
      -a
      --attach
@@ -1508,7 +1495,7 @@ _podman_stop() {
 
 _podman_unpause() {
      local options_with_args="
-     --help -h
+     --help
      "
      local boolean_options=""
      _complete_ "$options_with_args" "$boolean_options"
@@ -1518,7 +1505,6 @@ _podman_wait() {
      local options_with_args=""
      local boolean_options="
         --help
-        -h
         -l
         --latest"
      _complete_ "$options_with_args" "$boolean_options"
@@ -1526,7 +1512,7 @@ _podman_wait() {
 
 _complete_() {
     local options_with_args=$1
-    local boolean_options="$2 -h --help"
+    local boolean_options="$2 --help"
 
     case "$prev" in
 	$options_with_args)

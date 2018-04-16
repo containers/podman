@@ -212,7 +212,7 @@ inside of the container.
 **--group-add**=[]
    Add additional groups to run as
 
-**--hostname**=""
+**-h**, **--hostname**=""
    Container host name
 
    Sets the container host name that is available inside the container.
