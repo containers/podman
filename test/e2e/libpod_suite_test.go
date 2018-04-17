@@ -593,3 +593,32 @@ func IsKernelNewThan(version string) (bool, error) {
 	return false, nil
 
 }
+
+//Wait process or service inside container start, and ready to be used.
+func WaitContainerReady(p *PodmanTest, id string, expStr string, timeout int, step int) bool {
+	startTime := time.Now()
+	s := p.Podman([]string{"logs", id})
+	s.WaitWithDefaultTimeout()
+	fmt.Println(startTime)
+	for {
+		if time.Since(startTime) >= time.Duration(timeout)*time.Second {
+			return false
+		}
+		if strings.Contains(s.OutputToString(), expStr) {
+			return true
+		}
+		time.Sleep(time.Duration(step) * time.Second)
+		s = p.Podman([]string{"logs", id})
+		s.WaitWithDefaultTimeout()
+	}
+}
+
+//IsCommandAvaible check if command exist
+func IsCommandAvailable(command string) bool {
+	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
+	err := check.Run()
+	if err != nil {
+		return false
+	}
+	return true
+}
