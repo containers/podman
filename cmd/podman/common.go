@@ -198,7 +198,7 @@ var createFlags = []cli.Flag{
 		Usage: "Add additional groups to join (default [])",
 	},
 	cli.StringFlag{
-		Name:  "hostname",
+		Name:  "hostname, h",
 		Usage: "Set container hostname",
 	},
 	cli.StringFlag{

@@ -26,7 +26,10 @@ func main() {
 	if reexec.Init() {
 		return
 	}
-
+	cli.HelpFlag = cli.BoolFlag{
+		Name:  "help",
+		Usage: "show help",
+	}
 	app := cli.NewApp()
 	app.Name = "podman"
 	app.Usage = "manage pods and images"
