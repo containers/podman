@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -189,7 +192,18 @@ func runCmd(c *cli.Context) error {
 	}
 
 	if ecode, err := ctr.ExitCode(); err != nil {
-		logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			// The container may have been removed
+			// Go looking for an exit file
+			ctrExitCode, err := readExitFile(runtime.GetConfig().TmpDir, ctr.ID())
+			if err != nil {
+				logrus.Errorf("Cannot get exit code: %v", err)
+			} else {
+				exitCode = ctrExitCode
+			}
+		} else {
+			logrus.Errorf("Unable to get exit code of container %s: %q", ctr.ID(), err)
+		}
 	} else {
 		exitCode = int(ecode)
 	}
@@ -197,5 +211,40 @@ func runCmd(c *cli.Context) error {
 	if createConfig.Rm {
 		return runtime.RemoveContainer(ctr, true)
 	}
-	return ctr.Cleanup()
+
+	if err := ctr.Cleanup(); err != nil {
+		// If the container has been removed already, no need to error on cleanup
+		if errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrRemoved {
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+// Read a container's exit file
+func readExitFile(runtimeTmp, ctrID string) (int, error) {
+	exitFile := filepath.Join(runtimeTmp, "exits", ctrID)
+
+	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
+
+	// Check if it exists
+	if _, err := os.Stat(exitFile); err != nil {
+		return 0, errors.Wrapf(err, "error getting exit file for container %s", ctrID)
+	}
+
+	// File exists, read it in and convert to int
+	statusStr, err := ioutil.ReadFile(exitFile)
+	if err != nil {
+		return 0, errors.Wrapf(err, "error reading exit file for container %s", ctrID)
+	}
+
+	exitCode, err := strconv.Atoi(string(statusStr))
+	if err != nil {
+		return 0, errors.Wrapf(err, "error parsing exit code for container %s", ctrID)
+	}
+
+	return exitCode, nil
 }
