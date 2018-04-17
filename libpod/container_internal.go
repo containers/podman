@@ -901,8 +901,8 @@ func (c *Container) generateHosts() (string, error) {
 	if len(c.config.HostAdd) > 0 {
 		for _, host := range c.config.HostAdd {
 			// the host format has already been verified at this point
-			fields := strings.Split(host, ":")
-			hosts += fmt.Sprintf("%s %s\n", fields[0], fields[1])
+			fields := strings.SplitN(host, ":", 2)
+			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
 		}
 	}
 	return c.writeStringToRundir("hosts", hosts)
