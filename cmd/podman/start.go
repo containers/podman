@@ -96,6 +96,14 @@ func startCmd(c *cli.Context) error {
 				inputStream = nil
 			}
 
+			ctrState, err := ctr.State()
+			if err != nil {
+				return errors.Wrapf(err, "unable to get container state")
+			}
+			if ctrState == libpod.ContainerStateRunning {
+				return attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"))
+			}
+
 			if err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.Bool("sig-proxy")); err != nil {
 				return errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}

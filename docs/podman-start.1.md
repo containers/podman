@@ -11,7 +11,8 @@ podman start - Start one or more containers
 ## DESCRIPTION
 Start one or more containers.  You may use container IDs or names as input.  The *attach* and *interactive*
 options cannot be used to override the *--tty** and *--interactive* options from when the container
-was created.
+was created. If you attempt to start a running container with the *--attach* option, podman will simply
+attach to the container.
 
 ## OPTIONS
 
