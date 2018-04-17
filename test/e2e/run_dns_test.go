@@ -62,10 +62,11 @@ var _ = Describe("Podman run dns", func() {
 	})
 
 	It("podman run add host", func() {
-		session := podmanTest.Podman([]string{"run", "--add-host=foobar:1.1.1.1", ALPINE, "cat", "/etc/hosts"})
+		session := podmanTest.Podman([]string{"run", "--add-host=foobar:1.1.1.1", "--add-host=foobaz:dead:beef:cafe", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session.LineInOuputStartsWith("foobar 1.1.1.1")
+		session.LineInOuputStartsWith("1.1.1.1 foobar")
+		session.LineInOuputStartsWith("dead:beef:cafe foobaz")
 	})
 
 	It("podman run add hostname", func() {
