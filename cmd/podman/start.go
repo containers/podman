@@ -90,15 +90,15 @@ func startCmd(c *cli.Context) error {
 			continue
 		}
 
+		ctrState, err := ctr.State()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get container state")
+		}
+
 		if attach {
 			inputStream := os.Stdin
 			if !c.Bool("interactive") {
 				inputStream = nil
-			}
-
-			ctrState, err := ctr.State()
-			if err != nil {
-				return errors.Wrapf(err, "unable to get container state")
 			}
 			if ctrState == libpod.ContainerStateRunning {
 				return attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"))
@@ -116,7 +116,10 @@ func startCmd(c *cli.Context) error {
 
 			return ctr.Cleanup()
 		}
-
+		if ctrState == libpod.ContainerStateRunning {
+			fmt.Println(ctr.ID())
+			continue
+		}
 		// Handle non-attach start
 		if err := ctr.Start(); err != nil {
 			if lastError != nil {
