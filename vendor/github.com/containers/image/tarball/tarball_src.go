@@ -34,7 +34,7 @@ type tarballImageSource struct {
 	manifest   []byte
 }
 
-func (r *tarballReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
+func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	// Gather up the digests, sizes, and date information for all of the files.
 	filenames := []string{}
 	diffIDs := []digest.Digest{}
@@ -87,6 +87,7 @@ func (r *tarballReference) NewImageSource(ctx *types.SystemContext) (types.Image
 			layerType = imgspecv1.MediaTypeImageLayer
 			uncompressed = nil
 		}
+		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 		n, err := io.Copy(ioutil.Discard, reader)
 		if err != nil {
 			return nil, fmt.Errorf("error reading %q: %v", filename, err)
@@ -206,7 +207,7 @@ func (is *tarballImageSource) Close() error {
 	return nil
 }
 
-func (is *tarballImageSource) GetBlob(blobinfo types.BlobInfo) (io.ReadCloser, int64, error) {
+func (is *tarballImageSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo) (io.ReadCloser, int64, error) {
 	// We should only be asked about things in the manifest.  Maybe the configuration blob.
 	if blobinfo.Digest == is.configID {
 		return ioutil.NopCloser(bytes.NewBuffer(is.config)), is.configSize, nil
@@ -232,7 +233,7 @@ func (is *tarballImageSource) GetBlob(blobinfo types.BlobInfo) (io.ReadCloser, i
 // It may use a remote (= slow) service.
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 // this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-func (is *tarballImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+func (is *tarballImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil {
 		return nil, "", fmt.Errorf("manifest lists are not supported by the %q transport", transportName)
 	}
@@ -255,6 +256,6 @@ func (is *tarballImageSource) Reference() types.ImageReference {
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (*tarballImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (*tarballImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }

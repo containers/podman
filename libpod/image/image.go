@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -117,7 +118,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull, forceSecure bool) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull, forceSecure bool) (*Image, error) {
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
@@ -137,7 +138,7 @@ func (ir *Runtime) New(name, signaturePolicyPath, authfile string, writer io.Wri
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := newImage.pullImage(writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
+	imageName, err := newImage.pullImage(ctx, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
 	if err != nil {
 		return nil, errors.Errorf("unable to pull %s", name)
 	}
@@ -254,12 +255,12 @@ func (i *Image) Digest() digest.Digest {
 // Manifest returns the image's manifest as a byte array
 // and manifest type as a string.  The manifest type is
 // MediaTypeImageManifest from ociv1.
-func (i *Image) Manifest() ([]byte, string, error) {
-	imgRef, err := i.toImageRef()
+func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
+	imgRef, err := i.toImageRef(ctx)
 	if err != nil {
 		return nil, "", err
 	}
-	return imgRef.Manifest()
+	return imgRef.Manifest(ctx)
 }
 
 // Names returns a string array of names associated with the image
@@ -351,8 +352,8 @@ func (ir *Runtime) GetImages() ([]*Image, error) {
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID
 // for parsing the store reference
-func getImageDigest(src types.ImageReference, ctx *types.SystemContext) (string, error) {
-	newImg, err := src.NewImage(ctx)
+func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.SystemContext) (string, error) {
+	newImg, err := src.NewImage(ctx, sc)
 	if err != nil {
 		return "", err
 	}
@@ -408,7 +409,7 @@ func (i *Image) UntagImage(tag string) error {
 }
 
 // PushImage pushes the given image to a location described by the given path
-func (i *Image) PushImage(destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions) error {
+func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -444,7 +445,7 @@ func (i *Image) PushImage(destination, manifestMIMEType, authFile, signaturePoli
 	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress)
 
 	// Copy the image to the remote destination
-	err = cp.Image(policyContext, dest, src, copyOptions)
+	err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
@@ -477,12 +478,12 @@ func (i *Image) toStorageReference() (types.ImageReference, error) {
 
 // ToImageRef returns an image reference type from an image
 // TODO: Hopefully we can remove this exported function for mheon
-func (i *Image) ToImageRef() (types.Image, error) {
-	return i.toImageRef()
+func (i *Image) ToImageRef(ctx context.Context) (types.Image, error) {
+	return i.toImageRef(ctx)
 }
 
 // toImageRef returns an Image Reference type from an image
-func (i *Image) toImageRef() (types.Image, error) {
+func (i *Image) toImageRef(ctx context.Context) (types.Image, error) {
 	if i == nil {
 		return nil, errors.Errorf("cannot convert nil image to image reference")
 	}
@@ -491,7 +492,7 @@ func (i *Image) toImageRef() (types.Image, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
 		}
-		imgRef, err := ref.NewImage(nil)
+		imgRef, err := ref.NewImage(ctx, nil)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading image %q", i.ID())
 		}
@@ -506,13 +507,13 @@ type sizer interface {
 }
 
 //Size returns the size of the image
-func (i *Image) Size() (*uint64, error) {
+func (i *Image) Size(ctx context.Context) (*uint64, error) {
 	storeRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
 	if err != nil {
 		return nil, err
 	}
 	systemContext := &types.SystemContext{}
-	img, err := storeRef.NewImageSource(systemContext)
+	img, err := storeRef.NewImageSource(ctx, systemContext)
 	if err != nil {
 		return nil, err
 	}
@@ -540,12 +541,12 @@ func (i *Image) Layer() (*storage.Layer, error) {
 }
 
 // History gets the history of an image and information about its layers
-func (i *Image) History() ([]ociv1.History, []types.BlobInfo, error) {
-	img, err := i.toImageRef()
+func (i *Image) History(ctx context.Context) ([]ociv1.History, []types.BlobInfo, error) {
+	img, err := i.toImageRef(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	oci, err := img.OCIConfig()
+	oci, err := img.OCIConfig(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -558,8 +559,8 @@ func (i *Image) Dangling() bool {
 }
 
 // Labels returns the image's labels
-func (i *Image) Labels() (map[string]string, error) {
-	imgInspect, err := i.imageInspectInfo()
+func (i *Image) Labels(ctx context.Context) (map[string]string, error) {
+	imgInspect, err := i.imageInspectInfo(ctx)
 	if err != nil {
 		return nil, nil
 	}
@@ -567,8 +568,8 @@ func (i *Image) Labels() (map[string]string, error) {
 }
 
 // Annotations returns the annotations of an image
-func (i *Image) Annotations() (map[string]string, error) {
-	manifest, manifestType, err := i.Manifest()
+func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
+	manifest, manifestType, err := i.Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -587,25 +588,25 @@ func (i *Image) Annotations() (map[string]string, error) {
 
 // ociv1Image converts and image to an imgref and then an
 // ociv1 image type
-func (i *Image) ociv1Image() (*ociv1.Image, error) {
-	imgRef, err := i.toImageRef()
+func (i *Image) ociv1Image(ctx context.Context) (*ociv1.Image, error) {
+	imgRef, err := i.toImageRef(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return imgRef.OCIConfig()
+	return imgRef.OCIConfig(ctx)
 }
 
-func (i *Image) imageInspectInfo() (*types.ImageInspectInfo, error) {
+func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, error) {
 	if i.inspectInfo == nil {
 		sr, err := i.toStorageReference()
 		if err != nil {
 			return nil, err
 		}
-		ic, err := sr.NewImage(&types.SystemContext{})
+		ic, err := sr.NewImage(ctx, &types.SystemContext{})
 		if err != nil {
 			return nil, err
 		}
-		imgInspect, err := ic.Inspect()
+		imgInspect, err := ic.Inspect(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -615,21 +616,21 @@ func (i *Image) imageInspectInfo() (*types.ImageInspectInfo, error) {
 }
 
 // Inspect returns an image's inspect data
-func (i *Image) Inspect() (*inspect.ImageData, error) {
-	ociv1Img, err := i.ociv1Image()
+func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err
 	}
-	info, err := i.imageInspectInfo()
+	info, err := i.imageInspectInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
-	annotations, err := i.Annotations()
+	annotations, err := i.Annotations(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	size, err := i.Size()
+	size, err := i.Size(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -670,7 +671,7 @@ func (i *Image) Inspect() (*inspect.ImageData, error) {
 }
 
 // Import imports and image into the store and returns an image
-func (ir *Runtime) Import(path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
+func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
 	file := TarballTransport + ":" + path
 	src, err := alltransports.ParseImageName(file)
 	if err != nil {
@@ -694,7 +695,7 @@ func (ir *Runtime) Import(path, reference string, writer io.Writer, signingOptio
 
 	// if reference not given, get the image digest
 	if reference == "" {
-		reference, err = getImageDigest(src, sc)
+		reference, err = getImageDigest(ctx, src, sc)
 		if err != nil {
 			return nil, err
 		}
@@ -709,7 +710,7 @@ func (ir *Runtime) Import(path, reference string, writer io.Writer, signingOptio
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)
 	}
-	if err = cp.Image(policyContext, dest, src, copyOptions); err != nil {
+	if err = cp.Image(ctx, policyContext, dest, src, copyOptions); err != nil {
 		return nil, err
 	}
 	return ir.NewFromLocal(reference)

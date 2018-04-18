@@ -42,7 +42,7 @@ type ostreeImageSource struct {
 }
 
 // newImageSource returns an ImageSource for reading from an existing directory.
-func newImageSource(ctx *types.SystemContext, tmpDir string, ref ostreeReference) (types.ImageSource, error) {
+func newImageSource(tmpDir string, ref ostreeReference) (types.ImageSource, error) {
 	return &ostreeImageSource{ref: ref, tmpDir: tmpDir, compressed: nil}, nil
 }
 
@@ -92,7 +92,7 @@ func (s *ostreeImageSource) getTarSplitData(blob string) ([]byte, error) {
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
 // It may use a remote (= slow) service.
-func (s *ostreeImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+func (s *ostreeImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil {
 		return nil, "", errors.Errorf(`Manifest lists are not supported by "ostree:"`)
 	}
@@ -256,13 +256,13 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 }
 
 // GetBlob returns a stream for the specified blob, and the blob's size.
-func (s *ostreeImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 
 	blob := info.Digest.Hex()
 
 	// Ensure s.compressed is initialized.  It is build by LayerInfosForCopy.
 	if s.compressed == nil {
-		_, err := s.LayerInfosForCopy()
+		_, err := s.LayerInfosForCopy(ctx)
 		if err != nil {
 			return nil, -1, err
 		}
@@ -366,9 +366,9 @@ func (s *ostreeImageSource) GetSignatures(ctx context.Context, instanceDigest *d
 
 // LayerInfosForCopy() returns the list of layer blobs that make up the root filesystem of
 // the image, after they've been decompressed.
-func (s *ostreeImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (s *ostreeImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	updatedBlobInfos := []types.BlobInfo{}
-	manifestBlob, manifestType, err := s.GetManifest(nil)
+	manifestBlob, manifestType, err := s.GetManifest(ctx, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -19,13 +19,13 @@ type ociArchiveImageSource struct {
 
 // newImageSource returns an ImageSource for reading from an existing directory.
 // newImageSource untars the file and saves it in a temp directory
-func newImageSource(ctx *types.SystemContext, ref ociArchiveReference) (types.ImageSource, error) {
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (types.ImageSource, error) {
 	tempDirRef, err := createUntarTempDir(ref)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating temp directory")
 	}
 
-	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx)
+	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return nil, errors.Wrapf(err, "error deleting temp directory", tempDirRef.tempDirectory)
@@ -72,13 +72,13 @@ func (s *ociArchiveImageSource) Close() error {
 // It may use a remote (= slow) service.
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 // this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-func (s *ociArchiveImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
-	return s.unpackedSrc.GetManifest(instanceDigest)
+func (s *ociArchiveImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+	return s.unpackedSrc.GetManifest(ctx, instanceDigest)
 }
 
 // GetBlob returns a stream for the specified blob, and the blob's size.
-func (s *ociArchiveImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
-	return s.unpackedSrc.GetBlob(info)
+func (s *ociArchiveImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
+	return s.unpackedSrc.GetBlob(ctx, info)
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
@@ -90,6 +90,6 @@ func (s *ociArchiveImageSource) GetSignatures(ctx context.Context, instanceDiges
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *ociArchiveImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (s *ociArchiveImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }

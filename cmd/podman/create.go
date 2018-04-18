@@ -180,12 +180,13 @@ func createCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	rtc := runtime.GetConfig()
+	ctx := getContext()
 
-	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
 		return err
 	}
-	data, err := newImage.Inspect()
+	data, err := newImage.Inspect(ctx)
 	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
 	if err != nil {
 		return err
@@ -209,7 +210,7 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
-	ctr, err := runtime.NewContainer(runtimeSpec, options...)
+	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return err
 	}

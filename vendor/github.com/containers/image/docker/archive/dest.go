@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -15,7 +16,7 @@ type archiveImageDestination struct {
 	writer               io.Closer
 }
 
-func newImageDestination(ctx *types.SystemContext, ref archiveReference) (types.ImageDestination, error) {
+func newImageDestination(ref archiveReference) (types.ImageDestination, error) {
 	if ref.destinationRef == nil {
 		return nil, errors.Errorf("docker-archive: destination reference not supplied (must be of form <path>:<reference:tag>)")
 	}
@@ -66,6 +67,6 @@ func (d *archiveImageDestination) Close() error {
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *archiveImageDestination) Commit() error {
-	return d.Destination.Commit()
+func (d *archiveImageDestination) Commit(ctx context.Context) error {
+	return d.Destination.Commit(ctx)
 }

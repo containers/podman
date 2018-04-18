@@ -1,6 +1,7 @@
 package copy
 
 import (
+	"context"
 	"strings"
 
 	"github.com/containers/image/manifest"
@@ -41,8 +42,8 @@ func (os *orderedSet) append(s string) {
 // Note that the conversion will only happen later, through ic.src.UpdatedImage
 // Returns the preferred manifest MIME type (whether we are converting to it or using it unmodified),
 // and a list of other possible alternatives, in order.
-func (ic *imageCopier) determineManifestConversion(destSupportedManifestMIMETypes []string, forceManifestMIMEType string) (string, []string, error) {
-	_, srcType, err := ic.src.Manifest()
+func (ic *imageCopier) determineManifestConversion(ctx context.Context, destSupportedManifestMIMETypes []string, forceManifestMIMEType string) (string, []string, error) {
+	_, srcType, err := ic.src.Manifest(ctx)
 	if err != nil { // This should have been cached?!
 		return "", nil, errors.Wrap(err, "Error reading manifest")
 	}
@@ -111,8 +112,8 @@ func (ic *imageCopier) determineManifestConversion(destSupportedManifestMIMEType
 }
 
 // isMultiImage returns true if img is a list of images
-func isMultiImage(img types.UnparsedImage) (bool, error) {
-	_, mt, err := img.Manifest()
+func isMultiImage(ctx context.Context, img types.UnparsedImage) (bool, error) {
+	_, mt, err := img.Manifest(ctx)
 	if err != nil {
 		return false, err
 	}

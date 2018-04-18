@@ -1,10 +1,11 @@
 package daemon
 
 import (
+	"context"
+
 	"github.com/containers/image/docker/tarfile"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 type daemonImageSource struct {
@@ -26,14 +27,14 @@ type layerInfo struct {
 // (We could, perhaps, expect an exact sequence, assume that the first plaintext file
 // is the config, and that the following len(RootFS) files are the layers, but that feels
 // way too brittle.)
-func newImageSource(ctx *types.SystemContext, ref daemonReference) (types.ImageSource, error) {
-	c, err := newDockerClient(ctx)
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref daemonReference) (types.ImageSource, error) {
+	c, err := newDockerClient(sys)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error initializing docker engine client")
 	}
 	// Per NewReference(), ref.StringWithinTransport() is either an image ID (config digest), or a !reference.NameOnly() reference.
 	// Either way ImageSave should create a tarball with exactly one image.
-	inputStream, err := c.ImageSave(context.TODO(), []string{ref.StringWithinTransport()})
+	inputStream, err := c.ImageSave(ctx, []string{ref.StringWithinTransport()})
 	if err != nil {
 		return nil, errors.Wrap(err, "Error loading image from docker engine")
 	}
@@ -56,6 +57,6 @@ func (s *daemonImageSource) Reference() types.ImageReference {
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when reading, in preference to values in the manifest, if specified.
-func (s *daemonImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (s *daemonImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }

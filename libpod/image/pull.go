@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -70,7 +71,7 @@ func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (
 }
 
 // returns a list of pullStruct with the srcRef and DstRef based on the transport being used
-func (ir *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullStruct, error) {
+func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullStruct, error) {
 	var pullStructs []*pullStruct
 	splitArr := strings.Split(imgName, ":")
 	archFile := splitArr[len(splitArr)-1]
@@ -89,7 +90,7 @@ func (ir *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName strin
 		// to pull the first image stored in the tar file
 		if len(manifest) == 0 {
 			// use the hex of the digest if no manifest is found
-			reference, err := getImageDigest(srcRef, sc)
+			reference, err := getImageDigest(ctx, srcRef, sc)
 			if err != nil {
 				return nil, err
 			}
@@ -104,7 +105,7 @@ func (ir *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName strin
 				dest = manifest[0].RepoTags[0]
 			} else {
 				// If the input image has no repotags, we need to feed it a dest anyways
-				dest, err = getImageDigest(srcRef, sc)
+				dest, err = getImageDigest(ctx, srcRef, sc)
 				if err != nil {
 					return nil, err
 				}
@@ -155,7 +156,7 @@ func (ir *Runtime) getPullListFromRef(srcRef types.ImageReference, imgName strin
 // pullImage pulls an image from configured registries
 // By default, only the latest tag (or a specific tag if requested) will be
 // pulled.
-func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) (string, error) {
+func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) (string, error) {
 	// pullImage copies the image from the source to the destination
 	var pullStructs []*pullStruct
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
@@ -167,7 +168,7 @@ func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string
 			return "", errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		pullStructs, err = i.imageruntime.getPullListFromRef(srcRef, i.InputName, sc)
+		pullStructs, err = i.imageruntime.getPullListFromRef(ctx, srcRef, i.InputName, sc)
 		if err != nil {
 			return "", errors.Wrapf(err, "error getting pullStruct info to pull image %q", i.InputName)
 		}
@@ -201,7 +202,7 @@ func (i *Image) pullImage(writer io.Writer, authfile, signaturePolicyPath string
 		if writer != nil && (strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
 		}
-		if err = cp.Image(policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
+		if err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
 			if writer != nil {
 				io.WriteString(writer, "Failed\n")
 			}

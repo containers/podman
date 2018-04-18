@@ -78,16 +78,16 @@ type ImageReference interface {
 	// NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 	// verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 	// WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-	NewImage(ctx *SystemContext) (ImageCloser, error)
+	NewImage(ctx context.Context, sys *SystemContext) (ImageCloser, error)
 	// NewImageSource returns a types.ImageSource for this reference.
 	// The caller must call .Close() on the returned ImageSource.
-	NewImageSource(ctx *SystemContext) (ImageSource, error)
+	NewImageSource(ctx context.Context, sys *SystemContext) (ImageSource, error)
 	// NewImageDestination returns a types.ImageDestination for this reference.
 	// The caller must call .Close() on the returned ImageDestination.
-	NewImageDestination(ctx *SystemContext) (ImageDestination, error)
+	NewImageDestination(ctx context.Context, sys *SystemContext) (ImageDestination, error)
 
 	// DeleteImage deletes the named image from the registry, if supported.
-	DeleteImage(ctx *SystemContext) error
+	DeleteImage(ctx context.Context, sys *SystemContext) error
 }
 
 // BlobInfo collects known information about a blob (layer/config).
@@ -117,10 +117,10 @@ type ImageSource interface {
 	// It may use a remote (= slow) service.
 	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 	// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-	GetManifest(instanceDigest *digest.Digest) ([]byte, string, error)
+	GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error)
 	// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 	// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
-	GetBlob(BlobInfo) (io.ReadCloser, int64, error)
+	GetBlob(context.Context, BlobInfo) (io.ReadCloser, int64, error)
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
 	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
 	// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
@@ -129,7 +129,7 @@ type ImageSource interface {
 	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
 	// The Digest field is guaranteed to be provided; Size may be -1.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfosForCopy() ([]BlobInfo, error)
+	LayerInfosForCopy(ctx context.Context) ([]BlobInfo, error)
 }
 
 // LayerCompression indicates if layers must be compressed, decompressed or preserved
@@ -166,7 +166,7 @@ type ImageDestination interface {
 	SupportedManifestMIMETypes() []string
 	// SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 	// Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
-	SupportsSignatures() error
+	SupportsSignatures(ctx context.Context) error
 	// DesiredLayerCompression indicates the kind of compression to apply on layers
 	DesiredLayerCompression() LayerCompression
 	// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
@@ -181,25 +181,25 @@ type ImageDestination interface {
 	// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 	// to any other readers for download using the supplied digest.
 	// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-	PutBlob(stream io.Reader, inputInfo BlobInfo, isConfig bool) (BlobInfo, error)
+	PutBlob(ctx context.Context, stream io.Reader, inputInfo BlobInfo, isConfig bool) (BlobInfo, error)
 	// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
 	// Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
 	// If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
 	// it returns a non-nil error only on an unexpected failure.
-	HasBlob(info BlobInfo) (bool, int64, error)
+	HasBlob(ctx context.Context, info BlobInfo) (bool, int64, error)
 	// ReapplyBlob informs the image destination that a blob for which HasBlob previously returned true would have been passed to PutBlob if it had returned false.  Like HasBlob and unlike PutBlob, the digest can not be empty.  If the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree.
-	ReapplyBlob(info BlobInfo) (BlobInfo, error)
+	ReapplyBlob(ctx context.Context, info BlobInfo) (BlobInfo, error)
 	// PutManifest writes manifest to the destination.
 	// FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 	// If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 	// but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
-	PutManifest(manifest []byte) error
-	PutSignatures(signatures [][]byte) error
+	PutManifest(ctx context.Context, manifest []byte) error
+	PutSignatures(ctx context.Context, signatures [][]byte) error
 	// Commit marks the process of storing the image as successful and asks for the image to be persisted.
 	// WARNING: This does not have any transactional semantics:
 	// - Uploaded data MAY be visible to others before Commit() is called
 	// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-	Commit() error
+	Commit(ctx context.Context) error
 }
 
 // ManifestTypeRejectedError is returned by ImageDestination.PutManifest if the destination is in principle available,
@@ -225,7 +225,7 @@ type UnparsedImage interface {
 	// (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
 	Reference() ImageReference
 	// Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
-	Manifest() ([]byte, string, error)
+	Manifest(ctx context.Context) ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures(ctx context.Context) ([][]byte, error)
 }
@@ -242,11 +242,11 @@ type Image interface {
 	ConfigInfo() BlobInfo
 	// ConfigBlob returns the blob described by ConfigInfo, if ConfigInfo().Digest != ""; nil otherwise.
 	// The result is cached; it is OK to call this however often you need.
-	ConfigBlob() ([]byte, error)
+	ConfigBlob(context.Context) ([]byte, error)
 	// OCIConfig returns the image configuration as per OCI v1 image-spec. Information about
 	// layers in the resulting configuration isn't guaranteed to be returned to due how
 	// old image manifests work (docker v2s1 especially).
-	OCIConfig() (*v1.Image, error)
+	OCIConfig(context.Context) (*v1.Image, error)
 	// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
 	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
@@ -254,13 +254,13 @@ type Image interface {
 	// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer blobsums that are listed in the image's manifest.
 	// The Digest field is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfosForCopy() ([]BlobInfo, error)
+	LayerInfosForCopy(context.Context) ([]BlobInfo, error)
 	// EmbeddedDockerReferenceConflicts whether a Docker reference embedded in the manifest, if any, conflicts with destination ref.
 	// It returns false if the manifest does not embed a Docker reference.
 	// (This embedding unfortunately happens for Docker schema1, please do not add support for this in any new formats.)
 	EmbeddedDockerReferenceConflicts(ref reference.Named) bool
 	// Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
-	Inspect() (*ImageInspectInfo, error)
+	Inspect(context.Context) (*ImageInspectInfo, error)
 	// UpdatedImageNeedsLayerDiffIDs returns true iff UpdatedImage(options) needs InformationOnly.LayerDiffIDs.
 	// This is a horribly specific interface, but computing InformationOnly.LayerDiffIDs can be very expensive to compute
 	// (most importantly it forces us to download the full layers even if they are already present at the destination).
@@ -268,7 +268,7 @@ type Image interface {
 	// UpdatedImage returns a types.Image modified according to options.
 	// Everything in options.InformationOnly should be provided, other fields should be set only if a modification is desired.
 	// This does not change the state of the original Image object.
-	UpdatedImage(options ManifestUpdateOptions) (Image, error)
+	UpdatedImage(ctx context.Context, options ManifestUpdateOptions) (Image, error)
 	// Size returns an approximation of the amount of disk space which is consumed by the image in its current
 	// location.  If the size is not known, -1 will be returned.
 	Size() (int64, error)

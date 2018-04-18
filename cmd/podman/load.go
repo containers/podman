@@ -98,18 +98,20 @@ func loadCmd(c *cli.Context) error {
 		writer = os.Stderr
 	}
 
+	ctx := getContext()
+
 	src := libpod.DockerArchive + ":" + input
-	newImage, err := runtime.ImageRuntime().New(src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+	newImage, err := runtime.ImageRuntime().New(ctx, src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
 	if err != nil {
 		// generate full src name with specified image:tag
 		fullSrc := libpod.OCIArchive + ":" + input
 		if image != "" {
 			fullSrc = fullSrc + ":" + image
 		}
-		newImage, err = runtime.ImageRuntime().New(fullSrc, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+		newImage, err = runtime.ImageRuntime().New(ctx, fullSrc, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
 		if err != nil {
 			src = libpod.DirTransport + ":" + input
-			newImage, err = runtime.ImageRuntime().New(src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+			newImage, err = runtime.ImageRuntime().New(ctx, src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
 			if err != nil {
 				return errors.Wrapf(err, "error pulling %q", src)
 			}

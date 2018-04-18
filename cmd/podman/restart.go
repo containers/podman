@@ -105,7 +105,7 @@ func restartCtr(timeout uint, ctr *libpod.Container) error {
 		}
 	}
 
-	if err := ctr.Start(); err != nil {
+	if err := ctr.Start(getContext()); err != nil {
 		return err
 	}
 

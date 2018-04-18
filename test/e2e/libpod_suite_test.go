@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/storage"
@@ -327,9 +329,7 @@ func (p *PodmanTest) CreateArtifact(image string) error {
 		return errors.Errorf("error parsing image name %v: %v", exportTo, err)
 	}
 
-	return copy.Image(policyContext, exportRef, importRef, options)
-
-	return nil
+	return copy.Image(getTestContext(), policyContext, exportRef, importRef, options)
 }
 
 // RestoreArtifact puts the cached image into our test store
@@ -378,7 +378,7 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 	}()
 
 	options := &copy.Options{}
-	err = copy.Image(policyContext, ref, importRef, options)
+	err = copy.Image(getTestContext(), policyContext, ref, importRef, options)
 	if err != nil {
 		return errors.Errorf("error importing %s: %v", importFrom, err)
 	}
@@ -621,4 +621,8 @@ func IsCommandAvailable(command string) bool {
 		return false
 	}
 	return true
+}
+
+func getTestContext() context.Context {
+	return context.Background()
 }

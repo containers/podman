@@ -81,6 +81,7 @@ func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
 		}
 	}()
 
+	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
 	if _, err := io.Copy(tarCopyFile, inputStream); err != nil {
 		return nil, errors.Wrapf(err, "error copying contents to temporary file %q", tarCopyFile.Name())
 	}
@@ -306,9 +307,9 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 // It may use a remote (= slow) service.
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 // this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-func (s *Source) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+func (s *Source) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil {
-		// How did we even get here? GetManifest(nil) has returned a manifest.DockerV2Schema2MediaType.
+		// How did we even get here? GetManifest(ctx, nil) has returned a manifest.DockerV2Schema2MediaType.
 		return nil, "", errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
 	}
 	if s.generatedManifest == nil {
@@ -358,7 +359,7 @@ func (r readCloseWrapper) Close() error {
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 	if err := s.ensureCachedDataIsPresent(); err != nil {
 		return nil, 0, err
 	}
@@ -414,7 +415,7 @@ func (s *Source) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
 // (e.g. if the source never returns manifest lists).
 func (s *Source) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
 	if instanceDigest != nil {
-		// How did we even get here? GetManifest(nil) has returned a manifest.DockerV2Schema2MediaType.
+		// How did we even get here? GetManifest(ctx, nil) has returned a manifest.DockerV2Schema2MediaType.
 		return nil, errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
 	}
 	return [][]byte{}, nil

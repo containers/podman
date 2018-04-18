@@ -33,8 +33,8 @@ type dockerImageDestination struct {
 }
 
 // newImageDestination creates a new ImageDestination for the specified image reference.
-func newImageDestination(ctx *types.SystemContext, ref dockerReference) (types.ImageDestination, error) {
-	c, err := newDockerClientFromRef(ctx, ref, true, "pull,push")
+func newImageDestination(sys *types.SystemContext, ref dockerReference) (types.ImageDestination, error) {
+	c, err := newDockerClientFromRef(sys, ref, true, "pull,push")
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +66,8 @@ func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
-func (d *dockerImageDestination) SupportsSignatures() error {
-	if err := d.c.detectProperties(context.TODO()); err != nil {
+func (d *dockerImageDestination) SupportsSignatures(ctx context.Context) error {
+	if err := d.c.detectProperties(ctx); err != nil {
 		return err
 	}
 	switch {
@@ -109,9 +109,9 @@ func (c *sizeCounter) Write(p []byte) (n int, err error) {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	if inputInfo.Digest.String() != "" {
-		haveBlob, size, err := d.HasBlob(inputInfo)
+		haveBlob, size, err := d.HasBlob(ctx, inputInfo)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
@@ -123,7 +123,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	// FIXME? Chunked upload, progress reporting, etc.
 	uploadPath := fmt.Sprintf(blobUploadPath, reference.Path(d.ref.ref))
 	logrus.Debugf("Uploading %s", uploadPath)
-	res, err := d.c.makeRequest(context.TODO(), "POST", uploadPath, nil, nil)
+	res, err := d.c.makeRequest(ctx, "POST", uploadPath, nil, nil)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -140,7 +140,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
 	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
-	res, err = d.c.makeRequestToResolvedURL(context.TODO(), "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, true)
+	res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, true)
 	if err != nil {
 		logrus.Debugf("Error uploading layer chunked, response %#v", res)
 		return types.BlobInfo{}, err
@@ -159,7 +159,7 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 	// TODO: check inputInfo.Digest == computedDigest https://github.com/containers/image/pull/70#discussion_r77646717
 	locationQuery.Set("digest", computedDigest.String())
 	uploadLocation.RawQuery = locationQuery.Encode()
-	res, err = d.c.makeRequestToResolvedURL(context.TODO(), "PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, true)
+	res, err = d.c.makeRequestToResolvedURL(ctx, "PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, true)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -177,14 +177,14 @@ func (d *dockerImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobI
 // Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
 // If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
 // it returns a non-nil error only on an unexpected failure.
-func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
+func (d *dockerImageDestination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
 		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	checkPath := fmt.Sprintf(blobsPath, reference.Path(d.ref.ref), info.Digest.String())
 
 	logrus.Debugf("Checking %s", checkPath)
-	res, err := d.c.makeRequest(context.TODO(), "HEAD", checkPath, nil, nil)
+	res, err := d.c.makeRequest(ctx, "HEAD", checkPath, nil, nil)
 	if err != nil {
 		return false, -1, err
 	}
@@ -204,7 +204,7 @@ func (d *dockerImageDestination) HasBlob(info types.BlobInfo) (bool, int64, erro
 	}
 }
 
-func (d *dockerImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
+func (d *dockerImageDestination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
 	return info, nil
 }
 
@@ -212,7 +212,7 @@ func (d *dockerImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInf
 // FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
-func (d *dockerImageDestination) PutManifest(m []byte) error {
+func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte) error {
 	digest, err := manifest.Digest(m)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (d *dockerImageDestination) PutManifest(m []byte) error {
 	if mimeType != "" {
 		headers["Content-Type"] = []string{mimeType}
 	}
-	res, err := d.c.makeRequest(context.TODO(), "PUT", path, headers, bytes.NewReader(m))
+	res, err := d.c.makeRequest(ctx, "PUT", path, headers, bytes.NewReader(m))
 	if err != nil {
 		return err
 	}
@@ -267,19 +267,19 @@ func isManifestInvalidError(err error) bool {
 	return ec.ErrorCode() == v2.ErrorCodeManifestInvalid || ec.ErrorCode() == v2.ErrorCodeTagInvalid
 }
 
-func (d *dockerImageDestination) PutSignatures(signatures [][]byte) error {
+func (d *dockerImageDestination) PutSignatures(ctx context.Context, signatures [][]byte) error {
 	// Do not fail if we don’t really need to support signatures.
 	if len(signatures) == 0 {
 		return nil
 	}
-	if err := d.c.detectProperties(context.TODO()); err != nil {
+	if err := d.c.detectProperties(ctx); err != nil {
 		return err
 	}
 	switch {
 	case d.c.signatureBase != nil:
 		return d.putSignaturesToLookaside(signatures)
 	case d.c.supportsSignatures:
-		return d.putSignaturesToAPIExtension(signatures)
+		return d.putSignaturesToAPIExtension(ctx, signatures)
 	default:
 		return errors.Errorf("X-Registry-Supports-Signatures extension not supported, and lookaside is not configured")
 	}
@@ -378,7 +378,7 @@ func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error
 }
 
 // putSignaturesToAPIExtension implements PutSignatures() using the X-Registry-Supports-Signatures API extension.
-func (d *dockerImageDestination) putSignaturesToAPIExtension(signatures [][]byte) error {
+func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context, signatures [][]byte) error {
 	// Skip dealing with the manifest digest, or reading the old state, if not necessary.
 	if len(signatures) == 0 {
 		return nil
@@ -393,7 +393,7 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(signatures [][]byte
 	// always adds signatures.  Eventually we should also allow removing signatures,
 	// but the X-Registry-Supports-Signatures API extension does not support that yet.
 
-	existingSignatures, err := d.c.getExtensionsSignatures(context.TODO(), d.ref, d.manifestDigest)
+	existingSignatures, err := d.c.getExtensionsSignatures(ctx, d.ref, d.manifestDigest)
 	if err != nil {
 		return err
 	}
@@ -435,7 +435,7 @@ sigExists:
 		}
 
 		path := fmt.Sprintf(extensionsSignaturePath, reference.Path(d.ref.ref), d.manifestDigest.String())
-		res, err := d.c.makeRequest(context.TODO(), "PUT", path, nil, bytes.NewReader(body))
+		res, err := d.c.makeRequest(ctx, "PUT", path, nil, bytes.NewReader(body))
 		if err != nil {
 			return err
 		}
@@ -457,6 +457,6 @@ sigExists:
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *dockerImageDestination) Commit() error {
+func (d *dockerImageDestination) Commit(ctx context.Context) error {
 	return nil
 }

@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -130,28 +131,28 @@ func (ref archiveReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (ref archiveReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
+func (ref archiveReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
 	src, err := newImageSource(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	return ctrImage.FromSource(ctx, src)
+	return ctrImage.FromSource(ctx, sys, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref archiveReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
+func (ref archiveReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	return newImageSource(ctx, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref archiveReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, ref)
+func (ref archiveReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref archiveReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref archiveReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	// Not really supported, for safety reasons.
 	return errors.New("Deleting images not implemented for docker-archive: images")
 }

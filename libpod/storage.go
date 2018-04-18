@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -56,7 +57,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
-func (r *storageService) CreateContainerStorage(systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string) (ContainerInfo, error) {
+func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string) (ContainerInfo, error) {
 	var ref types.ImageReference
 	if imageName == "" && imageID == "" {
 		return ContainerInfo{}, ErrEmptyID
@@ -74,7 +75,7 @@ func (r *storageService) CreateContainerStorage(systemContext *types.SystemConte
 		return ContainerInfo{}, err
 	}
 	// Pull out a copy of the image's configuration.
-	image, err := ref.NewImage(systemContext)
+	image, err := ref.NewImage(ctx, systemContext)
 	if err != nil {
 		return ContainerInfo{}, err
 	}

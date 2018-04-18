@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"os"
@@ -148,13 +149,14 @@ func main() {
 			logrus.Errorf("error parsing image name: %v", err)
 			os.Exit(1)
 		}
-		img, err := ref.NewImageDestination(nil)
+		ctx := context.TODO()
+		img, err := ref.NewImageDestination(ctx, nil)
 		if err != nil {
 			logrus.Errorf("error preparing to write image: %v", err)
 			os.Exit(1)
 		}
 		defer img.Close()
-		layer, err := img.PutBlob(layerBuffer, layerInfo, false)
+		layer, err := img.PutBlob(ctx, layerBuffer, layerInfo, false)
 		if err != nil {
 			logrus.Errorf("error preparing to write image: %v", err)
 			os.Exit(1)
@@ -182,7 +184,7 @@ func main() {
 			Digest: digest.Canonical.FromBytes(cbytes),
 			Size:   int64(len(cbytes)),
 		}
-		configInfo, err = img.PutBlob(bytes.NewBuffer(cbytes), configInfo, false)
+		configInfo, err = img.PutBlob(ctx, bytes.NewBuffer(cbytes), configInfo, false)
 		if err != nil {
 			logrus.Errorf("error saving configuration: %v", err)
 			os.Exit(1)
@@ -207,12 +209,12 @@ func main() {
 			logrus.Errorf("error encoding manifest: %v", err)
 			os.Exit(1)
 		}
-		err = img.PutManifest(mbytes)
+		err = img.PutManifest(ctx, mbytes)
 		if err != nil {
 			logrus.Errorf("error saving manifest: %v", err)
 			os.Exit(1)
 		}
-		err = img.Commit()
+		err = img.Commit(ctx)
 		if err != nil {
 			logrus.Errorf("error committing image: %v", err)
 			os.Exit(1)

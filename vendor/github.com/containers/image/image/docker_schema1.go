@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/containers/image/docker/reference"
@@ -44,19 +45,19 @@ func (m *manifestSchema1) ConfigInfo() types.BlobInfo {
 
 // ConfigBlob returns the blob described by ConfigInfo, iff ConfigInfo().Digest != ""; nil otherwise.
 // The result is cached; it is OK to call this however often you need.
-func (m *manifestSchema1) ConfigBlob() ([]byte, error) {
+func (m *manifestSchema1) ConfigBlob(context.Context) ([]byte, error) {
 	return nil, nil
 }
 
 // OCIConfig returns the image configuration as per OCI v1 image-spec. Information about
 // layers in the resulting configuration isn't guaranteed to be returned to due how
 // old image manifests work (docker v2s1 especially).
-func (m *manifestSchema1) OCIConfig() (*imgspecv1.Image, error) {
+func (m *manifestSchema1) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) {
 	v2s2, err := m.convertToManifestSchema2(nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return v2s2.OCIConfig()
+	return v2s2.OCIConfig(ctx)
 }
 
 // LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
@@ -88,7 +89,7 @@ func (m *manifestSchema1) EmbeddedDockerReferenceConflicts(ref reference.Named) 
 }
 
 // Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
-func (m *manifestSchema1) Inspect() (*types.ImageInspectInfo, error) {
+func (m *manifestSchema1) Inspect(context.Context) (*types.ImageInspectInfo, error) {
 	return m.m.Inspect(nil)
 }
 
@@ -101,7 +102,7 @@ func (m *manifestSchema1) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUp
 
 // UpdatedImage returns a types.Image modified according to options.
 // This does not change the state of the original Image object.
-func (m *manifestSchema1) UpdatedImage(options types.ManifestUpdateOptions) (types.Image, error) {
+func (m *manifestSchema1) UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error) {
 	copy := manifestSchema1{m: manifest.Schema1Clone(m.m)}
 	if options.LayerInfos != nil {
 		if err := copy.m.UpdateLayerInfos(options.LayerInfos); err != nil {
@@ -134,7 +135,7 @@ func (m *manifestSchema1) UpdatedImage(options types.ManifestUpdateOptions) (typ
 		if err != nil {
 			return nil, err
 		}
-		return m2.UpdatedImage(types.ManifestUpdateOptions{
+		return m2.UpdatedImage(ctx, types.ManifestUpdateOptions{
 			ManifestMIMEType: imgspecv1.MediaTypeImageManifest,
 			InformationOnly:  options.InformationOnly,
 		})

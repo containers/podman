@@ -65,12 +65,12 @@ type containerImageSource struct {
 	exporting    bool
 }
 
-func (i *containerImageRef) NewImage(sc *types.SystemContext) (types.ImageCloser, error) {
-	src, err := i.NewImageSource(sc)
+func (i *containerImageRef) NewImage(ctx context.Context, sc *types.SystemContext) (types.ImageCloser, error) {
+	src, err := i.NewImageSource(ctx, sc)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(sc, src)
+	return image.FromSource(ctx, sc, src)
 }
 
 func expectedOCIDiffIDs(image v1.Image) int {
@@ -93,7 +93,7 @@ func expectedDockerDiffIDs(image docker.V2Image) int {
 	return expected
 }
 
-func (i *containerImageRef) NewImageSource(sc *types.SystemContext) (src types.ImageSource, err error) {
+func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.SystemContext) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
 	manifestType := i.preferredManifestType
 	// If it's not a format we support, return an error.
@@ -392,7 +392,7 @@ func (i *containerImageRef) NewImageSource(sc *types.SystemContext) (src types.I
 	return src, nil
 }
 
-func (i *containerImageRef) NewImageDestination(sc *types.SystemContext) (types.ImageDestination, error) {
+func (i *containerImageRef) NewImageDestination(ctx context.Context, sc *types.SystemContext) (types.ImageDestination, error) {
 	return nil, errors.Errorf("can't write to a container")
 }
 
@@ -407,7 +407,7 @@ func (i *containerImageRef) StringWithinTransport() string {
 	return ""
 }
 
-func (i *containerImageRef) DeleteImage(*types.SystemContext) error {
+func (i *containerImageRef) DeleteImage(context.Context, *types.SystemContext) error {
 	// we were never here
 	return nil
 }
@@ -443,18 +443,18 @@ func (i *containerImageSource) GetSignatures(ctx context.Context, instanceDigest
 	return nil, nil
 }
 
-func (i *containerImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil && *instanceDigest != digest.FromBytes(i.manifest) {
 		return nil, "", errors.Errorf("TODO")
 	}
 	return i.manifest, i.manifestType, nil
 }
 
-func (i *containerImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (i *containerImageSource) LayerInfosForCopy(context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }
 
-func (i *containerImageSource) GetBlob(blob types.BlobInfo) (reader io.ReadCloser, size int64, err error) {
+func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo) (reader io.ReadCloser, size int64, err error) {
 	if blob.Digest == i.configDigest {
 		logrus.Debugf("start reading config")
 		reader := bytes.NewReader(i.config)

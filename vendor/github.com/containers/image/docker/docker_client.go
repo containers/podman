@@ -78,7 +78,7 @@ type bearerToken struct {
 // dockerClient is configuration for dealing with a single Docker registry.
 type dockerClient struct {
 	// The following members are set by newDockerClient and do not change afterwards.
-	ctx           *types.SystemContext
+	sys           *types.SystemContext
 	registry      string
 	username      string
 	password      string
@@ -131,12 +131,12 @@ func serverDefault() *tls.Config {
 }
 
 // dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
-func dockerCertDir(ctx *types.SystemContext, hostPort string) (string, error) {
-	if ctx != nil && ctx.DockerCertPath != "" {
-		return ctx.DockerCertPath, nil
+func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
+	if sys != nil && sys.DockerCertPath != "" {
+		return sys.DockerCertPath, nil
 	}
-	if ctx != nil && ctx.DockerPerHostCertDirPath != "" {
-		return filepath.Join(ctx.DockerPerHostCertDirPath, hostPort), nil
+	if sys != nil && sys.DockerPerHostCertDirPath != "" {
+		return filepath.Join(sys.DockerPerHostCertDirPath, hostPort), nil
 	}
 
 	var (
@@ -144,8 +144,8 @@ func dockerCertDir(ctx *types.SystemContext, hostPort string) (string, error) {
 		fullCertDirPath string
 	)
 	for _, systemPerHostCertDirPath := range systemPerHostCertDirPaths {
-		if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-			hostCertDir = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemPerHostCertDirPath)
+		if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+			hostCertDir = filepath.Join(sys.RootForImplicitAbsolutePaths, systemPerHostCertDirPath)
 		} else {
 			hostCertDir = systemPerHostCertDirPath
 		}
@@ -171,23 +171,23 @@ func dockerCertDir(ctx *types.SystemContext, hostPort string) (string, error) {
 
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
-func newDockerClientFromRef(ctx *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
+func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
 	registry := reference.Domain(ref.ref)
-	username, password, err := config.GetAuthentication(ctx, reference.Domain(ref.ref))
+	username, password, err := config.GetAuthentication(sys, reference.Domain(ref.ref))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting username and password")
 	}
-	sigBase, err := configuredSignatureStorageBase(ctx, ref, write)
+	sigBase, err := configuredSignatureStorageBase(sys, ref, write)
 	if err != nil {
 		return nil, err
 	}
 	remoteName := reference.Path(ref.ref)
 
-	return newDockerClientWithDetails(ctx, registry, username, password, actions, sigBase, remoteName)
+	return newDockerClientWithDetails(sys, registry, username, password, actions, sigBase, remoteName)
 }
 
 // newDockerClientWithDetails returns a new dockerClient instance for the given parameters
-func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, password, actions string, sigBase signatureStorageBase, remoteName string) (*dockerClient, error) {
+func newDockerClientWithDetails(sys *types.SystemContext, registry, username, password, actions string, sigBase signatureStorageBase, remoteName string) (*dockerClient, error) {
 	hostName := registry
 	if registry == dockerHostname {
 		registry = dockerRegistry
@@ -200,7 +200,7 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 	// dockerHostname here, because it is more symmetrical to read the configuration in that case as well, and because
 	// generally the UI hides the existence of the different dockerRegistry.  But note that this behavior is
 	// undocumented and may change if docker/docker changes.
-	certDir, err := dockerCertDir(ctx, hostName)
+	certDir, err := dockerCertDir(sys, hostName)
 	if err != nil {
 		return nil, err
 	}
@@ -208,12 +208,12 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 		return nil, err
 	}
 
-	if ctx != nil && ctx.DockerInsecureSkipTLSVerify {
+	if sys != nil && sys.DockerInsecureSkipTLSVerify {
 		tr.TLSClientConfig.InsecureSkipVerify = true
 	}
 
 	return &dockerClient{
-		ctx:           ctx,
+		sys:           sys,
 		registry:      registry,
 		username:      username,
 		password:      password,
@@ -228,8 +228,8 @@ func newDockerClientWithDetails(ctx *types.SystemContext, registry, username, pa
 
 // CheckAuth validates the credentials by attempting to log into the registry
 // returns an error if an error occcured while making the http request or the status code received was 401
-func CheckAuth(ctx context.Context, sCtx *types.SystemContext, username, password, registry string) error {
-	newLoginClient, err := newDockerClientWithDetails(sCtx, registry, username, password, "", nil, "")
+func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password, registry string) error {
+	newLoginClient, err := newDockerClientWithDetails(sys, registry, username, password, "", nil, "")
 	if err != nil {
 		return errors.Wrapf(err, "error creating new docker client")
 	}
@@ -268,7 +268,7 @@ type SearchResult struct {
 // The limit is the max number of results desired
 // Note: The limit value doesn't work with all registries
 // for example registry.access.redhat.com returns all the results without limiting it to the limit value
-func SearchRegistry(ctx context.Context, sCtx *types.SystemContext, registry, image string, limit int) ([]SearchResult, error) {
+func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, image string, limit int) ([]SearchResult, error) {
 	type V2Results struct {
 		// Repositories holds the results returned by the /v2/_catalog endpoint
 		Repositories []string `json:"repositories"`
@@ -286,7 +286,7 @@ func SearchRegistry(ctx context.Context, sCtx *types.SystemContext, registry, im
 		registry = dockerV1Hostname
 	}
 
-	client, err := newDockerClientWithDetails(sCtx, registry, "", "", "", nil, "")
+	client, err := newDockerClientWithDetails(sys, registry, "", "", "", nil, "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating new docker client")
 	}
@@ -374,8 +374,8 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 			req.Header.Add(n, hh)
 		}
 	}
-	if c.ctx != nil && c.ctx.DockerRegistryUserAgent != "" {
-		req.Header.Add("User-Agent", c.ctx.DockerRegistryUserAgent)
+	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
+		req.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
 	}
 	if sendAuth {
 		if err := c.setupRequestAuth(req); err != nil {
@@ -503,12 +503,12 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		return nil
 	}
 	err := ping("https")
-	if err != nil && c.ctx != nil && c.ctx.DockerInsecureSkipTLSVerify {
+	if err != nil && c.sys != nil && c.sys.DockerInsecureSkipTLSVerify {
 		err = ping("http")
 	}
 	if err != nil {
 		err = errors.Wrap(err, "pinging docker registry returned")
-		if c.ctx != nil && c.ctx.DockerDisableV1Ping {
+		if c.sys != nil && c.sys.DockerDisableV1Ping {
 			return err
 		}
 		// best effort to understand if we're talking to a V1 registry
@@ -527,7 +527,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 			return true
 		}
 		isV1 := pingV1("https")
-		if !isV1 && c.ctx != nil && c.ctx.DockerInsecureSkipTLSVerify {
+		if !isV1 && c.sys != nil && c.sys.DockerInsecureSkipTLSVerify {
 			isV1 = pingV1("http")
 		}
 		if isV1 {

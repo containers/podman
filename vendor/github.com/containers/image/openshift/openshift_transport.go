@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -130,27 +131,27 @@ func (ref openshiftReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (ref openshiftReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, ref)
+func (ref openshiftReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	src, err := newImageSource(sys, ref)
 	if err != nil {
 		return nil, err
 	}
-	return genericImage.FromSource(ctx, src)
+	return genericImage.FromSource(ctx, sys, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref openshiftReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, ref)
+func (ref openshiftReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	return newImageSource(sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref openshiftReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, ref)
+func (ref openshiftReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(ctx, sys, ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref openshiftReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref openshiftReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	return errors.Errorf("Deleting images not implemented for atomic: images")
 }

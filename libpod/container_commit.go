@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"strings"
 
 	is "github.com/containers/image/storage"
@@ -24,7 +25,7 @@ type ContainerCommitOptions struct {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit(destImage string, options ContainerCommitOptions) (*image.Image, error) {
+func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -55,7 +56,7 @@ func (c *Container) Commit(destImage string, options ContainerCommitOptions) (*i
 		ReportWriter:        options.ReportWriter,
 		SystemContext:       sc,
 	}
-	importBuilder, err := buildah.ImportBuilder(c.runtime.store, builderOptions)
+	importBuilder, err := buildah.ImportBuilder(ctx, c.runtime.store, builderOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func (c *Container) Commit(destImage string, options ContainerCommitOptions) (*i
 		return nil, err
 	}
 
-	if err = importBuilder.Commit(imageRef, commitOptions); err != nil {
+	if err = importBuilder.Commit(ctx, imageRef, commitOptions); err != nil {
 		return nil, err
 	}
 	return c.runtime.imageRuntime.NewFromLocal(imageRef.DockerReference().String())

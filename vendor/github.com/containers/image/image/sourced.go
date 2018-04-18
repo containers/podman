@@ -4,6 +4,7 @@
 package image
 
 import (
+	"context"
 	"github.com/containers/image/types"
 )
 
@@ -28,8 +29,8 @@ type imageCloser struct {
 //
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage instead of calling this function.
-func FromSource(ctx *types.SystemContext, src types.ImageSource) (types.ImageCloser, error) {
-	img, err := FromUnparsedImage(ctx, UnparsedInstance(src, nil))
+func FromSource(ctx context.Context, sys *types.SystemContext, src types.ImageSource) (types.ImageCloser, error) {
+	img, err := FromUnparsedImage(ctx, sys, UnparsedInstance(src, nil))
 	if err != nil {
 		return nil, err
 	}
@@ -63,18 +64,18 @@ type sourcedImage struct {
 // but other methods transparently return data from an appropriate single image.
 //
 // The Image must not be used after the underlying ImageSource is Close()d.
-func FromUnparsedImage(ctx *types.SystemContext, unparsed *UnparsedImage) (types.Image, error) {
+func FromUnparsedImage(ctx context.Context, sys *types.SystemContext, unparsed *UnparsedImage) (types.Image, error) {
 	// Note that the input parameter above is specifically *image.UnparsedImage, not types.UnparsedImage:
 	// we want to be able to use unparsed.src.  We could make that an explicit interface, but, well,
 	// this is the only UnparsedImage implementation around, anyway.
 
 	// NOTE: It is essential for signature verification that all parsing done in this object happens on the same manifest which is returned by unparsed.Manifest().
-	manifestBlob, manifestMIMEType, err := unparsed.Manifest()
+	manifestBlob, manifestMIMEType, err := unparsed.Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	parsedManifest, err := manifestInstanceFromBlob(ctx, unparsed.src, manifestBlob, manifestMIMEType)
+	parsedManifest, err := manifestInstanceFromBlob(ctx, sys, unparsed.src, manifestBlob, manifestMIMEType)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +94,10 @@ func (i *sourcedImage) Size() (int64, error) {
 }
 
 // Manifest overrides the UnparsedImage.Manifest to always use the fields which we have already fetched.
-func (i *sourcedImage) Manifest() ([]byte, string, error) {
+func (i *sourcedImage) Manifest(ctx context.Context) ([]byte, string, error) {
 	return i.manifestBlob, i.manifestMIMEType, nil
 }
 
-func (i *sourcedImage) LayerInfosForCopy() ([]types.BlobInfo, error) {
-	return i.UnparsedImage.src.LayerInfosForCopy()
+func (i *sourcedImage) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
+	return i.UnparsedImage.src.LayerInfosForCopy(ctx)
 }

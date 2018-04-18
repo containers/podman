@@ -173,7 +173,7 @@ type Store interface {
 	// process's main() function needs to import our pkg/reexec package and
 	// should begin with something like this in order to allow us to
 	// properly start that child process:
-	//   if reexec.Init {
+	//   if reexec.Init() {
 	//       return
 	//   }
 	PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions, diff io.Reader) (*Layer, int64, error)
@@ -253,7 +253,7 @@ type Store interface {
 	// process's main() function needs to import our pkg/reexec package and
 	// should begin with something like this in order to allow us to
 	// properly start that child process:
-	//   if reexec.Init {
+	//   if reexec.Init() {
 	//       return
 	//   }
 	Mount(id, mountLabel string) (string, error)
@@ -288,7 +288,7 @@ type Store interface {
 	// process's main() function needs to import our pkg/reexec package and
 	// should begin with something like this in order to allow us to
 	// properly start that child process:
-	//   if reexec.Init {
+	//   if reexec.Init() {
 	//       return
 	//   }
 	ApplyDiff(to string, diff io.Reader) (int64, error)
@@ -512,6 +512,14 @@ type store struct {
 // These defaults observe environment variables:
 //  * `STORAGE_DRIVER` for the name of the storage driver to attempt to use
 //  * `STORAGE_OPTS` for the string of options to pass to the driver
+//
+// Note that we do some of this work in a child process.  The calling process's
+// main() function needs to import our pkg/reexec package and should begin with
+// something like this in order to allow us to properly start that child
+// process:
+//   if reexec.Init() {
+//       return
+//   }
 func GetStore(options StoreOptions) (Store, error) {
 	if options.RunRoot == "" && options.GraphRoot == "" && options.GraphDriverName == "" && len(options.GraphDriverOptions) == 0 {
 		options = DefaultStoreOptions

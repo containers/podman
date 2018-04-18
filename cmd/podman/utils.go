@@ -161,7 +161,7 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 		streams.AttachInput = false
 	}
 
-	attachChan, err := ctr.StartAndAttach(streams, detachKeys, resize)
+	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize)
 	if err != nil {
 		return err
 	}

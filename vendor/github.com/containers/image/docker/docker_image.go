@@ -22,12 +22,12 @@ type Image struct {
 // newImage returns a new Image interface type after setting up
 // a client to the registry hosting the given image.
 // The caller must call .Close() on the returned Image.
-func newImage(ctx *types.SystemContext, ref dockerReference) (types.ImageCloser, error) {
-	s, err := newImageSource(ctx, ref)
+func newImage(ctx context.Context, sys *types.SystemContext, ref dockerReference) (types.ImageCloser, error) {
+	s, err := newImageSource(sys, ref)
 	if err != nil {
 		return nil, err
 	}
-	img, err := image.FromSource(ctx, s)
+	img, err := image.FromSource(ctx, sys, s)
 	if err != nil {
 		return nil, err
 	}
@@ -40,10 +40,10 @@ func (i *Image) SourceRefFullName() string {
 }
 
 // GetRepositoryTags list all tags available in the repository. Note that this has no connection with the tag(s) used for this specific image, if any.
-func (i *Image) GetRepositoryTags() ([]string, error) {
+func (i *Image) GetRepositoryTags(ctx context.Context) ([]string, error) {
 	path := fmt.Sprintf(tagsPath, reference.Path(i.src.ref.ref))
 	// FIXME: Pass the context.Context
-	res, err := i.src.c.makeRequest(context.TODO(), "GET", path, nil, nil)
+	res, err := i.src.c.makeRequest(ctx, "GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
