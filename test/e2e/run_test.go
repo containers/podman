@@ -316,11 +316,14 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),18(audio),20(dialout),26(tape),27(video),777,65533(nogroup)"))
 	})
 
-	It("podman run with attach stdin has no output", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdin", ALPINE, "printenv"})
+	It("podman run with attach stdin outputs container ID", func() {
+		session := podmanTest.Podman([]string{"run", "--attach", "stdin", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal(""))
+		ps := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps.ExitCode()).To(Equal(0))
+		Expect(ps.LineInOutputContains(session.OutputToString())).To(BeTrue())
 	})
 
 	It("podman run with attach stdout does not print stderr", func() {
