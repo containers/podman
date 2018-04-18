@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/hooks"
+	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -549,7 +550,7 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	}
 	info = append(info, InfoData{Type: "store", Data: storeInfo})
 
-	reg, err := GetRegistries()
+	reg, err := sysreg.GetRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
@@ -557,7 +558,7 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	registries["registries"] = reg
 	info = append(info, InfoData{Type: "registries", Data: registries})
 
-	i, err := GetInsecureRegistries()
+	i, err := sysreg.GetInsecureRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}

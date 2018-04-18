@@ -3,15 +3,12 @@ package libpod
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/tarball"
-	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -179,32 +176,4 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 		}
 	}
 	return nil
-}
-
-// GetRegistries gets the searchable registries from the global registration file.
-func GetRegistries() ([]string, error) {
-	registryConfigPath := ""
-	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
-	if len(envOverride) > 0 {
-		registryConfigPath = envOverride
-	}
-	searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
-	if err != nil {
-		return nil, errors.Errorf("unable to parse the registries.conf file")
-	}
-	return searchRegistries, nil
-}
-
-// GetInsecureRegistries obtains the list of inseure registries from the global registration file.
-func GetInsecureRegistries() ([]string, error) {
-	registryConfigPath := ""
-	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
-	if len(envOverride) > 0 {
-		registryConfigPath = envOverride
-	}
-	registries, err := sysregistries.GetInsecureRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
-	if err != nil {
-		return nil, errors.Errorf("unable to parse the registries.conf file")
-	}
-	return registries, nil
 }
