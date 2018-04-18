@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 )
 
 // Init creates a container in the OCI runtime
-func (c *Container) Init() (err error) {
+func (c *Container) Init(ctx context.Context) (err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -52,7 +53,7 @@ func (c *Container) Init() (err error) {
 		}
 	}()
 
-	return c.init()
+	return c.init(ctx)
 }
 
 // Start starts a container
@@ -61,7 +62,7 @@ func (c *Container) Init() (err error) {
 // started
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
 // Init()
-func (c *Container) Start() (err error) {
+func (c *Container) Start(ctx context.Context) (err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -100,12 +101,12 @@ func (c *Container) Start() (err error) {
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(); err != nil {
+		if err := c.reinit(ctx); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured {
 		// Or initialize it for the first time if necessary
-		if err := c.init(); err != nil {
+		if err := c.init(ctx); err != nil {
 			return err
 		}
 	}
@@ -124,7 +125,7 @@ func (c *Container) Start() (err error) {
 // attach call.
 // The channel will be closed automatically after the result of attach has been
 // sent
-func (c *Container) StartAndAttach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -163,12 +164,12 @@ func (c *Container) StartAndAttach(streams *AttachStreams, keys string, resize <
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(); err != nil {
+		if err := c.reinit(ctx); err != nil {
 			return nil, err
 		}
 	} else if c.state.State == ContainerStateConfigured {
 		// Or initialize it for the first time if necessary
-		if err := c.init(); err != nil {
+		if err := c.init(ctx); err != nil {
 			return nil, err
 		}
 	}

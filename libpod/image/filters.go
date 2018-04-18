@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -39,7 +40,7 @@ func DanglingFilter() ResultFilter {
 }
 
 // LabelFilter allows you to filter by images labels key and/or value
-func LabelFilter(labelfilter string) ResultFilter {
+func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 	// We need to handle both label=key and label=key=value
 	return func(i *Image) bool {
 		var value string
@@ -48,7 +49,7 @@ func LabelFilter(labelfilter string) ResultFilter {
 		if len(splitFilter) > 1 {
 			value = splitFilter[1]
 		}
-		labels, err := i.Labels()
+		labels, err := i.Labels(ctx)
 		if err != nil {
 			return false
 		}

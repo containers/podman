@@ -110,7 +110,7 @@ func historyCmd(c *cli.Context) error {
 		format:  format,
 	}
 
-	history, layers, err := image.History()
+	history, layers, err := image.History(getContext())
 	if err != nil {
 		return errors.Wrapf(err, "error getting history of image %q", image.InputName)
 	}

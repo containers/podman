@@ -151,5 +151,5 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	//return runtime.PushImage(srcName, destName, options)
-	return newImage.PushImage(destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions)
+	return newImage.PushImage(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions)
 }

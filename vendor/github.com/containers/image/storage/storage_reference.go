@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"context"
 	"strings"
 
 	"github.com/containers/image/docker/reference"
@@ -181,11 +182,11 @@ func (s storageReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (s storageReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	return newImage(ctx, s)
+func (s storageReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	return newImage(ctx, sys, s)
 }
 
-func (s storageReference) DeleteImage(ctx *types.SystemContext) error {
+func (s storageReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	img, err := s.resolveImage()
 	if err != nil {
 		return err
@@ -200,10 +201,10 @@ func (s storageReference) DeleteImage(ctx *types.SystemContext) error {
 	return err
 }
 
-func (s storageReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
+func (s storageReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	return newImageSource(s)
 }
 
-func (s storageReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, s)
+func (s storageReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(s)
 }

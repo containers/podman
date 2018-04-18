@@ -45,9 +45,9 @@ type registryNamespace struct {
 type signatureStorageBase *url.URL // The only documented value is nil, meaning storage is not supported.
 
 // configuredSignatureStorageBase reads configuration to find an appropriate signature storage URL for ref, for write access if “write”.
-func configuredSignatureStorageBase(ctx *types.SystemContext, ref dockerReference, write bool) (signatureStorageBase, error) {
+func configuredSignatureStorageBase(sys *types.SystemContext, ref dockerReference, write bool) (signatureStorageBase, error) {
 	// FIXME? Loading and parsing the config could be cached across calls.
-	dirPath := registriesDirPath(ctx)
+	dirPath := registriesDirPath(sys)
 	logrus.Debugf(`Using registries.d directory %s for sigstore configuration`, dirPath)
 	config, err := loadAndMergeConfig(dirPath)
 	if err != nil {
@@ -74,13 +74,13 @@ func configuredSignatureStorageBase(ctx *types.SystemContext, ref dockerReferenc
 }
 
 // registriesDirPath returns a path to registries.d
-func registriesDirPath(ctx *types.SystemContext) string {
-	if ctx != nil {
-		if ctx.RegistriesDirPath != "" {
-			return ctx.RegistriesDirPath
+func registriesDirPath(sys *types.SystemContext) string {
+	if sys != nil {
+		if sys.RegistriesDirPath != "" {
+			return sys.RegistriesDirPath
 		}
-		if ctx.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
+		if sys.RootForImplicitAbsolutePaths != "" {
+			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
 		}
 	}
 	return systemRegistriesDirPath

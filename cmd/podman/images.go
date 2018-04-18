@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"time"
@@ -105,8 +106,10 @@ func imagesCmd(c *cli.Context) error {
 		return errors.New("'podman images' requires at most 1 argument")
 	}
 
+	ctx := getContext()
+
 	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filterFuncs, err = CreateFilterFuncs(runtime, c, newImage)
+		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c, newImage)
 		if err != nil {
 			return err
 		}
@@ -141,7 +144,7 @@ func imagesCmd(c *cli.Context) error {
 		filteredImages = images
 	}
 
-	return generateImagesOutput(runtime, filteredImages, opts)
+	return generateImagesOutput(ctx, runtime, filteredImages, opts)
 }
 
 func (i imagesOptions) setOutputFormat() string {
@@ -179,7 +182,7 @@ func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSON
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
+func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
 	for _, img := range images {
 		createdTime := img.Created()
 
@@ -190,7 +193,7 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*image.Image, opt
 		// get all specified repo:tag pairs and print them separately
 		for repo, tags := range image.ReposToMap(img.Names()) {
 			for _, tag := range tags {
-				size, err := img.Size()
+				size, err := img.Size(ctx)
 				if err != nil {
 					size = nil
 				}
@@ -210,9 +213,9 @@ func getImagesTemplateOutput(runtime *libpod.Runtime, images []*image.Image, opt
 }
 
 // getImagesJSONOutput returns the images information in its raw form
-func getImagesJSONOutput(runtime *libpod.Runtime, images []*image.Image) (imagesOutput []imagesJSONParams) {
+func getImagesJSONOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image) (imagesOutput []imagesJSONParams) {
 	for _, img := range images {
-		size, err := img.Size()
+		size, err := img.Size(ctx)
 		if err != nil {
 			size = nil
 		}
@@ -230,7 +233,7 @@ func getImagesJSONOutput(runtime *libpod.Runtime, images []*image.Image) (images
 
 // generateImagesOutput generates the images based on the format provided
 
-func generateImagesOutput(runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) error {
+func generateImagesOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -238,10 +241,10 @@ func generateImagesOutput(runtime *libpod.Runtime, images []*image.Image, opts i
 
 	switch opts.format {
 	case formats.JSONString:
-		imagesOutput := getImagesJSONOutput(runtime, images)
+		imagesOutput := getImagesJSONOutput(ctx, runtime, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
-		imagesOutput := getImagesTemplateOutput(runtime, images, opts)
+		imagesOutput := getImagesTemplateOutput(ctx, runtime, images, opts)
 		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: imagesOutput[0].HeaderMap()}
 	}
 	return formats.Writer(out).Out()
@@ -266,7 +269,7 @@ func (i *imagesTemplateParams) HeaderMap() map[string]string {
 
 // CreateFilterFuncs returns an array of filter functions based on the user inputs
 // and is later used to filter images for output
-func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, img *image.Image) ([]image.ResultFilter, error) {
+func CreateFilterFuncs(ctx context.Context, r *libpod.Runtime, c *cli.Context, img *image.Image) ([]image.ResultFilter, error) {
 	var filterFuncs []image.ResultFilter
 	for _, filter := range c.StringSlice("filter") {
 		splitFilter := strings.Split(filter, "=")
@@ -287,7 +290,7 @@ func CreateFilterFuncs(r *libpod.Runtime, c *cli.Context, img *image.Image) ([]i
 			filterFuncs = append(filterFuncs, image.DanglingFilter())
 		case "label":
 			labelFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, image.LabelFilter(labelFilter))
+			filterFuncs = append(filterFuncs, image.LabelFilter(ctx, labelFilter))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}

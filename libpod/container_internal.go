@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -176,7 +177,7 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 }
 
 // Create container root filesystem for use
-func (c *Container) setupStorage() error {
+func (c *Container) setupStorage(ctx context.Context) error {
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
@@ -190,7 +191,7 @@ func (c *Container) setupStorage() error {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel)
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
@@ -412,13 +413,13 @@ func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container
 }
 
 // Initialize a container, creating it in the runtime
-func (c *Container) init() error {
+func (c *Container) init(ctx context.Context) error {
 	if err := c.makeBindMounts(); err != nil {
 		return err
 	}
 
 	// Generate the OCI spec
-	spec, err := c.generateSpec()
+	spec, err := c.generateSpec(ctx)
 	if err != nil {
 		return err
 	}
@@ -443,7 +444,7 @@ func (c *Container) init() error {
 // Reinitialize a container
 // Deletes and recreates a container in the runtime
 // Should only be done on ContainerStateStopped containers
-func (c *Container) reinit() error {
+func (c *Container) reinit(ctx context.Context) error {
 	logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
 
 	// If necessary, delete attach and ctl files
@@ -468,13 +469,13 @@ func (c *Container) reinit() error {
 	logrus.Debugf("Successfully cleaned up container %s", c.ID())
 
 	// Initialize the container again
-	return c.init()
+	return c.init(ctx)
 }
 
 // Initialize (if necessary) and start a container
 // Performs all necessary steps to start a container that is not running
 // Does not lock or check validity
-func (c *Container) initAndStart() (err error) {
+func (c *Container) initAndStart(ctx context.Context) (err error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == ContainerStateUnknown {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
@@ -527,7 +528,7 @@ func (c *Container) initAndStart() (err error) {
 
 	// If we are ContainerStateConfigured we need to init()
 	if c.state.State == ContainerStateConfigured {
-		if err := c.init(); err != nil {
+		if err := c.init(ctx); err != nil {
 			return err
 		}
 	}
@@ -910,7 +911,7 @@ func (c *Container) generateHosts() (string, error) {
 
 // Generate spec for a container
 // Accepts a map of the container's dependencies
-func (c *Container) generateSpec() (*spec.Spec, error) {
+func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
@@ -939,7 +940,7 @@ func (c *Container) generateSpec() (*spec.Spec, error) {
 	}
 	// Bind builtin image volumes
 	if c.config.ImageVolumes {
-		if err := c.addImageVolumes(&g); err != nil {
+		if err := c.addImageVolumes(ctx, &g); err != nil {
 			return nil, errors.Wrapf(err, "error mounting image volumes")
 		}
 	}
@@ -1059,7 +1060,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) addImageVolumes(g *generate.Generator) error {
+func (c *Container) addImageVolumes(ctx context.Context, g *generate.Generator) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		return errors.Wrapf(ErrInternal, "container is not mounted")
@@ -1068,7 +1069,7 @@ func (c *Container) addImageVolumes(g *generate.Generator) error {
 	if err != nil {
 		return err
 	}
-	imageData, err := newImage.Inspect()
+	imageData, err := newImage.Inspect(ctx)
 	if err != nil {
 		return err
 	}

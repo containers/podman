@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -81,7 +82,7 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrCtrExists
 // If both error and the map are nil, all containers were started successfully
-func (p *Pod) Start() (map[string]error, error) {
+func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -111,7 +112,7 @@ func (p *Pod) Start() (map[string]error, error) {
 
 	// Traverse the graph beginning at nodes with no dependencies
 	for _, node := range graph.noDepNodes {
-		startNode(node, false, ctrErrors, ctrsVisited)
+		startNode(ctx, node, false, ctrErrors, ctrsVisited)
 	}
 
 	return ctrErrors, nil
@@ -119,7 +120,7 @@ func (p *Pod) Start() (map[string]error, error) {
 
 // Visit a node on a container graph and start the container, or set an error if
 // a dependency failed to start
-func startNode(node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool) {
+func startNode(ctx context.Context, node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool) {
 	// First, check if we have already visited the node
 	if ctrsVisited[node.id] {
 		return
@@ -134,7 +135,7 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 
 		// Hit anyone who depends on us, and set errors on them too
 		for _, successor := range node.dependedOn {
-			startNode(successor, true, ctrErrors, ctrsVisited)
+			startNode(ctx, successor, true, ctrErrors, ctrsVisited)
 		}
 
 		return
@@ -187,7 +188,7 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 
 	// Start the container (only if it is not running)
 	if !ctrErrored && node.container.state.State != ContainerStateRunning {
-		if err := node.container.initAndStart(); err != nil {
+		if err := node.container.initAndStart(ctx); err != nil {
 			ctrErrored = true
 			ctrErrors[node.id] = err
 		}
@@ -197,7 +198,7 @@ func startNode(node *containerNode, setError bool, ctrErrors map[string]error, c
 
 	// Recurse to anyone who depends on us and start them
 	for _, successor := range node.dependedOn {
-		startNode(successor, ctrErrored, ctrErrors, ctrsVisited)
+		startNode(ctx, successor, ctrErrored, ctrErrors, ctrsVisited)
 	}
 
 	return

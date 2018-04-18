@@ -37,7 +37,7 @@ func (s *dirImageSource) Close() error {
 // It may use a remote (= slow) service.
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 // this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
-func (s *dirImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, string, error) {
+func (s *dirImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	if instanceDigest != nil {
 		return nil, "", errors.Errorf(`Getting target manifest not supported by "dir:"`)
 	}
@@ -49,7 +49,7 @@ func (s *dirImageSource) GetManifest(instanceDigest *digest.Digest) ([]byte, str
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
-func (s *dirImageSource) GetBlob(info types.BlobInfo) (io.ReadCloser, int64, error) {
+func (s *dirImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
 	r, err := os.Open(s.ref.layerPath(info.Digest))
 	if err != nil {
 		return nil, -1, err
@@ -84,6 +84,6 @@ func (s *dirImageSource) GetSignatures(ctx context.Context, instanceDigest *dige
 }
 
 // LayerInfosForCopy() returns updated layer info that should be used when copying, in preference to values in the manifest, if specified.
-func (s *dirImageSource) LayerInfosForCopy() ([]types.BlobInfo, error) {
+func (s *dirImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
 	return nil, nil
 }

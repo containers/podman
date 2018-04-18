@@ -58,13 +58,15 @@ func runCmd(c *cli.Context) error {
 		return errors.Errorf("image name or ID is required")
 	}
 
+	ctx := getContext()
+
 	rtc := runtime.GetConfig()
-	newImage, err := runtime.ImageRuntime().New(c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
 		return errors.Wrapf(err, "unable to find image")
 	}
 
-	data, err := newImage.Inspect()
+	data, err := newImage.Inspect(ctx)
 	if err != nil {
 		return err
 	}
@@ -105,7 +107,7 @@ func runCmd(c *cli.Context) error {
 		options = append(options, libpod.WithCgroupParent(createConfig.CgroupParent))
 	}
 
-	ctr, err := runtime.NewContainer(runtimeSpec, options...)
+	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,7 @@ func runCmd(c *cli.Context) error {
 
 	// Handle detached start
 	if createConfig.Detach {
-		if err := ctr.Start(); err != nil {
+		if err := ctr.Start(ctx); err != nil {
 			// This means the command did not exist
 			exitCode = 127
 			if strings.Index(err.Error(), "permission denied") > -1 {

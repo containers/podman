@@ -42,8 +42,8 @@ var (
 )
 
 // SetAuthentication stores the username and password in the auth.json file
-func SetAuthentication(ctx *types.SystemContext, registry, username, password string) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func SetAuthentication(sys *types.SystemContext, registry, username, password string) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		if ch, exists := auths.CredHelpers[registry]; exists {
 			return false, setAuthToCredHelper(ch, registry, username, password)
 		}
@@ -58,13 +58,13 @@ func SetAuthentication(ctx *types.SystemContext, registry, username, password st
 // GetAuthentication returns the registry credentials stored in
 // either auth.json file or .docker/config.json
 // If an entry is not found empty strings are returned for the username and password
-func GetAuthentication(ctx *types.SystemContext, registry string) (string, string, error) {
-	if ctx != nil && ctx.DockerAuthConfig != nil {
-		return ctx.DockerAuthConfig.Username, ctx.DockerAuthConfig.Password, nil
+func GetAuthentication(sys *types.SystemContext, registry string) (string, string, error) {
+	if sys != nil && sys.DockerAuthConfig != nil {
+		return sys.DockerAuthConfig.Username, sys.DockerAuthConfig.Password, nil
 	}
 
 	dockerLegacyPath := filepath.Join(homedir.Get(), dockerLegacyCfg)
-	pathToAuth, err := getPathToAuth(ctx)
+	pathToAuth, err := getPathToAuth(sys)
 	if err != nil {
 		return "", "", err
 	}
@@ -86,8 +86,8 @@ func GetAuthentication(ctx *types.SystemContext, registry string) (string, strin
 // GetUserLoggedIn returns the username logged in to registry from either
 // auth.json or XDG_RUNTIME_DIR
 // Used to tell the user if someone is logged in to the registry when logging in
-func GetUserLoggedIn(ctx *types.SystemContext, registry string) (string, error) {
-	path, err := getPathToAuth(ctx)
+func GetUserLoggedIn(sys *types.SystemContext, registry string) (string, error) {
+	path, err := getPathToAuth(sys)
 	if err != nil {
 		return "", err
 	}
@@ -99,8 +99,8 @@ func GetUserLoggedIn(ctx *types.SystemContext, registry string) (string, error) 
 }
 
 // RemoveAuthentication deletes the credentials stored in auth.json
-func RemoveAuthentication(ctx *types.SystemContext, registry string) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func RemoveAuthentication(sys *types.SystemContext, registry string) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		// First try cred helpers.
 		if ch, exists := auths.CredHelpers[registry]; exists {
 			return false, deleteAuthFromCredHelper(ch, registry)
@@ -118,8 +118,8 @@ func RemoveAuthentication(ctx *types.SystemContext, registry string) error {
 }
 
 // RemoveAllAuthentication deletes all the credentials stored in auth.json
-func RemoveAllAuthentication(ctx *types.SystemContext) error {
-	return modifyJSON(ctx, func(auths *dockerConfigFile) (bool, error) {
+func RemoveAllAuthentication(sys *types.SystemContext) error {
+	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
 		auths.CredHelpers = make(map[string]string)
 		auths.AuthConfigs = make(map[string]dockerAuthConfig)
 		return true, nil
@@ -130,13 +130,13 @@ func RemoveAllAuthentication(ctx *types.SystemContext) error {
 // The path can be overriden by the user if the overwrite-path flag is set
 // If the flag is not set and XDG_RUNTIME_DIR is ser, the auth.json file is saved in XDG_RUNTIME_DIR/containers
 // Otherwise, the auth.json file is stored in /run/user/UID/containers
-func getPathToAuth(ctx *types.SystemContext) (string, error) {
-	if ctx != nil {
-		if ctx.AuthFilePath != "" {
-			return ctx.AuthFilePath, nil
+func getPathToAuth(sys *types.SystemContext) (string, error) {
+	if sys != nil {
+		if sys.AuthFilePath != "" {
+			return sys.AuthFilePath, nil
 		}
-		if ctx.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(ctx.RootForImplicitAbsolutePaths, defaultPath, strconv.Itoa(os.Getuid()), authCfg, authCfgFileName), nil
+		if sys.RootForImplicitAbsolutePaths != "" {
+			return filepath.Join(sys.RootForImplicitAbsolutePaths, defaultPath, strconv.Itoa(os.Getuid()), authCfg, authCfgFileName), nil
 		}
 	}
 
@@ -183,8 +183,8 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 }
 
 // modifyJSON writes to auth.json if the dockerConfigFile has been updated
-func modifyJSON(ctx *types.SystemContext, editor func(auths *dockerConfigFile) (bool, error)) error {
-	path, err := getPathToAuth(ctx)
+func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (bool, error)) error {
+	path, err := getPathToAuth(sys)
 	if err != nil {
 		return err
 	}

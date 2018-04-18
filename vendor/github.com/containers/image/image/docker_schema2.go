@@ -2,6 +2,7 @@ package image
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -72,8 +73,8 @@ func (m *manifestSchema2) ConfigInfo() types.BlobInfo {
 // OCIConfig returns the image configuration as per OCI v1 image-spec. Information about
 // layers in the resulting configuration isn't guaranteed to be returned to due how
 // old image manifests work (docker v2s1 especially).
-func (m *manifestSchema2) OCIConfig() (*imgspecv1.Image, error) {
-	configBlob, err := m.ConfigBlob()
+func (m *manifestSchema2) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) {
+	configBlob, err := m.ConfigBlob(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +90,12 @@ func (m *manifestSchema2) OCIConfig() (*imgspecv1.Image, error) {
 
 // ConfigBlob returns the blob described by ConfigInfo, iff ConfigInfo().Digest != ""; nil otherwise.
 // The result is cached; it is OK to call this however often you need.
-func (m *manifestSchema2) ConfigBlob() ([]byte, error) {
+func (m *manifestSchema2) ConfigBlob(ctx context.Context) ([]byte, error) {
 	if m.configBlob == nil {
 		if m.src == nil {
 			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestSchema2")
 		}
-		stream, _, err := m.src.GetBlob(types.BlobInfo{
+		stream, _, err := m.src.GetBlob(ctx, types.BlobInfo{
 			Digest: m.m.ConfigDescriptor.Digest,
 			Size:   m.m.ConfigDescriptor.Size,
 			URLs:   m.m.ConfigDescriptor.URLs,
@@ -131,13 +132,13 @@ func (m *manifestSchema2) EmbeddedDockerReferenceConflicts(ref reference.Named) 
 }
 
 // Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
-func (m *manifestSchema2) Inspect() (*types.ImageInspectInfo, error) {
+func (m *manifestSchema2) Inspect(ctx context.Context) (*types.ImageInspectInfo, error) {
 	getter := func(info types.BlobInfo) ([]byte, error) {
 		if info.Digest != m.ConfigInfo().Digest {
 			// Shouldn't ever happen
 			return nil, errors.New("asked for a different config blob")
 		}
-		config, err := m.ConfigBlob()
+		config, err := m.ConfigBlob(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +156,7 @@ func (m *manifestSchema2) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUp
 
 // UpdatedImage returns a types.Image modified according to options.
 // This does not change the state of the original Image object.
-func (m *manifestSchema2) UpdatedImage(options types.ManifestUpdateOptions) (types.Image, error) {
+func (m *manifestSchema2) UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error) {
 	copy := manifestSchema2{ // NOTE: This is not a deep copy, it still shares slices etc.
 		src:        m.src,
 		configBlob: m.configBlob,
@@ -171,9 +172,9 @@ func (m *manifestSchema2) UpdatedImage(options types.ManifestUpdateOptions) (typ
 	switch options.ManifestMIMEType {
 	case "": // No conversion, OK
 	case manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema1MediaType:
-		return copy.convertToManifestSchema1(options.InformationOnly.Destination)
+		return copy.convertToManifestSchema1(ctx, options.InformationOnly.Destination)
 	case imgspecv1.MediaTypeImageManifest:
-		return copy.convertToManifestOCI1()
+		return copy.convertToManifestOCI1(ctx)
 	default:
 		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema2MediaType, options.ManifestMIMEType)
 	}
@@ -190,8 +191,8 @@ func oci1DescriptorFromSchema2Descriptor(d manifest.Schema2Descriptor) imgspecv1
 	}
 }
 
-func (m *manifestSchema2) convertToManifestOCI1() (types.Image, error) {
-	configOCI, err := m.OCIConfig()
+func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context) (types.Image, error) {
+	configOCI, err := m.OCIConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +224,8 @@ func (m *manifestSchema2) convertToManifestOCI1() (types.Image, error) {
 }
 
 // Based on docker/distribution/manifest/schema1/config_builder.go
-func (m *manifestSchema2) convertToManifestSchema1(dest types.ImageDestination) (types.Image, error) {
-	configBytes, err := m.ConfigBlob()
+func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, dest types.ImageDestination) (types.Image, error) {
+	configBytes, err := m.ConfigBlob(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +253,7 @@ func (m *manifestSchema2) convertToManifestSchema1(dest types.ImageDestination) 
 		if historyEntry.EmptyLayer {
 			if !haveGzippedEmptyLayer {
 				logrus.Debugf("Uploading empty layer during conversion to schema 1")
-				info, err := dest.PutBlob(bytes.NewReader(gzippedEmptyLayer), types.BlobInfo{Digest: gzippedEmptyLayerDigest, Size: int64(len(gzippedEmptyLayer))}, false)
+				info, err := dest.PutBlob(ctx, bytes.NewReader(gzippedEmptyLayer), types.BlobInfo{Digest: gzippedEmptyLayerDigest, Size: int64(len(gzippedEmptyLayer))}, false)
 				if err != nil {
 					return nil, errors.Wrap(err, "Error uploading empty layer")
 				}

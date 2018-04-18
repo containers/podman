@@ -1,6 +1,7 @@
 package buildah
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 
@@ -128,11 +129,11 @@ type ImportOptions struct {
 
 // ImportBuilder creates a new build configuration using an already-present
 // container.
-func ImportBuilder(store storage.Store, options ImportOptions) (*Builder, error) {
-	return importBuilder(store, options)
+func ImportBuilder(ctx context.Context, store storage.Store, options ImportOptions) (*Builder, error) {
+	return importBuilder(ctx, store, options)
 }
 
-func importBuilder(store storage.Store, options ImportOptions) (*Builder, error) {
+func importBuilder(ctx context.Context, store storage.Store, options ImportOptions) (*Builder, error) {
 	if options.Container == "" {
 		return nil, errors.Errorf("container name must be specified")
 	}
@@ -144,7 +145,7 @@ func importBuilder(store storage.Store, options ImportOptions) (*Builder, error)
 
 	systemContext := getSystemContext(&types.SystemContext{}, options.SignaturePolicyPath)
 
-	builder, err := importBuilderDataFromImage(store, systemContext, c.ImageID, options.Container, c.ID)
+	builder, err := importBuilderDataFromImage(ctx, store, systemContext, c.ImageID, options.Container, c.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +169,7 @@ func importBuilder(store storage.Store, options ImportOptions) (*Builder, error)
 	return builder, nil
 }
 
-func importBuilderDataFromImage(store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
+func importBuilderDataFromImage(ctx context.Context, store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
 	manifest := []byte{}
 	config := []byte{}
 	imageName := ""
@@ -178,16 +179,16 @@ func importBuilderDataFromImage(store storage.Store, systemContext *types.System
 		if err != nil {
 			return nil, errors.Wrapf(err, "no such image %q", imageID)
 		}
-		src, err2 := ref.NewImage(systemContext)
+		src, err2 := ref.NewImage(ctx, systemContext)
 		if err2 != nil {
 			return nil, errors.Wrapf(err2, "error instantiating image")
 		}
 		defer src.Close()
-		config, err = src.ConfigBlob()
+		config, err = src.ConfigBlob(ctx)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading image configuration")
 		}
-		manifest, _, err = src.Manifest()
+		manifest, _, err = src.Manifest(ctx)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading image manifest")
 		}

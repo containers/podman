@@ -1,6 +1,7 @@
 package buildah
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -74,7 +75,7 @@ type PushOptions struct {
 // Commit writes the contents of the container, along with its updated
 // configuration, to a new image in the specified location, and if we know how,
 // add any additional tags that were specified.
-func (b *Builder) Commit(dest types.ImageReference, options CommitOptions) error {
+func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) error {
 	policy, err := signature.DefaultPolicy(getSystemContext(options.SystemContext, options.SignaturePolicyPath))
 	if err != nil {
 		return errors.Wrapf(err, "error obtaining default signature policy")
@@ -96,7 +97,7 @@ func (b *Builder) Commit(dest types.ImageReference, options CommitOptions) error
 		return errors.Wrapf(err, "error computing layer digests and building metadata")
 	}
 	// "Copy" our image to where it needs to be.
-	err = cp.Image(policyContext, dest, src, getCopyOptions(options.ReportWriter, nil, options.SystemContext, ""))
+	err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, nil, options.SystemContext, ""))
 	if err != nil {
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
@@ -120,7 +121,7 @@ func (b *Builder) Commit(dest types.ImageReference, options CommitOptions) error
 }
 
 // Push copies the contents of the image to a new location.
-func Push(image string, dest types.ImageReference, options PushOptions) error {
+func Push(ctx context.Context, image string, dest types.ImageReference, options PushOptions) error {
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
@@ -136,7 +137,7 @@ func Push(image string, dest types.ImageReference, options PushOptions) error {
 		return errors.Wrapf(err, "error parsing reference to image %q", image)
 	}
 	// Copy everything.
-	err = cp.Image(policyContext, dest, src, getCopyOptions(options.ReportWriter, nil, options.SystemContext, options.ManifestType))
+	err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, nil, options.SystemContext, options.ManifestType))
 	if err != nil {
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}

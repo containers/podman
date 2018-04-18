@@ -3,6 +3,7 @@ package tarfile
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -50,7 +51,7 @@ func (d *Destination) SupportedManifestMIMETypes() []string {
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
-func (d *Destination) SupportsSignatures() error {
+func (d *Destination) SupportsSignatures(ctx context.Context) error {
 	return errors.Errorf("Storing signatures for docker tar files is not supported")
 }
 
@@ -71,7 +72,7 @@ func (d *Destination) MustMatchRuntimeOS() bool {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *Destination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	// Ouch, we need to stream the blob into a temporary file just to determine the size.
 	// When the layer is decompressed, we also have to generate the digest on uncompressed datas.
 	if inputInfo.Size == -1 || inputInfo.Digest.String() == "" {
@@ -85,6 +86,7 @@ func (d *Destination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConf
 
 		digester := digest.Canonical.Digester()
 		tee := io.TeeReader(stream, digester.Hash())
+		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 		size, err := io.Copy(streamCopy, tee)
 		if err != nil {
 			return types.BlobInfo{}, err
@@ -102,7 +104,7 @@ func (d *Destination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConf
 	}
 
 	// Maybe the blob has been already sent
-	ok, size, err := d.HasBlob(inputInfo)
+	ok, size, err := d.HasBlob(ctx, inputInfo)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -139,7 +141,7 @@ func (d *Destination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConf
 // the blob must also be returned.  If the destination does not contain the
 // blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil); it
 // returns a non-nil error only on an unexpected failure.
-func (d *Destination) HasBlob(info types.BlobInfo) (bool, int64, error) {
+func (d *Destination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
 		return false, -1, errors.Errorf("Can not check for a blob with unknown digest")
 	}
@@ -154,7 +156,7 @@ func (d *Destination) HasBlob(info types.BlobInfo) (bool, int64, error) {
 // returned false.  Like HasBlob and unlike PutBlob, the digest can not be
 // empty.  If the blob is a filesystem layer, this signifies that the changes
 // it describes need to be applied again when composing a filesystem tree.
-func (d *Destination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
+func (d *Destination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
 	return info, nil
 }
 
@@ -175,7 +177,7 @@ func (d *Destination) createRepositoriesFile(rootLayerID string) error {
 // FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
-func (d *Destination) PutManifest(m []byte) error {
+func (d *Destination) PutManifest(ctx context.Context, m []byte) error {
 	// We do not bother with types.ManifestTypeRejectedError; our .SupportedManifestMIMETypes() above is already providing only one alternative,
 	// so the caller trying a different manifest kind would be pointless.
 	var man manifest.Schema2
@@ -351,6 +353,7 @@ func (d *Destination) sendFile(path string, expectedSize int64, stream io.Reader
 	if err := d.tar.WriteHeader(hdr); err != nil {
 		return err
 	}
+	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
 	size, err := io.Copy(d.tar, stream)
 	if err != nil {
 		return err
@@ -364,7 +367,7 @@ func (d *Destination) sendFile(path string, expectedSize int64, stream io.Reader
 // PutSignatures adds the given signatures to the docker tarfile (currently not
 // supported). MUST be called after PutManifest (signatures reference manifest
 // contents)
-func (d *Destination) PutSignatures(signatures [][]byte) error {
+func (d *Destination) PutSignatures(ctx context.Context, signatures [][]byte) error {
 	if len(signatures) != 0 {
 		return errors.Errorf("Storing signatures for docker tar files is not supported")
 	}
@@ -373,6 +376,6 @@ func (d *Destination) PutSignatures(signatures [][]byte) error {
 
 // Commit finishes writing data to the underlying io.Writer.
 // It is the caller's responsibility to close it, if necessary.
-func (d *Destination) Commit() error {
+func (d *Destination) Commit(ctx context.Context) error {
 	return d.tar.Close()
 }

@@ -100,7 +100,7 @@ func commitCmd(c *cli.Context) error {
 		Changes:       c.StringSlice("change"),
 		Author:        c.String("author"),
 	}
-	newImage, err := ctr.Commit(reference, options)
+	newImage, err := ctr.Commit(getContext(), reference, options)
 	if err != nil {
 		return err
 	}

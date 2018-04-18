@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"reflect"
 	"regexp"
 	"strings"
@@ -65,6 +66,11 @@ func validateFlags(c *cli.Context, flags []cli.Flag) error {
 		}
 	}
 	return nil
+}
+
+// getContext returns a non-nil, empty context
+func getContext() context.Context {
+	return context.TODO()
 }
 
 // Common flags shared between commands

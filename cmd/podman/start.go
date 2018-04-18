@@ -121,7 +121,7 @@ func startCmd(c *cli.Context) error {
 			continue
 		}
 		// Handle non-attach start
-		if err := ctr.Start(); err != nil {
+		if err := ctr.Start(getContext()); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

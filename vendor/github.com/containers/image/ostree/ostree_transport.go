@@ -4,6 +4,7 @@ package ostree
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -181,46 +182,46 @@ func (s *ostreeImageCloser) Size() (int64, error) {
 // The caller must call .Close() on the returned ImageCloser.
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
-func (ref ostreeReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
+func (ref ostreeReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
 	var tmpDir string
-	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
 		tmpDir = os.TempDir()
 	} else {
-		tmpDir = ctx.OSTreeTmpDirPath
+		tmpDir = sys.OSTreeTmpDirPath
 	}
-	src, err := newImageSource(ctx, tmpDir, ref)
+	src, err := newImageSource(tmpDir, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(ctx, src)
+	return image.FromSource(ctx, sys, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref ostreeReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
+func (ref ostreeReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
 	var tmpDir string
-	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
 		tmpDir = os.TempDir()
 	} else {
-		tmpDir = ctx.OSTreeTmpDirPath
+		tmpDir = sys.OSTreeTmpDirPath
 	}
-	return newImageSource(ctx, tmpDir, ref)
+	return newImageSource(tmpDir, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref ostreeReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
+func (ref ostreeReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	var tmpDir string
-	if ctx == nil || ctx.OSTreeTmpDirPath == "" {
+	if sys == nil || sys.OSTreeTmpDirPath == "" {
 		tmpDir = os.TempDir()
 	} else {
-		tmpDir = ctx.OSTreeTmpDirPath
+		tmpDir = sys.OSTreeTmpDirPath
 	}
 	return newImageDestination(ref, tmpDir)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref ostreeReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref ostreeReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	return errors.Errorf("Deleting images not implemented for ostree: images")
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -86,7 +87,7 @@ func inspectCmd(c *cli.Context) error {
 		inspectType = inspectTypeContainer
 	}
 
-	inspectedObjects, iterateErr := iterateInput(c, args, runtime, inspectType)
+	inspectedObjects, iterateErr := iterateInput(getContext(), c, args, runtime, inspectType)
 
 	var out formats.Writer
 	if outputFormat != "" && outputFormat != formats.JSONString {
@@ -102,7 +103,7 @@ func inspectCmd(c *cli.Context) error {
 }
 
 // func iterateInput iterates the images|containers the user has requested and returns the inspect data and error
-func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspectType string) ([]interface{}, error) {
+func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *libpod.Runtime, inspectType string) ([]interface{}, error) {
 	var (
 		data           interface{}
 		inspectedItems []interface{}
@@ -133,7 +134,7 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 				inspectError = errors.Wrapf(err, "error getting image %q", input)
 				break
 			}
-			data, err = image.Inspect()
+			data, err = image.Inspect(ctx)
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 				break
@@ -146,7 +147,7 @@ func iterateInput(c *cli.Context, args []string, runtime *libpod.Runtime, inspec
 					inspectError = errors.Wrapf(err, "error getting image %q", input)
 					break
 				}
-				data, err = image.Inspect()
+				data, err = image.Inspect(ctx)
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error parsing image data %q", image.ID())
 					break

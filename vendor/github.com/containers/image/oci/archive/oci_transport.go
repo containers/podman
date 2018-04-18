@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -121,28 +122,28 @@ func (ref ociArchiveReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (ref ociArchiveReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, ref)
+func (ref ociArchiveReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	src, err := newImageSource(ctx, sys, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(ctx, src)
+	return image.FromSource(ctx, sys, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref ociArchiveReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, ref)
+func (ref ociArchiveReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	return newImageSource(ctx, sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref ociArchiveReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, ref)
+func (ref ociArchiveReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(ctx, sys, ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref ociArchiveReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref ociArchiveReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	return errors.Errorf("Deleting images not implemented for oci: images")
 }
 
@@ -180,6 +181,7 @@ func createUntarTempDir(ref ociArchiveReference) (tempDirOCIRef, error) {
 	}
 	src := ref.resolvedFile
 	dst := tempDirRef.tempDirectory
+	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
 	if err := archive.UntarPath(src, dst); err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return tempDirOCIRef{}, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)

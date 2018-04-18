@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -8,13 +9,12 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/pkg/errors"
-
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 )
 
 type ociImageDestination struct {
@@ -24,9 +24,9 @@ type ociImageDestination struct {
 }
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
-func newImageDestination(ctx *types.SystemContext, ref ociReference) (types.ImageDestination, error) {
+func newImageDestination(sys *types.SystemContext, ref ociReference) (types.ImageDestination, error) {
 	if ref.image == "" {
-		return nil, errors.Errorf("cannot save image with empty image.ref.name")
+		return nil, errors.Errorf("cannot save image with empty reference name (syntax must be of form <transport>:<path>:<reference>)")
 	}
 
 	var index *imgspecv1.Index
@@ -45,8 +45,8 @@ func newImageDestination(ctx *types.SystemContext, ref ociReference) (types.Imag
 	}
 
 	d := &ociImageDestination{ref: ref, index: *index}
-	if ctx != nil {
-		d.sharedBlobDir = ctx.OCISharedBlobDirPath
+	if sys != nil {
+		d.sharedBlobDir = sys.OCISharedBlobDirPath
 	}
 
 	if err := ensureDirectoryExists(d.ref.dir); err != nil {
@@ -80,7 +80,7 @@ func (d *ociImageDestination) SupportedManifestMIMETypes() []string {
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
 // Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
-func (d *ociImageDestination) SupportsSignatures() error {
+func (d *ociImageDestination) SupportsSignatures(ctx context.Context) error {
 	return errors.Errorf("Pushing signatures for OCI images is not supported")
 }
 
@@ -105,7 +105,7 @@ func (d *ociImageDestination) MustMatchRuntimeOS() bool {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+func (d *ociImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
 	blobFile, err := ioutil.TempFile(d.ref.dir, "oci-put-blob")
 	if err != nil {
 		return types.BlobInfo{}, err
@@ -124,6 +124,7 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 	digester := digest.Canonical.Digester()
 	tee := io.TeeReader(stream, digester.Hash())
 
+	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	size, err := io.Copy(blobFile, tee)
 	if err != nil {
 		return types.BlobInfo{}, err
@@ -168,7 +169,7 @@ func (d *ociImageDestination) PutBlob(stream io.Reader, inputInfo types.BlobInfo
 // Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
 // If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
 // it returns a non-nil error only on an unexpected failure.
-func (d *ociImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) {
+func (d *ociImageDestination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
 	if info.Digest == "" {
 		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
@@ -186,7 +187,7 @@ func (d *ociImageDestination) HasBlob(info types.BlobInfo) (bool, int64, error) 
 	return true, finfo.Size(), nil
 }
 
-func (d *ociImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, error) {
+func (d *ociImageDestination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
 	return info, nil
 }
 
@@ -194,7 +195,7 @@ func (d *ociImageDestination) ReapplyBlob(info types.BlobInfo) (types.BlobInfo, 
 // FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
-func (d *ociImageDestination) PutManifest(m []byte) error {
+func (d *ociImageDestination) PutManifest(ctx context.Context, m []byte) error {
 	digest, err := manifest.Digest(m)
 	if err != nil {
 		return err
@@ -243,7 +244,7 @@ func (d *ociImageDestination) addManifest(desc *imgspecv1.Descriptor) {
 	d.index.Manifests = append(d.index.Manifests, *desc)
 }
 
-func (d *ociImageDestination) PutSignatures(signatures [][]byte) error {
+func (d *ociImageDestination) PutSignatures(ctx context.Context, signatures [][]byte) error {
 	if len(signatures) != 0 {
 		return errors.Errorf("Pushing signatures for OCI images is not supported")
 	}
@@ -254,7 +255,7 @@ func (d *ociImageDestination) PutSignatures(signatures [][]byte) error {
 // WARNING: This does not have any transactional semantics:
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *ociImageDestination) Commit() error {
+func (d *ociImageDestination) Commit(ctx context.Context) error {
 	if err := ioutil.WriteFile(d.ref.ociLayoutPath(), []byte(`{"imageLayoutVersion": "1.0.0"}`), 0644); err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"github.com/pkg/errors"
 
 	"github.com/containers/image/docker/reference"
@@ -156,28 +157,28 @@ func (ref daemonReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (ref daemonReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, ref)
+func (ref daemonReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	src, err := newImageSource(ctx, sys, ref)
 	if err != nil {
 		return nil, err
 	}
-	return image.FromSource(ctx, src)
+	return image.FromSource(ctx, sys, src)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
-func (ref daemonReference) NewImageSource(ctx *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, ref)
+func (ref daemonReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
+	return newImageSource(ctx, sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
-func (ref daemonReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ctx, ref)
+func (ref daemonReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
+	return newImageDestination(ctx, sys, ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
-func (ref daemonReference) DeleteImage(ctx *types.SystemContext) error {
+func (ref daemonReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	// Should this just untag the image? Should this stop running containers?
 	// The semantics is not quite as clear as for remote repositories.
 	// The user can run (docker rmi) directly anyway, so, for now(?), punt instead of trying to guess what the user meant.

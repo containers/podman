@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ type CtrCreateOption func(*Container) error
 type ContainerFilter func(*Container) bool
 
 // NewContainer creates a new container from a given OCI config
-func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
@@ -60,7 +61,7 @@ func (r *Runtime) NewContainer(rSpec *spec.Spec, options ...CtrCreateOption) (c 
 	}
 
 	// Set up storage for the container
-	if err := ctr.setupStorage(); err != nil {
+	if err := ctr.setupStorage(ctx); err != nil {
 		return nil, err
 	}
 	defer func() {

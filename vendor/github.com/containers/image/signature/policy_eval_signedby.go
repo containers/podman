@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-func (pr *prSignedBy) isSignatureAuthorAccepted(image types.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {
+func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image types.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {
 	switch pr.KeyType {
 	case SBKeyTypeGPGKeys:
 	case SBKeyTypeSignedByGPGKeys, SBKeyTypeX509Certificates, SBKeyTypeSignedByX509CAs:
@@ -69,7 +69,7 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(image types.UnparsedImage, sig [
 			return nil
 		},
 		validateSignedDockerManifestDigest: func(digest digest.Digest) error {
-			m, _, err := image.Manifest()
+			m, _, err := image.Manifest(ctx)
 			if err != nil {
 				return err
 			}
@@ -90,16 +90,16 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(image types.UnparsedImage, sig [
 	return sarAccepted, signature, nil
 }
 
-func (pr *prSignedBy) isRunningImageAllowed(image types.UnparsedImage) (bool, error) {
+func (pr *prSignedBy) isRunningImageAllowed(ctx context.Context, image types.UnparsedImage) (bool, error) {
 	// FIXME: pass context.Context
-	sigs, err := image.Signatures(context.TODO())
+	sigs, err := image.Signatures(ctx)
 	if err != nil {
 		return false, err
 	}
 	var rejections []error
 	for _, s := range sigs {
 		var reason error
-		switch res, _, err := pr.isSignatureAuthorAccepted(image, s); res {
+		switch res, _, err := pr.isSignatureAuthorAccepted(ctx, image, s); res {
 		case sarAccepted:
 			// One accepted signature is enough.
 			return true, nil

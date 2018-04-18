@@ -1,6 +1,7 @@
 package tarball
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -66,12 +67,12 @@ func (r *tarballReference) PolicyConfigurationNamespaces() []string {
 // NOTE: If any kind of signature verification should happen, build an UnparsedImage from the value returned by NewImageSource,
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
-func (r *tarballReference) NewImage(ctx *types.SystemContext) (types.ImageCloser, error) {
-	src, err := r.NewImageSource(ctx)
+func (r *tarballReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
+	src, err := r.NewImageSource(ctx, sys)
 	if err != nil {
 		return nil, err
 	}
-	img, err := image.FromSource(ctx, src)
+	img, err := image.FromSource(ctx, sys, src)
 	if err != nil {
 		src.Close()
 		return nil, err
@@ -79,7 +80,7 @@ func (r *tarballReference) NewImage(ctx *types.SystemContext) (types.ImageCloser
 	return img, nil
 }
 
-func (r *tarballReference) DeleteImage(ctx *types.SystemContext) error {
+func (r *tarballReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	for _, filename := range r.filenames {
 		if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("error removing %q: %v", filename, err)
@@ -88,6 +89,6 @@ func (r *tarballReference) DeleteImage(ctx *types.SystemContext) error {
 	return nil
 }
 
-func (r *tarballReference) NewImageDestination(ctx *types.SystemContext) (types.ImageDestination, error) {
+func (r *tarballReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
 	return nil, fmt.Errorf(`"tarball:" locations can only be read from, not written to`)
 }
