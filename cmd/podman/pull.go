@@ -99,7 +99,7 @@ func pullCmd(c *cli.Context) error {
 		DockerCertPath:              c.String("cert-dir"),
 		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 	}
-	if !c.IsSet("tls-verify") {
+	if !c.IsSet("tls-verify") || !c.Bool("tls-verify") {
 		forceSecure = false
 	}
 
