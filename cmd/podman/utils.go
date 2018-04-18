@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	gosignal "os/signal"
 
@@ -168,6 +169,10 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 
 	if sigProxy {
 		ProxySignals(ctr)
+	}
+
+	if stdout == nil && stderr == nil {
+		fmt.Printf("%s\n", ctr.ID())
 	}
 
 	err = <-attachChan
