@@ -302,6 +302,20 @@ var _ = Describe("Podman run", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("podman run with FIPS mode secrets", func() {
+		fipsFile := "/etc/system-fips"
+		err = ioutil.WriteFile(fipsFile, []byte{}, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/run/secrets"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("system-fips"))
+
+		err = os.Remove(fipsFile)
+		Expect(err).To(BeNil())
+	})
+
 	It("podman run without group-add", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
