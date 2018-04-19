@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"sort"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,5 +47,25 @@ var _ = Describe("Podman diff", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman diff container and committed image", func() {
+		session := podmanTest.Podman([]string{"run", "--name=diff-test", ALPINE, "touch", "/tmp/diff-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"diff", "diff-test"})
+		session.WaitWithDefaultTimeout()
+		containerDiff := session.OutputToStringArray()
+		sort.Strings(containerDiff)
+		Expect(session.LineInOutputContains("C /tmp")).To(BeTrue())
+		Expect(session.LineInOutputContains("A /tmp/diff-test")).To(BeTrue())
+		session = podmanTest.Podman([]string{"commit", "diff-test", "diff-test-img"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"diff", "diff-test-img"})
+		session.WaitWithDefaultTimeout()
+		imageDiff := session.OutputToStringArray()
+		sort.Strings(imageDiff)
+		Expect(imageDiff).To(Equal(containerDiff))
 	})
 })
