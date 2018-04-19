@@ -32,14 +32,14 @@ var _ = Describe("Podman search", func() {
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOuputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
 	})
 
 	It("podman search registry flag", func() {
 		search := podmanTest.Podman([]string{"search", "--registry", "registry.fedoraproject.org", "fedora-minimal"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
-		Expect(search.LineInOuputContains("fedoraproject.org/fedora-minimal")).To(BeTrue())
+		Expect(search.LineInOutputContains("fedoraproject.org/fedora-minimal")).To(BeTrue())
 	})
 
 	It("podman search format flag", func() {
@@ -47,7 +47,7 @@ var _ = Describe("Podman search", func() {
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOuputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
 	})
 
 	It("podman search no-trunc flag", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Podman search", func() {
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.LineInOuputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
 	})
 
 	It("podman search limit flag", func() {

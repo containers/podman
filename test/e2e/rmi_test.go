@@ -80,7 +80,7 @@ var _ = Describe("Podman rmi", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
-		Expect(result.LineInOuputContains(setup.OutputToString())).To(BeTrue())
+		Expect(result.LineInOutputContains(setup.OutputToString())).To(BeTrue())
 	})
 
 	It("podman rmi image with tags by ID cannot be done without force", func() {
