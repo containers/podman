@@ -435,6 +435,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %doc README.md CONTRIBUTING.md hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
 %{_mandir}/man1/*.1*
+%{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 

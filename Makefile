@@ -93,6 +93,7 @@ ifneq ($(GOPATH),)
 endif
 	rm -rf _output
 	rm -f docs/*.1
+	rm -f docs/*.5
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -148,6 +149,9 @@ MANPAGES    := $(MANPAGES_MD:%.md=%)
 docs/%.1: docs/%.1.md .gopathok
 	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
+docs/%.5: docs/%.5.md .gopathok
+	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
+
 docs: $(MANPAGES)
 
 docker-docs: docs
@@ -170,7 +174,9 @@ install.bin:
 
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
 
 install.config:
 	install ${SELINUXOPT} -D -m 644 libpod.conf ${SHAREDIR_CONTAINERS}/libpod.conf
@@ -187,11 +193,16 @@ install.cni:
 install.docker: docker-docs
 	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 docs/docker*.5 -t $(MANDIR)/man5
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man1/$$(basename $${i}); \
+	done; \
+	for i in $(filter %.5,$(MANPAGES)); do \
+		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
