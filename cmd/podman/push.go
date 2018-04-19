@@ -76,17 +76,25 @@ var (
 )
 
 func pushCmd(c *cli.Context) error {
-	var registryCreds *types.DockerAuthConfig
+	var (
+		registryCreds *types.DockerAuthConfig
+		destName      string
+	)
 
 	args := c.Args()
-	if len(args) < 2 {
-		return errors.New("podman push requires exactly 2 arguments")
+	srcName := args[0]
+	if len(args) == 0 || len(args) > 2 {
+		return errors.New("podman push requires at least one image name, and optionally a second to specify a different destination name")
+	}
+	switch len(args) {
+	case 1:
+		destName = args[0]
+	case 2:
+		destName = args[1]
 	}
 	if err := validateFlags(c, pushFlags); err != nil {
 		return err
 	}
-	srcName := args[0]
-	destName := args[1]
 
 	// --compress and --format can only be used for the "dir" transport
 	splitArg := strings.SplitN(destName, ":", 2)
