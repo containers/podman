@@ -182,6 +182,12 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if i.InputName == "" {
 		return nil, errors.Errorf("input name is blank")
 	}
+	// Check if the input name has a transport and if so strip it
+	dest, err := alltransports.ParseImageName(i.InputName)
+	if err == nil && dest.DockerReference() != nil {
+		i.InputName = dest.DockerReference().String()
+	}
+
 	var taggedName string
 	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
 	if err == nil {
