@@ -154,7 +154,7 @@ var _ = Describe("Podman push", func() {
 		setup := podmanTest.SystemExec("bash", []string{"-c", "systemctl status docker 2>&1"})
 		setup.WaitWithDefaultTimeout()
 
-		if setup.LineInOuputContains("Active: inactive") {
+		if setup.LineInOutputContains("Active: inactive") {
 			setup = podmanTest.SystemExec("systemctl", []string{"start", "docker"})
 			setup.WaitWithDefaultTimeout()
 
