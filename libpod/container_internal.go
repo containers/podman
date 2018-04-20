@@ -416,6 +416,16 @@ func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container
 	return notRunning, nil
 }
 
+func (c *Container) completeNetworkSetup() error {
+	if !c.config.PostConfigureNetNS {
+		return nil
+	}
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+	return c.runtime.setupNetNS(c)
+}
+
 // Initialize a container, creating it in the runtime
 func (c *Container) init(ctx context.Context) error {
 	if err := c.makeBindMounts(); err != nil {
@@ -442,7 +452,11 @@ func (c *Container) init(ctx context.Context) error {
 
 	c.state.State = ContainerStateCreated
 
-	return c.save()
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	return c.completeNetworkSetup()
 }
 
 // Reinitialize a container
@@ -628,7 +642,7 @@ func (c *Container) prepare() (err error) {
 	}
 
 	// Set up network namespace if not already set up
-	if c.config.CreateNetNS && c.state.NetNS == nil {
+	if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
 		if err := c.runtime.createNetNS(c); err != nil {
 			// Tear down storage before exiting to make sure we
 			// don't leak mounts
@@ -915,7 +929,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
-		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+		if c.config.PostConfigureNetNS {
+			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, "")
+		} else {
+			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+		}
 	}
 
 	// Remove the default /dev/shm mount to ensure we overwrite it

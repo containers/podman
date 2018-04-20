@@ -285,6 +285,8 @@ type ContainerConfig struct {
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
 	// TODO log options for log drivers
+
+	PostConfigureNetNS bool `json:"postConfigureNetNS"`
 }
 
 // ContainerStatus returns a string representation for users
