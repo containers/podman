@@ -167,6 +167,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g := generate.New()
 	g.HostSpecific = true
+	addCgroup := true
 	if config.Privileged {
 		cgroupPerm = "rw"
 		g.RemoveMount("/sys")
@@ -177,14 +178,27 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
+	} else if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+		addCgroup = false
+		g.RemoveMount("/sys")
+		sysMnt := spec.Mount{
+			Destination: "/sys",
+			Type:        "bind",
+			Source:      "/sys",
+			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+		}
+		g.AddMount(sysMnt)
 	}
-	cgroupMnt := spec.Mount{
-		Destination: "/sys/fs/cgroup",
-		Type:        "cgroup",
-		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+
+	if addCgroup {
+		cgroupMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+		}
+		g.AddMount(cgroupMnt)
 	}
-	g.AddMount(cgroupMnt)
 	g.SetProcessCwd(config.WorkDir)
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
@@ -697,8 +711,9 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
-		options = append(options, libpod.WithNetNS(portBindings))
+		postConfigureNetNS := (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}, postConfigureNetNS))
+		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS))
 	}
 
 	if c.PidMode.IsContainer() {
