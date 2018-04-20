@@ -4,6 +4,7 @@ package chrootuser
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -78,6 +79,9 @@ func openChrootedFile(rootdir, filename string) (*exec.Cmd, io.ReadCloser, error
 
 var (
 	lookupUser, lookupGroup sync.Mutex
+	// ErrNoSuchUser indicates that the user provided by the caller does not
+	// exist in /etc/passws
+	ErrNoSuchUser = errors.New("user does not exist in /etc/passwd")
 )
 
 type lookupPasswdEntry struct {
@@ -207,7 +211,7 @@ func lookupGroupForUIDInContainer(rootdir string, userid uint64) (username strin
 		return pwd.name, pwd.gid, nil
 	}
 
-	return "", 0, user.UnknownUserError(fmt.Sprintf("error looking up user with UID %d", userid))
+	return "", 0, ErrNoSuchUser
 }
 
 func lookupAdditionalGroupsForUIDInContainer(rootdir string, userid uint64) (gid []uint32, err error) {
