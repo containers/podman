@@ -111,7 +111,6 @@ var _ = BeforeSuite(func() {
 		}
 	}
 	for _, image := range CACHE_IMAGES {
-		fmt.Printf("Caching %s...\n", image)
 		if err := podman.CreateArtifact(image); err != nil {
 			fmt.Printf("%q\n", err)
 			os.Exit(1)
@@ -300,6 +299,10 @@ func (p *PodmanTest) SystemExec(command string, args []string) *PodmanSession {
 
 // CreateArtifact creates a cached image in the artifact dir
 func (p *PodmanTest) CreateArtifact(image string) error {
+	if os.Getenv("NO_TEST_CACHE") != "" {
+		return nil
+	}
+	fmt.Printf("Caching %s...\n", image)
 	imageName := fmt.Sprintf("docker://%s", image)
 	systemContext := types.SystemContext{
 		SignaturePolicyPath: p.SignaturePolicyPath,
@@ -387,6 +390,9 @@ func (p *PodmanTest) RestoreArtifact(image string) error {
 
 // RestoreAllArtifacts unpacks all cached images
 func (p *PodmanTest) RestoreAllArtifacts() error {
+	if os.Getenv("NO_TEST_CACHE") != "" {
+		return nil
+	}
 	for _, image := range RESTORE_IMAGES {
 		if err := p.RestoreArtifact(image); err != nil {
 			return err
