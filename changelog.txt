@@ -1,3 +1,31 @@
+- Changelog for v0.4.3 (2018-04-20):
+  * podman push without destination image
+  * Add make .git target
+  * Fix tests for podman run --attach
+  * Print ctr ID if neither STDOUT and STDERR are attached
+  * Add one test case for check diff in container and committed image
+  * Vendor in latest containers/image and contaners/storage
+  * Fix a typo
+  * It is OK to start an already running container (with no attach)
+  * Refactor logic for forceSecure in pull for readability
+  * Small logic fix for podman pull with tls-verify
+  * Allow podman start to attach to a running container
+  * regression: tls verify should be set on registries.conf if insecure
+  * ip validation game too strong
+  * - reverse host field order (ip goes first) - fix host string split to permit IPv6
+  * Allow podman to exit exit codes of removed containers
+  * Modify diff and inspect docs
+  * Add oci-systemd-hook as a runtime dep to copr spec
+  * validate dns-search values prior to creation
+  * Change container.locked to batched
+  * Add a function for check if command exist
+  * Add WaitContainerReady for wait for docker registry ready
+  * Add several podman push tests
+  * podman pull should always try to pull
+  * Allow the use of -i/-a on any container
+  * Fix secrets patch
+  * Remove demos.sh file from test
+
 - Changelog for v0.4.2 (2018-04-13):
   * Fix podman run --attach tests
   * Fix another comparison of a Go interface against nil
