@@ -37,8 +37,8 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 			userspec = name
 		} else {
 			// Leave userspec alone, but swallow the error and just
-			// use GID 0.
-			gid64 = 0
+			// use GID == UID.
+			gid64 = uid64
 			gerr = nil
 		}
 	}
@@ -68,6 +68,21 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 		err = errors.Wrapf(gerr, "error determining run gid")
 	}
 	return 0, 0, err
+}
+
+// GetGroup returns the gid by looking it up in the /etc/passwd file
+// groupspec format [ group | gid ]
+func GetGroup(rootdir, groupspec string) (uint32, error) {
+	gid64, gerr := strconv.ParseUint(groupspec, 10, 32)
+	if gerr != nil {
+		// The group couldn't be parsed as a number, so look up
+		// the group's GID.
+		gid64, gerr = lookupGroupInContainer(rootdir, groupspec)
+	}
+	if gerr != nil {
+		return 0, errors.Wrapf(gerr, "error looking up group for gid %q", groupspec)
+	}
+	return uint32(gid64), nil
 }
 
 // GetAdditionalGroupsForUser returns a list of gids that userid is associated with

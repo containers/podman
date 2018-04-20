@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -964,17 +963,17 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to add additional groups", c.ID())
 		}
 		for _, group := range c.config.Groups {
-			_, gid, err := chrootuser.GetUser(c.state.Mountpoint, strconv.Itoa(int(g.Spec().Process.User.UID))+":"+group)
+			gid, err := chrootuser.GetGroup(c.state.Mountpoint, group)
 			if err != nil {
 				return nil, err
 			}
-			g.AddProcessAdditionalGid(uint32(gid))
+			g.AddProcessAdditionalGid(gid)
 		}
 	}
 
 	// Look up and add groups the user belongs to
 	groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Spec().Process.User.UID))
-	if err != nil {
+	if err != nil && err != chrootuser.ErrNoSuchUser {
 		return nil, err
 	}
 	for _, gid := range groups {
