@@ -10,7 +10,7 @@ git fetch --unshallow || :
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
 COMMIT_NUM=$(git rev-list HEAD --count)
-COMMIT_DATE=$(date --date="@$(git show -s --format=%ct HEAD)" +%Y%m%d)
+COMMIT_DATE=$(date +%s)
 
 sed "s,#COMMIT#,${COMMIT},;
      s,#SHORTCOMMIT#,${COMMIT_SHORT},;
