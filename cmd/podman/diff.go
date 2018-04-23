@@ -6,6 +6,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/urfave/cli"
 )
 
@@ -82,7 +83,7 @@ func diffCmd(c *cli.Context) error {
 		return errors.Errorf("container, image, or layer name must be specified: podman diff [options [...]] ID-NAME")
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

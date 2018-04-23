@@ -274,6 +274,15 @@ func (i *Image) Names() []string {
 	return i.image.Names
 }
 
+// RepoDigests returns a string array of repodigests associated with the image
+func (i *Image) RepoDigests() []string {
+	var repoDigests []string
+	for _, name := range i.Names() {
+		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+	}
+	return repoDigests
+}
+
 // Created returns the time the image was created
 func (i *Image) Created() time.Time {
 	return i.image.Created
@@ -777,4 +786,19 @@ func splitString(input string) string {
 // is the image's partial or full id
 func (i *Image) InputIsID() bool {
 	return strings.HasPrefix(i.ID(), i.InputName)
+}
+
+// Containers a list of container IDs associated with the image
+func (i *Image) Containers() ([]string, error) {
+	containers, err := i.imageruntime.store.Containers()
+	if err != nil {
+		return nil, err
+	}
+	var imageContainers []string
+	for _, c := range containers {
+		if c.ImageID == i.ID() {
+			imageContainers = append(imageContainers, c.ID)
+		}
+	}
+	return imageContainers, err
 }

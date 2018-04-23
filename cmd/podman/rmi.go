@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
@@ -38,7 +39,7 @@ func rmiCmd(c *cli.Context) error {
 		return err
 	}
 	removeAll := c.Bool("all")
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

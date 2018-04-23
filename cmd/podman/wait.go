@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/urfave/cli"
 )
 
@@ -31,7 +32,7 @@ func waitCmd(c *cli.Context) error {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

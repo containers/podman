@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -67,7 +68,7 @@ func startCmd(c *cli.Context) error {
 		return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

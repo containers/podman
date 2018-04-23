@@ -16,6 +16,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -154,7 +155,7 @@ func psCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

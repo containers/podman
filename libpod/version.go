@@ -4,7 +4,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/projectatomic/libpod/cmd/podman/ioprojectatomicpodman"
 	podmanVersion "github.com/projectatomic/libpod/version"
 )
 
@@ -20,7 +19,6 @@ var (
 
 //Version is an output struct for varlink
 type Version struct {
-	ioprojectatomicpodman.VarlinkInterface
 	Version   string
 	GoVersion string
 	GitCommit string

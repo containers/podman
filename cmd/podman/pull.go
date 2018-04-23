@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	image2 "github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ var (
 // to copy an image from a registry to a local machine
 func pullCmd(c *cli.Context) error {
 	forceSecure := false
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

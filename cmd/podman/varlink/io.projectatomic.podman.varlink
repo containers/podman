@@ -1,6 +1,8 @@
 # Podman Service Interface
 interface io.projectatomic.podman
 
+
+# Version is the structure returned by GetVersion
 type Version (
   version: string,
   go_version: string,
@@ -15,6 +17,40 @@ type NotImplemented (
 
 type StringResponse (
     message: string
+)
+
+# ImageInList describes the structure that is returned in
+# ListImages.
+type ImageInList (
+  id: string,
+  parentId: string,
+  repoTags: []string,
+  repoDigests: []string,
+  created: string,
+  size: int,
+  virtualSize: int,
+  containers: int,
+  labels: [string]string
+)
+
+# ImageHistory describes the returned structure from ImageHistory.
+type ImageHistory (
+    id: string,
+    created: string,
+    createdBy: string,
+    tags: []string,
+    size: int,
+    comment: string
+)
+
+# ImageSearch is the returned structure for SearchImage.  It is returned
+# in arrary form.
+type ImageSearch (
+    description: string,
+    is_official: bool,
+    is_automated: bool,
+    name: string,
+    star_count: int
 )
 
 # System
@@ -45,21 +81,24 @@ method RemoveContainer() -> (notimplemented: NotImplemented)
 method DeleteStoppedContainers() -> (notimplemented: NotImplemented)
 
 # Images
-method ListImages() -> (notimplemented: NotImplemented)
+method ListImages() -> (images: []ImageInList)
 method BuildImage() -> (notimplemented: NotImplemented)
 method CreateImage() -> (notimplemented: NotImplemented)
-method InspectImage() -> (notimplemented: NotImplemented)
-method HistoryImage() -> (notimplemented: NotImplemented)
-method PushImage() -> (notimplemented: NotImplemented)
-method TagImage() -> (notimplemented: NotImplemented)
-method RemoveImage() -> (notimplemented: NotImplemented)
-method SearchImage() -> (notimplemented: NotImplemented)
-method DeleteUnusedImages() -> (notimplemented: NotImplemented)
+method InspectImage(name: string) -> (image: string)
+method HistoryImage(name: string) -> (history: []ImageHistory)
+method PushImage(name: string, tag: string, tlsverify: bool) -> ()
+method TagImage(name: string, tagged: string) -> ()
+method RemoveImage(name: string, force: bool) -> ()
+method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
+method DeleteUnusedImages() -> (images: []string)
 method CreateFromContainer() -> (notimplemented: NotImplemented)
-method ImportImage() -> (notimplemented: NotImplemented)
-method ExportImage() -> (notimplemented: NotImplemented)
-method PullImage() -> (notimplemented: NotImplemented)
+method ImportImage(source: string, reference: string, message: string, changes: []string) -> (id: string)
+method ExportImage(name: string, destination: string, compress: bool) -> ()
+method PullImage(name: string) -> (id: string)
 
 
 # Something failed
 error ActionFailed (reason: string)
+error ImageNotFound (imagename: string)
+error ErrorOccurred (reason: string)
+error RuntimeError (reason: string)

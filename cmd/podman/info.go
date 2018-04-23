@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
@@ -37,7 +38,7 @@ func infoCmd(c *cli.Context) error {
 	}
 	info := map[string]interface{}{}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
