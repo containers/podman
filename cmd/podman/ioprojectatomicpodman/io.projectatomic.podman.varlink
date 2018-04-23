@@ -1,0 +1,65 @@
+# Podman Service Interface
+interface io.projectatomic.podman
+
+type Version (
+  version: string,
+  go_version: string,
+  git_commit: string,
+  built: int,
+  os_arch: string
+)
+
+type NotImplemented (
+    comment: string
+)
+
+type StringResponse (
+    message: string
+)
+
+# System
+method Ping() -> (ping: StringResponse)
+method GetVersion() -> (version: Version)
+
+# Containers
+method ListContainers() -> (notimplemented: NotImplemented)
+method CreateContainer() -> (notimplemented: NotImplemented)
+method InspectContainer() -> (notimplemented: NotImplemented)
+method ListContainerProcesses() -> (notimplemented: NotImplemented)
+method GetContainerLogs() -> (notimplemented: NotImplemented)
+method ListContainerChanges() -> (notimplemented: NotImplemented)
+method ExportContainer() -> (notimplemented: NotImplemented)
+method GetContainerStats() -> (notimplemented: NotImplemented)
+method ResizeContainerTty() -> (notimplemented: NotImplemented)
+method StartContainer() -> (notimplemented: NotImplemented)
+method StopContainer() -> (notimplemented: NotImplemented)
+method RestartContainer() -> (notimplemented: NotImplemented)
+method KillContainer() -> (notimplemented: NotImplemented)
+method UpdateContainer() -> (notimplemented: NotImplemented)
+method RenameContainer() -> (notimplemented: NotImplemented)
+method PauseContainer() -> (notimplemented: NotImplemented)
+method UnpauseContainer() -> (notimplemented: NotImplemented)
+method AttachToContainer() -> (notimplemented: NotImplemented)
+method WaitContainer() -> (notimplemented: NotImplemented)
+method RemoveContainer() -> (notimplemented: NotImplemented)
+method DeleteStoppedContainers() -> (notimplemented: NotImplemented)
+
+# Images
+method ListImages() -> (notimplemented: NotImplemented)
+method BuildImage() -> (notimplemented: NotImplemented)
+method CreateImage() -> (notimplemented: NotImplemented)
+method InspectImage() -> (notimplemented: NotImplemented)
+method HistoryImage() -> (notimplemented: NotImplemented)
+method PushImage() -> (notimplemented: NotImplemented)
+method TagImage() -> (notimplemented: NotImplemented)
+method RemoveImage() -> (notimplemented: NotImplemented)
+method SearchImage() -> (notimplemented: NotImplemented)
+method DeleteUnusedImages() -> (notimplemented: NotImplemented)
+method CreateFromContainer() -> (notimplemented: NotImplemented)
+method ImportImage() -> (notimplemented: NotImplemented)
+method ExportImage() -> (notimplemented: NotImplemented)
+method PullImage() -> (notimplemented: NotImplemented)
+
+
+# Something failed
+error ActionFailed (reason: string)

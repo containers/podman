@@ -1,0 +1,8 @@
+[Unit]
+Description=Pod Manager Socket
+
+[Socket]
+ListenStream=/run/io.projectatomic.podman
+
+[Install]
+WantedBy=sockets.target

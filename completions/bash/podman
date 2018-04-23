@@ -1514,6 +1514,14 @@ _podman_unpause() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_varlink() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options=""
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_wait() {
      local options_with_args=""
      local boolean_options="
@@ -1633,6 +1641,7 @@ _podman_podman() {
     umount
     unmount
     unpause
+    varlink
     version
     wait
      "

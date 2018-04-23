@@ -2,41 +2,30 @@ package main
 
 import (
 	"fmt"
-	"runtime"
-	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
-)
-
-// Overwritten at build time
-var (
-	// gitCommit is the commit that the binary is being built from.
-	// It will be populated by the Makefile.
-	gitCommit string
-	// buildInfo is the time at which the binary was built
-	// It will be populated by the Makefile.
-	buildInfo string
 )
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cli.Context) error {
-	fmt.Println("Version:      ", c.App.Version)
-	fmt.Println("Go Version:   ", runtime.Version())
-	if gitCommit != "" {
-		fmt.Println("Git Commit:   ", gitCommit)
+	output, err := libpod.GetVersion()
+	if err != nil {
+		errors.Wrapf(err, "unable to determine version")
 	}
-	if buildInfo != "" {
-		// Converts unix time from string to int64
-		buildTime, err := strconv.ParseInt(buildInfo, 10, 64)
-		if err != nil {
-			return err
-		}
-		// Prints out the build time in readable format
-		fmt.Println("Built:        ", time.Unix(buildTime, 0).Format(time.ANSIC))
+	fmt.Println("Version:      ", output.Version)
+	fmt.Println("Go Version:   ", output.GoVersion)
+	if output.GitCommit != "" {
+		fmt.Println("Git Commit:   ", output.GitCommit)
 	}
-	fmt.Println("OS/Arch:      ", runtime.GOOS+"/"+runtime.GOARCH)
+	// Prints out the build time in readable format
+	if libpod.BuildInfo != "" {
+		fmt.Println("Built:        ", time.Unix(output.Built, 0).Format(time.ANSIC))
+	}
 
+	fmt.Println("OS/Arch:      ", output.OsArch)
 	return nil
 }
 

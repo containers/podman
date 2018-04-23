@@ -79,6 +79,6 @@ func debugInfo(c *cli.Context) map[string]interface{} {
 	info["compiler"] = runtime.Compiler
 	info["go version"] = runtime.Version()
 	info["podman version"] = c.App.Version
-	info["git commit"] = gitCommit
+	info["git commit"] = libpod.GitCommit
 	return info
 }
