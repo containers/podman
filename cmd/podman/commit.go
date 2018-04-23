@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/buildah"
 	"github.com/projectatomic/libpod/libpod/image"
@@ -55,7 +56,7 @@ func commitCmd(c *cli.Context) error {
 	if err := validateFlags(c, commitFlags); err != nil {
 		return err
 	}
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	libpodImage "github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
@@ -56,7 +57,7 @@ func loadCmd(c *cli.Context) error {
 		return err
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

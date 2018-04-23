@@ -1,7 +1,7 @@
 package varlinkapi
 
 import (
-	"github.com/projectatomic/libpod/cmd/podman/ioprojectatomicpodman"
+	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 )
 

@@ -247,10 +247,10 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		make all install; \
 	fi
 
-varlink_generate: .gopathok cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
+varlink_generate: .gopathok cmd/podman/varlink/ioprojectatomicpodman.go
 
-cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go: cmd/podman/ioprojectatomicpodman/io.projectatomic.podman.varlink
-	$(GO) generate ./cmd/podman/ioprojectatomicpodman/...
+cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
+	$(GO) generate ./cmd/podman/varlink/...
 
 validate: gofmt .gitvalidation
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/urfave/cli"
 )
 
@@ -44,7 +45,7 @@ func killCmd(c *cli.Context) error {
 		return err
 	}
 
-	runtime, err := getRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

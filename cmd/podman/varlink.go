@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/ioprojectatomicpodman"
+	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/pkg/varlinkapi"
 	"github.com/projectatomic/libpod/version"
 	"github.com/urfave/cli"
@@ -32,7 +32,7 @@ func varlinkCmd(c *cli.Context) error {
 		return errors.Errorf("you must provide a varlink URI")
 	}
 
-	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.VarlinkLibpod}
+	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.New(c)}
 	// Register varlink service. The metadata can be retrieved with:
 	// $ varlink info [varlink address URI]
 	service, err := varlink.NewService(
