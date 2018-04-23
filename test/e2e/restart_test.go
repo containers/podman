@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -117,5 +118,18 @@ var _ = Describe("Podman restart", func() {
 		restartTime.WaitWithDefaultTimeout()
 		Expect(restartTime.OutputToStringArray()[0]).To(Equal(startTime.OutputToStringArray()[0]))
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
+	})
+
+	It("Podman restart non-stop container with short timeout", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", "--env", "STOPSIGNAL=SIGKILL", ALPINE, "sleep", "999"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		startTime := time.Now()
+		session = podmanTest.Podman([]string{"restart", "-t", "2", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		timeSince := time.Since(startTime)
+		Expect(timeSince < 10*time.Second).To(BeTrue())
+		Expect(timeSince > 2*time.Second).To(BeTrue())
 	})
 })
