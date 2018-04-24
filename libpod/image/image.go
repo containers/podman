@@ -140,7 +140,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	}
 	imageName, err := newImage.pullImage(ctx, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
 	if err != nil {
-		return nil, errors.Errorf("unable to pull %s", name)
+		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
 	newImage.InputName = imageName
