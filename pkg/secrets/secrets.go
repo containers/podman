@@ -128,11 +128,11 @@ func getMountsMap(path string) (string, string, error) {
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
 func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, 0, 0)
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0)
 }
 
 // SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile string, uid, gid int) []rspec.Mount {
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -146,7 +146,7 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile string, u
 		mountFiles = append(mountFiles, mountFile)
 	}
 	for _, file := range mountFiles {
-		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
+		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
 		if err != nil {
 			logrus.Warnf("error mounting secrets, skipping: %v", err)
 		}
@@ -175,7 +175,7 @@ func rchown(chowndir string, uid, gid int) error {
 
 // addSecretsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
+func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPrefix string, uid, gid int) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
@@ -226,7 +226,7 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, 
 		}
 
 		m := rspec.Mount{
-			Source:      ctrDirOnHost,
+			Source:      filepath.Join(mountPrefix, ctrDir),
 			Destination: ctrDir,
 			Type:        "bind",
 			Options:     []string{"bind"},

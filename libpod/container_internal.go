@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -196,8 +197,33 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
+	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
+		info, err := os.Stat(c.runtime.config.TmpDir)
+		if err != nil {
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+		}
+		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		}
+		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		if err := os.MkdirAll(root, 0755); err != nil {
+			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
+		}
+		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
+			return err
+		}
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
+		}
+	}
+
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
+	}
 
 	// Set the default Entrypoint and Command
 	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
@@ -228,6 +254,12 @@ func (c *Container) teardownStorage() error {
 
 	if err := c.cleanupStorage(); err != nil {
 		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
+	}
+
+	if c.state.UserNSRoot != "" {
+		if err := os.RemoveAll(c.state.UserNSRoot); err != nil {
+			return errors.Wrapf(err, "error removing userns root %q", c.state.UserNSRoot)
+		}
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -261,9 +293,35 @@ func (c *Container) refresh() error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
 	}
-	c.state.RunDir = dir
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
+	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
+		info, err := os.Stat(c.runtime.config.TmpDir)
+		if err != nil {
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+		}
+		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		}
+		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		if err := os.MkdirAll(root, 0755); err != nil {
+			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
+		}
+		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
+			return err
+		}
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
+		}
+	}
+
+	c.state.RunDir = dir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
+	}
+
+	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
 	}
 
@@ -600,6 +658,10 @@ func (c *Container) mountStorage() (err error) {
 		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
 	}
 
+	if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+		return err
+	}
+
 	if !mounted {
 		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
 		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
@@ -607,7 +669,7 @@ func (c *Container) mountStorage() (err error) {
 			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
 		}
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
 	}
 
@@ -617,6 +679,11 @@ func (c *Container) mountStorage() (err error) {
 	}
 	c.state.Mounted = true
 	c.state.Mountpoint = mountPoint
+	if c.state.UserNSRoot == "" {
+		c.state.RealMountpoint = c.state.Mountpoint
+	} else {
+		c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
+	}
 
 	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
 
@@ -716,6 +783,10 @@ func (c *Container) cleanup() error {
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
+	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "error chown %s", c.state.RunDir)
+	}
+
 	if c.state.BindMounts == nil {
 		c.state.BindMounts = make(map[string]string)
 	}
@@ -724,11 +795,8 @@ func (c *Container) makeBindMounts() error {
 	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
 
 	// Make /etc/resolv.conf
-	if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+	if _, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
 		// If it already exists, delete so we can recreate
-		if err := os.Remove(path); err != nil {
-			return errors.Wrapf(err, "error removing resolv.conf for container %s", c.ID())
-		}
 		delete(c.state.BindMounts, "/etc/resolv.conf")
 	}
 	newResolv, err := c.generateResolvConf()
@@ -738,11 +806,8 @@ func (c *Container) makeBindMounts() error {
 	c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
 	// Make /etc/hosts
-	if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+	if _, ok := c.state.BindMounts["/etc/hosts"]; ok {
 		// If it already exists, delete so we can recreate
-		if err := os.Remove(path); err != nil {
-			return errors.Wrapf(err, "error removing hosts file for container %s", c.ID())
-		}
 		delete(c.state.BindMounts, "/etc/hosts")
 	}
 	newHosts, err := c.generateHosts()
@@ -773,7 +838,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.RootUID(), c.RootGID())
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.DestinationRunDir, c.RootUID(), c.RootGID())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -786,6 +851,11 @@ func (c *Container) makeBindMounts() error {
 // writeStringToRundir copies the provided file to the runtimedir
 func (c *Container) writeStringToRundir(destFile, output string) (string, error) {
 	destFileName := filepath.Join(c.state.RunDir, destFile)
+
+	if err := os.Remove(destFileName); err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "error removing %s for container %s", destFile, c.ID())
+	}
+
 	f, err := os.Create(destFileName)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create %s", destFileName)
@@ -802,7 +872,8 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	if err := label.Relabel(destFileName, c.config.MountLabel, false); err != nil {
 		return "", err
 	}
-	return destFileName, nil
+
+	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
 type resolvConf struct {
@@ -1035,7 +1106,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	g.SetRootPath(c.state.Mountpoint)
+	if err := idtools.MkdirAllAs(c.state.RealMountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
+		return nil, err
+	}
+
+	g.SetRootPath(c.state.RealMountpoint)
 	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
