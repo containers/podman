@@ -459,6 +459,18 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 	}
 }
 
+// WithIDMappings sets the idmappsings for the container
+func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.IDMappings = idmappings
+		return nil
+	}
+}
+
 // WithIPCNSFrom indicates the the container should join the IPC namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of

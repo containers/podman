@@ -66,6 +66,13 @@ func addPidNS(config *createConfig, g *generate.Generator) error {
 	return nil
 }
 
+func addUserNS(config *createConfig, g *generate.Generator) error {
+	if (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost() {
+		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+	}
+	return nil
+}
+
 func addNetNS(config *createConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
@@ -257,6 +264,12 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		}
 	}
 
+	for _, uidmap := range config.IDMappings.UIDMap {
+		g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+	}
+	for _, gidmap := range config.IDMappings.GIDMap {
+		g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+	}
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
@@ -297,6 +310,10 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	if err := addPidNS(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addUserNS(config, &g); err != nil {
 		return nil, err
 	}
 

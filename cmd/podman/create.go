@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/storage"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
@@ -92,7 +94,8 @@ type createConfig struct {
 	Hostname           string   //hostname
 	Image              string
 	ImageID            string
-	BuiltinImgVolumes  map[string]struct{}   // volumes defined in the image config
+	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config
+	IDMappings         *storage.IDMappingOptions
 	ImageVolumeType    string                // how to handle the image volume, either bind, tmpfs, or ignore
 	Interactive        bool                  //interactive
 	IpcMode            container.IpcMode     //ipc
@@ -108,8 +111,7 @@ type createConfig struct {
 	Network            string                //network
 	NetworkAlias       []string              //network-alias
 	PidMode            container.PidMode     //pid
-	NsUser             string
-	Pod                string //pod
+	Pod                string                //pod
 	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
@@ -119,20 +121,21 @@ type createConfig struct {
 	Resources          createResourceConfig
 	Rm                 bool //rm
 	ShmDir             string
-	StopSignal         syscall.Signal    // stop-signal
-	StopTimeout        uint              // stop-timeout
-	Sysctl             map[string]string //sysctl
-	Tmpfs              []string          // tmpfs
-	Tty                bool              //tty
-	User               string            //user
-	UtsMode            container.UTSMode //uts
-	Volumes            []string          //volume
-	WorkDir            string            //workdir
-	MountLabel         string            //SecurityOpts
-	ProcessLabel       string            //SecurityOpts
-	NoNewPrivs         bool              //SecurityOpts
-	ApparmorProfile    string            //SecurityOpts
-	SeccompProfilePath string            //SecurityOpts
+	StopSignal         syscall.Signal       // stop-signal
+	StopTimeout        uint                 // stop-timeout
+	Sysctl             map[string]string    //sysctl
+	Tmpfs              []string             // tmpfs
+	Tty                bool                 //tty
+	UsernsMode         container.UsernsMode //userns
+	User               string               //user
+	UtsMode            container.UTSMode    //uts
+	Volumes            []string             //volume
+	WorkDir            string               //workdir
+	MountLabel         string               //SecurityOpts
+	ProcessLabel       string               //SecurityOpts
+	NoNewPrivs         bool                 //SecurityOpts
+	ApparmorProfile    string               //SecurityOpts
+	SeccompProfilePath string               //SecurityOpts
 	SecurityOpts       []string
 }
 
@@ -188,7 +191,7 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 	data, err := newImage.Inspect(ctx)
-	createConfig, err := parseCreateOpts(c, runtime, newImage.Names()[0], data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, newImage.Names()[0], data)
 	if err != nil {
 		return err
 	}
@@ -211,6 +214,7 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
+	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -414,10 +418,16 @@ func getRandomPort() (int, error) {
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*createConfig, error) {
-	var inputCommand, command []string
-	var memoryLimit, memoryReservation, memorySwap, memoryKernel int64
-	var blkioWeight uint16
+func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*createConfig, error) {
+	var (
+		inputCommand, command                                    []string
+		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
+		blkioWeight                                              uint16
+	)
+	idmappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
+	if err != nil {
+		return nil, err
+	}
 
 	imageID := data.ID
 
@@ -471,6 +481,11 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	pidMode := container.PidMode(c.String("pid"))
 	if !pidMode.Valid() {
 		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
+	}
+
+	usernsMode := container.UsernsMode(c.String("userns"))
+	if !usernsMode.Valid() {
+		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
 	}
 
 	if c.Bool("detach") && c.Bool("rm") {
@@ -632,7 +647,6 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 	if _, ok := imageVolType[c.String("image-volume")]; !ok {
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
-
 	config := &createConfig{
 		Runtime:           runtime,
 		BuiltinImgVolumes: ImageVolumes,
@@ -653,6 +667,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		GroupAdd:       c.StringSlice("group-add"),
 		Hostname:       c.String("hostname"),
 		HostAdd:        c.StringSlice("add-host"),
+		IDMappings:     idmappings,
 		Image:          imageName,
 		ImageID:        imageID,
 		Interactive:    c.Bool("interactive"),
@@ -712,6 +727,7 @@ func parseCreateOpts(c *cli.Context, runtime *libpod.Runtime, imageName string, 
 		Tmpfs:       c.StringSlice("tmpfs"),
 		Tty:         tty,
 		User:        user,
+		UsernsMode:  usernsMode,
 		Volumes:     c.StringSlice("volume"),
 		WorkDir:     workDir,
 	}

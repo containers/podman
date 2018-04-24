@@ -214,6 +214,13 @@ inside of the container.
    Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
    on the host system.
 
+**--gidmap**=map
+   GID map for the user namespace.  Using this flag will run the container with user namespace enabled, unless the --userns=host flag is turned on.
+
+   podman run --uidmap 0:30000:2000 --gidmap 0:30000:2000 fedora echo hello
+
+   This command maps UID 0-2000 inside the container to UID=30000-51999 on the host.  Similarly it maps GID 0-2000 inside the container to GID=30000-31999 on the host.
+
 **--group-add**=[]
    Add additional groups to run as
 
@@ -228,9 +235,9 @@ inside of the container.
 **--image-volume**, **builtin-volume**=*bind*|*tmpfs*|*ignore*
     Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind')
     bind: A directory is created inside the container state directory and bind mounted into
-        the container for the volumes.
+	the container for the volumes.
     tmpfs: The volume is mounted onto the container as a tmpfs, which allows the users to create
-        content that disappears when the container is stopped.
+	content that disappears when the container is stopped.
     ignore: All volumes are just ignored and no action is taken.
 
 **-i**, **--interactive**=*true*|*false*
@@ -435,6 +442,12 @@ its root filesystem mounted as read only prohibiting any writes.
 **--stop-timeout**=*10*
   Timeout (in seconds) to stop a container. Default is 10.
 
+**--subgidname**=name
+   Name for GID map from the `/etc/subgid` file.  Using this flag will run the container with user namespace enabled, unless the --userns=host flag is turned on.  This flag conflicts with the `--gidmap`.
+
+**--subuidname**=name
+   Name for UID map from the `/etc/subuid` file.  Using this flag will run the container with user namespace enabled, unless the --userns=host flag is turned on.  This flag conflicts with the `--uidmap`.
+
 **--sysctl**=SYSCTL
   Configure namespaced kernel parameters at runtime
 
@@ -471,6 +484,13 @@ interactive shell. The default is false.
 Note: The **-t** option is incompatible with a redirection of the podman client
 standard input.
 
+**--uidmap**=map
+   UID map for the user namespace.  Using this flag will run the container with user namespace enabled, unless the --userns=host flag is turned on.
+
+   podman run --uidmap 0:30000:2000 --gidmap 0:30000:2000 fedora echo hello
+
+   This command maps UID 0-2000 inside the container to UID=30000-31999 on the host.  Similarly it maps GID 0-2000 inside the container to GID=30000-31999 on the host.
+
 **--ulimit**=[]
     Ulimit options
 
@@ -483,7 +503,8 @@ standard input.
    Without this argument the command will be run as root in the container.
 
 **--userns**=""
-   Set the usernamespace mode for the container when `userns-remap` option is enabled.
+   Set the usernamespace mode for the container when `userns-remap` option is enabled. The use of userns is disabled by default, unless you turn on --uidmap or --gidmap.
+
      **host**: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
 
 **--uts**=*host*
@@ -792,6 +813,14 @@ evolves we expect to see more sysctls become namespaced.
 
 See the definition of the `--sysctl` option above for the current list of
 supported sysctls.
+
+## FILES
+
+**/etc/subuid**
+**/etc/subgid**
+
+## SEE ALSO
+SUBGID(5), SUBUID(5),
 
 ## HISTORY
 April 2014, Originally compiled by William Henry (whenry at redhat dot com)

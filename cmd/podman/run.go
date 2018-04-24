@@ -60,7 +60,6 @@ func runCmd(c *cli.Context) error {
 	}
 
 	ctx := getContext()
-
 	rtc := runtime.GetConfig()
 	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
@@ -76,7 +75,7 @@ func runCmd(c *cli.Context) error {
 	} else {
 		imageName = newImage.Names()[0]
 	}
-	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
@@ -101,6 +100,7 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
+	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
 
 	// Default used if not overridden on command line
 

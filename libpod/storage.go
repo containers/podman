@@ -59,7 +59,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
-func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string) (ContainerInfo, error) {
+func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string, options *storage.ContainerOptions) (ContainerInfo, error) {
 	var ref types.ImageReference
 	if imageName == "" && imageID == "" {
 		return ContainerInfo{}, ErrEmptyID
@@ -111,13 +111,15 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	// Build the container.
 	names := []string{containerName}
 
-	options := storage.ContainerOptions{
-		IDMappingOptions: storage.IDMappingOptions{
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-		},
+	if options == nil {
+		options = &storage.ContainerOptions{
+			IDMappingOptions: storage.IDMappingOptions{
+				HostUIDMapping: true,
+				HostGIDMapping: true,
+			},
+		}
 	}
-	container, err := r.store.CreateContainer(containerID, names, img.ID, "", string(mdata), &options)
+	container, err := r.store.CreateContainer(containerID, names, img.ID, "", string(mdata), options)
 	if err != nil {
 		logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 
