@@ -13,7 +13,7 @@ if [ ! -f ${LINTER} ]; then
 	exit 1
 fi
 
-PKGS=$(find . -type d -not -path . -a -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*' -a -not -iname 'hack' -a -not -iwholename '*.artifacts*' -a -not -iwholename '*contrib*' -a -not -iwholename '*test*' -a -not -iwholename '*logo*' -a -not -iwholename '*conmon*' -a -not -iwholename '*completions*' -a -not -iwholename '*docs*' -a -not -iwholename '*pause*' -a -not -iwholename './_output*')
+PKGS=$(find . -type d -not -path . -a -not -iwholename '*.git*' -a -not -iname '.tool' -a -not -iwholename '*vendor*' -a -not -iname 'hack' -a -not -iwholename '*.artifacts*' -a -not -iwholename '*contrib*' -a -not -iwholename '*test*' -a -not -iwholename '*logo*' -a -not -iwholename '*conmon*' -a -not -iwholename '*completions*' -a -not -iwholename '*docs*' -a -not -iwholename '*pause*' -a -not -iwholename './_output*' -a -not -iwholename '*ioprojectatomicpodman.go')
 
 echo $PKGS
 
