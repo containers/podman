@@ -330,6 +330,27 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),18(audio),20(dialout),26(tape),27(video),777,65533(nogroup)"))
 	})
 
+	It("podman run with user (default)", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)"))
+	})
+
+	It("podman run with user (integer)", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--user=1234", ALPINE, "id"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("uid=1234 gid=1234"))
+	})
+
+	It("podman run with user (username)", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--user=mail", ALPINE, "id"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=12(mail) groups=12(mail)"))
+	})
+
 	It("podman run with attach stdin outputs container ID", func() {
 		session := podmanTest.Podman([]string{"run", "--attach", "stdin", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
