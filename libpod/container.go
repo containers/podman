@@ -118,8 +118,12 @@ type containerState struct {
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
 	Mounted bool `json:"mounted,omitempty"`
-	// MountPoint contains the path to the container's mounted storage
+	// Mountpoint contains the path to the container's mounted storage as given
+	// by containers/storage.  It can be different than RealMountpoint when
+	// usernamespaces are used
 	Mountpoint string `json:"mountPoint,omitempty"`
+	// RealMountpoint contains the path to the container's mounted storage
+	RealMountpoint string `json:"realMountPoint,omitempty"`
 	// StartedTime is the time the container was started
 	StartedTime time.Time `json:"startedTime,omitempty"`
 	// FinishedTime is the time the container finished executing
@@ -152,6 +156,10 @@ type containerState struct {
 	// This maps the path the file will be mounted to in the container to
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
+
+	// UserNSRoot is the directory used as root for the container when using
+	// user namespaces.
+	UserNSRoot string `json:"userNSRoot,omitempty"`
 }
 
 // ExecSession contains information on an active exec session

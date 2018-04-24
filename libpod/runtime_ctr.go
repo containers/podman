@@ -76,7 +76,11 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
 	if ctr.config.ShmDir == "" {
-		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
+		if ctr.state.UserNSRoot == "" {
+			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
+		} else {
+			ctr.config.ShmDir = filepath.Join(ctr.state.UserNSRoot, "shm")
+		}
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)
