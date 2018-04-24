@@ -86,7 +86,7 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT))
+podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT)) varlink_generate
 	$(GO) build -i $(LDFLAGS_PODMAN) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 clean:
