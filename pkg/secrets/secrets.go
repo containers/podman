@@ -127,7 +127,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir string, mountFile string) []rspec.Mount {
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, 0, 0)
+}
+
+// SecretMountsWithUIDGID specifies the uid/gid of the owner
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile string, uid, gid int) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -141,7 +146,7 @@ func SecretMounts(mountLabel, containerWorkingDir string, mountFile string) []rs
 		mountFiles = append(mountFiles, mountFile)
 	}
 	for _, file := range mountFiles {
-		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir)
+		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
 		if err != nil {
 			logrus.Warnf("error mounting secrets, skipping: %v", err)
 		}
@@ -162,9 +167,15 @@ func SecretMounts(mountLabel, containerWorkingDir string, mountFile string) []rs
 	return secretMounts
 }
 
+func rchown(chowndir string, uid, gid int) error {
+	return filepath.Walk(chowndir, func(filePath string, f os.FileInfo, err error) error {
+		return os.Lchown(filePath, uid, gid)
+	})
+}
+
 // addSecretsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string) ([]rspec.Mount, error) {
+func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
@@ -186,7 +197,6 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string) 
 			if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
 				return nil, errors.Wrapf(err, "making container directory failed")
 			}
-
 			hostDir, err = resolveSymbolicLink(hostDir)
 			if err != nil {
 				return nil, err
@@ -205,6 +215,11 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string) 
 			err = label.Relabel(ctrDirOnHost, mountLabel, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "error applying correct labels")
+			}
+			if uid != 0 || gid != 0 {
+				if err := rchown(ctrDirOnHost, uid, gid); err != nil {
+					return nil, err
+				}
 			}
 		} else if err != nil {
 			return nil, errors.Wrapf(err, "error getting status of %q", ctrDirOnHost)

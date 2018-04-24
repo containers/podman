@@ -225,7 +225,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			IpcMode:              string(createArtifact.IpcMode),
 			Cgroup:               cgroup,
 			UTSMode:              string(createArtifact.UtsMode),
-			UsernsMode:           createArtifact.NsUser,
+			UsernsMode:           string(createArtifact.UsernsMode),
 			GroupAdd:             spec.Process.User.AdditionalGids,
 			ContainerIDFile:      createArtifact.CidFile,
 			AutoRemove:           createArtifact.Rm,

@@ -75,7 +75,8 @@ func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
 		}
 		createConfig, err := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
 	*/
-	createConfig, err := parseCreateOpts(c, nil, "alpine", generateAlpineImageData())
+	ctx := getContext()
+	createConfig, err := parseCreateOpts(ctx, c, nil, "alpine", generateAlpineImageData())
 	if err != nil {
 		return nil, err
 	}

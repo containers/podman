@@ -190,7 +190,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel)
+	options := storage.ContainerOptions{IDMappingOptions: c.config.IDMappings}
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel, &options)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
@@ -591,6 +592,9 @@ func (c *Container) mountStorage() (err error) {
 			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
 			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
 		}
+		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+			return err
+		}
 	}
 
 	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
@@ -755,7 +759,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMounts(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile)
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.RootUID(), c.RootGID())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -772,10 +776,12 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create %s", destFileName)
 	}
-
 	defer f.Close()
-	_, err = f.WriteString(output)
-	if err != nil {
+	if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
+		return "", err
+	}
+
+	if _, err := f.WriteString(output); err != nil {
 		return "", errors.Wrapf(err, "unable to write %s", destFileName)
 	}
 	// Relabel runDirResolv for the container

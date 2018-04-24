@@ -2,9 +2,12 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/containers/image/types"
+	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/terminal"
@@ -119,4 +122,77 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 		Labels:       labels,
 		StopSignal:   stopSignal,
 	}, nil
+}
+
+// ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
+func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
+	options := storage.IDMappingOptions{
+		HostUIDMapping: true,
+		HostGIDMapping: true,
+	}
+	if subGIDMap == "" && subUIDMap != "" {
+		subGIDMap = subUIDMap
+	}
+	if subUIDMap == "" && subGIDMap != "" {
+		subUIDMap = subGIDMap
+	}
+	parseTriple := func(spec []string) (container, host, size int, err error) {
+		cid, err := strconv.ParseUint(spec[0], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
+		}
+		hid, err := strconv.ParseUint(spec[1], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
+		}
+		sz, err := strconv.ParseUint(spec[2], 10, 32)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
+		}
+		return int(cid), int(hid), int(sz), nil
+	}
+	parseIDMap := func(spec []string) (idmap []idtools.IDMap, err error) {
+		for _, uid := range spec {
+			splitmap := strings.SplitN(uid, ":", 3)
+			if len(splitmap) < 3 {
+				return nil, fmt.Errorf("invalid mapping requires 3 fields: %q", uid)
+			}
+			cid, hid, size, err := parseTriple(splitmap)
+			if err != nil {
+				return nil, err
+			}
+			pmap := idtools.IDMap{
+				ContainerID: cid,
+				HostID:      hid,
+				Size:        size,
+			}
+			idmap = append(idmap, pmap)
+		}
+		return idmap, nil
+	}
+	if subUIDMap != "" && subGIDMap != "" {
+		mappings, err := idtools.NewIDMappings(subUIDMap, subGIDMap)
+		if err != nil {
+			return nil, err
+		}
+		options.UIDMap = mappings.UIDs()
+		options.GIDMap = mappings.GIDs()
+	}
+	parsedUIDMap, err := parseIDMap(UIDMapSlice)
+	if err != nil {
+		return nil, err
+	}
+	parsedGIDMap, err := parseIDMap(GIDMapSlice)
+	if err != nil {
+		return nil, err
+	}
+	options.UIDMap = append(options.UIDMap, parsedUIDMap...)
+	options.GIDMap = append(options.GIDMap, parsedGIDMap...)
+	if len(options.UIDMap) > 0 {
+		options.HostUIDMapping = false
+	}
+	if len(options.GIDMap) > 0 {
+		options.HostGIDMapping = false
+	}
+	return &options, nil
 }

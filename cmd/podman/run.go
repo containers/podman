@@ -9,10 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -50,7 +52,15 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	storageOpts := storage.DefaultStoreOptions
+	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+	if err != nil {
+		return err
+	}
+	storageOpts.UIDMap = mappings.UIDMap
+	storageOpts.GIDMap = mappings.GIDMap
+
+	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -60,7 +70,6 @@ func runCmd(c *cli.Context) error {
 	}
 
 	ctx := getContext()
-
 	rtc := runtime.GetConfig()
 	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
@@ -76,7 +85,7 @@ func runCmd(c *cli.Context) error {
 	} else {
 		imageName = newImage.Names()[0]
 	}
-	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
@@ -101,6 +110,7 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
+	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
 
 	// Default used if not overridden on command line
 
