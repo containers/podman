@@ -51,11 +51,12 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search no-trunc flag", func() {
-		search := podmanTest.Podman([]string{"search", "alpine"})
+		search := podmanTest.Podman([]string{"search", "--no-trunc", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
 		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
+		Expect(search.LineInOutputContains("...")).To(BeFalse())
 	})
 
 	It("podman search limit flag", func() {
