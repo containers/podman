@@ -61,7 +61,7 @@ func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (
 	}
 	destRef, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
-		return nil, errors.Errorf("error parsing dest reference name: %v", err)
+		return nil, errors.Wrapf(err, "error parsing dest reference name")
 	}
 	return &pullStruct{
 		image:  destName,
@@ -85,7 +85,7 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 		manifest, err := tarSource.LoadTarManifest()
 
 		if err != nil {
-			return nil, errors.Errorf("error retrieving manifest.json: %v", err)
+			return nil, errors.Wrapf(err, "error retrieving manifest.json")
 		}
 		// to pull the first image stored in the tar file
 		if len(manifest) == 0 {
@@ -224,7 +224,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 	if decomposedImage.hasRegistry {
 		srcRef, err := alltransports.ParseImageName(decomposedImage.assembleWithTransport())
 		if err != nil {
-			return nil, errors.Errorf("unable to parse '%s'", i.InputName)
+			return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 		}
 		ps := pullStruct{
 			image:  i.InputName,
@@ -246,7 +246,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 			decomposedImage.registry = registry
 			srcRef, err := alltransports.ParseImageName(decomposedImage.assembleWithTransport())
 			if err != nil {
-				return nil, errors.Errorf("unable to parse '%s'", i.InputName)
+				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 			}
 			ps := pullStruct{
 				image:  decomposedImage.assemble(),
@@ -259,7 +259,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 	for _, pStruct := range pullNames {
 		destRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, pStruct.image)
 		if err != nil {
-			return nil, errors.Errorf("error parsing dest reference name: %v", err)
+			return nil, errors.Wrapf(err, "error parsing dest reference name")
 		}
 		pStruct.dstRef = destRef
 	}
