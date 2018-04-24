@@ -754,8 +754,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := c.getSecretMounts(secrets.OverrideMountsFile)
-	secretMounts = append(secretMounts, c.getSecretMounts(secrets.DefaultMountsFile)...)
+	secretMounts := secrets.SecretMounts(c.config.MountLabel, c.state.RunDir)
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -763,15 +762,6 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	return nil
-}
-
-// addSecrets mounts the secrets from the override and/or default mounts file
-func (c *Container) getSecretMounts(mountFile string) (secretMounts []spec.Mount) {
-	secretMounts, err := secrets.SecretMounts(mountFile, c.config.MountLabel, c.state.RunDir)
-	if err != nil {
-		logrus.Warn("error mounting secrets, skipping...")
-	}
-	return secretMounts
 }
 
 // writeStringToRundir copies the provided file to the runtimedir
@@ -932,6 +922,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
+		} else {
+			logrus.Warnf("User mount overriding libpod mount at %q", dstPath)
 		}
 	}
 

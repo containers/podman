@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -127,9 +126,35 @@ func getMountsMap(path string) (string, string, error) {
 	return "", "", errors.Errorf("unable to get host and container dir")
 }
 
-// SecretMounts copies the contents of host directory to container directory
+// SecretMounts copies, adds, and mounts the secrets to the container root filesystem
+func SecretMounts(mountLabel, containerWorkingDir string) []rspec.Mount {
+	var secretMounts []rspec.Mount
+	// Add secrets from paths given in the mounts.conf files
+	for _, file := range []string{OverrideMountsFile, DefaultMountsFile} {
+		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir)
+		if err != nil {
+			logrus.Warnf("error mounting secrets, skipping: %v", err)
+		}
+		secretMounts = append(secretMounts, mounts...)
+	}
+
+	// Add FIPS mode secret if /etc/system-fips exists on the host
+	_, err := os.Stat("/etc/system-fips")
+	if err == nil {
+		if err := addFIPSsModeSecret(&secretMounts, containerWorkingDir); err != nil {
+			logrus.Warnf("error adding FIPS mode secret to container: %v", err)
+		}
+	} else if os.IsNotExist(err) {
+		logrus.Debug("/etc/system-fips does not exist on host, not mounting FIPS mode secret")
+	} else {
+		logrus.Errorf("error stating /etc/system-fips for FIPS mode secret: %v", err)
+	}
+	return secretMounts
+}
+
+// addSecretsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func SecretMounts(filePath, mountLabel, containerWorkingDir string) ([]rspec.Mount, error) {
+func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
@@ -144,15 +169,12 @@ func SecretMounts(filePath, mountLabel, containerWorkingDir string) ([]rspec.Mou
 		}
 
 		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
-		if err = os.RemoveAll(ctrDirOnHost); err != nil {
-			return nil, fmt.Errorf("remove container directory failed: %v", err)
-		}
 
 		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOnHost
 		_, err = os.Stat(ctrDirOnHost)
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
-				return nil, fmt.Errorf("making container directory failed: %v", err)
+				return nil, errors.Wrapf(err, "making container directory failed")
 			}
 
 			hostDir, err = resolveSymbolicLink(hostDir)
@@ -188,6 +210,51 @@ func SecretMounts(filePath, mountLabel, containerWorkingDir string) ([]rspec.Mou
 		mounts = append(mounts, m)
 	}
 	return mounts, nil
+}
+
+// addFIPSModeSecret creates /run/secrets/system-fips in the container
+// root filesystem if /etc/system-fips exists on hosts.
+// This enables the container to be FIPS compliant and run openssl in
+// FIPS mode as the host is also in FIPS mode.
+func addFIPSsModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
+	secretsDir := "/run/secrets"
+	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
+	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
+		if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
+			return errors.Wrapf(err, "making container directory on host failed")
+		}
+	}
+	fipsFile := filepath.Join(ctrDirOnHost, "system-fips")
+	// In the event of restart, it is possible for the FIPS mode file to already exist
+	if _, err := os.Stat(fipsFile); os.IsNotExist(err) {
+		file, err := os.Create(fipsFile)
+		if err != nil {
+			return errors.Wrapf(err, "error creating system-fips file in container for FIPS mode")
+		}
+		defer file.Close()
+	}
+
+	if !mountExists(*mounts, secretsDir) {
+		m := rspec.Mount{
+			Source:      ctrDirOnHost,
+			Destination: secretsDir,
+			Type:        "bind",
+			Options:     []string{"bind"},
+		}
+		*mounts = append(*mounts, m)
+	}
+
+	return nil
+}
+
+// mountExists checks if a mount already exists in the spec
+func mountExists(mounts []rspec.Mount, dest string) bool {
+	for _, mount := range mounts {
+		if mount.Destination == dest {
+			return true
+		}
+	}
+	return false
 }
 
 // resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
