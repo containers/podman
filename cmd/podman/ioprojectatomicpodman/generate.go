@@ -1,3 +1,3 @@
 package ioprojectatomicpodman
 
-//go:generate $GOPATH/bin/varlink-go-interface-generator io.projectatomic.podman.varlink
+//go:generate go run ../../../vendor/github.com/varlink/go/cmd/varlink-go-interface-generator/main.go io.projectatomic.podman.varlink
