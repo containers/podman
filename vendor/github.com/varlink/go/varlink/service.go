@@ -152,10 +152,6 @@ func activationListener() net.Listener {
 		return nil
 	}
 
-	os.Unsetenv("LISTEN_PID")
-	os.Unsetenv("LISTEN_FDS")
-	os.Unsetenv("LISTEN_FDNAMES")
-
 	return listener
 }
 
