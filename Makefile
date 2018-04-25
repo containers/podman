@@ -104,7 +104,6 @@ endif
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -fr build/
-	rm -f cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
@@ -248,12 +247,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		make all install; \
 	fi
 
-.install.varlink: .gopathok
-	$(GO) get -u github.com/varlink/go/varlink
-	$(GO) get -u github.com/varlink/go/cmd/varlink-go-interface-generator
+varlink_generate: .gopathok cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
 
-varlink_generate: .gopathok .install.varlink
-	rm -f cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go
+cmd/podman/ioprojectatomicpodman/ioprojectatomicpodman.go: cmd/podman/ioprojectatomicpodman/io.projectatomic.podman.varlink
 	$(GO) generate ./cmd/podman/ioprojectatomicpodman/...
 
 validate: gofmt .gitvalidation
