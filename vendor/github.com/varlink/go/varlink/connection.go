@@ -27,17 +27,26 @@ type Connection struct {
 }
 
 // Send sends a method call.
-func (c *Connection) Send(method string, parameters interface{}, more bool) error {
+func (c *Connection) Send(method string, parameters interface{}, more bool, oneway bool) error {
 	type call struct {
 		Method     string      `json:"method"`
 		Parameters interface{} `json:"parameters,omitempty"`
 		More       bool        `json:"more,omitempty"`
-		OneShot    bool        `json:"oneshot,omitempty"`
+		Oneway     bool        `json:"oneway,omitempty"`
 	}
+
+	if more && oneway {
+		return &Error{
+			Name:       "org.varlink.InvalidParameter",
+			Parameters: "oneway",
+		}
+	}
+
 	m := call{
 		Method:     method,
 		Parameters: parameters,
 		More:       more,
+		Oneway:     oneway,
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -54,53 +63,47 @@ func (c *Connection) Send(method string, parameters interface{}, more bool) erro
 }
 
 // Receive receives a method reply.
-func (c *Connection) Receive(parameters interface{}, continues *bool, oneshot *bool) error {
+func (c *Connection) Receive(parameters interface{}) (bool, error) {
 	type reply struct {
 		Parameters *json.RawMessage `json:"parameters"`
 		Continues  bool             `json:"continues"`
-		Oneshot    bool             `json:"oneshot"`
 		Error      string           `json:"error"`
 	}
 
 	out, err := c.reader.ReadBytes('\x00')
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var m reply
 	err = json.Unmarshal(out[:len(out)-1], &m)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if m.Error != "" {
-		return &Error{
+		return false, &Error{
 			Name:       m.Error,
 			Parameters: m.Parameters,
 		}
 	}
 
-	if continues != nil {
-		*continues = m.Continues
-	}
-	if oneshot != nil {
-		*oneshot = m.Oneshot
-	}
 	if parameters != nil && m.Parameters != nil {
-		return json.Unmarshal(*m.Parameters, parameters)
+		return m.Continues, json.Unmarshal(*m.Parameters, parameters)
 	}
 
-	return nil
+	return m.Continues, nil
 }
 
 // Call sends a method call and returns the result of the call.
 func (c *Connection) Call(method string, parameters interface{}, result interface{}) error {
-	err := c.Send(method, &parameters, false)
+	err := c.Send(method, &parameters, false, false)
 	if err != nil {
 		return err
 	}
 
-	return c.Receive(result, nil, nil)
+	_, err = c.Receive(result)
+	return err
 }
 
 // GetInterfaceDescription requests the interface description string from the service.
