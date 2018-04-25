@@ -11,3 +11,6 @@
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
 /build/
+.nfs*
+.ropeproject
+__pycache__
