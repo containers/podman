@@ -1,6 +1,5 @@
 FROM golang:1.8
 
-# libseccomp in jessie is not _quite_ new enough -- need backports version
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
 
 RUN apt-get update && apt-get install -y \
@@ -22,8 +21,6 @@ RUN apt-get update && apt-get install -y \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
-    libseccomp2/jessie-backports \
-    libseccomp-dev/jessie-backports \
     libtool \
     libudev-dev \
     protobuf-c-compiler \
@@ -40,6 +37,10 @@ RUN apt-get update && apt-get install -y \
     socat \
     --no-install-recommends \
     && apt-get clean
+
+ADD . /go/src/github.com/projectatomic/libpod
+
+RUN set -x && cd /go/src/github.com/projectatomic/libpod && make install.libseccomp
 
 # install criu
 ENV CRIU_VERSION 1.7
@@ -117,5 +118,3 @@ COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
 WORKDIR /go/src/github.com/projectatomic/libpod
-
-ADD . /go/src/github.com/projectatomic/libpod

@@ -48,7 +48,7 @@ var _ = Describe("Podman commit", func() {
 		Expect(ec).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
-		session := podmanTest.Podman([]string{"commit", "--message", "testing-commit", "test1", "foobar.com/test1-image:latest"})
+		session := podmanTest.Podman([]string{"commit", "-f", "docker", "--message", "testing-commit", "test1", "foobar.com/test1-image:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

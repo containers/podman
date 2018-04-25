@@ -7,7 +7,7 @@ services:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev libseccomp-dev
+  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev
   - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext
 
 install:
@@ -30,12 +30,10 @@ jobs:
       go: 1.9.x
     - script:
         - make testunit
-        - make
       go: 1.8.x
     - stage: Build and Verify
       script:
         - make testunit
-        - make
       go: 1.9.x
     - stage: Integration Test
       script:

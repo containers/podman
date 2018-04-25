@@ -12,6 +12,7 @@ import (
 	types2 "github.com/containernetworking/cni/pkg/types"
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/manifest"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports/alltransports"
@@ -21,6 +22,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
@@ -608,6 +610,7 @@ func (i *Image) ociv1Image(ctx context.Context) (*ociv1.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return imgRef.OCIConfig(ctx)
 }
 
@@ -660,11 +663,20 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		return nil, err
 	}
 
+	_, manifestType, err := i.Manifest(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to determine manifest type")
+	}
+	comment, err := i.Comment(ctx, manifestType)
+	if err != nil {
+		return nil, err
+	}
+
 	data := &inspect.ImageData{
 		ID:              i.ID(),
 		RepoTags:        i.Names(),
 		RepoDigests:     repoDigests,
-		Comment:         ociv1Img.History[0].Comment,
+		Comment:         comment,
 		Created:         ociv1Img.Created,
 		Author:          ociv1Img.Author,
 		Architecture:    ociv1Img.Architecture,
@@ -680,7 +692,8 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
 		},
-		GraphDriver: driver,
+		GraphDriver:  driver,
+		ManifestType: manifestType,
 	}
 	return data, nil
 }
@@ -801,4 +814,28 @@ func (i *Image) Containers() ([]string, error) {
 		}
 	}
 	return imageContainers, err
+}
+
+// Comment returns the Comment for an image depending on its ManifestType
+func (i *Image) Comment(ctx context.Context, manifestType string) (string, error) {
+	if manifestType == buildah.Dockerv2ImageManifest {
+		imgRef, err := i.toImageRef(ctx)
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to create image reference from image")
+		}
+		blob, err := imgRef.ConfigBlob(ctx)
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to get config blob from image")
+		}
+		b := manifest.Schema2Image{}
+		if err := json.Unmarshal(blob, &b); err != nil {
+			return "", err
+		}
+		return b.Comment, nil
+	}
+	ociv1Img, err := i.ociv1Image(ctx)
+	if err != nil {
+		return "", err
+	}
+	return ociv1Img.History[0].Comment, nil
 }

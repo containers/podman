@@ -29,6 +29,7 @@ COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO := $(shell date +%s)
 ISODATE := $(shell date --iso-8601)
+LIBSECCOMP_COMMIT := release-2.3
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -249,6 +250,13 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 varlink_generate: .gopathok cmd/podman/varlink/ioprojectatomicpodman.go
 
+.PHONY: install.libseccomp
+install.libseccomp:
+	rm -rf ../../seccomp/libseccomp
+	git clone https://github.com/seccomp/libseccomp ../../seccomp/libseccomp
+	cd ../../seccomp/libseccomp && git checkout $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
+
+
 cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
 	$(GO) generate ./cmd/podman/varlink/...
 
@@ -267,4 +275,5 @@ validate: gofmt .gitvalidation
 	uninstall \
 	shell \
 	changelog \
-	validate
+	validate \
+	install.libseccomp
