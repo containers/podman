@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah/imagebuildah"
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/image"
 )
@@ -176,4 +178,9 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 		}
 	}
 	return nil
+}
+
+// Build adds the runtime to the imagebuildah call
+func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
+	return imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
 }
