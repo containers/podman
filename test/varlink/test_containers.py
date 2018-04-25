@@ -1,99 +1,89 @@
 import unittest
-from varlink import (Client, VarlinkError)
+
+from varlink import VarlinkError
+
+from podman_testcase import PodmanTestCase
+
+MethodNotImplemented = 'org.varlink.service.MethodNotImplemented'
 
 
-address = "unix:/run/podman/io.projectatomic.podman"
-client = Client(address=address)
-
-
-def runErrorTest(tfunc):
-    try:
-        tfunc()
-    except VarlinkError as e:
-        return e.error() == "org.varlink.service.MethodNotImplemented"
-    return False
-
-
-class ContainersAPI(unittest.TestCase):
+class TestContainersAPI(PodmanTestCase):
     def test_ListContainers(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ListContainers))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ListContainers()
 
     def test_CreateContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.CreateContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.CreateContainer()
 
     def test_InspecContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.InspectContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.InspectContainer()
 
     def test_ListContainerProcesses(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ListContainerProcesses))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ListContainerProcesses()
 
     def test_GetContainerLogs(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.GetContainerLogs))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.GetContainerLogs()
 
     def test_ListContainerChanges(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ListContainerChanges))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ListContainerChanges()
 
     def test_ExportContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ExportContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ExportContainer()
 
     def test_GetContainerStats(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.GetContainerStats))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.GetContainerStats()
 
     def test_ResizeContainerTty(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ResizeContainerTty))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ResizeContainerTty()
 
     def test_StartContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.StartContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.StartContainer()
 
     def test_RestartContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.RestartContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.RestartContainer()
 
     def test_KillContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.KillContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.KillContainer()
 
     def test_UpdateContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.UpdateContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.UpdateContainer()
 
     def test_RenameContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.RenameContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.RenameContainer()
 
     def test_PauseContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.PauseContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.PauseContainer()
 
     def test_UnpauseContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.UnpauseContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.UnpauseContainer()
 
     def test_AttachToContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.AttachToContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.AttachToContainer()
 
     def test_WaitContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.WaitContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.WaitContainer()
 
     def test_RemoveContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.RemoveContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.RemoveContainer()
 
-    def test_DeleteContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.DeleteContainer))
 
 if __name__ == '__main__':
     unittest.main()

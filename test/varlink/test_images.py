@@ -1,71 +1,65 @@
 import unittest
-from varlink import (Client, VarlinkError)
+
+from varlink import VarlinkError
+
+from podman_testcase import PodmanTestCase
+
+MethodNotImplemented = 'org.varlink.service.MethodNotImplemented'
 
 
-address = "unix:/run/podman/io.projectatomic.podman"
-client = Client(address=address)
-
-
-def runErrorTest(tfunc):
-    try:
-        tfunc()
-    except VarlinkError as e:
-        return e.error() == "org.varlink.service.MethodNotImplemented"
-    return False
-
-
-class ImagesAPI(unittest.TestCase):
+class TestImagesAPI(PodmanTestCase):
     def test_ListImages(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ListImages))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ListImages()
 
     def test_BuildImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.BuildImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.BuildImage()
 
     def test_CreateImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.CreateImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.CreateImage()
 
     def test_InspectImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.InspectImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.InspectImage()
 
     def test_HistoryImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.HistoryImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.HistoryImage()
 
     def test_PushImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.PushImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.PushImage()
 
     def test_TagImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.TagImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.TagImage()
 
     def test_RemoveImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.TagImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.TagImage()
 
     def test_SearchImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.SearchImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.SearchImage()
 
     def test_DeleteUnusedImages(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.DeleteUnusedImages))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.DeleteUnusedImages()
 
     def test_CreateFromContainer(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.CreateFromContainer))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.CreateFromContainer()
 
     def test_ImportImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ImportImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ImportImage()
 
     def test_ExportImage(self):
-        podman = client.open("io.projectatomic.podman")
-        self.assertTrue(runErrorTest(podman.ExportImage))
+        with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
+            self.podman.ExportImage()
+
 
 if __name__ == '__main__':
     unittest.main()
