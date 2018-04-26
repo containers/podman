@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"net"
+	"os"
 	"path/filepath"
 	"regexp"
 	"syscall"
@@ -360,6 +361,9 @@ func WithRootFSFromImage(imageID string, imageName string, useImageVolumes bool)
 
 		if ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
 			return errors.Wrapf(ErrInvalidArg, "container already configured with root filesystem")
+		}
+		if ctr.config.Rootfs != "" {
+			return errors.Wrapf(ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
 		}
 
 		ctr.config.RootfsImageID = imageID
@@ -905,6 +909,23 @@ func WithCommand(command []string) CtrCreateOption {
 			ctr.config.Command = append(ctr.config.Command, str)
 		}
 
+		return nil
+	}
+}
+
+// WithRootFS sets the rootfs for the container
+func WithRootFS(rootfs string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		if _, err := os.Stat(rootfs); err != nil {
+			return errors.Wrapf(err, "error checking path %q", rootfs)
+		}
+		if ctr.config.RootfsImageID != "" {
+			return errors.Wrapf(ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
+		}
+		ctr.config.Rootfs = rootfs
 		return nil
 	}
 }

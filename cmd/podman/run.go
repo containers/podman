@@ -14,6 +14,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -66,25 +67,36 @@ func runCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
+
 	if len(c.Args()) < 1 {
 		return errors.Errorf("image name or ID is required")
 	}
 
-	ctx := getContext()
-	rtc := runtime.GetConfig()
-	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
-	if err != nil {
-		return errors.Wrapf(err, "unable to find image")
+	rootfs := ""
+	if c.Bool("rootfs") {
+		rootfs = c.Args()[0]
 	}
 
-	data, err := newImage.Inspect(ctx)
-	if err != nil {
-		return err
-	}
-	if len(newImage.Names()) < 1 {
-		imageName = newImage.ID()
-	} else {
-		imageName = newImage.Names()[0]
+	ctx := getContext()
+	rtc := runtime.GetConfig()
+
+	var newImage *image.Image = nil
+	var data *inspect.ImageData = nil
+	if rootfs == "" {
+		newImage, err = runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+		if err != nil {
+			return errors.Wrapf(err, "unable to find image")
+		}
+
+		data, err = newImage.Inspect(ctx)
+		if err != nil {
+			return err
+		}
+		if len(newImage.Names()) < 1 {
+			imageName = newImage.ID()
+		} else {
+			imageName = newImage.Names()[0]
+		}
 	}
 	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
@@ -112,6 +124,9 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
 	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
+	if createConfig.Rootfs != "" {
+		options = append(options, libpod.WithRootFS(createConfig.Rootfs))
+	}
 
 	// Default used if not overridden on command line
 

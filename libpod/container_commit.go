@@ -34,6 +34,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		isEnvCleared, isLabelCleared, isExposeCleared, isVolumeCleared bool
 	)
 
+	if c.config.Rootfs != "" {
+		return nil, errors.Errorf("cannot commit a container that uses an exploded rootfs")
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

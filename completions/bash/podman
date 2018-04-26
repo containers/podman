@@ -1431,6 +1431,7 @@ _podman_container_run() {
 		--pids-limit
 		--publish -p
 		--runtime
+		--rootfs
 		--security-opt
 		--shm-size
 		--stop-signal

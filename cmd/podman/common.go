@@ -322,6 +322,10 @@ var createFlags = []cli.Flag{
 		Name:  "rm",
 		Usage: "Remove container (and pod if created) after exit",
 	},
+	cli.BoolFlag{
+		Name:  "rootfs",
+		Usage: "The first argument is not an image but the rootfs to the exploded container",
+	},
 	cli.StringSliceFlag{
 		Name:  "security-opt",
 		Usage: "Security Options (default [])",
