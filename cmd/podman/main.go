@@ -125,6 +125,11 @@ func main() {
 			Usage: "path for the cpu profiling results",
 		},
 		cli.StringFlag{
+			Name:   "default-mounts-file",
+			Usage:  "path to default mounts file",
+			Hidden: true,
+		},
+		cli.StringFlag{
 			Name:   "hooks-dir-path",
 			Usage:  "set the OCI hooks directory path",
 			Value:  hooks.DefaultHooksDir,
