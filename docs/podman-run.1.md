@@ -491,6 +491,13 @@ its root filesystem mounted as read only prohibiting any writes.
 
 Automatically remove the container when it exits. The default is *false*.
 
+**--rootfs**
+
+If specified, the first argument refers to an exploded container on the file system.
+
+This is useful to run a container without requiring any image management, the rootfs
+of the container is assumed to be managed externally.
+
 **--security-opt**=[]
 
 Security Options

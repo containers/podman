@@ -60,40 +60,40 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
 func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string, options *storage.ContainerOptions) (ContainerInfo, error) {
-	var ref types.ImageReference
-	if imageName == "" && imageID == "" {
-		return ContainerInfo{}, ErrEmptyID
-	}
-	if containerName == "" {
-		return ContainerInfo{}, ErrEmptyID
-	}
-	// Check if we have the specified image.
-	ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	img, err := istorage.Transport.GetStoreImage(r.store, ref)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	// Pull out a copy of the image's configuration.
-	image, err := ref.NewImage(ctx, systemContext)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	defer image.Close()
+	var imageConfig *v1.Image
+	if imageName != "" {
+		var ref types.ImageReference
+		if containerName == "" {
+			return ContainerInfo{}, ErrEmptyID
+		}
+		// Check if we have the specified image.
+		ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		img, err := istorage.Transport.GetStoreImage(r.store, ref)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		// Pull out a copy of the image's configuration.
+		image, err := ref.NewImage(ctx, systemContext)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		defer image.Close()
 
-	// Get OCI configuration of image
-	imageConfig, err := image.OCIConfig(ctx)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
+		// Get OCI configuration of image
+		imageConfig, err = image.OCIConfig(ctx)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
 
-	// Update the image name and ID.
-	if imageName == "" && len(img.Names) > 0 {
-		imageName = img.Names[0]
+		// Update the image name and ID.
+		if imageName == "" && len(img.Names) > 0 {
+			imageName = img.Names[0]
+		}
+		imageID = img.ID
 	}
-	imageID = img.ID
 
 	// Build metadata to store with the container.
 	metadata := RuntimeContainerMetadata{
@@ -119,7 +119,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 			},
 		}
 	}
-	container, err := r.store.CreateContainer(containerID, names, img.ID, "", string(mdata), options)
+	container, err := r.store.CreateContainer(containerID, names, imageID, "", string(mdata), options)
 	if err != nil {
 		logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 

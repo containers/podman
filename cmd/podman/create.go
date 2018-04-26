@@ -72,6 +72,11 @@ func createCmd(c *cli.Context) error {
 		return errors.Errorf("image name or ID is required")
 	}
 
+	rootfs := ""
+	if c.Bool("rootfs") {
+		rootfs = c.Args()[0]
+	}
+
 	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
 	if err != nil {
 		return err
@@ -89,12 +94,17 @@ func createCmd(c *cli.Context) error {
 	rtc := runtime.GetConfig()
 	ctx := getContext()
 
-	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
-	if err != nil {
-		return err
+	imageName := ""
+	var data *inspect.ImageData = nil
+	if rootfs == "" {
+		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+		if err != nil {
+			return err
+		}
+		data, err = newImage.Inspect(ctx)
+		imageName = newImage.Names()[0]
 	}
-	data, err := newImage.Inspect(ctx)
-	createConfig, err := parseCreateOpts(ctx, c, runtime, newImage.Names()[0], data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return err
 	}
@@ -118,6 +128,9 @@ func createCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
 	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
+	if createConfig.Rootfs != "" {
+		options = append(options, libpod.WithRootFS(createConfig.Rootfs))
+	}
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return err
@@ -246,10 +259,16 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, err
 	}
 
-	imageID := data.ID
+	imageID := ""
 
-	if len(c.Args()) > 1 {
-		inputCommand = c.Args()[1:]
+	inputCommand = c.Args()[1:]
+	if data != nil {
+		imageID = data.ID
+	}
+
+	rootfs := ""
+	if c.Bool("rootfs") {
+		rootfs = c.Args()[0]
 	}
 
 	sysctl, err := validateSysctl(c.StringSlice("sysctl"))
@@ -337,12 +356,19 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	// USER
 	user := c.String("user")
 	if user == "" {
-		user = data.ContainerConfig.User
+		if data == nil {
+			user = "0"
+		} else {
+			user = data.ContainerConfig.User
+		}
 	}
 
 	// STOP SIGNAL
 	stopSignal := syscall.SIGTERM
-	signalString := data.ContainerConfig.StopSignal
+	signalString := "SIGTERM"
+	if data != nil {
+		signalString = data.ContainerConfig.StopSignal
+	}
 	if c.IsSet("stop-signal") {
 		signalString = c.String("stop-signal")
 	}
@@ -355,12 +381,14 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	// ENVIRONMENT VARIABLES
 	env := defaultEnvVariables
-	for _, e := range data.ContainerConfig.Env {
-		split := strings.SplitN(e, "=", 2)
-		if len(split) > 1 {
-			env[split[0]] = split[1]
-		} else {
-			env[split[0]] = ""
+	if data != nil {
+		for _, e := range data.ContainerConfig.Env {
+			split := strings.SplitN(e, "=", 2)
+			if len(split) > 1 {
+				env[split[0]] = split[1]
+			} else {
+				env[split[0]] = ""
+			}
 		}
 	}
 	if err := readKVStrings(env, c.StringSlice("env-file"), c.StringSlice("env")); err != nil {
@@ -372,9 +400,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}
-	for key, val := range data.ContainerConfig.Labels {
-		if _, ok := labels[key]; !ok {
-			labels[key] = val
+	if data != nil {
+		for key, val := range data.ContainerConfig.Labels {
+			if _, ok := labels[key]; !ok {
+				labels[key] = val
+			}
 		}
 	}
 
@@ -386,9 +416,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if tty {
 		annotations[ann.TTY] = "true"
 	}
-	// Next, add annotations from the image
-	for key, value := range data.Annotations {
-		annotations[key] = value
+	if data != nil {
+		// Next, add annotations from the image
+		for key, value := range data.Annotations {
+			annotations[key] = value
+		}
 	}
 	// Last, add user annotations
 	for _, annotation := range c.StringSlice("annotation") {
@@ -403,14 +435,14 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	workDir := "/"
 	if c.IsSet("workdir") || c.IsSet("w") {
 		workDir = c.String("workdir")
-	} else if data.ContainerConfig.WorkingDir != "" {
+	} else if data != nil && data.ContainerConfig.WorkingDir != "" {
 		workDir = data.ContainerConfig.WorkingDir
 	}
 
 	// ENTRYPOINT
 	// User input entrypoint takes priority over image entrypoint
 	entrypoint := c.StringSlice("entrypoint")
-	if len(entrypoint) == 0 {
+	if len(entrypoint) == 0 && data != nil {
 		entrypoint = data.ContainerConfig.Entrypoint
 	}
 	// if entrypoint=, we need to clear the entrypoint
@@ -425,7 +457,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
-	} else if len(data.ContainerConfig.Cmd) > 0 && !c.IsSet("entrypoint") {
+	} else if data != nil && len(data.ContainerConfig.Cmd) > 0 && !c.IsSet("entrypoint") {
 		// If not user command, add CMD
 		command = append(command, data.ContainerConfig.Cmd...)
 	}
@@ -435,9 +467,12 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	// EXPOSED PORTS
-	portBindings, err := cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
-	if err != nil {
-		return nil, err
+	var portBindings map[nat.Port][]nat.PortBinding
+	if data != nil {
+		portBindings, err = cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// SHM Size
@@ -472,8 +507,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 			return nil, err
 		}
 	}
-	ImageVolumes := data.ContainerConfig.Volumes
 
+	var ImageVolumes map[string]struct{}
+	if data != nil {
+		ImageVolumes = data.ContainerConfig.Volumes
+	}
 	var imageVolType = map[string]string{
 		"bind":   "",
 		"tmpfs":  "",
@@ -567,6 +605,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		UsernsMode:  usernsMode,
 		Volumes:     c.StringSlice("volume"),
 		WorkDir:     workDir,
+		Rootfs:      rootfs,
 	}
 
 	if !config.Privileged {

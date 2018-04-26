@@ -148,6 +148,7 @@ type ContainerInspectData struct {
 	State           *ContainerInspectState `json:"State"`
 	ImageID         string                 `json:"Image"`
 	ImageName       string                 `json:"ImageName"`
+	Rootfs          string                 `json:"Rootfs"`
 	ResolvConfPath  string                 `json:"ResolvConfPath"`
 	HostnamePath    string                 `json:"HostnamePath"`
 	HostsPath       string                 `json:"HostsPath"`

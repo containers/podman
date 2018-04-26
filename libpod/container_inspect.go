@@ -70,6 +70,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		},
 		ImageID:         config.RootfsImageID,
 		ImageName:       config.RootfsImageName,
+		Rootfs:          config.Rootfs,
 		ResolvConfPath:  resolvPath,
 		HostnamePath:    hostnamePath,
 		HostsPath:       hostsPath,

@@ -197,6 +197,8 @@ type ContainerConfig struct {
 	// Information on the image used for the root filesystem/
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
+	// Rootfs to use for the container, this conflicts with RootfsImageID
+	Rootfs string `json:"rootfs,omitempty"`
 	// Whether to mount volumes specified in the image.
 	ImageVolumes bool `json:"imageVolumes"`
 	// Src path to be mounted on /dev/shm in container.

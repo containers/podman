@@ -56,6 +56,10 @@ var (
 // mutable layer, and the rest is the RootFS: the set of immutable layers
 // that make up the image on which the container is based.
 func (c *Container) rootFsSize() (int64, error) {
+	if c.config.Rootfs != "" {
+		return 0, nil
+	}
+
 	container, err := c.runtime.store.Container(c.ID())
 	if err != nil {
 		return 0, err
@@ -93,6 +97,18 @@ func (c *Container) rootFsSize() (int64, error) {
 
 // rwSize Gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
+	if c.config.Rootfs != "" {
+		var size int64
+		err := filepath.Walk(c.config.Rootfs, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			size += info.Size()
+			return nil
+		})
+		return size, err
+	}
+
 	container, err := c.runtime.store.Container(c.ID())
 	if err != nil {
 		return 0, err
@@ -205,7 +221,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
-	if c.config.RootfsImageID == "" || c.config.RootfsImageName == "" {
+	if c.config.Rootfs == "" && (c.config.RootfsImageID == "" || c.config.RootfsImageName == "") {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
@@ -691,9 +707,12 @@ func (c *Container) mountStorage() (err error) {
 		}
 	}
 
-	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
-	if err != nil {
-		return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+	mountPoint := c.config.Rootfs
+	if mountPoint == "" {
+		mountPoint, err = c.runtime.storageService.MountContainerImage(c.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+		}
 	}
 	c.state.Mounted = true
 	c.state.Mountpoint = mountPoint
@@ -795,6 +814,9 @@ func (c *Container) cleanupStorage() error {
 				logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 			}
 		}
+	}
+	if c.config.Rootfs != "" {
+		return nil
 	}
 
 	// Also unmount storage
@@ -1154,7 +1176,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 	}
 	// Bind builtin image volumes
-	if c.config.ImageVolumes {
+	if c.config.Rootfs == "" && c.config.ImageVolumes {
 		if err := c.addImageVolumes(ctx, &g); err != nil {
 			return nil, errors.Wrapf(err, "error mounting image volumes")
 		}
@@ -1235,8 +1257,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if err := idtools.MkdirAllAs(c.state.RealMountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
-		return nil, err
+	if c.config.Rootfs == "" {
+		if err := idtools.MkdirAllAs(c.state.RealMountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
+			return nil, err
+		}
 	}
 
 	g.SetRootPath(c.state.RealMountpoint)

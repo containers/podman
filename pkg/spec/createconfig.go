@@ -130,6 +130,7 @@ type CreateConfig struct {
 	ApparmorProfile    string               //SecurityOpts
 	SeccompProfilePath string               //SecurityOpts
 	SecurityOpts       []string
+	Rootfs             string
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
