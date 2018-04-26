@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"strings"
+
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
@@ -92,7 +94,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			Gateway:                "",                     // TODO
 			GlobalIPv6Addresses:    []string{},             // TODO - do we even support IPv6?
 			GlobalIPv6PrefixLen:    0,                      // TODO - do we even support IPv6?
-			IPAddress:              "",
+			IPAddress:              nil,
 			IPPrefixLen:            0,  // TODO
 			IPv6Gateway:            "", // TODO - do we even support IPv6?
 			MacAddress:             "", // TODO
@@ -106,13 +108,18 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 
 	// Get information on the container's network namespace (if present)
 	if runtimeInfo.NetNS != nil {
-		// Get IP address
-		ip, err := c.runtime.getContainerIP(c)
-		if err != nil {
-			logrus.Errorf("error getting container %q IP: %v", config.ID, err)
-		} else {
-			data.NetworkSettings.IPAddress = ip.To4().String()
+		// Go through our IP addresses
+		ctrIPs := []string{}
+
+		for _, ctrIP := range c.state.IPs {
+			if ctrIP.Version == "4" {
+				ipWithMask := ctrIP.Address.String()
+				splitIP := strings.Split(ipWithMask, "/")
+				ctrIPs = append(ctrIPs, splitIP[0])
+			}
 		}
+
+		data.NetworkSettings.IPAddress = ctrIPs
 
 		// Set network namespace path
 		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
