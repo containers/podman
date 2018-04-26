@@ -137,6 +137,12 @@ Control the format for the built image's manifest and configuration data.
 Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 *docker* (version 2, using schema format 2 for the manifest).
 
+**--isolation** [Not Supported]
+
+Buildah is not currently supported on Windows, and does not have a daemon.
+If you want to override the container isolation you can choose a different
+OCI Runtime, using the --runtime flag.
+
 **-m**, **--memory**=""
 
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
