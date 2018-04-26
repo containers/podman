@@ -127,10 +127,15 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir string) []rspec.Mount {
+func SecretMounts(mountLabel, containerWorkingDir string, mountFile []string) []rspec.Mount {
 	var secretMounts []rspec.Mount
 	// Add secrets from paths given in the mounts.conf files
-	for _, file := range []string{OverrideMountsFile, DefaultMountsFile} {
+	// mountFile will have a value if the hidden --default-mounts-file flag is set
+	// Note for testing purposes only
+	if len(mountFile) == 0 {
+		mountFile = append(mountFile, []string{OverrideMountsFile, DefaultMountsFile}...)
+	}
+	for _, file := range mountFile {
 		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir)
 		if err != nil {
 			logrus.Warnf("error mounting secrets, skipping: %v", err)

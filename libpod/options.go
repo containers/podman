@@ -186,6 +186,19 @@ func WithHooksDir(hooksDir string) RuntimeOption {
 	}
 }
 
+// WithDefaultMountsFile sets the file to look at for default mounts (mainly secrets)
+// Note we are not saving this in the database as it is for testing purposes only
+func WithDefaultMountsFile(mountsFile string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.DefaultMountsFile = []string{mountsFile}
+		return nil
+	}
+}
+
 // WithTmpDir sets the directory that temporary runtime files which are not
 // expected to survive across reboots will be stored
 // This should be located on a tmpfs mount (/tmp or /var/run for example)

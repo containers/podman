@@ -131,6 +131,8 @@ type RuntimeConfig struct {
 	CNIPluginDir []string `toml:"cni_plugin_dir"`
 	// HooksDir Path to the directory containing hooks configuration files
 	HooksDir string `toml:"hooks_dir"`
+	// DefaultMountsFile is the path to the default mounts file for testing purposes only
+	DefaultMountsFile []string `toml:"-"`
 }
 
 var (
