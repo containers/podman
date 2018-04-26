@@ -260,7 +260,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with secrets", func() {
-		containersDir := "/usr/share/containers"
+		containersDir := filepath.Join(podmanTest.TempDir, "containers")
 		err := os.MkdirAll(containersDir, 0755)
 		Expect(err).To(BeNil())
 
@@ -288,18 +288,15 @@ var _ = Describe("Podman run", func() {
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/run/secrets/test.txt"})
+		session := podmanTest.Podman([]string{"--default-mounts-file=" + mountsFile, "run", "--rm", ALPINE, "cat", "/run/secrets/test.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal(secretsString))
 
-		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/run/secrets/mysymlink"})
+		session = podmanTest.Podman([]string{"--default-mounts-file=" + mountsFile, "run", "--rm", ALPINE, "ls", "/run/secrets/mysymlink"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("key.pem"))
-
-		err = os.RemoveAll(containersDir)
-		Expect(err).To(BeNil())
 	})
 
 	It("podman run with FIPS mode secrets", func() {
