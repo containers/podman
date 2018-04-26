@@ -23,12 +23,11 @@ export PODMAN_HOST="unix:${TMPSTORAGE}/podman/io.projectatomic.podman"
 # Need a location to store the podman socket
 mkdir -p ${TMPSTORAGE}/podman
 
-systemd-cat -t podman -p notice bin/podman --version
+bin/podman --version
 
 set -x
 # Run podman in background without systemd for test purposes
-systemd-cat -t podman -p notice \
-  bin/podman --storage-driver=vfs --root=${TMPSTORAGE}/crio \
+bin/podman --storage-driver=vfs --root=${TMPSTORAGE}/crio \
   --runroot=${TMPSTORAGE}/crio-run varlink ${PODMAN_HOST} &
 
 ${PYTHON} -m unittest discover -s test/varlink/ $@
