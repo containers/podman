@@ -3,7 +3,7 @@
 # podman-diff "1" "August 2017" "podman"
 
 ## NAME
-podman diff - Inspect changes on a container or image's filesystem
+podman\-diff - Inspect changes on a container or image's filesystem
 
 ## SYNOPSIS
 **podman** **diff** [*options* [...]] NAME

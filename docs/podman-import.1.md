@@ -3,7 +3,7 @@
 # podman-import "1" "November 2017" "podman"
 
 ## NAME
-podman import - Import a tarball and save it as a filesystem image
+podman\-import - Import a tarball and save it as a filesystem image
 
 ## SYNOPSIS
 **podman import**

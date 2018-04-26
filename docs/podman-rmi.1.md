@@ -3,7 +3,7 @@
 # podman-rmi "1" "March 2017" "podman"
 
 ## NAME
-podman rmi - Removes one or more images
+podman\-rmi - Removes one or more images
 
 ## SYNOPSIS
 **podman** **rmi** **imageID [...]**

@@ -3,7 +3,7 @@
 # podman-start "1" "November 2017" "podman"
 
 ## NAME
-podman start - Start one or more containers
+podman\-start - Start one or more containers
 
 ## SYNOPSIS
 **podman start [OPTIONS] CONTAINER [...]**

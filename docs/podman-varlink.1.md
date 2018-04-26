@@ -3,7 +3,7 @@
 # podman-varlink "1" "April 2018" "podman"
 
 ## NAME
-podman varlink - Runs the varlink backend interface
+podman\-varlink - Runs the varlink backend interface
 
 ## SYNOPSIS
 **podman varlink**
