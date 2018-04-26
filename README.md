@@ -18,9 +18,9 @@ At a high level, we expect the scope of libpod/podman to be the following:
 
 ## What is not in scope for this project?
 
-* Building container images. See Buildah.
-* Signing and pushing images to various image storages.  See Skopeo.
-* Container Runtimes daemons for working with Kubernetes CRIs  See CRI-O.
+* Building container images. See [Buildah](https://github.com/projectatomic/buildah).
+* Signing and pushing images to various image storages. See [Skopeo](https://github.com/projectatomic/skopeo/).
+* Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-incubator/cri-o).
 
 ## OCI Projects Plans
 
