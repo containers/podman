@@ -3,7 +3,7 @@
 # podman-version "1" "July 2017" "podman"
 
 ## NAME
-podman version - Display the PODMAN Version Information
+podman\-version - Display the PODMAN Version Information
 
 ## SYNOPSIS
 **podman version**

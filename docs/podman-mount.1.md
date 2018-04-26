@@ -3,7 +3,7 @@
 # podman-mount "1" "July 2017" "podman"
 
 ## NAME
-podman mount - Mount a working container's root filesystem
+podman\-mount - Mount a working container's root filesystem
 
 ## SYNOPSIS
 **podman** **mount**

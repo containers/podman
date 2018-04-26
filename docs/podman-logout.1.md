@@ -3,7 +3,7 @@
 # podman-logout "1" "August 2017" "podman"
 
 ## NAME
-podman logout - Logout of a container registry
+podman\-logout - Logout of a container registry
 
 ## SYNOPSIS
 **podman logout**

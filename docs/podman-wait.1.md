@@ -3,7 +3,7 @@
 # podman-wait "1" "September 2017" "podman"
 
 ## NAME
-podman wait - Waits on one or more containers to stop and prints exit code
+podman\-wait - Waits on one or more containers to stop and prints exit code
 
 ## SYNOPSIS
 **podman wait**

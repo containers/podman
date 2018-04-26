@@ -3,7 +3,7 @@
 # podman-images "1" "March 2017" "podman"
 
 ## NAME
-podman images - List images in local storage
+podman\-images - List images in local storage
 
 ## SYNOPSIS
 **podman** **images** [*options* [...]]

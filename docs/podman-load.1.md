@@ -3,7 +3,7 @@
 # podman-load "1" "July 2017" "podman"
 
 ## NAME
-podman load - Load an image from docker archive
+podman\-load - Load an image from docker archive
 
 ## SYNOPSIS
 **podman load**

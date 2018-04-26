@@ -3,7 +3,7 @@
 # podman-stats "1" "July 2017" "podman"
 
 ## NAME
-podman stats - Display a live stream of 1 or more containers' resource usage statistics
+podman\-stats - Display a live stream of 1 or more containers' resource usage statistics
 
 ## SYNOPSIS
 **podman** **stats** [*options* [...]] [container]

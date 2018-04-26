@@ -3,7 +3,7 @@
 # podman-stop "1" "September 2017" "podman"
 
 ## NAME
-podman stop - Stop one or more containers
+podman\-stop - Stop one or more containers
 
 ## SYNOPSIS
 **podman stop [OPTIONS] CONTAINER [...]**

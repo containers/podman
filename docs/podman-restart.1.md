@@ -3,7 +3,7 @@
 # podman-restart "1" "March 2017" "podman"
 
 ## NAME
-podman restart - Restart a container
+podman\-restart - Restart a container
 
 ## SYNOPSIS
 **podman attach [OPTIONS] CONTAINER [CONTAINER...]**

@@ -3,7 +3,7 @@
 # podman-pause "1" "September 2017" "podman"
 
 ## NAME
-podman pause - Pause one or more containers
+podman\-pause - Pause one or more containers
 
 ## SYNOPSIS
 **podman pause [OPTIONS] CONTAINER [...]**

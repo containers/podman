@@ -3,7 +3,7 @@
 # podman-search "1" "January 2018" "podman"
 
 ## NAME
-podman search - Search a registry for an image
+podman\-search - Search a registry for an image
 
 ## SYNOPSIS
 **podman search**

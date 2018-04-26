@@ -3,7 +3,7 @@
 # podman-unpause "1" "September 2017" "podman"
 
 ## NAME
-podman unpause - Unpause one or more containers
+podman\-unpause - Unpause one or more containers
 
 ## SYNOPSIS
 **podman unpause [OPTIONS] CONTAINER [...]**

@@ -3,7 +3,7 @@
 % podman-version "1" "JULY 2017" "podman"
 
 ## NAME
-podman info - Display system information
+podman\-info - Display system information
 
 
 ## SYNOPSIS

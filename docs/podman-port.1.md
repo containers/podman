@@ -3,7 +3,7 @@
 # podman-port "1" "January 2018" "podman"
 
 ## NAME
-podman port - List port mappings for a container
+podman\-port - List port mappings for a container
 
 ## SYNOPSIS
 **podman port [OPTIONS] CONTAINER [PRIVATE_PORT[/PROTO]]**
