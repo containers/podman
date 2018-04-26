@@ -3,7 +3,7 @@
 # podman-kill"1" "September 2017" "podman"
 
 ## NAME
-podman kill - Kills one or more containers with a signal
+podman\-kill - Kills one or more containers with a signal
 
 ## SYNOPSIS
 **podman kill [OPTIONS] CONTAINER [...]**

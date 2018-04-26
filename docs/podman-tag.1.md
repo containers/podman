@@ -3,7 +3,7 @@
 # podman-tag "1" "July 2017" "podman"
 
 ## NAME
-podman tag - Add an additional name to a local image
+podman\-tag - Add an additional name to a local image
 
 ## SYNOPSIS
 **podman [GLOBAL OPTIONS] tag IMAGE[:TAG] TARGET_NAME[:TAG]**

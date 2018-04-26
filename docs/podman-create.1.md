@@ -2,7 +2,7 @@
 % Dan Walsh
 
 ## NAME
-podman create - Create a new container
+podman\-create - Create a new container
 
 ## SYNOPSIS
 **podman create** [*options* [...]] IMAGE [COMMAND] [ARG...]

@@ -2,7 +2,7 @@
 % Brent Baude
 
 ## NAME
-podman top - Display the running processes of a container
+podman\-top - Display the running processes of a container
 
 ## SYNOPSIS
 **podman top**

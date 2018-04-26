@@ -3,7 +3,7 @@
 # podman-cp "1" "August 2017" "podman"
 
 ## NAME
-podman cp - Copy files/folders between a container and the local filesystem
+podman\-cp - Copy files/folders between a container and the local filesystem
 
 ## Description
 We chose not to implement the `cp` feature in `podman` even though the upstream Docker

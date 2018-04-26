@@ -3,7 +3,7 @@
 # podman-inspect "1" "July 2017" "podman"
 
 ## NAME
-podman inspect - Display a container or image's configuration
+podman\-inspect - Display a container or image's configuration
 
 ## SYNOPSIS
 **podman** **inspect** [*options* [...]] name [...]

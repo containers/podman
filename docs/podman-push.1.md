@@ -3,7 +3,7 @@
 # podman-push "1" "June 2017" "podman"
 
 ## NAME
-podman push - Push an image from local storage to elsewhere
+podman\-push - Push an image from local storage to elsewhere
 
 ## SYNOPSIS
 **podman** **push** [*options* [...]] **imageID** [**destination**]

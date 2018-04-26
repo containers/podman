@@ -2,7 +2,7 @@
 % Dan Walsh
 
 ## NAME
-podman run - Run a command in a new container
+podman\-run - Run a command in a new container
 
 ## SYNOPSIS
 **podman run** [*options* [...]] IMAGE [COMMAND] [ARG...]

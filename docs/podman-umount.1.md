@@ -3,7 +3,7 @@
 # podman-umount "1" "July 2017" "podman"
 
 ## NAME
-podman umount - Unmount a working container's root file system
+podman\-umount - Unmount a working container's root file system
 
 ## SYNOPSIS
 **podman** **umount** **containerID**

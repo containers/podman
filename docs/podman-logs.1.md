@@ -3,7 +3,7 @@
 # podman-logs "1" "March 2017" "podman"
 
 ## NAME
-podman logs - Fetch the logs of a container
+podman\-logs - Fetch the logs of a container
 
 ## SYNOPSIS
 **podman** **logs** [*options* [...]] container

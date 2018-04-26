@@ -3,7 +3,7 @@
 # podman-rm "1" "August 2017" "podman"
 
 ## NAME
-podman rm - Remove one or more containers
+podman\-rm - Remove one or more containers
 
 ## SYNOPSIS
 **podman** **rm** [*options* [...]] container
