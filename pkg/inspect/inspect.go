@@ -199,7 +199,7 @@ type NetworkSettings struct {
 	Gateway                string               `json:"Gateway"`
 	GlobalIPv6Addresses    []string             `json:"GlobalIPv6Addresses"`
 	GlobalIPv6PrefixLen    int                  `json:"GlobalIPv6PrefixLen"`
-	IPAddress              string               `json:"IPAddress"`
+	IPAddress              []string             `json:"IPAddress"`
 	IPPrefixLen            int                  `json:"IPPrefixLen"`
 	IPv6Gateway            string               `json:"IPv6Gateway"`
 	MacAddress             string               `json:"MacAddress"`
