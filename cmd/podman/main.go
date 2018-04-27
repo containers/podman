@@ -8,6 +8,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/hooks"
+	_ "github.com/projectatomic/libpod/pkg/hooks/0.1.0"
 	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -136,7 +137,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "hooks-dir-path",
 			Usage:  "set the OCI hooks directory path",
-			Value:  hooks.DefaultHooksDir,
+			Value:  hooks.DefaultDir,
 			Hidden: true,
 		},
 		cli.StringFlag{

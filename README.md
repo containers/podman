@@ -37,8 +37,8 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 **[Installation notes](/install.md)**
 Information on how to install Podman in your environment.
 
-**[OCI Hooks Support](/hooks.md)**
-Information on how Podman configures OCI Hooks to run when launching a container.
+**[OCI Hooks Support](pkg/hooks/README.md)**
+Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
 **[Podman Commands](/commands.md)**
 A list of the Podman commands with links to their man pages and in many cases videos
@@ -64,3 +64,5 @@ Information about contributing to this project.
 1. Pod commands for Podman
 1. Rootless containers
 1. Support for cleaning up containers via post-run hooks
+
+[spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks

@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -1064,7 +1063,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if err := c.setupOCIHooks(&g); err != nil {
+	if err := c.setupOCIHooks(ctx, &g); err != nil {
 		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 	}
 	// Bind builtin image volumes
@@ -1283,58 +1282,15 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-// Add OCI hooks to a container's spec
-func (c *Container) setupOCIHooks(g *generate.Generator) error {
-	addedHooks := map[string]struct{}{}
-	ocihooks, err := hooks.SetupHooks(c.runtime.config.HooksDir)
+func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) error {
+	if c.runtime.config.HooksDir == "" {
+		return nil
+	}
+
+	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir})
 	if err != nil {
 		return err
 	}
-	addHook := func(hook hooks.HookParams) error {
-		// Only add a hook once
-		if _, ok := addedHooks[hook.Hook]; !ok {
-			if err := hooks.AddOCIHook(g, hook); err != nil {
-				return err
-			}
-			addedHooks[hook.Hook] = struct{}{}
-		}
-		return nil
-	}
-	for _, hook := range ocihooks {
-		logrus.Debugf("SetupOCIHooks", hook)
-		if hook.HasBindMounts && len(c.config.UserVolumes) > 0 {
-			if err := addHook(hook); err != nil {
-				return err
-			}
-			continue
-		}
-		for _, cmd := range hook.Cmds {
-			match, err := regexp.MatchString(cmd, c.config.Spec.Process.Args[0])
-			if err != nil {
-				logrus.Errorf("Invalid regex %q:%q", cmd, err)
-				continue
-			}
-			if match {
-				if err := addHook(hook); err != nil {
-					return err
-				}
-			}
-		}
-		annotations := c.Spec().Annotations
-		for _, annotationRegex := range hook.Annotations {
-			for _, annotation := range annotations {
-				match, err := regexp.MatchString(annotationRegex, annotation)
-				if err != nil {
-					logrus.Errorf("Invalid regex %q:%q", annotationRegex, err)
-					continue
-				}
-				if match {
-					if err := addHook(hook); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-	return nil
+
+	return manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
 }
