@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -69,6 +70,9 @@ func ReadDir(path string, hooks map[string]*current.Hook) error {
 		hook, err := Read(filepath.Join(path, file.Name()))
 		if err != nil {
 			if err == ErrNoJSONSuffix {
+				continue
+			}
+			if os.IsNotExist(err) {
 				continue
 			}
 			return err
