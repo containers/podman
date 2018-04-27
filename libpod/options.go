@@ -194,7 +194,10 @@ func WithDefaultMountsFile(mountsFile string) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.DefaultMountsFile = []string{mountsFile}
+		if mountsFile == "" {
+			return ErrInvalidArg
+		}
+		rt.config.DefaultMountsFile = mountsFile
 		return nil
 	}
 }
