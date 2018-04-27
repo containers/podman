@@ -455,7 +455,6 @@ func (c *Container) reinit(ctx context.Context) error {
 	if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
 		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
 	}
-
 	// Our state is now Configured, as we've removed ourself from
 	// the runtime
 	// Set and save now to make sure that, if the init() below fails
@@ -541,7 +540,6 @@ func (c *Container) start() error {
 	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
 		return err
 	}
-
 	logrus.Debugf("Started container %s", c.ID())
 
 	c.state.State = ContainerStateRunning
