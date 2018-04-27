@@ -1,3 +1,39 @@
+- Changelog for v0.4.4 (2018-04-27):
+  * Use buildah commit and bud in podman
+  * README: Link to CONTRIBUTING.md
+  * Remove systemd-cat support
+  * Refactor unittest for varlink component
+  * Update .gitignore for python work
+  * Modify secrets pkg
+  * varlink images
+  * Retrieve IP addresses for container from DB
+  * Add --default-mounts-file hidden flag
+  * Add isolation note to build man page
+  * Modify man pages so they compile correctly in mandb
+  * Strip transport from image name when looking for local image
+  * readme: improve formatting, add links
+  * updated epoch for bad dco
+  * Only generate the varlink glue code if needed and from the vendor dir
+  * Latest revendoring deleted the cmd dir in varlink
+  * Remove more Errorf in favor of Wrapf
+  * Do not eat error messages from pullImage
+  * Updated varlink vendored code
+  * Add unit files to the copr spec
+  * packagers need the varlink generated file
+  * Makefile; make podman depend on varlink_generate
+  * Modify --user flag for podman create and run
+  * Add some podman search test with filter
+  * Fix podman search no-trunc test
+  * Dusty would prefer it to be part of the release.
+  * Add FIPS mode secret
+  * Initial varlink implementation
+  * Add restart test with timeout
+  * Improve restart latest container test
+  * Add start time check for restart test
+  * add libpod.conf man page
+  * Add seconds after epoch to copr rpms to tie break versioning
+  * enable no test cache
+
 - Changelog for v0.4.3 (2018-04-20):
   * podman push without destination image
   * Add make .git target
