@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/buildah"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
@@ -20,6 +20,11 @@ var (
 		cli.StringSliceFlag{
 			Name:  "change, c",
 			Usage: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR",
+		},
+		cli.StringFlag{
+			Name:  "format, f",
+			Usage: "`format` of the image manifest and metadata",
+			Value: "oci",
 		},
 		cli.StringFlag{
 			Name:  "message, m",
@@ -63,11 +68,24 @@ func commitCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	var (
-		writer io.Writer
+		writer   io.Writer
+		mimeType string
 	)
 	args := c.Args()
 	if len(args) != 2 {
 		return errors.Errorf("you must provide a container name or ID and a target image name")
+	}
+
+	switch c.String("format") {
+	case "oci":
+		mimeType = buildah.OCIv1ImageManifest
+		if c.IsSet("message") {
+			return errors.Errorf("messages cannot be added to the OCIv1 image format.")
+		}
+	case "docker":
+		mimeType = buildah.Dockerv2ImageManifest
+	default:
+		return errors.Errorf("unrecognized image format %q", c.String("format"))
 	}
 	container := args[0]
 	reference := args[1]
@@ -90,9 +108,10 @@ func commitCmd(c *cli.Context) error {
 
 	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath: runtime.GetConfig().SignaturePolicyPath,
-		ReportWriter:        writer,
-		SystemContext:       sc,
+		SignaturePolicyPath:   runtime.GetConfig().SignaturePolicyPath,
+		ReportWriter:          writer,
+		SystemContext:         sc,
+		PreferredManifestType: mimeType,
 	}
 	options := libpod.ContainerCommitOptions{
 		CommitOptions: coptions,

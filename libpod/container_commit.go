@@ -2,11 +2,12 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	is "github.com/containers/image/storage"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod/buildah"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 )
@@ -52,9 +53,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		SignaturePolicyPath: options.SignaturePolicyPath,
 	}
 	commitOptions := buildah.CommitOptions{
-		SignaturePolicyPath: options.SignaturePolicyPath,
-		ReportWriter:        options.ReportWriter,
-		SystemContext:       sc,
+		SignaturePolicyPath:   options.SignaturePolicyPath,
+		ReportWriter:          options.ReportWriter,
+		SystemContext:         sc,
+		PreferredManifestType: options.PreferredManifestType,
 	}
 	importBuilder, err := buildah.ImportBuilder(ctx, c.runtime.store, builderOptions)
 	if err != nil {
@@ -68,6 +70,38 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		importBuilder.SetComment(options.Message)
 	}
 
+	// We need to take meta we find in the current container and
+	// add it to the resulting image.
+
+	// Entrypoint - always set this first or cmd will get wiped out
+	importBuilder.SetEntrypoint(c.Spec().Process.Args)
+	// Cmd
+	// We cannot differentiate between cmd and entrypoint here
+	// so we assign args to both
+	importBuilder.SetCmd(c.Spec().Process.Args)
+	// Env
+	for _, e := range c.config.Spec.Process.Env {
+		splitEnv := strings.Split(e, "=")
+		importBuilder.SetEnv(splitEnv[0], splitEnv[1])
+	}
+	// Expose ports
+	for _, p := range c.config.PortMappings {
+		importBuilder.SetPort(string(p.ContainerPort))
+	}
+	// Labels
+	for k, v := range c.Labels() {
+		importBuilder.SetLabel(k, v)
+	}
+	// No stop signal
+	// User
+	importBuilder.SetUser(c.User())
+	// Volumes
+	for _, v := range c.config.Spec.Mounts {
+		importBuilder.AddVolume(v.Source)
+	}
+	// Workdir
+	importBuilder.SetWorkDir(c.Spec().Process.Cwd)
+
 	// Process user changes
 	for _, change := range options.Changes {
 		splitChange := strings.Split(change, "=")
@@ -77,16 +111,20 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		case "ENTRYPOINT":
 			importBuilder.SetEntrypoint(splitChange[1:])
 		case "ENV":
+			importBuilder.ClearEnv()
 			importBuilder.SetEnv(splitChange[1], splitChange[2])
 		case "EXPOSE":
+			importBuilder.ClearPorts()
 			importBuilder.SetPort(splitChange[1])
 		case "LABEL":
+			importBuilder.ClearLabels()
 			importBuilder.SetLabel(splitChange[1], splitChange[2])
 		case "STOPSIGNAL":
 			// No Set StopSignal
 		case "USER":
 			importBuilder.SetUser(splitChange[1])
 		case "VOLUME":
+			importBuilder.ClearVolumes()
 			importBuilder.AddVolume(splitChange[1])
 		case "WORKDIR":
 			importBuilder.SetWorkDir(splitChange[1])
@@ -96,9 +134,9 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err != nil {
 		return nil, err
 	}
-
 	if err = importBuilder.Commit(ctx, imageRef, commitOptions); err != nil {
 		return nil, err
 	}
+	fmt.Println(importBuilder.Comment())
 	return c.runtime.imageRuntime.NewFromLocal(imageRef.DockerReference().String())
 }
