@@ -200,6 +200,10 @@ var createFlags = []cli.Flag{
 		Usage: "Expose a port or a range of ports (default [])",
 	},
 	cli.StringSliceFlag{
+		Name:  "gidmap",
+		Usage: "GID map",
+	},
+	cli.StringSliceFlag{
 		Name:  "group-add",
 		Usage: "Add additional groups to join (default [])",
 	},
@@ -357,6 +361,15 @@ var createFlags = []cli.Flag{
 		Name:  "storage-opt",
 		Usage: "Storage driver options per container (default [])",
 	},
+	cli.StringFlag{
+		Name:  "subgidname",
+		Usage: "Name of range listed in /etc/subgid for use in user namespace",
+	},
+	cli.StringFlag{
+		Name:  "subuidname",
+		Usage: "Name of range listed in /etc/subuid for use in user namespace",
+	},
+
 	cli.StringSliceFlag{
 		Name:  "sysctl",
 		Usage: "Sysctl options (default [])",
@@ -368,6 +381,10 @@ var createFlags = []cli.Flag{
 	cli.BoolFlag{
 		Name:  "tty, t",
 		Usage: "Allocate a pseudo-TTY for container",
+	},
+	cli.StringSliceFlag{
+		Name:  "uidmap",
+		Usage: "UID map",
 	},
 	cli.StringSliceFlag{
 		Name:  "ulimit",

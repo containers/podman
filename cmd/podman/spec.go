@@ -66,6 +66,13 @@ func addPidNS(config *createConfig, g *generate.Generator) error {
 	return nil
 }
 
+func addUserNS(config *createConfig, g *generate.Generator) error {
+	if (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost() {
+		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+	}
+	return nil
+}
+
 func addNetNS(config *createConfig, g *generate.Generator) error {
 	netMode := config.NetMode
 	if netMode.IsHost() {
@@ -160,6 +167,7 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g := generate.New()
 	g.HostSpecific = true
+	addCgroup := true
 	if config.Privileged {
 		cgroupPerm = "rw"
 		g.RemoveMount("/sys")
@@ -170,14 +178,27 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
+	} else if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+		addCgroup = false
+		g.RemoveMount("/sys")
+		sysMnt := spec.Mount{
+			Destination: "/sys",
+			Type:        "bind",
+			Source:      "/sys",
+			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+		}
+		g.AddMount(sysMnt)
 	}
-	cgroupMnt := spec.Mount{
-		Destination: "/sys/fs/cgroup",
-		Type:        "cgroup",
-		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+
+	if addCgroup {
+		cgroupMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+		}
+		g.AddMount(cgroupMnt)
 	}
-	g.AddMount(cgroupMnt)
 	g.SetProcessCwd(config.WorkDir)
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
@@ -257,6 +278,12 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 		}
 	}
 
+	for _, uidmap := range config.IDMappings.UIDMap {
+		g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+	}
+	for _, gidmap := range config.IDMappings.GIDMap {
+		g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+	}
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
@@ -297,6 +324,10 @@ func createConfigToOCISpec(config *createConfig) (*spec.Spec, error) {
 	}
 
 	if err := addPidNS(config, &g); err != nil {
+		return nil, err
+	}
+
+	if err := addUserNS(config, &g); err != nil {
 		return nil, err
 	}
 
@@ -659,8 +690,9 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}))
-		options = append(options, libpod.WithNetNS(portBindings))
+		postConfigureNetNS := (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
+		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}, postConfigureNetNS))
+		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS))
 	}
 
 	if c.PidMode.IsContainer() {

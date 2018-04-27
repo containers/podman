@@ -6,6 +6,7 @@ import (
 	units "github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
@@ -73,9 +74,15 @@ func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
 		if err != nil {
 		return nil, err
 		}
-		createConfig, err := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
+		createConfig, err := parseCreateOpts(c, runtime, "alpine")
 	*/
-	createConfig, err := parseCreateOpts(c, nil, "alpine", generateAlpineImageData())
+	runtime, err := libpodruntime.GetRuntime(c)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := getContext()
+	createConfig, err := parseCreateOpts(ctx, c, runtime, "alpine")
 	if err != nil {
 		return nil, err
 	}

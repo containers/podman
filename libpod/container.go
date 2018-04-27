@@ -174,6 +174,7 @@ type ContainerConfig struct {
 	// TODO consider breaking these subsections up into smaller structs
 
 	// Storage Config
+	IDMappings storage.IDMappingOptions
 	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
@@ -262,6 +263,12 @@ type ContainerConfig struct {
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
 	// TODO log options for log drivers
+
+	PostConfigureNetNS bool `json:"postConfigureNetNS"`
+
+	// UserNSRoot is the directory used as root for the container when using
+	// user namespaces.
+	UserNSRoot string `json:"userNSRoot,omitempty"`
 }
 
 // ContainerStatus returns a string representation for users
@@ -806,4 +813,24 @@ func (c *Container) RWSize() (int64, error) {
 		}
 	}
 	return c.rwSize()
+}
+
+// RootUID returns the root user mapping from container
+func (c *Container) RootUID() int {
+	for _, uidmap := range c.config.IDMappings.UIDMap {
+		if uidmap.ContainerID == 0 {
+			return uidmap.HostID
+		}
+	}
+	return 0
+}
+
+// RootGID returns the root user mapping from container
+func (c *Container) RootGID() int {
+	for _, gidmap := range c.config.IDMappings.GIDMap {
+		if gidmap.ContainerID == 0 {
+			return gidmap.HostID
+		}
+	}
+	return 0
 }
