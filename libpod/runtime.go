@@ -159,7 +159,7 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager: CgroupfsCgroupsManager,
-		HooksDir:      hooks.DefaultHooksDir,
+		HooksDir:      hooks.DefaultDir,
 		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:        "/var/run/libpod",
 		MaxLogSize:    -1,

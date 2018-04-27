@@ -1,0 +1,289 @@
+package hook
+
+import (
+	"fmt"
+	"testing"
+
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestNoMatch(t *testing.T) {
+	config := &rspec.Spec{}
+	for _, or := range []bool{true, false} {
+		t.Run(fmt.Sprintf("or %t", or), func(t *testing.T) {
+			when := When{Or: or}
+			match, err := when.Match(config, map[string]string{}, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, false, match)
+		})
+	}
+}
+
+func TestAlways(t *testing.T) {
+	config := &rspec.Spec{}
+	for _, always := range []bool{true, false} {
+		for _, or := range []bool{true, false} {
+			t.Run(fmt.Sprintf("always %t, or %t", always, or), func(t *testing.T) {
+				when := When{Always: &always, Or: or}
+				match, err := when.Match(config, map[string]string{}, false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				assert.Equal(t, always, match)
+			})
+		}
+	}
+}
+
+func TestHasBindMountsAnd(t *testing.T) {
+	hasBindMounts := true
+	when := When{HasBindMounts: &hasBindMounts}
+	config := &rspec.Spec{}
+	for _, containerHasBindMounts := range []bool{false, true} {
+		t.Run(fmt.Sprintf("%t", containerHasBindMounts), func(t *testing.T) {
+			match, err := when.Match(config, map[string]string{}, containerHasBindMounts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, containerHasBindMounts, match)
+		})
+	}
+}
+
+func TestHasBindMountsOr(t *testing.T) {
+	hasBindMounts := true
+	when := When{HasBindMounts: &hasBindMounts, Or: true}
+	config := &rspec.Spec{}
+	for _, containerHasBindMounts := range []bool{false, true} {
+		t.Run(fmt.Sprintf("%t", containerHasBindMounts), func(t *testing.T) {
+			match, err := when.Match(config, map[string]string{}, containerHasBindMounts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, containerHasBindMounts, match)
+		})
+	}
+}
+
+func TestAnnotations(t *testing.T) {
+	when := When{
+		Annotations: map[string]string{
+			"^a$": "^b$",
+			"^c$": "^d$",
+		},
+	}
+	config := &rspec.Spec{}
+	for _, test := range []struct {
+		name        string
+		annotations map[string]string
+		or          bool
+		match       bool
+	}{
+		{
+			name: "matching both, and",
+			annotations: map[string]string{
+				"a": "b",
+				"c": "d",
+				"e": "f",
+			},
+			or:    false,
+			match: true,
+		},
+		{
+			name: "matching one, and",
+			annotations: map[string]string{
+				"a": "b",
+			},
+			or:    false,
+			match: false,
+		},
+		{
+			name: "matching one, or",
+			annotations: map[string]string{
+				"a": "b",
+			},
+			or:    true,
+			match: true,
+		},
+		{
+			name: "key-only, or",
+			annotations: map[string]string{
+				"a": "bc",
+			},
+			or:    true,
+			match: false,
+		},
+		{
+			name: "value-only, or",
+			annotations: map[string]string{
+				"ac": "b",
+			},
+			or:    true,
+			match: false,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			when.Or = test.or
+			match, err := when.Match(config, test.annotations, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, test.match, match)
+		})
+	}
+}
+
+func TestCommands(t *testing.T) {
+	when := When{
+		Commands: []string{
+			"^/bin/sh$",
+		},
+	}
+	config := &rspec.Spec{Process: &rspec.Process{}}
+	for _, test := range []struct {
+		name  string
+		args  []string
+		match bool
+	}{
+		{
+			name:  "good",
+			args:  []string{"/bin/sh", "a", "b"},
+			match: true,
+		},
+		{
+			name:  "extra characters",
+			args:  []string{"/bin/shell", "a", "b"},
+			match: false,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config.Process.Args = test.args
+			match, err := when.Match(config, map[string]string{}, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, test.match, match)
+		})
+	}
+}
+
+func TestHasBindMountsAndCommands(t *testing.T) {
+	hasBindMounts := true
+	when := When{
+		HasBindMounts: &hasBindMounts,
+		Commands: []string{
+			"^/bin/sh$",
+		},
+	}
+	config := &rspec.Spec{Process: &rspec.Process{}}
+	for _, test := range []struct {
+		name          string
+		command       string
+		hasBindMounts bool
+		or            bool
+		match         bool
+	}{
+		{
+			name:          "both, and",
+			command:       "/bin/sh",
+			hasBindMounts: true,
+			or:            false,
+			match:         true,
+		},
+		{
+			name:          "both, and",
+			command:       "/bin/sh",
+			hasBindMounts: true,
+			or:            true,
+			match:         true,
+		},
+		{
+			name:          "bind, and",
+			command:       "/bin/shell",
+			hasBindMounts: true,
+			or:            false,
+			match:         false,
+		},
+		{
+			name:          "bind, or",
+			command:       "/bin/shell",
+			hasBindMounts: true,
+			or:            true,
+			match:         true,
+		},
+		{
+			name:          "command, and",
+			command:       "/bin/sh",
+			hasBindMounts: false,
+			or:            false,
+			match:         false,
+		},
+		{
+			name:          "command, or",
+			command:       "/bin/sh",
+			hasBindMounts: false,
+			or:            true,
+			match:         true,
+		},
+		{
+			name:          "neither, and",
+			command:       "/bin/shell",
+			hasBindMounts: false,
+			or:            false,
+			match:         false,
+		},
+		{
+			name:          "neither, or",
+			command:       "/bin/shell",
+			hasBindMounts: false,
+			or:            true,
+			match:         false,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config.Process.Args = []string{test.command}
+			when.Or = test.or
+			match, err := when.Match(config, map[string]string{}, test.hasBindMounts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, test.match, match)
+		})
+	}
+}
+
+func TestInvalidRegexp(t *testing.T) {
+	config := &rspec.Spec{Process: &rspec.Process{Args: []string{"/bin/sh"}}}
+	for _, test := range []struct {
+		name     string
+		when     When
+		expected string
+	}{
+		{
+			name:     "invalid-annotation-key",
+			when:     When{Annotations: map[string]string{"[": "a"}},
+			expected: "^annotation key: error parsing regexp: .*",
+		},
+		{
+			name:     "invalid-annotation-value",
+			when:     When{Annotations: map[string]string{"a": "["}},
+			expected: "^annotation value: error parsing regexp: .*",
+		},
+		{
+			name:     "invalid-command",
+			when:     When{Commands: []string{"["}},
+			expected: "^command: error parsing regexp: .*",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.when.Match(config, map[string]string{"a": "b"}, false)
+			if err == nil {
+				t.Fatal("unexpected success")
+			}
+			assert.Regexp(t, test.expected, err.Error())
+		})
+	}
+}

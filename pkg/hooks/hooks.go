@@ -1,141 +1,104 @@
+// Package hooks implements CRI-O's hook handling.
 package hooks
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
-	"syscall"
+	"sync"
 
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 )
+
+// Version is the current hook configuration version.
+const Version = current.Version
 
 const (
-	// DefaultHooksDir Default directory containing hooks config files
-	DefaultHooksDir = "/usr/share/containers/oci/hooks.d"
-	// OverrideHooksDir Directory where admin can override the default configuration
-	OverrideHooksDir = "/etc/containers/oci/hooks.d"
+	// DefaultDir is the default directory containing system hook configuration files.
+	DefaultDir = "/usr/share/containers/oci/hooks.d"
+
+	// OverrideDir is the directory for hook configuration files overriding the default entries.
+	OverrideDir = "/etc/containers/oci/hooks.d"
 )
 
-// HookParams is the structure returned from read the hooks configuration
-type HookParams struct {
-	Hook          string   `json:"hook"`
-	Stage         []string `json:"stage"`
-	Cmds          []string `json:"cmd"`
-	Annotations   []string `json:"annotation"`
-	HasBindMounts bool     `json:"hasbindmounts"`
-	Arguments     []string `json:"arguments"`
+// Manager provides an opaque interface for managing CRI-O hooks.
+type Manager struct {
+	hooks       map[string]*current.Hook
+	directories []string
+	lock        sync.Mutex
 }
 
-// readHook reads hooks json files, verifies it and returns the json config
-func readHook(hookPath string) (HookParams, error) {
-	var hook HookParams
-	raw, err := ioutil.ReadFile(hookPath)
-	if err != nil {
-		return hook, errors.Wrapf(err, "error Reading hook %q", hookPath)
-	}
-	if err := json.Unmarshal(raw, &hook); err != nil {
-		return hook, errors.Wrapf(err, "error Unmarshalling JSON for %q", hookPath)
-	}
-	if _, err := os.Stat(hook.Hook); err != nil {
-		return hook, errors.Wrapf(err, "unable to stat hook %q in hook config %q", hook.Hook, hookPath)
-	}
-	validStage := map[string]bool{"prestart": true, "poststart": true, "poststop": true}
-	for _, cmd := range hook.Cmds {
-		if _, err = regexp.Compile(cmd); err != nil {
-			return hook, errors.Wrapf(err, "invalid cmd regular expression %q defined in hook config %q", cmd, hookPath)
-		}
-	}
-	for _, cmd := range hook.Annotations {
-		if _, err = regexp.Compile(cmd); err != nil {
-			return hook, errors.Wrapf(err, "invalid cmd regular expression %q defined in hook config %q", cmd, hookPath)
-		}
-	}
-	for _, stage := range hook.Stage {
-		if !validStage[stage] {
-			return hook, errors.Wrapf(err, "unknown stage %q defined in hook config %q", stage, hookPath)
-		}
-	}
-	return hook, nil
-}
-
-// readHooks reads hooks json files in directory to setup OCI Hooks
-// adding hooks to the passedin hooks map.
-func readHooks(hooksPath string, hooks map[string]HookParams) error {
-	if _, err := os.Stat(hooksPath); err != nil {
-		if os.IsNotExist(err) {
-			logrus.Warnf("hooks path: %q does not exist", hooksPath)
-			return nil
-		}
-		return errors.Wrapf(err, "unable to stat hooks path %q", hooksPath)
+// New creates a new hook manager.  Directories are ordered by
+// increasing preference (hook configurations in later directories
+// override configurations with the same filename from earlier
+// directories).
+func New(ctx context.Context, directories []string) (manager *Manager, err error) {
+	manager = &Manager{
+		hooks:       map[string]*current.Hook{},
+		directories: directories,
 	}
 
-	files, err := ioutil.ReadDir(hooksPath)
-	if err != nil {
-		return err
-	}
-
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".json") {
-			continue
-		}
-		hook, err := readHook(filepath.Join(hooksPath, file.Name()))
+	for _, dir := range directories {
+		err = ReadDir(dir, manager.hooks)
 		if err != nil {
-			return err
-		}
-		for key, h := range hooks {
-			// hook.Hook can only be defined in one hook file, unless it has the
-			// same name in the override path.
-			if hook.Hook == h.Hook && key != file.Name() {
-				return errors.Wrapf(syscall.EINVAL, "duplicate path,  hook %q from %q already defined in %q", hook.Hook, hooksPath, key)
-			}
-		}
-		hooks[file.Name()] = hook
-	}
-	return nil
-}
-
-// SetupHooks takes a hookspath and reads all of the hooks in that directory.
-// returning a map of the configured hooks
-func SetupHooks(hooksPath string) (map[string]HookParams, error) {
-	hooksMap := make(map[string]HookParams)
-	if err := readHooks(hooksPath, hooksMap); err != nil {
-		return nil, err
-	}
-	if hooksPath == DefaultHooksDir {
-		if err := readHooks(OverrideHooksDir, hooksMap); err != nil {
 			return nil, err
 		}
 	}
 
-	return hooksMap, nil
+	return manager, nil
 }
 
-// AddOCIHook generates OCI specification using the included hook
-func AddOCIHook(g *generate.Generator, hook HookParams) error {
-	for _, stage := range hook.Stage {
-		h := spec.Hook{
-			Path: hook.Hook,
-			Args: append([]string{hook.Hook}, hook.Arguments...),
-			Env:  []string{fmt.Sprintf("stage=%s", stage)},
+// Hooks injects OCI runtime hooks for a given container configuration.
+func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (err error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	for name, hook := range m.hooks {
+		match, err := hook.When.Match(config, annotations, hasBindMounts)
+		if err != nil {
+			return errors.Wrapf(err, "matching hook %q", name)
 		}
-		logrus.Debugf("AddOCIHook", h)
-		switch stage {
-		case "prestart":
-			g.AddPreStartHook(h)
-
-		case "poststart":
-			g.AddPostStartHook(h)
-
-		case "poststop":
-			g.AddPostStopHook(h)
+		if match {
+			if config.Hooks == nil {
+				config.Hooks = &rspec.Hooks{}
+			}
+			for _, stage := range hook.Stages {
+				switch stage {
+				case "prestart":
+					config.Hooks.Prestart = append(config.Hooks.Prestart, hook.Hook)
+				case "poststart":
+					config.Hooks.Poststart = append(config.Hooks.Poststart, hook.Hook)
+				case "poststop":
+					config.Hooks.Poststop = append(config.Hooks.Poststop, hook.Hook)
+				default:
+					return fmt.Errorf("hook %q: unknown stage %q", name, stage)
+				}
+			}
 		}
 	}
+	return nil
+}
+
+// remove remove a hook by name.
+func (m *Manager) remove(hook string) (ok bool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	_, ok = m.hooks[hook]
+	if ok {
+		delete(m.hooks, hook)
+	}
+	return ok
+}
+
+// add adds a hook by path
+func (m *Manager) add(path string) (err error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	hook, err := Read(path)
+	if err != nil {
+		return err
+	}
+	m.hooks[filepath.Base(path)] = hook
 	return nil
 }
