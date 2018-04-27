@@ -115,9 +115,8 @@ commit automatically with `git commit -s`.
 
 ## Communications
 
-For general questions, or discussions, please use the
-IRC group on `irc.freenode.net` called `cri-o`
-that has been setup.
+For general questions and discussion, please use the
+IRC `#podman` channel on `irc.freenode.net`.
 
 For discussions around issues/bugs and features, you can use the github
 [issues](https://github.com/projectatomic/libpod/issues)

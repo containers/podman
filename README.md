@@ -50,11 +50,8 @@ includes tables showing Docker commands and their Podman equivalent commands.
 **[Tutorials](docs/tutorials)**
 Tutorials on the Podman utility.
 
-## Communication with Fellow Developers
-
-For async communication and long running discussions please use issues and pull requests on the github repo. This will be the best place to discuss design and implementation.
-
-For sync communication we have an IRC channel #PODMAN, on chat.freenode.net, that everyone is welcome to join and chat about development.
+**[Contributing](CONTRIBUTING.md)**
+Information about contributing to this project.
 
 ### Current Roadmap
 
