@@ -27,6 +27,10 @@ Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 Can be set multiple times
 
+**--iidfile** *ImageIDfile*
+
+Write the image ID to the file.
+
 **--message, -m**
 Set commit message for committed image
 
