@@ -138,7 +138,9 @@ ginkgo:
 
 localintegration: varlink_generate test-binaries
 	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
-	sh test/varlink/run_varlink_tests.sh
+	# Temporarily disabling these tests due to varlink issues
+	# in our CI environment
+	# bash test/varlink/run_varlink_tests.sh
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
@@ -250,8 +252,8 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 varlink_generate: .gopathok cmd/podman/varlink/ioprojectatomicpodman.go
 
-.PHONY: install.libseccomp
-install.libseccomp:
+.PHONY: install.libseccomp.sudo
+install.libseccomp.sudo:
 	rm -rf ../../seccomp/libseccomp
 	git clone https://github.com/seccomp/libseccomp ../../seccomp/libseccomp
 	cd ../../seccomp/libseccomp && git checkout $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
@@ -276,4 +278,4 @@ validate: gofmt .gitvalidation
 	shell \
 	changelog \
 	validate \
-	install.libseccomp
+	install.libseccomp.sudo

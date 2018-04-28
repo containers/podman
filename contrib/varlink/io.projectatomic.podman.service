@@ -5,7 +5,7 @@ After=io.projectatomic.podman.socket
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/podman --varlink=unix:/run/io.projectatomic.podman
+ExecStart=/usr/bin/podman varlink unix:/run/io.projectatomic.podman
 
 [Install]
 WantedBy=multi-user.target
