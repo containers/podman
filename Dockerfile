@@ -35,12 +35,13 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     netcat \
     socat \
+    python3-pip \
     --no-install-recommends \
     && apt-get clean
 
 ADD . /go/src/github.com/projectatomic/libpod
 
-RUN set -x && cd /go/src/github.com/projectatomic/libpod && make install.libseccomp
+RUN set -x && cd /go/src/github.com/projectatomic/libpod && make install.libseccomp.sudo
 
 # install criu
 ENV CRIU_VERSION 1.7
@@ -113,6 +114,9 @@ COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
+
+# Install python3 pip module
+RUN pip3 install varlink
 
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
