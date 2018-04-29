@@ -93,4 +93,12 @@ var _ = Describe("Podman save", func() {
 		Expect(save.ExitCode()).To(Equal(0))
 	})
 
+	It("podman save bad filename", func() {
+		outdir := filepath.Join(podmanTest.TempDir, "save:colon")
+
+		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
+		save.WaitWithDefaultTimeout()
+		Expect(save.ExitCode()).To(Not(Equal(0)))
+	})
+
 })

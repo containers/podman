@@ -16,6 +16,7 @@ podman\-load - Load an image from docker archive
 **podman load** copies an image from either **docker-archive** or **oci-archive** stored
 on the local machine. **podman load** reads from stdin by default or a file if the **input** flag is set.
 The **quiet** flag suppresses the output when set.
+Note: `:` is a restricted character and cannot be part of the file name.
 
 **podman [GLOBAL OPTIONS]**
 

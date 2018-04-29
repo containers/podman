@@ -816,3 +816,12 @@ func getLoggingPath(opts []string) string {
 	}
 	return ""
 }
+
+// validateFileName returns an error if filename contains ":"
+// as it is currently not supported
+func validateFileName(filename string) error {
+	if strings.Contains(filename, ":") {
+		return errors.Errorf("invalid filename (should not contain ':') %q", filename)
+	}
+	return nil
+}
