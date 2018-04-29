@@ -87,6 +87,9 @@ func saveCmd(c *cli.Context) error {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
 	}
+	if err := validateFileName(output); err != nil {
+		return err
+	}
 
 	var dst, manifestType string
 	switch c.String("format") {

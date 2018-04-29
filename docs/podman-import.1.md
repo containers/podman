@@ -18,6 +18,7 @@ podman\-import - Import a tarball and save it as a filesystem image
 and saves it as a filesystem image. Remote tarballs can be specified using a URL.
 Various image instructions can be configured with the **--change** flag and
 a commit message can be set using the **--message** flag.
+Note: `:` is a restricted character and cannot be part of the file name.
 
 **podman [GLOBAL OPTIONS]**
 

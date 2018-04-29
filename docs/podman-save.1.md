@@ -18,6 +18,7 @@ podman\-save - Save an image to docker-archive or oci-archive
 with oci manifest type), or **docker-dir** (directory with v2s2 manifest type) on the local machine,
 default is **docker-archive**. **podman save** writes to STDOUT by default and can be redirected to a
 file using the **output** flag. The **quiet** flag suppresses the output when set.
+Note: `:` is a restricted character and cannot be part of the file name.
 
 **podman [GLOBAL OPTIONS]**
 

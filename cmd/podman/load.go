@@ -93,6 +93,9 @@ func loadCmd(c *cli.Context) error {
 			input = outFile.Name()
 		}
 	}
+	if err := validateFileName(input); err != nil {
+		return err
+	}
 
 	var writer io.Writer
 	if !c.Bool("quiet") {
