@@ -77,4 +77,18 @@ var _ = Describe("Podman rmi", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring(": 80,"))
 	})
+
+	It("podman run network expose duplicate host port results in error", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80", ALPINE, "/bin/sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "-l"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		containerConfig := inspect.InspectContainerToJSON()
+		Expect(containerConfig[0].NetworkSettings.Ports[0].HostPort).ToNot(Equal("80"))
+	})
+
 })
