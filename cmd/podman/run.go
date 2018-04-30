@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -36,7 +35,6 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
-	var imageName string
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}
@@ -60,23 +58,7 @@ func runCmd(c *cli.Context) error {
 	}
 
 	ctx := getContext()
-
-	rtc := runtime.GetConfig()
-	newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
-	if err != nil {
-		return errors.Wrapf(err, "unable to find image")
-	}
-
-	data, err := newImage.Inspect(ctx)
-	if err != nil {
-		return err
-	}
-	if len(newImage.Names()) < 1 {
-		imageName = newImage.ID()
-	} else {
-		imageName = newImage.Names()[0]
-	}
-	createConfig, err := parseCreateOpts(c, runtime, imageName, data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, c.Args()[0])
 	if err != nil {
 		return err
 	}
@@ -101,6 +83,7 @@ func runCmd(c *cli.Context) error {
 	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
 	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
+	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
 
 	// Default used if not overridden on command line
 

@@ -96,7 +96,6 @@ has the capability to debug pods/images created by crio.
 
 ## FILES
 
-
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
 	libpod.conf is the configuration file for all tools using libpod to manage containers

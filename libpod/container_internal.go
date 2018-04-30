@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -190,7 +191,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel)
+	options := storage.ContainerOptions{IDMappingOptions: c.config.IDMappings}
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel, &options)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
@@ -201,6 +203,16 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.MkdirAll(artifacts, 0755); err != nil {
 		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
+	}
+
+	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
+		c.config.UserNSRoot, err = ioutil.TempDir("", fmt.Sprintf("libpod-%s", c.ID()))
+		if err != nil {
+			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
+		}
+		if err := os.Chown(c.config.UserNSRoot, c.RootUID(), c.RootGID()); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -220,9 +232,20 @@ func (c *Container) teardownStorage() error {
 	if err := os.RemoveAll(artifacts); err != nil {
 		return errors.Wrapf(err, "error removing artifacts %q", artifacts)
 	}
+	if c.config.UserNsCtr != "" {
+		if err := os.RemoveAll(c.config.UserNsCtr); err != nil {
+			return errors.Wrapf(err, "error removing dir %s", c.config.UserNsCtr)
+		}
+	}
 
 	if err := c.cleanupStorage(); err != nil {
 		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
+	}
+
+	if c.config.UserNSRoot != "" {
+		if err := os.RemoveAll(c.config.UserNSRoot); err != nil {
+			return errors.Wrapf(err, "error removing userns root %q", c.config.UserNSRoot)
+		}
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -411,6 +434,16 @@ func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container
 	return notRunning, nil
 }
 
+func (c *Container) completeNetworkSetup() error {
+	if !c.config.PostConfigureNetNS {
+		return nil
+	}
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+	return c.runtime.setupNetNS(c)
+}
+
 // Initialize a container, creating it in the runtime
 func (c *Container) init(ctx context.Context) error {
 	if err := c.makeBindMounts(); err != nil {
@@ -437,7 +470,11 @@ func (c *Container) init(ctx context.Context) error {
 
 	c.state.State = ContainerStateCreated
 
-	return c.save()
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	return c.completeNetworkSetup()
 }
 
 // Reinitialize a container
@@ -583,11 +620,18 @@ func (c *Container) mountStorage() (err error) {
 		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
 	}
 
+	if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+		return err
+	}
+
 	if !mounted {
 		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
 		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
 			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+		}
+		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+			return err
 		}
 	}
 
@@ -620,7 +664,7 @@ func (c *Container) prepare() (err error) {
 	}
 
 	// Set up network namespace if not already set up
-	if c.config.CreateNetNS && c.state.NetNS == nil {
+	if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
 		if err := c.runtime.createNetNS(c); err != nil {
 			// Tear down storage before exiting to make sure we
 			// don't leak mounts
@@ -696,6 +740,14 @@ func (c *Container) cleanup() error {
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
+	runDir := c.getRunDir()
+	if err := idtools.MkdirAllAs(runDir, 0700, c.RootUID(), c.RootGID()); err != nil {
+		return err
+	}
+	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "error chown %s", c.state.RunDir)
+	}
+
 	if c.state.BindMounts == nil {
 		c.state.BindMounts = make(map[string]string)
 	}
@@ -753,7 +805,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMounts(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile)
+	secretMounts := secrets.SecretMounts(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, runDir, c.RootUID(), c.RootGID())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -770,17 +822,19 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create %s", destFileName)
 	}
-
 	defer f.Close()
-	_, err = f.WriteString(output)
-	if err != nil {
+	if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
+		return "", err
+	}
+
+	if _, err := f.WriteString(output); err != nil {
 		return "", errors.Wrapf(err, "unable to write %s", destFileName)
 	}
 	// Relabel runDirResolv for the container
 	if err := label.Relabel(destFileName, c.config.MountLabel, false); err != nil {
 		return "", err
 	}
-	return destFileName, nil
+	return filepath.Join(c.getRunDir(), destFile), nil
 }
 
 type resolvConf struct {
@@ -898,6 +952,20 @@ func (c *Container) generateHosts() (string, error) {
 	return c.writeStringToRundir("hosts", hosts)
 }
 
+func (c *Container) getRunDir() string {
+	if c.config.UserNSRoot == "" {
+		return c.state.RunDir
+	}
+	return filepath.Join(c.config.UserNSRoot, "rundir")
+}
+
+func (c *Container) getUserNSMountpoint() string {
+	if c.config.UserNSRoot == "" {
+		return c.state.Mountpoint
+	}
+	return filepath.Join(c.config.UserNSRoot, "mountpoint")
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
@@ -905,7 +973,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
-		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+		if c.config.PostConfigureNetNS {
+			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, "")
+		} else {
+			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+		}
 	}
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
@@ -1009,7 +1081,12 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	g.SetRootPath(c.state.Mountpoint)
+	mountpoint := c.getUserNSMountpoint()
+	if err := idtools.MkdirAllAs(mountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
+		return nil, err
+	}
+
+	g.SetRootPath(mountpoint)
 	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 

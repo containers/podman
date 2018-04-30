@@ -8,7 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -186,6 +188,49 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
 func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
+	if ctr.config.UserNSRoot == "" {
+		// no need of an intermediate mount ns
+		return r.createOCIContainer(ctr, cgroupParent)
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		runtime.LockOSThread()
+
+		fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+		if err != nil {
+			return
+		}
+		defer fd.Close()
+
+		// create a new mountns on the current thread
+		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
+			return
+		}
+		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+
+		// don't spread our mounts around
+		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
+		if err != nil {
+			return
+		}
+		err = unix.Mount(ctr.state.Mountpoint, ctr.getUserNSMountpoint(), "none", unix.MS_BIND, "")
+		if err != nil {
+			return
+		}
+		err = unix.Mount(ctr.state.RunDir, ctr.getRunDir(), "none", unix.MS_BIND, "")
+		if err != nil {
+			return
+		}
+		err = r.createOCIContainer(ctr, cgroupParent)
+	}()
+	wg.Wait()
+
+	return err
+}
+
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 
 	parentPipe, childPipe, err := newPipe()

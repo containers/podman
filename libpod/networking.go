@@ -1,7 +1,12 @@
 package libpod
 
 import (
+	"crypto/rand"
+	"fmt"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -9,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
-	"strings"
+	"golang.org/x/sys/unix"
 )
 
 // Get an OCICNI network config
@@ -24,20 +29,7 @@ func getPodNetwork(id, name, nsPath string, ports []ocicni.PortMapping) ocicni.P
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (err error) {
-	ctrNS, err := ns.NewNS()
-	if err != nil {
-		return errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
-	}
-	defer func() {
-		if err != nil {
-			if err2 := ctrNS.Close(); err2 != nil {
-				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
-			}
-		}
-	}()
-
-	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
 	result, err := r.netPlugin.SetUpPod(podNetwork)
@@ -72,6 +64,57 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 		}
 	}
 	return nil
+}
+
+// Create and configure a new network namespace for a container
+func (r *Runtime) createNetNS(ctr *Container) (err error) {
+	ctrNS, err := ns.NewNS()
+	if err != nil {
+		return errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
+	}
+	defer func() {
+		if err != nil {
+			if err2 := ctrNS.Close(); err2 != nil {
+				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
+			}
+		}
+	}()
+
+	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
+	return r.configureNetNS(ctr, ctrNS)
+}
+
+// Configure the network namespace using the container process
+func (r *Runtime) setupNetNS(ctr *Container) (err error) {
+	nsProcess := fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
+
+	b := make([]byte, 16)
+
+	if _, err := rand.Reader.Read(b); err != nil {
+		return errors.Wrapf(err, "failed to generate random netns name")
+	}
+
+	nsPath := fmt.Sprintf("/var/run/netns/cni-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+
+	if err := os.MkdirAll(filepath.Dir(nsPath), 0711); err != nil {
+		return errors.Wrapf(err, "cannot create %s", filepath.Dir(nsPath))
+	}
+
+	mountPointFd, err := os.Create(nsPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", nsPath)
+	}
+	mountPointFd.Close()
+
+	if err := unix.Mount(nsProcess, nsPath, "none", unix.MS_BIND, ""); err != nil {
+		return errors.Wrapf(err, "cannot mount %s", nsPath)
+	}
+
+	netNS, err := ns.GetNS(nsPath)
+	if err != nil {
+		return err
+	}
+	return r.configureNetNS(ctr, netNS)
 }
 
 // iptablesDNS accepts an arg (-I|-D) and IP address of the container and then

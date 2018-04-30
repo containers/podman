@@ -1072,6 +1072,7 @@ _podman_container_run() {
 		--env -e
 		--env-file
 		--expose
+		--gidmap
 		--group-add
 		--hostname -h
 		--image-volume
@@ -1103,7 +1104,10 @@ _podman_container_run() {
 		--stop-signal
 		--stop-timeout
 		--tmpfs
+		--subgidname
+		--subuidname
 		--sysctl
+		--uidmap
 		--ulimit
 		--user -u
 		--userns

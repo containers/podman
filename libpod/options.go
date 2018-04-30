@@ -455,6 +455,18 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 	}
 }
 
+// WithIDMappings sets the idmappsings for the container
+func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.IDMappings = idmappings
+		return nil
+	}
+}
+
 // WithIPCNSFrom indicates the the container should join the IPC namespace of
 // the given container
 // If the container has joined a pod, it can only join the namespaces of
@@ -691,7 +703,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration
 // An optional array of port mappings can be provided
 // Conflicts with WithNetNSFrom()
-func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
+func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
@@ -701,6 +713,7 @@ func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "container is already set to join another container's net ns, cannot create a new net ns")
 		}
 
+		ctr.config.PostConfigureNetNS = postConfigureNetNS
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
 
