@@ -110,4 +110,26 @@ var _ = Describe("Podman commit", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 	})
+
+	It("podman commit with volume mounts", func() {
+		s := podmanTest.Podman([]string{"run", "--name", "test1", "-v", "/tmp:/foo", "alpine", "date"})
+		s.WaitWithDefaultTimeout()
+		Expect(s.ExitCode()).To(Equal(0))
+
+		c := podmanTest.Podman([]string{"commit", "test1", "newimage"})
+		c.WaitWithDefaultTimeout()
+		Expect(c.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "newimage"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		image := inspect.InspectImageJSON()
+		_, ok := image[0].ContainerConfig.Volumes["/tmp"]
+		Expect(ok).To(BeTrue())
+
+		r := podmanTest.Podman([]string{"run", "newimage"})
+		r.WaitWithDefaultTimeout()
+		Expect(r.ExitCode()).To(Equal(0))
+	})
+
 })
