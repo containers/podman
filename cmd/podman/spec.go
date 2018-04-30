@@ -652,6 +652,10 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		}
 	}
 
+	if len(c.Volumes) != 0 {
+		options = append(options, libpod.WithUserVolumes())
+	}
+
 	if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {

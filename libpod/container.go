@@ -190,6 +190,10 @@ type ContainerConfig struct {
 	// These include the SHM mount
 	// These must be unmounted before the container's rootfs is unmounted
 	Mounts []string `json:"mounts,omitempty"`
+	// UserVolumes indicates that the container has user-added volume mounts
+	// It is used to trigger OCI hooks that rely on the presence of user
+	// volumes
+	UserVolumes bool `json:"userVolumes, omitempty"`
 
 	// Security Config
 	// Whether the container is privileged
