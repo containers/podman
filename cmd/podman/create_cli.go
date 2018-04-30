@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/pkg/sysinfo"
@@ -97,6 +98,9 @@ func parseVolumes(volumes []string) error {
 }
 
 func validateVolumeHostDir(hostDir string) error {
+	if !filepath.IsAbs(hostDir) {
+		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
+	}
 	if _, err := os.Stat(hostDir); err != nil {
 		return errors.Wrapf(err, "error checking path %q", hostDir)
 	}
@@ -104,8 +108,8 @@ func validateVolumeHostDir(hostDir string) error {
 }
 
 func validateVolumeCtrDir(ctrDir string) error {
-	if ctrDir[0] != '/' {
-		return errors.Errorf("invalid container directory path %q", ctrDir)
+	if !filepath.IsAbs(ctrDir) {
+		return errors.Errorf("invalid container path, must be an absolute path %q", ctrDir)
 	}
 	return nil
 }
