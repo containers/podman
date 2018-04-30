@@ -148,6 +148,8 @@ func getPathToAuth(sys *types.SystemContext) (string, error) {
 			// or made a typo while setting the environment variable
 			// so we log the error and return an empty string as the path
 			return "", errors.Wrapf(err, "%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.", runtimeDir)
+		} else if (err != nil) {
+			return "", err
 		}
 		runtimeDir = filepath.Join(runtimeDir, authCfg)
 	} else {
