@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type dockerAuthConfig struct {
@@ -64,11 +65,17 @@ func GetAuthentication(sys *types.SystemContext, registry string) (string, strin
 	}
 
 	dockerLegacyPath := filepath.Join(homedir.Get(), dockerLegacyCfg)
+	var paths []string
 	pathToAuth, err := getPathToAuth(sys)
-	if err != nil {
-		return "", "", err
+	if err == nil {
+		paths = append(paths, pathToAuth)
+	} else {
+		// Error means that the path set for XDG_RUNTIME_DIR does not exist
+		// but we don't want to completely fail in the case that the user is pulling a public image
+		// Logging the error as a warning instead and moving on to pulling the image
+		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
 	}
-	paths := [3]string{pathToAuth, filepath.Join(homedir.Get(), dockerCfg, dockerCfgFileName), dockerLegacyPath}
+	paths = append(paths, filepath.Join(homedir.Get(), dockerCfg, dockerCfgFileName), dockerLegacyPath)
 
 	for _, path := range paths {
 		legacyFormat := path == dockerLegacyPath
