@@ -26,7 +26,7 @@ type ContainerCommitOptions struct {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
+func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions, mounts, command, entryPoint []string) (*image.Image, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -74,11 +74,15 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// add it to the resulting image.
 
 	// Entrypoint - always set this first or cmd will get wiped out
-	importBuilder.SetEntrypoint(c.Spec().Process.Args)
+	if len(entryPoint) > 0 {
+		importBuilder.SetEntrypoint(entryPoint)
+	}
+
 	// Cmd
-	// We cannot differentiate between cmd and entrypoint here
-	// so we assign args to both
-	importBuilder.SetCmd(c.Spec().Process.Args)
+	if len(command) > 0 {
+		importBuilder.SetCmd(command)
+	}
+
 	// Env
 	for _, e := range c.config.Spec.Process.Env {
 		splitEnv := strings.Split(e, "=")
@@ -96,8 +100,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// User
 	importBuilder.SetUser(c.User())
 	// Volumes
-	for _, v := range c.config.Spec.Mounts {
-		importBuilder.AddVolume(v.Source)
+	for _, v := range mounts {
+		if v != "" {
+			importBuilder.AddVolume(v)
+		}
 	}
 	// Workdir
 	importBuilder.SetWorkDir(c.Spec().Process.Cwd)
