@@ -138,7 +138,7 @@ ginkgo:
 
 localintegration: varlink_generate test-binaries
 	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
-	sh test/varlink/run_varlink_tests.sh
+	test/varlink/run_varlink_tests.sh
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
