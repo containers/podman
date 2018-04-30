@@ -741,42 +741,6 @@ func WithCgroupParent(parent string) CtrCreateOption {
 	}
 }
 
-// Pod Creation Options
-
-// WithPodName sets the name of the pod
-func WithPodName(name string) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return ErrPodFinalized
-		}
-
-		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
-		}
-
-		pod.config.Name = name
-
-		return nil
-	}
-}
-
-// WithPodLabels sets the labels of a pod
-func WithPodLabels(labels map[string]string) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return ErrPodFinalized
-		}
-
-		pod.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			pod.config.Labels[key] = value
-		}
-
-		return nil
-	}
-}
-
 // WithDNSSearch sets the additional search domains of a container
 func WithDNSSearch(searchDomains []string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -847,6 +811,55 @@ func WithGroups(groups []string) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 		ctr.config.Groups = groups
+		return nil
+	}
+}
+
+// WithUserVolumes informs libpod that the container has user-added volumes
+// It is used to for triggering hooks that check for the presence of volume
+// mounts
+func WithUserVolumes() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.UserVolumes = true
+		return nil
+	}
+}
+
+// Pod Creation Options
+
+// WithPodName sets the name of the pod
+func WithPodName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		// Check the name against a regex
+		if !nameRegex.MatchString(name) {
+			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+		}
+
+		pod.config.Name = name
+
+		return nil
+	}
+}
+
+// WithPodLabels sets the labels of a pod
+func WithPodLabels(labels map[string]string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.Labels = make(map[string]string)
+		for key, value := range labels {
+			pod.config.Labels[key] = value
+		}
+
 		return nil
 	}
 }
