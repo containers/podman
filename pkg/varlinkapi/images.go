@@ -92,15 +92,23 @@ func (i *LibpodAPI) HistoryImage(call ioprojectatomicpodman.VarlinkCall, name st
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	var histories []ioprojectatomicpodman.ImageHistory
-	for i, h := range history {
+	var (
+		histories []ioprojectatomicpodman.ImageHistory
+		count     = 1
+	)
+	for i := len(history) - 1; i >= 0; i-- {
+		var size int64
+		if !history[i].EmptyLayer {
+			size = layerInfos[len(layerInfos)-count].Size
+			count++
+		}
 		imageHistory := ioprojectatomicpodman.ImageHistory{
 			Id:        newImage.ID(),
-			Created:   h.Created.String(),
-			CreatedBy: h.CreatedBy,
+			Created:   history[i].Created.String(),
+			CreatedBy: history[i].CreatedBy,
 			Tags:      newImage.Names(),
-			Size:      layerInfos[i].Size,
-			Comment:   h.Comment,
+			Size:      size,
+			Comment:   history[i].Comment,
 		}
 		histories = append(histories, imageHistory)
 	}
@@ -165,7 +173,7 @@ func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name str
 	if err := newImage.Remove(force); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyRemoveImage()
+	return call.ReplyRemoveImage(newImage.ID())
 }
 
 // SearchImage searches all registries configured in /etc/containers/registries.conf for an image
