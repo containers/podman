@@ -18,7 +18,7 @@ var (
 
 // Runtime Creation Options
 
-// WithStorageConfig uses the given configuration to set up container storage
+// WithStorageConfig uses the given configuration to set up container storage.
 // If this is not specified, the system default configuration will be used
 // instead.
 func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
@@ -74,8 +74,8 @@ func WithSignaturePolicy(path string) RuntimeOption {
 	}
 }
 
-// WithStateType sets the backing state implementation for libpod
-// Please note that information is not portable between backing states
+// WithStateType sets the backing state implementation for libpod.
+// Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
 // they will not share containers, and unspecified behavior may occur.
 func WithStateType(storeType RuntimeStateStore) RuntimeOption {
