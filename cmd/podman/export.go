@@ -56,6 +56,9 @@ func exportCmd(c *cli.Context) error {
 			return errors.Errorf("refusing to export to terminal. Use -o flag or redirect")
 		}
 	}
+	if err := validateFileName(output); err != nil {
+		return err
+	}
 
 	ctr, err := runtime.LookupContainer(args[0])
 	if err != nil {

@@ -3,9 +3,10 @@ package integration
 import (
 	"os"
 
+	"path/filepath"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"path/filepath"
 )
 
 var _ = Describe("Podman export", func() {
@@ -42,5 +43,15 @@ var _ = Describe("Podman export", func() {
 
 		err = os.Remove(outfile)
 		Expect(err).To(BeNil())
+	})
+
+	It("podman export bad filename", func() {
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		outfile := filepath.Join(podmanTest.TempDir, "container:with:colon.tar")
+		result := podmanTest.Podman([]string{"export", "-o", outfile, cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Not(Equal(0)))
 	})
 })

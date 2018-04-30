@@ -75,6 +75,10 @@ func importCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
 	}
 
+	if err := validateFileName(source); err != nil {
+		return err
+	}
+
 	changes := v1.ImageConfig{}
 	if c.IsSet("change") {
 		changes, err = util.GetImageConfig(c.StringSlice("change"))
