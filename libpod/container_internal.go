@@ -1125,6 +1125,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
+// Add OCI hooks to a container's spec
 func (c *Container) setupOCIHooks(g *generate.Generator) error {
 	addedHooks := map[string]struct{}{}
 	ocihooks, err := hooks.SetupHooks(c.runtime.config.HooksDir)
@@ -1143,7 +1144,7 @@ func (c *Container) setupOCIHooks(g *generate.Generator) error {
 	}
 	for _, hook := range ocihooks {
 		logrus.Debugf("SetupOCIHooks", hook)
-		if hook.HasBindMounts && len(c.config.Spec.Mounts) > 0 {
+		if hook.HasBindMounts && c.config.UserVolumes {
 			if err := addHook(hook); err != nil {
 				return err
 			}
