@@ -46,6 +46,7 @@ type containerImageRef struct {
 	dconfig               []byte
 	created               time.Time
 	createdBy             string
+	historyComment        string
 	annotations           map[string]string
 	preferredManifestType string
 	exporting             bool
@@ -303,6 +304,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		Created:    &i.created,
 		CreatedBy:  i.createdBy,
 		Author:     oimage.Author,
+		Comment:    i.historyComment,
 		EmptyLayer: false,
 	}
 	oimage.History = append(oimage.History, onews)
@@ -310,6 +312,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		Created:    i.created,
 		CreatedBy:  i.createdBy,
 		Author:     dimage.Author,
+		Comment:    i.historyComment,
 		EmptyLayer: false,
 	}
 	dimage.History = append(dimage.History, dnews)
@@ -521,6 +524,7 @@ func (b *Builder) makeImageRef(manifestType string, exporting bool, compress arc
 		dconfig:               dconfig,
 		created:               created,
 		createdBy:             b.CreatedBy(),
+		historyComment:        b.HistoryComment(),
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,
 		exporting:             exporting,
