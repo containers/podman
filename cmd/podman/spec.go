@@ -653,8 +653,17 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	}
 
 	if len(c.Volumes) != 0 {
-		options = append(options, libpod.WithUserVolumes())
+		options = append(options, libpod.WithUserVolumes(c.Volumes))
 	}
+
+	if len(c.Command) != 0 {
+		options = append(options, libpod.WithCommand(c.Command))
+	}
+
+	// Add entrypoint unconditionally
+	// If it's empty it's because it was explicitly set to "" or the image
+	// does not have one
+	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
 
 	if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())

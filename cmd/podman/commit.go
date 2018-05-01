@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -121,17 +120,7 @@ func commitCmd(c *cli.Context) error {
 		Changes:       c.StringSlice("change"),
 		Author:        c.String("author"),
 	}
-	var createArtifact createConfig
-	artifact, err := ctr.GetArtifact("create-config")
-	if err == nil {
-		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-			return err
-		}
-	}
-	mounts := getMounts(createArtifact.Volumes, true)
-	command := createArtifact.Command
-	entryPoint := createArtifact.Entrypoint
-	newImage, err := ctr.Commit(getContext(), reference, options, strings.Split(mounts, ","), command, entryPoint)
+	newImage, err := ctr.Commit(getContext(), reference, options)
 	if err != nil {
 		return err
 	}

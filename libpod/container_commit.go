@@ -26,7 +26,7 @@ type ContainerCommitOptions struct {
 
 // Commit commits the changes between a container and its image, creating a new
 // image
-func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions, mounts, command, entryPoint []string) (*image.Image, error) {
+func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -74,14 +74,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// add it to the resulting image.
 
 	// Entrypoint - always set this first or cmd will get wiped out
-	if len(entryPoint) > 0 {
-		importBuilder.SetEntrypoint(entryPoint)
-	}
+	importBuilder.SetEntrypoint(c.config.Entrypoint)
 
 	// Cmd
-	if len(command) > 0 {
-		importBuilder.SetCmd(command)
-	}
+	importBuilder.SetCmd(c.config.Command)
 
 	// Env
 	for _, e := range c.config.Spec.Process.Env {
@@ -100,7 +96,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// User
 	importBuilder.SetUser(c.User())
 	// Volumes
-	for _, v := range mounts {
+	for _, v := range c.config.UserVolumes {
 		if v != "" {
 			importBuilder.AddVolume(v)
 		}

@@ -198,6 +198,10 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
 
+	// Set the default Entrypoint and Command
+	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
+	c.config.Command = containerInfo.Config.Config.Cmd
+
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.MkdirAll(artifacts, 0755); err != nil {
 		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
@@ -1144,7 +1148,7 @@ func (c *Container) setupOCIHooks(g *generate.Generator) error {
 	}
 	for _, hook := range ocihooks {
 		logrus.Debugf("SetupOCIHooks", hook)
-		if hook.HasBindMounts && c.config.UserVolumes {
+		if hook.HasBindMounts && len(c.config.UserVolumes) > 0 {
 			if err := addHook(hook); err != nil {
 				return err
 			}

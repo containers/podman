@@ -8,6 +8,7 @@ import (
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +30,7 @@ func getStorageService(store storage.Store) (*storageService, error) {
 type ContainerInfo struct {
 	Dir    string
 	RunDir string
+	Config *v1.Image
 }
 
 // RuntimeContainerMetadata is the structure that we encode as JSON and store
@@ -65,7 +67,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	if containerName == "" {
 		return ContainerInfo{}, ErrEmptyID
 	}
-	//// Check if we have the specified image.
+	// Check if we have the specified image.
 	ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
 	if err != nil {
 		return ContainerInfo{}, err
@@ -80,6 +82,12 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 		return ContainerInfo{}, err
 	}
 	defer image.Close()
+
+	// Get OCI configuration of image
+	imageConfig, err := image.OCIConfig(ctx)
+	if err != nil {
+		return ContainerInfo{}, err
+	}
 
 	// Update the image name and ID.
 	if imageName == "" && len(img.Names) > 0 {
@@ -159,6 +167,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	return ContainerInfo{
 		Dir:    containerDir,
 		RunDir: containerRunDir,
+		Config: imageConfig,
 	}, nil
 }
 
