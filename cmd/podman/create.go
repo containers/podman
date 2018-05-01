@@ -371,24 +371,45 @@ func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[na
 			if err != nil {
 				return nil, err
 			}
-			l, err := net.Listen("tcp", ":0")
+			rp, err := getRandomPort()
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to get free port")
+				return nil, err
 			}
-			defer l.Close()
-			_, randomPort, err := net.SplitHostPort(l.Addr().String())
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to determine free port")
-			}
-			rp, err := strconv.Atoi(randomPort)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to convert random port to int")
-			}
-			logrus.Debug(fmt.Sprintf("Using random host port %s with container port %d", randomPort, p.Int()))
+			logrus.Debug(fmt.Sprintf("Using random host port %d with container port %d", rp, p.Int()))
 			portBindings[p] = CreatePortBinding(rp, "")
 		}
 	}
+
+	// We need to see if any host ports are not populated and if so, we need to assign a
+	// random port to them.
+	for k, pb := range portBindings {
+		if pb[0].HostPort == "" {
+			hostPort, err := getRandomPort()
+			if err != nil {
+				return nil, err
+			}
+			logrus.Debug(fmt.Sprintf("Using random host port %d with container port %s", hostPort, k.Port()))
+			pb[0].HostPort = strconv.Itoa(hostPort)
+		}
+	}
 	return portBindings, nil
+}
+
+func getRandomPort() (int, error) {
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return 0, errors.Wrapf(err, "unable to get free port")
+	}
+	defer l.Close()
+	_, randomPort, err := net.SplitHostPort(l.Addr().String())
+	if err != nil {
+		return 0, errors.Wrapf(err, "unable to determine free port")
+	}
+	rp, err := strconv.Atoi(randomPort)
+	if err != nil {
+		return 0, errors.Wrapf(err, "unable to convert random port to int")
+	}
+	return rp, nil
 }
 
 // Parses CLI options related to container creation into a config which can be
