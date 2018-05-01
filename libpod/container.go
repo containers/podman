@@ -473,6 +473,40 @@ func (c *Container) HostsAdd() []string {
 	return c.config.HostAdd
 }
 
+// UserVolumes returns user-added volume mounts in the container.
+// These are not added to the spec, but are used during image commit and to
+// trigger some OCI hooks.
+func (c *Container) UserVolumes() []string {
+	volumes := make([]string, 0, len(c.config.UserVolumes))
+	for _, vol := range c.config.UserVolumes {
+		volumes = append(volumes, vol)
+	}
+
+	return volumes
+}
+
+// Entrypoint is the container's entrypoint.
+// This is not added to the spec, but is instead used during image commit.
+func (c *Container) Entrypoint() []string {
+	entrypoint := make([]string, 0, len(c.config.Entrypoint))
+	for _, str := range c.config.Entrypoint {
+		entrypoint = append(entrypoint, str)
+	}
+
+	return entrypoint
+}
+
+// Command is the container's command
+// This is not added to the spec, but is instead used during image commit
+func (c *Container) Command() []string {
+	command := make([]string, 0, len(c.config.Command))
+	for _, str := range c.config.Command {
+		command = append(command, str)
+	}
+
+	return command
+}
+
 // Stdin returns whether STDIN on the container will be kept open
 func (c *Container) Stdin() bool {
 	return c.config.Stdin
