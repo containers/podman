@@ -653,7 +653,16 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	}
 
 	if len(c.Volumes) != 0 {
-		options = append(options, libpod.WithUserVolumes(c.Volumes))
+		// Volumes consist of multiple, comma-delineated fields
+		// The image spec only includes one part of that, so drop the
+		// others, if they are included
+		volumes := make([]string, 0, len(c.Volumes))
+		for _, vol := range c.Volumes {
+			splitVol := strings.Split(vol, ":")
+			volumes = append(volumes, splitVol[0])
+		}
+
+		options = append(options, libpod.WithUserVolumes(volumes))
 	}
 
 	if len(c.Command) != 0 {
