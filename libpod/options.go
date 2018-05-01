@@ -821,15 +821,67 @@ func WithGroups(groups []string) CtrCreateOption {
 	}
 }
 
-// WithUserVolumes informs libpod that the container has user-added volumes.
-// It is used to for triggering hooks that check for the presence of volume
-// mounts.
-func WithUserVolumes() CtrCreateOption {
+// WithUserVolumes sets the user-added volumes of the container.
+// These are not added to the container's spec, but will instead be used during
+// commit to populate the volumes of the new image, and to trigger some OCI
+// hooks that are only added if volume mounts are present.
+// Unless explicitly set, committed images will have no volumes.
+// The given volumes slice must not be nil.
+func WithUserVolumes(volumes []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-		ctr.config.UserVolumes = true
+
+		if volumes == nil {
+			return ErrInvalidArg
+		}
+
+		ctr.config.UserVolumes = make([]string, 0, len(volumes))
+		for _, vol := range volumes {
+			ctr.config.UserVolumes = append(ctr.config.UserVolumes, vol)
+		}
+
+		return nil
+	}
+}
+
+// WithEntrypoint sets the entrypoint of the container.
+// This is not used to change the container's spec, but will instead be used
+// during commit to populate the entrypoint of the new image.
+// If not explicitly set it will default to the image's entrypoint.
+// A nil entrypoint is allowed, and will clear entrypoint on the created image.
+func WithEntrypoint(entrypoint []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Entrypoint = make([]string, 0, len(entrypoint))
+		for _, str := range entrypoint {
+			ctr.config.Entrypoint = append(ctr.config.Entrypoint, str)
+		}
+
+		return nil
+	}
+}
+
+// WithCommand sets the command of the container.
+// This is not used to change the container's spec, but will instead be used
+// during commit to populate the command of the new image.
+// If not explicitly set it will default to the image's command.
+// A nil command is allowed, and will clear command on the created image.
+func WithCommand(command []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Command = make([]string, 0, len(command))
+		for _, str := range command {
+			ctr.config.Command = append(ctr.config.Command, str)
+		}
+
 		return nil
 	}
 }

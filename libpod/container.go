@@ -174,28 +174,26 @@ type ContainerConfig struct {
 	// TODO consider breaking these subsections up into smaller structs
 
 	// Storage Config
-	// Information on the image used for the root filesystem
+
+	// Information on the image used for the root filesystem/
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
-	// Whether to mount volumes specified in the image
+	// Whether to mount volumes specified in the image.
 	ImageVolumes bool `json:"imageVolumes"`
-	// Src path to be mounted on /dev/shm in container
+	// Src path to be mounted on /dev/shm in container.
 	ShmDir string `json:"ShmDir,omitempty"`
-	// Size of the container's SHM
+	// Size of the container's SHM.
 	ShmSize int64 `json:"shmSize"`
 	// Static directory for container content that will persist across
-	// reboot
+	// reboot.
 	StaticDir string `json:"staticDir"`
-	// Mounts list contains all additional mounts into the container rootfs
-	// These include the SHM mount
-	// These must be unmounted before the container's rootfs is unmounted
+	// Mounts list contains all additional mounts into the container rootfs.
+	// These include the SHM mount.
+	// These must be unmounted before the container's rootfs is unmounted.
 	Mounts []string `json:"mounts,omitempty"`
-	// UserVolumes indicates that the container has user-added volume mounts
-	// It is used to trigger OCI hooks that rely on the presence of user
-	// volumes
-	UserVolumes bool `json:"userVolumes, omitempty"`
 
 	// Security Config
+
 	// Whether the container is privileged
 	Privileged bool `json:"privileged"`
 	// SELinux process label for container
@@ -221,11 +219,12 @@ type ContainerConfig struct {
 	UTSNsCtr    string `json:"utsNsCtr,omitempty"`
 	CgroupNsCtr string `json:"cgroupNsCtr,omitempty"`
 
-	// IDs of dependency containers
-	// These containers must be started before this container is started
+	// IDs of dependency containers.
+	// These containers must be started before this container is started.
 	Dependencies []string
 
 	// Network Config
+
 	// CreateNetNS indicates that libpod should create and configure a new
 	// network namespace for the container
 	// This cannot be set if NetNsCtr is also set
@@ -247,7 +246,26 @@ type ContainerConfig struct {
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
 
+	// Image Config
+
+	// UserVolumes contains user-added volume mounts in the container.
+	// These will not be added to the container's spec, as it is assumed
+	// they are already present in the spec given to Libpod. Instead, it is
+	// used when committing containers to generate the VOLUMES field of the
+	// image that is created, and for triggering some OCI hooks which do not
+	// fire unless user-added volume mounts are present.
+	UserVolumes []string `json:"userVolumes,omitempty"`
+	// Entrypoint is the container's entrypoint.
+	// It is not used in spec generation, but will be used when the
+	// container is committed to populate the entrypoint of the new image.
+	Entrypoint []string `json:"entrypoint,omitempty"`
+	// Command is the container's command.
+	// It is not used in spec generation, but will be used when the
+	// container is committed to populate the command of the new image.
+	Command []string `json:"command,omitempty"`
+
 	// Misc Options
+
 	// Whether to keep container STDIN open
 	Stdin bool `json:"stdin,omitempty"`
 	// Labels is a set of key-value pairs providing additional information
