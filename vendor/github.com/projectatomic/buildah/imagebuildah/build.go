@@ -110,6 +110,8 @@ type BuildOptions struct {
 	CommonBuildOpts *buildah.CommonBuildOptions
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
+	// IIDFile tells the builder to write the image ID to the specified file
+	IIDFile string
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -146,6 +148,7 @@ type Executor struct {
 	reportWriter                   io.Writer
 	commonBuildOptions             *buildah.CommonBuildOptions
 	defaultMountsFilePath          string
+	iidfile                        string
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -477,6 +480,7 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		reportWriter:          options.ReportWriter,
 		commonBuildOptions:    options.CommonBuildOpts,
 		defaultMountsFilePath: options.DefaultMountsFilePath,
+		iidfile:               options.IIDFile,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -683,6 +687,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 		AdditionalTags:        b.additionalTags,
 		ReportWriter:          b.reportWriter,
 		PreferredManifestType: b.outputFormat,
+		IIDFile:               b.iidfile,
 	}
 	return b.builder.Commit(ctx, imageRef, options)
 }

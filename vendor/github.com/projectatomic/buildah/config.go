@@ -588,12 +588,24 @@ func (b *Builder) Comment() string {
 	return b.Docker.Comment
 }
 
-// SetComment sets the Comment which will be set in the container and in
+// SetComment sets the comment which will be set in the container and in
 // containers built using images built from the container.
 // Note: this setting is not present in the OCIv1 image format, so it is
 // discarded when writing images using OCIv1 formats.
 func (b *Builder) SetComment(comment string) {
 	b.Docker.Comment = comment
+}
+
+// HistoryComment returns the comment which will be used in the history item
+// which will describe the latest layer when we commit an image.
+func (b *Builder) HistoryComment() string {
+	return b.ImageHistoryComment
+}
+
+// SetHistoryComment sets the comment which will be used in the history item
+// which will describe the latest layer when we commit an image.
+func (b *Builder) SetHistoryComment(comment string) {
+	b.ImageHistoryComment = comment
 }
 
 // StopSignal returns the signal which will be set in the container and in

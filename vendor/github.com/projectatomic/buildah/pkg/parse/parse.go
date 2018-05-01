@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -56,7 +57,7 @@ func ParseCommonBuildOptions(c *cli.Context) (*buildah.CommonBuildOptions, error
 	if _, err := units.FromHumanSize(c.String("shm-size")); err != nil {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
 	}
-	if err := parseVolumes(c.StringSlice("volume")); err != nil {
+	if err := ParseVolumes(c.StringSlice("volume")); err != nil {
 		return nil, err
 	}
 
@@ -122,7 +123,8 @@ func parseSecurityOpts(securityOpts []string, commonOpts *buildah.CommonBuildOpt
 	return nil
 }
 
-func parseVolumes(volumes []string) error {
+// ParseVolumes validates the host and container paths passed in to the --volume flag
+func ParseVolumes(volumes []string) error {
 	if len(volumes) == 0 {
 		return nil
 	}
@@ -147,6 +149,9 @@ func parseVolumes(volumes []string) error {
 }
 
 func validateVolumeHostDir(hostDir string) error {
+	if !filepath.IsAbs(hostDir) {
+		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
+	}
 	if _, err := os.Stat(hostDir); err != nil {
 		return errors.Wrapf(err, "error checking path %q", hostDir)
 	}
@@ -154,8 +159,8 @@ func validateVolumeHostDir(hostDir string) error {
 }
 
 func validateVolumeCtrDir(ctrDir string) error {
-	if ctrDir[0] != '/' {
-		return errors.Errorf("invalid container directory path %q", ctrDir)
+	if !filepath.IsAbs(ctrDir) {
+		return errors.Errorf("invalid container path, must be an absolute path %q", ctrDir)
 	}
 	return nil
 }

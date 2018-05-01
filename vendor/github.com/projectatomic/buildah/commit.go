@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	cp "github.com/containers/image/copy"
@@ -46,6 +47,8 @@ type CommitOptions struct {
 	// github.com/containers/image/types SystemContext to hold credentials
 	// and other authentication/authorization information.
 	SystemContext *types.SystemContext
+	// IIDFile tells the builder to write the image ID to the specified file
+	IIDFile string
 }
 
 // PushOptions can be used to alter how an image is copied somewhere.
@@ -121,7 +124,13 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 	img, err := is.Transport.GetStoreImage(b.store, dest)
 	if err == nil {
-		fmt.Printf("%s\n", img.ID)
+		if options.IIDFile != "" {
+			if err := ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
+				return errors.Wrapf(err, "failed to write Image ID File %q", options.IIDFile)
+			}
+		} else {
+			fmt.Printf("%s\n", img.ID)
+		}
 	}
 	return nil
 }

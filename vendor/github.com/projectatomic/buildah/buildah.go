@@ -89,6 +89,8 @@ type Builder struct {
 	ImageAnnotations map[string]string `json:"annotations,omitempty"`
 	// ImageCreatedBy is a description of how this container was built.
 	ImageCreatedBy string `json:"created-by,omitempty"`
+	// ImageHistoryComment is a description of how our added layers were built.
+	ImageHistoryComment string `json:"history-comment,omitempty"`
 
 	// Image metadata and runtime settings, in multiple formats.
 	OCIv1  v1.Image       `json:"ociv1,omitempty"`

@@ -19,6 +19,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -197,20 +198,14 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 	}
 
 	// Add secrets mounts
-	mountsFiles := []string{OverrideMountsFile, b.DefaultMountsFilePath}
-	for _, file := range mountsFiles {
-		secretMounts, err := secretMounts(file, b.MountLabel, cdir)
-		if err != nil {
-			logrus.Warn("error mounting secrets, skipping...")
+	secretMounts := secrets.SecretMounts(b.MountLabel, cdir, b.DefaultMountsFilePath)
+	for _, mount := range secretMounts {
+		if haveMount(mount.Destination) {
 			continue
 		}
-		for _, mount := range secretMounts {
-			if haveMount(mount.Destination) {
-				continue
-			}
-			mounts = append(mounts, mount)
-		}
+		mounts = append(mounts, mount)
 	}
+
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
 	for _, volume := range builtinVolumes {
