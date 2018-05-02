@@ -217,14 +217,6 @@ var createFlags = []cli.Flag{
 		Usage: "Keep STDIN open even if not attached",
 	},
 	cli.StringFlag{
-		Name:  "ip",
-		Usage: "Container IPv4 address (e.g. 172.23.0.9)",
-	},
-	cli.StringFlag{
-		Name:  "ip6",
-		Usage: "Container IPv6 address (e.g. 2001:db8::1b99)",
-	},
-	cli.StringFlag{
 		Name:  "ipc",
 		Usage: "IPC Namespace to use",
 	},
@@ -239,10 +231,6 @@ var createFlags = []cli.Flag{
 	cli.StringSliceFlag{
 		Name:  "label-file",
 		Usage: "Read in a line delimited file of labels (default [])",
-	},
-	cli.StringSliceFlag{
-		Name:  "link-local-ip",
-		Usage: "Container IPv4/IPv6 link-local addresses (default [])",
 	},
 	cli.StringFlag{
 		Name:  "log-driver",
@@ -286,10 +274,6 @@ var createFlags = []cli.Flag{
 		Name:  "network",
 		Usage: "Connect a container to a network",
 		Value: "bridge",
-	},
-	cli.StringSliceFlag{
-		Name:  "network-alias",
-		Usage: "Add network-scoped alias for the container (default [])",
 	},
 	cli.BoolFlag{
 		Name:  "oom-kill-disable",
