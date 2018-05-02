@@ -44,10 +44,9 @@ type HostConfig struct {
 	ShmSize              int64                       `json:"ShmSize"`
 	Runtime              string                      `json:"Runtime"`
 	ConsoleSize          *specs.Box                  `json:"ConsoleSize"`
-	Isolation            string                      `json:"Isolation"` //TODO
-	CPUShares            *uint64                     `json:"CPUSShares"`
+	CPUShares            *uint64                     `json:"CpuShares"`
 	Memory               int64                       `json:"Memory"`
-	NanoCPUs             int                         `json:"NanoCPUs"` //check type, TODO
+	NanoCPUs             int                         `json:"NanoCpus"`
 	CgroupParent         string                      `json:"CgroupParent"`
 	BlkioWeight          *uint16                     `json:"BlkioWeight"`
 	BlkioWeightDevice    []specs.LinuxWeightDevice   `json:"BlkioWeightDevice"`
@@ -55,12 +54,12 @@ type HostConfig struct {
 	BlkioDeviceWriteBps  []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteBps"`
 	BlkioDeviceReadIOps  []specs.LinuxThrottleDevice `json:"BlkioDeviceReadIOps"`
 	BlkioDeviceWriteIOps []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteIOps"`
-	CPUPeriod            *uint64                     `json:"CPUPeriod"`
-	CPUQuota             *int64                      `json:"CPUQuota"`
-	CPURealtimePeriod    *uint64                     `json:"CPURealtimePeriod"`
-	CPURealtimeRuntime   *int64                      `json:"CPURealtimeRuntime"`
-	CPUSetCPUs           string                      `json:"CPUSetCPUs"`
-	CPUSetMems           string                      `json:"CPUSetMems"`
+	CPUPeriod            *uint64                     `json:"CpuPeriod"`
+	CPUQuota             *int64                      `json:"CpuQuota"`
+	CPURealtimePeriod    *uint64                     `json:"CpuRealtimePeriod"`
+	CPURealtimeRuntime   *int64                      `json:"CpuRealtimeRuntime"`
+	CPUSetCPUs           string                      `json:"CpuSetCpus"`
+	CPUSetMems           string                      `json:"CpuSetMems"`
 	Devices              []specs.LinuxDevice         `json:"Devices"`
 	DiskQuota            int                         `json:"DiskQuota"` //check type, TODO
 	KernelMemory         *int64                      `json:"KernelMemory"`
@@ -70,8 +69,8 @@ type HostConfig struct {
 	OomKillDisable       *bool                       `json:"OomKillDisable"`
 	PidsLimit            *int64                      `json:"PidsLimit"`
 	Ulimits              []string                    `json:"Ulimits"`
-	CPUCount             int                         `json:"CPUCount"`           //check type, TODO
-	CPUPercent           int                         `json:"CPUPercent"`         //check type, TODO
+	CPUCount             int                         `json:"CpuCount"`
+	CPUPercent           int                         `json:"CpuPercent"`
 	IOMaximumIOps        int                         `json:"IOMaximumIOps"`      //check type, TODO
 	IOMaximumBandwidth   int                         `json:"IOMaximumBandwidth"` //check type, TODO
 	Tmpfs                []string                    `json:"Tmpfs"`
