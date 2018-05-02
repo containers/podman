@@ -658,8 +658,7 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		// others, if they are included
 		volumes := make([]string, 0, len(c.Volumes))
 		for _, vol := range c.Volumes {
-			splitVol := strings.Split(vol, ":")
-			volumes = append(volumes, splitVol[0])
+			volumes = append(volumes, strings.SplitN(vol, ":", 2)[0])
 		}
 
 		options = append(options, libpod.WithUserVolumes(volumes))
