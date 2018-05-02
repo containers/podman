@@ -1,6 +1,7 @@
 language: go
 
 sudo: required
+dist: trusty
 
 services:
   - docker

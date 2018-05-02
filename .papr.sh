@@ -30,5 +30,5 @@ make TAGS="${TAGS}" install PREFIX=/usr ETCDIR=/etc
 make TAGS="${TAGS}" test-binaries
 
 # Run the ginkgo integration tests
-GOPATH=/go make localintegration
+SKIP_USERNS=1 GOPATH=/go make localintegration
 exit 0
