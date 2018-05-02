@@ -177,7 +177,15 @@ func createCmd(c *cli.Context) error {
 		return errors.Errorf("image name or ID is required")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+	if err != nil {
+		return err
+	}
+	storageOpts := storage.DefaultStoreOptions
+	storageOpts.UIDMap = mappings.UIDMap
+	storageOpts.GIDMap = mappings.GIDMap
+
+	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -647,6 +655,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if _, ok := imageVolType[c.String("image-volume")]; !ok {
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
+
 	config := &createConfig{
 		Runtime:           runtime,
 		BuiltinImgVolumes: ImageVolumes,

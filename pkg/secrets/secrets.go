@@ -127,7 +127,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir string, mountFile string, uid, gid int) []rspec.Mount {
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, 0, 0)
+}
+
+// SecretMountsWithUIDGID specifies the uid/gid of the owner
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile string, uid, gid int) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string

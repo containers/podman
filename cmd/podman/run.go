@@ -9,10 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -50,7 +52,15 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	storageOpts := storage.DefaultStoreOptions
+	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+	if err != nil {
+		return err
+	}
+	storageOpts.UIDMap = mappings.UIDMap
+	storageOpts.GIDMap = mappings.GIDMap
+
+	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

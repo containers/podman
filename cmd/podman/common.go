@@ -201,7 +201,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringSliceFlag{
 		Name:  "gidmap",
-		Usage: "GID map",
+		Usage: "GID map to use for the user namespace",
 	},
 	cli.StringSliceFlag{
 		Name:  "group-add",
@@ -368,7 +368,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringSliceFlag{
 		Name:  "uidmap",
-		Usage: "UID map",
+		Usage: "UID map to use for the user namespace",
 	},
 	cli.StringSliceFlag{
 		Name:  "ulimit",

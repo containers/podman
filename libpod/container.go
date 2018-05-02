@@ -173,8 +173,9 @@ type ContainerConfig struct {
 
 	// TODO consider breaking these subsections up into smaller structs
 
-	// Storage Config
-	IDMappings storage.IDMappingOptions
+	// UID/GID mappings used by the storage
+	IDMappings storage.IDMappingOptions `json:"idMappingsOptions,omitempty"`
+
 	// Information on the image used for the root filesystem/
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
@@ -862,6 +863,11 @@ func (c *Container) RWSize() (int64, error) {
 		}
 	}
 	return c.rwSize()
+}
+
+// IDMappings returns the UID/GID mapping used for the container
+func (c *Container) IDMappings() (storage.IDMappingOptions, error) {
+	return c.config.IDMappings, nil
 }
 
 // RootUID returns the root user mapping from container

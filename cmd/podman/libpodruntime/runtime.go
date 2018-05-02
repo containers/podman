@@ -3,15 +3,18 @@ package libpodruntime
 import (
 	"github.com/containers/storage"
 	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	options := []libpod.RuntimeOption{}
-
 	storageOpts := storage.DefaultStoreOptions
+	return GetRuntimeWithStorageOpts(c, &storageOpts)
+}
+
+// GetRuntime generates a new libpod runtime configured by command line options
+func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions) (*libpod.Runtime, error) {
+	options := []libpod.RuntimeOption{}
 
 	if c.GlobalIsSet("root") {
 		storageOpts.GraphRoot = c.GlobalString("root")
@@ -26,15 +29,7 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 		storageOpts.GraphDriverOptions = c.GlobalStringSlice("storage-opt")
 	}
 
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return nil, err
-	}
-
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-
-	options = append(options, libpod.WithStorageConfig(storageOpts))
+	options = append(options, libpod.WithStorageConfig(*storageOpts))
 
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
