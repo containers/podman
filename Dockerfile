@@ -52,7 +52,7 @@ RUN mkdir -p /usr/src/criu \
     && rm -rf /usr/src/criu
 
 # Install runc
-ENV RUNC_COMMIT 84a082bfef6f932de921437815355186db37aeb1
+ENV RUNC_COMMIT 0cbfd8392fff2462701507296081e835b3b0b99a
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
