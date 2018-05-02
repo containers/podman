@@ -143,6 +143,6 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err = importBuilder.Commit(ctx, imageRef, commitOptions); err != nil {
 		return nil, err
 	}
-	fmt.Println(importBuilder.Comment())
+	fmt.Fprintf(commitOptions.ReportWriter, importBuilder.Comment())
 	return c.runtime.imageRuntime.NewFromLocal(imageRef.DockerReference().String())
 }
