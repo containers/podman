@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/containers/image/docker"
+	"github.com/containers/image/pkg/sysregistriesv2"
+	"github.com/containers/image/types"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod/image"
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/projectatomic/libpod/pkg/util"
 )
 
@@ -180,12 +181,17 @@ func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name str
 // Requires an image name and a search limit as int
 func (i *LibpodAPI) SearchImage(call ioprojectatomicpodman.VarlinkCall, name string, limit int64) error {
 	sc := image.GetSystemContext("", "", false)
-	registries, err := sysreg.GetRegistries()
+	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{})
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
 	}
+	searchRegistries := []string{}
+	for _, reg := range sysregistriesv2.FindUnqualifiedSearchRegistries(registries) {
+		searchRegistries = append(searchRegistries, reg.URL.String())
+	}
+
 	var imageResults []ioprojectatomicpodman.ImageSearch
-	for _, reg := range registries {
+	for _, reg := range searchRegistries {
 		results, err := docker.SearchRegistry(getContext(), sc, reg, name, int(limit))
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())

@@ -14,13 +14,12 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/registries"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -179,9 +178,15 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	}
 	defer policyContext.Destroy()
 
-	insecureRegistries, err := registries.GetInsecureRegistries()
+	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{})
 	if err != nil {
 		return "", err
+	}
+	insecureRegistries := []string{}
+	for _, reg := range registries {
+		if reg.Insecure {
+			insecureRegistries = append(insecureRegistries, reg.URL.String())
+		}
 	}
 
 	for _, imageInfo := range pullStructs {
@@ -238,12 +243,14 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		if len(envOverride) > 0 {
 			registryConfigPath = envOverride
 		}
-		searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+		registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
 		if err != nil {
 			return nil, err
 		}
+		searchRegistries := sysregistriesv2.FindUnqualifiedSearchRegistries(registries)
+
 		for _, registry := range searchRegistries {
-			decomposedImage.registry = registry
+			decomposedImage.registry = registry.URL.String()
 			srcRef, err := alltransports.ParseImageName(decomposedImage.assembleWithTransport())
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)

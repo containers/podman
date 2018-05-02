@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker"
+	"github.com/containers/image/pkg/sysregistriesv2"
+	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod/common"
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -107,13 +108,16 @@ func searchCmd(c *cli.Context) error {
 		filter:  c.StringSlice("filter"),
 	}
 
-	var registries []string
+	var searchRegistries []string
 	if len(c.StringSlice("registry")) > 0 {
-		registries = c.StringSlice("registry")
+		searchRegistries = c.StringSlice("registry")
 	} else {
-		registries, err = sysreg.GetRegistries()
+		registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{})
 		if err != nil {
 			return errors.Wrapf(err, "error getting registries to search")
+		}
+		for _, reg := range sysregistriesv2.FindUnqualifiedSearchRegistries(registries) {
+			searchRegistries = append(searchRegistries, reg.URL.String())
 		}
 	}
 
@@ -122,7 +126,7 @@ func searchCmd(c *cli.Context) error {
 		return err
 	}
 
-	return generateSearchOutput(term, registries, opts, *filter)
+	return generateSearchOutput(term, searchRegistries, opts, *filter)
 }
 
 func genSearchFormat(format string) string {

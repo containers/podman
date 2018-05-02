@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -16,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/hooks"
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -552,21 +552,30 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	}
 	info = append(info, InfoData{Type: "store", Data: storeInfo})
 
-	reg, err := sysreg.GetRegistries()
+	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	registries := make(map[string]interface{})
-	registries["registries"] = reg
-	info = append(info, InfoData{Type: "registries", Data: registries})
 
-	i, err := sysreg.GetInsecureRegistries()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
+	// search registries
+	searchRegs := []string{}
+	for _, reg := range sysregistriesv2.FindUnqualifiedSearchRegistries(registries) {
+		searchRegs = append(searchRegs, reg.URL.String())
 	}
-	insecureRegistries := make(map[string]interface{})
-	insecureRegistries["registries"] = i
-	info = append(info, InfoData{Type: "insecure registries", Data: insecureRegistries})
+	searchInfo := make(map[string]interface{})
+	searchInfo["registries"] = searchRegs
+	info = append(info, InfoData{Type: "registries", Data: searchInfo})
+
+	// insecure registries
+	insecureRegs := []string{}
+	for _, reg := range registries {
+		if reg.Insecure {
+			insecureRegs = append(insecureRegs, reg.URL.String())
+		}
+	}
+	insecureInfo := make(map[string]interface{})
+	insecureInfo["registries"] = insecureRegs
+	info = append(info, InfoData{Type: "insecure registries", Data: insecureInfo})
 	return info, nil
 }
 
