@@ -231,15 +231,11 @@ inside of the container.
 **-i**, **--interactive**=*true*|*false*
    Keep STDIN open even if not attached. The default is *false*.
 
-**--ip**=""
-   Sets the container's interface IPv4 address (e.g. 172.23.0.9)
-
-   It can only be used in conjunction with **--network** for user-defined networks
-
 **--ip6**=""
-   Sets the container's interface IPv6 address (e.g. 2001:db8::1b99)
+   Not implemented
 
-   It can only be used in conjunction with **--network** for user-defined networks
+**--ip**=""
+   Not implemented
 
 **--ipc**=""
    Default is to create a private IPC namespace (POSIX SysV IPC) for the container
@@ -262,7 +258,7 @@ millions of trillions.
    Read in a line delimited file of labels
 
 **--link-local-ip**=[]
-   Add one or more link-local IPv4/IPv6 addresses to the container's interface
+   Not implemented
 
 **--log-driver**="*json-file*"
   Logging driver for the container. Default is defined by daemon `--log-driver` flag.
@@ -332,7 +328,7 @@ This works for both background and foreground containers.
 			       '<network-name>|<network-id>': connect to a user-defined network
 
 **--network-alias**=[]
-   Add network-scoped alias for the container
+    Not implemented
 
 **--oom-kill-disable**=*true*|*false*
    Whether to disable OOM Killer for the container or not.
