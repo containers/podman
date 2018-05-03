@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
+	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -623,22 +624,25 @@ func (b *Executor) Execute(ib *imagebuilder.Builder, node *parser.Node) error {
 // the name if there is one, generating a unique ID-based one otherwise.
 func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err error) {
 	var imageRef types.ImageReference
+
 	if b.output != "" {
 		imageRef, err = alltransports.ParseImageName(b.output)
 		if err != nil {
-			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, b.output)
-			if err2 == nil {
-				imageRef = imageRef2
-				err = nil
-			} else {
-				err = err2
+			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
+			if len(candidates) == 0 {
+				return errors.Errorf("error parsing target image name %q", b.output)
 			}
+			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
+			if err2 != nil {
+				return errors.Wrapf(err, "error parsing target image name %q", b.output)
+			}
+			imageRef = imageRef2
 		}
 	} else {
 		imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
-	}
-	if err != nil {
-		return errors.Wrapf(err, "error parsing reference for image to be written")
+		if err != nil {
+			return errors.Wrapf(err, "error parsing reference for image to be written")
+		}
 	}
 	if ib.Author != "" {
 		b.builder.SetMaintainer(ib.Author)
@@ -689,7 +693,14 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 		PreferredManifestType: b.outputFormat,
 		IIDFile:               b.iidfile,
 	}
-	return b.builder.Commit(ctx, imageRef, options)
+	imgID, err := b.builder.Commit(ctx, imageRef, options)
+	if err != nil {
+		return err
+	}
+	if options.IIDFile == "" && imgID != "" {
+		fmt.Printf("%s\n", imgID)
+	}
+	return nil
 }
 
 // Build takes care of the details of running Prepare/Execute/Commit/Delete

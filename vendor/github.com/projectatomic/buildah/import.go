@@ -97,27 +97,21 @@ func importBuilder(ctx context.Context, store storage.Store, options ImportOptio
 }
 
 func importBuilderFromImage(ctx context.Context, store storage.Store, options ImportFromImageOptions) (*Builder, error) {
-	var img *storage.Image
-	var err error
-
 	if options.Image == "" {
 		return nil, errors.Errorf("image name must be specified")
 	}
 
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 
-	for _, image := range util.ResolveName(options.Image, "", systemContext, store) {
-		img, err = util.FindImage(store, image)
-		if err != nil {
-			continue
-		}
-
-		builder, err2 := importBuilderDataFromImage(ctx, store, systemContext, img.ID, "", "")
-		if err2 != nil {
-			return nil, errors.Wrapf(err2, "error importing build settings from image %q", options.Image)
-		}
-
-		return builder, nil
+	_, img, err := util.FindImage(store, "", systemContext, options.Image)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error locating image %q for importing settings", options.Image)
 	}
-	return nil, errors.Wrapf(err, "error locating image %q for importing settings", options.Image)
+
+	builder, err := importBuilderDataFromImage(ctx, store, systemContext, img.ID, "", "")
+	if err != nil {
+		return nil, errors.Wrapf(err, "error importing build settings from image %q", options.Image)
+	}
+
+	return builder, nil
 }
