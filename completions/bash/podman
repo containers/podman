@@ -1360,7 +1360,7 @@ _podman_rmi() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_images
+            __podman_complete_images --id
             ;;
     esac
 }
@@ -1385,7 +1385,7 @@ _podman_stats() {
     esac
 }
 
-podman_tag() {
+_podman_tag() {
     local options_with_args="
     "
     local boolean_options="
@@ -1393,7 +1393,7 @@ podman_tag() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
-podman_top() {
+_podman_top() {
     local options_with_args="
     "
     local boolean_options="
@@ -1690,4 +1690,4 @@ _cli_bash_autocomplete() {
      return 0
 }
 
-complete -F _cli_bash_autocomplete $PROG
+complete -F _cli_bash_autocomplete podman
