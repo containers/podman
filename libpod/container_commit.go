@@ -8,6 +8,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
+	"github.com/projectatomic/buildah/util"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 )
@@ -132,13 +133,18 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			importBuilder.SetWorkDir(splitChange[1])
 		}
 	}
-	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, destImage)
+	candidates := util.ResolveName(destImage, "", sc, c.runtime.store)
+	if len(candidates) == 0 {
+		return nil, errors.Errorf("error parsing target image name %q", destImage)
+	}
+	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, candidates[0])
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing target image name %q", destImage)
+	}
+	id, err := importBuilder.Commit(ctx, imageRef, commitOptions)
 	if err != nil {
 		return nil, err
 	}
-	if err = importBuilder.Commit(ctx, imageRef, commitOptions); err != nil {
-		return nil, err
-	}
 	fmt.Fprintf(commitOptions.ReportWriter, importBuilder.Comment())
-	return c.runtime.imageRuntime.NewFromLocal(imageRef.DockerReference().String())
+	return c.runtime.imageRuntime.NewFromLocal(id)
 }

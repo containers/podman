@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -54,8 +53,9 @@ var (
 	TarballTransport = tarball.Transport.Name()
 )
 
-// ResolveName checks if name is a valid image name, and if that name doesn't include a domain
-// portion, returns a list of the names which it might correspond to in the registries.
+// ResolveName checks if name is a valid image name, and if that name doesn't
+// include a domain portion, returns a list of the names which it might
+// correspond to in the set of configured registries.
 func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) []string {
 	if name == "" {
 		return nil
@@ -101,8 +101,8 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	// Figure out the list of registries.
 	registries, err := sysregistries.GetRegistries(sc)
 	if err != nil {
-		logrus.Debugf("unable to complete image name %q: %v", name, err)
-		return []string{name}
+		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
+		registries = []string{}
 	}
 	if sc.DockerInsecureSkipTLSVerify {
 		if unverifiedRegistries, err := sysregistries.GetInsecureRegistries(sc); err == nil {
@@ -111,10 +111,14 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	}
 
 	// Create all of the combinations.  Some registries need an additional component added, so
-	// use our lookaside map to keep track of them.  If there are no configured registries, at
-	// least return the name as it was passed to us.
+	// use our lookaside map to keep track of them.  If there are no configured registries, we'll
+	// return a name using "localhost" as the registry name.
 	candidates := []string{}
-	for _, registry := range append([]string{firstRegistry}, registries...) {
+	initRegistries := []string{"localhost"}
+	if firstRegistry != "" && firstRegistry != "localhost" {
+		initRegistries = append([]string{firstRegistry}, initRegistries...)
+	}
+	for _, registry := range append(initRegistries, registries...) {
 		if registry == "" {
 			continue
 		}
@@ -125,9 +129,6 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		candidate := path.Join(registry, middle, name)
 		candidates = append(candidates, candidate)
 	}
-	if len(candidates) == 0 {
-		candidates = append(candidates, name)
-	}
 	return candidates
 }
 
@@ -135,12 +136,23 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 // the fully expanded result, including a tag.  Names which don't include a registry
 // name will be marked for the most-preferred registry (i.e., the first one in our
 // configuration).
-func ExpandNames(names []string) ([]string, error) {
+func ExpandNames(names []string, firstRegistry string, systemContext *types.SystemContext, store storage.Store) ([]string, error) {
 	expanded := make([]string, 0, len(names))
 	for _, n := range names {
-		name, err := reference.ParseNormalizedNamed(n)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing name %q", n)
+		var name reference.Named
+		nameList := ResolveName(n, firstRegistry, systemContext, store)
+		if len(nameList) == 0 {
+			named, err := reference.ParseNormalizedNamed(n)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error parsing name %q", n)
+			}
+			name = named
+		} else {
+			named, err := reference.ParseNormalizedNamed(nameList[0])
+			if err != nil {
+				return nil, errors.Wrapf(err, "error parsing name %q", nameList[0])
+			}
+			name = named
 		}
 		name = reference.TagNameOnly(name)
 		tag := ""
@@ -157,28 +169,36 @@ func ExpandNames(names []string) ([]string, error) {
 }
 
 // FindImage locates the locally-stored image which corresponds to a given name.
-func FindImage(store storage.Store, image string) (*storage.Image, error) {
+func FindImage(store storage.Store, firstRegistry string, systemContext *types.SystemContext, image string) (types.ImageReference, *storage.Image, error) {
+	var ref types.ImageReference
 	var img *storage.Image
-	ref, err := is.Transport.ParseStoreReference(store, image)
-	if err == nil {
-		img, err = is.Transport.GetStoreImage(store, ref)
-	}
-	if err != nil {
-		img2, err2 := store.Image(image)
-		if err2 != nil {
-			if ref == nil {
-				return nil, errors.Wrapf(err, "error parsing reference to image %q", image)
-			}
-			return nil, errors.Wrapf(err, "unable to locate image %q", image)
+	var err error
+	for _, name := range ResolveName(image, firstRegistry, systemContext, store) {
+		ref, err = is.Transport.ParseStoreReference(store, name)
+		if err != nil {
+			logrus.Debugf("error parsing reference to image %q: %v", name, err)
+			continue
 		}
-		img = img2
+		img, err = is.Transport.GetStoreImage(store, ref)
+		if err != nil {
+			img2, err2 := store.Image(name)
+			if err2 != nil {
+				logrus.Debugf("error locating image %q: %v", name, err2)
+				continue
+			}
+			img = img2
+		}
+		break
 	}
-	return img, nil
+	if ref == nil || img == nil {
+		return nil, nil, errors.Wrapf(err, "error locating image with name %q", image)
+	}
+	return ref, img, nil
 }
 
 // AddImageNames adds the specified names to the specified image.
-func AddImageNames(store storage.Store, image *storage.Image, addNames []string) error {
-	names, err := ExpandNames(addNames)
+func AddImageNames(store storage.Store, firstRegistry string, systemContext *types.SystemContext, image *storage.Image, addNames []string) error {
+	names, err := ExpandNames(addNames, firstRegistry, systemContext, store)
 	if err != nil {
 		return err
 	}
@@ -201,15 +221,6 @@ func GetFailureCause(err, defaultError error) error {
 	default:
 		return defaultError
 	}
-}
-
-// GetLocalTime discover the UTC offset and then add that to the
-// passed in time to arrive at the local time.
-func GetLocalTime(localTime time.Time) time.Time {
-	t := time.Now()
-	_, offset := t.Local().Zone()
-	localTime = localTime.Add(time.Second * time.Duration(offset))
-	return localTime
 }
 
 // WriteError writes `lastError` into `w` if not nil and return the next error `err`

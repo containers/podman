@@ -17,6 +17,8 @@ committed. This minimizes the likelihood of data corruption when creating the ne
 image. If this is not desired, the **--pause** flag can be set to false. When the commit
 is complete, podman will print out the ID of the new image.
 
+If *imageName* does not begin with a registry name component, *localhost* will be added to the name.
+
 ## OPTIONS
 
 **--author, -a**
