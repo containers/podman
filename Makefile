@@ -204,8 +204,8 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -m 644 docs/docker*.5 -t $(MANDIR)/man5
 
 install.systemd:
-	install ${SELINUXOPT} -m 644 contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
-	install ${SELINUXOPT} -m 644 contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
+	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
+	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
