@@ -3,10 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +12,7 @@ import (
 	"github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/batchcontainer"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
@@ -25,19 +23,6 @@ import (
 )
 
 const mountTruncLength = 12
-
-type psOptions struct {
-	all       bool
-	filter    string
-	format    string
-	last      int
-	latest    bool
-	noTrunc   bool
-	quiet     bool
-	size      bool
-	label     string
-	namespace bool
-}
 
 type psTemplateParams struct {
 	ID         string
@@ -66,32 +51,21 @@ type psTemplateParams struct {
 // psJSONParams will be populated by data from libpod.Container,
 // the members of the struct are the sama data types as their sources.
 type psJSONParams struct {
-	ID               string               `json:"id"`
-	Image            string               `json:"image"`
-	ImageID          string               `json:"image_id"`
-	Command          []string             `json:"command"`
-	CreatedAt        time.Time            `json:"createdAt"`
-	RunningFor       time.Duration        `json:"runningFor"`
-	Status           string               `json:"status"`
-	Ports            []ocicni.PortMapping `json:"ports"`
-	RootFsSize       int64                `json:"rootFsSize"`
-	RWSize           int64                `json:"rwSize"`
-	Names            string               `json:"names"`
-	Labels           fields.Set           `json:"labels"`
-	Mounts           []specs.Mount        `json:"mounts"`
-	ContainerRunning bool                 `json:"ctrRunning"`
-	Namespaces       *namespace           `json:"namespace,omitempty"`
-}
-
-type namespace struct {
-	PID    string `json:"pid,omitempty"`
-	Cgroup string `json:"cgroup,omitempty"`
-	IPC    string `json:"ipc,omitempty"`
-	MNT    string `json:"mnt,omitempty"`
-	NET    string `json:"net,omitempty"`
-	PIDNS  string `json:"pidns,omitempty"`
-	User   string `json:"user,omitempty"`
-	UTS    string `json:"uts,omitempty"`
+	ID               string                    `json:"id"`
+	Image            string                    `json:"image"`
+	ImageID          string                    `json:"image_id"`
+	Command          []string                  `json:"command"`
+	CreatedAt        time.Time                 `json:"createdAt"`
+	RunningFor       time.Duration             `json:"runningFor"`
+	Status           string                    `json:"status"`
+	Ports            []ocicni.PortMapping      `json:"ports"`
+	RootFsSize       int64                     `json:"rootFsSize"`
+	RWSize           int64                     `json:"rwSize"`
+	Names            string                    `json:"names"`
+	Labels           fields.Set                `json:"labels"`
+	Mounts           []specs.Mount             `json:"mounts"`
+	ContainerRunning bool                      `json:"ctrRunning"`
+	Namespaces       *batchcontainer.Namespace `json:"namespace,omitempty"`
 }
 
 var (
@@ -168,22 +142,22 @@ func psCmd(c *cli.Context) error {
 
 	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"))
 
-	opts := psOptions{
-		all:       c.Bool("all"),
-		filter:    c.String("filter"),
-		format:    format,
-		last:      c.Int("last"),
-		latest:    c.Bool("latest"),
-		noTrunc:   c.Bool("no-trunc"),
-		quiet:     c.Bool("quiet"),
-		size:      c.Bool("size"),
-		namespace: c.Bool("namespace"),
+	opts := batchcontainer.PsOptions{
+		All:       c.Bool("all"),
+		Filter:    c.String("filter"),
+		Format:    format,
+		Last:      c.Int("last"),
+		Latest:    c.Bool("latest"),
+		NoTrunc:   c.Bool("no-trunc"),
+		Quiet:     c.Bool("quiet"),
+		Size:      c.Bool("size"),
+		Namespace: c.Bool("namespace"),
 	}
 
 	var filterFuncs []libpod.ContainerFilter
 	// When we are dealing with latest or last=n, we need to
 	// get all containers.
-	if !opts.all && !opts.latest && opts.last < 1 {
+	if !opts.All && !opts.Latest && opts.Last < 1 {
 		// only get running containers
 		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 			state, _ := c.State()
@@ -191,8 +165,8 @@ func psCmd(c *cli.Context) error {
 		})
 	}
 
-	if opts.filter != "" {
-		filters := strings.Split(opts.filter, ",")
+	if opts.Filter != "" {
+		filters := strings.Split(opts.Filter, ",")
 		for _, f := range filters {
 			filterSplit := strings.Split(f, "=")
 			if len(filterSplit) < 2 {
@@ -208,10 +182,10 @@ func psCmd(c *cli.Context) error {
 
 	containers, err := runtime.GetContainers(filterFuncs...)
 	var outputContainers []*libpod.Container
-	if opts.latest && len(containers) > 0 {
+	if opts.Latest && len(containers) > 0 {
 		outputContainers = append(outputContainers, containers[0])
-	} else if opts.last > 0 && opts.last <= len(containers) {
-		outputContainers = append(outputContainers, containers[:opts.last]...)
+	} else if opts.Last > 0 && opts.Last <= len(containers) {
+		outputContainers = append(outputContainers, containers[:opts.Last]...)
 	} else {
 		outputContainers = containers
 	}
@@ -397,15 +371,15 @@ func (p *psTemplateParams) headerMap() map[string]string {
 }
 
 // getTemplateOutput returns the modified container information
-func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemplateParams, error) {
+func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) ([]psTemplateParams, error) {
 	var (
 		psOutput     []psTemplateParams
 		status, size string
-		ns           *namespace
+		ns           *batchcontainer.Namespace
 	)
 
 	for _, ctr := range containers {
-		batchInfo, err := batchContainerOp(ctr, opts)
+		batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
 		if err != nil {
 			// If the error was ErrNoSuchCtr, it was probably
 			// removed sometime after we got the initial list.
@@ -421,11 +395,11 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		runningFor := ""
 		// If the container has not be started, the "zero" value of time is 0001-01-01 00:00:00 +0000 UTC
 		// which would make the time elapsed about a few hundred of years. So checking for the "zero" value of time.Time
-		if batchInfo.startedTime != (time.Time{}) {
-			runningFor = units.HumanDuration(time.Since(batchInfo.startedTime))
+		if batchInfo.StartedTime != (time.Time{}) {
+			runningFor = units.HumanDuration(time.Since(batchInfo.StartedTime))
 		}
-		createdAt := batchInfo.conConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
-		imageName := batchInfo.conConfig.RootfsImageName
+		createdAt := batchInfo.ConConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
+		imageName := batchInfo.ConConfig.RootfsImageName
 
 		var createArtifact createConfig
 		artifact, err := ctr.GetArtifact("create-config")
@@ -436,27 +410,27 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 		} else {
 			logrus.Errorf("couldn't get some ps information, error getting artifact %q: %v", ctr.ID(), err)
 		}
-		if opts.namespace {
-			ns = getNamespaces(batchInfo.pid)
+		if opts.Namespace {
+			ns = batchcontainer.GetNamespaces(batchInfo.Pid)
 		}
-		if opts.size {
+		if opts.Size {
 
-			size = units.HumanSizeWithPrecision(float64(batchInfo.rwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(batchInfo.rootFsSize), 3) + ")"
+			size = units.HumanSizeWithPrecision(float64(batchInfo.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(batchInfo.RootFsSize), 3) + ")"
 		}
 
-		command := strings.Join(batchInfo.conConfig.Spec.Process.Args, " ")
-		if !opts.noTrunc {
+		command := strings.Join(batchInfo.ConConfig.Spec.Process.Args, " ")
+		if !opts.NoTrunc {
 			if len(command) > 20 {
 				command = command[:19] + "..."
 			}
 		}
-		ports := portsToString(batchInfo.conConfig.PortMappings)
-		mounts := getMounts(createArtifact.Volumes, opts.noTrunc)
+		ports := portsToString(batchInfo.ConConfig.PortMappings)
+		mounts := getMounts(createArtifact.Volumes, opts.NoTrunc)
 		labels := formatLabels(ctr.Labels())
 
-		switch batchInfo.conState {
+		switch batchInfo.ConState {
 		case libpod.ContainerStateStopped:
-			status = fmt.Sprintf("Exited (%d) %s ago", batchInfo.exitCode, runningFor)
+			status = fmt.Sprintf("Exited (%d) %s ago", batchInfo.ExitCode, runningFor)
 		case libpod.ContainerStateRunning:
 			status = "Up " + runningFor + " ago"
 		case libpod.ContainerStatePaused:
@@ -467,9 +441,9 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			status = "Dead"
 		}
 
-		if !opts.noTrunc {
+		if !opts.NoTrunc {
 			ctrID = shortID(ctr.ID())
-			imageName = batchInfo.conConfig.RootfsImageName
+			imageName = batchInfo.ConConfig.RootfsImageName
 		}
 
 		params := psTemplateParams{
@@ -484,10 +458,10 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 			Names:      ctr.Name(),
 			Labels:     labels,
 			Mounts:     mounts,
-			PID:        batchInfo.pid,
+			PID:        batchInfo.Pid,
 		}
 
-		if opts.namespace {
+		if opts.Namespace {
 			params.Cgroup = ns.Cgroup
 			params.IPC = ns.IPC
 			params.MNT = ns.MNT
@@ -501,65 +475,35 @@ func getTemplateOutput(containers []*libpod.Container, opts psOptions) ([]psTemp
 	return psOutput, nil
 }
 
-func getNamespaces(pid int) *namespace {
-	ctrPID := strconv.Itoa(pid)
-	cgroup, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
-	ipc, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "ipc"))
-	mnt, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "mnt"))
-	net, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "net"))
-	pidns, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "pid"))
-	user, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "user"))
-	uts, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "uts"))
-
-	return &namespace{
-		PID:    ctrPID,
-		Cgroup: cgroup,
-		IPC:    ipc,
-		MNT:    mnt,
-		NET:    net,
-		PIDNS:  pidns,
-		User:   user,
-		UTS:    uts,
-	}
-}
-
-func getNamespaceInfo(path string) (string, error) {
-	val, err := os.Readlink(path)
-	if err != nil {
-		return "", errors.Wrapf(err, "error getting info from %q", path)
-	}
-	return getStrFromSquareBrackets(val), nil
-}
-
 // getJSONOutput returns the container info in its raw form
-func getJSONOutput(containers []*libpod.Container, opts psOptions) ([]psJSONParams, error) {
+func getJSONOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) ([]psJSONParams, error) {
 	var (
 		psOutput []psJSONParams
-		ns       *namespace
+		ns       *batchcontainer.Namespace
 	)
 	for _, ctr := range containers {
-		batchInfo, err := batchContainerOp(ctr, opts)
+		batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
 		if err != nil {
 			return nil, err
 		}
-		if opts.namespace {
-			ns = getNamespaces(batchInfo.pid)
+		if opts.Namespace {
+			ns = batchcontainer.GetNamespaces(batchInfo.Pid)
 		}
 		params := psJSONParams{
 			ID:               ctr.ID(),
-			Image:            batchInfo.conConfig.RootfsImageName,
-			ImageID:          batchInfo.conConfig.RootfsImageID,
-			Command:          batchInfo.conConfig.Spec.Process.Args,
-			CreatedAt:        batchInfo.conConfig.CreatedTime,
-			RunningFor:       time.Since(batchInfo.conConfig.CreatedTime),
-			Status:           batchInfo.conState.String(),
-			Ports:            batchInfo.conConfig.PortMappings,
-			RootFsSize:       batchInfo.rootFsSize,
-			RWSize:           batchInfo.rwSize,
-			Names:            batchInfo.conConfig.Name,
-			Labels:           batchInfo.conConfig.Labels,
-			Mounts:           batchInfo.conConfig.Spec.Mounts,
-			ContainerRunning: batchInfo.conState == libpod.ContainerStateRunning,
+			Image:            batchInfo.ConConfig.RootfsImageName,
+			ImageID:          batchInfo.ConConfig.RootfsImageID,
+			Command:          batchInfo.ConConfig.Spec.Process.Args,
+			CreatedAt:        batchInfo.ConConfig.CreatedTime,
+			RunningFor:       time.Since(batchInfo.ConConfig.CreatedTime),
+			Status:           batchInfo.ConState.String(),
+			Ports:            batchInfo.ConConfig.PortMappings,
+			RootFsSize:       batchInfo.RootFsSize,
+			RWSize:           batchInfo.RwSize,
+			Names:            batchInfo.ConConfig.Name,
+			Labels:           batchInfo.ConConfig.Labels,
+			Mounts:           batchInfo.ConConfig.Spec.Mounts,
+			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 		}
 		psOutput = append(psOutput, params)
@@ -567,13 +511,13 @@ func getJSONOutput(containers []*libpod.Container, opts psOptions) ([]psJSONPara
 	return psOutput, nil
 }
 
-func generatePsOutput(containers []*libpod.Container, opts psOptions) error {
-	if len(containers) == 0 && opts.format != formats.JSONString {
+func generatePsOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) error {
+	if len(containers) == 0 && opts.Format != formats.JSONString {
 		return nil
 	}
 	var out formats.Writer
 
-	switch opts.format {
+	switch opts.Format {
 	case formats.JSONString:
 		psOutput, err := getJSONOutput(containers, opts)
 		if err != nil {
@@ -585,20 +529,10 @@ func generatePsOutput(containers []*libpod.Container, opts psOptions) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to create output")
 		}
-		out = formats.StdoutTemplateArray{Output: psToGeneric(psOutput, []psJSONParams{}), Template: opts.format, Fields: psOutput[0].headerMap()}
+		out = formats.StdoutTemplateArray{Output: psToGeneric(psOutput, []psJSONParams{}), Template: opts.Format, Fields: psOutput[0].headerMap()}
 	}
 
 	return formats.Writer(out).Out()
-}
-
-// getStrFromSquareBrackets gets the string inside [] from a string
-func getStrFromSquareBrackets(cmd string) string {
-	reg, err := regexp.Compile(".*\\[|\\].*")
-	if err != nil {
-		return ""
-	}
-	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
-	return strings.Join(arr, ",")
 }
 
 // getLabels converts the labels to a string of the form "key=value, key2=value2"
@@ -646,78 +580,4 @@ func portsToString(ports []ocicni.PortMapping) string {
 		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
 	}
 	return strings.Join(portDisplay, ", ")
-}
-
-type batchContainerStruct struct {
-	conConfig          *libpod.ContainerConfig
-	conState           libpod.ContainerStatus
-	exitCode           int32
-	pid                int
-	rootFsSize, rwSize int64
-	startedTime        time.Time
-}
-
-func batchContainerOp(ctr *libpod.Container, opts psOptions) (batchContainerStruct, error) {
-	var (
-		conConfig          *libpod.ContainerConfig
-		conState           libpod.ContainerStatus
-		err                error
-		exitCode           int32
-		pid                int
-		rootFsSize, rwSize int64
-		startedTime        time.Time
-	)
-
-	batchErr := ctr.Batch(func(c *libpod.Container) error {
-		conConfig = c.Config()
-		conState, err = c.State()
-		if err != nil {
-			return errors.Wrapf(err, "unable to obtain container state")
-		}
-
-		exitCode, err = c.ExitCode()
-		if err != nil {
-			return errors.Wrapf(err, "unable to obtain container exit code")
-		}
-		startedTime, err = c.StartedTime()
-		if err != nil {
-			logrus.Errorf("error getting started time for %q: %v", c.ID(), err)
-		}
-
-		if !opts.size && !opts.namespace {
-			return nil
-		}
-
-		if opts.namespace {
-			pid, err = c.PID()
-			if err != nil {
-				return errors.Wrapf(err, "unable to obtain container pid")
-			}
-		}
-		if opts.size {
-			rootFsSize, err = c.RootFsSize()
-			if err != nil {
-				logrus.Errorf("error getting root fs size for %q: %v", c.ID(), err)
-			}
-
-			rwSize, err = c.RWSize()
-			if err != nil {
-				logrus.Errorf("error getting rw size for %q: %v", c.ID(), err)
-			}
-
-		}
-		return nil
-	})
-	if batchErr != nil {
-		return batchContainerStruct{}, batchErr
-	}
-	return batchContainerStruct{
-		conConfig:   conConfig,
-		conState:    conState,
-		exitCode:    exitCode,
-		pid:         pid,
-		rootFsSize:  rootFsSize,
-		rwSize:      rwSize,
-		startedTime: startedTime,
-	}, nil
 }

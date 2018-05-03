@@ -53,32 +53,100 @@ type ImageSearch (
     star_count: int
 )
 
+# ListContainer is the returned struct for an individual container
+type ListContainerData (
+    id: string,
+    image: string,
+    imageid: string,
+    command: []string,
+    createdat: string,
+    runningfor: string,
+    status: string,
+    ports: []ContainerPortMappings,
+    rootfssize: int,
+    rwsize: int,
+    names: string,
+    labels: [string]string,
+    mounts: []ContainerMount,
+    containerrunning: bool,
+    namespaces: ContainerNameSpace
+)
+
+# ContainerStats is the return struct for the stats of a container
+type ContainerStats (
+    id: string,
+    name: string,
+    cpu: float,
+    cpu_nano: int,
+    system_nano: int,
+    mem_usage: int,
+    mem_limit: int,
+    mem_perc: float,
+    net_input: int,
+    net_output: int,
+    block_output: int,
+    block_input: int,
+    pids: int
+)
+
+# ContainerMount describes the struct for mounts in a container
+type ContainerMount (
+    destination: string,
+    type: string,
+    source: string,
+    options: []string
+)
+
+# ContainerPortMappings describes the struct for portmappings in an existing container
+type ContainerPortMappings (
+    host_port: string,
+    host_ip: string,
+    protocol: string,
+    container_port: string
+)
+
+# ContainerNamespace describes the namespace structure for an existing container
+type ContainerNameSpace (
+    user: string,
+    uts: string,
+    pidns: string,
+    pid: string,
+    cgroup: string,
+    net: string,
+    mnt: string,
+    ipc: string
+)
+
 # System
 method Ping() -> (ping: StringResponse)
 method GetVersion() -> (version: Version)
 
 # Containers
-method ListContainers() -> (notimplemented: NotImplemented)
+method ListContainers() -> (containers: []ListContainerData)
+method GetContainer(name: string) -> (container: ListContainerData)
 method CreateContainer() -> (notimplemented: NotImplemented)
-method InspectContainer() -> (notimplemented: NotImplemented)
-method ListContainerProcesses() -> (notimplemented: NotImplemented)
-method GetContainerLogs() -> (notimplemented: NotImplemented)
-method ListContainerChanges() -> (notimplemented: NotImplemented)
-method ExportContainer() -> (notimplemented: NotImplemented)
-method GetContainerStats() -> (notimplemented: NotImplemented)
+method InspectContainer(name: string) -> (container: string)
+# TODO: Should this be made into a streaming response as opposed to a one off?
+method ListContainerProcesses(name: string, opts: []string) -> (container: []string)
+# TODO: Should this be made into a streaming response as opposed to a one off?
+method GetContainerLogs(name: string) -> (container: []string)
+method ListContainerChanges(name: string) -> (container: [string]string)
+# TODO: This should be made into a streaming response
+method ExportContainer(name: string, path: string) -> (tarfile: string)
+method GetContainerStats(name: string) -> (container: ContainerStats)
 method ResizeContainerTty() -> (notimplemented: NotImplemented)
 method StartContainer() -> (notimplemented: NotImplemented)
-method StopContainer() -> (notimplemented: NotImplemented)
-method RestartContainer() -> (notimplemented: NotImplemented)
-method KillContainer() -> (notimplemented: NotImplemented)
+method StopContainer(name: string, timeout: int) -> (container: string)
+method RestartContainer(name: string, timeout: int) -> (container: string)
+method KillContainer(name: string, signal: int) -> (container: string)
 method UpdateContainer() -> (notimplemented: NotImplemented)
 method RenameContainer() -> (notimplemented: NotImplemented)
-method PauseContainer() -> (notimplemented: NotImplemented)
-method UnpauseContainer() -> (notimplemented: NotImplemented)
+method PauseContainer(name: string) -> (container: string)
+method UnpauseContainer(name: string) -> (container: string)
 method AttachToContainer() -> (notimplemented: NotImplemented)
-method WaitContainer() -> (notimplemented: NotImplemented)
-method RemoveContainer() -> (notimplemented: NotImplemented)
-method DeleteStoppedContainers() -> (notimplemented: NotImplemented)
+method WaitContainer(name: string) -> (exitcode: int)
+method RemoveContainer(name: string, force: bool) -> (container: string)
+method DeleteStoppedContainers() -> (containers: []string)
 
 # Images
 method ListImages() -> (images: []ImageInList)
@@ -99,6 +167,7 @@ method PullImage(name: string) -> (id: string)
 
 # Something failed
 error ActionFailed (reason: string)
-error ImageNotFound (imagename: string)
+error ImageNotFound (name: string)
+error ContainerNotFound (name: string)
 error ErrorOccurred (reason: string)
 error RuntimeError (reason: string)

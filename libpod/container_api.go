@@ -705,3 +705,52 @@ func (c *Container) Sync() error {
 
 	return nil
 }
+
+// RestartWithTimeout restarts a running container and takes a given timeout in uint
+func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	notRunning, err := c.checkDependenciesRunning()
+	if err != nil {
+		return errors.Wrapf(err, "error checking dependencies for container %s")
+	}
+	if len(notRunning) > 0 {
+		depString := strings.Join(notRunning, ",")
+		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
+	}
+	if c.state.State == ContainerStateUnknown || c.state.State == ContainerStatePaused {
+		return errors.Errorf("unable to restart a container in a paused or unknown state")
+	}
+
+	if c.state.State == ContainerStateRunning {
+		if err := c.stop(timeout); err != nil {
+			return err
+		}
+	}
+	if err := c.prepare(); err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
+		if err := c.reinit(ctx); err != nil {
+			return err
+		}
+	}
+	return c.start()
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -64,7 +65,7 @@ func restartCmd(c *cli.Context) error {
 				ctrTimeout = timeout
 			}
 
-			lastError = restartCtr(ctrTimeout, lastCtr)
+			lastError = lastCtr.RestartWithTimeout(context.TODO(), ctrTimeout)
 		}
 	}
 
@@ -83,7 +84,7 @@ func restartCmd(c *cli.Context) error {
 			ctrTimeout = timeout
 		}
 
-		if err := restartCtr(ctrTimeout, ctr); err != nil {
+		if err := ctr.RestartWithTimeout(context.TODO(), ctrTimeout); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
@@ -92,25 +93,4 @@ func restartCmd(c *cli.Context) error {
 	}
 
 	return lastError
-}
-
-// Restart a single container
-func restartCtr(timeout uint, ctr *libpod.Container) error {
-	state, err := ctr.State()
-	if err != nil {
-		return err
-	}
-	if state == libpod.ContainerStateRunning {
-		if err := ctr.StopWithTimeout(timeout); err != nil {
-			return err
-		}
-	}
-
-	if err := ctr.Start(getContext()); err != nil {
-		return err
-	}
-
-	fmt.Printf("%s\n", ctr.ID())
-
-	return nil
 }
