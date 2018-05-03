@@ -726,7 +726,7 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error 
 		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 	if c.state.State == ContainerStateUnknown || c.state.State == ContainerStatePaused {
-		return errors.Errorf("unable to restart a container in a paused or unknown state")
+		return errors.Wrapf(ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
 
 	if c.state.State == ContainerStateRunning {
@@ -737,7 +737,6 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error 
 	if err := c.prepare(); err != nil {
 		return err
 	}
-
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(); err2 != nil {
@@ -751,6 +750,12 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error 
 		if err := c.reinit(ctx); err != nil {
 			return err
 		}
+	} else if c.state.State == ContainerStateConfigured {
+		// Initialize the container if it has never been initialized
+		if err := c.init(ctx); err != nil {
+			return err
+		}
 	}
+
 	return c.start()
 }
