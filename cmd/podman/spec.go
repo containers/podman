@@ -652,6 +652,27 @@ func (c *createConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		}
 	}
 
+	if len(c.Volumes) != 0 {
+		// Volumes consist of multiple, comma-delineated fields
+		// The image spec only includes one part of that, so drop the
+		// others, if they are included
+		volumes := make([]string, 0, len(c.Volumes))
+		for _, vol := range c.Volumes {
+			volumes = append(volumes, strings.SplitN(vol, ":", 2)[0])
+		}
+
+		options = append(options, libpod.WithUserVolumes(volumes))
+	}
+
+	if len(c.Command) != 0 {
+		options = append(options, libpod.WithCommand(c.Command))
+	}
+
+	// Add entrypoint unconditionally
+	// If it's empty it's because it was explicitly set to "" or the image
+	// does not have one
+	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
+
 	if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {

@@ -18,9 +18,9 @@ var (
 
 // Runtime Creation Options
 
-// WithStorageConfig uses the given configuration to set up container storage
+// WithStorageConfig uses the given configuration to set up container storage.
 // If this is not specified, the system default configuration will be used
-// instead
+// instead.
 func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -45,7 +45,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	}
 }
 
-// WithDefaultTransport sets the default transport for retrieving images
+// WithDefaultTransport sets the default transport for retrieving images.
 func WithDefaultTransport(defaultTransport string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -61,7 +61,7 @@ func WithDefaultTransport(defaultTransport string) RuntimeOption {
 // WithSignaturePolicy specifies the path of a file which decides how trust is
 // managed for images we've pulled.
 // If this is not specified, the system default configuration will be used
-// instead
+// instead.
 func WithSignaturePolicy(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -74,10 +74,10 @@ func WithSignaturePolicy(path string) RuntimeOption {
 	}
 }
 
-// WithStateType sets the backing state implementation for libpod
-// Please note that information is not portable between backing states
+// WithStateType sets the backing state implementation for libpod.
+// Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
-// they will not share containers, and unspecified behavior may occur
+// they will not share containers, and unspecified behavior may occur.
 func WithStateType(storeType RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -94,7 +94,7 @@ func WithStateType(storeType RuntimeStateStore) RuntimeOption {
 	}
 }
 
-// WithOCIRuntime specifies an OCI runtime to use for running containers
+// WithOCIRuntime specifies an OCI runtime to use for running containers.
 func WithOCIRuntime(runtimePath string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -112,7 +112,7 @@ func WithOCIRuntime(runtimePath string) RuntimeOption {
 }
 
 // WithConmonPath specifies the path to the conmon binary which manages the
-// runtime
+// runtime.
 func WithConmonPath(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -129,7 +129,7 @@ func WithConmonPath(path string) RuntimeOption {
 	}
 }
 
-// WithConmonEnv specifies the environment variable list for the conmon process
+// WithConmonEnv specifies the environment variable list for the conmon process.
 func WithConmonEnv(environment []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -144,8 +144,8 @@ func WithConmonEnv(environment []string) RuntimeOption {
 }
 
 // WithCgroupManager specifies the manager implementation name which is used to
-// handle cgroups for containers
-// Current valid values are "cgroupfs" and "systemd"
+// handle cgroups for containers.
+// Current valid values are "cgroupfs" and "systemd".
 func WithCgroupManager(manager string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -159,7 +159,7 @@ func WithCgroupManager(manager string) RuntimeOption {
 }
 
 // WithStaticDir sets the directory that static runtime files which persist
-// across reboots will be stored
+// across reboots will be stored.
 func WithStaticDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -172,9 +172,9 @@ func WithStaticDir(dir string) RuntimeOption {
 	}
 }
 
-// WithHooksDir sets the directory to look for OCI runtime hooks config
+// WithHooksDir sets the directory to look for OCI runtime hooks config.
 // Note we are not saving this in database, since this is really just for used
-// for testing
+// for testing.
 func WithHooksDir(hooksDir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -186,8 +186,10 @@ func WithHooksDir(hooksDir string) RuntimeOption {
 	}
 }
 
-// WithDefaultMountsFile sets the file to look at for default mounts (mainly secrets)
-// Note we are not saving this in the database as it is for testing purposes only
+// WithDefaultMountsFile sets the file to look at for default mounts (mainly
+// secrets).
+// Note we are not saving this in the database as it is for testing purposes
+// only.
 func WithDefaultMountsFile(mountsFile string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -203,8 +205,8 @@ func WithDefaultMountsFile(mountsFile string) RuntimeOption {
 }
 
 // WithTmpDir sets the directory that temporary runtime files which are not
-// expected to survive across reboots will be stored
-// This should be located on a tmpfs mount (/tmp or /var/run for example)
+// expected to survive across reboots will be stored.
+// This should be located on a tmpfs mount (/tmp or /var/run for example).
 func WithTmpDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -217,8 +219,8 @@ func WithTmpDir(dir string) RuntimeOption {
 	}
 }
 
-// WithMaxLogSize sets the maximum size of container logs
-// Positive sizes are limits in bytes, -1 is unlimited
+// WithMaxLogSize sets the maximum size of container logs.
+// Positive sizes are limits in bytes, -1 is unlimited.
 func WithMaxLogSize(limit int64) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -232,7 +234,7 @@ func WithMaxLogSize(limit int64) RuntimeOption {
 }
 
 // WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
-// starting containers
+// starting containers.
 func WithNoPivotRoot(noPivot bool) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -245,7 +247,7 @@ func WithNoPivotRoot(noPivot bool) RuntimeOption {
 	}
 }
 
-// WithCNIConfigDir sets the CNI configuration directory
+// WithCNIConfigDir sets the CNI configuration directory.
 func WithCNIConfigDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -258,7 +260,7 @@ func WithCNIConfigDir(dir string) RuntimeOption {
 	}
 }
 
-// WithCNIPluginDir sets the CNI plugins directory
+// WithCNIPluginDir sets the CNI plugins directory.
 func WithCNIPluginDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -273,7 +275,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 
 // Container Creation Options
 
-// WithShmDir sets the directory that should be mounted on /dev/shm
+// WithShmDir sets the directory that should be mounted on /dev/shm.
 func WithShmDir(dir string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -285,7 +287,7 @@ func WithShmDir(dir string) CtrCreateOption {
 	}
 }
 
-// WithShmSize sets the size of /dev/shm tmpfs mount
+// WithShmSize sets the size of /dev/shm tmpfs mount.
 func WithShmSize(size int64) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -297,7 +299,7 @@ func WithShmSize(size int64) CtrCreateOption {
 	}
 }
 
-// WithPrivileged sets the privileged flag in the container runtime
+// WithPrivileged sets the privileged flag in the container runtime.
 func WithPrivileged(privileged bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -309,7 +311,7 @@ func WithPrivileged(privileged bool) CtrCreateOption {
 	}
 }
 
-// WithSELinuxLabels sets the mount label for SELinux
+// WithSELinuxLabels sets the mount label for SELinux.
 func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -322,8 +324,8 @@ func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
 	}
 }
 
-// WithUser sets the user identity field in configutation
-// Valid uses [user | user:group | uid | uid:gid | user:gid | uid:group ]
+// WithUser sets the user identity field in configutation.
+// Valid uses [user | user:group | uid | uid:gid | user:gid | uid:group ].
 func WithUser(user string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -335,10 +337,11 @@ func WithUser(user string) CtrCreateOption {
 	}
 }
 
-// WithRootFSFromImage sets up a fresh root filesystem using the given image
+// WithRootFSFromImage sets up a fresh root filesystem using the given image.
 // If useImageConfig is specified, image volumes, environment variables, and
-// other configuration from the image will be added to the config
-// TODO: Replace image name and ID with a libpod.Image struct when that is finished
+// other configuration from the image will be added to the config.
+// TODO: Replace image name and ID with a libpod.Image struct when that is
+// finished.
 func WithRootFSFromImage(imageID string, imageName string, useImageVolumes bool) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -357,7 +360,7 @@ func WithRootFSFromImage(imageID string, imageName string, useImageVolumes bool)
 	}
 }
 
-// WithStdin keeps stdin on the container open to allow interaction
+// WithStdin keeps stdin on the container open to allow interaction.
 func WithStdin() CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -370,9 +373,9 @@ func WithStdin() CtrCreateOption {
 	}
 }
 
-// WithPod adds the container to a pod
+// WithPod adds the container to a pod.
 // Containers which join a pod can only join the namespaces of other containers
-// in the same pod
+// in the same pod.
 func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -389,7 +392,7 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	}
 }
 
-// WithLabels adds labels to the container
+// WithLabels adds labels to the container.
 func WithLabels(labels map[string]string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -405,7 +408,7 @@ func WithLabels(labels map[string]string) CtrCreateOption {
 	}
 }
 
-// WithName sets the container's name
+// WithName sets the container's name.
 func WithName(name string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -423,7 +426,7 @@ func WithName(name string) CtrCreateOption {
 	}
 }
 
-// WithStopSignal sets the signal that will be sent to stop the container
+// WithStopSignal sets the signal that will be sent to stop the container.
 func WithStopSignal(signal syscall.Signal) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -442,7 +445,8 @@ func WithStopSignal(signal syscall.Signal) CtrCreateOption {
 	}
 }
 
-// WithStopTimeout sets the time to after initial stop signal is sent to container, before sending the kill signal
+// WithStopTimeout sets the time to after initial stop signal is sent to the
+// container, before sending the kill signal.
 func WithStopTimeout(timeout uint) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -456,9 +460,9 @@ func WithStopTimeout(timeout uint) CtrCreateOption {
 }
 
 // WithIPCNSFrom indicates the the container should join the IPC namespace of
-// the given container
+// the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -484,9 +488,9 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithMountNSFrom indicates the the container should join the mount namespace
-// of the given container
+// of the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -512,9 +516,9 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithNetNSFrom indicates the the container should join the network namespace
-// of the given container
+// of the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -544,9 +548,9 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithPIDNSFrom indicates the the container should join the PID namespace of
-// the given container
+// the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -572,9 +576,9 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithUserNSFrom indicates the the container should join the user namespace of
-// the given container
+// the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -600,9 +604,9 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithUTSNSFrom indicates the the container should join the UTS namespace of
-// the given container
+// the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -628,9 +632,9 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 }
 
 // WithCgroupNSFrom indicates the the container should join the CGroup namespace
-// of the given container
+// of the given container.
 // If the container has joined a pod, it can only join the namespaces of
-// containers in the same pod
+// containers in the same pod.
 func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -655,8 +659,8 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithDependencyCtrs sets dependency containers of the given container
-// Dependency containers must be running before this container is started
+// WithDependencyCtrs sets dependency containers of the given container.
+// Dependency containers must be running before this container is started.
 func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -688,9 +692,9 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 }
 
 // WithNetNS indicates that the container should be given a new network
-// namespace with a minimal configuration
-// An optional array of port mappings can be provided
-// Conflicts with WithNetNSFrom()
+// namespace with a minimal configuration.
+// An optional array of port mappings can be provided.
+// Conflicts with WithNetNSFrom().
 func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -708,7 +712,7 @@ func WithNetNS(portMappings []ocicni.PortMapping) CtrCreateOption {
 	}
 }
 
-// WithLogPath sets the path to the log file
+// WithLogPath sets the path to the log file.
 func WithLogPath(path string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -724,7 +728,7 @@ func WithLogPath(path string) CtrCreateOption {
 	}
 }
 
-// WithCgroupParent sets the Cgroup Parent of the new container
+// WithCgroupParent sets the Cgroup Parent of the new container.
 func WithCgroupParent(parent string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -741,43 +745,7 @@ func WithCgroupParent(parent string) CtrCreateOption {
 	}
 }
 
-// Pod Creation Options
-
-// WithPodName sets the name of the pod
-func WithPodName(name string) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return ErrPodFinalized
-		}
-
-		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
-		}
-
-		pod.config.Name = name
-
-		return nil
-	}
-}
-
-// WithPodLabels sets the labels of a pod
-func WithPodLabels(labels map[string]string) PodCreateOption {
-	return func(pod *Pod) error {
-		if pod.valid {
-			return ErrPodFinalized
-		}
-
-		pod.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			pod.config.Labels[key] = value
-		}
-
-		return nil
-	}
-}
-
-// WithDNSSearch sets the additional search domains of a container
+// WithDNSSearch sets the additional search domains of a container.
 func WithDNSSearch(searchDomains []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -788,7 +756,7 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 	}
 }
 
-// WithDNS sets additional name servers for the container
+// WithDNS sets additional name servers for the container.
 func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -807,7 +775,7 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	}
 }
 
-// WithDNSOption sets addition dns options for the container
+// WithDNSOption sets addition dns options for the container.
 func WithDNSOption(dnsOptions []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -818,7 +786,7 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 	}
 }
 
-// WithHosts sets additional host:IP for the hosts file
+// WithHosts sets additional host:IP for the hosts file.
 func WithHosts(hosts []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -829,7 +797,8 @@ func WithHosts(hosts []string) CtrCreateOption {
 	}
 }
 
-// WithConmonPidFile specifies the path to the file that receives the pid of conmon
+// WithConmonPidFile specifies the path to the file that receives the pid of
+// conmon.
 func WithConmonPidFile(path string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -840,13 +809,115 @@ func WithConmonPidFile(path string) CtrCreateOption {
 	}
 }
 
-// WithGroups sets additional groups for the container, which are defined by the user
+// WithGroups sets additional groups for the container, which are defined by
+// the user.
 func WithGroups(groups []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
 		ctr.config.Groups = groups
+		return nil
+	}
+}
+
+// WithUserVolumes sets the user-added volumes of the container.
+// These are not added to the container's spec, but will instead be used during
+// commit to populate the volumes of the new image, and to trigger some OCI
+// hooks that are only added if volume mounts are present.
+// Unless explicitly set, committed images will have no volumes.
+// The given volumes slice must not be nil.
+func WithUserVolumes(volumes []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if volumes == nil {
+			return ErrInvalidArg
+		}
+
+		ctr.config.UserVolumes = make([]string, 0, len(volumes))
+		for _, vol := range volumes {
+			ctr.config.UserVolumes = append(ctr.config.UserVolumes, vol)
+		}
+
+		return nil
+	}
+}
+
+// WithEntrypoint sets the entrypoint of the container.
+// This is not used to change the container's spec, but will instead be used
+// during commit to populate the entrypoint of the new image.
+// If not explicitly set it will default to the image's entrypoint.
+// A nil entrypoint is allowed, and will clear entrypoint on the created image.
+func WithEntrypoint(entrypoint []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Entrypoint = make([]string, 0, len(entrypoint))
+		for _, str := range entrypoint {
+			ctr.config.Entrypoint = append(ctr.config.Entrypoint, str)
+		}
+
+		return nil
+	}
+}
+
+// WithCommand sets the command of the container.
+// This is not used to change the container's spec, but will instead be used
+// during commit to populate the command of the new image.
+// If not explicitly set it will default to the image's command.
+// A nil command is allowed, and will clear command on the created image.
+func WithCommand(command []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Command = make([]string, 0, len(command))
+		for _, str := range command {
+			ctr.config.Command = append(ctr.config.Command, str)
+		}
+
+		return nil
+	}
+}
+
+// Pod Creation Options
+
+// WithPodName sets the name of the pod.
+func WithPodName(name string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		// Check the name against a regex
+		if !nameRegex.MatchString(name) {
+			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+		}
+
+		pod.config.Name = name
+
+		return nil
+	}
+}
+
+// WithPodLabels sets the labels of a pod.
+func WithPodLabels(labels map[string]string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.Labels = make(map[string]string)
+		for key, value := range labels {
+			pod.config.Labels[key] = value
+		}
+
 		return nil
 	}
 }
