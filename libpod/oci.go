@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -399,15 +400,18 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	// Store old state so we know if we were already stopped
 	oldState := ctr.state.State
 
-	out, err := exec.Command(r.path, "state", ctr.ID()).Output()
+	out, err := exec.Command(r.path, "state", ctr.ID()).CombinedOutput()
 	if err != nil {
+		if strings.HasSuffix(string(out), "does not exist") {
+			ctr.removeConmonFiles()
+			ctr.state.State = ContainerStateConfigured
+			return nil
+		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
 	}
-
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
 		return errors.Wrapf(err, "error decoding container status for container %s", ctr.ID())
 	}
-
 	ctr.state.PID = state.Pid
 
 	switch state.Status {
