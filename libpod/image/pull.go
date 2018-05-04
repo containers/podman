@@ -186,7 +186,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 
 	for _, imageInfo := range pullStructs {
 		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false)
-		if imageInfo.srcRef.Transport().Name() == DockerTransport {
+		if strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) {
 			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
 			if err != nil {
 				return "", err
