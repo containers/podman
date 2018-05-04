@@ -198,12 +198,23 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
-		c.state.UserNSRoot, err = ioutil.TempDir("", fmt.Sprintf("libpod-%s", c.ID()))
+		info, err := os.Stat(c.runtime.config.TmpDir)
 		if err != nil {
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+		}
+		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		}
+		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		if err := os.MkdirAll(root, 0755); err != nil {
 			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
 		}
-		if err := os.Chown(c.state.UserNSRoot, c.RootUID(), c.RootGID()); err != nil {
+		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
+		}
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
 		}
 	}
 
@@ -283,21 +294,24 @@ func (c *Container) refresh() error {
 		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
 	}
 
-	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
-	}
-
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
-		c.state.UserNSRoot, err = ioutil.TempDir("", fmt.Sprintf("libpod-%s", c.ID()))
+		info, err := os.Stat(c.runtime.config.TmpDir)
 		if err != nil {
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+		}
+		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		}
+		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		if err := os.MkdirAll(root, 0755); err != nil {
 			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
 		}
-		rootUID, rootGID := c.RootUID(), c.RootGID()
-		if err := os.Chown(c.state.UserNSRoot, rootUID, rootGID); err != nil {
+		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		if err = idtools.MkdirAllAs(c.state.DestinationRunDir, 0700, rootUID, rootGID); err != nil {
-			return errors.Wrapf(err, "cannot create userNS rundir for container %s", c.ID())
+		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
 		}
 	}
 
@@ -305,6 +319,10 @@ func (c *Container) refresh() error {
 	c.state.DestinationRunDir = c.state.RunDir
 	if c.state.UserNSRoot != "" {
 		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
+	}
+
+	if err := c.save(); err != nil {
+		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
 	}
 
 	// Remove ctl and attach files, which may persist across reboot
@@ -653,7 +671,7 @@ func (c *Container) mountStorage() (err error) {
 			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
 		}
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
 	}
 

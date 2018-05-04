@@ -340,6 +340,14 @@ func makeRuntime(runtime *Runtime) error {
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
 	}
 
+	// Create the tmpDir
+	if err := os.MkdirAll(runtime.config.TmpDir, 0751); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating tmpdir %s", runtime.config.TmpDir)
+		}
+	}
+
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime("runc", runtime.ociRuntimePath,
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
