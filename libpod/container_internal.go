@@ -197,18 +197,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	c.config.StaticDir = containerInfo.Dir
-	c.state.RunDir = containerInfo.RunDir
-
-	// Set the default Entrypoint and Command
-	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
-	c.config.Command = containerInfo.Config.Config.Cmd
-
-	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
-	if err := os.MkdirAll(artifacts, 0755); err != nil {
-		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
-	}
-
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		c.state.UserNSRoot, err = ioutil.TempDir("", fmt.Sprintf("libpod-%s", c.ID()))
 		if err != nil {
@@ -217,6 +205,22 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		if err := os.Chown(c.state.UserNSRoot, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
+	}
+
+	c.config.StaticDir = containerInfo.Dir
+	c.state.RunDir = containerInfo.RunDir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
+	}
+
+	// Set the default Entrypoint and Command
+	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
+	c.config.Command = containerInfo.Config.Config.Cmd
+
+	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
+	if err := os.MkdirAll(artifacts, 0755); err != nil {
+		return errors.Wrapf(err, "error creating artifacts directory %q", artifacts)
 	}
 
 	return nil
@@ -278,7 +282,6 @@ func (c *Container) refresh() error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
 	}
-	c.state.RunDir = dir
 
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
@@ -293,9 +296,15 @@ func (c *Container) refresh() error {
 		if err := os.Chown(c.state.UserNSRoot, rootUID, rootGID); err != nil {
 			return err
 		}
-		if err = idtools.MkdirAllAs(filepath.Join(c.state.UserNSRoot, "rundir"), 0700, rootUID, rootGID); err != nil {
+		if err = idtools.MkdirAllAs(c.state.DestinationRunDir, 0700, rootUID, rootGID); err != nil {
 			return errors.Wrapf(err, "cannot create userNS rundir for container %s", c.ID())
 		}
+	}
+
+	c.state.RunDir = dir
+	c.state.DestinationRunDir = c.state.RunDir
+	if c.state.UserNSRoot != "" {
+		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
 	}
 
 	// Remove ctl and attach files, which may persist across reboot
@@ -813,11 +822,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMountsPrefix := c.state.RunDir
-	if c.state.UserNSRoot != "" {
-		secretMountsPrefix = filepath.Join(c.state.UserNSRoot, "rundir")
-	}
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, secretMountsPrefix, c.RootUID(), c.RootGID())
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.DestinationRunDir, c.RootUID(), c.RootGID())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -852,10 +857,7 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 		return "", err
 	}
 
-	if c.state.UserNSRoot != "" {
-		return filepath.Join(c.state.UserNSRoot, "rundir", destFile), nil
-	}
-	return destFileName, nil
+	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
 type resolvConf struct {

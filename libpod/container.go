@@ -115,6 +115,9 @@ type containerState struct {
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
 	RunDir string `json:"runDir,omitempty"`
+	// DestinationRunDir is where the files in RunDir will be accessible for the container.
+	// It is different than RunDir when using userNS
+	DestinationRunDir string `json:"destinationRunDir,omitempty"`
 	// Mounted indicates whether the container's storage has been mounted
 	// for use
 	Mounted bool `json:"mounted,omitempty"`

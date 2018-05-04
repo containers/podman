@@ -220,12 +220,11 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 		if err != nil {
 			return
 		}
-		destRunDir := filepath.Join(ctr.state.UserNSRoot, "rundir")
-		if err := idtools.MkdirAllAs(destRunDir, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
+		if err := idtools.MkdirAllAs(ctr.state.DestinationRunDir, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
 			return
 		}
 
-		err = unix.Mount(ctr.state.RunDir, destRunDir, "none", unix.MS_BIND, "")
+		err = unix.Mount(ctr.state.RunDir, ctr.state.DestinationRunDir, "none", unix.MS_BIND, "")
 		if err != nil {
 			return
 		}
