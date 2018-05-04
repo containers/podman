@@ -395,7 +395,7 @@ func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOpt
 		runningFor := ""
 		// If the container has not be started, the "zero" value of time is 0001-01-01 00:00:00 +0000 UTC
 		// which would make the time elapsed about a few hundred of years. So checking for the "zero" value of time.Time
-		if batchInfo.StartedTime != (time.Time{}) {
+		if !batchInfo.StartedTime.IsZero() {
 			runningFor = units.HumanDuration(time.Since(batchInfo.StartedTime))
 		}
 		createdAt := batchInfo.ConConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
@@ -495,7 +495,6 @@ func getJSONOutput(containers []*libpod.Container, opts batchcontainer.PsOptions
 			ImageID:          batchInfo.ConConfig.RootfsImageID,
 			Command:          batchInfo.ConConfig.Spec.Process.Args,
 			CreatedAt:        batchInfo.ConConfig.CreatedTime,
-			RunningFor:       time.Since(batchInfo.ConConfig.CreatedTime),
 			Status:           batchInfo.ConState.String(),
 			Ports:            batchInfo.ConConfig.PortMappings,
 			RootFsSize:       batchInfo.RootFsSize,
@@ -506,6 +505,11 @@ func getJSONOutput(containers []*libpod.Container, opts batchcontainer.PsOptions
 			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 		}
+
+		if !batchInfo.StartedTime.IsZero() {
+			params.RunningFor = time.Since(batchInfo.StartedTime)
+		}
+
 		psOutput = append(psOutput, params)
 	}
 	return psOutput, nil
