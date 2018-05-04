@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/batchcontainer"
@@ -117,6 +119,7 @@ func (i *LibpodAPI) ListContainerProcesses(call ioprojectatomicpodman.VarlinkCal
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+
 	return call.ReplyListContainerProcesses(psOutput)
 }
 
@@ -148,12 +151,36 @@ func (i *LibpodAPI) GetContainerLogs(call ioprojectatomicpodman.VarlinkCall, nam
 	}
 	defer file.Close()
 	reader := bufio.NewReader(file)
+	if call.WantsMore() {
+		call.Continues = true
+	}
 	for {
 		line, err := reader.ReadString('\n')
-		if err != nil {
-			break
+		// We've read the entire file
+		if err == io.EOF {
+			if !call.WantsMore() {
+				// If this is a non-following log request, we return what we have
+				break
+			} else {
+				// If we want to follow, return what we have, wipe the slice, and make
+				// sure the container is still running before iterating.
+				call.ReplyGetContainerLogs(logs)
+				logs = []string{}
+				time.Sleep(1 * time.Second)
+				state, err := ctr.State()
+				if err != nil {
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+					return call.ReplyErrorOccurred(fmt.Sprintf("%s is no longer running", ctr.ID()))
+				}
+
+			}
+		} else if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		} else {
+			logs = append(logs, line)
 		}
-		logs = append(logs, line)
 	}
 	return call.ReplyGetContainerLogs(logs)
 }

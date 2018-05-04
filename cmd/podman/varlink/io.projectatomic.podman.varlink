@@ -126,12 +126,9 @@ method ListContainers() -> (containers: []ListContainerData)
 method GetContainer(name: string) -> (container: ListContainerData)
 method CreateContainer() -> (notimplemented: NotImplemented)
 method InspectContainer(name: string) -> (container: string)
-# TODO: Should this be made into a streaming response as opposed to a one off?
 method ListContainerProcesses(name: string, opts: []string) -> (container: []string)
-# TODO: Should this be made into a streaming response as opposed to a one off?
 method GetContainerLogs(name: string) -> (container: []string)
 method ListContainerChanges(name: string) -> (container: [string]string)
-# TODO: This should be made into a streaming response
 method ExportContainer(name: string, path: string) -> (tarfile: string)
 method GetContainerStats(name: string) -> (container: ContainerStats)
 method ResizeContainerTty() -> (notimplemented: NotImplemented)
