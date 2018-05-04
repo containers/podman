@@ -1,3 +1,37 @@
+- Changelog for v0.5.1 (2018-05-04):
+  * Fix pulling from secure registry
+  * Optionally init() during container restart
+  * bashcompletion enhancements
+  * Add directory for systemd socket and service if not present
+  * varlink containers
+  * Make podman commit to localhost rather then docker.io
+  * Trivial refactor on volume addition
+  * When adding volumes to DB, handle nontrivial cases
+  * Add accessors for new image fields in container config
+  * Store user Volumes, Entrypoint, Command in database
+  * Further fix Godoc comments in options.go
+  * Update hooks to use config bool to detect volume mounts
+  * Fix Godoc comments in options.go
+  * Add config bool to indicate there are user volumes
+  * Print the Buildah comment from commit to given writer
+  * Do not print unnecessary Buildah details during commit
+  * remove options from create/run that we cannot support
+  * fix typos in the inspect json structs
+  * Fix podman logout --all flag
+  * podman should assign a host port to -p when omitted
+  * Vendor in latest buildah
+  * Fix misc stuff found by jhonce
+  * libpod.conf: Podman's conmon path on openSUSE
+  * Add iidfile parame to build and commit man pages
+  * do not commit default volumes from container
+  * correct varlink command in service file
+  * Vendor in latest containers/image
+  * Make ':' a restricted character for file names
+  * Add more validation to --volume flag for run and create
+  * Fix libseccomp not working in travis
+  * CONTRIBUTING: Document PR approval and link to OWNERS
+  * OWNERS: rename 'assignees' to 'approvers'
+
 - Changelog for v0.4.4 (2018-04-27):
   * Use buildah commit and bud in podman
   * README: Link to CONTRIBUTING.md
