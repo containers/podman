@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/batchcontainer"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -195,12 +196,18 @@ func (i *LibpodAPI) ListContainerChanges(call ioprojectatomicpodman.VarlinkCall,
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-
-	m := make(map[string]string)
+	result := ioprojectatomicpodman.ContainerChanges{}
 	for _, change := range changes {
-		m[change.Path] = change.Kind.String()
+		switch change.Kind {
+		case archive.ChangeModify:
+			result.Changed = append(result.Changed, change.Path)
+		case archive.ChangeDelete:
+			result.Deleted = append(result.Deleted, change.Path)
+		case archive.ChangeAdd:
+			result.Added = append(result.Added, change.Path)
+		}
 	}
-	return call.ReplyListContainerChanges(m)
+	return call.ReplyListContainerChanges(result)
 }
 
 // ExportContainer ...

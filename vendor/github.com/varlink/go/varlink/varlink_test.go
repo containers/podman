@@ -140,7 +140,7 @@ func (s *VarlinkInterface) VarlinkDispatch(call Call, methodname string) error {
 		if !call.WantsMore() {
 			return fmt.Errorf("More flag not passed")
 		}
-		if call.IsOneShot() {
+		if call.IsOneway() {
 			return fmt.Errorf("OneShot flag set")
 		}
 		call.Continues = true

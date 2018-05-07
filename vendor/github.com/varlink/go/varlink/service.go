@@ -23,7 +23,7 @@ type serviceCall struct {
 	Method     string           `json:"method"`
 	Parameters *json.RawMessage `json:"parameters,omitempty"`
 	More       bool             `json:"more,omitempty"`
-	OneShot    bool             `json:"oneshot,omitempty"`
+	Oneway     bool             `json:"oneway,omitempty"`
 }
 
 type serviceReply struct {

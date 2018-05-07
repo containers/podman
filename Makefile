@@ -87,7 +87,7 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT)) varlink_generate
+podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT)) varlink_generate varlink_api_generate
 	$(GO) build -i $(LDFLAGS_PODMAN) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 clean:
@@ -251,6 +251,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 	fi
 
 varlink_generate: .gopathok cmd/podman/varlink/ioprojectatomicpodman.go
+varlink_api_generate: .gopathok API.md
 
 .PHONY: install.libseccomp.sudo
 install.libseccomp.sudo:
@@ -261,6 +262,9 @@ install.libseccomp.sudo:
 
 cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
 	$(GO) generate ./cmd/podman/varlink/...
+
+API.md: cmd/podman/varlink/io.projectatomic.podman.varlink
+	$(GO) generate ./docs/...
 
 validate: gofmt .gitvalidation
 

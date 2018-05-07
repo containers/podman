@@ -18,6 +18,12 @@ type NotImplemented (
 type StringResponse (
     message: string
 )
+# ContainerChanges describes the return struct for ListContainerChanges
+type ContainerChanges (
+   changed: []string,
+   added: []string,
+   deleted: []string
+)
 
 # ImageInList describes the structure that is returned in
 # ListImages.
@@ -117,54 +123,254 @@ type ContainerNameSpace (
     ipc: string
 )
 
-# System
+# Ping provides a response for developers to ensure their varlink setup is working.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.Ping
+# {
+#   "ping": {
+#     "message": "OK"
+#   }
+# }
+# ~~~
 method Ping() -> (ping: StringResponse)
+
+# GetVersion returns a Version structure describing the libpod setup on their
+# system.
 method GetVersion() -> (version: Version)
 
-# Containers
+
+# ListContainers returns a list of containers in no particular order.  There are
+# returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
 method ListContainers() -> (containers: []ListContainerData)
+
+# GetContainer takes a name or ID of a container and returns single ListContainerData
+# structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
+# See also [ListContainers](ListContainers) and [InspectContainer](InspectContainer).
 method GetContainer(name: string) -> (container: ListContainerData)
+
+# This method has not been implemented yet.
 method CreateContainer() -> (notimplemented: NotImplemented)
+
+# InspectContainer data takes a name or ID of a container returns the inspection
+# data in string format.  You can then serialize the string into JSON.  A [ContainerNotFound](#ContainerNotFound)
+# error will be returned if the container cannot be found. See also [InspectImage](#InspectImage).
 method InspectContainer(name: string) -> (container: string)
+
+# ListContainerProcesses takes a name or ID of a container and returns the processes
+# running inside the container as array of strings.  It will accept an array of string
+# arguements that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
+# {
+#   "container": [
+#     "  UID   PID  PPID  C STIME TTY          TIME CMD",
+#     "    0 21220 21210  0 09:05 pts/0    00:00:00 /bin/sh",
+#     "    0 21232 21220  0 09:05 pts/0    00:00:00 top",
+#     "    0 21284 21220  0 09:05 pts/0    00:00:00 vi /etc/hosts"
+#   ]
+# }
+# ~~~
 method ListContainerProcesses(name: string, opts: []string) -> (container: []string)
+
+# GetContainerLogs takes a name or ID of a container and returns the logs of that container.
+# If the container cannot be found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# The container logs are returned as an array of strings.  GetContainerLogs will honor the streaming
+# capability of varlink if the client invokes it.
 method GetContainerLogs(name: string) -> (container: []string)
-method ListContainerChanges(name: string) -> (container: [string]string)
+
+# ListContainerChanges takes a name or ID of a container and returns changes between the container and
+# its base image. It returns a struct of changed, deleted, and added path names. If the
+# container cannot be found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+method ListContainerChanges(name: string) -> (container: ContainerChanges)
+
+# ExportContainer creates an image from a container.  It takes the name or ID of a container and a
+# path representing the target tarfile.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.
+# The return value is the written tarfile.
 method ExportContainer(name: string, path: string) -> (tarfile: string)
+
+# GetContainerStats takes the name or ID of a container and returns a single ContainerStats structure which
+# contains attributes like memory and cpu usage.  If the container cannot be found, a
+# [ContainerNotFound](#ContainerNotFound)  error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetContainerStats '{"name": "c33e4164f384"}'
+# {
+#   "container": {
+#     "block_input": 0,
+#     "block_output": 0,
+#     "cpu": 2.571123918839990154678e-08,
+#     "cpu_nano": 49037378,
+#     "id": "c33e4164f384aa9d979072a63319d66b74fd7a128be71fa68ede24f33ec6cfee",
+#     "mem_limit": 33080606720,
+#     "mem_perc": 2.166828456524753747370e-03,
+#     "mem_usage": 716800,
+#     "name": "competent_wozniak",
+#     "net_input": 768,
+#     "net_output": 5910,
+#     "pids": 1,
+#     "system_nano": 10000000
+#   }
+# }
+# ~~~
 method GetContainerStats(name: string) -> (container: ContainerStats)
+
+# This method has not be implemented yet.
 method ResizeContainerTty() -> (notimplemented: NotImplemented)
+
+# This method has not be implemented yet.
 method StartContainer() -> (notimplemented: NotImplemented)
+
+# StopContainer stops a container given a timeout.  It takes the name or ID of a container as well as a
+# timeout value.  The timeout value the time before a forceable stop to the container is applied.  It
+# returns the container ID once stopped. If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned instead. See also [KillContainer](KillContainer).
+# #### Error
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
+# {
+#   "container": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
+# }
+# ~~~
 method StopContainer(name: string, timeout: int) -> (container: string)
+
+# RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
+# value is the time before a forceable stop is used to stop the container.  If the container cannot be found by
+# name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
+# container will be returned.
 method RestartContainer(name: string, timeout: int) -> (container: string)
+
+# KillContainer takes the name or ID of a container as well as a signal to be applied to the container.  Once the
+# container has been killed, the container's ID is returned.  If the container cannot be found, a
+# [ContainerNotFound](#ContainerNotFound) error is returned. See also [StopContainer](StopContainer).
 method KillContainer(name: string, signal: int) -> (container: string)
+
+# This method has not be implemented yet.
 method UpdateContainer() -> (notimplemented: NotImplemented)
+
+# This method has not be implemented yet.
 method RenameContainer() -> (notimplemented: NotImplemented)
+
+# PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
+# a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
+# See also [UnpauseContainer](UnpauseContainer).
 method PauseContainer(name: string) -> (container: string)
+
+# UnpauseContainer takes the name or ID of container and unpauses a paused container.  If the container cannot be
+# found, a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
+# See also [PauseContainer](PauseContainer).
 method UnpauseContainer(name: string) -> (container: string)
+
+# This method has not be implemented yet.
 method AttachToContainer() -> (notimplemented: NotImplemented)
+
+# WaitContainer takes the name of ID of a container and waits until the container stops.  Upon stopping, the return
+# code of the container is returned. If the container container cannot be found by ID or name,
+# a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string) -> (exitcode: int)
+
+# RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
+# container can be stopped and removed.  Upon sucessful removal of the container, its ID is returned.  If the
+# container cannot be found by name or ID, an [ContainerNotFound](#ContainerNotFound) error will be returned.
+# #### Error
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
+# {
+#   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+# }
+# ~~~
 method RemoveContainer(name: string, force: bool) -> (container: string)
+
+# DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
+# container IDs.  See also [RemoveContainer](RemoveContainer).
 method DeleteStoppedContainers() -> (containers: []string)
 
-# Images
+# ListImages returns an array of ImageInList structures which provide basic information about
+# an image currenly in storage.  See also [InspectImage](InspectImage).
 method ListImages() -> (images: []ImageInList)
+
+# This function is not implemented yet.
 method BuildImage() -> (notimplemented: NotImplemented)
+
+# This function is not implemented yet.
 method CreateImage() -> (notimplemented: NotImplemented)
+
+# InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
+#image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
+# be returned if the image cannot be found.
 method InspectImage(name: string) -> (image: string)
+
+# HistoryImage takes the name or ID of an image and returns information about its history and layers.  The returned
+# history is in the form of an array of ImageHistory structures.  If the image cannot be found, an
+# [ImageNotFound](#ImageNotFound) error is returned.
 method HistoryImage(name: string) -> (history: []ImageHistory)
-method PushImage(name: string, tag: string, tlsverify: bool) -> ()
-method TagImage(name: string, tagged: string) -> ()
+
+# PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
+# and a boolean as to whether tls-verify should be used.  It will return an [ImageNotFound](#ImageNotFound) error if
+# the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
+method PushImage(name: string, tag: string, tlsverify: bool) -> (image: string)
+
+# TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
+# be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
+method TagImage(name: string, tagged: string) -> (image: string)
+
+# RemoveImage takes the name or ID of an image as well as a booleon that determines if containers using that image
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
+# ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
+# #### Example
+# ~~~
+# varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
+# {
+#   "image": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
+# }
+# ~~~
 method RemoveImage(name: string, force: bool) -> (image: string)
+
+# SearchImage takes the string of an image name and a limit of searches from each registries to be returned.  SearchImage
+# will then use a glob-like match to find the image you are searching for.  The images are returned in an array of
+# ImageSearch structures which contain information about the image as well as its fully-qualified name.
 method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
+
+# DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
+# in a string array.
 method DeleteUnusedImages() -> (images: []string)
+
+# This method is not implemented.
 method CreateFromContainer() -> (notimplemented: NotImplemented)
+
+# ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
+# descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
 method ImportImage(source: string, reference: string, message: string, changes: []string) -> (image: string)
-method ExportImage(name: string, destination: string, compress: bool) -> ()
+
+# ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
+# a booleon option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
+# be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
+method ExportImage(name: string, destination: string, compress: bool) -> (image: string)
+
+# PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
+# is returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
+# {
+#   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
+# }
+# ~~~
 method PullImage(name: string) -> (id: string)
 
 
-# Something failed
-error ActionFailed (reason: string)
+# ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)
+
+# ContainerNotFound means the container could not be found by the provided name or ID in local storage.
 error ContainerNotFound (name: string)
+
+# ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
+# is includes as part of the error's text.
 error ErrorOccurred (reason: string)
+
+# RuntimeErrors generally means a runtime could not be found or gotten.
 error RuntimeError (reason: string)

@@ -140,7 +140,7 @@ func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag 
 	if err := newImage.PushImage(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyPushImage()
+	return call.ReplyPushImage(newImage.ID())
 }
 
 // TagImage accepts an image name and tag as strings and tags an image in the local store.
@@ -156,7 +156,7 @@ func (i *LibpodAPI) TagImage(call ioprojectatomicpodman.VarlinkCall, name, tag s
 	if err := newImage.TagImage(tag); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyTagImage()
+	return call.ReplyTagImage(newImage.ID())
 }
 
 // RemoveImage accepts a image name or ID as a string and force bool to determine if it should
@@ -275,7 +275,7 @@ func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, de
 	if err := newImage.PushImage(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyExportImage()
+	return call.ReplyExportImage(newImage.ID())
 }
 
 // PullImage pulls an image from a registry to the image store.
