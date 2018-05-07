@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+// Message flags for Send(). More indicates that the client accepts more than one method
+// reply to this call. Oneway requests, that the service must not send a method reply to
+// this call. Continues indicates that the service will send more than one reply.
+const (
+	More      = 1 << iota
+	Oneway    = 1 << iota
+	Continues = 1 << iota
+)
+
 // Error is a varlink error returned from a method call.
 type Error struct {
 	Name       string
@@ -26,8 +35,10 @@ type Connection struct {
 	writer  *bufio.Writer
 }
 
-// Send sends a method call.
-func (c *Connection) Send(method string, parameters interface{}, more bool, oneway bool) error {
+// Send sends a method call. It returns a receive() function which is called to retrieve the method reply.
+// If Send() is called with the `More`flag and the receive() function carries the `Continues` flag, receive()
+// can be called multiple times to retrieve multiple replies.
+func (c *Connection) Send(method string, parameters interface{}, flags uint64) (func(interface{}) (uint64, error), error) {
 	type call struct {
 		Method     string      `json:"method"`
 		Parameters interface{} `json:"parameters,omitempty"`
@@ -35,8 +46,8 @@ func (c *Connection) Send(method string, parameters interface{}, more bool, onew
 		Oneway     bool        `json:"oneway,omitempty"`
 	}
 
-	if more && oneway {
-		return &Error{
+	if (flags&More != 0) && (flags&Oneway != 0) {
+		return nil, &Error{
 			Name:       "org.varlink.InvalidParameter",
 			Parameters: "oneway",
 		}
@@ -45,64 +56,73 @@ func (c *Connection) Send(method string, parameters interface{}, more bool, onew
 	m := call{
 		Method:     method,
 		Parameters: parameters,
-		More:       more,
-		Oneway:     oneway,
+		More:       flags&More != 0,
+		Oneway:     flags&Oneway != 0,
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b = append(b, 0)
 	_, err = c.writer.Write(b)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return c.writer.Flush()
-}
-
-// Receive receives a method reply.
-func (c *Connection) Receive(parameters interface{}) (bool, error) {
-	type reply struct {
-		Parameters *json.RawMessage `json:"parameters"`
-		Continues  bool             `json:"continues"`
-		Error      string           `json:"error"`
-	}
-
-	out, err := c.reader.ReadBytes('\x00')
+	err = c.writer.Flush()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	var m reply
-	err = json.Unmarshal(out[:len(out)-1], &m)
-	if err != nil {
-		return false, err
-	}
-
-	if m.Error != "" {
-		return false, &Error{
-			Name:       m.Error,
-			Parameters: m.Parameters,
+	receive := func(out_parameters interface{}) (uint64, error) {
+		type reply struct {
+			Parameters *json.RawMessage `json:"parameters"`
+			Continues  bool             `json:"continues"`
+			Error      string           `json:"error"`
 		}
+
+		out, err := c.reader.ReadBytes('\x00')
+		if err != nil {
+			return 0, err
+		}
+
+		var m reply
+		err = json.Unmarshal(out[:len(out)-1], &m)
+		if err != nil {
+			return 0, err
+		}
+
+		if m.Error != "" {
+			err = &Error{
+				Name:       m.Error,
+				Parameters: m.Parameters,
+			}
+			return 0, err
+		}
+
+		if m.Parameters != nil {
+			json.Unmarshal(*m.Parameters, out_parameters)
+		}
+
+		if m.Continues {
+			return Continues, nil
+		}
+
+		return 0, nil
 	}
 
-	if parameters != nil && m.Parameters != nil {
-		return m.Continues, json.Unmarshal(*m.Parameters, parameters)
-	}
-
-	return m.Continues, nil
+	return receive, nil
 }
 
-// Call sends a method call and returns the result of the call.
-func (c *Connection) Call(method string, parameters interface{}, result interface{}) error {
-	err := c.Send(method, &parameters, false, false)
+// Call sends a method call and returns the method reply.
+func (c *Connection) Call(method string, parameters interface{}, out_parameters interface{}) error {
+	receive, err := c.Send(method, &parameters, 0)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.Receive(result)
+	_, err = receive(out_parameters)
 	return err
 }
 

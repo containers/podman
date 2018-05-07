@@ -47,6 +47,9 @@ showing the commands in use.
 Useful information for ops and dev transfer as it relates to infrastructure that utilizes Podman.  This page
 includes tables showing Docker commands and their Podman equivalent commands.
 
+**[Podman API](/API.md)**
+Documentation on the Podman API using varlink.
+
 **[Tutorials](docs/tutorials)**
 Tutorials on the Podman utility.
 

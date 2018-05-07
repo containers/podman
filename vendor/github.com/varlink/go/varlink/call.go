@@ -21,9 +21,9 @@ func (c *Call) WantsMore() bool {
 	return c.in.More
 }
 
-// IsOneShot indicate that the calling client does not expect a reply.
-func (c *Call) IsOneShot() bool {
-	return c.in.OneShot
+// IsOneway indicate that the calling client does not expect a reply.
+func (c *Call) IsOneway() bool {
+	return c.in.Oneway
 }
 
 // GetParameters retrieves the method call parameters.
@@ -35,7 +35,7 @@ func (c *Call) GetParameters(p interface{}) error {
 }
 
 func (c *Call) sendMessage(r *serviceReply) error {
-	if c.in.OneShot {
+	if c.in.Oneway {
 		return nil
 	}
 

@@ -58,6 +58,7 @@ type Method struct {
 // Error represents an error defined in the interface description.
 type Error struct {
 	Name string
+	Doc  string
 	Type *Type
 }
 
@@ -393,6 +394,7 @@ func (p *parser) readError(idl *IDL) (*Error, error) {
 	e := &Error{}
 
 	p.advance()
+	e.Doc = p.lastComment.String()
 	e.Name = p.readTypeName()
 	if e.Name == "" {
 		return nil, fmt.Errorf("missing error name")
