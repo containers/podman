@@ -17,7 +17,6 @@ import (
 // Attach to a container
 func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
 	resize := make(chan remotecommand.TerminalSize)
-	defer close(resize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
@@ -69,7 +68,6 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 // Start and attach to a container
 func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
 	resize := make(chan remotecommand.TerminalSize)
-	defer close(resize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
