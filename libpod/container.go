@@ -856,7 +856,7 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 func (c *Container) CGroupPath() (string, error) {
 	switch c.runtime.config.CgroupManager {
 	case CgroupfsCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s", c.ID())), nil
+		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()), "ctr"), nil
 	case SystemdCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
