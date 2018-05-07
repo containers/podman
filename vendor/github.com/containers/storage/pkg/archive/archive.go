@@ -945,7 +945,8 @@ loop:
 		}
 		trBuf.Reset(tr)
 
-		if err := remapIDs(nil, idMappings, options.ChownOpts, hdr); err != nil {
+		chownOpts := options.ChownOpts
+		if err := remapIDs(nil, idMappings, chownOpts, hdr); err != nil {
 			return err
 		}
 
@@ -959,7 +960,11 @@ loop:
 			}
 		}
 
-		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, options.ChownOpts, options.InUserNS); err != nil {
+		if chownOpts != nil {
+			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
+		}
+
+		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS); err != nil {
 			return err
 		}
 
@@ -1141,7 +1146,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		hdr.Name = filepath.Base(dst)
 		hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
 
-		if err := remapIDs(archiver.TarIDMappings, archiver.UntarIDMappings, archiver.ChownOpts, hdr); err != nil {
+		if err := remapIDs(archiver.TarIDMappings, nil, archiver.ChownOpts, hdr); err != nil {
 			return err
 		}
 
@@ -1161,7 +1166,12 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		}
 	}()
 
-	err = archiver.Untar(r, filepath.Dir(dst), nil)
+	options := &TarOptions{
+		UIDMaps:   archiver.UntarIDMappings.UIDs(),
+		GIDMaps:   archiver.UntarIDMappings.GIDs(),
+		ChownOpts: archiver.ChownOpts,
+	}
+	err = archiver.Untar(r, filepath.Dir(dst), options)
 	if err != nil {
 		r.CloseWithError(err)
 	}
