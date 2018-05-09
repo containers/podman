@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -721,6 +722,30 @@ func (c *Container) prepare() (err error) {
 	return nil
 }
 
+// cleanupCgroup cleans up residual CGroups after container execution
+// This is a no-op for the systemd cgroup driver
+func (c *Container) cleanupCgroups() error {
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		return nil
+	}
+
+	// Remove the base path of the container's cgroups
+	path := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
+
+	logrus.Debugf("Removing CGroup %s", path)
+
+	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	if err != nil {
+		return err
+	}
+
+	if err := cgroup.Delete(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
 	// Stop the container's network namespace (if it has one)
@@ -764,9 +789,19 @@ func (c *Container) cleanupStorage() error {
 func (c *Container) cleanup() error {
 	var lastError error
 
+	logrus.Debugf("Cleaning up container %s", c.ID())
+
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
 		lastError = nil
+	}
+
+	if err := c.cleanupCgroups(); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
 	}
 
 	// Unmount storage
