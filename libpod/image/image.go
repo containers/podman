@@ -26,7 +26,9 @@ import (
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/registries"
 	"github.com/projectatomic/libpod/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 // imageConversions is used to cache image "cast" types
@@ -426,7 +428,7 @@ func (i *Image) UntagImage(tag string) error {
 }
 
 // PushImage pushes the given image to a location described by the given path
-func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions) error {
+func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -458,9 +460,23 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
 	}
-
+	insecureRegistries, err := registries.GetInsecureRegistries()
+	if err != nil {
+		return err
+	}
 	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress)
+	if strings.HasPrefix(DockerTransport, dest.Transport().Name()) {
+		imgRef, err := reference.Parse(dest.DockerReference().String())
+		if err != nil {
+			return err
+		}
+		registry := reference.Domain(imgRef.(reference.Named))
 
+		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
+			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true
+			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
+		}
+	}
 	// Copy the image to the remote destination
 	err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {

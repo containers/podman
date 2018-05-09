@@ -80,6 +80,7 @@ func pushCmd(c *cli.Context) error {
 	var (
 		registryCreds *types.DockerAuthConfig
 		destName      string
+		forceSecure   bool
 	)
 
 	args := c.Args()
@@ -143,6 +144,10 @@ func pushCmd(c *cli.Context) error {
 		}
 	}
 
+	if c.IsSet("tls-verify") {
+		forceSecure = c.Bool("tls-verify")
+	}
+
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds:         registryCreds,
 		DockerCertPath:              certPath,
@@ -160,5 +165,5 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	//return runtime.PushImage(srcName, destName, options)
-	return newImage.PushImage(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions)
+	return newImage.PushImage(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure)
 }
