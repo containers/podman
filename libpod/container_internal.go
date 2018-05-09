@@ -736,6 +736,12 @@ func (c *Container) cleanupCgroups() error {
 
 	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
 	if err != nil {
+		// It's fine for the cgroup to not exist
+		// We want it gone, it's gone
+		if err == cgroups.ErrCgroupDeleted {
+			return nil
+		}
+
 		return err
 	}
 
