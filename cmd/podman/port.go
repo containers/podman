@@ -133,7 +133,7 @@ func portCmd(c *cli.Context) error {
 			// We have a match on ports
 			if v.ContainerPort == int32(userPort) {
 				if userProto == "" || userProto == v.Protocol {
-					fmt.Printf("%s:%d", hostIP, v.HostPort)
+					fmt.Printf("%s:%d\n", hostIP, v.HostPort)
 					break
 				}
 			} else {
