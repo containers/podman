@@ -38,7 +38,6 @@ import (
 	"runtime"
 	"strings"
 
-
 	"github.com/xeipuuv/gojsonreference"
 )
 
@@ -324,6 +323,30 @@ func (l *jsonIOLoader) LoaderFactory() JSONLoaderFactory {
 	return &DefaultJSONLoaderFactory{}
 }
 
+// JSON raw loader
+// In case the JSON is already marshalled to interface{} use this loader
+// This is used for testing as otherwise there is no guarantee the JSON is marshalled
+// "properly" by using https://golang.org/pkg/encoding/json/#Decoder.UseNumber
+type jsonRawLoader struct {
+	source interface{}
+}
+
+func NewRawLoader(source interface{}) *jsonRawLoader {
+	return &jsonRawLoader{source: source}
+}
+func (l *jsonRawLoader) JsonSource() interface{} {
+	return l.source
+}
+func (l *jsonRawLoader) LoadJSON() (interface{}, error) {
+	return l.source, nil
+}
+func (l *jsonRawLoader) JsonReference() (gojsonreference.JsonReference, error) {
+	return gojsonreference.NewJsonReference("#")
+}
+func (l *jsonRawLoader) LoaderFactory() JSONLoaderFactory {
+	return &DefaultJSONLoaderFactory{}
+}
+
 func decodeJsonUsingNumber(r io.Reader) (interface{}, error) {
 
 	var document interface{}
@@ -335,7 +358,7 @@ func decodeJsonUsingNumber(r io.Reader) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return document, nil
 
 }

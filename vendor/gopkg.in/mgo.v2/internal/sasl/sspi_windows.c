@@ -1,5 +1,5 @@
 // Code adapted from the NodeJS kerberos library:
-//
+// 
 //   https://github.com/christkv/kerberos/tree/master/lib/win32/kerberos_sspi.c
 //
 // Under the terms of the Apache License, Version 2.0:

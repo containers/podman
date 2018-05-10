@@ -9,14 +9,63 @@ type Class interface {
 	Type() string
 }
 
+// Generic networking statistics for netlink users.
+// This file contains "gnet_" prefixed structs and relevant functions.
+// See Documentation/networking/getn_stats.txt in Linux source code for more details.
+
+// Ref: struct gnet_stats_basic { ... }
+type GnetStatsBasic struct {
+	Bytes   uint64 // number of seen bytes
+	Packets uint32 // number of seen packets
+}
+
+// Ref: struct gnet_stats_rate_est { ... }
+type GnetStatsRateEst struct {
+	Bps uint32 // current byte rate
+	Pps uint32 // current packet rate
+}
+
+// Ref: struct gnet_stats_rate_est64 { ... }
+type GnetStatsRateEst64 struct {
+	Bps uint64 // current byte rate
+	Pps uint64 // current packet rate
+}
+
+// Ref: struct gnet_stats_queue { ... }
+type GnetStatsQueue struct {
+	Qlen       uint32 // queue length
+	Backlog    uint32 // backlog size of queue
+	Drops      uint32 // number of dropped packets
+	Requeues   uint32 // number of requues
+	Overlimits uint32 // number of enqueues over the limit
+}
+
+// Statistics representaion based on generic networking statisticsfor netlink.
+// See Documentation/networking/gen_stats.txt in Linux source code for more details.
+type ClassStatistics struct {
+	Basic   *GnetStatsBasic
+	Queue   *GnetStatsQueue
+	RateEst *GnetStatsRateEst
+}
+
+// Construct a ClassStatistics struct which fields are all initialized by 0.
+func NewClassStatistics() *ClassStatistics {
+	return &ClassStatistics{
+		Basic:   &GnetStatsBasic{},
+		Queue:   &GnetStatsQueue{},
+		RateEst: &GnetStatsRateEst{},
+	}
+}
+
 // ClassAttrs represents a netlink class. A filter is associated with a link,
 // has a handle and a parent. The root filter of a device should have a
 // parent == HANDLE_ROOT.
 type ClassAttrs struct {
-	LinkIndex int
-	Handle    uint32
-	Parent    uint32
-	Leaf      uint32
+	LinkIndex  int
+	Handle     uint32
+	Parent     uint32
+	Leaf       uint32
+	Statistics *ClassStatistics
 }
 
 func (q ClassAttrs) String() string {

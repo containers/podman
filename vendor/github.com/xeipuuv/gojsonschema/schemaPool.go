@@ -62,33 +62,27 @@ func (p *schemaPool) GetStandaloneDocument() (document interface{}) {
 
 func (p *schemaPool) GetDocument(reference gojsonreference.JsonReference) (*schemaPoolDocument, error) {
 
+	var (
+		spd *schemaPoolDocument
+		ok  bool
+		err error
+	)
+
 	if internalLogEnabled {
 		internalLog("Get Document ( %s )", reference.String())
 	}
-
-	var err error
 
 	// It is not possible to load anything that is not canonical...
 	if !reference.IsCanonical() {
 		return nil, errors.New(formatErrorDescription(
 			Locale.ReferenceMustBeCanonical(),
-			ErrorDetails{"reference": reference},
+			ErrorDetails{"reference": reference.String()},
 		))
 	}
-
 	refToUrl := reference
 	refToUrl.GetUrl().Fragment = ""
 
-	var spd *schemaPoolDocument
-
-	// Try to find the requested document in the pool
-	for k := range p.schemaPoolDocuments {
-		if k == refToUrl.String() {
-			spd = p.schemaPoolDocuments[k]
-		}
-	}
-
-	if spd != nil {
+	if spd, ok = p.schemaPoolDocuments[refToUrl.String()]; ok {
 		if internalLogEnabled {
 			internalLog(" From pool")
 		}

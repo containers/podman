@@ -66,11 +66,12 @@ func Init(path string, options initOptions) (bool, error) {
 	cerr = nil
 	created := glib.GoBool(glib.GBoolean(C.ostree_repo_create(crepo, initOpts.repoMode, nil, &cerr)))
 	if !created {
-		errString := generateError(cerr).Error()
+		err := generateError(cerr)
+		errString := err.Error()
 		if strings.Contains(errString, "File exists") {
-			return true, generateError(cerr)
+			return true, err
 		}
-		return false, generateError(cerr)
+		return false, err
 	}
 	return true, nil
 }

@@ -33,6 +33,7 @@ type CreateExecOptions struct {
 	Cmd          []string        `json:"Cmd,omitempty" yaml:"Cmd,omitempty" toml:"Cmd,omitempty"`
 	Container    string          `json:"Container,omitempty" yaml:"Container,omitempty" toml:"Container,omitempty"`
 	User         string          `json:"User,omitempty" yaml:"User,omitempty" toml:"User,omitempty"`
+	WorkingDir   string          `json:"WorkingDir,omitempty" yaml:"WorkingDir,omitempty" toml:"WorkingDir,omitempty"`
 	Context      context.Context `json:"-"`
 	Privileged   bool            `json:"Privileged,omitempty" yaml:"Privileged,omitempty" toml:"Privileged,omitempty"`
 }
@@ -44,6 +45,9 @@ type CreateExecOptions struct {
 func (c *Client) CreateExec(opts CreateExecOptions) (*Exec, error) {
 	if len(opts.Env) > 0 && c.serverAPIVersion.LessThan(apiVersion125) {
 		return nil, errors.New("exec configuration Env is only supported in API#1.25 and above")
+	}
+	if len(opts.WorkingDir) > 0 && c.serverAPIVersion.LessThan(apiVersion135) {
+		return nil, errors.New("exec configuration WorkingDir is only supported in API#1.35 and above")
 	}
 	path := fmt.Sprintf("/containers/%s/exec", opts.Container)
 	resp, err := c.do("POST", path, doOptions{data: opts, context: opts.Context})
