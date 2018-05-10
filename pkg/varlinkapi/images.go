@@ -287,7 +287,7 @@ func (i *LibpodAPI) PullImage(call ioprojectatomicpodman.VarlinkCall, name strin
 	}
 	newImage, err := runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true, false)
 	if err != nil {
-		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s", name))
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 	}
 	return call.ReplyPullImage(newImage.ID())
 }
