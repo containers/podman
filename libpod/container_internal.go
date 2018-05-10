@@ -32,11 +32,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 	"golang.org/x/sys/unix"
+	"golang.org/x/text/language"
 )
 
 const (
 	// name of the directory holding the artifacts
 	artifactsDir = "artifacts"
+)
+
+var (
+	// localeToLanguage maps from locale values to language tags.
+	localeToLanguage = map[string]string{
+		"":      "und-u-va-posix",
+		"c":     "und-u-va-posix",
+		"posix": "und-u-va-posix",
+	}
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -1287,7 +1297,34 @@ func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) er
 		return nil
 	}
 
-	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir})
+	var locale string
+	var ok bool
+	for _, envVar := range []string{
+		"LC_ALL",
+		"LC_COLLATE",
+		"LANG",
+	} {
+		locale, ok = os.LookupEnv(envVar)
+		if ok {
+			break
+		}
+	}
+
+	langString, ok := localeToLanguage[strings.ToLower(locale)]
+	if !ok {
+		langString = locale
+	}
+
+	lang, err := language.Parse(langString)
+	if err != nil {
+		logrus.Warnf("failed to parse language %q: %s", langString, err)
+		lang, err = language.Parse("und-u-va-posix")
+		if err != nil {
+			return err
+		}
+	}
+
+	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, lang)
 	if err != nil {
 		if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
 			return err

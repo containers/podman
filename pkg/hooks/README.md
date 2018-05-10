@@ -23,6 +23,10 @@ For both `crio` and `podman`, hooks are read from `/usr/share/containers/oci/hoo
 For `crio`, hook JSON is also read from `/etc/containers/oci/hooks.d/*.json`.
 If files of with the same name exist in both directories, the one in `/etc/containers/oci/hooks.d` takes precedence.
 
+Hooks MUST be injected in the JSON filename case- and width-insensitive collation order.
+Collation order depends on your locale, as set by [`LC_ALL`][LC_ALL], [`LC_COLLATE`][LC_COLLATE], or [`LANG`][LANG] (in order of decreasing precedence).
+For example, in the [POSIX locale][LC_COLLATE-POSIX], a matching hook defined in `01-my-hook.json` would be injected before matching hooks defined in `02-another-hook.json` and `01-UPPERCASE.json`.
+
 Each JSON file should contain an object with the following properties:
 
 ### 1.0.0 Hook Schema
@@ -160,6 +164,10 @@ $ cat /etc/containers/oci/hooks.d/osystemd-hook.json
 ```
 
 [JSON]: https://tools.ietf.org/html/rfc8259
+[LANG]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08_02
+[LC_ALL]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08_02
+[LC_COLLATE]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap07.html#tag_07_03_02
+[LC_COLLATE-POSIX]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap07.html#tag_07_03_02_06
 [nvidia-container-runtime-hook]: https://github.com/NVIDIA/nvidia-container-runtime/tree/master/hook/nvidia-container-runtime-hook
 [oci-systemd-hook]: https://github.com/projectatomic/oci-systemd-hook
 [oci-umount]: https://github.com/projectatomic/oci-umount
