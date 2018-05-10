@@ -12,6 +12,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/language"
 )
 
 // path is the path to an example hook executable.
@@ -26,13 +27,28 @@ func TestGoodNew(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	jsonPath := filepath.Join(dir, "a.json")
-	err = ioutil.WriteFile(jsonPath, []byte(fmt.Sprintf("{\"version\": \"1.0.0\", \"hook\": {\"path\": \"%s\"}, \"when\": {\"always\": true}, \"stages\": [\"prestart\", \"poststart\", \"poststop\"]}", path)), 0644)
+	for i, name := range []string{
+		"01-my-hook.json",
+		"01-UPPERCASE.json",
+		"02-another-hook.json",
+	} {
+		jsonPath := filepath.Join(dir, name)
+		var extraStages string
+		if i == 0 {
+			extraStages = ", \"poststart\", \"poststop\""
+		}
+		err = ioutil.WriteFile(jsonPath, []byte(fmt.Sprintf("{\"version\": \"1.0.0\", \"hook\": {\"path\": \"%s\", \"timeout\": %d}, \"when\": {\"always\": true}, \"stages\": [\"prestart\"%s]}", path, i+1, extraStages)), 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	lang, err := language.Parse("und-u-va-posix")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	manager, err := New(ctx, []string{dir})
+	manager, err := New(ctx, []string{dir}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,20 +59,34 @@ func TestGoodNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	one := 1
+	two := 2
+	three := 3
 	assert.Equal(t, &rspec.Hooks{
 		Prestart: []rspec.Hook{
 			{
-				Path: path,
+				Path:    path,
+				Timeout: &one,
+			},
+			{
+				Path:    path,
+				Timeout: &two,
+			},
+			{
+				Path:    path,
+				Timeout: &three,
 			},
 		},
 		Poststart: []rspec.Hook{
 			{
-				Path: path,
+				Path:    path,
+				Timeout: &one,
 			},
 		},
 		Poststop: []rspec.Hook{
 			{
-				Path: path,
+				Path:    path,
+				Timeout: &one,
 			},
 		},
 	}, config.Hooks)
@@ -77,7 +107,12 @@ func TestBadNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = New(ctx, []string{dir})
+	lang, err := language.Parse("und-u-va-posix")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = New(ctx, []string{dir}, lang)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}

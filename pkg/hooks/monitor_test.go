@@ -11,6 +11,7 @@ import (
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/language"
 )
 
 func TestMonitorGood(t *testing.T) {
@@ -21,7 +22,12 @@ func TestMonitorGood(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	manager, err := New(ctx, []string{dir})
+	lang, err := language.Parse("und-u-va-posix")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manager, err := New(ctx, []string{dir}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +120,13 @@ func TestMonitorGood(t *testing.T) {
 
 func TestMonitorBadWatcher(t *testing.T) {
 	ctx := context.Background()
-	manager, err := New(ctx, []string{})
+
+	lang, err := language.Parse("und-u-va-posix")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	manager, err := New(ctx, []string{}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}
