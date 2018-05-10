@@ -4,19 +4,36 @@ package ioprojectatomicpodman
 import "github.com/varlink/go/varlink"
 
 // Type declarations
+type Version struct {
+	Version    string `json:"version"`
+	Go_version string `json:"go_version"`
+	Git_commit string `json:"git_commit"`
+	Built      int64  `json:"built"`
+	Os_arch    string `json:"os_arch"`
+}
+
+type NotImplemented struct {
+	Comment string `json:"comment"`
+}
+
+type ImageInList struct {
+	Id          string            `json:"id"`
+	ParentId    string            `json:"parentId"`
+	RepoTags    []string          `json:"repoTags"`
+	RepoDigests []string          `json:"repoDigests"`
+	Created     string            `json:"created"`
+	Size        int64             `json:"size"`
+	VirtualSize int64             `json:"virtualSize"`
+	Containers  int64             `json:"containers"`
+	Labels      map[string]string `json:"labels"`
+}
+
 type ImageSearch struct {
 	Description  string `json:"description"`
 	Is_official  bool   `json:"is_official"`
 	Is_automated bool   `json:"is_automated"`
 	Name         string `json:"name"`
 	Star_count   int64  `json:"star_count"`
-}
-
-type ContainerMount struct {
-	Destination string   `json:"destination"`
-	Type        string   `json:"type"`
-	Source      string   `json:"source"`
-	Options     []string `json:"options"`
 }
 
 type ContainerPortMappings struct {
@@ -35,6 +52,16 @@ type ContainerNameSpace struct {
 	Net    string `json:"net"`
 	Mnt    string `json:"mnt"`
 	Ipc    string `json:"ipc"`
+}
+
+type StringResponse struct {
+	Message string `json:"message"`
+}
+
+type ContainerChanges struct {
+	Changed []string `json:"changed"`
+	Added   []string `json:"added"`
+	Deleted []string `json:"deleted"`
 }
 
 type ImageHistory struct {
@@ -80,105 +107,45 @@ type ContainerStats struct {
 	Pids         int64   `json:"pids"`
 }
 
-type Version struct {
-	Version    string `json:"version"`
-	Go_version string `json:"go_version"`
-	Git_commit string `json:"git_commit"`
-	Built      int64  `json:"built"`
-	Os_arch    string `json:"os_arch"`
-}
-
-type NotImplemented struct {
-	Comment string `json:"comment"`
-}
-
-type StringResponse struct {
-	Message string `json:"message"`
-}
-
-type ContainerChanges struct {
-	Changed []string `json:"changed"`
-	Added   []string `json:"added"`
-	Deleted []string `json:"deleted"`
-}
-
-type ImageInList struct {
-	Id          string            `json:"id"`
-	ParentId    string            `json:"parentId"`
-	RepoTags    []string          `json:"repoTags"`
-	RepoDigests []string          `json:"repoDigests"`
-	Created     string            `json:"created"`
-	Size        int64             `json:"size"`
-	VirtualSize int64             `json:"virtualSize"`
-	Containers  int64             `json:"containers"`
-	Labels      map[string]string `json:"labels"`
+type ContainerMount struct {
+	Destination string   `json:"destination"`
+	Type        string   `json:"type"`
+	Source      string   `json:"source"`
+	Options     []string `json:"options"`
 }
 
 // Client method calls
-type SearchImage_methods struct{}
+type PullImage_methods struct{}
 
-func SearchImage() SearchImage_methods { return SearchImage_methods{} }
+func PullImage() PullImage_methods { return PullImage_methods{} }
 
-func (m SearchImage_methods) Call(c *varlink.Connection, name_in_ string, limit_in_ int64) (images_out_ []ImageSearch, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, limit_in_)
+func (m PullImage_methods) Call(c *varlink.Connection, name_in_ string) (id_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
 	if err_ != nil {
 		return
 	}
-	images_out_, _, err_ = receive()
+	id_out_, _, err_ = receive()
 	return
 }
 
-func (m SearchImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, limit_in_ int64) (func() ([]ImageSearch, uint64, error), error) {
+func (m PullImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
 	var in struct {
-		Name  string `json:"name"`
-		Limit int64  `json:"limit"`
+		Name string `json:"name"`
 	}
 	in.Name = name_in_
-	in.Limit = limit_in_
-	receive, err := c.Send("io.projectatomic.podman.SearchImage", in, flags)
+	receive, err := c.Send("io.projectatomic.podman.PullImage", in, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (images_out_ []ImageSearch, flags uint64, err error) {
+	return func() (id_out_ string, flags uint64, err error) {
 		var out struct {
-			Images []ImageSearch `json:"images"`
+			Id string `json:"id"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		images_out_ = []ImageSearch(out.Images)
-		return
-	}, nil
-}
-
-type DeleteUnusedImages_methods struct{}
-
-func DeleteUnusedImages() DeleteUnusedImages_methods { return DeleteUnusedImages_methods{} }
-
-func (m DeleteUnusedImages_methods) Call(c *varlink.Connection) (images_out_ []string, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	images_out_, _, err_ = receive()
-	return
-}
-
-func (m DeleteUnusedImages_methods) Send(c *varlink.Connection, flags uint64) (func() ([]string, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.DeleteUnusedImages", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (images_out_ []string, flags uint64, err error) {
-		var out struct {
-			Images []string `json:"images"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		images_out_ = []string(out.Images)
+		id_out_ = out.Id
 		return
 	}, nil
 }
@@ -210,41 +177,6 @@ func (m Ping_methods) Send(c *varlink.Connection, flags uint64) (func() (StringR
 			return
 		}
 		ping_out_ = out.Ping
-		return
-	}, nil
-}
-
-type InspectContainer_methods struct{}
-
-func InspectContainer() InspectContainer_methods { return InspectContainer_methods{} }
-
-func (m InspectContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
-	if err_ != nil {
-		return
-	}
-	container_out_, _, err_ = receive()
-	return
-}
-
-func (m InspectContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-	}
-	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.InspectContainer", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (container_out_ string, flags uint64, err error) {
-		var out struct {
-			Container string `json:"container"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		container_out_ = out.Container
 		return
 	}, nil
 }
@@ -284,111 +216,95 @@ func (m GetContainerLogs_methods) Send(c *varlink.Connection, flags uint64, name
 	}, nil
 }
 
-type ListContainerChanges_methods struct{}
+type RenameContainer_methods struct{}
 
-func ListContainerChanges() ListContainerChanges_methods { return ListContainerChanges_methods{} }
+func RenameContainer() RenameContainer_methods { return RenameContainer_methods{} }
 
-func (m ListContainerChanges_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ContainerChanges, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
+func (m RenameContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
 	}
-	container_out_, _, err_ = receive()
+	notimplemented_out_, _, err_ = receive()
 	return
 }
 
-func (m ListContainerChanges_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ContainerChanges, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-	}
-	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.ListContainerChanges", in, flags)
+func (m RenameContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.RenameContainer", nil, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (container_out_ ContainerChanges, flags uint64, err error) {
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
 		var out struct {
-			Container ContainerChanges `json:"container"`
+			Notimplemented NotImplemented `json:"notimplemented"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		container_out_ = out.Container
+		notimplemented_out_ = out.Notimplemented
 		return
 	}, nil
 }
 
-type KillContainer_methods struct{}
+type AttachToContainer_methods struct{}
 
-func KillContainer() KillContainer_methods { return KillContainer_methods{} }
+func AttachToContainer() AttachToContainer_methods { return AttachToContainer_methods{} }
 
-func (m KillContainer_methods) Call(c *varlink.Connection, name_in_ string, signal_in_ int64) (container_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, signal_in_)
+func (m AttachToContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
 	}
-	container_out_, _, err_ = receive()
+	notimplemented_out_, _, err_ = receive()
 	return
 }
 
-func (m KillContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, signal_in_ int64) (func() (string, uint64, error), error) {
-	var in struct {
-		Name   string `json:"name"`
-		Signal int64  `json:"signal"`
-	}
-	in.Name = name_in_
-	in.Signal = signal_in_
-	receive, err := c.Send("io.projectatomic.podman.KillContainer", in, flags)
+func (m AttachToContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.AttachToContainer", nil, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (container_out_ string, flags uint64, err error) {
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
 		var out struct {
-			Container string `json:"container"`
+			Notimplemented NotImplemented `json:"notimplemented"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		container_out_ = out.Container
+		notimplemented_out_ = out.Notimplemented
 		return
 	}, nil
 }
 
-type RemoveContainer_methods struct{}
+type BuildImage_methods struct{}
 
-func RemoveContainer() RemoveContainer_methods { return RemoveContainer_methods{} }
+func BuildImage() BuildImage_methods { return BuildImage_methods{} }
 
-func (m RemoveContainer_methods) Call(c *varlink.Connection, name_in_ string, force_in_ bool) (container_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, force_in_)
+func (m BuildImage_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
 	}
-	container_out_, _, err_ = receive()
+	notimplemented_out_, _, err_ = receive()
 	return
 }
 
-func (m RemoveContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, force_in_ bool) (func() (string, uint64, error), error) {
-	var in struct {
-		Name  string `json:"name"`
-		Force bool   `json:"force"`
-	}
-	in.Name = name_in_
-	in.Force = force_in_
-	receive, err := c.Send("io.projectatomic.podman.RemoveContainer", in, flags)
+func (m BuildImage_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.BuildImage", nil, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (container_out_ string, flags uint64, err error) {
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
 		var out struct {
-			Container string `json:"container"`
+			Notimplemented NotImplemented `json:"notimplemented"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		container_out_ = out.Container
+		notimplemented_out_ = out.Notimplemented
 		return
 	}, nil
 }
@@ -428,74 +344,33 @@ func (m InspectImage_methods) Send(c *varlink.Connection, flags uint64, name_in_
 	}, nil
 }
 
-type TagImage_methods struct{}
+type DeleteUnusedImages_methods struct{}
 
-func TagImage() TagImage_methods { return TagImage_methods{} }
+func DeleteUnusedImages() DeleteUnusedImages_methods { return DeleteUnusedImages_methods{} }
 
-func (m TagImage_methods) Call(c *varlink.Connection, name_in_ string, tagged_in_ string) (image_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, tagged_in_)
+func (m DeleteUnusedImages_methods) Call(c *varlink.Connection) (images_out_ []string, err_ error) {
+	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
 	}
-	image_out_, _, err_ = receive()
+	images_out_, _, err_ = receive()
 	return
 }
 
-func (m TagImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, tagged_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name   string `json:"name"`
-		Tagged string `json:"tagged"`
-	}
-	in.Name = name_in_
-	in.Tagged = tagged_in_
-	receive, err := c.Send("io.projectatomic.podman.TagImage", in, flags)
+func (m DeleteUnusedImages_methods) Send(c *varlink.Connection, flags uint64) (func() ([]string, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.DeleteUnusedImages", nil, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (image_out_ string, flags uint64, err error) {
+	return func() (images_out_ []string, flags uint64, err error) {
 		var out struct {
-			Image string `json:"image"`
+			Images []string `json:"images"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		image_out_ = out.Image
-		return
-	}, nil
-}
-
-type GetContainerStats_methods struct{}
-
-func GetContainerStats() GetContainerStats_methods { return GetContainerStats_methods{} }
-
-func (m GetContainerStats_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ContainerStats, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
-	if err_ != nil {
-		return
-	}
-	container_out_, _, err_ = receive()
-	return
-}
-
-func (m GetContainerStats_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ContainerStats, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-	}
-	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.GetContainerStats", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (container_out_ ContainerStats, flags uint64, err error) {
-		var out struct {
-			Container ContainerStats `json:"container"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		container_out_ = out.Container
+		images_out_ = []string(out.Images)
 		return
 	}, nil
 }
@@ -574,274 +449,12 @@ func (m RestartContainer_methods) Send(c *varlink.Connection, flags uint64, name
 	}, nil
 }
 
-type UpdateContainer_methods struct{}
+type RemoveContainer_methods struct{}
 
-func UpdateContainer() UpdateContainer_methods { return UpdateContainer_methods{} }
+func RemoveContainer() RemoveContainer_methods { return RemoveContainer_methods{} }
 
-func (m UpdateContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	notimplemented_out_, _, err_ = receive()
-	return
-}
-
-func (m UpdateContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.UpdateContainer", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
-		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type BuildImage_methods struct{}
-
-func BuildImage() BuildImage_methods { return BuildImage_methods{} }
-
-func (m BuildImage_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	notimplemented_out_, _, err_ = receive()
-	return
-}
-
-func (m BuildImage_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.BuildImage", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
-		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type CreateImage_methods struct{}
-
-func CreateImage() CreateImage_methods { return CreateImage_methods{} }
-
-func (m CreateImage_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	notimplemented_out_, _, err_ = receive()
-	return
-}
-
-func (m CreateImage_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.CreateImage", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
-		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type ListContainers_methods struct{}
-
-func ListContainers() ListContainers_methods { return ListContainers_methods{} }
-
-func (m ListContainers_methods) Call(c *varlink.Connection) (containers_out_ []ListContainerData, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	containers_out_, _, err_ = receive()
-	return
-}
-
-func (m ListContainers_methods) Send(c *varlink.Connection, flags uint64) (func() ([]ListContainerData, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.ListContainers", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (containers_out_ []ListContainerData, flags uint64, err error) {
-		var out struct {
-			Containers []ListContainerData `json:"containers"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		containers_out_ = []ListContainerData(out.Containers)
-		return
-	}, nil
-}
-
-type ExportContainer_methods struct{}
-
-func ExportContainer() ExportContainer_methods { return ExportContainer_methods{} }
-
-func (m ExportContainer_methods) Call(c *varlink.Connection, name_in_ string, path_in_ string) (tarfile_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, path_in_)
-	if err_ != nil {
-		return
-	}
-	tarfile_out_, _, err_ = receive()
-	return
-}
-
-func (m ExportContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, path_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-		Path string `json:"path"`
-	}
-	in.Name = name_in_
-	in.Path = path_in_
-	receive, err := c.Send("io.projectatomic.podman.ExportContainer", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (tarfile_out_ string, flags uint64, err error) {
-		var out struct {
-			Tarfile string `json:"tarfile"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		tarfile_out_ = out.Tarfile
-		return
-	}, nil
-}
-
-type CreateFromContainer_methods struct{}
-
-func CreateFromContainer() CreateFromContainer_methods { return CreateFromContainer_methods{} }
-
-func (m CreateFromContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	notimplemented_out_, _, err_ = receive()
-	return
-}
-
-func (m CreateFromContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.CreateFromContainer", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
-		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type ExportImage_methods struct{}
-
-func ExportImage() ExportImage_methods { return ExportImage_methods{} }
-
-func (m ExportImage_methods) Call(c *varlink.Connection, name_in_ string, destination_in_ string, compress_in_ bool) (image_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, destination_in_, compress_in_)
-	if err_ != nil {
-		return
-	}
-	image_out_, _, err_ = receive()
-	return
-}
-
-func (m ExportImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, destination_in_ string, compress_in_ bool) (func() (string, uint64, error), error) {
-	var in struct {
-		Name        string `json:"name"`
-		Destination string `json:"destination"`
-		Compress    bool   `json:"compress"`
-	}
-	in.Name = name_in_
-	in.Destination = destination_in_
-	in.Compress = compress_in_
-	receive, err := c.Send("io.projectatomic.podman.ExportImage", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (image_out_ string, flags uint64, err error) {
-		var out struct {
-			Image string `json:"image"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		image_out_ = out.Image
-		return
-	}, nil
-}
-
-type GetVersion_methods struct{}
-
-func GetVersion() GetVersion_methods { return GetVersion_methods{} }
-
-func (m GetVersion_methods) Call(c *varlink.Connection) (version_out_ Version, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	version_out_, _, err_ = receive()
-	return
-}
-
-func (m GetVersion_methods) Send(c *varlink.Connection, flags uint64) (func() (Version, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.GetVersion", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (version_out_ Version, flags uint64, err error) {
-		var out struct {
-			Version Version `json:"version"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		version_out_ = out.Version
-		return
-	}, nil
-}
-
-type GetContainer_methods struct{}
-
-func GetContainer() GetContainer_methods { return GetContainer_methods{} }
-
-func (m GetContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ListContainerData, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
+func (m RemoveContainer_methods) Call(c *varlink.Connection, name_in_ string, force_in_ bool) (container_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, force_in_)
 	if err_ != nil {
 		return
 	}
@@ -849,18 +462,20 @@ func (m GetContainer_methods) Call(c *varlink.Connection, name_in_ string) (cont
 	return
 }
 
-func (m GetContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ListContainerData, uint64, error), error) {
+func (m RemoveContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, force_in_ bool) (func() (string, uint64, error), error) {
 	var in struct {
-		Name string `json:"name"`
+		Name  string `json:"name"`
+		Force bool   `json:"force"`
 	}
 	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.GetContainer", in, flags)
+	in.Force = force_in_
+	receive, err := c.Send("io.projectatomic.podman.RemoveContainer", in, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (container_out_ ListContainerData, flags uint64, err error) {
+	return func() (container_out_ string, flags uint64, err error) {
 		var out struct {
-			Container ListContainerData `json:"container"`
+			Container string `json:"container"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
@@ -871,46 +486,151 @@ func (m GetContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_
 	}, nil
 }
 
-type HistoryImage_methods struct{}
+type ListContainerProcesses_methods struct{}
 
-func HistoryImage() HistoryImage_methods { return HistoryImage_methods{} }
+func ListContainerProcesses() ListContainerProcesses_methods { return ListContainerProcesses_methods{} }
 
-func (m HistoryImage_methods) Call(c *varlink.Connection, name_in_ string) (history_out_ []ImageHistory, err_ error) {
+func (m ListContainerProcesses_methods) Call(c *varlink.Connection, name_in_ string, opts_in_ []string) (container_out_ []string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, opts_in_)
+	if err_ != nil {
+		return
+	}
+	container_out_, _, err_ = receive()
+	return
+}
+
+func (m ListContainerProcesses_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, opts_in_ []string) (func() ([]string, uint64, error), error) {
+	var in struct {
+		Name string   `json:"name"`
+		Opts []string `json:"opts"`
+	}
+	in.Name = name_in_
+	in.Opts = []string(opts_in_)
+	receive, err := c.Send("io.projectatomic.podman.ListContainerProcesses", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (container_out_ []string, flags uint64, err error) {
+		var out struct {
+			Container []string `json:"container"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		container_out_ = []string(out.Container)
+		return
+	}, nil
+}
+
+type PauseContainer_methods struct{}
+
+func PauseContainer() PauseContainer_methods { return PauseContainer_methods{} }
+
+func (m PauseContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
 	receive, err_ := m.Send(c, 0, name_in_)
 	if err_ != nil {
 		return
 	}
-	history_out_, _, err_ = receive()
+	container_out_, _, err_ = receive()
 	return
 }
 
-func (m HistoryImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() ([]ImageHistory, uint64, error), error) {
+func (m PauseContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
 	var in struct {
 		Name string `json:"name"`
 	}
 	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.HistoryImage", in, flags)
+	receive, err := c.Send("io.projectatomic.podman.PauseContainer", in, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (history_out_ []ImageHistory, flags uint64, err error) {
+	return func() (container_out_ string, flags uint64, err error) {
 		var out struct {
-			History []ImageHistory `json:"history"`
+			Container string `json:"container"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		history_out_ = []ImageHistory(out.History)
+		container_out_ = out.Container
 		return
 	}, nil
 }
 
-type CreateContainer_methods struct{}
+type UnpauseContainer_methods struct{}
 
-func CreateContainer() CreateContainer_methods { return CreateContainer_methods{} }
+func UnpauseContainer() UnpauseContainer_methods { return UnpauseContainer_methods{} }
 
-func (m CreateContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+func (m UnpauseContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
+	if err_ != nil {
+		return
+	}
+	container_out_, _, err_ = receive()
+	return
+}
+
+func (m UnpauseContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	in.Name = name_in_
+	receive, err := c.Send("io.projectatomic.podman.UnpauseContainer", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (container_out_ string, flags uint64, err error) {
+		var out struct {
+			Container string `json:"container"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		container_out_ = out.Container
+		return
+	}, nil
+}
+
+type DeleteStoppedContainers_methods struct{}
+
+func DeleteStoppedContainers() DeleteStoppedContainers_methods {
+	return DeleteStoppedContainers_methods{}
+}
+
+func (m DeleteStoppedContainers_methods) Call(c *varlink.Connection) (containers_out_ []string, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	containers_out_, _, err_ = receive()
+	return
+}
+
+func (m DeleteStoppedContainers_methods) Send(c *varlink.Connection, flags uint64) (func() ([]string, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.DeleteStoppedContainers", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (containers_out_ []string, flags uint64, err error) {
+		var out struct {
+			Containers []string `json:"containers"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		containers_out_ = []string(out.Containers)
+		return
+	}, nil
+}
+
+type ResizeContainerTty_methods struct{}
+
+func ResizeContainerTty() ResizeContainerTty_methods { return ResizeContainerTty_methods{} }
+
+func (m ResizeContainerTty_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
 	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
@@ -919,8 +639,8 @@ func (m CreateContainer_methods) Call(c *varlink.Connection) (notimplemented_out
 	return
 }
 
-func (m CreateContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.CreateContainer", nil, flags)
+func (m ResizeContainerTty_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.ResizeContainerTty", nil, flags)
 	if err != nil {
 		return nil, err
 	}
@@ -937,33 +657,37 @@ func (m CreateContainer_methods) Send(c *varlink.Connection, flags uint64) (func
 	}, nil
 }
 
-type RenameContainer_methods struct{}
+type WaitContainer_methods struct{}
 
-func RenameContainer() RenameContainer_methods { return RenameContainer_methods{} }
+func WaitContainer() WaitContainer_methods { return WaitContainer_methods{} }
 
-func (m RenameContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
+func (m WaitContainer_methods) Call(c *varlink.Connection, name_in_ string) (exitcode_out_ int64, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
 	if err_ != nil {
 		return
 	}
-	notimplemented_out_, _, err_ = receive()
+	exitcode_out_, _, err_ = receive()
 	return
 }
 
-func (m RenameContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.RenameContainer", nil, flags)
+func (m WaitContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (int64, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	in.Name = name_in_
+	receive, err := c.Send("io.projectatomic.podman.WaitContainer", in, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+	return func() (exitcode_out_ int64, flags uint64, err error) {
 		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
+			Exitcode int64 `json:"exitcode"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		notimplemented_out_ = out.Notimplemented
+		exitcode_out_ = out.Exitcode
 		return
 	}, nil
 }
@@ -1044,41 +768,6 @@ func (m RemoveImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ 
 	}, nil
 }
 
-type PauseContainer_methods struct{}
-
-func PauseContainer() PauseContainer_methods { return PauseContainer_methods{} }
-
-func (m PauseContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
-	if err_ != nil {
-		return
-	}
-	container_out_, _, err_ = receive()
-	return
-}
-
-func (m PauseContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-	}
-	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.PauseContainer", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (container_out_ string, flags uint64, err error) {
-		var out struct {
-			Container string `json:"container"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		container_out_ = out.Container
-		return
-	}, nil
-}
-
 type ImportImage_methods struct{}
 
 func ImportImage() ImportImage_methods { return ImportImage_methods{} }
@@ -1120,108 +809,42 @@ func (m ImportImage_methods) Send(c *varlink.Connection, flags uint64, source_in
 	}, nil
 }
 
-type PullImage_methods struct{}
+type ListContainers_methods struct{}
 
-func PullImage() PullImage_methods { return PullImage_methods{} }
+func ListContainers() ListContainers_methods { return ListContainers_methods{} }
 
-func (m PullImage_methods) Call(c *varlink.Connection, name_in_ string) (id_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
-	if err_ != nil {
-		return
-	}
-	id_out_, _, err_ = receive()
-	return
-}
-
-func (m PullImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-	}
-	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.PullImage", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (id_out_ string, flags uint64, err error) {
-		var out struct {
-			Id string `json:"id"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		id_out_ = out.Id
-		return
-	}, nil
-}
-
-type ResizeContainerTty_methods struct{}
-
-func ResizeContainerTty() ResizeContainerTty_methods { return ResizeContainerTty_methods{} }
-
-func (m ResizeContainerTty_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+func (m ListContainers_methods) Call(c *varlink.Connection) (containers_out_ []ListContainerData, err_ error) {
 	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
 	}
-	notimplemented_out_, _, err_ = receive()
+	containers_out_, _, err_ = receive()
 	return
 }
 
-func (m ResizeContainerTty_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.ResizeContainerTty", nil, flags)
+func (m ListContainers_methods) Send(c *varlink.Connection, flags uint64) (func() ([]ListContainerData, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.ListContainers", nil, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+	return func() (containers_out_ []ListContainerData, flags uint64, err error) {
 		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
+			Containers []ListContainerData `json:"containers"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		notimplemented_out_ = out.Notimplemented
+		containers_out_ = []ListContainerData(out.Containers)
 		return
 	}, nil
 }
 
-type StartContainer_methods struct{}
+type GetContainer_methods struct{}
 
-func StartContainer() StartContainer_methods { return StartContainer_methods{} }
+func GetContainer() GetContainer_methods { return GetContainer_methods{} }
 
-func (m StartContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	notimplemented_out_, _, err_ = receive()
-	return
-}
-
-func (m StartContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.StartContainer", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
-		var out struct {
-			Notimplemented NotImplemented `json:"notimplemented"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type UnpauseContainer_methods struct{}
-
-func UnpauseContainer() UnpauseContainer_methods { return UnpauseContainer_methods{} }
-
-func (m UnpauseContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
+func (m GetContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ListContainerData, err_ error) {
 	receive, err_ := m.Send(c, 0, name_in_)
 	if err_ != nil {
 		return
@@ -1230,12 +853,146 @@ func (m UnpauseContainer_methods) Call(c *varlink.Connection, name_in_ string) (
 	return
 }
 
-func (m UnpauseContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
+func (m GetContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ListContainerData, uint64, error), error) {
 	var in struct {
 		Name string `json:"name"`
 	}
 	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.UnpauseContainer", in, flags)
+	receive, err := c.Send("io.projectatomic.podman.GetContainer", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (container_out_ ListContainerData, flags uint64, err error) {
+		var out struct {
+			Container ListContainerData `json:"container"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		container_out_ = out.Container
+		return
+	}, nil
+}
+
+type SearchImage_methods struct{}
+
+func SearchImage() SearchImage_methods { return SearchImage_methods{} }
+
+func (m SearchImage_methods) Call(c *varlink.Connection, name_in_ string, limit_in_ int64) (images_out_ []ImageSearch, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, limit_in_)
+	if err_ != nil {
+		return
+	}
+	images_out_, _, err_ = receive()
+	return
+}
+
+func (m SearchImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, limit_in_ int64) (func() ([]ImageSearch, uint64, error), error) {
+	var in struct {
+		Name  string `json:"name"`
+		Limit int64  `json:"limit"`
+	}
+	in.Name = name_in_
+	in.Limit = limit_in_
+	receive, err := c.Send("io.projectatomic.podman.SearchImage", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (images_out_ []ImageSearch, flags uint64, err error) {
+		var out struct {
+			Images []ImageSearch `json:"images"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		images_out_ = []ImageSearch(out.Images)
+		return
+	}, nil
+}
+
+type CreateFromContainer_methods struct{}
+
+func CreateFromContainer() CreateFromContainer_methods { return CreateFromContainer_methods{} }
+
+func (m CreateFromContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	notimplemented_out_, _, err_ = receive()
+	return
+}
+
+func (m CreateFromContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.CreateFromContainer", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+		var out struct {
+			Notimplemented NotImplemented `json:"notimplemented"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		notimplemented_out_ = out.Notimplemented
+		return
+	}, nil
+}
+
+type CreateContainer_methods struct{}
+
+func CreateContainer() CreateContainer_methods { return CreateContainer_methods{} }
+
+func (m CreateContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	notimplemented_out_, _, err_ = receive()
+	return
+}
+
+func (m CreateContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.CreateContainer", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+		var out struct {
+			Notimplemented NotImplemented `json:"notimplemented"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		notimplemented_out_ = out.Notimplemented
+		return
+	}, nil
+}
+
+type InspectContainer_methods struct{}
+
+func InspectContainer() InspectContainer_methods { return InspectContainer_methods{} }
+
+func (m InspectContainer_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
+	if err_ != nil {
+		return
+	}
+	container_out_, _, err_ = receive()
+	return
+}
+
+func (m InspectContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (string, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	in.Name = name_in_
+	receive, err := c.Send("io.projectatomic.podman.InspectContainer", in, flags)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,11 +1009,46 @@ func (m UnpauseContainer_methods) Send(c *varlink.Connection, flags uint64, name
 	}, nil
 }
 
-type AttachToContainer_methods struct{}
+type ListContainerChanges_methods struct{}
 
-func AttachToContainer() AttachToContainer_methods { return AttachToContainer_methods{} }
+func ListContainerChanges() ListContainerChanges_methods { return ListContainerChanges_methods{} }
 
-func (m AttachToContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+func (m ListContainerChanges_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ContainerChanges, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
+	if err_ != nil {
+		return
+	}
+	container_out_, _, err_ = receive()
+	return
+}
+
+func (m ListContainerChanges_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ContainerChanges, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	in.Name = name_in_
+	receive, err := c.Send("io.projectatomic.podman.ListContainerChanges", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (container_out_ ContainerChanges, flags uint64, err error) {
+		var out struct {
+			Container ContainerChanges `json:"container"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		container_out_ = out.Container
+		return
+	}, nil
+}
+
+type UpdateContainer_methods struct{}
+
+func UpdateContainer() UpdateContainer_methods { return UpdateContainer_methods{} }
+
+func (m UpdateContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
 	receive, err_ := m.Send(c, 0)
 	if err_ != nil {
 		return
@@ -1265,8 +1057,8 @@ func (m AttachToContainer_methods) Call(c *varlink.Connection) (notimplemented_o
 	return
 }
 
-func (m AttachToContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.AttachToContainer", nil, flags)
+func (m UpdateContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.UpdateContainer", nil, flags)
 	if err != nil {
 		return nil, err
 	}
@@ -1279,39 +1071,6 @@ func (m AttachToContainer_methods) Send(c *varlink.Connection, flags uint64) (fu
 			return
 		}
 		notimplemented_out_ = out.Notimplemented
-		return
-	}, nil
-}
-
-type DeleteStoppedContainers_methods struct{}
-
-func DeleteStoppedContainers() DeleteStoppedContainers_methods {
-	return DeleteStoppedContainers_methods{}
-}
-
-func (m DeleteStoppedContainers_methods) Call(c *varlink.Connection) (containers_out_ []string, err_ error) {
-	receive, err_ := m.Send(c, 0)
-	if err_ != nil {
-		return
-	}
-	containers_out_, _, err_ = receive()
-	return
-}
-
-func (m DeleteStoppedContainers_methods) Send(c *varlink.Connection, flags uint64) (func() ([]string, uint64, error), error) {
-	receive, err := c.Send("io.projectatomic.podman.DeleteStoppedContainers", nil, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (containers_out_ []string, flags uint64, err error) {
-		var out struct {
-			Containers []string `json:"containers"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		containers_out_ = []string(out.Containers)
 		return
 	}, nil
 }
@@ -1347,12 +1106,148 @@ func (m ListImages_methods) Send(c *varlink.Connection, flags uint64) (func() ([
 	}, nil
 }
 
-type ListContainerProcesses_methods struct{}
+type CreateImage_methods struct{}
 
-func ListContainerProcesses() ListContainerProcesses_methods { return ListContainerProcesses_methods{} }
+func CreateImage() CreateImage_methods { return CreateImage_methods{} }
 
-func (m ListContainerProcesses_methods) Call(c *varlink.Connection, name_in_ string, opts_in_ []string) (container_out_ []string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, opts_in_)
+func (m CreateImage_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	notimplemented_out_, _, err_ = receive()
+	return
+}
+
+func (m CreateImage_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.CreateImage", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+		var out struct {
+			Notimplemented NotImplemented `json:"notimplemented"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		notimplemented_out_ = out.Notimplemented
+		return
+	}, nil
+}
+
+type TagImage_methods struct{}
+
+func TagImage() TagImage_methods { return TagImage_methods{} }
+
+func (m TagImage_methods) Call(c *varlink.Connection, name_in_ string, tagged_in_ string) (image_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, tagged_in_)
+	if err_ != nil {
+		return
+	}
+	image_out_, _, err_ = receive()
+	return
+}
+
+func (m TagImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, tagged_in_ string) (func() (string, uint64, error), error) {
+	var in struct {
+		Name   string `json:"name"`
+		Tagged string `json:"tagged"`
+	}
+	in.Name = name_in_
+	in.Tagged = tagged_in_
+	receive, err := c.Send("io.projectatomic.podman.TagImage", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (image_out_ string, flags uint64, err error) {
+		var out struct {
+			Image string `json:"image"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		image_out_ = out.Image
+		return
+	}, nil
+}
+
+type GetVersion_methods struct{}
+
+func GetVersion() GetVersion_methods { return GetVersion_methods{} }
+
+func (m GetVersion_methods) Call(c *varlink.Connection) (version_out_ Version, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	version_out_, _, err_ = receive()
+	return
+}
+
+func (m GetVersion_methods) Send(c *varlink.Connection, flags uint64) (func() (Version, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.GetVersion", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (version_out_ Version, flags uint64, err error) {
+		var out struct {
+			Version Version `json:"version"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		version_out_ = out.Version
+		return
+	}, nil
+}
+
+type ExportContainer_methods struct{}
+
+func ExportContainer() ExportContainer_methods { return ExportContainer_methods{} }
+
+func (m ExportContainer_methods) Call(c *varlink.Connection, name_in_ string, path_in_ string) (tarfile_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, path_in_)
+	if err_ != nil {
+		return
+	}
+	tarfile_out_, _, err_ = receive()
+	return
+}
+
+func (m ExportContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, path_in_ string) (func() (string, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+		Path string `json:"path"`
+	}
+	in.Name = name_in_
+	in.Path = path_in_
+	receive, err := c.Send("io.projectatomic.podman.ExportContainer", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (tarfile_out_ string, flags uint64, err error) {
+		var out struct {
+			Tarfile string `json:"tarfile"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		tarfile_out_ = out.Tarfile
+		return
+	}, nil
+}
+
+type GetContainerStats_methods struct{}
+
+func GetContainerStats() GetContainerStats_methods { return GetContainerStats_methods{} }
+
+func (m GetContainerStats_methods) Call(c *varlink.Connection, name_in_ string) (container_out_ ContainerStats, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
 	if err_ != nil {
 		return
 	}
@@ -1360,127 +1255,216 @@ func (m ListContainerProcesses_methods) Call(c *varlink.Connection, name_in_ str
 	return
 }
 
-func (m ListContainerProcesses_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, opts_in_ []string) (func() ([]string, uint64, error), error) {
-	var in struct {
-		Name string   `json:"name"`
-		Opts []string `json:"opts"`
-	}
-	in.Name = name_in_
-	in.Opts = []string(opts_in_)
-	receive, err := c.Send("io.projectatomic.podman.ListContainerProcesses", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (container_out_ []string, flags uint64, err error) {
-		var out struct {
-			Container []string `json:"container"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			return
-		}
-		container_out_ = []string(out.Container)
-		return
-	}, nil
-}
-
-type WaitContainer_methods struct{}
-
-func WaitContainer() WaitContainer_methods { return WaitContainer_methods{} }
-
-func (m WaitContainer_methods) Call(c *varlink.Connection, name_in_ string) (exitcode_out_ int64, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_)
-	if err_ != nil {
-		return
-	}
-	exitcode_out_, _, err_ = receive()
-	return
-}
-
-func (m WaitContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (int64, uint64, error), error) {
+func (m GetContainerStats_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() (ContainerStats, uint64, error), error) {
 	var in struct {
 		Name string `json:"name"`
 	}
 	in.Name = name_in_
-	receive, err := c.Send("io.projectatomic.podman.WaitContainer", in, flags)
+	receive, err := c.Send("io.projectatomic.podman.GetContainerStats", in, flags)
 	if err != nil {
 		return nil, err
 	}
-	return func() (exitcode_out_ int64, flags uint64, err error) {
+	return func() (container_out_ ContainerStats, flags uint64, err error) {
 		var out struct {
-			Exitcode int64 `json:"exitcode"`
+			Container ContainerStats `json:"container"`
 		}
 		flags, err = receive(&out)
 		if err != nil {
 			return
 		}
-		exitcode_out_ = out.Exitcode
+		container_out_ = out.Container
+		return
+	}, nil
+}
+
+type StartContainer_methods struct{}
+
+func StartContainer() StartContainer_methods { return StartContainer_methods{} }
+
+func (m StartContainer_methods) Call(c *varlink.Connection) (notimplemented_out_ NotImplemented, err_ error) {
+	receive, err_ := m.Send(c, 0)
+	if err_ != nil {
+		return
+	}
+	notimplemented_out_, _, err_ = receive()
+	return
+}
+
+func (m StartContainer_methods) Send(c *varlink.Connection, flags uint64) (func() (NotImplemented, uint64, error), error) {
+	receive, err := c.Send("io.projectatomic.podman.StartContainer", nil, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (notimplemented_out_ NotImplemented, flags uint64, err error) {
+		var out struct {
+			Notimplemented NotImplemented `json:"notimplemented"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		notimplemented_out_ = out.Notimplemented
+		return
+	}, nil
+}
+
+type KillContainer_methods struct{}
+
+func KillContainer() KillContainer_methods { return KillContainer_methods{} }
+
+func (m KillContainer_methods) Call(c *varlink.Connection, name_in_ string, signal_in_ int64) (container_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, signal_in_)
+	if err_ != nil {
+		return
+	}
+	container_out_, _, err_ = receive()
+	return
+}
+
+func (m KillContainer_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, signal_in_ int64) (func() (string, uint64, error), error) {
+	var in struct {
+		Name   string `json:"name"`
+		Signal int64  `json:"signal"`
+	}
+	in.Name = name_in_
+	in.Signal = signal_in_
+	receive, err := c.Send("io.projectatomic.podman.KillContainer", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (container_out_ string, flags uint64, err error) {
+		var out struct {
+			Container string `json:"container"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		container_out_ = out.Container
+		return
+	}, nil
+}
+
+type HistoryImage_methods struct{}
+
+func HistoryImage() HistoryImage_methods { return HistoryImage_methods{} }
+
+func (m HistoryImage_methods) Call(c *varlink.Connection, name_in_ string) (history_out_ []ImageHistory, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_)
+	if err_ != nil {
+		return
+	}
+	history_out_, _, err_ = receive()
+	return
+}
+
+func (m HistoryImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string) (func() ([]ImageHistory, uint64, error), error) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	in.Name = name_in_
+	receive, err := c.Send("io.projectatomic.podman.HistoryImage", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (history_out_ []ImageHistory, flags uint64, err error) {
+		var out struct {
+			History []ImageHistory `json:"history"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		history_out_ = []ImageHistory(out.History)
+		return
+	}, nil
+}
+
+type ExportImage_methods struct{}
+
+func ExportImage() ExportImage_methods { return ExportImage_methods{} }
+
+func (m ExportImage_methods) Call(c *varlink.Connection, name_in_ string, destination_in_ string, compress_in_ bool) (image_out_ string, err_ error) {
+	receive, err_ := m.Send(c, 0, name_in_, destination_in_, compress_in_)
+	if err_ != nil {
+		return
+	}
+	image_out_, _, err_ = receive()
+	return
+}
+
+func (m ExportImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, destination_in_ string, compress_in_ bool) (func() (string, uint64, error), error) {
+	var in struct {
+		Name        string `json:"name"`
+		Destination string `json:"destination"`
+		Compress    bool   `json:"compress"`
+	}
+	in.Name = name_in_
+	in.Destination = destination_in_
+	in.Compress = compress_in_
+	receive, err := c.Send("io.projectatomic.podman.ExportImage", in, flags)
+	if err != nil {
+		return nil, err
+	}
+	return func() (image_out_ string, flags uint64, err error) {
+		var out struct {
+			Image string `json:"image"`
+		}
+		flags, err = receive(&out)
+		if err != nil {
+			return
+		}
+		image_out_ = out.Image
 		return
 	}, nil
 }
 
 // Service interface with all methods
 type ioprojectatomicpodmanInterface interface {
-	PauseContainer(c VarlinkCall, name_ string) error
-	ImportImage(c VarlinkCall, source_ string, reference_ string, message_ string, changes_ []string) error
 	PullImage(c VarlinkCall, name_ string) error
-	DeleteStoppedContainers(c VarlinkCall) error
-	ListImages(c VarlinkCall) error
-	ResizeContainerTty(c VarlinkCall) error
-	StartContainer(c VarlinkCall) error
-	UnpauseContainer(c VarlinkCall, name_ string) error
-	AttachToContainer(c VarlinkCall) error
-	ListContainerProcesses(c VarlinkCall, name_ string, opts_ []string) error
-	WaitContainer(c VarlinkCall, name_ string) error
-	KillContainer(c VarlinkCall, name_ string, signal_ int64) error
-	RemoveContainer(c VarlinkCall, name_ string, force_ bool) error
-	SearchImage(c VarlinkCall, name_ string, limit_ int64) error
+	BuildImage(c VarlinkCall) error
+	InspectImage(c VarlinkCall, name_ string) error
 	DeleteUnusedImages(c VarlinkCall) error
 	Ping(c VarlinkCall) error
-	InspectContainer(c VarlinkCall, name_ string) error
 	GetContainerLogs(c VarlinkCall, name_ string) error
-	ListContainerChanges(c VarlinkCall, name_ string) error
-	BuildImage(c VarlinkCall) error
-	CreateImage(c VarlinkCall) error
-	InspectImage(c VarlinkCall, name_ string) error
-	TagImage(c VarlinkCall, name_ string, tagged_ string) error
-	GetContainerStats(c VarlinkCall, name_ string) error
+	RenameContainer(c VarlinkCall) error
+	AttachToContainer(c VarlinkCall) error
 	StopContainer(c VarlinkCall, name_ string, timeout_ int64) error
 	RestartContainer(c VarlinkCall, name_ string, timeout_ int64) error
-	UpdateContainer(c VarlinkCall) error
-	ListContainers(c VarlinkCall) error
-	ExportContainer(c VarlinkCall, name_ string, path_ string) error
-	CreateFromContainer(c VarlinkCall) error
-	ExportImage(c VarlinkCall, name_ string, destination_ string, compress_ bool) error
-	GetVersion(c VarlinkCall) error
-	GetContainer(c VarlinkCall, name_ string) error
-	HistoryImage(c VarlinkCall, name_ string) error
-	CreateContainer(c VarlinkCall) error
-	RenameContainer(c VarlinkCall) error
+	RemoveContainer(c VarlinkCall, name_ string, force_ bool) error
+	ListContainerProcesses(c VarlinkCall, name_ string, opts_ []string) error
+	PauseContainer(c VarlinkCall, name_ string) error
+	UnpauseContainer(c VarlinkCall, name_ string) error
+	DeleteStoppedContainers(c VarlinkCall) error
+	ImportImage(c VarlinkCall, source_ string, reference_ string, message_ string, changes_ []string) error
+	ResizeContainerTty(c VarlinkCall) error
+	WaitContainer(c VarlinkCall, name_ string) error
 	PushImage(c VarlinkCall, name_ string, tag_ string, tlsverify_ bool) error
 	RemoveImage(c VarlinkCall, name_ string, force_ bool) error
+	ListContainers(c VarlinkCall) error
+	GetContainer(c VarlinkCall, name_ string) error
+	SearchImage(c VarlinkCall, name_ string, limit_ int64) error
+	CreateFromContainer(c VarlinkCall) error
+	ListImages(c VarlinkCall) error
+	CreateImage(c VarlinkCall) error
+	TagImage(c VarlinkCall, name_ string, tagged_ string) error
+	CreateContainer(c VarlinkCall) error
+	InspectContainer(c VarlinkCall, name_ string) error
+	ListContainerChanges(c VarlinkCall, name_ string) error
+	UpdateContainer(c VarlinkCall) error
+	KillContainer(c VarlinkCall, name_ string, signal_ int64) error
+	HistoryImage(c VarlinkCall, name_ string) error
+	ExportImage(c VarlinkCall, name_ string, destination_ string, compress_ bool) error
+	GetVersion(c VarlinkCall) error
+	ExportContainer(c VarlinkCall, name_ string, path_ string) error
+	GetContainerStats(c VarlinkCall, name_ string) error
+	StartContainer(c VarlinkCall) error
 }
 
 // Service object with all methods
 type VarlinkCall struct{ varlink.Call }
 
 // Reply methods for all varlink errors
-func (c *VarlinkCall) ReplyErrorOccurred(reason_ string) error {
-	var out struct {
-		Reason string `json:"reason"`
-	}
-	out.Reason = reason_
-	return c.ReplyError("io.projectatomic.podman.ErrorOccurred", &out)
-}
-
-func (c *VarlinkCall) ReplyRuntimeError(reason_ string) error {
-	var out struct {
-		Reason string `json:"reason"`
-	}
-	out.Reason = reason_
-	return c.ReplyError("io.projectatomic.podman.RuntimeError", &out)
-}
-
 func (c *VarlinkCall) ReplyImageNotFound(name_ string) error {
 	var out struct {
 		Name string `json:"name"`
@@ -1497,39 +1481,23 @@ func (c *VarlinkCall) ReplyContainerNotFound(name_ string) error {
 	return c.ReplyError("io.projectatomic.podman.ContainerNotFound", &out)
 }
 
+func (c *VarlinkCall) ReplyErrorOccurred(reason_ string) error {
+	var out struct {
+		Reason string `json:"reason"`
+	}
+	out.Reason = reason_
+	return c.ReplyError("io.projectatomic.podman.ErrorOccurred", &out)
+}
+
+func (c *VarlinkCall) ReplyRuntimeError(reason_ string) error {
+	var out struct {
+		Reason string `json:"reason"`
+	}
+	out.Reason = reason_
+	return c.ReplyError("io.projectatomic.podman.RuntimeError", &out)
+}
+
 // Reply methods for all varlink methods
-func (c *VarlinkCall) ReplyListContainerProcesses(container_ []string) error {
-	var out struct {
-		Container []string `json:"container"`
-	}
-	out.Container = []string(container_)
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyWaitContainer(exitcode_ int64) error {
-	var out struct {
-		Exitcode int64 `json:"exitcode"`
-	}
-	out.Exitcode = exitcode_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyRemoveContainer(container_ string) error {
-	var out struct {
-		Container string `json:"container"`
-	}
-	out.Container = container_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplySearchImage(images_ []ImageSearch) error {
-	var out struct {
-		Images []ImageSearch `json:"images"`
-	}
-	out.Images = []ImageSearch(images_)
-	return c.Reply(&out)
-}
-
 func (c *VarlinkCall) ReplyDeleteUnusedImages(images_ []string) error {
 	var out struct {
 		Images []string `json:"images"`
@@ -1546,14 +1514,6 @@ func (c *VarlinkCall) ReplyPing(ping_ StringResponse) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyInspectContainer(container_ string) error {
-	var out struct {
-		Container string `json:"container"`
-	}
-	out.Container = container_
-	return c.Reply(&out)
-}
-
 func (c *VarlinkCall) ReplyGetContainerLogs(container_ []string) error {
 	var out struct {
 		Container []string `json:"container"`
@@ -1562,23 +1522,23 @@ func (c *VarlinkCall) ReplyGetContainerLogs(container_ []string) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyListContainerChanges(container_ ContainerChanges) error {
+func (c *VarlinkCall) ReplyRenameContainer(notimplemented_ NotImplemented) error {
 	var out struct {
-		Container ContainerChanges `json:"container"`
+		Notimplemented NotImplemented `json:"notimplemented"`
 	}
-	out.Container = container_
+	out.Notimplemented = notimplemented_
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyKillContainer(container_ string) error {
+func (c *VarlinkCall) ReplyAttachToContainer(notimplemented_ NotImplemented) error {
 	var out struct {
-		Container string `json:"container"`
+		Notimplemented NotImplemented `json:"notimplemented"`
 	}
-	out.Container = container_
+	out.Notimplemented = notimplemented_
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyCreateImage(notimplemented_ NotImplemented) error {
+func (c *VarlinkCall) ReplyBuildImage(notimplemented_ NotImplemented) error {
 	var out struct {
 		Notimplemented NotImplemented `json:"notimplemented"`
 	}
@@ -1591,22 +1551,6 @@ func (c *VarlinkCall) ReplyInspectImage(image_ string) error {
 		Image string `json:"image"`
 	}
 	out.Image = image_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyTagImage(image_ string) error {
-	var out struct {
-		Image string `json:"image"`
-	}
-	out.Image = image_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyGetContainerStats(container_ ContainerStats) error {
-	var out struct {
-		Container ContainerStats `json:"container"`
-	}
-	out.Container = container_
 	return c.Reply(&out)
 }
 
@@ -1626,7 +1570,47 @@ func (c *VarlinkCall) ReplyRestartContainer(container_ string) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyUpdateContainer(notimplemented_ NotImplemented) error {
+func (c *VarlinkCall) ReplyRemoveContainer(container_ string) error {
+	var out struct {
+		Container string `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyListContainerProcesses(container_ []string) error {
+	var out struct {
+		Container []string `json:"container"`
+	}
+	out.Container = []string(container_)
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyPauseContainer(container_ string) error {
+	var out struct {
+		Container string `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyUnpauseContainer(container_ string) error {
+	var out struct {
+		Container string `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyDeleteStoppedContainers(containers_ []string) error {
+	var out struct {
+		Containers []string `json:"containers"`
+	}
+	out.Containers = []string(containers_)
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyResizeContainerTty(notimplemented_ NotImplemented) error {
 	var out struct {
 		Notimplemented NotImplemented `json:"notimplemented"`
 	}
@@ -1634,11 +1618,35 @@ func (c *VarlinkCall) ReplyUpdateContainer(notimplemented_ NotImplemented) error
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyBuildImage(notimplemented_ NotImplemented) error {
+func (c *VarlinkCall) ReplyWaitContainer(exitcode_ int64) error {
 	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
+		Exitcode int64 `json:"exitcode"`
 	}
-	out.Notimplemented = notimplemented_
+	out.Exitcode = exitcode_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyPushImage(image_ string) error {
+	var out struct {
+		Image string `json:"image"`
+	}
+	out.Image = image_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyRemoveImage(image_ string) error {
+	var out struct {
+		Image string `json:"image"`
+	}
+	out.Image = image_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyImportImage(image_ string) error {
+	var out struct {
+		Image string `json:"image"`
+	}
+	out.Image = image_
 	return c.Reply(&out)
 }
 
@@ -1650,15 +1658,79 @@ func (c *VarlinkCall) ReplyListContainers(containers_ []ListContainerData) error
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyExportContainer(tarfile_ string) error {
+func (c *VarlinkCall) ReplyGetContainer(container_ ListContainerData) error {
 	var out struct {
-		Tarfile string `json:"tarfile"`
+		Container ListContainerData `json:"container"`
 	}
-	out.Tarfile = tarfile_
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplySearchImage(images_ []ImageSearch) error {
+	var out struct {
+		Images []ImageSearch `json:"images"`
+	}
+	out.Images = []ImageSearch(images_)
 	return c.Reply(&out)
 }
 
 func (c *VarlinkCall) ReplyCreateFromContainer(notimplemented_ NotImplemented) error {
+	var out struct {
+		Notimplemented NotImplemented `json:"notimplemented"`
+	}
+	out.Notimplemented = notimplemented_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyTagImage(image_ string) error {
+	var out struct {
+		Image string `json:"image"`
+	}
+	out.Image = image_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyCreateContainer(notimplemented_ NotImplemented) error {
+	var out struct {
+		Notimplemented NotImplemented `json:"notimplemented"`
+	}
+	out.Notimplemented = notimplemented_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyInspectContainer(container_ string) error {
+	var out struct {
+		Container string `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyListContainerChanges(container_ ContainerChanges) error {
+	var out struct {
+		Container ContainerChanges `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyUpdateContainer(notimplemented_ NotImplemented) error {
+	var out struct {
+		Notimplemented NotImplemented `json:"notimplemented"`
+	}
+	out.Notimplemented = notimplemented_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyListImages(images_ []ImageInList) error {
+	var out struct {
+		Images []ImageInList `json:"images"`
+	}
+	out.Images = []ImageInList(images_)
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyCreateImage(notimplemented_ NotImplemented) error {
 	var out struct {
 		Notimplemented NotImplemented `json:"notimplemented"`
 	}
@@ -1682,9 +1754,33 @@ func (c *VarlinkCall) ReplyGetVersion(version_ Version) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyGetContainer(container_ ListContainerData) error {
+func (c *VarlinkCall) ReplyExportContainer(tarfile_ string) error {
 	var out struct {
-		Container ListContainerData `json:"container"`
+		Tarfile string `json:"tarfile"`
+	}
+	out.Tarfile = tarfile_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyGetContainerStats(container_ ContainerStats) error {
+	var out struct {
+		Container ContainerStats `json:"container"`
+	}
+	out.Container = container_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyStartContainer(notimplemented_ NotImplemented) error {
+	var out struct {
+		Notimplemented NotImplemented `json:"notimplemented"`
+	}
+	out.Notimplemented = notimplemented_
+	return c.Reply(&out)
+}
+
+func (c *VarlinkCall) ReplyKillContainer(container_ string) error {
+	var out struct {
+		Container string `json:"container"`
 	}
 	out.Container = container_
 	return c.Reply(&out)
@@ -1698,54 +1794,6 @@ func (c *VarlinkCall) ReplyHistoryImage(history_ []ImageHistory) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyCreateContainer(notimplemented_ NotImplemented) error {
-	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
-	}
-	out.Notimplemented = notimplemented_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyRenameContainer(notimplemented_ NotImplemented) error {
-	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
-	}
-	out.Notimplemented = notimplemented_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyPushImage(image_ string) error {
-	var out struct {
-		Image string `json:"image"`
-	}
-	out.Image = image_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyRemoveImage(image_ string) error {
-	var out struct {
-		Image string `json:"image"`
-	}
-	out.Image = image_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyPauseContainer(container_ string) error {
-	var out struct {
-		Container string `json:"container"`
-	}
-	out.Container = container_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyImportImage(image_ string) error {
-	var out struct {
-		Image string `json:"image"`
-	}
-	out.Image = image_
-	return c.Reply(&out)
-}
-
 func (c *VarlinkCall) ReplyPullImage(id_ string) error {
 	var out struct {
 		Id string `json:"id"`
@@ -1754,161 +1802,101 @@ func (c *VarlinkCall) ReplyPullImage(id_ string) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyListImages(images_ []ImageInList) error {
-	var out struct {
-		Images []ImageInList `json:"images"`
-	}
-	out.Images = []ImageInList(images_)
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyResizeContainerTty(notimplemented_ NotImplemented) error {
-	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
-	}
-	out.Notimplemented = notimplemented_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyStartContainer(notimplemented_ NotImplemented) error {
-	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
-	}
-	out.Notimplemented = notimplemented_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyUnpauseContainer(container_ string) error {
-	var out struct {
-		Container string `json:"container"`
-	}
-	out.Container = container_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyAttachToContainer(notimplemented_ NotImplemented) error {
-	var out struct {
-		Notimplemented NotImplemented `json:"notimplemented"`
-	}
-	out.Notimplemented = notimplemented_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyDeleteStoppedContainers(containers_ []string) error {
-	var out struct {
-		Containers []string `json:"containers"`
-	}
-	out.Containers = []string(containers_)
-	return c.Reply(&out)
-}
-
 // Dummy implementations for all varlink methods
+func (s *VarlinkInterface) GetContainer(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainer")
+}
+
+func (s *VarlinkInterface) SearchImage(c VarlinkCall, name_ string, limit_ int64) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.SearchImage")
+}
+
 func (s *VarlinkInterface) CreateFromContainer(c VarlinkCall) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.CreateFromContainer")
-}
-
-func (s *VarlinkInterface) ExportImage(c VarlinkCall, name_ string, destination_ string, compress_ bool) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ExportImage")
 }
 
 func (s *VarlinkInterface) ListContainers(c VarlinkCall) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListContainers")
 }
 
-func (s *VarlinkInterface) ExportContainer(c VarlinkCall, name_ string, path_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ExportContainer")
-}
-
-func (s *VarlinkInterface) HistoryImage(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.HistoryImage")
-}
-
-func (s *VarlinkInterface) GetVersion(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetVersion")
-}
-
-func (s *VarlinkInterface) GetContainer(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainer")
-}
-
-func (s *VarlinkInterface) PushImage(c VarlinkCall, name_ string, tag_ string, tlsverify_ bool) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PushImage")
-}
-
-func (s *VarlinkInterface) RemoveImage(c VarlinkCall, name_ string, force_ bool) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RemoveImage")
-}
-
-func (s *VarlinkInterface) CreateContainer(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.CreateContainer")
-}
-
-func (s *VarlinkInterface) RenameContainer(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RenameContainer")
-}
-
-func (s *VarlinkInterface) PullImage(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PullImage")
-}
-
-func (s *VarlinkInterface) PauseContainer(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PauseContainer")
-}
-
-func (s *VarlinkInterface) ImportImage(c VarlinkCall, source_ string, reference_ string, message_ string, changes_ []string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ImportImage")
-}
-
-func (s *VarlinkInterface) UnpauseContainer(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.UnpauseContainer")
-}
-
-func (s *VarlinkInterface) AttachToContainer(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.AttachToContainer")
-}
-
-func (s *VarlinkInterface) DeleteStoppedContainers(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.DeleteStoppedContainers")
-}
-
-func (s *VarlinkInterface) ListImages(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListImages")
-}
-
-func (s *VarlinkInterface) ResizeContainerTty(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ResizeContainerTty")
-}
-
-func (s *VarlinkInterface) StartContainer(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.StartContainer")
-}
-
-func (s *VarlinkInterface) ListContainerProcesses(c VarlinkCall, name_ string, opts_ []string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListContainerProcesses")
-}
-
-func (s *VarlinkInterface) WaitContainer(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.WaitContainer")
-}
-
-func (s *VarlinkInterface) GetContainerLogs(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainerLogs")
+func (s *VarlinkInterface) InspectContainer(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.InspectContainer")
 }
 
 func (s *VarlinkInterface) ListContainerChanges(c VarlinkCall, name_ string) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListContainerChanges")
 }
 
+func (s *VarlinkInterface) UpdateContainer(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.UpdateContainer")
+}
+
+func (s *VarlinkInterface) ListImages(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListImages")
+}
+
+func (s *VarlinkInterface) CreateImage(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.CreateImage")
+}
+
+func (s *VarlinkInterface) TagImage(c VarlinkCall, name_ string, tagged_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.TagImage")
+}
+
+func (s *VarlinkInterface) CreateContainer(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.CreateContainer")
+}
+
+func (s *VarlinkInterface) ExportContainer(c VarlinkCall, name_ string, path_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ExportContainer")
+}
+
+func (s *VarlinkInterface) GetContainerStats(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainerStats")
+}
+
+func (s *VarlinkInterface) StartContainer(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.StartContainer")
+}
+
 func (s *VarlinkInterface) KillContainer(c VarlinkCall, name_ string, signal_ int64) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.KillContainer")
 }
 
-func (s *VarlinkInterface) RemoveContainer(c VarlinkCall, name_ string, force_ bool) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RemoveContainer")
+func (s *VarlinkInterface) HistoryImage(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.HistoryImage")
 }
 
-func (s *VarlinkInterface) SearchImage(c VarlinkCall, name_ string, limit_ int64) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.SearchImage")
+func (s *VarlinkInterface) ExportImage(c VarlinkCall, name_ string, destination_ string, compress_ bool) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ExportImage")
+}
+
+func (s *VarlinkInterface) GetVersion(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetVersion")
+}
+
+func (s *VarlinkInterface) PullImage(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PullImage")
+}
+
+func (s *VarlinkInterface) GetContainerLogs(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainerLogs")
+}
+
+func (s *VarlinkInterface) RenameContainer(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RenameContainer")
+}
+
+func (s *VarlinkInterface) AttachToContainer(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.AttachToContainer")
+}
+
+func (s *VarlinkInterface) BuildImage(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.BuildImage")
+}
+
+func (s *VarlinkInterface) InspectImage(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.InspectImage")
 }
 
 func (s *VarlinkInterface) DeleteUnusedImages(c VarlinkCall) error {
@@ -1919,145 +1907,57 @@ func (s *VarlinkInterface) Ping(c VarlinkCall) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.Ping")
 }
 
-func (s *VarlinkInterface) InspectContainer(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.InspectContainer")
-}
-
 func (s *VarlinkInterface) RestartContainer(c VarlinkCall, name_ string, timeout_ int64) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RestartContainer")
 }
 
-func (s *VarlinkInterface) UpdateContainer(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.UpdateContainer")
-}
-
-func (s *VarlinkInterface) BuildImage(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.BuildImage")
-}
-
-func (s *VarlinkInterface) CreateImage(c VarlinkCall) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.CreateImage")
-}
-
-func (s *VarlinkInterface) InspectImage(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.InspectImage")
-}
-
-func (s *VarlinkInterface) TagImage(c VarlinkCall, name_ string, tagged_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.TagImage")
-}
-
-func (s *VarlinkInterface) GetContainerStats(c VarlinkCall, name_ string) error {
-	return c.ReplyMethodNotImplemented("io.projectatomic.podman.GetContainerStats")
+func (s *VarlinkInterface) RemoveContainer(c VarlinkCall, name_ string, force_ bool) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RemoveContainer")
 }
 
 func (s *VarlinkInterface) StopContainer(c VarlinkCall, name_ string, timeout_ int64) error {
 	return c.ReplyMethodNotImplemented("io.projectatomic.podman.StopContainer")
 }
 
+func (s *VarlinkInterface) PauseContainer(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PauseContainer")
+}
+
+func (s *VarlinkInterface) UnpauseContainer(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.UnpauseContainer")
+}
+
+func (s *VarlinkInterface) DeleteStoppedContainers(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.DeleteStoppedContainers")
+}
+
+func (s *VarlinkInterface) ListContainerProcesses(c VarlinkCall, name_ string, opts_ []string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ListContainerProcesses")
+}
+
+func (s *VarlinkInterface) WaitContainer(c VarlinkCall, name_ string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.WaitContainer")
+}
+
+func (s *VarlinkInterface) PushImage(c VarlinkCall, name_ string, tag_ string, tlsverify_ bool) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.PushImage")
+}
+
+func (s *VarlinkInterface) RemoveImage(c VarlinkCall, name_ string, force_ bool) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.RemoveImage")
+}
+
+func (s *VarlinkInterface) ImportImage(c VarlinkCall, source_ string, reference_ string, message_ string, changes_ []string) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ImportImage")
+}
+
+func (s *VarlinkInterface) ResizeContainerTty(c VarlinkCall) error {
+	return c.ReplyMethodNotImplemented("io.projectatomic.podman.ResizeContainerTty")
+}
+
 // Method call dispatcher
 func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string) error {
 	switch methodname {
-	case "ListContainerProcesses":
-		var in struct {
-			Name string   `json:"name"`
-			Opts []string `json:"opts"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.ListContainerProcesses(VarlinkCall{call}, in.Name, []string(in.Opts))
-
-	case "WaitContainer":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.WaitContainer(VarlinkCall{call}, in.Name)
-
-	case "Ping":
-		return s.ioprojectatomicpodmanInterface.Ping(VarlinkCall{call})
-
-	case "InspectContainer":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.InspectContainer(VarlinkCall{call}, in.Name)
-
-	case "GetContainerLogs":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.GetContainerLogs(VarlinkCall{call}, in.Name)
-
-	case "ListContainerChanges":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.ListContainerChanges(VarlinkCall{call}, in.Name)
-
-	case "KillContainer":
-		var in struct {
-			Name   string `json:"name"`
-			Signal int64  `json:"signal"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.KillContainer(VarlinkCall{call}, in.Name, in.Signal)
-
-	case "RemoveContainer":
-		var in struct {
-			Name  string `json:"name"`
-			Force bool   `json:"force"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.RemoveContainer(VarlinkCall{call}, in.Name, in.Force)
-
-	case "SearchImage":
-		var in struct {
-			Name  string `json:"name"`
-			Limit int64  `json:"limit"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.SearchImage(VarlinkCall{call}, in.Name, in.Limit)
-
-	case "DeleteUnusedImages":
-		return s.ioprojectatomicpodmanInterface.DeleteUnusedImages(VarlinkCall{call})
-
-	case "GetContainerStats":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.GetContainerStats(VarlinkCall{call}, in.Name)
-
 	case "StopContainer":
 		var in struct {
 			Name    string `json:"name"`
@@ -2080,16 +1980,32 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		}
 		return s.ioprojectatomicpodmanInterface.RestartContainer(VarlinkCall{call}, in.Name, in.Timeout)
 
-	case "UpdateContainer":
-		return s.ioprojectatomicpodmanInterface.UpdateContainer(VarlinkCall{call})
+	case "RemoveContainer":
+		var in struct {
+			Name  string `json:"name"`
+			Force bool   `json:"force"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.RemoveContainer(VarlinkCall{call}, in.Name, in.Force)
 
-	case "BuildImage":
-		return s.ioprojectatomicpodmanInterface.BuildImage(VarlinkCall{call})
+	case "DeleteStoppedContainers":
+		return s.ioprojectatomicpodmanInterface.DeleteStoppedContainers(VarlinkCall{call})
 
-	case "CreateImage":
-		return s.ioprojectatomicpodmanInterface.CreateImage(VarlinkCall{call})
+	case "ListContainerProcesses":
+		var in struct {
+			Name string   `json:"name"`
+			Opts []string `json:"opts"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.ListContainerProcesses(VarlinkCall{call}, in.Name, []string(in.Opts))
 
-	case "InspectImage":
+	case "PauseContainer":
 		var in struct {
 			Name string `json:"name"`
 		}
@@ -2097,7 +2013,102 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		if err != nil {
 			return call.ReplyInvalidParameter("parameters")
 		}
-		return s.ioprojectatomicpodmanInterface.InspectImage(VarlinkCall{call}, in.Name)
+		return s.ioprojectatomicpodmanInterface.PauseContainer(VarlinkCall{call}, in.Name)
+
+	case "UnpauseContainer":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.UnpauseContainer(VarlinkCall{call}, in.Name)
+
+	case "RemoveImage":
+		var in struct {
+			Name  string `json:"name"`
+			Force bool   `json:"force"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.RemoveImage(VarlinkCall{call}, in.Name, in.Force)
+
+	case "ImportImage":
+		var in struct {
+			Source    string   `json:"source"`
+			Reference string   `json:"reference"`
+			Message   string   `json:"message"`
+			Changes   []string `json:"changes"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.ImportImage(VarlinkCall{call}, in.Source, in.Reference, in.Message, []string(in.Changes))
+
+	case "ResizeContainerTty":
+		return s.ioprojectatomicpodmanInterface.ResizeContainerTty(VarlinkCall{call})
+
+	case "WaitContainer":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.WaitContainer(VarlinkCall{call}, in.Name)
+
+	case "PushImage":
+		var in struct {
+			Name      string `json:"name"`
+			Tag       string `json:"tag"`
+			Tlsverify bool   `json:"tlsverify"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.PushImage(VarlinkCall{call}, in.Name, in.Tag, in.Tlsverify)
+
+	case "CreateFromContainer":
+		return s.ioprojectatomicpodmanInterface.CreateFromContainer(VarlinkCall{call})
+
+	case "ListContainers":
+		return s.ioprojectatomicpodmanInterface.ListContainers(VarlinkCall{call})
+
+	case "GetContainer":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.GetContainer(VarlinkCall{call}, in.Name)
+
+	case "SearchImage":
+		var in struct {
+			Name  string `json:"name"`
+			Limit int64  `json:"limit"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.SearchImage(VarlinkCall{call}, in.Name, in.Limit)
+
+	case "UpdateContainer":
+		return s.ioprojectatomicpodmanInterface.UpdateContainer(VarlinkCall{call})
+
+	case "ListImages":
+		return s.ioprojectatomicpodmanInterface.ListImages(VarlinkCall{call})
+
+	case "CreateImage":
+		return s.ioprojectatomicpodmanInterface.CreateImage(VarlinkCall{call})
 
 	case "TagImage":
 		var in struct {
@@ -2110,22 +2121,52 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		}
 		return s.ioprojectatomicpodmanInterface.TagImage(VarlinkCall{call}, in.Name, in.Tagged)
 
-	case "ListContainers":
-		return s.ioprojectatomicpodmanInterface.ListContainers(VarlinkCall{call})
+	case "CreateContainer":
+		return s.ioprojectatomicpodmanInterface.CreateContainer(VarlinkCall{call})
 
-	case "ExportContainer":
+	case "InspectContainer":
 		var in struct {
 			Name string `json:"name"`
-			Path string `json:"path"`
 		}
 		err := call.GetParameters(&in)
 		if err != nil {
 			return call.ReplyInvalidParameter("parameters")
 		}
-		return s.ioprojectatomicpodmanInterface.ExportContainer(VarlinkCall{call}, in.Name, in.Path)
+		return s.ioprojectatomicpodmanInterface.InspectContainer(VarlinkCall{call}, in.Name)
 
-	case "CreateFromContainer":
-		return s.ioprojectatomicpodmanInterface.CreateFromContainer(VarlinkCall{call})
+	case "ListContainerChanges":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.ListContainerChanges(VarlinkCall{call}, in.Name)
+
+	case "StartContainer":
+		return s.ioprojectatomicpodmanInterface.StartContainer(VarlinkCall{call})
+
+	case "KillContainer":
+		var in struct {
+			Name   string `json:"name"`
+			Signal int64  `json:"signal"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.KillContainer(VarlinkCall{call}, in.Name, in.Signal)
+
+	case "HistoryImage":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.HistoryImage(VarlinkCall{call}, in.Name)
 
 	case "ExportImage":
 		var in struct {
@@ -2142,7 +2183,18 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 	case "GetVersion":
 		return s.ioprojectatomicpodmanInterface.GetVersion(VarlinkCall{call})
 
-	case "GetContainer":
+	case "ExportContainer":
+		var in struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.ExportContainer(VarlinkCall{call}, in.Name, in.Path)
+
+	case "GetContainerStats":
 		var in struct {
 			Name string `json:"name"`
 		}
@@ -2150,69 +2202,7 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		if err != nil {
 			return call.ReplyInvalidParameter("parameters")
 		}
-		return s.ioprojectatomicpodmanInterface.GetContainer(VarlinkCall{call}, in.Name)
-
-	case "HistoryImage":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.HistoryImage(VarlinkCall{call}, in.Name)
-
-	case "CreateContainer":
-		return s.ioprojectatomicpodmanInterface.CreateContainer(VarlinkCall{call})
-
-	case "RenameContainer":
-		return s.ioprojectatomicpodmanInterface.RenameContainer(VarlinkCall{call})
-
-	case "PushImage":
-		var in struct {
-			Name      string `json:"name"`
-			Tag       string `json:"tag"`
-			Tlsverify bool   `json:"tlsverify"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.PushImage(VarlinkCall{call}, in.Name, in.Tag, in.Tlsverify)
-
-	case "RemoveImage":
-		var in struct {
-			Name  string `json:"name"`
-			Force bool   `json:"force"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.RemoveImage(VarlinkCall{call}, in.Name, in.Force)
-
-	case "PauseContainer":
-		var in struct {
-			Name string `json:"name"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.PauseContainer(VarlinkCall{call}, in.Name)
-
-	case "ImportImage":
-		var in struct {
-			Source    string   `json:"source"`
-			Reference string   `json:"reference"`
-			Message   string   `json:"message"`
-			Changes   []string `json:"changes"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.ioprojectatomicpodmanInterface.ImportImage(VarlinkCall{call}, in.Source, in.Reference, in.Message, []string(in.Changes))
+		return s.ioprojectatomicpodmanInterface.GetContainerStats(VarlinkCall{call}, in.Name)
 
 	case "PullImage":
 		var in struct {
@@ -2224,13 +2214,13 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		}
 		return s.ioprojectatomicpodmanInterface.PullImage(VarlinkCall{call}, in.Name)
 
-	case "ResizeContainerTty":
-		return s.ioprojectatomicpodmanInterface.ResizeContainerTty(VarlinkCall{call})
+	case "AttachToContainer":
+		return s.ioprojectatomicpodmanInterface.AttachToContainer(VarlinkCall{call})
 
-	case "StartContainer":
-		return s.ioprojectatomicpodmanInterface.StartContainer(VarlinkCall{call})
+	case "BuildImage":
+		return s.ioprojectatomicpodmanInterface.BuildImage(VarlinkCall{call})
 
-	case "UnpauseContainer":
+	case "InspectImage":
 		var in struct {
 			Name string `json:"name"`
 		}
@@ -2238,16 +2228,26 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		if err != nil {
 			return call.ReplyInvalidParameter("parameters")
 		}
-		return s.ioprojectatomicpodmanInterface.UnpauseContainer(VarlinkCall{call}, in.Name)
+		return s.ioprojectatomicpodmanInterface.InspectImage(VarlinkCall{call}, in.Name)
 
-	case "AttachToContainer":
-		return s.ioprojectatomicpodmanInterface.AttachToContainer(VarlinkCall{call})
+	case "DeleteUnusedImages":
+		return s.ioprojectatomicpodmanInterface.DeleteUnusedImages(VarlinkCall{call})
 
-	case "DeleteStoppedContainers":
-		return s.ioprojectatomicpodmanInterface.DeleteStoppedContainers(VarlinkCall{call})
+	case "Ping":
+		return s.ioprojectatomicpodmanInterface.Ping(VarlinkCall{call})
 
-	case "ListImages":
-		return s.ioprojectatomicpodmanInterface.ListImages(VarlinkCall{call})
+	case "GetContainerLogs":
+		var in struct {
+			Name string `json:"name"`
+		}
+		err := call.GetParameters(&in)
+		if err != nil {
+			return call.ReplyInvalidParameter("parameters")
+		}
+		return s.ioprojectatomicpodmanInterface.GetContainerLogs(VarlinkCall{call}, in.Name)
+
+	case "RenameContainer":
+		return s.ioprojectatomicpodmanInterface.RenameContainer(VarlinkCall{call})
 
 	default:
 		return call.ReplyMethodNotFound(methodname)
@@ -2261,7 +2261,8 @@ func (s *VarlinkInterface) VarlinkGetName() string {
 
 // Varlink interface description
 func (s *VarlinkInterface) VarlinkGetDescription() string {
-	return `# Podman Service Interface
+	return `# Podman Service Interface and API description.  The master version of this document can be found
+# in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file in the upstream libpod repository.
 interface io.projectatomic.podman
 
 

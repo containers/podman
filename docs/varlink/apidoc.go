@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/varlink/go/varlink/idl"
@@ -73,6 +74,12 @@ type funcDescriber struct {
 	doc          string
 }
 
+type funcSorter []funcDescriber
+
+func (a funcSorter) Len() int           { return len(a) }
+func (a funcSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a funcSorter) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
 type typeAttrs struct {
 	Name     string
 	AttrType string
@@ -83,10 +90,22 @@ type typeDescriber struct {
 	Attrs []typeAttrs
 }
 
+type typeSorter []typeDescriber
+
+func (a typeSorter) Len() int           { return len(a) }
+func (a typeSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a typeSorter) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
 type err struct {
 	Name string
 	doc  string
 }
+
+type errorSorter []err
+
+func (a errorSorter) Len() int           { return len(a) }
+func (a errorSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a errorSorter) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 // collects defined types in the idl
 func getTypes(tidl *idl.IDL) []typeDescriber {
@@ -147,6 +166,11 @@ func getErrors(midl *idl.IDL) []err {
 
 // generates the index for the top of the markdown page
 func generateIndex(methods []funcDescriber, types []typeDescriber, errors []err, b bytes.Buffer) bytes.Buffer {
+	// Sort the methods, types, and errors by alphabetical order
+	sort.Sort(funcSorter(methods))
+	sort.Sort(typeSorter(types))
+	sort.Sort(errorSorter(errors))
+
 	for _, method := range methods {
 		var inArgs []string
 		var outArgs []string
@@ -229,13 +253,14 @@ func main() {
 	if err != nil {
 		exit(err)
 	}
-
 	// Collect up the info from the idl
 	methods := getMethods(midl)
 	types := getTypes(midl)
 	errors := getErrors(midl)
 
 	out := bytes.Buffer{}
+	out.WriteString(fmt.Sprintf("# %s\n", midl.Name))
+	out.WriteString(fmt.Sprintf("%s\n", midl.Doc))
 	out.WriteString("## Index\n")
 	out = generateIndex(methods, types, errors, out)
 	out.WriteString("## Methods\n")
