@@ -121,7 +121,7 @@ func saveCmd(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}); err != nil {
+		if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false); err != nil {
 			if err2 := os.Remove(output); err2 != nil {
 				logrus.Errorf("error deleting %q: %v", output, err)
 			}
