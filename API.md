@@ -33,6 +33,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string) string](#ImportImage)
 
+[func Info() PodmanInfo](#Info)
+
 [func InspectContainer(name: string) string](#InspectContainer)
 
 [func InspectImage(name: string) string](#InspectImage)
@@ -94,9 +96,19 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [type ImageSearch](#ImageSearch)
 
+[type InfoGraphStatus](#InfoGraphStatus)
+
+[type InfoHost](#InfoHost)
+
+[type InfoPodmanBinary](#InfoPodmanBinary)
+
+[type InfoStore](#InfoStore)
+
 [type ListContainerData](#ListContainerData)
 
 [type NotImplemented](#NotImplemented)
+
+[type PodmanInfo](#PodmanInfo)
 
 [type StringResponse](#StringResponse)
 
@@ -225,6 +237,12 @@ history is in the form of an array of ImageHistory structures.  If the image can
 method ImportImage(source: [string](https://godoc.org/builtin#string), reference: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
 ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
+### <a name="Info"></a>func Info
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Info() [PodmanInfo](#PodmanInfo)</div>
+Info returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
+build information of Podman, and system-wide registries.
 ### <a name="InspectContainer"></a>func InspectContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -555,6 +573,66 @@ is_automated [bool](https://godoc.org/builtin#bool)
 name [string](https://godoc.org/builtin#string)
 
 star_count [int](https://godoc.org/builtin#int)
+### <a name="InfoGraphStatus"></a>type InfoGraphStatus
+
+InfoGraphStatus describes the detailed status of the graphc
+
+backing_filesystem [string](https://godoc.org/builtin#string)
+
+native_overlay_diff [string](https://godoc.org/builtin#string)
+
+supports_d_type [string](https://godoc.org/builtin#string)
+### <a name="InfoHost"></a>type InfoHost
+
+InfoHost describes the host stats portion of PodmanInfo
+
+mem_free [int](https://godoc.org/builtin#int)
+
+mem_total [int](https://godoc.org/builtin#int)
+
+swap_free [int](https://godoc.org/builtin#int)
+
+swap_total [int](https://godoc.org/builtin#int)
+
+arch [string](https://godoc.org/builtin#string)
+
+cpus [int](https://godoc.org/builtin#int)
+
+hostname [string](https://godoc.org/builtin#string)
+
+kernel [string](https://godoc.org/builtin#string)
+
+os [string](https://godoc.org/builtin#string)
+
+uptime [string](https://godoc.org/builtin#string)
+### <a name="InfoPodmanBinary"></a>type InfoPodmanBinary
+
+InfoPodman provides details on the podman binary
+
+compiler [string](https://godoc.org/builtin#string)
+
+go_version [string](https://godoc.org/builtin#string)
+
+podman_version [string](https://godoc.org/builtin#string)
+
+git_commit [string](https://godoc.org/builtin#string)
+### <a name="InfoStore"></a>type InfoStore
+
+InfoStore describes the host's storage informatoin
+
+containers [int](https://godoc.org/builtin#int)
+
+images [int](https://godoc.org/builtin#int)
+
+graph_driver_name [string](https://godoc.org/builtin#string)
+
+graph_driver_options [string](https://godoc.org/builtin#string)
+
+graph_root [string](https://godoc.org/builtin#string)
+
+graph_status [InfoGraphStatus](#InfoGraphStatus)
+
+run_root [string](https://godoc.org/builtin#string)
 ### <a name="ListContainerData"></a>type ListContainerData
 
 ListContainer is the returned struct for an individual container
@@ -593,6 +671,19 @@ namespaces [ContainerNameSpace](#ContainerNameSpace)
 
 
 comment [string](https://godoc.org/builtin#string)
+### <a name="PodmanInfo"></a>type PodmanInfo
+
+PodmanInfo describes the Podman host and build
+
+host [InfoHost](#InfoHost)
+
+registries [[]string](#[]string)
+
+insecure_registries [[]string](#[]string)
+
+store [InfoStore](#InfoStore)
+
+podman [InfoPodmanBinary](#InfoPodmanBinary)
 ### <a name="StringResponse"></a>type StringResponse
 
 
