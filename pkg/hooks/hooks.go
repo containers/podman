@@ -1,4 +1,4 @@
-// Package hooks implements CRI-O's hook handling.
+// Package hooks implements hook configuration and handling for CRI-O and libpod.
 package hooks
 
 import (
