@@ -25,7 +25,7 @@ var (
 )
 
 // Read reads a hook JSON file, verifies it, and returns the hook configuration.
-func Read(path string) (*current.Hook, error) {
+func Read(path string, extensionStages []string) (*current.Hook, error) {
 	if !strings.HasSuffix(path, ".json") {
 		return nil, ErrNoJSONSuffix
 	}
@@ -37,7 +37,7 @@ func Read(path string) (*current.Hook, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "parsing hook %q", path)
 	}
-	err = hook.Validate()
+	err = hook.Validate(extensionStages)
 	return hook, err
 }
 
@@ -60,14 +60,14 @@ func read(content []byte) (hook *current.Hook, err error) {
 
 // ReadDir reads hook JSON files from a directory into the given map,
 // clobbering any previous entries with the same filenames.
-func ReadDir(path string, hooks map[string]*current.Hook) error {
+func ReadDir(path string, extensionStages []string, hooks map[string]*current.Hook) error {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return err
 	}
 
 	for _, file := range files {
-		hook, err := Read(filepath.Join(path, file.Name()))
+		hook, err := Read(filepath.Join(path, file.Name()), extensionStages)
 		if err != nil {
 			if err == ErrNoJSONSuffix {
 				continue

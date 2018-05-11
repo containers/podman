@@ -27,7 +27,7 @@ func TestMonitorGood(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manager, err := New(ctx, []string{dir}, lang)
+	manager, err := New(ctx, []string{dir}, []string{}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestMonitorGood(t *testing.T) {
 		time.Sleep(100 * time.Millisecond) // wait for monitor to notice
 
 		config := &rspec.Spec{}
-		err = manager.Hooks(config, map[string]string{}, false)
+		_, err = manager.Hooks(config, map[string]string{}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +84,7 @@ func TestMonitorGood(t *testing.T) {
 
 		config := &rspec.Spec{}
 		expected := config.Hooks
-		err = manager.Hooks(config, map[string]string{}, false)
+		_, err = manager.Hooks(config, map[string]string{}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -101,7 +101,7 @@ func TestMonitorGood(t *testing.T) {
 
 		config := &rspec.Spec{}
 		expected := config.Hooks
-		err = manager.Hooks(config, map[string]string{}, false)
+		_, err = manager.Hooks(config, map[string]string{}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,7 +126,7 @@ func TestMonitorBadWatcher(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manager, err := New(ctx, []string{}, lang)
+	manager, err := New(ctx, []string{}, []string{}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}

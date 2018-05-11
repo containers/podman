@@ -48,13 +48,13 @@ func TestGoodNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	manager, err := New(ctx, []string{dir}, lang)
+	manager, err := New(ctx, []string{dir}, []string{}, lang)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	config := &rspec.Spec{}
-	err = manager.Hooks(config, map[string]string{}, false)
+	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,6 +90,9 @@ func TestGoodNew(t *testing.T) {
 			},
 		},
 	}, config.Hooks)
+
+	var nilExtensionStages map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStages, extensionStages)
 }
 
 func TestBadNew(t *testing.T) {
@@ -112,7 +115,7 @@ func TestBadNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = New(ctx, []string{dir}, lang)
+	_, err = New(ctx, []string{dir}, []string{}, lang)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -139,11 +142,14 @@ func TestBrokenMatch(t *testing.T) {
 			Args: []string{"/bin/sh"},
 		},
 	}
-	err := manager.Hooks(config, map[string]string{}, false)
+	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
 	assert.Regexp(t, "^matching hook \"a\\.json\": command: error parsing regexp: .*", err.Error())
+
+	var nilExtensionStages map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStages, extensionStages)
 }
 
 func TestInvalidStage(t *testing.T) {
@@ -162,11 +168,60 @@ func TestInvalidStage(t *testing.T) {
 			},
 		},
 	}
-	err := manager.Hooks(&rspec.Spec{}, map[string]string{}, false)
+	extensionStages, err := manager.Hooks(&rspec.Spec{}, map[string]string{}, false)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
 	assert.Regexp(t, "^hook \"a\\.json\": unknown stage \"does-not-exist\"$", err.Error())
+
+	var nilExtensionStages map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStages, extensionStages)
+}
+
+func TestExtensionStage(t *testing.T) {
+	always := true
+	manager := Manager{
+		hooks: map[string]*current.Hook{
+			"a.json": {
+				Version: current.Version,
+				Hook: rspec.Hook{
+					Path: "/a/b/c",
+				},
+				When: current.When{
+					Always: &always,
+				},
+				Stages: []string{"prestart", "a", "b"},
+			},
+		},
+		extensionStages: []string{"a", "b", "c"},
+	}
+
+	config := &rspec.Spec{}
+	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, &rspec.Hooks{
+		Prestart: []rspec.Hook{
+			{
+				Path: "/a/b/c",
+			},
+		},
+	}, config.Hooks)
+
+	assert.Equal(t, map[string][]rspec.Hook{
+		"a": {
+			{
+				Path: "/a/b/c",
+			},
+		},
+		"b": {
+			{
+				Path: "/a/b/c",
+			},
+		},
+	}, extensionStages)
 }
 
 func init() {
