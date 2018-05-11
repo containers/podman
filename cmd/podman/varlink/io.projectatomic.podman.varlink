@@ -124,6 +124,55 @@ type ContainerNameSpace (
     ipc: string
 )
 
+# InfoHost describes the host stats portion of PodmanInfo
+type InfoHost (
+    mem_free: int,
+    mem_total: int,
+    swap_free: int,
+    swap_total: int,
+    arch: string,
+    cpus: int,
+    hostname: string,
+    kernel: string,
+    os: string,
+    uptime: string
+)
+
+# InfoGraphStatus describes the detailed status of the graph
+type InfoGraphStatus (
+    backing_filesystem: string,
+    native_overlay_diff: string,
+    supports_d_type: string
+)
+
+# InfoStore describes the host's storage informatoin
+type InfoStore (
+    containers: int,
+    images: int,
+    graph_driver_name: string,
+    graph_driver_options: string,
+    graph_root: string,
+    graph_status: InfoGraphStatus,
+    run_root: string
+)
+
+# InfoPodman provides details on the podman binary
+type InfoPodmanBinary (
+    compiler: string,
+    go_version: string,
+    podman_version: string,
+    git_commit: string
+)
+
+# PodmanInfo describes the Podman host and build
+type PodmanInfo (
+    host: InfoHost,
+    registries: []string,
+    insecure_registries: []string,
+    store: InfoStore,
+    podman: InfoPodmanBinary
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -140,6 +189,9 @@ method Ping() -> (ping: StringResponse)
 # system.
 method GetVersion() -> (version: Version)
 
+# GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
+# build information of Podman, and system-wide registries.
+method GetInfo() -> (info: PodmanInfo)
 
 # ListContainers returns a list of containers in no particular order.  There are
 # returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
