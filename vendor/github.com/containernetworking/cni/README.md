@@ -2,15 +2,25 @@
 [![Coverage Status](https://coveralls.io/repos/github/containernetworking/cni/badge.svg?branch=master)](https://coveralls.io/github/containernetworking/cni?branch=master)
 [![Slack Status](https://cryptic-tundra-43194.herokuapp.com/badge.svg)](https://cryptic-tundra-43194.herokuapp.com/)
 
+![CNI Logo](logo.png)
+
+---
+
+# Community Sync Meeting
+
+There is a community sync meeting for users and developers every 1-2 months. The next meeting will help on a Google Hangout and the link is in the [agenda](https://docs.google.com/document/d/10ECyT2mBGewsJUcmYmS8QNo1AcNgy2ZIe2xS7lShYhE/edit?usp=sharing) (Notes from previous meeting are also in this doc). The next meeting will be held on *Wednesday, June 21th* at *3:00pm UTC* [Add to Calendar]https://www.worldtimebuddy.com/?qm=1&lid=100,5,2643743,5391959&h=100&date=2017-6-21&sln=15-16).
+
+---
+
 # CNI - the Container Network Interface
 
 ## What is CNI?
 
-The CNI (_Container Network Interface_) project consists of a specification and libraries for writing plugins to configure network interfaces in Linux containers, along with a number of supported plugins.
+CNI (_Container Network Interface_), a [Cloud Native Computing Foundation](https://cncf.io) project, consists of a specification and libraries for writing plugins to configure network interfaces in Linux containers, along with a number of supported plugins.
 CNI concerns itself only with network connectivity of containers and removing allocated resources when the container is deleted.
 Because of this focus, CNI has a wide range of support and the specification is simple to implement.
 
-As well as the [specification](SPEC.md), this repository contains the Go source code of a library for integrating CNI into applications, an example command-line tool, a template for making new plugins, and the supported plugins.
+As well as the [specification](SPEC.md), this repository contains the Go source code of a [library for integrating CNI into applications](libcni) and an [example command-line tool](cnitool) for executing CNI plugins.  A [separate repository contains reference plugins](https://github.com/containernetworking/plugins) and a template for making new plugins.
 
 The template code makes it straight-forward to create a CNI plugin for an existing container networking project.
 CNI also makes a good framework for creating a new container networking project from scratch.
@@ -27,7 +37,8 @@ To avoid duplication, we think it is prudent to define a common interface betwee
 - [rkt - container engine](https://coreos.com/blog/rkt-cni-networking.html)
 - [Kurma - container runtime](http://kurma.io/)
 - [Kubernetes - a system to simplify container operations](http://kubernetes.io/docs/admin/network-plugins/)
-- [Cloud Foundry - a platform for cloud applications](https://github.com/cloudfoundry-incubator/netman-release)
+- [OpenShift - Kubernetes with additional enterprise features](https://github.com/openshift/origin/blob/master/docs/openshift_networking_requirements.md)
+- [Cloud Foundry - a platform for cloud applications](https://github.com/cloudfoundry-incubator/cf-networking-release)
 - [Mesos - a distributed systems kernel](https://github.com/apache/mesos/blob/master/docs/cni.md)
 
 ### 3rd party plugins
@@ -37,8 +48,14 @@ To avoid duplication, we think it is prudent to define a common interface betwee
 - [SR-IOV](https://github.com/hustcat/sriov-cni)
 - [Cilium - BPF & XDP for containers](https://github.com/cilium/cilium)
 - [Infoblox - enterprise IP address management for containers](https://github.com/infobloxopen/cni-infoblox)
+- [Multus - a Multi plugin](https://github.com/Intel-Corp/multus-cni)
+- [Romana - Layer 3 CNI plugin supporting network policy for Kubernetes](https://github.com/romana/kube)
+- [CNI-Genie - generic CNI network plugin](https://github.com/Huawei-PaaS/CNI-Genie)
+- [Nuage CNI - Nuage Networks SDN plugin for network policy kubernetes support ](https://github.com/nuagenetworks/nuage-cni)
+- [Silk - a CNI plugin designed for Cloud Foundry](https://github.com/cloudfoundry-incubator/silk)
+- [Linen - a CNI plugin designed for overlay networks with Open vSwitch and fit in SDN/OpenFlow network environment](https://github.com/John-Lin/linen-cni)
 
-The CNI team also maintains some [core plugins](plugins).
+The CNI team also maintains some [core plugins in a separate repository](https://github.com/containernetworking/plugins).
 
 
 ## Contributing to CNI
@@ -50,19 +67,16 @@ If you intend to contribute to code or documentation, please read [CONTRIBUTING.
 
 ### Requirements
 
-CNI requires Go 1.5+ to build.
+The CNI spec is language agnostic.  To use the Go language libraries in this repository, you'll need a recent version of Go.  Our [automated tests](https://travis-ci.org/containernetworking/cni/builds) cover Go versions 1.7 and 1.8.
 
-Go 1.5 users will need to set GO15VENDOREXPERIMENT=1 to get vendored
-dependencies. This flag is set by default in 1.6.
+### Reference Plugins
 
-### Included Plugins
-
-This repository includes a number of common plugins in the `plugins/` directory.
-Please see the [Documentation/](Documentation/) directory for documentation about particular plugins.
+The CNI project maintains a set of [reference plugins](https://github.com/containernetworking/plugins) that implement the CNI specification.
+NOTE: the reference plugins used to live in this repository but have been split out into a [separate repository](https://github.com/containernetworking/plugins) as of May 2017.
 
 ### Running the plugins
 
-The scripts/ directory contains two scripts, `priv-net-run.sh` and `docker-run.sh`, that can be used to exercise the plugins.
+After building and installing the [reference plugins](https://github.com/containernetworking/plugins), you can use the `priv-net-run.sh` and `docker-run.sh` scripts in the `scripts/` directory to exercise the plugins.
 
 **note - priv-net-run.sh depends on `jq`**
 
@@ -100,14 +114,15 @@ The directory `/etc/cni/net.d` is the default location in which the scripts will
 Next, build the plugins:
 
 ```bash
-$ ./build
+$ cd $GOPATH/src/github.com/containernetworking/plugins
+$ ./build.sh
 ```
 
 Finally, execute a command (`ifconfig` in this example) in a private network namespace that has joined the `mynet` network:
 
 ```bash
-$ CNI_PATH=`pwd`/bin
-$ cd scripts
+$ CNI_PATH=$GOPATH/src/github.com/containernetworking/plugins/bin
+$ cd $GOPATH/src/github.com/containernetworking/cni/scripts
 $ sudo CNI_PATH=$CNI_PATH ./priv-net-run.sh ifconfig
 eth0      Link encap:Ethernet  HWaddr f2:c2:6f:54:b8:2b  
           inet addr:10.22.0.2  Bcast:0.0.0.0  Mask:255.255.0.0
@@ -115,7 +130,7 @@ eth0      Link encap:Ethernet  HWaddr f2:c2:6f:54:b8:2b
           UP BROADCAST MULTICAST  MTU:1500  Metric:1
           RX packets:1 errors:0 dropped:0 overruns:0 frame:0
           TX packets:0 errors:0 dropped:1 overruns:0 carrier:0
-          collisions:0 txqueuelen:0 
+          collisions:0 txqueuelen:0
           RX bytes:90 (90.0 B)  TX bytes:0 (0.0 B)
 
 lo        Link encap:Local Loopback  
@@ -124,7 +139,7 @@ lo        Link encap:Local Loopback
           UP LOOPBACK RUNNING  MTU:65536  Metric:1
           RX packets:0 errors:0 dropped:0 overruns:0 frame:0
           TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:0 
+          collisions:0 txqueuelen:0
           RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
 ```
 
@@ -136,8 +151,8 @@ Use the instructions in the previous section to define a netconf and build the p
 Next, docker-run.sh script wraps `docker run`, to execute the plugins prior to entering the container:
 
 ```bash
-$ CNI_PATH=`pwd`/bin
-$ cd scripts
+$ CNI_PATH=$GOPATH/src/github.com/containernetworking/plugins/bin
+$ cd $GOPATH/src/github.com/containernetworking/cni/scripts
 $ sudo CNI_PATH=$CNI_PATH ./docker-run.sh --rm busybox:latest ifconfig
 eth0      Link encap:Ethernet  HWaddr fa:60:70:aa:07:d1  
           inet addr:10.22.0.2  Bcast:0.0.0.0  Mask:255.255.0.0
@@ -145,7 +160,7 @@ eth0      Link encap:Ethernet  HWaddr fa:60:70:aa:07:d1
           UP BROADCAST MULTICAST  MTU:1500  Metric:1
           RX packets:1 errors:0 dropped:0 overruns:0 frame:0
           TX packets:0 errors:0 dropped:1 overruns:0 carrier:0
-          collisions:0 txqueuelen:0 
+          collisions:0 txqueuelen:0
           RX bytes:90 (90.0 B)  TX bytes:0 (0.0 B)
 
 lo        Link encap:Local Loopback  
@@ -154,7 +169,7 @@ lo        Link encap:Local Loopback
           UP LOOPBACK RUNNING  MTU:65536  Metric:1
           RX packets:0 errors:0 dropped:0 overruns:0 frame:0
           TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
-          collisions:0 txqueuelen:0 
+          collisions:0 txqueuelen:0
           RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
 ```
 
