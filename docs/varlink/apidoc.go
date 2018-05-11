@@ -184,6 +184,7 @@ func generateIndex(methods []funcDescriber, types []typeDescriber, errors []err,
 		}
 		b.WriteString(fmt.Sprintf("\n[func %s(%s) %s](#%s)\n", method.Name, strings.Join(inArgs, ", "), strings.Join(outArgs, ", "), method.Name))
 	}
+	b.WriteString("\n")
 	for _, t := range types {
 		b.WriteString(fmt.Sprintf("[type %s](#%s)\n\n", t.Name, t.Name))
 	}
