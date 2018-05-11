@@ -1,16 +1,15 @@
 # podman - Simple debugging tool for pods and images
-podman is a simple client only tool to help with debugging issues when daemons such as CRI runtime and the kubelet are not responding or
-failing. A shared API layer could be created to share code between the daemon and podman. podman does not require any daemon running. podman
-utilizes the same underlying components that crio uses i.e. containers/image, container/storage, oci-runtime-tool/generate, runc or
-any other OCI compatible runtime. podman shares state with crio and so has the capability to debug pods/images created by crio.
+podman is a daemonless container runtime for managing containers, pods, and container images.
+It is intended as a counterpart to CRI-O, to provide low-level debugging not available through the CRI interface used by Kubernetes.
+It can also act as a container runtime independent of CRI-O, creating and managing its own set of containers.
 
 ## Use cases
-1. List pods.
-2. Launch simple pods (that require no daemon support).
-3. Exec commands in a container in a pod.
-4. Launch additional containers in a pod.
-5. List images.
-6. Remove images not in use.
-7. Pull images.
-8. Check image size.
-9. Report pod disk resource usage.
+1. Create containers
+2. Start, stop, signal, attach to, and inspect existing containers
+3. Run new commands in existing containers
+4. Push and pull images
+5. List and inspect existing images
+6. Create new images by committing changes within a container
+7. Create pods
+8. Start, stop, signal, and inspect existing pods
+9. Populate pods with containers
