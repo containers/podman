@@ -1324,7 +1324,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) er
 		}
 	}
 
-	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, lang)
+	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, []string{}, lang)
 	if err != nil {
 		if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
 			return err
@@ -1333,5 +1333,6 @@ func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) er
 		return nil
 	}
 
-	return manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+	_, err = manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+	return err
 }

@@ -31,7 +31,7 @@ func Read(content []byte) (hook *Hook, err error) {
 }
 
 // Validate performs load-time hook validation.
-func (hook *Hook) Validate() (err error) {
+func (hook *Hook) Validate(extensionStages []string) (err error) {
 	if hook == nil {
 		return errors.New("nil hook")
 	}
@@ -68,6 +68,10 @@ func (hook *Hook) Validate() (err error) {
 	}
 
 	validStages := map[string]bool{"prestart": true, "poststart": true, "poststop": true}
+	for _, stage := range extensionStages {
+		validStages[stage] = true
+	}
+
 	for _, stage := range hook.Stages {
 		if !validStages[stage] {
 			return fmt.Errorf("unknown stage %q", stage)
