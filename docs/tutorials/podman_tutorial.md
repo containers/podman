@@ -5,10 +5,14 @@ Podman is a utility provided as part of the libpod library.  It can be used to c
 containers. The following tutorial will teach you how to set up Podman and perform some basic
 commands with Podman.
 
-## Install Podman on Fedora
-Many of the basic components to run Podman are readily available from the Fedora RPM repositories; the only
-exception is Podman itself.  In this section, we will help you install all the runtime and build dependencies
-for Podman until an RPM becomes available.
+## Install Podman on Fedora from RPM Repositories
+Fedora 27 and later provide Podman via the package manager.
+```
+$ sudo dnf install -y podman
+```
+
+## Install Podman on Fedora from Source
+Many of the basic components to run Podman are readily available from the Fedora RPM repositories.  In this section, we will help you install all the runtime and build dependencies for Podman, acquire the source, and build it.
 
 ### Installing build and runtime dependencies
 ```
