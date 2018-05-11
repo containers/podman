@@ -48,6 +48,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("valid --cgroup-parent using slice", func() {
+		Skip("Requires Systemd cgroup manager support")
 		cgroup := "aaaa.slice"
 		run := podmanTest.Podman([]string{"run", "--cgroup-parent", cgroup, fedoraMinimal, "cat", "/proc/1/cgroup"})
 		run.WaitWithDefaultTimeout()

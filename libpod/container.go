@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -39,8 +38,12 @@ const (
 	ContainerStatePaused ContainerStatus = iota
 )
 
-// DefaultCgroupParent is the default prefix to a cgroup path in libpod
-var DefaultCgroupParent = "/libpod_parent"
+// CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
+const CgroupfsDefaultCgroupParent = "/libpod_parent"
+
+// SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
+// manager in libpod
+const SystemdDefaultCgroupParent = "system.slice"
 
 // LinuxNS represents a Linux namespace
 type LinuxNS int
@@ -850,8 +853,15 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 }
 
 // CGroupPath returns a cgroups "path" for a given container.
-func (c *Container) CGroupPath() cgroups.Path {
-	return cgroups.StaticPath(filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-conmon-%s/%s", c.ID(), c.ID())))
+func (c *Container) CGroupPath() (string, error) {
+	switch c.runtime.config.CgroupManager {
+	case CgroupfsCgroupsManager:
+		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()), "ctr"), nil
+	case SystemdCgroupsManager:
+		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
+	default:
+		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+	}
 }
 
 // RootFsSize returns the root FS size of the container

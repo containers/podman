@@ -7,12 +7,14 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -160,7 +162,6 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.config.ShmSize = DefaultShmSize
-	ctr.config.CgroupParent = DefaultCgroupParent
 
 	ctr.state.BindMounts = make(map[string]string)
 
@@ -721,6 +722,36 @@ func (c *Container) prepare() (err error) {
 	return nil
 }
 
+// cleanupCgroup cleans up residual CGroups after container execution
+// This is a no-op for the systemd cgroup driver
+func (c *Container) cleanupCgroups() error {
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		return nil
+	}
+
+	// Remove the base path of the container's cgroups
+	path := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
+
+	logrus.Debugf("Removing CGroup %s", path)
+
+	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	if err != nil {
+		// It's fine for the cgroup to not exist
+		// We want it gone, it's gone
+		if err == cgroups.ErrCgroupDeleted {
+			return nil
+		}
+
+		return err
+	}
+
+	if err := cgroup.Delete(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
 	// Stop the container's network namespace (if it has one)
@@ -764,9 +795,19 @@ func (c *Container) cleanupStorage() error {
 func (c *Container) cleanup() error {
 	var lastError error
 
+	logrus.Debugf("Cleaning up container %s", c.ID())
+
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
 		lastError = nil
+	}
+
+	if err := c.cleanupCgroups(); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
 	}
 
 	// Unmount storage
@@ -1127,6 +1168,22 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 	if !foundContainerEnv {
 		g.AddProcessEnv("container", "libpod")
+	}
+
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		// When runc is set to use Systemd as a cgroup manager, it
+		// expects cgroups to be passed as follows:
+		// slice:prefix:name
+		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
+		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
+		g.SetLinuxCgroupsPath(systemdCgroups)
+	} else {
+		cgroupPath, err := c.CGroupPath()
+		if err != nil {
+			return nil, err
+		}
+		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
+		g.SetLinuxCgroupsPath(cgroupPath)
 	}
 
 	return g.Spec(), nil

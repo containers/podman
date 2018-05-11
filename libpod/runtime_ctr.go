@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -58,6 +59,24 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 
 		ctr.config.Name = name
+	}
+
+	// Check CGroup parent sanity, and set it if it was not set
+	switch r.config.CgroupManager {
+	case CgroupfsCgroupsManager:
+		if ctr.config.CgroupParent == "" {
+			ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
+		} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
+			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+		}
+	case SystemdCgroupsManager:
+		if ctr.config.CgroupParent == "" {
+			ctr.config.CgroupParent = SystemdDefaultCgroupParent
+		} else if len(ctr.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
+			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+		}
+	default:
+		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}
 
 	// Set up storage for the container
@@ -198,6 +217,11 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	if len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+	}
+
+	// Tear down the container's cgroups (if they exist)
+	if err := c.cleanupCgroups(); err != nil {
+		return err
 	}
 
 	// Stop the container's network namespace (if it has one)

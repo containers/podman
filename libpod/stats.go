@@ -43,9 +43,14 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		return stats, nil
 	}
 
-	cgroup, err := cgroups.Load(cgroups.V1, c.CGroupPath())
+	cgroupPath, err := c.CGroupPath()
 	if err != nil {
-		return stats, errors.Wrapf(err, "unable to load cgroup at %+v", c.CGroupPath())
+		return nil, err
+	}
+
+	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
+	if err != nil {
+		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
 	cgroupStats, err := cgroup.Stat()

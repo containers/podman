@@ -42,7 +42,10 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 		options = append(options, libpod.WithConmonPath(c.GlobalString("conmon")))
 	}
 
-	// TODO flag to set CGroup manager?
+	if c.GlobalIsSet("cgroup-manager") {
+		options = append(options, libpod.WithCgroupManager(c.GlobalString("cgroup-manager")))
+	}
+
 	// TODO flag to set libpod static dir?
 	// TODO flag to set libpod tmp dir?
 
