@@ -80,6 +80,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 [func UpdateContainer() NotImplemented](#UpdateContainer)
 
 [func WaitContainer(name: string) int](#WaitContainer)
+
 [type ContainerChanges](#ContainerChanges)
 
 [type ContainerMount](#ContainerMount)
