@@ -6,30 +6,31 @@
 ## What is the scope of this project?
 
 libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
-libpod also contains a tool podman, which allows you to manage Pods, Containers, and Container Images.
+libpod also contains a tool called podman for managing Pods, Containers, and Container Images.
 
-At a high level, we expect the scope of libpod/podman to be the following:
+At a high level, the scope of libpod and podman is the following:
 
 * Support multiple image formats including the existing Docker/OCI image formats.
 * Support for multiple means to download images including trust & image verification.
 * Container image management (managing image layers, overlay filesystems, etc).
-* Container and POD process lifecycle management.
-* Resource isolation of containers and PODS.
+* Full management of container lifecycle
+* Support for pods to manage groups of containers together
+* Resource isolation of containers and pods.
 
 ## What is not in scope for this project?
 
-* Building container images. See [Buildah](https://github.com/projectatomic/buildah).
 * Signing and pushing images to various image storages. See [Skopeo](https://github.com/projectatomic/skopeo/).
-* Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-incubator/cri-o).
+* Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-incubator/cri-o). We are working to integrate libpod into CRI-O to share containers and backend code with Podman.
 
 ## OCI Projects Plans
 
 The plan is to use OCI projects and best of breed libraries for different aspects:
-- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI runtime-spec implementation) and [oci runtime tools](https://github.com/opencontainers/runtime-tools)
+- Runtime: [runc](https://github.com/opencontainers/runc) (or any OCI compliant runtime) and [oci runtime tools](https://github.com/opencontainers/runtime-tools) to generate the spec
 - Images: Image management using [containers/image](https://github.com/containers/image)
-- Storage: Storage and management of image layers using [containers/storage](https://github.com/containers/storage)
+- Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
-- Conmon: [conmon](https://github.com/kubernetes-incubator/cri-o) Conmon is a tool for monitoring OCI runtimes.  Part of the CRI-O package
+- Builds: Builds are supported via [Buildah](https://github.com/projectatomic/buildah).
+- Conmon: [Conmon](https://github.com/kubernetes-incubator/cri-o) is a tool for monitoring OCI runtimes. It is part of the CRI-O package
 
 ## Podman Information for Developers
 
@@ -48,18 +49,18 @@ Useful information for ops and dev transfer as it relates to infrastructure that
 includes tables showing Docker commands and their Podman equivalent commands.
 
 **[Podman API](/API.md)**
-Documentation on the Podman API using varlink.
+Documentation on the Podman API using [Varlink](https://www.varlink.org/).
 
 **[Tutorials](docs/tutorials)**
-Tutorials on the Podman utility.
+Tutorials on using Podman.
 
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
 
 ### Current Roadmap
 
-1. Basic pod/container lifecycle, basic image pull (done)
-1. Support for tty handling and state management (done)
-1. Basic integration with kubelet once client side changes are ready (done)
-1. Support for log management, networking integration using CNI, pluggable image/storage management (done)
-1. Support for exec/attach (done)
+1. Varlink API for Podman
+1. Integrate libpod into CRI-O to replace its existing container management backend
+1. Pod commands for Podman
+1. Rootless containers
+1. Support for cleaning up containers via post-run hooks
