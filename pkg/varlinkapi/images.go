@@ -6,8 +6,10 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/projectatomic/libpod/pkg/util"
@@ -232,10 +234,36 @@ func (i *LibpodAPI) DeleteUnusedImages(call ioprojectatomicpodman.VarlinkCall) e
 	return call.ReplyDeleteUnusedImages(deletedImages)
 }
 
-// CreateFromContainer ...
-// TODO This must wait until buildah is properly vendored into libpod
-func (i *LibpodAPI) CreateFromContainer(call ioprojectatomicpodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("CreateFromContainer")
+// Commit ...
+func (i *LibpodAPI) Commit(call ioprojectatomicpodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool) error {
+	runtime, err := libpodruntime.GetRuntime(i.Cli)
+	if err != nil {
+		return call.ReplyRuntimeError(err.Error())
+	}
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name)
+	}
+	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
+	coptions := buildah.CommitOptions{
+		SignaturePolicyPath:   runtime.GetConfig().SignaturePolicyPath,
+		ReportWriter:          nil,
+		SystemContext:         sc,
+		PreferredManifestType: buildah.OCIv1ImageManifest,
+	}
+	options := libpod.ContainerCommitOptions{
+		CommitOptions: coptions,
+		Pause:         pause,
+		Message:       message,
+		Changes:       changes,
+		Author:        author,
+	}
+
+	newImage, err := ctr.Commit(getContext(), imageName, options)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyCommit(newImage.ID())
 }
 
 // ImportImage imports an image from a tarball to the image store
