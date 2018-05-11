@@ -7,9 +7,9 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func BuildImage() NotImplemented](#BuildImage)
 
-[func CreateContainer() NotImplemented](#CreateContainer)
+[func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) string](#Commit)
 
-[func CreateFromContainer() NotImplemented](#CreateFromContainer)
+[func CreateContainer() NotImplemented](#CreateContainer)
 
 [func CreateImage() NotImplemented](#CreateImage)
 
@@ -27,13 +27,13 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
 
+[func GetInfo() PodmanInfo](#GetInfo)
+
 [func GetVersion() Version](#GetVersion)
 
 [func HistoryImage(name: string) ImageHistory](#HistoryImage)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string) string](#ImportImage)
-
-[func Info() PodmanInfo](#Info)
 
 [func InspectContainer(name: string) string](#InspectContainer)
 
@@ -134,16 +134,22 @@ This method has not be implemented yet.
 
 method BuildImage() [NotImplemented](#NotImplemented)</div>
 This function is not implemented yet.
+### <a name="Commit"></a>func Commit
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Commit(name: [string](https://godoc.org/builtin#string), image_name: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string), author: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), pause: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+Commit, creates an image from an existing container. It requires the name or
+ID of the container as well as the resulting image name.  Optionally, you can define an author and message
+to be added to the resulting image.  You can also define changes to the resulting image for the following
+attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
+container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
+be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
+the resulting image's ID will be returned as a string.
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method CreateContainer() [NotImplemented](#NotImplemented)</div>
-This method has not been implemented yet.
-### <a name="CreateFromContainer"></a>func CreateFromContainer
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method CreateFromContainer() [NotImplemented](#NotImplemented)</div>
-This method is not implemented.
+This method is not implemented yet.
 ### <a name="CreateImage"></a>func CreateImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -219,6 +225,12 @@ $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetC
   }
 }
 ~~~
+### <a name="GetInfo"></a>func GetInfo
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetInfo() [PodmanInfo](#PodmanInfo)</div>
+GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
+build information of Podman, and system-wide registries.
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -238,12 +250,6 @@ history is in the form of an array of ImageHistory structures.  If the image can
 method ImportImage(source: [string](https://godoc.org/builtin#string), reference: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
 ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
-### <a name="Info"></a>func Info
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method Info() [PodmanInfo](#PodmanInfo)</div>
-Info returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
-build information of Podman, and system-wide registries.
 ### <a name="InspectContainer"></a>func InspectContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -576,7 +582,7 @@ name [string](https://godoc.org/builtin#string)
 star_count [int](https://godoc.org/builtin#int)
 ### <a name="InfoGraphStatus"></a>type InfoGraphStatus
 
-InfoGraphStatus describes the detailed status of the graphc
+InfoGraphStatus describes the detailed status of the storage driver
 
 backing_filesystem [string](https://godoc.org/builtin#string)
 
