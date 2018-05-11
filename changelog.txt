@@ -1,3 +1,43 @@
+- Changelog for v0.5.2 (2018-05-11):
+  * vendor/golang.org/x/text: Vendor collate and language
+  * hooks: Order injection by collated JSON filename
+  * libpod: Add HooksDirNotExistFatal
+  * hooks/read: Ignore IsNotExist for JSON files in ReadDir
+  * pkg/hooks: Version the hook structure and add 1.0.0 hooks
+  * Fix varlink remove image force
+  * Update Podman-specific readme
+  * Update main README
+  * vendor.conf: Pin containernetworking/plugins to 1fb94a42
+  * Do not error trying to remove cgroups that don't exist
+  * Remove parent cgroup we create with cgroupfs
+  * Place Conmon and Container in separate CGroups
+  * Add --cgroup-manager flag to Podman binary
+  * Major fixes to systemd cgroup handling
+  * Skip systemd-style CGroups test
+  * Alter CGroup path handling for 'podman top'
+  * Add validation for CGroup parents. Pass CGroups path into runc
+  * vendor/github.com/docker/docker/hack: Remove unused directory
+  * varlink info
+  * vendor.conf: Bump containerd/cgroups to 77e62851
+  * vendor.conf: Bump CNI to v0.6.0
+  * Dont eat the pull error message for varlink
+  * podman push should honor registries.conf
+  * alphabetize the varlink methods, types, and errors in the docs
+  * Add missing newline to podman port
+  * Generate varlink API documentation automatically
+  * Allow streaming on some varlink container methods
+  * Remove extra close from attach resize channel
+  * Vendor in latest containers/storage fix for UserNS
+  * container.go: fix lint error
+  * Dockerfile.Fedora: use fedora:28 instead of fedora:27
+  * Fix calculation of RunningFor in ps json output
+  * Should not error out if container no longer exists in oci
+  * Make invalid state nonfatal when cleaning up in run
+  * test/e2e/run_userns_test.go: new file
+  * podman, userNS: configure an intermediate mount namespace
+  * networking, userNS: configure the network namespace after create
+  * Begin wiring in USERNS Support into podman
+
 - Changelog for v0.5.1 (2018-05-04):
   * Fix pulling from secure registry
   * Optionally init() during container restart
