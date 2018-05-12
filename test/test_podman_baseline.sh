@@ -28,7 +28,6 @@ done
 if [ "$installdocker" -eq 1 ]
 then
     echo "Script will install and then deinstall Docker."
-    set -eu
 fi
 
 if [ "$showerror" -eq 1 ]
