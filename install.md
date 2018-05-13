@@ -12,10 +12,9 @@ The latest version of `conmon` is expected to be installed on the system. Conmon
 
 #### Setup CNI networking
 
-A proper description of setting up CNI networking is given in the
-[`contrib/cni` README](contrib/cni/README.md). But the gist is that you need to
-have some basic network configurations enabled and CNI plugins installed on
-your system.
+A proper description of setting up CNI networking is given in the [`cni` README](cni/README.md).
+But the gist is that you need to have some basic network configurations enabled and
+CNI plugins installed on your system.
 
 ### Build and Run Dependencies
 
