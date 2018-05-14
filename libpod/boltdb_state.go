@@ -623,6 +623,7 @@ func (s *BoltState) Pod(id string) (*Pod, error) {
 
 	pod := new(Pod)
 	pod.config = new(PodConfig)
+	pod.state = new(podState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -657,6 +658,7 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 
 	pod := new(Pod)
 	pod.config = new(PodConfig)
+	pod.state = new(podState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -957,9 +959,14 @@ func (s *BoltState) AddPod(pod *Pod) error {
 	podID := []byte(pod.ID())
 	podName := []byte(pod.Name())
 
-	podJSON, err := json.Marshal(pod.config)
+	podConfigJSON, err := json.Marshal(pod.config)
 	if err != nil {
-		return errors.Wrapf(err, "error marshalling pod %s JSON", pod.ID())
+		return errors.Wrapf(err, "error marshalling pod %s config to JSON", pod.ID())
+	}
+
+	podStateJSON, err := json.Marshal(pod.state)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling pod %s state to JSON", pod.ID())
 	}
 
 	db, err := s.getDBCon()
@@ -1011,8 +1018,12 @@ func (s *BoltState) AddPod(pod *Pod) error {
 			return errors.Wrapf(err, "error creating bucket for pod %s containers", pod.ID())
 		}
 
-		if err := newPod.Put(configKey, podJSON); err != nil {
+		if err := newPod.Put(configKey, podConfigJSON); err != nil {
 			return errors.Wrapf(err, "error storing pod %s configuration in DB", pod.ID())
+		}
+
+		if err := newPod.Put(stateKey, podStateJSON); err != nil {
+			return errors.Wrapf(err, "error storing pod %s state JSON in DB", pod.ID())
 		}
 
 		// Add us to the ID and names buckets
@@ -1296,6 +1307,108 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	return err
 }
 
+// UpdatePod updates a pod's state from the database
+func (s *BoltState) UpdatePod(pod *Pod) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	newState := new(podState)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	podID := []byte(pod.ID())
+
+	err = db.View(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in database", pod.ID())
+		}
+
+		// Get the pod state JSON
+		podStateBytes := podDB.Get(stateKey)
+		if podStateBytes == nil {
+			return errors.Wrapf(ErrInternal, "pod %s is missing state key in DB", pod.ID())
+		}
+
+		if err := json.Unmarshal(podStateBytes, newState); err != nil {
+			return errors.Wrapf(err, "error unmarshalling pod %s state JSON", pod.ID())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	pod.state = newState
+
+	return nil
+}
+
+// SavePod saves a pod's state to the database
+func (s *BoltState) SavePod(pod *Pod) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	stateJSON, err := json.Marshal(pod.state)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling pod %s state to JSON", pod.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	podID := []byte(pod.ID())
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podDB := podBkt.Bucket(podID)
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in database", pod.ID())
+		}
+
+		// Set the pod state JSON
+		if err := podDB.Put(stateKey, stateJSON); err != nil {
+			return errors.Wrapf(err, "error updating pod %s state in database", pod.ID())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // AllPods returns all pods present in the state
 func (s *BoltState) AllPods() ([]*Pod, error) {
 	if !s.valid {
@@ -1331,6 +1444,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 
 			pod := new(Pod)
 			pod.config = new(PodConfig)
+			pod.state = new(podState)
 
 			pods = append(pods, pod)
 

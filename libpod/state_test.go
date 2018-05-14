@@ -915,8 +915,7 @@ func TestGetPodOnePod(t *testing.T) {
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, testPod.config, statePod.config)
-		assert.Equal(t, testPod.valid, statePod.valid)
+		testPodsEqual(t, testPod, statePod)
 	})
 }
 
@@ -937,8 +936,7 @@ func TestGetOnePodFromTwo(t *testing.T) {
 		statePod, err := state.Pod(testPod1.ID())
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, testPod1.config, statePod.config)
-		assert.Equal(t, testPod1.valid, statePod.valid)
+		testPodsEqual(t, testPod1, statePod)
 	})
 }
 
@@ -999,8 +997,7 @@ func TestLookupPodFullID(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.ID())
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, testPod.config, statePod.config)
-		assert.Equal(t, testPod.valid, statePod.valid)
+		testPodsEqual(t, testPod, statePod)
 	})
 }
 
@@ -1015,8 +1012,7 @@ func TestLookupPodUniquePartialID(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.ID()[0:8])
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, testPod.config, statePod.config)
-		assert.Equal(t, testPod.valid, statePod.valid)
+		testPodsEqual(t, testPod, statePod)
 	})
 }
 
@@ -1050,8 +1046,7 @@ func TestLookupPodByName(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.Name())
 		assert.NoError(t, err)
 
-		assert.EqualValues(t, testPod.config, statePod.config)
-		assert.Equal(t, testPod.valid, statePod.valid)
+		testPodsEqual(t, testPod, statePod)
 	})
 }
 
@@ -1157,7 +1152,7 @@ func TestAddPodValidPodSucceeds(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		assert.EqualValues(t, testPod.config, allPods[0].config)
+		testPodsEqual(t, testPod, allPods[0])
 		assert.Equal(t, testPod.valid, allPods[0].valid)
 	})
 }
@@ -1318,8 +1313,7 @@ func TestRemovePodFromPods(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		assert.EqualValues(t, testPod2.config, allPods[0].config)
-		assert.Equal(t, testPod2.valid, allPods[0].valid)
+		testPodsEqual(t, testPod2, allPods[0])
 	})
 }
 
@@ -1394,8 +1388,7 @@ func TestAllPodsFindsPod(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		assert.EqualValues(t, testPod.config, allPods[0].config)
-		assert.Equal(t, testPod.valid, allPods[0].valid)
+		testPodsEqual(t, testPod, allPods[0])
 	})
 }
 
@@ -2401,5 +2394,64 @@ func TestRemoveContainerFromPodWithDependencySucceedsAfterDepRemoved(t *testing.
 		allCtrs, err := state.AllContainers()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(allCtrs))
+	})
+}
+
+func TestUpdatePodInvalidPod(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		err := state.UpdatePod(&Pod{config: &PodConfig{}})
+		assert.Error(t, err)
+	})
+}
+
+func TestUpdatePodPodNotInStateFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		err = state.UpdatePod(testPod)
+		assert.Error(t, err)
+	})
+}
+
+func TestSavePodInvalidPod(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		err := state.SavePod(&Pod{config: &PodConfig{}})
+		assert.Error(t, err)
+	})
+}
+
+func TestSavePodPodNotInStateFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		err = state.SavePod(testPod)
+		assert.Error(t, err)
+	})
+}
+
+func TestSaveAndUpdatePod(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		statePod, err := state.Pod(testPod.ID())
+		assert.NoError(t, err)
+
+		testPodsEqual(t, testPod, statePod)
+
+		testPod.state.CgroupPath = "/new/path/for/test"
+
+		err = state.SavePod(testPod)
+		assert.NoError(t, err)
+
+		err = state.UpdatePod(statePod)
+		assert.NoError(t, err)
+
+		testPodsEqual(t, testPod, statePod)
 	})
 }
