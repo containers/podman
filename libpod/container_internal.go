@@ -277,7 +277,7 @@ func (c *Container) teardownStorage() error {
 		// error - we wanted it gone, it is already gone.
 		// Potentially another tool using containers/storage already
 		// removed it?
-		if err == storage.ErrNotAContainer {
+		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
 			logrus.Warnf("Storage for container %s already removed", c.ID())
 			return nil
 		}
@@ -791,6 +791,15 @@ func (c *Container) cleanupStorage() error {
 
 	// Also unmount storage
 	if err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
+		// If the container has already been removed, warn but don't
+		// error
+		// We still want to be able to kick the container out of the
+		// state
+		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
+			logrus.Errorf("Storage for container %s has been removed", c.ID())
+			return nil
+		}
+
 		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
 	}
 
