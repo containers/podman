@@ -1,6 +1,9 @@
 package libpod
 
 import (
+	"path"
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -44,6 +47,24 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	}
 
 	pod.valid = true
+
+	// Check CGroup parent sanity, and set it if it was not set
+	switch r.config.CgroupManager {
+	case CgroupfsCgroupsManager:
+		if pod.config.CgroupParent == "" {
+			pod.config.CgroupParent = CgroupfsDefaultCgroupParent
+		} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+		}
+	case SystemdCgroupsManager:
+		if pod.config.CgroupParent == "" {
+			pod.config.CgroupParent = SystemdDefaultCgroupParent
+		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+		}
+	default:
+		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+	}
 
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")

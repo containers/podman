@@ -256,13 +256,22 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found", string(id))
 	}
 
-	podBytes := podDB.Get(configKey)
-	if podBytes == nil {
+	podConfigBytes := podDB.Get(configKey)
+	if podConfigBytes == nil {
 		return errors.Wrapf(ErrInternal, "pod %s is missing configuration key in DB", string(id))
 	}
 
-	if err := json.Unmarshal(podBytes, pod.config); err != nil {
-		return errors.Wrapf(err, "error unmarshalling pod %s from DB", string(id))
+	if err := json.Unmarshal(podConfigBytes, pod.config); err != nil {
+		return errors.Wrapf(err, "error unmarshalling pod %s config from DB", string(id))
+	}
+
+	podStateBytes := podDB.Get(stateKey)
+	if podStateBytes == nil {
+		return errors.Wrapf(ErrInternal, "pod %s is missing state key in DB", string(id))
+	}
+
+	if err := json.Unmarshal(podStateBytes, pod.state); err != nil {
+		return errors.Wrapf(err, "error unmarshalling pod %s state from DB", string(id))
 	}
 
 	// Get the lock

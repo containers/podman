@@ -604,6 +604,36 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	return nil
 }
 
+// UpdatePod updates a pod in the state
+// This is a no-op as there is no backing store
+func (s *InMemoryState) UpdatePod(pod *Pod) error {
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	if _, ok := s.pods[pod.ID()]; !ok {
+		pod.valid = false
+		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+	}
+
+	return nil
+}
+
+// SavePod updates a pod in the state
+// This is a no-op at there is no backing store
+func (s *InMemoryState) SavePod(pod *Pod) error {
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	if _, ok := s.pods[pod.ID()]; !ok {
+		pod.valid = false
+		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+	}
+
+	return nil
+}
+
 // AllPods retrieves all pods currently in the state
 func (s *InMemoryState) AllPods() ([]*Pod, error) {
 	pods := make([]*Pod, 0, len(s.pods))

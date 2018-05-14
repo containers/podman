@@ -15,6 +15,7 @@ import (
 // ffjson: skip
 type Pod struct {
 	config *PodConfig
+	state  *podState
 
 	valid   bool
 	runtime *Runtime
@@ -23,9 +24,19 @@ type Pod struct {
 
 // PodConfig represents a pod's static configuration
 type PodConfig struct {
-	ID     string            `json:"id"`
-	Name   string            `json:"name"`
-	Labels map[string]string `json:""`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	// Labels contains labels applied to the pod
+	Labels map[string]string `json:"labels"`
+	// CgroupParent contains the pod's CGroup parent
+	CgroupParent string `json:"cgroupParent"`
+}
+
+// podState represents a pod's state
+type podState struct {
+	// CgroupPath is the path to the pod's CGroup
+	CgroupPath string
 }
 
 // ID retrieves the pod's ID
@@ -48,12 +59,18 @@ func (p *Pod) Labels() map[string]string {
 	return labels
 }
 
+// CgroupParent returns the pod's CGroup parent
+func (p *Pod) CgroupParent() string {
+	return p.config.CgroupParent
+}
+
 // Creates a new, empty pod
 func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
 	pod.config.Labels = make(map[string]string)
+	pod.state = new(podState)
 	pod.runtime = runtime
 
 	// Path our lock file will reside at
