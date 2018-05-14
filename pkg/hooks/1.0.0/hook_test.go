@@ -51,7 +51,7 @@ func TestGoodValidate(t *testing.T) {
 		},
 		Stages: []string{"prestart"},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestGoodValidate(t *testing.T) {
 
 func TestNilValidation(t *testing.T) {
 	var hook *Hook
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -68,7 +68,7 @@ func TestNilValidation(t *testing.T) {
 
 func TestWrongVersion(t *testing.T) {
 	hook := Hook{Version: "0.1.0"}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -80,7 +80,7 @@ func TestNoHookPath(t *testing.T) {
 		Version: "1.0.0",
 		Hook:    rspec.Hook{},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -94,7 +94,7 @@ func TestUnknownHookPath(t *testing.T) {
 			Path: filepath.Join("does", "not", "exist"),
 		},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -111,7 +111,7 @@ func TestNoStages(t *testing.T) {
 			Path: path,
 		},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -126,11 +126,25 @@ func TestInvalidStage(t *testing.T) {
 		},
 		Stages: []string{"does-not-exist"},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
 	assert.Regexp(t, "^unknown stage \"does-not-exist\"$", err.Error())
+}
+
+func TestExtensionStage(t *testing.T) {
+	hook := Hook{
+		Version: "1.0.0",
+		Hook: rspec.Hook{
+			Path: path,
+		},
+		Stages: []string{"prestart", "b"},
+	}
+	err := hook.Validate([]string{"a", "b", "c"})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestInvalidAnnotationKey(t *testing.T) {
@@ -146,7 +160,7 @@ func TestInvalidAnnotationKey(t *testing.T) {
 		},
 		Stages: []string{"prestart"},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -166,7 +180,7 @@ func TestInvalidAnnotationValue(t *testing.T) {
 		},
 		Stages: []string{"prestart"},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -184,7 +198,7 @@ func TestInvalidCommand(t *testing.T) {
 		},
 		Stages: []string{"prestart"},
 	}
-	err := hook.Validate()
+	err := hook.Validate([]string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}

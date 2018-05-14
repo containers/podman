@@ -13,12 +13,12 @@ import (
 )
 
 func TestNoJSONSuffix(t *testing.T) {
-	_, err := Read("abc")
+	_, err := Read("abc", []string{})
 	assert.Equal(t, err, ErrNoJSONSuffix)
 }
 
 func TestUnknownPath(t *testing.T) {
-	_, err := Read(filepath.Join("does", "not", "exist.json"))
+	_, err := Read(filepath.Join("does", "not", "exist.json"), []string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -41,7 +41,7 @@ func TestGoodFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hook, err := Read(jsonPath)
+	hook, err := Read(jsonPath, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestBadFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = Read(path)
+	_, err = Read(path, []string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -139,7 +139,7 @@ func TestGoodDir(t *testing.T) {
 	}
 
 	hooks := map[string]*current.Hook{}
-	err = ReadDir(dir, hooks)
+	err = ReadDir(dir, []string{}, hooks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestGoodDir(t *testing.T) {
 
 func TestUnknownDir(t *testing.T) {
 	hooks := map[string]*current.Hook{}
-	err := ReadDir(filepath.Join("does", "not", "exist"), hooks)
+	err := ReadDir(filepath.Join("does", "not", "exist"), []string{}, hooks)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
@@ -185,7 +185,7 @@ func TestBadDir(t *testing.T) {
 	}
 
 	hooks := map[string]*current.Hook{}
-	err = ReadDir(dir, hooks)
+	err = ReadDir(dir, []string{}, hooks)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}

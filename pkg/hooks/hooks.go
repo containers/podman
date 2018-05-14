@@ -27,10 +27,11 @@ const (
 
 // Manager provides an opaque interface for managing CRI-O hooks.
 type Manager struct {
-	hooks       map[string]*current.Hook
-	language    language.Tag
-	directories []string
-	lock        sync.Mutex
+	hooks           map[string]*current.Hook
+	directories     []string
+	extensionStages []string
+	language        language.Tag
+	lock            sync.Mutex
 }
 
 type namedHook struct {
@@ -44,15 +45,16 @@ type namedHooks []*namedHook
 // increasing preference (hook configurations in later directories
 // override configurations with the same filename from earlier
 // directories).
-func New(ctx context.Context, directories []string, lang language.Tag) (manager *Manager, err error) {
+func New(ctx context.Context, directories []string, extensionStages []string, lang language.Tag) (manager *Manager, err error) {
 	manager = &Manager{
-		hooks:       map[string]*current.Hook{},
-		directories: directories,
-		language:    lang,
+		hooks:           map[string]*current.Hook{},
+		directories:     directories,
+		extensionStages: extensionStages,
+		language:        lang,
 	}
 
 	for _, dir := range directories {
-		err = ReadDir(dir, manager.hooks)
+		err = ReadDir(dir, manager.extensionStages, manager.hooks)
 		if err != nil {
 			return nil, err
 		}
@@ -80,14 +82,18 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 }
 
 // Hooks injects OCI runtime hooks for a given container configuration.
-func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (err error) {
+func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStages map[string][]rspec.Hook, err error) {
 	hooks := m.namedHooks()
 	collator := collate.New(m.language, collate.IgnoreCase, collate.IgnoreWidth)
 	collator.Sort(namedHooks(hooks))
+	validStages := map[string]bool{} // beyond the OCI stages
+	for _, stage := range m.extensionStages {
+		validStages[stage] = true
+	}
 	for _, namedHook := range hooks {
 		match, err := namedHook.hook.When.Match(config, annotations, hasBindMounts)
 		if err != nil {
-			return errors.Wrapf(err, "matching hook %q", namedHook.name)
+			return extensionStages, errors.Wrapf(err, "matching hook %q", namedHook.name)
 		}
 		if match {
 			if config.Hooks == nil {
@@ -102,12 +108,19 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 				case "poststop":
 					config.Hooks.Poststop = append(config.Hooks.Poststop, namedHook.hook.Hook)
 				default:
-					return fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
+					if !validStages[stage] {
+						return extensionStages, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
+					}
+					if extensionStages == nil {
+						extensionStages = map[string][]rspec.Hook{}
+					}
+					extensionStages[stage] = append(extensionStages[stage], namedHook.hook.Hook)
 				}
 			}
 		}
 	}
-	return nil
+
+	return extensionStages, nil
 }
 
 // remove remove a hook by name.
@@ -125,7 +138,7 @@ func (m *Manager) remove(hook string) (ok bool) {
 func (m *Manager) add(path string) (err error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	hook, err := Read(path)
+	hook, err := Read(path, m.extensionStages)
 	if err != nil {
 		return err
 	}

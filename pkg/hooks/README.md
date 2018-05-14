@@ -44,7 +44,7 @@ Each JSON file should contain an object with the following properties:
         Entries MUST be [POSIX extended regular expressions][POSIX-ERE].
     * **`hasBindMounts`** (OPTIONAL, boolean) If `hasBindMounts` is true and the caller requested host-to-container bind mounts (beyond those that CRI-O or libpod use by default), this condition matches.
 * **`stages`** (REQUIRED, array of strings) Stages when the hook MUST be injected.
-    Entries MUST be chosen from the 1.0.1 OCI Runtime Specification [hook stages][spec-hooks].
+    Entries MUST be chosen from the 1.0.1 OCI Runtime Specification [hook stages][spec-hooks] or from extention stages supported by the package consumer.
 
 If *all* of the conditions set in `when` match, then the `hook` MUST be injected for the stages set in `stages`.
 
@@ -114,10 +114,7 @@ Previous versions of CRI-O and libpod supported the 0.1.0 hook schema:
     The injected hook's [`args`][spec-hooks] is `hook` with `arguments` appended.
 * **`stages`** (REQUIRED, array of strings) Stages when the hook MUST be injected.
     `stage` is an allowed synonym for this property, but you MUST NOT set both `stages` and `stage`.
-    Entries MUST be chosen from:
-    * **`prestart`**, to inject [pre-start][].
-    * **`poststart`**, to inject [post-start][].
-    * **`poststop`**, to inject [post-stop][].
+    Entries MUST be chosen from the 1.0.1 OCI Runtime Specification [hook stages][spec-hooks] or from extention stages supported by the package consumer.
 * **`cmds`** (OPTIONAL, array of strings) The hook MUST be injected if the configured [`process.args[0]`][spec-process] matches an entry.
     `cmd` is an allowed synonym for this property, but you MUST NOT set both `cmds` and `cmd`.
     Entries MUST be [POSIX extended regular expressions][POSIX-ERE].
