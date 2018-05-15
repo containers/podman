@@ -1,4 +1,4 @@
-![PODMAN logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
+![PODMAN logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/podman-logo.png)
 # libpod - library for running OCI-based containers in Pods
 
 ### Status: Active Development
