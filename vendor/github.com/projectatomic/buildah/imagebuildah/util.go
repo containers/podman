@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -34,7 +35,23 @@ func downloadToDirectory(url, dir string) error {
 	if resp.ContentLength == 0 {
 		return errors.Errorf("no contents in %q", url)
 	}
-	return chrootarchive.Untar(resp.Body, dir, nil)
+	if err := chrootarchive.Untar(resp.Body, dir, nil); err != nil {
+		resp1, err := http.Get(url)
+		if err != nil {
+			return errors.Wrapf(err, "error getting %q", url)
+		}
+		defer resp1.Body.Close()
+		body, err := ioutil.ReadAll(resp1.Body)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to read %q", url)
+		}
+		dockerfile := filepath.Join(dir, "Dockerfile")
+		// Assume this is a Dockerfile
+		if err := ioutil.WriteFile(dockerfile, body, 0600); err != nil {
+			return errors.Wrapf(err, "Failed to write %q to %q", url, dockerfile)
+		}
+	}
+	return nil
 }
 
 // TempDirForURL checks if the passed-in string looks like a URL.  If it is,
