@@ -80,7 +80,7 @@ func commitCmd(c *cli.Context) error {
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest
 		if c.IsSet("message") {
-			return errors.Errorf("messages cannot be added to the OCIv1 image format.")
+			return errors.Errorf("messages are only compatible with the docker image format (-f docker)")
 		}
 	case "docker":
 		mimeType = buildah.Dockerv2ImageManifest

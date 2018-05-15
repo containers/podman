@@ -29,12 +29,16 @@ Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 Can be set multiple times
 
+**--format, -f**
+Set the format of the image manifest and metadata.  The currently supported formats are _oci_ and _docker_.  If
+not specifically set, the default format used is _oci_.
+
 **--iidfile** *ImageIDfile*
 
 Write the image ID to the file.
 
 **--message, -m**
-Set commit message for committed image
+Set commit message for committed image.  The message field is not supported in _oci_ format.
 
 **--pause, -p**
 Pause the container when creating an image
