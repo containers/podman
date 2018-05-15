@@ -361,7 +361,6 @@ providing packages with %{import_path} prefix.
 %prep
 %autosetup -Sgit -n podman-%{shortcommit}
 sed -i '/\/bin\/env/d' completions/bash/%{name}
-mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 %build
 mkdir _build
@@ -459,7 +458,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 
 %files
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
@@ -477,14 +476,14 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %dir %{gopath}/src/%{provider}.%{provider_tld}/%{project}
 %endif
 
 %if 0%{?with_unit_test} && 0%{?with_devel}
 %files unit-test-devel -f unit-test-devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %endif
 
 %changelog
