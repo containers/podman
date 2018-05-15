@@ -1,4 +1,4 @@
-![PODMAN logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/crio-logo.svg)
+![PODMAN logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/podman-logo.png)
 
 # Podman Tutorials
 
