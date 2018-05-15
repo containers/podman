@@ -138,7 +138,7 @@ type InfoHost (
     uptime: string
 )
 
-# InfoGraphStatus describes the detailed status of the graph
+# InfoGraphStatus describes the detailed status of the storage driver
 type InfoGraphStatus (
     backing_filesystem: string,
     native_overlay_diff: string,
@@ -202,7 +202,7 @@ method ListContainers() -> (containers: []ListContainerData)
 # See also [ListContainers](ListContainers) and [InspectContainer](InspectContainer).
 method GetContainer(name: string) -> (container: ListContainerData)
 
-# This method has not been implemented yet.
+# This method is not implemented yet.
 method CreateContainer() -> (notimplemented: NotImplemented)
 
 # InspectContainer data takes a name or ID of a container returns the inspection
@@ -391,8 +391,14 @@ method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
 # in a string array.
 method DeleteUnusedImages() -> (images: []string)
 
-# This method is not implemented.
-method CreateFromContainer() -> (notimplemented: NotImplemented)
+# Commit, creates an image from an existing container. It requires the name or
+# ID of the container as well as the resulting image name.  Optionally, you can define an author and message
+# to be added to the resulting image.  You can also define changes to the resulting image for the following
+# attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
+# container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
+# be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
+# the resulting image's ID will be returned as a string.
+method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) -> (image: string)
 
 # ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 # descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
