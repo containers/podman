@@ -90,6 +90,9 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 podman: .gopathok $(shell hack/find-godeps.sh $(GOPKGDIR) cmd/podman $(PROJECT)) varlink_generate varlink_api_generate
 	$(GO) build -i $(LDFLAGS_PODMAN) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
+python-podman:
+	$(MAKE) -C contrib/python python-podman
+
 clean:
 ifneq ($(GOPATH),)
 	rm -f "$(GOPATH)/.gopathok"
@@ -105,6 +108,8 @@ endif
 	rm -f test/copyimg/copyimg
 	rm -f test/checkseccomp/checkseccomp
 	rm -fr build/
+	$(MAKE) -C contrib/python clean
+
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
@@ -136,16 +141,16 @@ localunit: varlink_generate
 ginkgo:
 	ginkgo -v test/e2e/
 
-localintegration: varlink_generate test-binaries
+localintegration: varlink_generate test-binaries clientintegration
 	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
-	# Temporarily disabling these tests due to varlink issues
-	# in our CI environment
-	# bash test/varlink/run_varlink_tests.sh
+
+clientintegration:
+	$(MAKE) -C contrib/python integration
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman
+binaries: varlink_generate podman python-podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -282,4 +287,6 @@ validate: gofmt .gitvalidation
 	shell \
 	changelog \
 	validate \
-	install.libseccomp.sudo
+	install.libseccomp.sudo \
+	python-podman \
+	clientintegration
