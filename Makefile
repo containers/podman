@@ -36,11 +36,17 @@ ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
 unexport GOBIN
 endif
-GOPKGDIR := $(GOPATH)/src/$(PROJECT)
-GOPKGBASEDIR := $(shell dirname "$(GOPKGDIR)")
+FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
+GOPKGDIR := $(FIRST_GOPATH)/src/$(PROJECT)
+GOPKGBASEDIR ?= $(shell dirname "$(GOPKGDIR)")
 
-# Update VPATH so make finds .gopathok
-VPATH := $(VPATH):$(GOPATH)
+GOBIN := $(shell go env GOBIN)
+ifeq ($(GOBIN),)
+GOBIN := $(FIRST_GOPATH)/bin
+endif
+
+GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
+
 BASE_LDFLAGS := -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
 LDFLAGS := -ldflags '${BASE_LDFLAGS}'
 LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS}'
@@ -66,7 +72,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
 	ln -s "$(CURDIR)" "$(GOPKGBASEDIR)"
 endif
-	touch "$(GOPATH)/.gopathok"
+	touch $@
 
 lint: .gopathok varlink_generate
 	@echo "checking lint"
@@ -94,22 +100,19 @@ python-podman:
 	$(MAKE) -C contrib/python python-podman
 
 clean:
-ifneq ($(GOPATH),)
-	rm -f "$(GOPATH)/.gopathok"
-endif
-	rm -rf _output
-	rm -f docs/*.1
-	rm -f docs/*.5
-	rm -fr test/testdata/redis-image
+	rm -rf \
+		.gopathok \
+		_output \
+		bin/podman \
+		build \
+		test/bin2img/bin2img \
+		test/checkseccomp/checkseccomp \
+		test/copyimg/copyimg \
+		test/testdata/redis-image \
+		$(MANPAGES)
+	$(MAKE) -C contrib/python clean
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	rm -f bin/podman
-	rm -f test/bin2img/bin2img
-	rm -f test/copyimg/copyimg
-	rm -f test/checkseccomp/checkseccomp
-	rm -fr build/
-	$(MAKE) -C contrib/python clean
-
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
@@ -154,14 +157,11 @@ binaries: varlink_generate podman python-podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
-MANPAGES_MD := $(wildcard docs/*.md)
-MANPAGES    := $(MANPAGES_MD:%.md=%)
+MANPAGES_MD ?= $(wildcard docs/*.md)
+MANPAGES ?= $(MANPAGES_MD:%.md=%)
 
-docs/%.1: docs/%.1.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
-
-docs/%.5: docs/%.5.md .gopathok
-	(go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || ($(GOPATH)/bin/go-md2man -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
+$(MANPAGES): %: %.md .gopathok
+	$(GOMD2MAN) -in $< -out $@
 
 docs: $(MANPAGES)
 
@@ -222,35 +222,35 @@ uninstall:
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
-	GIT_CHECK_EXCLUDE="./vendor" $(GOPATH)/bin/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gitvalidation: .gopathok
-	if [ ! -x "$(GOPATH)/bin/git-validation" ]; then \
+	if [ ! -x "$(GOBIN)/git-validation" ]; then \
 		go get -u github.com/vbatts/git-validation; \
 	fi
 
 .install.gometalinter: .gopathok
-	if [ ! -x "$(GOPATH)/bin/gometalinter" ]; then \
+	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
 		go get -u github.com/alecthomas/gometalinter; \
-		cd $(GOPATH)/src/github.com/alecthomas/gometalinter; \
+		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
 		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
 		go install github.com/alecthomas/gometalinter; \
-		$(GOPATH)/bin/gometalinter --install; \
+		$(GOBIN)/gometalinter --install; \
 	fi
 
 .install.md2man: .gopathok
-	if [ ! -x "$(GOPATH)/bin/go-md2man" ]; then \
+	if [ ! -x "$(GOBIN)/go-md2man" ]; then \
 		   go get -u github.com/cpuguy83/go-md2man; \
 	fi
 
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(GOPATH)/src/github.com/ostreedev/ostree ; \
+		git clone https://github.com/ostreedev/ostree $(FIRST_GOPATH)/src/github.com/ostreedev/ostree ; \
+		cd $(FIRST_GOPATH)src/github.com/ostreedev/ostree ; \
 		./autogen.sh --prefix=/usr/local; \
 		make all install; \
 	fi
@@ -274,6 +274,7 @@ API.md: cmd/podman/varlink/io.projectatomic.podman.varlink
 validate: gofmt .gitvalidation
 
 .PHONY: \
+	.gopathok \
 	binaries \
 	clean \
 	default \
