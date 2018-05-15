@@ -1,4 +1,4 @@
-![PODMAN logo](https://cdn.rawgit.com/kubernetes-incubator/cri-o/master/logo/podmon-logo.png)
+![PODMAN logo](../../logo/podman-logo-source.svg)
 
 # Basic Setup and Use of Podman
 Podman is a utility provided as part of the libpod library.  It can be used to create and maintain
