@@ -84,10 +84,10 @@ func pushCmd(c *cli.Context) error {
 	)
 
 	args := c.Args()
-	srcName := args[0]
 	if len(args) == 0 || len(args) > 2 {
 		return errors.New("podman push requires at least one image name, and optionally a second to specify a different destination name")
 	}
+	srcName := args[0]
 	switch len(args) {
 	case 1:
 		destName = args[0]
