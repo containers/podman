@@ -154,7 +154,7 @@ binaries: varlink_generate podman python-podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
-MANPAGES_MD ?= $(wildcard docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 
 $(MANPAGES): %: %.md .gopathok
