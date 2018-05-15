@@ -56,7 +56,7 @@ __podman_complete_containers_stopped() {
 }
 
 __podman_complete_containers_unpauseable() {
-	__podman_complete_containers "$@" --filter status=paused
+	__podman_complete_containers "$@" --all --filter status=paused
 }
 
 __podman_complete_container_names() {
@@ -656,7 +656,14 @@ _podman_attach() {
      --no-stdin
      --sig-proxy
      "
-     _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_commit() {
@@ -683,7 +690,7 @@ _podman_commit() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_images
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -746,7 +753,7 @@ _podman_diff() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_images
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -765,7 +772,14 @@ _podman_exec() {
     --tty
     -t
      "
-    _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 
 }
 _podman_export() {
@@ -775,14 +789,12 @@ _podman_export() {
      "
     local boolean_options="
      "
-    _complete_ "$options_with_args" "$boolean_options"
-
     case "$cur" in
         -*)
-            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            COMPREPLY=($(compgen -W "$options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_images
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -803,7 +815,7 @@ _podman_history() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_images
+            __podman_complete_images --id
             ;;
     esac
 }
@@ -879,6 +891,9 @@ _podman_images() {
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
+        *)
+            __podman_complete_images --id
+            ;;
     esac
 }
 
@@ -903,6 +918,22 @@ _podman_inspect() {
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
+        *)
+            case "$type" in
+                '')
+                    COMPREPLY=( $( compgen -W "
+                        $(__podman_complete_container_names)
+                        $(__podman_complete_images)
+                    " -- "$cur" ) )
+                    ;;
+                container)
+                    __podman_complete_container_names
+                    ;;
+                images)
+                    __podman_complete_images
+                    ;;
+            esac
+            ;;
     esac
 }
 _podman_kill() {
@@ -915,7 +946,14 @@ _podman_kill() {
      --latest
      -l
      "
-     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_logs() {
@@ -985,10 +1023,12 @@ _podman_umount() {
  "
 
     local all_options="$options_with_args $boolean_options"
-
     case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -1005,10 +1045,12 @@ _podman_mount() {
  "
 
     local all_options="$options_with_args $boolean_options"
-
     case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -1036,6 +1078,9 @@ _podman_push() {
     case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
             ;;
     esac
 }
@@ -1143,7 +1188,14 @@ _podman_container_run() {
 		__podman_complete_detach-keys && return
 	fi
 
-	local all_options="$options_with_args $boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
+            ;;
+    esac
 
 
 	__podman_complete_log_driver_options && return
@@ -1321,7 +1373,14 @@ _podman_restart() {
      local boolean_options="
      --latest
      -l"
-     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_rm() {
@@ -1344,7 +1403,7 @@ _podman_rm() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_containers
+            __podman_complete_container_names
             ;;
     esac
 }
@@ -1384,7 +1443,7 @@ _podman_stats() {
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
             ;;
         *)
-            __podman_list_containers
+            __podman_complete_containers_running
             ;;
     esac
 }
@@ -1394,7 +1453,14 @@ _podman_tag() {
     "
     local boolean_options="
     "
-    _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images
+            ;;
+    esac
 }
 
 _podman_top() {
@@ -1406,7 +1472,14 @@ _podman_top() {
     --latest
     -l
     "
-    _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_version() {
@@ -1427,16 +1500,15 @@ _podman_save() {
 	 -q
 	 --quiet
      "
-     _complete_ "$options_with_args" "$boolean_options"
-}
 
-_podman_export() {
-     local options_with_args="
-     --output -o
-     "
-     local boolean_options="
-     "
-     _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
+            ;;
+    esac
 }
 
 _podman_pause() {
@@ -1444,7 +1516,14 @@ _podman_pause() {
      --help -h
      "
      local boolean_options=""
-     _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_port() {
@@ -1456,7 +1535,14 @@ _podman_port() {
      -a
      -l
      --latest"
-     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_container_names
+            ;;
+    esac
 }
 
 _podman_ps() {
@@ -1492,7 +1578,14 @@ _podman_start() {
      -l
      --sig-proxy
      "
-     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_container_names
+            ;;
+    esac
 }
 _podman_stop() {
      local options_with_args="
@@ -1503,7 +1596,14 @@ _podman_stop() {
      -a
      --latest
      -l"
-     _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+    esac
 }
 
 _podman_unpause() {
@@ -1511,7 +1611,14 @@ _podman_unpause() {
      --help -h
      "
      local boolean_options=""
-     _complete_ "$options_with_args" "$boolean_options"
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_unpauseable
+            ;;
+    esac
 }
 
 _podman_varlink() {
@@ -1529,7 +1636,14 @@ _podman_wait() {
         -h
         -l
         --latest"
-     _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_container_names
+            ;;
+    esac
 }
 
 _complete_() {
