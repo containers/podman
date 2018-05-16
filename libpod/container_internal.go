@@ -106,14 +106,20 @@ func (c *Container) rwSize() (int64, error) {
 	return c.runtime.store.DiffSize(layer.Parent, layer.ID)
 }
 
-// The path to the container's root filesystem - where the OCI spec will be
+// bundlePath returns the path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
 	return c.config.StaticDir
 }
 
-// Retrieves the path of the container's attach socket
-func (c *Container) attachSocketPath() string {
+// ControlSocketPath returns the path to the containers control socket for things like tty
+// resizing
+func (c *Container) ControlSocketPath() string {
+	return filepath.Join(c.bundlePath(), "ctl")
+}
+
+// AttachSocketPath retrieves the path of the container's attach socket
+func (c *Container) AttachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
 }
 

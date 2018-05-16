@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/docker/pkg/sysinfo"
 	"github.com/pkg/errors"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/sirupsen/logrus"
 )
 
@@ -141,7 +142,7 @@ func validateVolumeOpts(option string) error {
 	return nil
 }
 
-func verifyContainerResources(config *createConfig, update bool) ([]string, error) {
+func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, error) {
 	warnings := []string{}
 	sysInfo := sysinfo.New(true)
 

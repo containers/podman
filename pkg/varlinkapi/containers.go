@@ -67,11 +67,6 @@ func (i *LibpodAPI) GetContainer(call ioprojectatomicpodman.VarlinkCall, name st
 	return call.ReplyGetContainer(makeListContainer(ctr.ID(), batchInfo))
 }
 
-// CreateContainer ...
-func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("CreateContainer")
-}
-
 // InspectContainer ...
 func (i *LibpodAPI) InspectContainer(call ioprojectatomicpodman.VarlinkCall, name string) error {
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
@@ -264,8 +259,26 @@ func (i *LibpodAPI) ResizeContainerTty(call ioprojectatomicpodman.VarlinkCall) e
 }
 
 // StartContainer ...
-func (i *LibpodAPI) StartContainer(call ioprojectatomicpodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("StartContainer")
+func (i *LibpodAPI) StartContainer(call ioprojectatomicpodman.VarlinkCall, name string) error {
+	runtime, err := libpodruntime.GetRuntime(i.Cli)
+	if err != nil {
+		return call.ReplyRuntimeError(err.Error())
+	}
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name)
+	}
+	state, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
+		return call.ReplyErrorOccurred("container is alrady running or paused")
+	}
+	if err := ctr.Start(getContext()); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyStartContainer(ctr.ID())
 }
 
 // StopContainer ...
@@ -428,4 +441,22 @@ func (i *LibpodAPI) DeleteStoppedContainers(call ioprojectatomicpodman.VarlinkCa
 		}
 	}
 	return call.ReplyDeleteStoppedContainers(deletedContainers)
+}
+
+// GetAttachSockets ...
+func (i *LibpodAPI) GetAttachSockets(call ioprojectatomicpodman.VarlinkCall, name string) error {
+	runtime, err := libpodruntime.GetRuntime(i.Cli)
+	if err != nil {
+		return call.ReplyRuntimeError(err.Error())
+	}
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name)
+	}
+	s := ioprojectatomicpodman.Sockets{
+		Container_id:   ctr.ID(),
+		Io_socket:      ctr.AttachSocketPath(),
+		Control_socket: ctr.ControlSocketPath(),
+	}
+	return call.ReplyGetAttachSockets(s)
 }

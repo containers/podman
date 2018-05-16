@@ -1,4 +1,4 @@
-package main
+package createconfig
 
 import (
 	"reflect"
@@ -15,7 +15,7 @@ func TestCreateConfig_GetVolumeMounts(t *testing.T) {
 		Source:      "foobar",
 		Options:     []string{"ro", "rbind", "private"},
 	}
-	config := createConfig{
+	config := CreateConfig{
 		Volumes: []string{"foobar:/foobar:ro"},
 	}
 	specMount, err := config.GetVolumeMounts([]spec.Mount{})
@@ -24,7 +24,7 @@ func TestCreateConfig_GetVolumeMounts(t *testing.T) {
 }
 
 func TestCreateConfig_GetAnnotations(t *testing.T) {
-	config := createConfig{}
+	config := CreateConfig{}
 	annotations := config.GetAnnotations()
 	assert.True(t, reflect.DeepEqual("sandbox", annotations["io.kubernetes.cri-o.ContainerType"]))
 }
@@ -36,7 +36,7 @@ func TestCreateConfig_GetTmpfsMounts(t *testing.T) {
 		Source:      "tmpfs",
 		Options:     []string{"rw", "size=787448k", "mode=1777"},
 	}
-	config := createConfig{
+	config := CreateConfig{
 		Tmpfs: []string{"/homer:rw,size=787448k,mode=1777"},
 	}
 	tmpfsMount := config.GetTmpfsMounts()
