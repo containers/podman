@@ -112,14 +112,14 @@ func saveCmd(c *cli.Context) error {
 	// only one image is supported for now
 	// future pull requests will fix this
 	for _, image := range args {
-		dest := dst
-		// need dest to be in the format transport:path:reference for the following transports
-		if strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive) {
-			dest = dst + ":" + image
-		}
 		newImage, err := runtime.ImageRuntime().NewFromLocal(image)
 		if err != nil {
 			return err
+		}
+		dest := dst
+		// need dest to be in the format transport:path:reference for the following transports
+		if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), image) {
+			dest = dst + ":" + image
 		}
 		if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false); err != nil {
 			if err2 := os.Remove(output); err2 != nil {

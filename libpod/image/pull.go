@@ -123,10 +123,18 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 			return nil, errors.Wrapf(err, "error loading manifest for %q", srcRef)
 		}
 
+		var dest string
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
-			return nil, errors.Errorf("error, archive doesn't have a name annotation. Cannot store image with no name")
+			// If the input image has no image.ref.name, we need to feed it a dest anyways
+			// use the hex of the digest
+			dest, err = getImageDigest(ctx, srcRef, sc)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error getting image digest; image reference not found")
+			}
+		} else {
+			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		pullInfo, err := ir.getPullStruct(srcRef, manifest.Annotations["org.opencontainers.image.ref.name"])
+		pullInfo, err := ir.getPullStruct(srcRef, dest)
 		if err != nil {
 			return nil, err
 		}

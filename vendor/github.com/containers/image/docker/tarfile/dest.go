@@ -23,9 +23,9 @@ import (
 
 // Destination is a partial implementation of types.ImageDestination for writing to an io.Writer.
 type Destination struct {
-	writer    io.Writer
-	tar       *tar.Writer
-	reference reference.NamedTagged
+	writer   io.Writer
+	tar      *tar.Writer
+	repoTags []reference.NamedTagged
 	// Other state.
 	blobs  map[digest.Digest]types.BlobInfo // list of already-sent blobs
 	config []byte
@@ -33,12 +33,21 @@ type Destination struct {
 
 // NewDestination returns a tarfile.Destination for the specified io.Writer.
 func NewDestination(dest io.Writer, ref reference.NamedTagged) *Destination {
-	return &Destination{
-		writer:    dest,
-		tar:       tar.NewWriter(dest),
-		reference: ref,
-		blobs:     make(map[digest.Digest]types.BlobInfo),
+	repoTags := []reference.NamedTagged{}
+	if ref != nil {
+		repoTags = append(repoTags, ref)
 	}
+	return &Destination{
+		writer:   dest,
+		tar:      tar.NewWriter(dest),
+		repoTags: repoTags,
+		blobs:    make(map[digest.Digest]types.BlobInfo),
+	}
+}
+
+// AddRepoTags adds the specified tags to the destination's repoTags.
+func (d *Destination) AddRepoTags(tags []reference.NamedTagged) {
+	d.repoTags = append(d.repoTags, tags...)
 }
 
 // SupportedManifestMIMETypes tells which manifest mime types the destination supports
@@ -161,8 +170,15 @@ func (d *Destination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (typ
 }
 
 func (d *Destination) createRepositoriesFile(rootLayerID string) error {
-	repositories := map[string]map[string]string{
-		d.reference.Name(): {d.reference.Tag(): rootLayerID}}
+	repositories := map[string]map[string]string{}
+	for _, repoTag := range d.repoTags {
+		if val, ok := repositories[repoTag.Name()]; ok {
+			val[repoTag.Tag()] = rootLayerID
+		} else {
+			repositories[repoTag.Name()] = map[string]string{repoTag.Tag(): rootLayerID}
+		}
+	}
+
 	b, err := json.Marshal(repositories)
 	if err != nil {
 		return errors.Wrap(err, "Error marshaling repositories")
@@ -199,26 +215,31 @@ func (d *Destination) PutManifest(ctx context.Context, m []byte) error {
 		}
 	}
 
-	// For github.com/docker/docker consumers, this works just as well as
-	//   refString := ref.String()
-	// because when reading the RepoTags strings, github.com/docker/docker/reference
-	// normalizes both of them to the same value.
-	//
-	// Doing it this way to include the normalized-out `docker.io[/library]` does make
-	// a difference for github.com/projectatomic/docker consumers, with the
-	// “Add --add-registry and --block-registry options to docker daemon” patch.
-	// These consumers treat reference strings which include a hostname and reference
-	// strings without a hostname differently.
-	//
-	// Using the host name here is more explicit about the intent, and it has the same
-	// effect as (docker pull) in projectatomic/docker, which tags the result using
-	// a hostname-qualified reference.
-	// See https://github.com/containers/image/issues/72 for a more detailed
-	// analysis and explanation.
-	refString := fmt.Sprintf("%s:%s", d.reference.Name(), d.reference.Tag())
+	repoTags := []string{}
+	for _, tag := range d.repoTags {
+		// For github.com/docker/docker consumers, this works just as well as
+		//   refString := ref.String()
+		// because when reading the RepoTags strings, github.com/docker/docker/reference
+		// normalizes both of them to the same value.
+		//
+		// Doing it this way to include the normalized-out `docker.io[/library]` does make
+		// a difference for github.com/projectatomic/docker consumers, with the
+		// “Add --add-registry and --block-registry options to docker daemon” patch.
+		// These consumers treat reference strings which include a hostname and reference
+		// strings without a hostname differently.
+		//
+		// Using the host name here is more explicit about the intent, and it has the same
+		// effect as (docker pull) in projectatomic/docker, which tags the result using
+		// a hostname-qualified reference.
+		// See https://github.com/containers/image/issues/72 for a more detailed
+		// analysis and explanation.
+		refString := fmt.Sprintf("%s:%s", tag.Name(), tag.Tag())
+		repoTags = append(repoTags, refString)
+	}
+
 	items := []ManifestItem{{
 		Config:       man.ConfigDescriptor.Digest.Hex() + ".json",
-		RepoTags:     []string{refString},
+		RepoTags:     repoTags,
 		Layers:       layerPaths,
 		Parent:       "",
 		LayerSources: nil,

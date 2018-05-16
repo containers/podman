@@ -41,7 +41,9 @@ func (t archiveTransport) ValidatePolicyConfigurationScope(scope string) error {
 
 // archiveReference is an ImageReference for Docker images.
 type archiveReference struct {
-	destinationRef reference.NamedTagged // only used for destinations
+	// only used for destinations
+	// archiveReference.destinationRef is optional and can be nil for destinations as well.
+	destinationRef reference.NamedTagged
 	path           string
 }
 
@@ -148,7 +150,7 @@ func (ref archiveReference) NewImageSource(ctx context.Context, sys *types.Syste
 // NewImageDestination returns a types.ImageDestination for this reference.
 // The caller must call .Close() on the returned ImageDestination.
 func (ref archiveReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {
-	return newImageDestination(ref)
+	return newImageDestination(sys, ref)
 }
 
 // DeleteImage deletes the named image from the registry, if supported.
