@@ -2,13 +2,15 @@ package daemon
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"fmt"
 
+	"github.com/containers/image/docker/policyconfiguration"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -35,8 +37,15 @@ func (t daemonTransport) ParseReference(reference string) (types.ImageReference,
 // It is acceptable to allow an invalid value which will never be matched, it can "only" cause user confusion.
 // scope passed to this function will not be "", that value is always allowed.
 func (t daemonTransport) ValidatePolicyConfigurationScope(scope string) error {
-	// See the explanation in daemonReference.PolicyConfigurationIdentity.
-	return errors.New(`docker-daemon: does not support any scopes except the default "" one`)
+	// ID values cannot be effectively namespaced, and are clearly invalid host:port values.
+	if _, err := digest.Parse(scope); err == nil {
+		return errors.Errorf(`docker-daemon: can not use algo:digest value %s as a namespace`, scope)
+	}
+
+	// FIXME? We could be verifying the various character set and length restrictions
+	// from docker/distribution/reference.regexp.go, but other than that there
+	// are few semantically invalid strings.
+	return nil
 }
 
 // daemonReference is an ImageReference for images managed by a local Docker daemon
@@ -88,6 +97,8 @@ func NewReference(id digest.Digest, ref reference.Named) (types.ImageReference, 
 		// A github.com/distribution/reference value can have a tag and a digest at the same time!
 		// Most versions of docker/reference do not handle that (ignoring the tag), so reject such input.
 		// This MAY be accepted in the future.
+		// (Even if it were supported, the semantics of policy namespaces are unclear - should we drop
+		// the tag or the digest first?)
 		_, isTagged := ref.(reference.NamedTagged)
 		_, isDigested := ref.(reference.Canonical)
 		if isTagged && isDigested {
@@ -137,9 +148,28 @@ func (ref daemonReference) DockerReference() reference.Named {
 // Returns "" if configuration identities for these references are not supported.
 func (ref daemonReference) PolicyConfigurationIdentity() string {
 	// We must allow referring to images in the daemon by image ID, otherwise untagged images would not be accessible.
-	// But the existence of image IDs means that we can’t truly well namespace the input; the untagged images would have to fall into the default policy,
-	// which can be unexpected.  So, punt.
-	return "" // This still allows using the default "" scope to define a policy for this transport.
+	// But the existence of image IDs means that we can’t truly well namespace the input:
+	// a single image can be namespaced either using the name or the ID depending on how it is named.
+	//
+	// That’s fairly unexpected, but we have to cope somehow.
+	//
+	// So, use the ordinary docker/policyconfiguration namespacing for named images.
+	// image IDs all fall into the root namespace.
+	// Users can set up the root namespace to be either untrusted or rejected,
+	// and to set up specific trust for named namespaces.  This allows verifying image
+	// identity when a name is known, and unnamed images would be untrusted or rejected.
+	switch {
+	case ref.id != "":
+		return "" // This still allows using the default "" scope to define a global policy for ID-identified images.
+	case ref.ref != nil:
+		res, err := policyconfiguration.DockerReferenceIdentity(ref.ref)
+		if res == "" || err != nil { // Coverage: Should never happen, NewReference above should refuse values which could cause a failure.
+			panic(fmt.Sprintf("Internal inconsistency: policyconfiguration.DockerReferenceIdentity returned %#v, %v", res, err))
+		}
+		return res
+	default: // Coverage: Should never happen, NewReference above should refuse such values.
+		panic("Internal inconsistency: daemonReference has empty id and nil ref")
+	}
 }
 
 // PolicyConfigurationNamespaces returns a list of other policy configuration namespaces to search
@@ -149,7 +179,14 @@ func (ref daemonReference) PolicyConfigurationIdentity() string {
 // and each following element to be a prefix of the element preceding it.
 func (ref daemonReference) PolicyConfigurationNamespaces() []string {
 	// See the explanation in daemonReference.PolicyConfigurationIdentity.
-	return []string{}
+	switch {
+	case ref.id != "":
+		return []string{}
+	case ref.ref != nil:
+		return policyconfiguration.DockerReferenceNamespaces(ref.ref)
+	default: // Coverage: Should never happen, NewReference above should refuse such values.
+		panic("Internal inconsistency: daemonReference has empty id and nil ref")
+	}
 }
 
 // NewImage returns a types.ImageCloser for this reference, possibly specialized for this ImageTransport.

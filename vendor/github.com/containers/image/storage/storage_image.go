@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 
 	"github.com/containers/image/image"
+	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -24,8 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-const temporaryDirectoryForBigFiles = "/var/tmp" // Do not use the system default of os.TempDir(), usually /tmp, because with systemd it could be a tmpfs.
 
 var (
 	// ErrBlobDigestMismatch is returned when PutBlob() is given a blob
@@ -240,7 +239,7 @@ func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *
 // newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
 // it's time to Commit() the image
 func newImageDestination(imageRef storageReference) (*storageImageDestination, error) {
-	directory, err := ioutil.TempDir(temporaryDirectoryForBigFiles, "storage")
+	directory, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(), "storage")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating a temporary directory")
 	}
