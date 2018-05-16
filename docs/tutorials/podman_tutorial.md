@@ -6,9 +6,9 @@ containers. The following tutorial will teach you how to set up Podman and perfo
 commands with Podman.
 
 ## Install Podman on Fedora
-Many of the basic components to run Podman are readily available from the Fedora RPM repositories; the only
-exception is Podman itself.  In this section, we will help you install all the runtime and build dependencies
-for Podman until an RPM becomes available.
+```
+$ sudo dnf install -y podman
+```
 
 ### Installing build and runtime dependencies
 ```
