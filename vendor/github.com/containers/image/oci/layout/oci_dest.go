@@ -25,10 +25,6 @@ type ociImageDestination struct {
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
 func newImageDestination(sys *types.SystemContext, ref ociReference) (types.ImageDestination, error) {
-	if ref.image == "" {
-		return nil, errors.Errorf("cannot save image with empty reference name (syntax must be of form <transport>:<path>:<reference>)")
-	}
-
 	var index *imgspecv1.Index
 	if indexExists(ref) {
 		var err error
@@ -217,13 +213,11 @@ func (d *ociImageDestination) PutManifest(ctx context.Context, m []byte) error {
 		return err
 	}
 
-	if d.ref.image == "" {
-		return errors.Errorf("cannot save image with empyt image.ref.name")
+	if d.ref.image != "" {
+		annotations := make(map[string]string)
+		annotations["org.opencontainers.image.ref.name"] = d.ref.image
+		desc.Annotations = annotations
 	}
-
-	annotations := make(map[string]string)
-	annotations["org.opencontainers.image.ref.name"] = d.ref.image
-	desc.Annotations = annotations
 	desc.Platform = &imgspecv1.Platform{
 		Architecture: runtime.GOARCH,
 		OS:           runtime.GOOS,

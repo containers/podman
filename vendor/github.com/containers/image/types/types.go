@@ -347,6 +347,9 @@ type SystemContext struct {
 	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.
 	OSChoice string
 
+	// Additional tags when creating or copying a docker-archive.
+	DockerArchiveAdditionalTags []reference.NamedTagged
+
 	// === OCI.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),
 	// a client certificate (ending with ".cert") and a client ceritificate key

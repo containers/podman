@@ -149,13 +149,15 @@ func getPathToAuth(sys *types.SystemContext) (string, error) {
 
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtimeDir != "" {
+		// This function does not in general need to separately check that the returned path exists; that’s racy, and callers will fail accessing the file anyway.
+		// We are checking for os.IsNotExist here only to give the user better guidance what to do in this special case.
 		_, err := os.Stat(runtimeDir)
 		if os.IsNotExist(err) {
 			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
-			// or made a typo while setting the environment variable
-			// so we log the error and return an empty string as the path
+			// or made a typo while setting the environment variable,
+			// so return an error referring to $XDG_RUNTIME_DIR instead of …/authCfgFileName inside.
 			return "", errors.Wrapf(err, "%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.", runtimeDir)
-		}
+		} // else ignore err and let the caller fail accessing …/authCfgFileName.
 		runtimeDir = filepath.Join(runtimeDir, authCfg)
 	} else {
 		runtimeDir = filepath.Join(defaultPath, authCfg, strconv.Itoa(os.Getuid()))

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
@@ -39,25 +41,67 @@ func (i *Image) SourceRefFullName() string {
 	return i.src.ref.ref.Name()
 }
 
-// GetRepositoryTags list all tags available in the repository. Note that this has no connection with the tag(s) used for this specific image, if any.
+// GetRepositoryTags list all tags available in the repository. The tag
+// provided inside the ImageReference will be ignored. (This is a
+// backward-compatible shim method which calls the module-level
+// GetRepositoryTags)
 func (i *Image) GetRepositoryTags(ctx context.Context) ([]string, error) {
-	path := fmt.Sprintf(tagsPath, reference.Path(i.src.ref.ref))
-	// FIXME: Pass the context.Context
-	res, err := i.src.c.makeRequest(ctx, "GET", path, nil, nil)
+	return GetRepositoryTags(ctx, i.src.c.sys, i.src.ref)
+}
+
+// GetRepositoryTags list all tags available in the repository. The tag
+// provided inside the ImageReference will be ignored.
+func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.ImageReference) ([]string, error) {
+	dr, ok := ref.(dockerReference)
+	if !ok {
+		return nil, errors.Errorf("ref must be a dockerReference")
+	}
+
+	path := fmt.Sprintf(tagsPath, reference.Path(dr.ref))
+	client, err := newDockerClientFromRef(sys, dr, false, "pull")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create client")
 	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		// print url also
-		return nil, errors.Errorf("Invalid status code returned when fetching tags list %d", res.StatusCode)
+
+	tags := make([]string, 0)
+
+	for {
+		res, err := client.makeRequest(ctx, "GET", path, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			// print url also
+			return nil, errors.Errorf("Invalid status code returned when fetching tags list %d", res.StatusCode)
+		}
+
+		var tagsHolder struct {
+			Tags []string
+		}
+		if err = json.NewDecoder(res.Body).Decode(&tagsHolder); err != nil {
+			return nil, err
+		}
+		tags = append(tags, tagsHolder.Tags...)
+
+		link := res.Header.Get("Link")
+		if link == "" {
+			break
+		}
+
+		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
+		linkURL, err := url.Parse(linkURLStr)
+		if err != nil {
+			return tags, err
+		}
+
+		// can be relative or absolute, but we only want the path (and I
+		// guess we're in trouble if it forwards to a new place...)
+		path = linkURL.Path
+		if linkURL.RawQuery != "" {
+			path += "?"
+			path += linkURL.RawQuery
+		}
 	}
-	type tagsRes struct {
-		Tags []string
-	}
-	tags := &tagsRes{}
-	if err := json.NewDecoder(res.Body).Decode(tags); err != nil {
-		return nil, err
-	}
-	return tags.Tags, nil
+	return tags, nil
 }
