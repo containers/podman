@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 : ${PROG:=$(basename ${BASH_SOURCE})}
 
 __podman_previous_extglob_setting=$(shopt -p extglob)
@@ -405,20 +406,20 @@ __podman_complete_capabilities() {
 	" -- "$cur" ) )
 }
 
-__podman_complete_detach-keys() {
+__podman_complete_detach_keys() {
 	case "$prev" in
 		--detach-keys)
 			case "$cur" in
 				*,)
-					COMPREPLY=( $( compgen -W "${cur}ctrl-" -- "$cur" ) )
-					;;
+				    COMPREPLY=( $( compgen -W "${cur}ctrl-" -- "$cur" ) )
+				    ;;
 				*)
-					COMPREPLY=( $( compgen -W "ctrl-" -- "$cur" ) )
-					;;
+				    COMPREPLY=( $( compgen -W "ctrl-" -- "$cur" ) )
+				    ;;
 			esac
 
 			__podman_nospace
-			return
+			return 0
 			;;
 	esac
 	return 1
@@ -912,30 +913,57 @@ _podman_inspect() {
      --size
   "
 
-    local all_options="$options_with_args $boolean_options"
+  local all_options="$options_with_args $boolean_options"
 
-    case "$cur" in
-        -*)
-            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
-            ;;
-        *)
-            case "$type" in
-                '')
-                    COMPREPLY=( $( compgen -W "
-                        $(__podman_complete_container_names)
-                        $(__podman_complete_images)
-                    " -- "$cur" ) )
-                    ;;
-                container)
-                    __podman_complete_container_names
-                    ;;
-                images)
-                    __podman_complete_images
-                    ;;
-            esac
-            ;;
-    esac
+	local preselected_type
+	local type
+
+	if [ "$1" = "--type" ] ; then
+		preselected_type=yes
+		type="$2"
+	else
+		type=$(__podman_value_of_option --type)
+	fi
+
+	case "$prev" in
+		--format|-f)
+			return
+			;;
+		--type)
+			if [ -z "$preselected_type" ] ; then
+				COMPREPLY=( $( compgen -W "container image" -- "$cur" ) )
+				return
+			fi
+			;;
+	esac
+
+	case "$cur" in
+		-*)
+			local options="--format -f --help --size -s"
+			if [ -z "$preselected_type" ] ; then
+				options+=" --type"
+			fi
+			COMPREPLY=( $( compgen -W "$options" -- "$cur" ) )
+			;;
+		*)
+			case "$type" in
+				'')
+					COMPREPLY=( $( compgen -W "
+						$(__podman_containers --all)
+						$(__podman_images --force-tag --id)
+					" -- "$cur" ) )
+					__ltrim_colon_completions "$cur"
+					;;
+				container)
+					__podman_complete_containers_all
+					;;
+				image)
+					__podman_complete_images --force-tag --id
+					;;
+			esac
+	esac
 }
+
 _podman_kill() {
      local options_with_args="
      --signal -s
@@ -1185,7 +1213,7 @@ _podman_container_run() {
 			--rm
 			--sig-proxy=false
 		"
-		__podman_complete_detach-keys && return
+		__podman_complete_detach_keys && return
 	fi
 
     case "$cur" in
