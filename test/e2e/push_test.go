@@ -206,4 +206,22 @@ var _ = Describe("Podman push", func() {
 		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
+	It("podman push to docker-archive no reference", func() {
+		session := podmanTest.Podman([]string{"push", ALPINE, "docker-archive:/tmp/alp"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		clean := podmanTest.SystemExec("rm", []string{"/tmp/alp"})
+		clean.WaitWithDefaultTimeout()
+		Expect(clean.ExitCode()).To(Equal(0))
+	})
+
+	It("podman push to oci-archive no reference", func() {
+		session := podmanTest.Podman([]string{"push", ALPINE, "oci-archive:/tmp/alp-oci"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		clean := podmanTest.SystemExec("rm", []string{"/tmp/alp-oci"})
+		clean.WaitWithDefaultTimeout()
+		Expect(clean.ExitCode()).To(Equal(0))
+	})
+
 })
