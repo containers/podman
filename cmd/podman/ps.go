@@ -16,6 +16,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -401,7 +402,7 @@ func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOpt
 		createdAt := batchInfo.ConConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
 		imageName := batchInfo.ConConfig.RootfsImageName
 
-		var createArtifact createConfig
+		var createArtifact cc.CreateConfig
 		artifact, err := ctr.GetArtifact("create-config")
 		if err == nil {
 			if err := json.Unmarshal(artifact, &createArtifact); err != nil {

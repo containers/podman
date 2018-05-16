@@ -14,6 +14,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -91,7 +92,7 @@ func runCmd(c *cli.Context) error {
 	}
 	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
-	runtimeSpec, err := createConfigToOCISpec(createConfig)
+	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
 		return err
 	}

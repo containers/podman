@@ -173,6 +173,124 @@ type PodmanInfo (
     podman: InfoPodmanBinary
 )
 
+# Sockets describes sockets location for a container
+type Sockets(
+    container_id: string,
+    io_socket: string,
+    control_socket: string
+)
+
+# Create is an input structure for creating containers. It closely resembles the
+# CreateConfig structure in libpod/pkg/spec.
+type Create (
+    args: []string,
+    cap_add: []string,
+    cap_drop: []string,
+    conmon_pidfile: string,
+    cgroup_parent: string,
+    command: []string,
+    detach: bool,
+    devices: []string,
+    dns_opt: []string,
+    dns_search: []string,
+    dns_servers: []string,
+    entrypoint: []string,
+    env:  [string]string,
+    exposed_ports: []string,
+    gidmap: []string,
+    group_add: []string,
+    host_add: []string,
+    hostname: string,
+    image: string,
+    image_id: string,
+    builtin_imgvolumes: []string,
+    id_mappings: IDMappingOptions,
+    image_volume_type: string,
+    interactive: bool,
+    ipc_mode: string,
+    labels: [string]string,
+    log_driver: string,
+    log_driver_opt: []string,
+    name: string,
+    net_mode: string,
+    network: string,
+    pid_mode: string,
+    pod: string,
+    privileged: bool,
+    publish: []string,
+    publish_all: bool,
+    quiet: bool,
+    readonly_rootfs: bool,
+    resources: CreateResourceConfig,
+    rm: bool,
+    shm_dir: string,
+    stop_signal: int,
+    stop_timeout: int,
+    subuidmap: string,
+    subgidmap: string,
+    subuidname: string,
+    subgidname: string,
+    sys_ctl: [string]string,
+    tmpfs: []string,
+    tty: bool,
+    uidmap: []string,
+    userns_mode: string,
+    user: string,
+    uts_mode: string,
+    volumes: []string,
+    work_dir: string,
+    mount_label: string,
+    process_label: string,
+    no_new_privs: bool,
+    apparmor_profile: string,
+    seccomp_profile_path: string,
+    security_opts: []string
+)
+
+# CreateResourceConfig is an input structure used to describe host attributes during
+# container creation.  It is only valid inside a (Create)[#Create] type.
+type CreateResourceConfig (
+    blkio_weight: int,
+    blkio_weight_device: []string,
+    cpu_period: int,
+    cpu_quota: int,
+    cpu_rt_period: int,
+    cpu_rt_runtime: int,
+    cpu_shares: int,
+    cpus: float,
+    cpuset_cpus: string,
+    cpuset_mems: string,
+    device_read_bps: []string,
+    device_read_iops: []string,
+    device_write_bps: []string,
+    device_write_iops: []string,
+    disable_oomkiller: bool,
+    kernel_memory: int,
+    memory: int,
+    memory_reservation: int,
+    memory_swap: int,
+    memory_swappiness: int,
+    oom_score_adj: int,
+    pids_limit: int,
+    shm_size: int,
+    ulimit: []string
+)
+
+# IDMappingOptions is an input structure used to described ids during container creation.
+type IDMappingOptions (
+    host_uid_mapping: bool,
+    host_gid_mapping: bool,
+    uid_map: IDMap,
+    gid_map: IDMap
+)
+
+# IDMap is used to describe user name spaces during container creation
+type IDMap (
+    container_id: int,
+    host_id: int,
+    size: int
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -202,8 +320,8 @@ method ListContainers() -> (containers: []ListContainerData)
 # See also [ListContainers](ListContainers) and [InspectContainer](InspectContainer).
 method GetContainer(name: string) -> (container: ListContainerData)
 
-# This method is not implemented yet.
-method CreateContainer() -> (notimplemented: NotImplemented)
+# CreateContainer creates a new container from an image.  It uses a (Create)[#Create] type for input.
+method CreateContainer(create: Create) -> (container: string)
 
 # InspectContainer data takes a name or ID of a container returns the inspection
 # data in string format.  You can then serialize the string into JSON.  A [ContainerNotFound](#ContainerNotFound)
@@ -274,8 +392,10 @@ method GetContainerStats(name: string) -> (container: ContainerStats)
 # This method has not be implemented yet.
 method ResizeContainerTty() -> (notimplemented: NotImplemented)
 
-# This method has not be implemented yet.
-method StartContainer() -> (notimplemented: NotImplemented)
+# StartContainer starts a created or stopped container. It takes the name or ID of container.  It returns
+# the container ID once started.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.  See also [CreateContainer](#CreateContainer).
+method StartContainer(name: string) -> (container: string)
 
 # StopContainer stops a container given a timeout.  It takes the name or ID of a container as well as a
 # timeout value.  The timeout value the time before a forceable stop to the container is applied.  It
@@ -320,15 +440,32 @@ method UnpauseContainer(name: string) -> (container: string)
 # This method has not be implemented yet.
 method AttachToContainer() -> (notimplemented: NotImplemented)
 
-# WaitContainer takes the name of ID of a container and waits until the container stops.  Upon stopping, the return
+# GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
+# to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
+# second is a "control" socket where things like resizing the TTY events are sent. If the container cannot be
+# found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetAttachSockets '{"name": "b7624e775431219161"}'
+# {
+#   "sockets": {
+#     "container_id": "b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca",
+#     "control_socket": "/var/lib/containers/storage/overlay-containers/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/userdata/ctl",
+#     "io_socket": "/var/run/libpod/socket/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/attach"
+#   }
+# }
+# ~~~
+method GetAttachSockets(name: string) -> (sockets: Sockets)
+
+# WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
 # code of the container is returned. If the container container cannot be found by ID or name,
 # a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string) -> (exitcode: int)
 
 # RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
 # container can be stopped and removed.  Upon sucessful removal of the container, its ID is returned.  If the
-# container cannot be found by name or ID, an [ContainerNotFound](#ContainerNotFound) error will be returned.
-# #### Error
+# container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
 # {

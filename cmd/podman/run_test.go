@@ -7,6 +7,7 @@ import (
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 )
@@ -80,7 +81,7 @@ func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	runtimeSpec, err := createConfigToOCISpec(createConfig)
+	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
 		return nil, err
 	}

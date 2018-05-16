@@ -81,9 +81,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 			logrus.Warnf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
-	logrus.Debug("connecting to socket ", c.attachSocketPath())
+	logrus.Debug("connecting to socket ", c.AttachSocketPath())
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: c.attachSocketPath(), Net: "unixpacket"})
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: c.AttachSocketPath(), Net: "unixpacket"})
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
 	}
