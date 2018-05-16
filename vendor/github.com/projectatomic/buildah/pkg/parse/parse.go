@@ -180,9 +180,9 @@ func validateVolumeOpts(option string) error {
 				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
 			}
 			foundLabelChange++
-		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
+		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
 			if foundRootPropagation > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", option)
+				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", option)
 			}
 			foundRootPropagation++
 		default:

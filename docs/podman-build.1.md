@@ -6,21 +6,18 @@
 podman-build - Build a container image using a Dockerfile.
 
 ## SYNOPSIS
-**podman** **build** [*options* [...]] [**context**]
+**podman** **build** [*options* [...]] **context**
 
 ## DESCRIPTION
-**podman build** Builds an image using instructions from one or more Dockerfiles and a specified
-build context directory.  The build context directory can be specified as the
-**http** or **https** URL of an archive which will be retrieved and extracted
-to a temporary location.  This command passes the parameters entered in by the user to the
-**buildah bud** command https://github.com/projectatomic/buildah/blob/master/docs/buildah-bud.md
-to do the actual building.
+**podman build** Builds an image using instructions from one or more Dockerfiles and a specified build context directory.
 
-**podman [GLOBAL OPTIONS]**
+The build context directory can be specified as the http(s) URL of an archive, git repository or Dockerfile.
 
-**podman build [GLOBAL OPTIONS]**
+When the URL is an archive, the contents of the URL is downloaded to a temporary location and extracted before execution.
 
-**podman build [OPTIONS] NAME[:TAG|@DIGEST]**
+When the URL is an Dockerfile, the Dockerfile is downloaded to a temporary location.
+
+When a Git repository is set as the URL, the repository is cloned locally and then set as the context.
 
 ## OPTIONS
 
@@ -143,7 +140,7 @@ Write the image ID to the file.
 
 **--isolation** [Not Supported]
 
-Buildah is not currently supported on Windows, and does not have a daemon.
+Podman is not currently supported on Windows, and does not have a daemon.
 If you want to override the container isolation you can choose a different
 OCI Runtime, using the --runtime flag.
 
@@ -238,7 +235,7 @@ Ulimit options
    * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
-must be an absolute path as well. podman bind-mounts the `HOST-DIR` to the
+must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
 path you specify. For example, if you supply the `/foo` value, podman creates a bind-mount.
 
 You can specify multiple  **-v** options to mount one or more mounts to a
@@ -294,6 +291,8 @@ mount can be changed directly. For instance if `/` is the source mount for
 
 ## EXAMPLES
 
+### Build an image using local Dockerfiles
+
 podman build .
 
 podman build -f Dockerfile.simple .
@@ -317,6 +316,21 @@ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1
 podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cgroup/parent -t imageName .
 
 podman build --volume /home/test:/myvol:ro,Z -t imageName .
+
+### Building an image using a URL
+
+  This will clone the specified GitHub repository from the URL and use it as context. The Dockerfile at the root of the repository is used as Dockerfile. This only works if the GitHub repository is a dedicated repository.
+
+ `podman build github.com/scollier/purpletest`
+
+  Note: You can set an arbitrary Git repository via the git:// scheme.
+
+### Building an image using a URL to a tarball'ed context
+  Podman will fetch the tarball archive, decompress it and use its contents as the build context.  The Dockerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass an -f PATH/Dockerfile option as well, the system will look for that file inside the contents of the tarball.
+
+ `podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz`
+
+  Note: supported compression formats are `xz`, `bzip2`, `gzip` and `identity` (no compression).
 
 ## SEE ALSO
 podman(1), buildah(1)
