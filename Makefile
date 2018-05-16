@@ -4,9 +4,9 @@ HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
 PROJECT := github.com/projectatomic/libpod
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
-GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
-LIBPOD_IMAGE := libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
+GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
+GIT_BRANCH_CLEAN ?= $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
+LIBPOD_IMAGE ?= libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= ${DESTDIR}/usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -25,10 +25,11 @@ OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/projectatomic/libpod/vendor | grep -v e2e)
 
-COMMIT_NO := $(shell git rev-parse HEAD 2> /dev/null || true)
-GIT_COMMIT := $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
-BUILD_INFO := $(shell date +%s)
-ISODATE := $(shell date --iso-8601)
+COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
+GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
+BUILD_INFO ?= $(shell date +%s)
+LDFLAGS_PODMAN ?= $(LDFLAGS) -X main.gitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO)
+ISODATE ?= $(shell date --iso-8601)
 LIBSECCOMP_COMMIT := release-2.3
 
 # If GOPATH not specified, use one in the local directory
@@ -46,10 +47,6 @@ GOBIN := $(FIRST_GOPATH)/bin
 endif
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
-
-BASE_LDFLAGS := -X main.gitCommit=${GIT_COMMIT} -X main.buildInfo=${BUILD_INFO}
-LDFLAGS := -ldflags '${BASE_LDFLAGS}'
-LDFLAGS_PODMAN := -ldflags '${BASE_LDFLAGS}'
 
 BOX="fedora_atomic"
 
@@ -85,16 +82,16 @@ fix_gofmt:
 	@./hack/verify-gofmt.sh -f
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
+	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
 
 test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
+	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO) build $(LDFLAGS) -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
 podman: .gopathok API.md cmd/podman/varlink/ioprojectatomicpodman.go
-	$(GO) build -i $(LDFLAGS_PODMAN) -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
+	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 python-podman:
 	$(MAKE) -C contrib/python python-podman
