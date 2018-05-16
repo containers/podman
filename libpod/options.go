@@ -944,3 +944,32 @@ func WithPodLabels(labels map[string]string) PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodCgroupParent sets the Cgroup Parent of the pod.
+func WithPodCgroupParent(path string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.CgroupParent = path
+
+		return nil
+	}
+}
+
+// WithPodCgroups tells containers in this pod to use the cgroup created for
+// this pod.
+// This can still be overridden at the container level by explicitly specifying
+// a CGroup parent.
+func WithPodCgroups() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodCgroup = true
+
+		return nil
+	}
+}

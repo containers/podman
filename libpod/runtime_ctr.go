@@ -52,6 +52,15 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
+	var pod *Pod
+	if ctr.config.Pod != "" {
+		// Get the pod from state
+		pod, err = r.state.Pod(ctr.config.Pod)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot add container %s to pod %s", ctr.ID(), ctr.config.Pod)
+		}
+	}
+
 	if ctr.config.Name == "" {
 		name, err := r.generateName()
 		if err != nil {
@@ -65,13 +74,29 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	switch r.config.CgroupManager {
 	case CgroupfsCgroupsManager:
 		if ctr.config.CgroupParent == "" {
-			ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
+			if pod != nil && pod.config.UsePodCgroup {
+				podCgroup, err := pod.CgroupPath()
+				if err != nil {
+					return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
+				}
+				ctr.config.CgroupParent = podCgroup
+			} else {
+				ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
+			}
 		} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
 			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 		}
 	case SystemdCgroupsManager:
 		if ctr.config.CgroupParent == "" {
-			ctr.config.CgroupParent = SystemdDefaultCgroupParent
+			if pod != nil && pod.config.UsePodCgroup {
+				podCgroup, err := pod.CgroupPath()
+				if err != nil {
+					return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
+				}
+				ctr.config.CgroupParent = podCgroup
+			} else {
+				ctr.config.CgroupParent = SystemdDefaultCgroupParent
+			}
 		} else if len(ctr.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
 			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 		}
@@ -110,12 +135,6 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
-		// Get the pod from state
-		pod, err := r.state.Pod(ctr.config.Pod)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot add container %s to pod %s", ctr.ID(), ctr.config.Pod)
-		}
-
 		// Lock the pod to ensure we can't add containers to pods
 		// being removed
 		pod.lock.Lock()
