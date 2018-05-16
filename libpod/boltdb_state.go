@@ -107,6 +107,11 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
+		podsBucket, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Iterate through all IDs. Check if they are containers.
 		// If they are, unmarshal their state, and then clear
 		// PID, mountpoint, and state for all of them
@@ -115,6 +120,38 @@ func (s *BoltState) Refresh() error {
 		err = idBucket.ForEach(func(id, name []byte) error {
 			ctrBkt := ctrsBucket.Bucket(id)
 			if ctrBkt == nil {
+				// It's a pod
+				podBkt := podsBucket.Bucket(id)
+				if podBkt == nil {
+					// This is neither a pod nor a container
+					// Error out on the dangling ID
+					return errors.Wrapf(ErrInternal, "id %s is not a pod or a container", string(id))
+				}
+
+				// Get the state
+				stateBytes := podBkt.Get(stateKey)
+				if stateBytes == nil {
+					return errors.Wrapf(ErrInternal, "pod %s missing state key", string(id))
+				}
+
+				state := new(podState)
+
+				if err := json.Unmarshal(stateBytes, state); err != nil {
+					return errors.Wrapf(err, "error unmarshalling state for pod %s", string(id))
+				}
+
+				// Clear the CGroup path
+				state.CgroupPath = ""
+
+				newStateBytes, err := json.Marshal(state)
+				if err != nil {
+					return errors.Wrapf(err, "error marshalling modified state for pod %s", string(id))
+				}
+
+				if err := podBkt.Put(stateKey, newStateBytes); err != nil {
+					return errors.Wrapf(err, "error updating state for pod %s in DB", string(id))
+				}
+
 				// It's not a container, nothing to do
 				return nil
 			}
