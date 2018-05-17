@@ -12,13 +12,16 @@ it is likely that the `/etc/containers/registries.conf` file is either not insta
 misconfigured.
 
 #### Symptom
-```
-sudo podman build -f Dockerfile
+
+```console
+$ sudo podman build -f Dockerfile
 STEP 1: FROM alpine
 error building: error creating build container: no such image "alpine" in registry: image not known
 ```
+
 or
-```
+
+```console
 $ sudo podman pull fedora
 error pulling image "fedora": unable to pull fedora: error getting default registries to try: Near line 9 (last key parsed ''): Bare keys cannot contain ':'.
 ```
@@ -37,8 +40,9 @@ tls verification is turned on by default.  If authentication is not used with
 those commands, this error can occur.
 
 #### Symptom
-```
-podman push alpine docker://localhost:5000/myalpine:latest
+
+```console
+$ sudo podman push alpine docker://localhost:5000/myalpine:latest
 Getting image source signatures
 Get https://localhost:5000/v2/: http: server gave HTTP response to HTTPS client
 ```
