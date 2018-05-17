@@ -24,6 +24,7 @@
 %global with_unit_test 0
 
 %if 0%{?with_debug}
+%global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
 %else
 %global debug_package   %{nil}
@@ -186,6 +187,20 @@ Provides: bundled(golang(gopkg.in/yaml.v2)) = v2
 libpod provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
+%package -n python3-%{name}
+Version: 0.1.0
+BuildArch: noarch
+BuildRequires: python3-devel
+BuildRequires: python3-setuptools
+BuildRequires: python3-varlink
+Requires: python3-varlink
+Provides: python3-%{name} = %{version}-%{release}
+Summary: Python 3 bindings for %{name}
+
+%description -n python3-%{name}
+This package contains Python 3 bindings for %{name}.
+
+
 %if 0%{?with_devel}
 %package -n libpod-devel
 Summary:       Library for applications looking to use Container Pods
@@ -345,7 +360,7 @@ providing packages with %{import_path} prefix.
 
 %prep
 %autosetup -Sgit -n podman-%{shortcommit}
-sed -i '/\/bin\/bash/d' completions/bash/%{name}
+sed -i '/\/bin\/env/d' completions/bash/%{name}
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 %build
@@ -359,11 +374,21 @@ export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
 export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) containers_image_ostree_stub"
 
 GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
-BUILDTAGS=$BUILDTAGS make docs
+BUILDTAGS=$BUILDTAGS make binaries docs
+
+#untar contents for python-podman
+pushd contrib/python/dist
+tar zxf %{name}*.tar.gz
+popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
 %make_install PREFIX=%{buildroot}%{_prefix} install install.completions
+
+#install python-podman
+pushd contrib/python
+%{__python3} setup.py install --root %{buildroot}
+popd
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -442,6 +467,12 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_unitdir}/io.%{project}.%{name}.service
 %{_unitdir}/io.%{project}.%{name}.socket
+
+%files -n python3-%{name}
+%license LICENSE
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%dir %{python3_sitelib}
+%{python3_sitelib}/*
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
