@@ -34,22 +34,25 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 ## Podman Information for Developers
 
-**[Installation notes](/install.md)**
+**[Installation notes](install.md)**
 Information on how to install Podman in your environment.
 
 **[OCI Hooks Support](pkg/hooks/README.md)**
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
-**[Podman Commands](/commands.md)**
+**[Podman API](API.md)**
+Documentation on the Podman API using [Varlink](https://www.varlink.org/).
+
+**[Podman Commands](commands.md)**
 A list of the Podman commands with links to their man pages and in many cases videos
 showing the commands in use.
 
-**[Podman Usage Transfer](/transfer.md)**
+**[Podman Troubleshooting Guide](troubleshooting.md)**
+A list of common issues and solutions for Podman.
+
+**[Podman Usage Transfer](transfer.md)**
 Useful information for ops and dev transfer as it relates to infrastructure that utilizes Podman.  This page
 includes tables showing Docker commands and their Podman equivalent commands.
-
-**[Podman API](/API.md)**
-Documentation on the Podman API using [Varlink](https://www.varlink.org/).
 
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
