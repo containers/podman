@@ -219,13 +219,8 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
-	// Tear down the container's cgroups (if they exist)
-	if err := c.cleanupCgroups(); err != nil {
-		return err
-	}
-
-	// Stop the container's network namespace (if it has one)
-	if err := r.teardownNetNS(c); err != nil {
+	// Clean up network namespace, cgroups, mounts
+	if err := c.cleanup(); err != nil {
 		return err
 	}
 
