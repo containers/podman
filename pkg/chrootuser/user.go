@@ -11,7 +11,7 @@ import (
 // GetUser will return the uid, gid of the user specified in the userspec
 // it will use the /etc/passwd and /etc/group files inside of the rootdir
 // to return this information.
-// userspace format [user | user:group | uid | uid:gid | user:gid | uid:group ]
+// userspec format [user | user:group | uid | uid:gid | user:gid | uid:group ]
 func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 	var gid64 uint64
 	var gerr error = user.UnknownGroupError("error looking up group")
@@ -37,8 +37,8 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 			userspec = name
 		} else {
 			// Leave userspec alone, but swallow the error and just
-			// use GID == UID.
-			gid64 = uid64
+			// use GID 0.
+			gid64 = 0
 			gerr = nil
 		}
 	}
@@ -70,7 +70,7 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 	return 0, 0, err
 }
 
-// GetGroup returns the gid by looking it up in the /etc/passwd file
+// GetGroup returns the gid by looking it up in the /etc/group file
 // groupspec format [ group | gid ]
 func GetGroup(rootdir, groupspec string) (uint32, error) {
 	gid64, gerr := strconv.ParseUint(groupspec, 10, 32)
@@ -87,5 +87,9 @@ func GetGroup(rootdir, groupspec string) (uint32, error) {
 
 // GetAdditionalGroupsForUser returns a list of gids that userid is associated with
 func GetAdditionalGroupsForUser(rootdir string, userid uint64) ([]uint32, error) {
-	return lookupAdditionalGroupsForUIDInContainer(rootdir, userid)
+	gids, err := lookupAdditionalGroupsForUIDInContainer(rootdir, userid)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error looking up supplemental groups for uid %d", userid)
+	}
+	return gids, nil
 }
