@@ -49,11 +49,6 @@ class TestImages(PodmanTestCase):
         with self.assertRaisesNotImplemented():
             self.pclient.images.create()
 
-    @unittest.skip('Code implemented')
-    def test_create_from(self):
-        with self.assertRaisesNotImplemented():
-            self.pclient.images.create_from()
-
     def test_export(self):
         path = os.path.join(self.tmpdir, 'alpine_export.tar')
         target = 'oci-archive:{}:latest'.format(path)
@@ -125,7 +120,7 @@ class TestImages(PodmanTestCase):
         self.assertIn(new_img, actual)
 
         after = self.loadCache()
-        self.assertEqual(len(before), len(after))
+        self.assertGreaterEqual(len(before), len(after))
 
         TestImages.setUpClass()
         self.loadCache()
