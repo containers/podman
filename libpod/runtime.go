@@ -524,13 +524,22 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 
 	// Next refresh the state of all containers to recreate dirs and
-	// namespaces
+	// namespaces, and all the pods to recreate cgroups
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all containers from state")
 	}
+	pods, err := r.state.AllPods()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving all pods from state")
+	}
 	for _, ctr := range ctrs {
 		if err := ctr.refresh(); err != nil {
+			return err
+		}
+	}
+	for _, pod := range pods {
+		if err := pod.refresh(); err != nil {
 			return err
 		}
 	}

@@ -15,6 +15,7 @@ import (
 // ffjson: skip
 type Pod struct {
 	config *PodConfig
+	state  *podState
 
 	valid   bool
 	runtime *Runtime
@@ -23,9 +24,24 @@ type Pod struct {
 
 // PodConfig represents a pod's static configuration
 type PodConfig struct {
-	ID     string            `json:"id"`
-	Name   string            `json:"name"`
-	Labels map[string]string `json:""`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	// Labels contains labels applied to the pod
+	Labels map[string]string `json:"labels"`
+	// CgroupParent contains the pod's CGroup parent
+	CgroupParent string `json:"cgroupParent"`
+	// UsePodCgroup indicates whether the pod will create its own CGroup and
+	// join containers to it.
+	// If true, all containers joined to the pod will use the pod cgroup as
+	// their cgroup parent, and cannot set a different cgroup parent
+	UsePodCgroup bool
+}
+
+// podState represents a pod's state
+type podState struct {
+	// CgroupPath is the path to the pod's CGroup
+	CgroupPath string
 }
 
 // ID retrieves the pod's ID
@@ -48,12 +64,35 @@ func (p *Pod) Labels() map[string]string {
 	return labels
 }
 
+// CgroupParent returns the pod's CGroup parent
+func (p *Pod) CgroupParent() string {
+	return p.config.CgroupParent
+}
+
+// UsePodCgroup returns whether containers in the pod will default to this pod's
+// cgroup instead of the default libpod parent
+func (p *Pod) UsePodCgroup() bool {
+	return p.config.UsePodCgroup
+}
+
+// CgroupPath returns the path to the pod's CGroup
+func (p *Pod) CgroupPath() (string, error) {
+	p.lock.Lock()
+	p.lock.Unlock()
+	if err := p.updatePod(); err != nil {
+		return "", err
+	}
+
+	return p.state.CgroupPath, nil
+}
+
 // Creates a new, empty pod
 func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
 	pod.config.Labels = make(map[string]string)
+	pod.state = new(podState)
 	pod.runtime = runtime
 
 	// Path our lock file will reside at
@@ -66,6 +105,52 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod.lock = lock
 
 	return pod, nil
+}
+
+// Update pod state from database
+func (p *Pod) updatePod() error {
+	if err := p.runtime.state.UpdatePod(p); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Save pod state to database
+func (p *Pod) save() error {
+	if err := p.runtime.state.SavePod(p); err != nil {
+		return errors.Wrapf(err, "error saving pod %s state")
+	}
+
+	return nil
+}
+
+// Refresh a pod's state after restart
+func (p *Pod) refresh() error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return ErrPodRemoved
+	}
+
+	// We need to recreate the pod's cgroup
+	if p.config.UsePodCgroup {
+		switch p.runtime.config.CgroupManager {
+		case SystemdCgroupsManager:
+			// NOOP for now, until proper systemd cgroup management
+			// is implemented
+		case CgroupfsCgroupsManager:
+			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
+
+			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
+		default:
+			return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+		}
+	}
+
+	// Save changes
+	return p.save()
 }
 
 // Start starts all containers within a pod

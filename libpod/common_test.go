@@ -94,9 +94,13 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 func getTestPod(id, name, locksDir string) (*Pod, error) {
 	pod := &Pod{
 		config: &PodConfig{
-			ID:     id,
-			Name:   name,
-			Labels: map[string]string{"a": "b", "c": "d"},
+			ID:           id,
+			Name:         name,
+			Labels:       map[string]string{"a": "b", "c": "d"},
+			CgroupParent: "/hello/world/cgroup/parent",
+		},
+		state: &podState{
+			CgroupPath: "/path/to/cgroups/hello/",
 		},
 		valid: true,
 	}
@@ -179,4 +183,24 @@ func testContainersEqual(t *testing.T, a, b *Container) {
 	assert.NoError(t, err)
 
 	assert.EqualValues(t, aState, bState)
+}
+
+// Test if pods are equal
+func testPodsEqual(t *testing.T, a, b *Pod) {
+	if a == nil && b == nil {
+		return
+	}
+
+	assert.NotNil(t, a)
+	assert.NotNil(t, b)
+
+	assert.NotNil(t, a.config)
+	assert.NotNil(t, b.config)
+	assert.NotNil(t, a.state)
+	assert.NotNil(t, b.state)
+
+	assert.Equal(t, a.valid, b.valid)
+
+	assert.EqualValues(t, a.config, b.config)
+	assert.EqualValues(t, a.state, b.state)
 }

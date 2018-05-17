@@ -66,6 +66,10 @@ type State interface {
 	// RemoveContainerFromPod removes a container from an existing pod
 	// The container will also be removed from the state
 	RemoveContainerFromPod(pod *Pod, ctr *Container) error
+	// UpdatePod updates a pod's state from the database
+	UpdatePod(pod *Pod) error
+	// SavePod saves a pod's state to the database
+	SavePod(pod *Pod) error
 	// Retrieves all pods presently in state
 	AllPods() ([]*Pod, error)
 }
