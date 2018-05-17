@@ -193,7 +193,6 @@ BuildArch: noarch
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-varlink
-Requires: python3-varlink
 Provides: python3-%{name} = %{version}-%{release}
 Summary: Python 3 bindings for %{name}
 
@@ -361,6 +360,7 @@ providing packages with %{import_path} prefix.
 %prep
 %autosetup -Sgit -n podman-%{shortcommit}
 sed -i '/\/bin\/env/d' completions/bash/%{name}
+mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 %build
 mkdir _build
