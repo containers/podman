@@ -54,7 +54,7 @@ List the port mappings for a specific container for port 80 and the tcp protocol
 #
 ```
 ## SEE ALSO
-podman(1), podan-inspect(1)
+podman(1), podman-inspect(1)
 
 ## HISTORY
 January 2018, Originally compiled by Brent Baude <bbaude@redhat.com>
