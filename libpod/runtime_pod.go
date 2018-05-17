@@ -160,8 +160,8 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 	// We can remove containers even if they have dependencies now
 	// As we have guaranteed their dependencies are in the pod
 	for _, ctr := range ctrs {
-		// Stop network NS
-		if err := r.teardownNetNS(ctr); err != nil {
+		// Clean up network namespace, cgroups, mounts
+		if err := ctr.cleanup(); err != nil {
 			return err
 		}
 

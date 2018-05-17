@@ -465,7 +465,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 		}
 		statusCode, err := strconv.Atoi(string(statusCodeStr))
 		if err != nil {
-			return errors.Wrapf(err, "error convertaing exit status code for container %s to int",
+			return errors.Wrapf(err, "error converting exit status code for container %s to int",
 				ctr.ID())
 		}
 		ctr.state.ExitCode = int32(statusCode)

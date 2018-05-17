@@ -765,7 +765,7 @@ func (c *Container) cleanupCgroups() error {
 func (c *Container) cleanupNetwork() error {
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
-		logrus.Errorf("unable cleanup network for container %s: %q", c.ID(), err)
+		logrus.Errorf("unable to cleanup network for container %s: %q", c.ID(), err)
 	}
 
 	c.state.NetNS = nil
