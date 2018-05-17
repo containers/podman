@@ -25,7 +25,12 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 	if haveTerminal && ctr.Spec().Process.Terminal {
 		logrus.Debugf("Handling terminal attach")
 
-		resizeTty(resize)
+		resizeTerminate := make(chan interface{})
+		defer func() {
+			resizeTerminate <- true
+			close(resizeTerminate)
+		}()
+		resizeTty(resize, resizeTerminate)
 
 		oldTermState, err := term.SaveState(os.Stdin.Fd())
 		if err != nil {
@@ -76,7 +81,12 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 	if haveTerminal && ctr.Spec().Process.Terminal {
 		logrus.Debugf("Handling terminal attach")
 
-		resizeTty(resize)
+		resizeTerminate := make(chan interface{})
+		defer func() {
+			resizeTerminate <- true
+			close(resizeTerminate)
+		}()
+		resizeTty(resize, resizeTerminate)
 
 		oldTermState, err := term.SaveState(os.Stdin.Fd())
 		if err != nil {
@@ -131,7 +141,7 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 }
 
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
-func resizeTty(resize chan remotecommand.TerminalSize) {
+func resizeTty(resize chan remotecommand.TerminalSize, resizeTerminate chan interface{}) {
 	sigchan := make(chan os.Signal, 1)
 	gosignal.Notify(sigchan, signal.SIGWINCH)
 	sendUpdate := func() {
@@ -150,8 +160,14 @@ func resizeTty(resize chan remotecommand.TerminalSize) {
 		// Update the terminal size immediately without waiting
 		// for a SIGWINCH to get the correct initial size.
 		sendUpdate()
-		for range sigchan {
-			sendUpdate()
+		for {
+			select {
+			case <-resizeTerminate:
+				return
+
+			case <-sigchan:
+				sendUpdate()
+			}
 		}
 	}()
 }
