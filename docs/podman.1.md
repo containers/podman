@@ -121,12 +121,22 @@ has the capability to debug pods/images created by crio.
 
 	Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
 
+**hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
+
+  Each `*.json` file in `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
+
+  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+  For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+
+  For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+
 **registries.conf** (`/etc/containers/registries.conf`)
 
 	registries.conf is the configuration file which specifies which registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-crio(8), storage.conf(5)
+`oci-hooks(5)`, `storage.conf(5)`, `crio(8)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
