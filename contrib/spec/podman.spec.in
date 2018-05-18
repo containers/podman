@@ -360,7 +360,6 @@ providing packages with %{import_path} prefix.
 %prep
 %autosetup -Sgit -n podman-%{shortcommit}
 sed -i '/\/bin\/env/d' completions/bash/%{name}
-mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 %build
 mkdir _build
@@ -469,7 +468,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 
 %files -n python3-%{name}
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %dir %{python3_sitelib}
 %{python3_sitelib}/*
 
