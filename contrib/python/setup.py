@@ -11,9 +11,10 @@ with open(os.path.join(root, 'README.md')) as me:
 with open(os.path.join(root, 'requirements.txt')) as r:
     requirements = r.read().splitlines()
 
+
 setup(
     name='podman',
-    version='0.1.0',
+    version=os.environ.get('PODMAN_VERSION', '0.0.0'),
     description='A client for communicating with a Podman server',
     long_description=readme,
     author='Jhon Honce',
