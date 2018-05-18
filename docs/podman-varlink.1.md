@@ -31,8 +31,16 @@ More will go here as the docs and api firm up.
     as well.
 -->
 
+## CONFIGURATION
+
+Users of the podman varlink service should enable the  io.projectatomic.podman.socket and io.projectatomic.podman.service.
+
+You can do this via systemctl
+
+systemctl enable --now io.projectatomic.podman.socket
+
 ## SEE ALSO
-podman(1)
+podman(1), systemctl(1)
 
 ## HISTORY
 April 2018, Originally compiled by Brent Baude<bbaude@redhat.com>

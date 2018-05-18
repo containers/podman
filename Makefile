@@ -15,6 +15,7 @@ MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
+TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 PYTHON ?= /usr/bin/python3
@@ -208,6 +209,7 @@ install.docker: docker-docs
 install.systemd:
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
+	install ${SELINUXOPT} -m 644 -D contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
