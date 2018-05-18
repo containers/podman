@@ -1,11 +1,12 @@
 [Unit]
-Description=Pod Manager
+Description=Podman Remote API Service
 Requires=io.projectatomic.podman.socket
 After=io.projectatomic.podman.socket
+Documentation=man:podman-varlink(1)
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/podman varlink unix:/run/io.projectatomic.podman
+ExecStart=/usr/bin/podman varlink unix:/run/podman/io.projectatomic.podman
 
 [Install]
 WantedBy=multi-user.target

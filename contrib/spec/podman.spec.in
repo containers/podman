@@ -442,6 +442,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_unitdir}/io.%{project}.%{name}.service
 %{_unitdir}/io.%{project}.%{name}.socket
+%{_tmpfilesdir}/%{name}.conf
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
