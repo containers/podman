@@ -189,7 +189,6 @@ the Container Pod concept popularized by Kubernetes.
 
 %if 0%{?fedora} >= 28
 %package -n python3-%{name}
-Version: 0.1.0
 BuildArch: noarch
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
@@ -371,6 +370,7 @@ popd
 ln -s vendor src
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
 export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) containers_image_ostree_stub"
+export PODMAN_VERSION=%{version}
 
 GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
 BUILDTAGS=$BUILDTAGS make binaries docs
