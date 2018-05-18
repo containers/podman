@@ -1,3 +1,44 @@
+- Changelog for v0.5.3 (2018-05-18):
+  * remove hooks files reference and no varlink-python on f27 or epel
+  * contrib/spec/podman.spec.in: Drop README-hooks
+  * troubleshooting: Add console syntax highlighting
+  * Fix typo
+  * Refresh pods when refreshing podman state
+  * Add per-pod CGroups
+  * Add pod state
+  * hooks: Fix monitoring of multiple directories
+  * make sure hooks are renamed for copr spec
+  * Use container cleanup() functions when removing
+  * docs/podman.1: Link to hook documentation
+  * hooks/docs: Add oci-hooks.5 and per-package man page building
+  * Add Troubleshooting guide
+  * chrootuser: default to GID 0 when given a numeric --user
+  * Add python3 package to podman
+  * libpod: fix panic when using -t and the process fails to start
+  * Makefile: Use ?= for shell variables (ISODATE, etc.)
+  * Skip tests that are flaking, holding up merge queue
+  * Remove old varlink tests
+  * Allow push/save without image reference
+  * Vendor in latest containers/image
+  * Makefile: Respect GOBIN
+  * Fix podman inspect bash completions
+  * Update Tutorial with Fedora kit location
+  * Makefile: Drop find-godeps.sh for podman target
+  * Support pulling Dockerfile from http
+  * Refactor libpod python varlink bindings
+  * add more bash completions
+  * improve podman commit documentation and error messages
+  * Touch up logo links
+  * implement varlink commit
+  * fix segfault for podman push
+  * Add the Podman Logo
+  * logo: Remove unused directory
+  * hooks: Add package support for extension stages
+  * Gracefully handle containers removed from c/storage
+  * Add packaging for hooks/README.md
+  * Remove stop on error from Docker install switch in baseline tests
+  * docs: fix contrib/cni broken link
+
 - Changelog for v0.5.2 (2018-05-11):
   * vendor/golang.org/x/text: Vendor collate and language
   * hooks: Order injection by collated JSON filename
