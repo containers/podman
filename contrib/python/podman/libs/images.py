@@ -95,13 +95,6 @@ class Images(object):
             results = podman.CreateImage()
         return results['image']
 
-    def create_from(self, *args, **kwargs):
-        """Create image from container."""
-        # TODO: Should this be on container?
-        with self._client() as podman:
-            results = podman.CreateFromContainer()
-        return results['image']
-
     def build(self, *args, **kwargs):
         """Build container from image.
 
@@ -135,3 +128,7 @@ class Images(object):
             results = podman.SearchImage(id)
         for img in results['images']:
             yield img
+
+    def get(self, id):
+        """Get Image from id."""
+        return next((i for i in self.list() if i.id == id), None)

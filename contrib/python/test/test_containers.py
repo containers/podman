@@ -109,13 +109,13 @@ class TestContainers(PodmanTestCase):
         self.alpine_ctnr.refresh()
         self.assertFalse(self.alpine_ctnr.running)
 
-    @unittest.skip('Datetime values from inspect missing offset')
     def test_inspect(self):
         actual = self.alpine_ctnr.inspect()
         self.assertEqual(actual.id, self.alpine_ctnr.id)
-        self.assertEqual(
-            datetime_parse(actual.created),
-            datetime_parse(self.alpine_ctnr.createdat))
+        # TODO: Datetime values from inspect missing offset in CI instance
+        # self.assertEqual(
+        #     datetime_parse(actual.created),
+        #     datetime_parse(self.alpine_ctnr.createdat))
 
     def test_export(self):
         target = os.path.join(self.tmpdir, 'alpine_export_ctnr.tar')
@@ -124,6 +124,44 @@ class TestContainers(PodmanTestCase):
         self.assertEqual(actual, target)
         self.assertTrue(os.path.isfile(target))
         self.assertGreater(os.path.getsize(target), 0)
+
+    def test_commit(self):
+        # TODO: Test for STOPSIGNAL when supported by OCI
+        # TODO: Test for message when supported by OCI
+        # TODO: Test for EXPOSE when issue#795 fixed
+        #       'EXPOSE=8888/tcp, 8888/udp'
+        id = self.alpine_ctnr.commit(
+            'alpine3',
+            author='Bozo the clown',
+            changes=[
+                'CMD=/usr/bin/zsh',
+                'ENTRYPOINT=/bin/sh date',
+                'ENV=TEST=test_containers.TestContainers.test_commit',
+                'LABEL=unittest=test_commit',
+                'USER=bozo:circus',
+                'VOLUME=/data',
+                'WORKDIR=/data/application',
+            ],
+            pause=True)
+        img = self.pclient.images.get(id)
+        self.assertIsNotNone(img)
+
+        details = img.inspect()
+        self.assertEqual(details.author, 'Bozo the clown')
+        self.assertListEqual(['/usr/bin/zsh'], details.containerconfig['cmd'])
+        self.assertListEqual(['/bin/sh date'],
+                             details.containerconfig['entrypoint'])
+        self.assertListEqual(
+            ['TEST=test_containers.TestContainers.test_commit'],
+            details.containerconfig['env'])
+        # self.assertDictEqual({
+        #     '8888/tcp': {}
+        # }, details.containerconfig['exposedports'])
+        self.assertDictEqual({'unittest': 'test_commit'}, details.labels)
+        self.assertEqual('bozo:circus', details.containerconfig['user'])
+        self.assertEqual({'/data': {}}, details.containerconfig['volumes'])
+        self.assertEqual('/data/application',
+                         details.containerconfig['workingdir'])
 
     def test_remove(self):
         before = self.loadCache()

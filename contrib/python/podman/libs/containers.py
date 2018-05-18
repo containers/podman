@@ -1,6 +1,7 @@
 """Models for manipulating containers and storage."""
 import collections
 import functools
+import getpass
 import json
 import signal
 
@@ -92,6 +93,45 @@ class Container(collections.UserDict):
         with self._client() as podman:
             results = podman.ExportContainer(self.id, target)
         return results['tarfile']
+
+    def commit(self,
+               image_name,
+               *args,
+               changes=[],
+               message='',
+               pause=True,
+               **kwargs):
+        """Create image from container.
+
+        All changes overwrite existing values.
+          See inspect() to obtain current settings.
+
+        Changes:
+            CMD=/usr/bin/zsh
+            ENTRYPOINT=/bin/sh date
+            ENV=TEST=test_containers.TestContainers.test_commit
+            EXPOSE=8888/tcp
+            LABEL=unittest=test_commit
+            USER=bozo:circus
+            VOLUME=/data
+            WORKDIR=/data/application
+        """
+        # TODO: Clean up *args, **kwargs after Commit() is complete
+        try:
+            author = kwargs.get('author', getpass.getuser())
+        except Exception:
+            author = ''
+
+        for c in changes:
+            if c.startswith('LABEL=') and c.count('=') < 2:
+                raise ValueError(
+                    'LABEL should have the format: LABEL=label=value, not {}'.
+                    format(c))
+
+        with self._client() as podman:
+            results = podman.Commit(self.id, image_name, changes, author,
+                                    message, pause)
+        return results['image']
 
     def start(self):
         """Start container, return id on success."""
