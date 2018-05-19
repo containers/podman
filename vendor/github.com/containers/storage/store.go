@@ -2595,6 +2595,65 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 
 const configFile = "/etc/containers/storage.conf"
 
+// ThinpoolOptionsConfig represents the "storage.options.thinpool"
+// TOML config table.
+type ThinpoolOptionsConfig struct {
+	// AutoExtendPercent determines the amount by which pool needs to be
+	// grown. This is specified in terms of % of pool size. So a value of
+	// 20 means that when threshold is hit, pool will be grown by 20% of
+	// existing pool size.
+	AutoExtendPercent string `toml:"autoextend_percent"`
+
+	// AutoExtendThreshold determines the pool extension threshold in terms
+	// of percentage of pool size. For example, if threshold is 60, that
+	// means when pool is 60% full, threshold has been hit.
+	AutoExtendThreshold string `toml:"autoextend_threshold"`
+
+	// BaseSize specifies the size to use when creating the base device,
+	// which limits the size of images and containers.
+	BaseSize string `toml:"basesize"`
+
+	// BlockSize specifies a custom blocksize to use for the thin pool.
+	BlockSize string `toml:"blocksize"`
+
+	// DirectLvmDevice specifies a custom block storage device to use for
+	// the thin pool.
+	DirectLvmDevice string `toml:"directlvm_device"`
+
+	// DirectLvmDeviceForcewipes device even if device already has a
+	// filesystem
+	DirectLvmDeviceForce string `toml:"directlvm_device_force"`
+
+	// Fs specifies the filesystem type to use for the base device.
+	Fs string `toml:"fs"`
+
+	// log_level sets the log level of devicemapper.
+	LogLevel string `toml:"log_level"`
+
+	// MinFreeSpace specifies the min free space percent in a thin pool
+	// require for new device creation to
+	MinFreeSpace string `toml:"min_free_space"`
+
+	// MkfsArg specifies extra mkfs arguments to be used when creating the
+	// basedevice.
+	MkfsArg string `toml:"mkfsarg"`
+
+	// MountOpt specifies extra mount options used when mounting the thin
+	// devices.
+	MountOpt string `toml:"mountopt"`
+
+	// UseDeferredDeletion marks device for deferred deletion
+	UseDeferredDeletion string `toml:"use_deferred_deletion"`
+
+	// UseDeferredRemoval marks device for deferred removal
+	UseDeferredRemoval string `toml:"use_deferred_removal"`
+
+	// XfsNoSpaceMaxRetriesFreeSpace specifies the maximum number of
+	// retries XFS should attempt to complete IO when ENOSPC (no space)
+	// error is returned by underlying storage device.
+	XfsNoSpaceMaxRetries string `toml:"xfs_nospace_max_retries"`
+}
+
 // OptionsConfig represents the "storage.options" TOML config table.
 type OptionsConfig struct {
 	// AdditionalImagesStores is the location of additional read/only
@@ -2619,6 +2678,8 @@ type OptionsConfig struct {
 	// RemapGroup is the name of one or more entries in /etc/subgid which
 	// should be used to set up default GID mappings.
 	RemapGroup string `toml:"remap-group"`
+	// Thinpool container options to be handed to thinpool drivers
+	Thinpool struct{ ThinpoolOptionsConfig } `toml:"thinpool"`
 }
 
 // TOML-friendly explicit tables used for conversions.
@@ -2658,6 +2719,50 @@ func init() {
 	}
 	if config.Storage.GraphRoot != "" {
 		DefaultStoreOptions.GraphRoot = config.Storage.GraphRoot
+	}
+	if config.Storage.Options.Thinpool.AutoExtendPercent != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_percent=%s", config.Storage.Options.Thinpool.AutoExtendPercent))
+	}
+
+	if config.Storage.Options.Thinpool.AutoExtendThreshold != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_threshold=%s", config.Storage.Options.Thinpool.AutoExtendThreshold))
+	}
+
+	if config.Storage.Options.Thinpool.BaseSize != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.basesize=%s", config.Storage.Options.Thinpool.BaseSize))
+	}
+	if config.Storage.Options.Thinpool.BlockSize != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.blocksize=%s", config.Storage.Options.Thinpool.BlockSize))
+	}
+	if config.Storage.Options.Thinpool.DirectLvmDevice != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device=%s", config.Storage.Options.Thinpool.DirectLvmDevice))
+	}
+	if config.Storage.Options.Thinpool.DirectLvmDeviceForce != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device_force=%s", config.Storage.Options.Thinpool.DirectLvmDeviceForce))
+	}
+	if config.Storage.Options.Thinpool.Fs != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.fs=%s", config.Storage.Options.Thinpool.Fs))
+	}
+	if config.Storage.Options.Thinpool.LogLevel != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.fs=libdm_log_level", config.Storage.Options.Thinpool.LogLevel))
+	}
+	if config.Storage.Options.Thinpool.MinFreeSpace != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.min_free_space=5s", config.Storage.Options.Thinpool.MinFreeSpace))
+	}
+	if config.Storage.Options.Thinpool.MkfsArg != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.mkfsarg=%s", config.Storage.Options.Thinpool.MkfsArg))
+	}
+	if config.Storage.Options.Thinpool.MountOpt != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.mountopt=%s", config.Storage.Options.Thinpool.MountOpt))
+	}
+	if config.Storage.Options.Thinpool.UseDeferredDeletion != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_deletion=%s", config.Storage.Options.Thinpool.UseDeferredDeletion))
+	}
+	if config.Storage.Options.Thinpool.UseDeferredRemoval != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_removal=%s", config.Storage.Options.Thinpool.UseDeferredRemoval))
+	}
+	if config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries != "" {
+		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("dm.xfs_nospace_max_retries=%s", config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries))
 	}
 	for _, s := range config.Storage.Options.AdditionalImageStores {
 		DefaultStoreOptions.GraphDriverOptions = append(DefaultStoreOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
