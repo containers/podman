@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/mount"
-	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
 )
 
@@ -18,10 +18,16 @@ import (
 // Old root is removed after the call to pivot_root so it is no longer available under the new root.
 // This is similar to how libcontainer sets up a container's rootfs
 func chroot(path string) (err error) {
-	// if the engine is running in a user namespace we need to use actual chroot
-	if rsystem.RunningInUserNS() {
+	caps, err := capability.NewPid(0)
+	if err != nil {
+		return err
+	}
+
+	// if the process doesn't have CAP_SYS_ADMIN, but does have CAP_SYS_CHROOT, we need to use the actual chroot
+	if !caps.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN) && caps.Get(capability.EFFECTIVE, capability.CAP_SYS_CHROOT) {
 		return realChroot(path)
 	}
+
 	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
 		return fmt.Errorf("Error creating mount namespace before pivot: %v", err)
 	}

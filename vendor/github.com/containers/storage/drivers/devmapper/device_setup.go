@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -31,9 +30,6 @@ var (
 )
 
 func validateLVMConfig(cfg directLVMConfig) error {
-	if reflect.DeepEqual(cfg, directLVMConfig{}) {
-		return nil
-	}
 	if cfg.Device == "" {
 		return errMissingSetupDevice
 	}
