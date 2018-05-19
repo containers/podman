@@ -25,7 +25,7 @@ More will go here as the docs and api firm up.
 
 ## EXAMPLES
 
-  podman varlink unix:/run/io.projectatomic.podman
+  podman varlink unix:/run/podman/io.projectatomic.podman
 <!--
     TODO: More examples with TCP can be added when that works
     as well.

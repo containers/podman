@@ -206,7 +206,7 @@ contains attributes like memory and cpu usage.  If the container cannot be found
 [ContainerNotFound](#ContainerNotFound)  error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetContainerStats '{"name": "c33e4164f384"}'
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.GetContainerStats '{"name": "c33e4164f384"}'
 {
   "container": {
     "block_input": 0,
@@ -288,7 +288,7 @@ arguements that represent ps options.  If the container cannot be found, a [Cont
 error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
 {
   "container": [
     "  UID   PID  PPID  C STIME TTY          TIME CMD",
@@ -324,7 +324,7 @@ method Ping() [StringResponse](#StringResponse)</div>
 Ping provides a response for developers to ensure their varlink setup is working.
 #### Example
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.Ping
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.Ping
 {
   "ping": {
     "message": "OK"
@@ -339,7 +339,7 @@ PullImage pulls an image from a repository to local storage.  After the pull is 
 is returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
 {
   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 }
@@ -360,7 +360,7 @@ container can be stopped and removed.  Upon sucessful removal of the container, 
 container cannot be found by name or ID, an [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Error
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
 {
   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 }
@@ -374,7 +374,7 @@ should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFo
 ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
 #### Example
 ~~~
-varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
+varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
 {
   "image": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 }
@@ -419,7 +419,7 @@ returns the container ID once stopped. If the container cannot be found, a [Cont
 error will be returned instead. See also [KillContainer](KillContainer).
 #### Error
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
+$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
 {
   "container": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 }
