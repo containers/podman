@@ -357,8 +357,9 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 			r.byname[name] = image
 		}
 		err = r.Save()
+		image = copyImage(image)
 	}
-	return copyImage(image), err
+	return image, err
 }
 
 func (r *imageStore) Metadata(id string) (string, error) {
