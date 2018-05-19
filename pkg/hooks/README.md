@@ -11,11 +11,12 @@ For example the [oci-systemd-hook][] only executes if the command is `init` or `
 This means if we automatically enabled all hooks, every container would have to execute `oci-systemd-hook`, even if they don't run systemd inside of the container.
 Performance would also suffer if we exectuted each hook at each stage ([pre-start][], [post-start][], and [post-stop][]).
 
-The hooks configuration is documented in [`oci-hooks.5`][docs/oci-hooks.5.md].
+The hooks configuration is documented in [`oci-hooks.5`](docs/oci-hooks.5.md).
 
 [oci-systemd-hook]: https://github.com/projectatomic/oci-systemd-hook
 [post-start]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#poststart
 [post-stop]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#poststop
 [pre-start]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#prestart
+[runc]: https://github.com/opencontainers/runc
 [runtime-spec]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/spec.md
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v1.0.1/config.md#posix-platform-hooks
