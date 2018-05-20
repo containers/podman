@@ -19,6 +19,10 @@ Provides a way for users to configure the intended hooks for Open Container Init
 Hooks are configured with JSON files (ending with a `.json` extension) in a series of hook directories.
 The default directory is `/usr/share/containers/oci/hooks.d`, but tools consuming this format may change that default, include additional directories, or provide their callers with ways to adjust the configuration directories.
 
+If multiple directories are configured, a JSON filename in a preferred directory masks entries with the same filename in directories with lower precedence.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then a hook definition in `/etc/containers/oci/hooks.d/01-my-hook.json` will mask any definition in `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
+
+Tools consuming this format may also opt to monitor the hook directries for changes, in which case they will notice additions, changes, and removals to JSON files without needing to be restarted or otherwise signaled.  When the tool monitors multiple hooks directories, the precedence discussed in the previous paragraph still applies.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then writing a new hook definition to `/etc/containers/oci/hooks.d/01-my-hook.json` will mask the hook previously loaded from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.  Subsequent changes to `/usr/share/containers/oci/hooks.d/01-my-hook.json` will have no effect on the consuming tool as long as `/etc/containers/oci/hooks.d/01-my-hook.json` exists.  Removing `/etc/containers/oci/hooks.d/01-my-hook.json` will reload the hook from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
+
 Hooks are injected in the JSON filename case- and width-insensitive collation order.
 Collation order depends on your locale, as set by `LC_ALL`, `LC_COLLATE`, or `LANG` (in order of decreasing precedence).
 For more information, see `locale(7)`.
