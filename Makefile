@@ -19,6 +19,7 @@ TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
 PYTHON ?= /usr/bin/python3
+HAS_PYTHON3 := $(shell command -v python3)
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
@@ -95,7 +96,9 @@ podman: .gopathok API.md cmd/podman/varlink/ioprojectatomicpodman.go
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 python-podman:
+ifdef HAS_PYTHON3
 	$(MAKE) -C contrib/python python-podman
+endif
 
 clean:
 	rm -rf \
@@ -108,7 +111,9 @@ clean:
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
 		$(MANPAGES)
-	$(MAKE) -C contrib/python clean
+ifdef HAS_PYTHON3
+		$(MAKE) -C contrib/python clean
+endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
 
