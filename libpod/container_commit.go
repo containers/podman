@@ -27,6 +27,10 @@ type ContainerCommitOptions struct {
 // Commit commits the changes between a container and its image, creating a new
 // image
 func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
+	var (
+		isEnvCleared, isLabelCleared, isExposeCleared, isVolumeCleared bool
+	)
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -113,20 +117,32 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		case "ENTRYPOINT":
 			importBuilder.SetEntrypoint(splitChange[1:])
 		case "ENV":
-			importBuilder.ClearEnv()
+			if !isEnvCleared { // Multiple values are valid, only clear once.
+				importBuilder.ClearEnv()
+				isEnvCleared = true
+			}
 			importBuilder.SetEnv(splitChange[1], splitChange[2])
 		case "EXPOSE":
-			importBuilder.ClearPorts()
+			if !isExposeCleared { // Multiple values are valid, only clear once
+				importBuilder.ClearPorts()
+				isExposeCleared = true
+			}
 			importBuilder.SetPort(splitChange[1])
 		case "LABEL":
-			importBuilder.ClearLabels()
+			if !isLabelCleared { // multiple values are valid, only clear once
+				importBuilder.ClearLabels()
+				isLabelCleared = true
+			}
 			importBuilder.SetLabel(splitChange[1], splitChange[2])
 		case "STOPSIGNAL":
 			// No Set StopSignal
 		case "USER":
 			importBuilder.SetUser(splitChange[1])
 		case "VOLUME":
-			importBuilder.ClearVolumes()
+			if !isVolumeCleared { // multiple values are valid, only clear once
+				importBuilder.ClearVolumes()
+				isVolumeCleared = true
+			}
 			importBuilder.AddVolume(splitChange[1])
 		case "WORKDIR":
 			importBuilder.SetWorkDir(splitChange[1])
