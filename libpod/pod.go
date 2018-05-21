@@ -136,7 +136,7 @@ func (p *Pod) refresh() error {
 	}
 
 	if p.config.UsePodCgroup {
-		if err :=  p.makePodCgroup(); err != nil {
+		if err := p.makePodCgroup(); err != nil {
 			return err
 		}
 	}
