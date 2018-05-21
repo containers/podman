@@ -138,12 +138,10 @@ clean:
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		$(MANPAGES) ||:
-ifdef HAS_PYTHON3
-		$(MAKE) -C contrib/python/podman clean
-		$(MAKE) -C contrib/python/pypodman clean
-endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
+	$(MAKE) -C contrib/python/podman clean
+	$(MAKE) -C contrib/python/pypodman clean
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
