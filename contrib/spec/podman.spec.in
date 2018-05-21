@@ -23,6 +23,12 @@
 # Generate unit-test rpm
 %global with_unit_test 0
 
+%if 0%{?fedora} >= 28
+%bcond_without varlink
+%else
+%bcond_with varlink
+%endif
+
 %if 0%{?with_debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
@@ -187,7 +193,7 @@ Provides: bundled(golang(gopkg.in/yaml.v2)) = v2
 libpod provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
-%if 0%{?fedora} >= 28
+%if %{with varlink}
 %package -n python3-%{name}
 Version: 0.1.0
 BuildArch: noarch
@@ -199,7 +205,7 @@ Summary: Python 3 bindings for %{name}
 
 %description -n python3-%{name}
 This package contains Python 3 bindings for %{name}.
-%endif
+%endif # varlink
 
 %if 0%{?with_devel}
 %package -n libpod-devel
@@ -374,23 +380,24 @@ export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_ta
 
 GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
 BUILDTAGS=$BUILDTAGS make binaries docs
-%if 0%{?fedora} >= 28
+
+%if %{with varlink}
 #untar contents for python-podman
 pushd contrib/python/dist
 tar zxf %{name}*.tar.gz
 popd
-%endif
+%endif #varlink
 
 %install
 install -dp %{buildroot}%{_unitdir}
 %make_install PREFIX=%{buildroot}%{_prefix} install install.completions
 
-%if 0%{?fedora} >= 28
+%if %{with varlink}
 #install python-podman
 pushd contrib/python
 %{__python3} setup.py install --root %{buildroot}
 popd
-%endif
+%endif #varlink
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -471,13 +478,13 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_unitdir}/io.%{project}.%{name}.socket
 %{_tmpfilesdir}/%{name}.conf
 
-%if 0%{?fedora} >= 28
+%if %{with varlink}
 %files -n python3-%{name}
 %license LICENSE
 %doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %dir %{python3_sitelib}
 %{python3_sitelib}/*
-%endif
+%endif #varlink
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
