@@ -522,7 +522,7 @@ func (c *Container) init(ctx context.Context) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c); err != nil {
 		return err
 	}
 
@@ -738,22 +738,61 @@ func (c *Container) prepare() (err error) {
 		}
 	}
 
+	// Create the container's cgroup, if necessary
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		cgroupPath, err := c.CgroupBasePath()
+		if err != nil {
+			return err
+		}
+
+		systemdController, err := cgroups.NewSystemd("/")
+		if err != nil {
+			return err
+		}
+
+		if err := systemdController.Create(cgroupPath, &spec.LinuxResources{}); err != nil {
+			// This is gross, but systemd doesn't hand back full Go
+			// errors, so it's all we have
+			if strings.Contains(err.Error(), "already exists") {
+				return nil
+			}
+
+			return errors.Wrapf(err, "error creating cgroup for container %s", c.ID())
+		}
+	}
+
 	return nil
 }
 
 // cleanupCgroup cleans up residual CGroups after container execution
 // This is a no-op for the systemd cgroup driver
 func (c *Container) cleanupCgroups() error {
+	cgroupPath, err := c.CgroupBasePath()
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("Removing CGroup %s", cgroupPath)
+
+	// If we are using the systemd cgroup manager, request that systemd stop
+	// the cgroup for us
 	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		systemdController, err := cgroups.NewSystemd("/")
+		if err != nil {
+			return err
+		}
+
+		// This seems to not error if the given cgroup doesn't exist
+		// All the better for us, since we don't really want to error in
+		// that case
+		if err := systemdController.Delete(cgroupPath); err != nil {
+			return errors.Wrapf(err, "error creating cgroup for container %s", c.ID())
+		}
+
 		return nil
 	}
 
-	// Remove the base path of the container's cgroups
-	path := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
-
-	logrus.Debugf("Removing CGroup %s", path)
-
-	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
 	if err != nil {
 		// It's fine for the cgroup to not exist
 		// We want it gone, it's gone
@@ -1061,7 +1100,6 @@ func (c *Container) generateHosts() (string, error) {
 }
 
 // Generate spec for a container
-// Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
@@ -1204,11 +1242,17 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
-		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
+		// Our slice is the cgroup base path
+		basePath, err := c.CgroupBasePath()
+		if err != nil {
+			return nil, err
+		}
+
+		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(basePath), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		g.SetLinuxCgroupsPath(systemdCgroups)
 	} else {
-		cgroupPath, err := c.CGroupPath()
+		cgroupPath, err := c.CgroupPath()
 		if err != nil {
 			return nil, err
 		}

@@ -27,7 +27,7 @@ func (c *Container) GetContainerPids() ([]string, error) {
 // Gets the pids for a container without locking.  should only be called from a func where
 // locking has already been established.
 func (c *Container) getContainerPids() ([]string, error) {
-	cgroupPath, err := c.CGroupPath()
+	cgroupPath, err := c.CgroupPath()
 	if err != nil {
 		return nil, err
 	}

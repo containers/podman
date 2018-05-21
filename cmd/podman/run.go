@@ -127,9 +127,9 @@ func runCmd(c *cli.Context) error {
 	logrus.Debugf("New container created %q", ctr.ID())
 
 	if logrus.GetLevel() == logrus.DebugLevel {
-		cgroupPath, err := ctr.CGroupPath()
+		cgroupPath, err := ctr.CgroupPath()
 		if err == nil {
-			logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), cgroupPath)
+			logrus.Debugf("container %q has CgroupPath %q", ctr.ID(), cgroupPath)
 		}
 	}
 
