@@ -9,7 +9,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) string](#Commit)
 
-[func CreateContainer() NotImplemented](#CreateContainer)
+[func CreateContainer(create: Create) string](#CreateContainer)
 
 [func CreateImage() NotImplemented](#CreateImage)
 
@@ -20,6 +20,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 [func ExportContainer(name: string, path: string) string](#ExportContainer)
 
 [func ExportImage(name: string, destination: string, compress: bool) string](#ExportImage)
+
+[func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
 [func GetContainer(name: string) ListContainerData](#GetContainer)
 
@@ -69,7 +71,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func SearchImage(name: string, limit: int) ImageSearch](#SearchImage)
 
-[func StartContainer() NotImplemented](#StartContainer)
+[func StartContainer(name: string) string](#StartContainer)
 
 [func StopContainer(name: string, timeout: int) string](#StopContainer)
 
@@ -91,6 +93,14 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [type ContainerStats](#ContainerStats)
 
+[type Create](#Create)
+
+[type CreateResourceConfig](#CreateResourceConfig)
+
+[type IDMap](#IDMap)
+
+[type IDMappingOptions](#IDMappingOptions)
+
 [type ImageHistory](#ImageHistory)
 
 [type ImageInList](#ImageInList)
@@ -110,6 +120,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 [type NotImplemented](#NotImplemented)
 
 [type PodmanInfo](#PodmanInfo)
+
+[type Sockets](#Sockets)
 
 [type StringResponse](#StringResponse)
 
@@ -148,8 +160,8 @@ the resulting image's ID will be returned as a string.
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method CreateContainer() [NotImplemented](#NotImplemented)</div>
-This method is not implemented yet.
+method CreateContainer(create: [Create](#Create)) [string](https://godoc.org/builtin#string)</div>
+CreateContainer creates a new container from an image.  It uses a (Create)[#Create] type for input.
 ### <a name="CreateImage"></a>func CreateImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -182,6 +194,25 @@ method ExportImage(name: [string](https://godoc.org/builtin#string), destination
 ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
 a booleon option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
 be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
+### <a name="GetAttachSockets"></a>func GetAttachSockets
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetAttachSockets(name: [string](https://godoc.org/builtin#string)) [Sockets](#Sockets)</div>
+GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
+to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
+second is a "control" socket where things like resizing the TTY events are sent. If the container cannot be
+found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+#### Example
+~~~
+$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetAttachSockets '{"name": "b7624e775431219161"}'
+{
+  "sockets": {
+    "container_id": "b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca",
+    "control_socket": "/var/lib/containers/storage/overlay-containers/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/userdata/ctl",
+    "io_socket": "/var/run/libpod/socket/b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca/attach"
+  }
+}
+~~~
 ### <a name="GetContainer"></a>func GetContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -357,8 +388,8 @@ the image cannot be found in local storage; otherwise the ID of the image will b
 method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
 container can be stopped and removed.  Upon sucessful removal of the container, its ID is returned.  If the
-container cannot be found by name or ID, an [ContainerNotFound](#ContainerNotFound) error will be returned.
-#### Error
+container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+#### Example
 ~~~
 $ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
 {
@@ -407,8 +438,10 @@ ImageSearch structures which contain information about the image as well as its 
 ### <a name="StartContainer"></a>func StartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method StartContainer() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
+method StartContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+StartContainer starts a created or stopped container. It takes the name or ID of container.  It returns
+the container ID once started.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+error will be returned.  See also [CreateContainer](#CreateContainer).
 ### <a name="StopContainer"></a>func StopContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -446,7 +479,7 @@ This method has not be implemented yet.
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method WaitContainer(name: [string](https://godoc.org/builtin#string)) [int](https://godoc.org/builtin#int)</div>
-WaitContainer takes the name of ID of a container and waits until the container stops.  Upon stopping, the return
+WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
 code of the container is returned. If the container container cannot be found by ID or name,
 a [ContainerNotFound](#ContainerNotFound) error is returned.
 ## Types
@@ -529,6 +562,206 @@ block_output [int](https://godoc.org/builtin#int)
 block_input [int](https://godoc.org/builtin#int)
 
 pids [int](https://godoc.org/builtin#int)
+### <a name="Create"></a>type Create
+
+Create is an input structure for creating containers. It closely resembles the
+CreateConfig structure in libpod/pkg/spec.
+
+args [[]string](#[]string)
+
+cap_add [[]string](#[]string)
+
+cap_drop [[]string](#[]string)
+
+conmon_pidfile [string](https://godoc.org/builtin#string)
+
+cgroup_parent [string](https://godoc.org/builtin#string)
+
+command [[]string](#[]string)
+
+detach [bool](https://godoc.org/builtin#bool)
+
+devices [[]string](#[]string)
+
+dns_opt [[]string](#[]string)
+
+dns_search [[]string](#[]string)
+
+dns_servers [[]string](#[]string)
+
+entrypoint [[]string](#[]string)
+
+env [map[string]](#map[string])
+
+exposed_ports [[]string](#[]string)
+
+gidmap [[]string](#[]string)
+
+group_add [[]string](#[]string)
+
+host_add [[]string](#[]string)
+
+hostname [string](https://godoc.org/builtin#string)
+
+image [string](https://godoc.org/builtin#string)
+
+image_id [string](https://godoc.org/builtin#string)
+
+builtin_imgvolumes [[]string](#[]string)
+
+id_mappings [IDMappingOptions](#IDMappingOptions)
+
+image_volume_type [string](https://godoc.org/builtin#string)
+
+interactive [bool](https://godoc.org/builtin#bool)
+
+ipc_mode [string](https://godoc.org/builtin#string)
+
+labels [map[string]](#map[string])
+
+log_driver [string](https://godoc.org/builtin#string)
+
+log_driver_opt [[]string](#[]string)
+
+name [string](https://godoc.org/builtin#string)
+
+net_mode [string](https://godoc.org/builtin#string)
+
+network [string](https://godoc.org/builtin#string)
+
+pid_mode [string](https://godoc.org/builtin#string)
+
+pod [string](https://godoc.org/builtin#string)
+
+privileged [bool](https://godoc.org/builtin#bool)
+
+publish [[]string](#[]string)
+
+publish_all [bool](https://godoc.org/builtin#bool)
+
+quiet [bool](https://godoc.org/builtin#bool)
+
+readonly_rootfs [bool](https://godoc.org/builtin#bool)
+
+resources [CreateResourceConfig](#CreateResourceConfig)
+
+rm [bool](https://godoc.org/builtin#bool)
+
+shm_dir [string](https://godoc.org/builtin#string)
+
+stop_signal [int](https://godoc.org/builtin#int)
+
+stop_timeout [int](https://godoc.org/builtin#int)
+
+subuidmap [string](https://godoc.org/builtin#string)
+
+subgidmap [string](https://godoc.org/builtin#string)
+
+subuidname [string](https://godoc.org/builtin#string)
+
+subgidname [string](https://godoc.org/builtin#string)
+
+sys_ctl [map[string]](#map[string])
+
+tmpfs [[]string](#[]string)
+
+tty [bool](https://godoc.org/builtin#bool)
+
+uidmap [[]string](#[]string)
+
+userns_mode [string](https://godoc.org/builtin#string)
+
+user [string](https://godoc.org/builtin#string)
+
+uts_mode [string](https://godoc.org/builtin#string)
+
+volumes [[]string](#[]string)
+
+work_dir [string](https://godoc.org/builtin#string)
+
+mount_label [string](https://godoc.org/builtin#string)
+
+process_label [string](https://godoc.org/builtin#string)
+
+no_new_privs [bool](https://godoc.org/builtin#bool)
+
+apparmor_profile [string](https://godoc.org/builtin#string)
+
+seccomp_profile_path [string](https://godoc.org/builtin#string)
+
+security_opts [[]string](#[]string)
+### <a name="CreateResourceConfig"></a>type CreateResourceConfig
+
+CreateResourceConfig is an input structure used to describe host attributes during
+container creation.  It is only valid inside a (Create)[#Create] type.
+
+blkio_weight [int](https://godoc.org/builtin#int)
+
+blkio_weight_device [[]string](#[]string)
+
+cpu_period [int](https://godoc.org/builtin#int)
+
+cpu_quota [int](https://godoc.org/builtin#int)
+
+cpu_rt_period [int](https://godoc.org/builtin#int)
+
+cpu_rt_runtime [int](https://godoc.org/builtin#int)
+
+cpu_shares [int](https://godoc.org/builtin#int)
+
+cpus [float](https://golang.org/src/builtin/builtin.go#L58)
+
+cpuset_cpus [string](https://godoc.org/builtin#string)
+
+cpuset_mems [string](https://godoc.org/builtin#string)
+
+device_read_bps [[]string](#[]string)
+
+device_read_iops [[]string](#[]string)
+
+device_write_bps [[]string](#[]string)
+
+device_write_iops [[]string](#[]string)
+
+disable_oomkiller [bool](https://godoc.org/builtin#bool)
+
+kernel_memory [int](https://godoc.org/builtin#int)
+
+memory [int](https://godoc.org/builtin#int)
+
+memory_reservation [int](https://godoc.org/builtin#int)
+
+memory_swap [int](https://godoc.org/builtin#int)
+
+memory_swappiness [int](https://godoc.org/builtin#int)
+
+oom_score_adj [int](https://godoc.org/builtin#int)
+
+pids_limit [int](https://godoc.org/builtin#int)
+
+shm_size [int](https://godoc.org/builtin#int)
+
+ulimit [[]string](#[]string)
+### <a name="IDMap"></a>type IDMap
+
+IDMap is used to describe user name spaces during container creation
+
+container_id [int](https://godoc.org/builtin#int)
+
+host_id [int](https://godoc.org/builtin#int)
+
+size [int](https://godoc.org/builtin#int)
+### <a name="IDMappingOptions"></a>type IDMappingOptions
+
+IDMappingOptions is an input structure used to described ids during container creation.
+
+host_uid_mapping [bool](https://godoc.org/builtin#bool)
+
+host_gid_mapping [bool](https://godoc.org/builtin#bool)
+
+uid_map [IDMap](#IDMap)
+
+gid_map [IDMap](#IDMap)
 ### <a name="ImageHistory"></a>type ImageHistory
 
 ImageHistory describes the returned structure from ImageHistory.
@@ -691,6 +924,15 @@ insecure_registries [[]string](#[]string)
 store [InfoStore](#InfoStore)
 
 podman [InfoPodmanBinary](#InfoPodmanBinary)
+### <a name="Sockets"></a>type Sockets
+
+Sockets describes sockets location for a container
+
+container_id [string](https://godoc.org/builtin#string)
+
+io_socket [string](https://godoc.org/builtin#string)
+
+control_socket [string](https://godoc.org/builtin#string)
 ### <a name="StringResponse"></a>type StringResponse
 
 

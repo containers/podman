@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -21,21 +20,10 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-)
-
-type mountType string
-
-// Type constants
-const (
-	// TypeBind is the type for mounting host dir
-	TypeBind mountType = "bind"
-	// TypeVolume is the type for remote storage volumes
-	// TypeVolume mountType = "volume"  // re-enable upon use
-	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs mountType = "tmpfs"
 )
 
 var (
@@ -44,100 +32,6 @@ var (
 		"TERM": "xterm",
 	}
 )
-
-type createResourceConfig struct {
-	BlkioWeight       uint16   // blkio-weight
-	BlkioWeightDevice []string // blkio-weight-device
-	CPUPeriod         uint64   // cpu-period
-	CPUQuota          int64    // cpu-quota
-	CPURtPeriod       uint64   // cpu-rt-period
-	CPURtRuntime      int64    // cpu-rt-runtime
-	CPUShares         uint64   // cpu-shares
-	CPUs              float64  // cpus
-	CPUsetCPUs        string
-	CPUsetMems        string   // cpuset-mems
-	DeviceReadBps     []string // device-read-bps
-	DeviceReadIOps    []string // device-read-iops
-	DeviceWriteBps    []string // device-write-bps
-	DeviceWriteIOps   []string // device-write-iops
-	DisableOomKiller  bool     // oom-kill-disable
-	KernelMemory      int64    // kernel-memory
-	Memory            int64    //memory
-	MemoryReservation int64    // memory-reservation
-	MemorySwap        int64    //memory-swap
-	MemorySwappiness  int      // memory-swappiness
-	OomScoreAdj       int      //oom-score-adj
-	PidsLimit         int64    // pids-limit
-	ShmSize           int64
-	Ulimit            []string //ulimit
-}
-
-type createConfig struct {
-	Runtime            *libpod.Runtime
-	Args               []string
-	CapAdd             []string // cap-add
-	CapDrop            []string // cap-drop
-	CidFile            string
-	ConmonPidFile      string
-	CgroupParent       string // cgroup-parent
-	Command            []string
-	Detach             bool              // detach
-	Devices            []string          // device
-	DNSOpt             []string          //dns-opt
-	DNSSearch          []string          //dns-search
-	DNSServers         []string          //dns
-	Entrypoint         []string          //entrypoint
-	Env                map[string]string //env
-	ExposedPorts       map[nat.Port]struct{}
-	GroupAdd           []string // group-add
-	HostAdd            []string //add-host
-	Hostname           string   //hostname
-	Image              string
-	ImageID            string
-	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config
-	IDMappings         *storage.IDMappingOptions
-	ImageVolumeType    string                // how to handle the image volume, either bind, tmpfs, or ignore
-	Interactive        bool                  //interactive
-	IpcMode            container.IpcMode     //ipc
-	IP6Address         string                //ipv6
-	IPAddress          string                //ip
-	Labels             map[string]string     //label
-	LinkLocalIP        []string              // link-local-ip
-	LogDriver          string                // log-driver
-	LogDriverOpt       []string              // log-opt
-	MacAddress         string                //mac-address
-	Name               string                //name
-	NetMode            container.NetworkMode //net
-	Network            string                //network
-	NetworkAlias       []string              //network-alias
-	PidMode            container.PidMode     //pid
-	Pod                string                //pod
-	PortBindings       nat.PortMap
-	Privileged         bool     //privileged
-	Publish            []string //publish
-	PublishAll         bool     //publish-all
-	Quiet              bool     //quiet
-	ReadOnlyRootfs     bool     //read-only
-	Resources          createResourceConfig
-	Rm                 bool //rm
-	ShmDir             string
-	StopSignal         syscall.Signal       // stop-signal
-	StopTimeout        uint                 // stop-timeout
-	Sysctl             map[string]string    //sysctl
-	Tmpfs              []string             // tmpfs
-	Tty                bool                 //tty
-	UsernsMode         container.UsernsMode //userns
-	User               string               //user
-	UtsMode            container.UTSMode    //uts
-	Volumes            []string             //volume
-	WorkDir            string               //workdir
-	MountLabel         string               //SecurityOpts
-	ProcessLabel       string               //SecurityOpts
-	NoNewPrivs         bool                 //SecurityOpts
-	ApparmorProfile    string               //SecurityOpts
-	SeccompProfilePath string               //SecurityOpts
-	SecurityOpts       []string
-}
 
 var createDescription = "Creates a new container from the given image or" +
 	" storage and prepares it for running the specified command. The" +
@@ -205,7 +99,7 @@ func createCmd(c *cli.Context) error {
 	}
 	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
-	runtimeSpec, err := createConfigToOCISpec(createConfig)
+	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
 		return err
 	}
@@ -248,7 +142,7 @@ func createCmd(c *cli.Context) error {
 	return nil
 }
 
-func parseSecurityOpt(config *createConfig, securityOpts []string) error {
+func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	var (
 		labelOpts []string
 		err       error
@@ -338,95 +232,9 @@ func isPortInImagePorts(exposedPorts map[string]struct{}, port string) bool {
 	return false
 }
 
-func exposedPorts(c *cli.Context, imageExposedPorts map[string]struct{}) (map[nat.Port][]nat.PortBinding, error) {
-	containerPorts := make(map[string]string)
-
-	// add expose ports from the image itself
-	for expose := range imageExposedPorts {
-		_, port := nat.SplitProtoPort(expose)
-		containerPorts[port] = ""
-	}
-
-	// add the expose ports from the user (--expose)
-	// can be single or a range
-	for _, expose := range c.StringSlice("expose") {
-		//support two formats for expose, original format <portnum>/[<proto>] or <startport-endport>/[<proto>]
-		_, port := nat.SplitProtoPort(expose)
-		//parse the start and end port and create a sequence of ports to expose
-		//if expose a port, the start and end port are the same
-		start, end, err := nat.ParsePortRange(port)
-		if err != nil {
-			return nil, fmt.Errorf("invalid range format for --expose: %s, error: %s", expose, err)
-		}
-		for i := start; i <= end; i++ {
-			containerPorts[strconv.Itoa(int(i))] = ""
-		}
-	}
-
-	// parse user input'd port bindings
-	pbPorts, portBindings, err := nat.ParsePortSpecs(c.StringSlice("publish"))
-	if err != nil {
-		return nil, err
-	}
-
-	// delete exposed container ports if being used by -p
-	for i := range pbPorts {
-		delete(containerPorts, i.Port())
-	}
-
-	// iterate container ports and make port bindings from them
-	if c.Bool("publish-all") {
-		for e := range containerPorts {
-			//support two formats for expose, original format <portnum>/[<proto>] or <startport-endport>/[<proto>]
-			//proto, port := nat.SplitProtoPort(e)
-			p, err := nat.NewPort("tcp", e)
-			if err != nil {
-				return nil, err
-			}
-			rp, err := getRandomPort()
-			if err != nil {
-				return nil, err
-			}
-			logrus.Debug(fmt.Sprintf("Using random host port %d with container port %d", rp, p.Int()))
-			portBindings[p] = CreatePortBinding(rp, "")
-		}
-	}
-
-	// We need to see if any host ports are not populated and if so, we need to assign a
-	// random port to them.
-	for k, pb := range portBindings {
-		if pb[0].HostPort == "" {
-			hostPort, err := getRandomPort()
-			if err != nil {
-				return nil, err
-			}
-			logrus.Debug(fmt.Sprintf("Using random host port %d with container port %s", hostPort, k.Port()))
-			pb[0].HostPort = strconv.Itoa(hostPort)
-		}
-	}
-	return portBindings, nil
-}
-
-func getRandomPort() (int, error) {
-	l, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to get free port")
-	}
-	defer l.Close()
-	_, randomPort, err := net.SplitHostPort(l.Addr().String())
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to determine free port")
-	}
-	rp, err := strconv.Atoi(randomPort)
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to convert random port to int")
-	}
-	return rp, nil
-}
-
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*createConfig, error) {
+func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
@@ -605,7 +413,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	// EXPOSED PORTS
-	portBindings, err := exposedPorts(c, data.ContainerConfig.ExposedPorts)
+	portBindings, err := cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
 	if err != nil {
 		return nil, err
 	}
@@ -656,7 +464,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
 
-	config := &createConfig{
+	config := &cc.CreateConfig{
 		Runtime:           runtime,
 		BuiltinImgVolumes: ImageVolumes,
 		ConmonPidFile:     c.String("conmon-pidfile"),
@@ -701,7 +509,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		PortBindings:   portBindings,
 		Quiet:          c.Bool("quiet"),
 		ReadOnlyRootfs: c.Bool("read-only"),
-		Resources: createResourceConfig{
+		Resources: cc.CreateResourceConfig{
 			BlkioWeight:       blkioWeight,
 			BlkioWeightDevice: c.StringSlice("blkio-weight-device"),
 			CPUShares:         c.Uint64("cpu-shares"),
@@ -755,13 +563,4 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		fmt.Fprintln(os.Stderr, warning)
 	}
 	return config, nil
-}
-
-//CreatePortBinding takes port (int) and IP (string) and creates an array of portbinding structs
-func CreatePortBinding(hostPort int, hostIP string) []nat.PortBinding {
-	pb := nat.PortBinding{
-		HostPort: strconv.Itoa(hostPort),
-	}
-	pb.HostIP = hostIP
-	return []nat.PortBinding{pb}
 }

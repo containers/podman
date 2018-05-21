@@ -11,6 +11,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -183,7 +184,7 @@ func getCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 	pidsLimit := getPidsInfo(spec)
 	cgroup := getCgroup(spec)
 
-	var createArtifact createConfig
+	var createArtifact cc.CreateConfig
 	artifact, err := ctr.GetArtifact("create-config")
 	if err == nil {
 		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
