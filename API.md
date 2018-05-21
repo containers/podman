@@ -19,7 +19,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func ExportContainer(name: string, path: string) string](#ExportContainer)
 
-[func ExportImage(name: string, destination: string, compress: bool) string](#ExportImage)
+[func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
 
 [func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
@@ -190,9 +190,11 @@ The return value is the written tarfile.
 ### <a name="ExportImage"></a>func ExportImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ExportImage(name: [string](https://godoc.org/builtin#string), destination: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+method ExportImage(name: [string](https://godoc.org/builtin#string), destination: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), tags: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
 ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-a booleon option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
+a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
+of the image is returned. If the image cannot
 be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">

@@ -567,8 +567,8 @@ func (p *PodmanTest) GetHostDistribution() string {
 		return ""
 	}
 	for _, line := range content {
-		if strings.HasPrefix(fmt.Sprintf("%s", line), "ID") {
-			fields := strings.Split(fmt.Sprintf("%s", line), "=")
+		if strings.HasPrefix(fmt.Sprintf("%x", line), "ID") {
+			fields := strings.Split(fmt.Sprintf("%x", line), "=")
 			if len(fields) < 2 {
 				return ""
 			}

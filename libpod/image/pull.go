@@ -100,21 +100,25 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 			}
 			pullStructs = append(pullStructs, pullInfo)
 		} else {
-			var dest string
+			var dest []string
 			if len(manifest[0].RepoTags) > 0 {
-				dest = manifest[0].RepoTags[0]
+				dest = append(dest, manifest[0].RepoTags...)
 			} else {
 				// If the input image has no repotags, we need to feed it a dest anyways
-				dest, err = getImageDigest(ctx, srcRef, sc)
+				digest, err := getImageDigest(ctx, srcRef, sc)
 				if err != nil {
 					return nil, err
 				}
+				dest = append(dest, digest)
 			}
-			pullInfo, err := ir.getPullStruct(srcRef, dest)
-			if err != nil {
-				return nil, err
+			// Need to load in all the repo tags from the manifest
+			for _, dst := range dest {
+				pullInfo, err := ir.getPullStruct(srcRef, dst)
+				if err != nil {
+					return nil, err
+				}
+				pullStructs = append(pullStructs, pullInfo)
 			}
-			pullStructs = append(pullStructs, pullInfo)
 		}
 	} else if srcRef.Transport().Name() == OCIArchive {
 		// retrieve the manifest from index.json to access the image name
@@ -164,7 +168,7 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 // pullImage pulls an image from configured registries
 // By default, only the latest tag (or a specific tag if requested) will be
 // pulled.
-func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) (string, error) {
+func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	// pullImage copies the image from the source to the destination
 	var pullStructs []*pullStruct
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
@@ -173,31 +177,31 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 		// could be trying to pull from registry with short name
 		pullStructs, err = i.createNamesToPull()
 		if err != nil {
-			return "", errors.Wrap(err, "error getting default registries to try")
+			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
 		pullStructs, err = i.imageruntime.getPullListFromRef(ctx, srcRef, i.InputName, sc)
 		if err != nil {
-			return "", errors.Wrapf(err, "error getting pullStruct info to pull image %q", i.InputName)
+			return nil, errors.Wrapf(err, "error getting pullStruct info to pull image %q", i.InputName)
 		}
 	}
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer policyContext.Destroy()
 
 	insecureRegistries, err := registries.GetInsecureRegistries()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
+	var images []string
 	for _, imageInfo := range pullStructs {
-		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false)
+		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
 		if strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) {
 			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			registry := reference.Domain(imgRef.(reference.Named))
 
@@ -215,10 +219,13 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 				io.WriteString(writer, "Failed\n")
 			}
 		} else {
-			return imageInfo.image, nil
+			if imageInfo.srcRef.Transport().Name() != DockerArchive {
+				return []string{imageInfo.image}, nil
+			}
+			images = append(images, imageInfo.image)
 		}
 	}
-	return "", errors.Wrapf(err, "error pulling image from")
+	return images, errors.Wrapf(err, "error pulling image from")
 }
 
 // createNamesToPull looks at a decomposed image and determines the possible

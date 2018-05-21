@@ -542,9 +542,11 @@ method Commit(name: string, image_name: string, changes: []string, author: strin
 method ImportImage(source: string, reference: string, message: string, changes: []string) -> (image: string)
 
 # ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-# a boolean option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
-# be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
-method ExportImage(name: string, destination: string, compress: bool) -> (image: string)
+# a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+# tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
+# of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
+# error will be returned. See also [ImportImage](ImportImage).
+method ExportImage(name: string, destination: string, compress: bool, tags: []string) -> (image: string)
 
 # PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
 # is returned.

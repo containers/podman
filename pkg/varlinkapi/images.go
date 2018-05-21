@@ -118,7 +118,7 @@ func (i *LibpodAPI) HistoryImage(call ioprojectatomicpodman.VarlinkCall, name st
 }
 
 // PushImage pushes an local image to registry
-// TODO We need to add options for signing, credentials, and tls
+// TODO We need to add options for signing, credentials, tls, and multi-tag
 func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag string, tlsVerify bool) error {
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
@@ -139,7 +139,7 @@ func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag 
 
 	so := image.SigningOptions{}
 
-	if err := newImage.PushImage(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, false); err != nil {
+	if err := newImage.PushImage(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, false, nil); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyPushImage(newImage.ID())
@@ -292,7 +292,7 @@ func (i *LibpodAPI) ImportImage(call ioprojectatomicpodman.VarlinkCall, source, 
 
 // ExportImage exports an image to the provided destination
 // destination must have the transport type!!
-func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, destination string, compress bool) error {
+func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, destination string, compress bool, tags []string) error {
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
 		return call.ReplyRuntimeError(err.Error())
@@ -301,7 +301,13 @@ func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, de
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
-	if err := newImage.PushImage(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, false); err != nil {
+
+	additionalTags, err := image.GetAdditionalTags(tags)
+	if err != nil {
+		return err
+	}
+
+	if err := newImage.PushImage(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, false, additionalTags); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyExportImage(newImage.ID())
