@@ -1,4 +1,4 @@
-PYTHON ?= /usr/bin/python3
+PYTHON ?= $(shell command -v python3 2>/dev/null || command -v python)
 DESTDIR := /
 
 .PHONY: python-pypodman
@@ -25,7 +25,7 @@ clobber: uninstall clean
 
 .PHONY: clean
 clean:
-	$(PYTHON) setup.py clean --all
 	rm -rf pypodman.egg-info dist
 	find . -depth -name __pycache__ -exec rm -rf {} \;
 	find . -depth -name \*.pyc -exec rm -f {} \;
+	$(PYTHON) ./setup.py clean --all
