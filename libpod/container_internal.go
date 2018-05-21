@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -745,19 +744,8 @@ func (c *Container) prepare() (err error) {
 			return err
 		}
 
-		systemdController, err := cgroups.NewSystemd("/")
-		if err != nil {
+		if err := createSystemdCgroup(cgroupPath); err != nil {
 			return err
-		}
-
-		if err := systemdController.Create(cgroupPath, &spec.LinuxResources{}); err != nil {
-			// This is gross, but systemd doesn't hand back full Go
-			// errors, so it's all we have
-			if strings.Contains(err.Error(), "already exists") {
-				return nil
-			}
-
-			return errors.Wrapf(err, "error creating cgroup for container %s", c.ID())
 		}
 	}
 
@@ -774,37 +762,17 @@ func (c *Container) cleanupCgroups() error {
 
 	logrus.Debugf("Removing CGroup %s", cgroupPath)
 
-	// If we are using the systemd cgroup manager, request that systemd stop
-	// the cgroup for us
-	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
-		systemdController, err := cgroups.NewSystemd("/")
-		if err != nil {
-			return err
+	switch c.runtime.config.CgroupManager {
+	case SystemdCgroupsManager:
+		if err := deleteSystemdCgroup(cgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing container %s cgroup", c.ID())
 		}
-
-		// This seems to not error if the given cgroup doesn't exist
-		// All the better for us, since we don't really want to error in
-		// that case
-		if err := systemdController.Delete(cgroupPath); err != nil {
-			return errors.Wrapf(err, "error creating cgroup for container %s", c.ID())
+	case CgroupfsCgroupsManager:
+		if err := deleteCgroupfsCgroup(cgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing container %s cgroup", c.ID())
 		}
-
-		return nil
-	}
-
-	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
-	if err != nil {
-		// It's fine for the cgroup to not exist
-		// We want it gone, it's gone
-		if err == cgroups.ErrCgroupDeleted {
-			return nil
-		}
-
-		return err
-	}
-
-	if err := cgroup.Delete(); err != nil {
-		return err
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", c.runtime.config.CgroupManager)
 	}
 
 	return nil
