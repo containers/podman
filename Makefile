@@ -25,7 +25,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell go list -tags "${BUILDTAGS}" ./... | grep -v github.com/projectatomic/libpod/vendor | grep -v e2e)
+PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/projectatomic/libpod/vendor | grep -v e2e)
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
@@ -43,7 +43,7 @@ FIRST_GOPATH := $(firstword $(subst :, ,$(GOPATH)))
 GOPKGDIR := $(FIRST_GOPATH)/src/$(PROJECT)
 GOPKGBASEDIR ?= $(shell dirname "$(GOPKGDIR)")
 
-GOBIN := $(shell go env GOBIN)
+GOBIN := $(shell $(GO) env GOBIN)
 ifeq ($(GOBIN),)
 GOBIN := $(FIRST_GOPATH)/bin
 endif
@@ -234,21 +234,21 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		go get -u github.com/vbatts/git-validation; \
+		$(GO) get -u github.com/vbatts/git-validation; \
 	fi
 
 .install.gometalinter: .gopathok
 	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
-		go get -u github.com/alecthomas/gometalinter; \
+		$(GO) get -u github.com/alecthomas/gometalinter; \
 		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
 		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
-		go install github.com/alecthomas/gometalinter; \
+		$(GO) install github.com/alecthomas/gometalinter; \
 		$(GOBIN)/gometalinter --install; \
 	fi
 
 .install.md2man: .gopathok
 	if [ ! -x "$(GOBIN)/go-md2man" ]; then \
-		   go get -u github.com/cpuguy83/go-md2man; \
+		   $(GO) get -u github.com/cpuguy83/go-md2man; \
 	fi
 
 .install.ostree: .gopathok
