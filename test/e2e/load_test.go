@@ -133,4 +133,32 @@ var _ = Describe("Podman load", func() {
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).ToNot(Equal(0))
 	})
+
+	It("podman load multiple tags", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
+		alpVersion := "docker.io/library/alpine:3.2"
+
+		pull := podmanTest.Podman([]string{"pull", alpVersion})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull.ExitCode()).To(Equal(0))
+
+		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE, alpVersion})
+		save.WaitWithDefaultTimeout()
+		Expect(save.ExitCode()).To(Equal(0))
+
+		rmi := podmanTest.Podman([]string{"rmi", ALPINE, alpVersion})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"load", "-i", outfile})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ALPINE})
+		inspect.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		inspect = podmanTest.Podman([]string{"inspect", alpVersion})
+		inspect.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
 })

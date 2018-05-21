@@ -147,13 +147,48 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
-	newImage.InputName = imageName
+	newImage.InputName = imageName[0]
 	img, err := newImage.getLocalImage()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 	}
 	newImage.image = img
 	return &newImage, nil
+}
+
+// LoadFromArchive creates a new image object for images pulled from a tar archive (podman load)
+// This function is needed because it is possible for a tar archive to have multiple tags for one image
+func (ir *Runtime) LoadFromArchive(ctx context.Context, name, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
+	var newImages []*Image
+	newImage := Image{
+		InputName:    name,
+		Local:        false,
+		imageruntime: ir,
+	}
+
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = ir.SignaturePolicyPath
+	}
+	imageNames, err := newImage.pullImage(ctx, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to pull %s", name)
+	}
+
+	for _, name := range imageNames {
+		newImage := Image{
+			InputName:    name,
+			Local:        true,
+			imageruntime: ir,
+		}
+		img, err := newImage.getLocalImage()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
+		}
+		newImage.image = img
+		newImages = append(newImages, &newImage)
+	}
+
+	return newImages, nil
 }
 
 // Shutdown closes down the storage and require a bool arg as to
@@ -428,7 +463,7 @@ func (i *Image) UntagImage(tag string) error {
 }
 
 // PushImage pushes the given image to a location described by the given path
-func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool) error {
+func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -464,7 +499,7 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 	if err != nil {
 		return err
 	}
-	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress)
+	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
 	if strings.HasPrefix(DockerTransport, dest.Transport().Name()) {
 		imgRef, err := reference.Parse(dest.DockerReference().String())
 		if err != nil {
@@ -749,7 +784,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, err
 	}
 	defer policyContext.Destroy()
-	copyOptions := getCopyOptions(writer, "", nil, nil, signingOptions, "", "", false)
+	copyOptions := getCopyOptions(writer, "", nil, nil, signingOptions, "", "", false, nil)
 	dest, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)

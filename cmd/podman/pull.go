@@ -1,14 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
-
-	"fmt"
+	"strings"
 
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
+	"github.com/projectatomic/libpod/libpod"
 	image2 "github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -90,7 +91,10 @@ func pullCmd(c *cli.Context) error {
 		registryCreds = creds
 	}
 
-	var writer io.Writer
+	var (
+		writer io.Writer
+		imgID  string
+	)
 	if !c.Bool("quiet") {
 		writer = os.Stderr
 	}
@@ -104,13 +108,23 @@ func pullCmd(c *cli.Context) error {
 		forceSecure = c.Bool("tls-verify")
 	}
 
-	newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
-	if err != nil {
-		return errors.Wrapf(err, "error pulling image %q", image)
+	// Possible for docker-archive to have multiple tags, so use NewFromLoad instead
+	if strings.Contains(image, libpod.DockerArchive) {
+		newImage, err := runtime.ImageRuntime().LoadFromArchive(getContext(), image, c.String("signature-policy"), writer)
+		if err != nil {
+			return errors.Wrapf(err, "error pulling image from %q", image)
+		}
+		imgID = newImage[0].ID()
+	} else {
+		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
+		if err != nil {
+			return errors.Wrapf(err, "error pulling image %q", image)
+		}
+		imgID = newImage.ID()
 	}
 
 	// Intentionally choosing to ignore if there is an error because
 	// outputting the image ID is a NTH and not integral to the pull
-	fmt.Println(newImage.ID())
+	fmt.Println(imgID)
 	return nil
 }

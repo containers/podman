@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
-	libpodImage "github.com/projectatomic/libpod/libpod/image"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -105,22 +105,34 @@ func loadCmd(c *cli.Context) error {
 	ctx := getContext()
 
 	src := libpod.DockerArchive + ":" + input
-	newImage, err := runtime.ImageRuntime().New(ctx, src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+	newImages, err := runtime.ImageRuntime().LoadFromArchive(ctx, src, c.String("signature-policy"), writer)
 	if err != nil {
 		// generate full src name with specified image:tag
 		fullSrc := libpod.OCIArchive + ":" + input
 		if image != "" {
 			fullSrc = fullSrc + ":" + image
 		}
-		newImage, err = runtime.ImageRuntime().New(ctx, fullSrc, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+		newImages, err = runtime.ImageRuntime().LoadFromArchive(ctx, fullSrc, c.String("signature-policy"), writer)
 		if err != nil {
 			src = libpod.DirTransport + ":" + input
-			newImage, err = runtime.ImageRuntime().New(ctx, src, c.String("signature-policy"), "", writer, &libpodImage.DockerRegistryOptions{}, libpodImage.SigningOptions{}, false, false)
+			newImages, err = runtime.ImageRuntime().LoadFromArchive(ctx, src, c.String("signature-policy"), writer)
 			if err != nil {
 				return errors.Wrapf(err, "error pulling %q", src)
 			}
 		}
 	}
-	fmt.Println("Loaded image: ", newImage.InputName)
+	fmt.Println("Loaded image(s): " + getImageNames(newImages))
 	return nil
+}
+
+func getImageNames(images []*image.Image) string {
+	var names string
+	for i := range images {
+		if i == 0 {
+			names = images[i].InputName
+		} else {
+			names += ", " + images[i].InputName
+		}
+	}
+	return names
 }

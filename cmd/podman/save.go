@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -109,24 +110,29 @@ func saveCmd(c *cli.Context) error {
 		return errors.Errorf("unknown format option %q", c.String("format"))
 	}
 
-	// only one image is supported for now
-	// future pull requests will fix this
-	for _, image := range args {
-		newImage, err := runtime.ImageRuntime().NewFromLocal(image)
+	// supports saving multiple tags to the same tar archive
+	var additionaltags []reference.NamedTagged
+	if len(args) > 1 {
+		additionaltags, err = libpodImage.GetAdditionalTags(args[1:])
 		if err != nil {
 			return err
 		}
-		dest := dst
-		// need dest to be in the format transport:path:reference for the following transports
-		if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), image) {
-			dest = dst + ":" + image
-		}
-		if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false); err != nil {
-			if err2 := os.Remove(output); err2 != nil {
-				logrus.Errorf("error deleting %q: %v", output, err)
-			}
-			return errors.Wrapf(err, "unable to save %q", image)
-		}
 	}
+	newImage, err := runtime.ImageRuntime().NewFromLocal(args[0])
+	if err != nil {
+		return err
+	}
+	dest := dst
+	// need dest to be in the format transport:path:reference for the following transports
+	if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), args[0]) {
+		dest = dst + ":" + args[0]
+	}
+	if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
+		if err2 := os.Remove(output); err2 != nil {
+			logrus.Errorf("error deleting %q: %v", output, err)
+		}
+		return errors.Wrapf(err, "unable to save %q", args)
+	}
+
 	return nil
 }

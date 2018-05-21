@@ -1,6 +1,9 @@
 package image
 
-import "github.com/containers/image/types"
+import (
+	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/types"
+)
 
 // DockerRegistryOptions encapsulates settings that affect how we connect or
 // authenticate to a remote registry.
@@ -22,7 +25,7 @@ type DockerRegistryOptions struct {
 
 // GetSystemContext constructs a new system context from the given signaturePolicy path and the
 // values in the DockerRegistryOptions
-func (o DockerRegistryOptions) GetSystemContext(signaturePolicyPath, authFile string, forceCompress bool) *types.SystemContext {
+func (o DockerRegistryOptions) GetSystemContext(signaturePolicyPath, authFile string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *types.SystemContext {
 	sc := &types.SystemContext{
 		SignaturePolicyPath:         signaturePolicyPath,
 		DockerAuthConfig:            o.DockerRegistryCreds,
@@ -30,6 +33,7 @@ func (o DockerRegistryOptions) GetSystemContext(signaturePolicyPath, authFile st
 		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
 		AuthFilePath:                authFile,
 		DirForceCompress:            forceCompress,
+		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
 	}
 	return sc
 }

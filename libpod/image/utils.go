@@ -53,15 +53,15 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 }
 
 // getCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
-func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool) *cp.Options {
+func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *cp.Options {
 	if srcDockerRegistry == nil {
 		srcDockerRegistry = &DockerRegistryOptions{}
 	}
 	if destDockerRegistry == nil {
 		destDockerRegistry = &DockerRegistryOptions{}
 	}
-	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
-	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
+	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
 	return &cp.Options{
 		RemoveSignatures:      signing.RemoveSignatures,
 		SignBy:                signing.SignBy,
@@ -109,4 +109,21 @@ func ReposToMap(repotags []string) map[string][]string {
 		repos["<none>"] = []string{"<none>"}
 	}
 	return repos
+}
+
+// GetAdditionalTags returns a list of reference.NamedTagged for the
+// additional tags given in images
+func GetAdditionalTags(images []string) ([]reference.NamedTagged, error) {
+	var allTags []reference.NamedTagged
+	for _, img := range images {
+		ref, err := reference.ParseNormalizedNamed(img)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing additional tags")
+		}
+		refTagged, isTagged := ref.(reference.NamedTagged)
+		if isTagged {
+			allTags = append(allTags, refTagged)
+		}
+	}
+	return allTags, nil
 }
