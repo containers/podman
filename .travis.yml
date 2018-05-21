@@ -9,7 +9,7 @@ services:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev
-  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext python3-setuptools
+  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext python3-setuptools python3-dateutil
   - sudo make install.libseccomp.sudo
 
 install:

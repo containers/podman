@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     netcat \
     socat \
     python3-pip \
+    python3-dateutil \
     --no-install-recommends \
     && apt-get clean
 
@@ -115,7 +116,7 @@ COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
 
-# Install python3 pip module
+# Install python3 varlink module from pypi
 RUN pip3 install varlink
 
 COPY test/policy.json /etc/containers/policy.json

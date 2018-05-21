@@ -20,6 +20,7 @@ RUN dnf -y install btrfs-progs-devel \
               make \
               ostree-devel \
               python \
+              python3-dateutil \
               which\
               golang-github-cpuguy83-go-md2man \
               procps-ng \
