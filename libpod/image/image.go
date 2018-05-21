@@ -37,6 +37,8 @@ type imageConversions struct {
 	storeRef types.ImageReference
 }
 
+const ImageDigestType = "sha256"
+
 // Image is the primary struct for dealing with images
 // It is still very much a work in progress
 type Image struct {
@@ -174,10 +176,15 @@ func (i *Image) reloadImage() error {
 
 // stringSha256 strips sha256 from user input
 func stripSha256(name string) string {
-	if strings.HasPrefix(name, "sha256:") && len(name) > 7 {
+	if strings.HasPrefix(name, fmt.Sprintf("%s:", ImageDigestType)) && len(name) > 7 {
 		return name[7:]
 	}
 	return name
+}
+
+// PrependImageDigestTypeToID prepends the digesttype to the image's ID
+func (i *Image) PrependImageDigestTypeToID() string {
+	return fmt.Sprintf("%s:%s", ImageDigestType, i.ID())
 }
 
 // getLocalImage resolves an unknown input describing an image and
