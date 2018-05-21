@@ -6,34 +6,43 @@
 podman\-varlink - Runs the varlink backend interface
 
 ## SYNOPSIS
-**podman varlink**
+**podman varlink** [OPTIONS]
 [**--help**|**-h**]
 VARLINK_URI
 
 ## DESCRIPTION
-Starts the varlink service that allows varlink clients to interact with podman.
-<!--
-More will go here as the docs and api firm up.
--->
+Starts the varlink service that allows varlink clients to interact with podman.  This should generally be done
+with systemd.  See _Configuration_ below.
 
-**podman [GLOBAL OPTIONS] varlink **
+**podman [GLOBAL OPTIONS] [OPTIONS] varlink VARLINK_URI**
 
 ## GLOBAL OPTIONS
 
 **--help, -h**
   Print usage statement
 
+## OPTIONS
+**--timeout, -t** The time until the varlink session expires in _milliseconds_. The default is 1
+second. A value of `0` means no timeout and the session will not expire.
+
 ## EXAMPLES
 
-  podman varlink unix:/run/podman/io.projectatomic.podman
-<!--
-    TODO: More examples with TCP can be added when that works
-    as well.
--->
+Run the podman varlink service manually and accept the default timeout.
+
+```
+$ podman varlink unix:/run/podman/io.projectatomic.podman
+```
+
+Run the podman varlink service manually with a 5 second timeout.
+
+```
+$ podman varlink --timeout 5000 unix:/run/podman/io.projectatomic.podman
+```
 
 ## CONFIGURATION
 
-Users of the podman varlink service should enable the  io.projectatomic.podman.socket and io.projectatomic.podman.service.
+Users of the podman varlink service should enable the _io.projectatomic.podman.socket_ and _io.projectatomic.podman.service_.
+This is the preferred method for running the varlink service.
 
 You can do this via systemctl
 

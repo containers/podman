@@ -1652,6 +1652,7 @@ _podman_unpause() {
 _podman_varlink() {
      local options_with_args="
      --help -h
+     --timeout -t
      "
      local boolean_options=""
      _complete_ "$options_with_args" "$boolean_options"

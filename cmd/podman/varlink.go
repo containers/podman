@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/pkg/varlinkapi"
@@ -15,7 +17,13 @@ var (
 
 	run varlink interface
 `
-	varlinkFlags   = []cli.Flag{}
+	varlinkFlags = []cli.Flag{
+		cli.IntFlag{
+			Name:  "timeout, t",
+			Usage: "time until the varlink session expires in milliseconds. default is 1 second; 0 means no timeout.",
+			Value: 1000,
+		},
+	}
 	varlinkCommand = cli.Command{
 		Name:        "varlink",
 		Usage:       "Run varlink interface",
@@ -31,6 +39,7 @@ func varlinkCmd(c *cli.Context) error {
 	if len(args) < 1 {
 		return errors.Errorf("you must provide a varlink URI")
 	}
+	timeout := time.Duration(c.Int64("timeout")) * time.Millisecond
 
 	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.New(c)}
 	// Register varlink service. The metadata can be retrieved with:
@@ -52,7 +61,7 @@ func varlinkCmd(c *cli.Context) error {
 	}
 
 	// Run the varlink server at the given address
-	if err = service.Listen(args[0], 0); err != nil {
+	if err = service.Listen(args[0], timeout); err != nil {
 		return errors.Errorf("unable to start varlink service")
 	}
 
