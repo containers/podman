@@ -1,7 +1,8 @@
 """Support files for podman API implementation."""
 import datetime
-import re
 import threading
+from dateutil.parser import parse as dateutil_parse
+
 
 __all__ = [
     'cached_property',
@@ -44,45 +45,11 @@ class cached_property(object):
 
 
 def datetime_parse(string):
-    """Convert timestamp to datetime.
+    """Convert timestamps to datetime.
 
-    Because date/time parsing in python is still pedantically stupid,
-    we rip the input string apart throwing out the stop characters etc;
-    then rebuild a string strptime() can parse. Igit!
-
-    - Python >3.7 will address colons in the UTC offset.
-    - There is no ETA on microseconds > 6 digits.
-    - And giving an offset and timezone name...
-
-    # match: 2018-05-08T14:12:53.797795191-07:00
-    # match: 2018-05-08T18:24:52.753227-07:00
-    # match: 2018-05-08 14:12:53.797795191 -0700 MST
-    # match: 2018-05-09T10:45:57.576002  (python isoformat())
-
-    Some people, when confronted with a problem, think “I know,
-    I'll use regular expressions.”  Now they have two problems.
-      -- Jamie Zawinski
+    tzinfo aware, if provided.
     """
-    ts = re.compile(r'^(\d+)-(\d+)-(\d+)'
-                    r'[ T]?(\d+):(\d+):(\d+).(\d+)'
-                    r' *([-+][\d:]{4,5})? *')
-
-    x = ts.match(string)
-    if x is None:
-        raise ValueError('Unable to parse {}'.format(string))
-
-    # converting everything to int() not worth the readablity hit
-    igit_proof = '{}T{}.{}{}'.format(
-        '-'.join(x.group(1, 2, 3)),
-        ':'.join(x.group(4, 5, 6)),
-        x.group(7)[0:6],
-        x.group(8).replace(':', '') if x.group(8) else '',
-    )
-
-    format = '%Y-%m-%dT%H:%M:%S.%f'
-    if x.group(8):
-        format += '%z'
-    return datetime.datetime.strptime(igit_proof, format)
+    return dateutil_parse(string.upper(), fuzzy=True)
 
 
 def datetime_format(dt):
