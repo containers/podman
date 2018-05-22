@@ -304,8 +304,9 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 			r.byname[name] = container
 		}
 		err = r.Save()
+		container = copyContainer(container)
 	}
-	return copyContainer(container), err
+	return container, err
 }
 
 func (r *containerStore) Metadata(id string) (string, error) {

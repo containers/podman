@@ -610,8 +610,9 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 			r.driver.Remove(id)
 			return nil, -1, err
 		}
+		layer = copyLayer(layer)
 	}
-	return copyLayer(layer), size, err
+	return layer, size, err
 }
 
 func (r *layerStore) CreateWithFlags(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}) (layer *Layer, err error) {

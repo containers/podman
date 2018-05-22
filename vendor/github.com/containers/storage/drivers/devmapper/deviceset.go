@@ -703,6 +703,10 @@ func (devices *DeviceSet) startDeviceDeletionWorker() {
 		return
 	}
 
+	// Cleanup right away if there are any leaked devices.  Note this
+	// could cause some slowdown for process startup, if there were
+	// Leaked devices
+	devices.cleanupDeletedDevices()
 	logrus.Debug("devmapper: Worker to cleanup deleted devices started")
 	for range devices.deletionWorkerTicker.C {
 		devices.cleanupDeletedDevices()
@@ -2652,6 +2656,7 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 
 	foundBlkDiscard := false
 	var lvmSetupConfig directLVMConfig
+	testMode := false
 	for _, option := range options {
 		key, val, err := parsers.ParseKeyValueOpt(option)
 		if err != nil {
@@ -2801,13 +2806,20 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 			devicemapper.LogInit(devicemapper.DefaultLogger{
 				Level: int(level),
 			})
+		case "test":
+			testMode, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("devmapper: Unknown option %s", key)
 		}
 	}
 
-	if err := validateLVMConfig(lvmSetupConfig); err != nil {
-		return nil, err
+	if !testMode {
+		if err := validateLVMConfig(lvmSetupConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	devices.lvmSetupConfig = lvmSetupConfig
