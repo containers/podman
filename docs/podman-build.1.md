@@ -317,23 +317,34 @@ podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cg
 
 podman build --volume /home/test:/myvol:ro,Z -t imageName .
 
-### Building an image using a URL
+### Building an image using a URL, Git repo, or archive
 
-  This will clone the specified GitHub repository from the URL and use it as context. The Dockerfile at the root of the repository is used as Dockerfile. This only works if the GitHub repository is a dedicated repository.
+  The build context directory can be specified as a URL to a Dockerfile, a Git repository, or URL to an archive. If the URL is a Dockerfile, it is downloaded to a temporary location and used as the context. When a Git repository is set as the URL, the repository is cloned locally to a temporary location and then used as the context. Lastly, if the URL is an archive, it is downloaded to a temporary location and extracted before being used as the context.
 
- `podman build github.com/scollier/purpletest`
+#### Building an image using a URL to a Dockerfile
 
-  Note: You can set an arbitrary Git repository via the git:// scheme.
+  Podman will download the Dockerfile to a temporary location and then use it as the build context.
 
-### Building an image using a URL to a tarball'ed context
-  Podman will fetch the tarball archive, decompress it and use its contents as the build context.  The Dockerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass an -f PATH/Dockerfile option as well, the system will look for that file inside the contents of the tarball.
+  `podman build https://10.10.10.1/podman/Dockerfile`
+
+#### Building an image using a Git repository
+
+  Podman will clone the specified GitHub repository to a temporary location and use it as the context. The Dockerfile at the root of the repository will be used and it only works if the GitHub repository is a dedicated repository.
+
+ `podman build git://github.com/scollier/purpletest`
+
+#### Building an image using a URL to an archive
+
+  Podman will fetch the archive file, decompress it, and use its contents as the build context. The Dockerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass `-f PATH/Dockerfile` option as well, the system will look for that file inside the contents of the archive.
 
  `podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz`
 
-  Note: supported compression formats are `xz`, `bzip2`, `gzip` and `identity` (no compression).
+  Note: The supported compression formats are `xz`, `bzip2`, `gzip` and `identity` (no compression).
 
 ## SEE ALSO
 podman(1), buildah(1)
 
 ## HISTORY
-December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
+
+* December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
+* May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
