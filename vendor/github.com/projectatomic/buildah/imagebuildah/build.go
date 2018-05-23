@@ -51,7 +51,7 @@ type BuildOptions struct {
 	ContextDirectory string
 	// PullPolicy controls whether or not we pull images.  It should be one
 	// of PullIfMissing, PullAlways, or PullNever.
-	PullPolicy int
+	PullPolicy buildah.PullPolicy
 	// Registry is a value which is prepended to the image's name, if it
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
@@ -113,6 +113,13 @@ type BuildOptions struct {
 	DefaultMountsFilePath string
 	// IIDFile tells the builder to write the image ID to the specified file
 	IIDFile string
+	// Squash tells the builder to produce an image with a single layer
+	// instead of with possibly more than one layer.
+	Squash bool
+	// Labels metadata for an image
+	Labels []string
+	// Annotation metadata for an image
+	Annotations []string
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -124,7 +131,7 @@ type Executor struct {
 	store                          storage.Store
 	contextDir                     string
 	builder                        *buildah.Builder
-	pullPolicy                     int
+	pullPolicy                     buildah.PullPolicy
 	registry                       string
 	transport                      string
 	ignoreUnrecognizedInstructions bool
@@ -150,6 +157,9 @@ type Executor struct {
 	commonBuildOptions             *buildah.CommonBuildOptions
 	defaultMountsFilePath          string
 	iidfile                        string
+	squash                         bool
+	labels                         []string
+	annotations                    []string
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -482,6 +492,9 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		commonBuildOptions:    options.CommonBuildOpts,
 		defaultMountsFilePath: options.DefaultMountsFilePath,
 		iidfile:               options.IIDFile,
+		squash:                options.Squash,
+		labels:                append([]string{}, options.Labels...),
+		annotations:           append([]string{}, options.Annotations...),
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -673,6 +686,22 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 	for k, v := range config.Labels {
 		b.builder.SetLabel(k, v)
 	}
+	for _, labelSpec := range b.labels {
+		label := strings.SplitN(labelSpec, "=", 2)
+		if len(label) > 1 {
+			b.builder.SetLabel(label[0], label[1])
+		} else {
+			b.builder.SetLabel(label[0], "")
+		}
+	}
+	for _, annotationSpec := range b.annotations {
+		annotation := strings.SplitN(annotationSpec, "=", 2)
+		if len(annotation) > 1 {
+			b.builder.SetAnnotation(annotation[0], annotation[1])
+		} else {
+			b.builder.SetAnnotation(annotation[0], "")
+		}
+	}
 	if imageRef != nil {
 		logName := transports.ImageName(imageRef)
 		logrus.Debugf("COMMIT %q", logName)
@@ -692,6 +721,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 		ReportWriter:          b.reportWriter,
 		PreferredManifestType: b.outputFormat,
 		IIDFile:               b.iidfile,
+		Squash:                b.squash,
 	}
 	imgID, err := b.builder.Commit(ctx, imageRef, options)
 	if err != nil {

@@ -709,18 +709,36 @@ _podman_build() {
   "
 
      local options_with_args="
+     --add-host
+     --annotation
      --authfile
      --build-arg
      --cert-dir
+     --cgroup-parent
+     --cpu-period
+     --cpu-quota
+     --cpu-shares
+     --cpuset-cpus
+     --cpuset-mems
      --creds
-     --file
      -f
+     --file
      --format
+     --iidfile
+     --label
+     -m
+     --memory
+     --memory-swap
      --runtime
      --runtime-flag
+     --security-opt
+     --shm-size
      --signature-policy
-     --tag
      -t
+     --tag
+     --ulimit
+     -v
+     --volume
   "
 
      local all_options="$options_with_args $boolean_options"

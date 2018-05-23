@@ -166,6 +166,10 @@ func buildCmd(c *cli.Context) error {
 		SystemContext:         systemContext,
 		CommonBuildOpts:       commonOpts,
 		DefaultMountsFilePath: c.GlobalString("default-mounts-file"),
+		IIDFile:               c.String("iidfile"),
+		Squash:                c.Bool("squash"),
+		Labels:                c.StringSlice("label"),
+		Annotations:           c.StringSlice("annotation"),
 	}
 
 	if !c.Bool("quiet") {

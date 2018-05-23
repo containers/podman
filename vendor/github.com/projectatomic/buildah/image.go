@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -41,6 +42,8 @@ type containerImageRef struct {
 	compression           archive.Compression
 	name                  reference.Named
 	names                 []string
+	containerID           string
+	mountLabel            string
 	layerID               string
 	oconfig               []byte
 	dconfig               []byte
@@ -50,12 +53,15 @@ type containerImageRef struct {
 	annotations           map[string]string
 	preferredManifestType string
 	exporting             bool
+	squash                bool
 }
 
 type containerImageSource struct {
 	path         string
 	ref          *containerImageRef
 	store        storage.Store
+	containerID  string
+	mountLabel   string
 	layerID      string
 	names        []string
 	compression  archive.Compression
@@ -94,6 +100,124 @@ func expectedDockerDiffIDs(image docker.V2Image) int {
 	return expected
 }
 
+// Compute the media types which we need to attach to a layer, given the type of
+// compression that we'll be applying.
+func (i *containerImageRef) computeLayerMIMEType(what string) (omediaType, dmediaType string, err error) {
+	omediaType = v1.MediaTypeImageLayer
+	dmediaType = docker.V2S2MediaTypeUncompressedLayer
+	if i.compression != archive.Uncompressed {
+		switch i.compression {
+		case archive.Gzip:
+			omediaType = v1.MediaTypeImageLayerGzip
+			dmediaType = docker.V2S2MediaTypeLayer
+			logrus.Debugf("compressing %s with gzip", what)
+		case archive.Bzip2:
+			// Until the image specs define a media type for bzip2-compressed layers, even if we know
+			// how to decompress them, we can't try to compress layers with bzip2.
+			return "", "", errors.New("media type for bzip2-compressed layers is not defined")
+		case archive.Xz:
+			// Until the image specs define a media type for xz-compressed layers, even if we know
+			// how to decompress them, we can't try to compress layers with xz.
+			return "", "", errors.New("media type for xz-compressed layers is not defined")
+		default:
+			logrus.Debugf("compressing %s with unknown compressor(?)", what)
+		}
+	}
+	return omediaType, dmediaType, nil
+}
+
+// Extract the container's whole filesystem as if it were a single layer.
+func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
+	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
+	}
+	tarOptions := &archive.TarOptions{
+		Compression: archive.Uncompressed,
+	}
+	rc, err := archive.TarWithOptions(mountPoint, tarOptions)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
+	}
+	return ioutils.NewReadCloserWrapper(rc, func() error {
+		err := rc.Close()
+		if err != nil {
+			err = errors.Wrapf(err, "error closing tar archive of container %q", i.containerID)
+		}
+		if err2 := i.store.Unmount(i.containerID); err == nil {
+			if err2 != nil {
+				err2 = errors.Wrapf(err2, "error unmounting container %q", i.containerID)
+			}
+			err = err2
+		}
+		return err
+	}), nil
+}
+
+// Build fresh copies of the container configuration structures so that we can edit them
+// without making unintended changes to the original Builder.
+func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, docker.V2Image, docker.V2S2Manifest, error) {
+	created := i.created
+
+	// Build an empty image, and then decode over it.
+	oimage := v1.Image{}
+	if err := json.Unmarshal(i.oconfig, &oimage); err != nil {
+		return v1.Image{}, v1.Manifest{}, docker.V2Image{}, docker.V2S2Manifest{}, err
+	}
+	// Always replace this value, since we're newer than our base image.
+	oimage.Created = &created
+	// Clear the list of diffIDs, since we always repopulate it.
+	oimage.RootFS.Type = docker.TypeLayers
+	oimage.RootFS.DiffIDs = []digest.Digest{}
+	// Only clear the history if we're squashing, otherwise leave it be so that we can append
+	// entries to it.
+	if i.squash {
+		oimage.History = []v1.History{}
+	}
+
+	// Build an empty image, and then decode over it.
+	dimage := docker.V2Image{}
+	if err := json.Unmarshal(i.dconfig, &dimage); err != nil {
+		return v1.Image{}, v1.Manifest{}, docker.V2Image{}, docker.V2S2Manifest{}, err
+	}
+	// Always replace this value, since we're newer than our base image.
+	dimage.Created = created
+	// Clear the list of diffIDs, since we always repopulate it.
+	dimage.RootFS = &docker.V2S2RootFS{}
+	dimage.RootFS.Type = docker.TypeLayers
+	dimage.RootFS.DiffIDs = []digest.Digest{}
+	// Only clear the history if we're squashing, otherwise leave it be so that we can append
+	// entries to it.
+	if i.squash {
+		dimage.History = []docker.V2S2History{}
+	}
+
+	// Build empty manifests.  The Layers lists will be populated later.
+	omanifest := v1.Manifest{
+		Versioned: specs.Versioned{
+			SchemaVersion: 2,
+		},
+		Config: v1.Descriptor{
+			MediaType: v1.MediaTypeImageConfig,
+		},
+		Layers:      []v1.Descriptor{},
+		Annotations: i.annotations,
+	}
+
+	dmanifest := docker.V2S2Manifest{
+		V2Versioned: docker.V2Versioned{
+			SchemaVersion: 2,
+			MediaType:     docker.V2S2MediaTypeManifest,
+		},
+		Config: docker.V2S2Descriptor{
+			MediaType: docker.V2S2MediaTypeImageConfig,
+		},
+		Layers: []docker.V2S2Descriptor{},
+	}
+
+	return oimage, omanifest, dimage, dmanifest, nil
+}
+
 func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.SystemContext) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
 	manifestType := i.preferredManifestType
@@ -109,11 +233,12 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read layer %q", layerID)
 	}
-	// Walk the list of parent layers, prepending each as we go.
+	// Walk the list of parent layers, prepending each as we go.  If we're squashing,
+	// stop at the layer ID of the top layer, which we won't really be using anyway.
 	for layer != nil {
 		layers = append(append([]string{}, layerID), layers...)
 		layerID = layer.Parent
-		if layerID == "" {
+		if layerID == "" || i.squash {
 			err = nil
 			break
 		}
@@ -139,57 +264,25 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 	}()
 
-	// Build fresh copies of the configurations so that we don't mess with the values in the Builder
-	// object itself.
-	oimage := v1.Image{}
-	err = json.Unmarshal(i.oconfig, &oimage)
+	// Build fresh copies of the configurations and manifest so that we don't mess with any
+	// values in the Builder object itself.
+	oimage, omanifest, dimage, dmanifest, err := i.createConfigsAndManifests()
 	if err != nil {
 		return nil, err
 	}
-	created := i.created
-	oimage.Created = &created
-	dimage := docker.V2Image{}
-	err = json.Unmarshal(i.dconfig, &dimage)
-	if err != nil {
-		return nil, err
-	}
-	dimage.Created = created
-
-	// Start building manifests.
-	omanifest := v1.Manifest{
-		Versioned: specs.Versioned{
-			SchemaVersion: 2,
-		},
-		Config: v1.Descriptor{
-			MediaType: v1.MediaTypeImageConfig,
-		},
-		Layers:      []v1.Descriptor{},
-		Annotations: i.annotations,
-	}
-	dmanifest := docker.V2S2Manifest{
-		V2Versioned: docker.V2Versioned{
-			SchemaVersion: 2,
-			MediaType:     docker.V2S2MediaTypeManifest,
-		},
-		Config: docker.V2S2Descriptor{
-			MediaType: docker.V2S2MediaTypeImageConfig,
-		},
-		Layers: []docker.V2S2Descriptor{},
-	}
-
-	oimage.RootFS.Type = docker.TypeLayers
-	oimage.RootFS.DiffIDs = []digest.Digest{}
-	dimage.RootFS = &docker.V2S2RootFS{}
-	dimage.RootFS.Type = docker.TypeLayers
-	dimage.RootFS.DiffIDs = []digest.Digest{}
 
 	// Extract each layer and compute its digests, both compressed (if requested) and uncompressed.
 	for _, layerID := range layers {
+		what := fmt.Sprintf("layer %q", layerID)
+		if i.squash {
+			what = fmt.Sprintf("container %q", i.containerID)
+		}
 		// The default layer media type assumes no compression.
 		omediaType := v1.MediaTypeImageLayer
 		dmediaType := docker.V2S2MediaTypeUncompressedLayer
-		// If we're not re-exporting the data, reuse the blobsum and diff IDs.
-		if !i.exporting && layerID != i.layerID {
+		// If we're not re-exporting the data, and we're reusing layers individually, reuse
+		// the blobsum and diff IDs.
+		if !i.exporting && !i.squash && layerID != i.layerID {
 			layer, err2 := i.store.Layer(layerID)
 			if err2 != nil {
 				return nil, errors.Wrapf(err, "unable to locate layer %q", layerID)
@@ -218,40 +311,37 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			continue
 		}
 		// Figure out if we need to change the media type, in case we're using compression.
-		if i.compression != archive.Uncompressed {
-			switch i.compression {
-			case archive.Gzip:
-				omediaType = v1.MediaTypeImageLayerGzip
-				dmediaType = docker.V2S2MediaTypeLayer
-				logrus.Debugf("compressing layer %q with gzip", layerID)
-			case archive.Bzip2:
-				// Until the image specs define a media type for bzip2-compressed layers, even if we know
-				// how to decompress them, we can't try to compress layers with bzip2.
-				return nil, errors.New("media type for bzip2-compressed layers is not defined")
-			case archive.Xz:
-				// Until the image specs define a media type for xz-compressed layers, even if we know
-				// how to decompress them, we can't try to compress layers with xz.
-				return nil, errors.New("media type for xz-compressed layers is not defined")
-			default:
-				logrus.Debugf("compressing layer %q with unknown compressor(?)", layerID)
-			}
+		omediaType, dmediaType, err = i.computeLayerMIMEType(what)
+		if err != nil {
+			return nil, err
 		}
-		// Start reading the layer.
+		// Start reading either the layer or the whole container rootfs.
 		noCompression := archive.Uncompressed
 		diffOptions := &storage.DiffOptions{
 			Compression: &noCompression,
 		}
-		rc, err := i.store.Diff("", layerID, diffOptions)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error extracting layer %q", layerID)
+		var rc io.ReadCloser
+		if i.squash {
+			// Extract the root filesystem as a single layer.
+			rc, err = i.extractRootfs()
+			if err != nil {
+				return nil, err
+			}
+			defer rc.Close()
+		} else {
+			// Extract this layer, one of possibly many.
+			rc, err = i.store.Diff("", layerID, diffOptions)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error extracting %s", what)
+			}
+			defer rc.Close()
 		}
-		defer rc.Close()
 		srcHasher := digest.Canonical.Digester()
 		reader := io.TeeReader(rc, srcHasher.Hash())
 		// Set up to write the possibly-recompressed blob.
 		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error opening file for layer %q", layerID)
+			return nil, errors.Wrapf(err, "error opening file for %s", what)
 		}
 		destHasher := digest.Canonical.Digester()
 		counter := ioutils.NewWriteCounter(layerFile)
@@ -259,26 +349,26 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		// Compress the layer, if we're recompressing it.
 		writer, err := archive.CompressStream(multiWriter, i.compression)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error compressing layer %q", layerID)
+			return nil, errors.Wrapf(err, "error compressing %s", what)
 		}
 		size, err := io.Copy(writer, reader)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error storing layer %q to file", layerID)
+			return nil, errors.Wrapf(err, "error storing %s to file", what)
 		}
 		writer.Close()
 		layerFile.Close()
 		if i.compression == archive.Uncompressed {
 			if size != counter.Count {
-				return nil, errors.Errorf("error storing layer %q to file: inconsistent layer size (copied %d, wrote %d)", layerID, size, counter.Count)
+				return nil, errors.Errorf("error storing %s to file: inconsistent layer size (copied %d, wrote %d)", what, size, counter.Count)
 			}
 		} else {
 			size = counter.Count
 		}
-		logrus.Debugf("layer %q size is %d bytes", layerID, size)
+		logrus.Debugf("%s size is %d bytes", what, size)
 		// Rename the layer so that we can more easily find it by digest later.
 		err = os.Rename(filepath.Join(path, "layer"), filepath.Join(path, destHasher.Digest().String()))
 		if err != nil {
-			return nil, errors.Wrapf(err, "error storing layer %q to file", layerID)
+			return nil, errors.Wrapf(err, "error storing %s to file", what)
 		}
 		// Add a note in the manifest about the layer.  The blobs are identified by their possibly-
 		// compressed blob digests.
@@ -383,6 +473,8 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		path:         path,
 		ref:          i,
 		store:        i.store,
+		containerID:  i.containerID,
+		mountLabel:   i.mountLabel,
 		layerID:      i.layerID,
 		names:        i.names,
 		compression:  i.compression,
@@ -440,15 +532,15 @@ func (i *containerImageSource) Reference() types.ImageReference {
 }
 
 func (i *containerImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
-	if instanceDigest != nil && *instanceDigest != digest.FromBytes(i.manifest) {
-		return nil, errors.Errorf("TODO")
+	if instanceDigest != nil {
+		return nil, errors.Errorf("containerImageSource does not support manifest lists")
 	}
 	return nil, nil
 }
 
 func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
-	if instanceDigest != nil && *instanceDigest != digest.FromBytes(i.manifest) {
-		return nil, "", errors.Errorf("TODO")
+	if instanceDigest != nil {
+		return nil, "", errors.Errorf("containerImageSource does not support manifest lists")
 	}
 	return i.manifest, i.manifestType, nil
 }
@@ -488,7 +580,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo)
 	return ioutils.NewReadCloserWrapper(layerFile, closer), size, nil
 }
 
-func (b *Builder) makeImageRef(manifestType string, exporting bool, compress archive.Compression, historyTimestamp *time.Time) (types.ImageReference, error) {
+func (b *Builder) makeImageRef(manifestType string, exporting bool, squash bool, compress archive.Compression, historyTimestamp *time.Time) (types.ImageReference, error) {
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
@@ -519,6 +611,8 @@ func (b *Builder) makeImageRef(manifestType string, exporting bool, compress arc
 		compression:           compress,
 		name:                  name,
 		names:                 container.Names,
+		containerID:           container.ID,
+		mountLabel:            b.MountLabel,
 		layerID:               container.LayerID,
 		oconfig:               oconfig,
 		dconfig:               dconfig,
@@ -528,6 +622,7 @@ func (b *Builder) makeImageRef(manifestType string, exporting bool, compress arc
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,
 		exporting:             exporting,
+		squash:                squash,
 	}
 	return ref, nil
 }

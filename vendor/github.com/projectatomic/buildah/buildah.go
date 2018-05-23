@@ -3,6 +3,7 @@ package buildah
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -35,11 +36,14 @@ const (
 	stateFile = Package + ".json"
 )
 
+// PullPolicy takes the value PullIfMissing, PullAlways, or PullNever.
+type PullPolicy int
+
 const (
 	// PullIfMissing is one of the values that BuilderOptions.PullPolicy
 	// can take, signalling that the source image should be pulled from a
 	// registry if a local copy of it is not already present.
-	PullIfMissing = iota
+	PullIfMissing PullPolicy = iota
 	// PullAlways is one of the values that BuilderOptions.PullPolicy can
 	// take, signalling that a fresh, possibly updated, copy of the image
 	// should be pulled from a registry before the build proceeds.
@@ -49,6 +53,19 @@ const (
 	// registry if a local copy of it is not already present.
 	PullNever
 )
+
+// String converts a PullPolicy into a string.
+func (p PullPolicy) String() string {
+	switch p {
+	case PullIfMissing:
+		return "PullIfMissing"
+	case PullAlways:
+		return "PullAlways"
+	case PullNever:
+		return "PullNever"
+	}
+	return fmt.Sprintf("unrecognized policy %d", p)
+}
 
 // Builder objects are used to represent containers which are being used to
 // build images.  They also carry potential updates which will be applied to
@@ -95,9 +112,11 @@ type Builder struct {
 	// Image metadata and runtime settings, in multiple formats.
 	OCIv1  v1.Image       `json:"ociv1,omitempty"`
 	Docker docker.V2Image `json:"docker,omitempty"`
-	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
+
+	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format.
 	DefaultMountsFilePath string `json:"defaultMountsFilePath,omitempty"`
-	CommonBuildOpts       *CommonBuildOptions
+
+	CommonBuildOpts *CommonBuildOptions
 }
 
 // BuilderInfo are used as objects to display container information
@@ -140,35 +159,54 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 	}
 }
 
-// CommonBuildOptions are reseources that can be defined by flags for both buildah from and bud
+// CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
 type CommonBuildOptions struct {
 	// AddHost is the list of hostnames to add to the resolv.conf
 	AddHost []string
-	//CgroupParent it the path to cgroups under which the cgroup for the container will be created.
+	// CgroupParent is the path to cgroups under which the cgroup for the container will be created.
 	CgroupParent string
-	//CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
+	// CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
 	CPUPeriod uint64
-	//CPUQuota limits the CPU CFS (Completely Fair Scheduler) quota
+	// CPUQuota limits the CPU CFS (Completely Fair Scheduler) quota
 	CPUQuota int64
-	//CPUShares (relative weight
+	// CPUShares (relative weight
 	CPUShares uint64
-	//CPUSetCPUs in which to allow execution (0-3, 0,1)
+	// CPUSetCPUs in which to allow execution (0-3, 0,1)
 	CPUSetCPUs string
-	//CPUSetMems memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+	// CPUSetMems memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
 	CPUSetMems string
-	//Memory limit
+	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
-	//MemorySwap limit value equal to memory plus swap.
+	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
-	//SecruityOpts modify the way container security is running
-	LabelOpts          []string
+	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
+	// Recognized field names are "role", "type", and "level".
+	LabelOpts []string
+	// SeccompProfilePath is the pathname of a seccomp profile.
 	SeccompProfilePath string
-	ApparmorProfile    string
-	//ShmSize is the shared memory size
+	// ApparmorProfile is the name of an apparmor profile.
+	ApparmorProfile string
+	// ShmSize is the "size" value to use when mounting an shmfs on the container's /dev/shm directory.
 	ShmSize string
-	//Ulimit options
+	// Ulimit specifies resource limit options, in the form type:softlimit[:hardlimit].
+	// These types are recognized:
+	// "core": maximimum core dump size (ulimit -c)
+	// "cpu": maximum CPU time (ulimit -t)
+	// "data": maximum size of a process's data segment (ulimit -d)
+	// "fsize": maximum size of new files (ulimit -f)
+	// "locks": maximum number of file locks (ulimit -x)
+	// "memlock": maximum amount of locked memory (ulimit -l)
+	// "msgqueue": maximum amount of data in message queues (ulimit -q)
+	// "nice": niceness adjustment (nice -n, ulimit -e)
+	// "nofile": maximum number of open files (ulimit -n)
+	// "nproc": maximum number of processes (ulimit -u)
+	// "rss": maximum size of a process's (ulimit -m)
+	// "rtprio": maximum real-time scheduling priority (ulimit -r)
+	// "rttime": maximum amount of real-time execution between blocking syscalls
+	// "sigpending": maximum number of pending signals (ulimit -i)
+	// "stack": maximum stack size (ulimit -s)
 	Ulimit []string
-	//Volumes to bind mount into the container
+	// Volumes to bind mount into the container
 	Volumes []string
 }
 
@@ -184,7 +222,7 @@ type BuilderOptions struct {
 	// PullPolicy decides whether or not we should pull the image that
 	// we're using as a base image.  It should be PullIfMissing,
 	// PullAlways, or PullNever.
-	PullPolicy int
+	PullPolicy PullPolicy
 	// Registry is a value which is prepended to the image's name, if it
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
@@ -209,7 +247,8 @@ type BuilderOptions struct {
 	// github.com/containers/image/types SystemContext to hold credentials
 	// and other authentication/authorization information.
 	SystemContext *types.SystemContext
-	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
+	// DefaultMountsFilePath is the file path holding the mounts to be
+	// mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
 	CommonBuildOpts       *CommonBuildOptions
 }

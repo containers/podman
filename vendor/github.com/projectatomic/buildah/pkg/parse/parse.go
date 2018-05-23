@@ -88,7 +88,7 @@ func parseSecurityOpts(securityOpts []string, commonOpts *buildah.CommonBuildOpt
 		}
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) != 2 {
-			return errors.Errorf("Invalid --security-opt 1: %q", opt)
+			return errors.Errorf("Invalid --security-opt name=value pair: %q", opt)
 		}
 
 		switch con[0] {
