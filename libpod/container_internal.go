@@ -243,7 +243,9 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	// Set the default Entrypoint and Command
 	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
-	c.config.Command = containerInfo.Config.Config.Cmd
+	if len(c.config.Command) == 0 {
+		c.config.Command = containerInfo.Config.Config.Cmd
+	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.MkdirAll(artifacts, 0755); err != nil {
