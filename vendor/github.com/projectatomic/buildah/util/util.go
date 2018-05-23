@@ -70,7 +70,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		}
 	}
 
-	// If the image is from a different transport
+	// If the image includes a transport's name as a prefix, use it as-is.
 	split := strings.SplitN(name, ":", 2)
 	if len(split) == 2 {
 		if _, ok := Transports[split[0]]; ok {
@@ -91,8 +91,16 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		// If this domain can cause us to insert something in the middle, check if that happened.
 		repoPath := reference.Path(named)
 		domain := reference.Domain(named)
+		tag := ""
+		if tagged, ok := named.(reference.Tagged); ok {
+			tag = ":" + tagged.Tag()
+		}
+		digest := ""
+		if digested, ok := named.(reference.Digested); ok {
+			digest = "@" + digested.Digest().String()
+		}
 		defaultPrefix := RegistryDefaultPathPrefix[reference.Domain(named)] + "/"
-		if strings.HasPrefix(repoPath, defaultPrefix) && path.Join(domain, repoPath[len(defaultPrefix):]) == name {
+		if strings.HasPrefix(repoPath, defaultPrefix) && path.Join(domain, repoPath[len(defaultPrefix):])+tag+digest == name {
 			// Yup, parsing just inserted a bit in the middle, so there was a domain name there to begin with.
 			return []string{name}
 		}

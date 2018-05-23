@@ -11,6 +11,10 @@ import (
 
 var (
 	BudFlags = []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "annotation",
+			Usage: "Set metadata for an image (default [])",
+		},
 		cli.StringFlag{
 			Name:  "authfile",
 			Usage: "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
@@ -52,6 +56,10 @@ var (
 		cli.StringFlag{
 			Name:  "iidfile",
 			Usage: "Write the image ID to the file",
+		},
+		cli.StringSliceFlag{
+			Name:  "label",
+			Usage: "Set metadata for an image (default [])",
 		},
 		cli.BoolFlag{
 			Name:  "no-cache",
@@ -139,11 +147,11 @@ var (
 		},
 		cli.StringSliceFlag{
 			Name:  "security-opt",
-			Usage: "security Options (default [])",
+			Usage: "security options (default [])",
 		},
 		cli.StringFlag{
 			Name:  "shm-size",
-			Usage: "size of `/dev/shm`. The format is `<number><unit>`.",
+			Usage: "size of '/dev/shm'. The format is `<number><unit>`.",
 			Value: "65536k",
 		},
 		cli.StringSliceFlag{

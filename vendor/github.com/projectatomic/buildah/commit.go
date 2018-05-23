@@ -49,6 +49,9 @@ type CommitOptions struct {
 	SystemContext *types.SystemContext
 	// IIDFile tells the builder to write the image ID to the specified file
 	IIDFile string
+	// Squash tells the builder to produce an image with a single layer
+	// instead of with possibly more than one layer.
+	Squash bool
 }
 
 // PushOptions can be used to alter how an image is copied somewhere.
@@ -100,7 +103,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	// Check if we're keeping everything in local storage.  If so, we can take certain shortcuts.
 	_, destIsStorage := dest.Transport().(is.StoreTransport)
 	exporting := !destIsStorage
-	src, err := b.makeImageRef(options.PreferredManifestType, exporting, options.Compression, options.HistoryTimestamp)
+	src, err := b.makeImageRef(options.PreferredManifestType, exporting, options.Squash, options.Compression, options.HistoryTimestamp)
 	if err != nil {
 		return imgID, errors.Wrapf(err, "error computing layer digests and building metadata")
 	}

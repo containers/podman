@@ -60,10 +60,15 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		if err != nil {
 			return "", errors.Wrapf(err, "error loading manifest for %q", srcRef)
 		}
+		// if index.json has no reference name, compute the image digest instead
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
-			return "", errors.Errorf("error, archive doesn't have a name annotation. Cannot store image with no name")
+			name, err = getImageDigest(ctx, srcRef, nil)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			name = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		name = manifest.Annotations["org.opencontainers.image.ref.name"]
 	case util.DirTransport:
 		// supports pull from a directory
 		name = split[1]
