@@ -98,7 +98,7 @@ $PODMAN --version
 
 set -x
 # Run podman in background without systemd for test purposes
-$PODMAN --timeout 0 varlink ${PODMAN_HOST} >/tmp/test_runner.output 2>&1 &
+$PODMAN varlink --timeout=0 ${PODMAN_HOST} >/tmp/test_runner.output 2>&1 &
 
 if [[ -z $1 ]]; then
   export PYTHONPATH=.
