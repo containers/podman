@@ -200,6 +200,11 @@ BuildArch: noarch
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-varlink
+
+Requires: python3-setuptools
+Requires: python3-varlink
+Requires: python3-dateutil
+
 Provides: python3-%{name} = %{version}-%{release}
 Summary: Python 3 bindings for %{name}
 

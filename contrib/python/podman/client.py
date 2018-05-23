@@ -53,9 +53,14 @@ class Client(object):
         self._client = functools.partial(_podman, uri, interface)
 
         # Quick validation of connection data provided
-        if not System(self._client).ping():
-            raise ValueError('Failed varlink connection "{}/{}"'.format(
-                uri, interface))
+        try:
+            if not System(self._client).ping():
+                raise ValueError('Failed varlink connection "{}/{}"'.format(
+                    uri, interface))
+        except FileNotFoundError:
+            raise ValueError('Failed varlink connection "{}/{}".'
+                             ' Is podman service running?'.format(
+                                 uri, interface))
 
     def __enter__(self):
         """Return `self` upon entering the runtime context."""
