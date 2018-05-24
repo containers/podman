@@ -242,8 +242,10 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	// Set the default Entrypoint and Command
-	c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
-	if len(c.config.Command) == 0 {
+	if c.config.Entrypoint == nil {
+		c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
+	}
+	if c.config.Command == nil {
 		c.config.Command = containerInfo.Config.Config.Cmd
 	}
 
