@@ -1,4 +1,5 @@
 import os
+import signal
 import time
 import unittest
 from test.podman_testcase import PodmanTestCase
@@ -21,42 +22,39 @@ class TestContainers(PodmanTestCase):
         self.host = os.environ['PODMAN_HOST']
 
         self.pclient = podman.Client(self.host)
-        self.ctns = self.loadCache()
-        # TODO: Change to start() when Implemented
-        self.alpine_ctnr.restart()
+        self.loadCache()
 
     def tearDown(self):
         pass
 
     def loadCache(self):
-        with podman.Client(self.host) as pclient:
-            self.ctns = list(pclient.containers.list())
+        self.containers = list(self.pclient.containers.list())
 
         self.alpine_ctnr = next(
-            iter([c for c in self.ctns if 'alpine' in c['image']] or []), None)
-        return self.ctns
+            iter([c for c in self.containers if 'alpine' in c['image']] or []),
+            None)
+
+        if self.alpine_ctnr and self.alpine_ctnr.status != 'running':
+            self.alpine_ctnr.start()
 
     def test_list(self):
-        actual = self.loadCache()
-        self.assertGreaterEqual(len(actual), 2)
+        self.assertGreaterEqual(len(self.containers), 2)
         self.assertIsNotNone(self.alpine_ctnr)
         self.assertIn('alpine', self.alpine_ctnr.image)
 
     def test_delete_stopped(self):
-        before = self.loadCache()
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.stop())
+        before = len(self.containers)
+
+        self.alpine_ctnr.stop()
+        target = self.alpine_ctnr.id
         actual = self.pclient.containers.delete_stopped()
-        self.assertIn(self.alpine_ctnr.id, actual)
-        after = self.loadCache()
+        self.assertIn(target, actual)
 
-        self.assertLess(len(after), len(before))
-        TestContainers.setUpClass()
         self.loadCache()
+        after = len(self.containers)
 
-    @unittest.skip('TODO: Reinstate with create PR')
-    def test_create(self):
-        with self.assertRaisesNotImplemented():
-            self.pclient.containers.create()
+        self.assertLess(after, before)
+        TestContainers.setUpClass()
 
     def test_get(self):
         actual = self.pclient.containers.get(self.alpine_ctnr.id)
@@ -75,19 +73,16 @@ class TestContainers(PodmanTestCase):
         self.assertGreaterEqual(len(actual), 2)
 
     def test_start_stop_wait(self):
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.stop())
-        self.alpine_ctnr.refresh()
-        self.assertFalse(self.alpine_ctnr['running'])
+        ctnr = self.alpine_ctnr.stop()
+        self.assertFalse(ctnr['running'])
 
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.restart())
-        self.alpine_ctnr.refresh()
-        self.assertTrue(self.alpine_ctnr.running)
+        ctnr.start()
+        self.assertTrue(ctnr.running)
 
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.stop())
-        self.alpine_ctnr.refresh()
-        self.assertFalse(self.alpine_ctnr['containerrunning'])
+        ctnr.stop()
+        self.assertFalse(ctnr['containerrunning'])
 
-        actual = self.alpine_ctnr.wait()
+        actual = ctnr.wait()
         self.assertGreaterEqual(actual, 0)
 
     def test_changes(self):
@@ -104,19 +99,16 @@ class TestContainers(PodmanTestCase):
 
     def test_kill(self):
         self.assertTrue(self.alpine_ctnr.running)
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.kill(9))
-        time.sleep(2)
-
-        self.alpine_ctnr.refresh()
-        self.assertFalse(self.alpine_ctnr.running)
+        ctnr = self.alpine_ctnr.kill(signal.SIGKILL)
+        self.assertFalse(ctnr.running)
 
     def test_inspect(self):
         actual = self.alpine_ctnr.inspect()
         self.assertEqual(actual.id, self.alpine_ctnr.id)
         # TODO: Datetime values from inspect missing offset in CI instance
         # self.assertEqual(
-        #     datetime_parse(actual.created),
-        #     datetime_parse(self.alpine_ctnr.createdat))
+        # datetime_parse(actual.created),
+        # datetime_parse(self.alpine_ctnr.createdat))
 
     def test_export(self):
         target = os.path.join(self.tmpdir, 'alpine_export_ctnr.tar')
@@ -129,21 +121,21 @@ class TestContainers(PodmanTestCase):
     def test_commit(self):
         # TODO: Test for STOPSIGNAL when supported by OCI
         # TODO: Test for message when supported by OCI
-        # TODO: Test for EXPOSE when issue#795 fixed
-        #       'EXPOSE=8888/tcp, 8888/udp'
+        details = self.pclient.images.get(
+            self.alpine_ctnr.inspect().image).inspect()
+        changes = ['ENV=' + i for i in details.containerconfig['env']]
+        changes.append('CMD=/usr/bin/zsh')
+        changes.append('ENTRYPOINT=/bin/sh date')
+        changes.append('ENV=TEST=test_containers.TestContainers.test_commit')
+        changes.append('EXPOSE=80')
+        changes.append('EXPOSE=8888')
+        changes.append('LABEL=unittest=test_commit')
+        changes.append('USER=bozo:circus')
+        changes.append('VOLUME=/data')
+        changes.append('WORKDIR=/data/application')
+
         id = self.alpine_ctnr.commit(
-            'alpine3',
-            author='Bozo the clown',
-            changes=[
-                'CMD=/usr/bin/zsh',
-                'ENTRYPOINT=/bin/sh date',
-                'ENV=TEST=test_containers.TestContainers.test_commit',
-                'LABEL=unittest=test_commit',
-                'USER=bozo:circus',
-                'VOLUME=/data',
-                'WORKDIR=/data/application',
-            ],
-            pause=True)
+            'alpine3', author='Bozo the clown', changes=changes, pause=True)
         img = self.pclient.images.get(id)
         self.assertIsNotNone(img)
 
@@ -152,12 +144,14 @@ class TestContainers(PodmanTestCase):
         self.assertListEqual(['/usr/bin/zsh'], details.containerconfig['cmd'])
         self.assertListEqual(['/bin/sh date'],
                              details.containerconfig['entrypoint'])
-        self.assertListEqual(
-            ['TEST=test_containers.TestContainers.test_commit'],
-            details.containerconfig['env'])
-        # self.assertDictEqual({
-        #     '8888/tcp': {}
-        # }, details.containerconfig['exposedports'])
+        self.assertIn('TEST=test_containers.TestContainers.test_commit',
+                      details.containerconfig['env'])
+        self.assertTrue(
+            [e for e in details.containerconfig['env'] if 'PATH=' in e])
+        self.assertDictEqual({
+            '80': {},
+            '8888': {},
+        }, details.containerconfig['exposedports'])
         self.assertDictEqual({'unittest': 'test_commit'}, details.labels)
         self.assertEqual('bozo:circus', details.containerconfig['user'])
         self.assertEqual({'/data': {}}, details.containerconfig['volumes'])
@@ -165,28 +159,27 @@ class TestContainers(PodmanTestCase):
                          details.containerconfig['workingdir'])
 
     def test_remove(self):
-        before = self.loadCache()
+        before = len(self.containers)
 
         with self.assertRaises(podman.ErrorOccurred):
             self.alpine_ctnr.remove()
 
         self.assertEqual(
             self.alpine_ctnr.id, self.alpine_ctnr.remove(force=True))
-        after = self.loadCache()
-
-        self.assertLess(len(after), len(before))
-        TestContainers.setUpClass()
         self.loadCache()
+        after = len(self.containers)
+
+        self.assertLess(after, before)
+        TestContainers.setUpClass()
 
     def test_restart(self):
         self.assertTrue(self.alpine_ctnr.running)
         before = self.alpine_ctnr.runningfor
 
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.restart())
+        ctnr = self.alpine_ctnr.restart()
+        self.assertTrue(ctnr.running)
 
-        self.alpine_ctnr.refresh()
         after = self.alpine_ctnr.runningfor
-        self.assertTrue(self.alpine_ctnr.running)
 
         # TODO: restore check when restart zeros counter
         # self.assertLess(after, before)
@@ -202,22 +195,22 @@ class TestContainers(PodmanTestCase):
     def test_pause_unpause(self):
         self.assertTrue(self.alpine_ctnr.running)
 
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.pause())
-        self.alpine_ctnr.refresh()
-        self.assertFalse(self.alpine_ctnr.running)
+        ctnr = self.alpine_ctnr.pause()
+        self.assertEqual(ctnr.status, 'paused')
 
-        self.assertEqual(self.alpine_ctnr.id, self.alpine_ctnr.unpause())
-        self.alpine_ctnr.refresh()
-        self.assertTrue(self.alpine_ctnr.running)
+        ctnr = self.alpine_ctnr.unpause()
+        self.assertTrue(ctnr.running)
+        self.assertTrue(ctnr.status, 'running')
 
     def test_stats(self):
-        self.alpine_ctnr.restart()
+        self.assertTrue(self.alpine_ctnr.running)
+
         actual = self.alpine_ctnr.stats()
         self.assertEqual(self.alpine_ctnr.id, actual.id)
         self.assertEqual(self.alpine_ctnr.names, actual.name)
 
     def test_logs(self):
-        self.alpine_ctnr.restart()
+        self.assertTrue(self.alpine_ctnr.running)
         actual = list(self.alpine_ctnr.logs())
         self.assertIsNotNone(actual)
 
