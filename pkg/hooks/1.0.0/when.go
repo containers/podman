@@ -75,6 +75,9 @@ func (when *When) Match(config *rspec.Spec, annotations map[string]string, hasBi
 	}
 
 	if config.Process != nil {
+		if len(config.Process.Args) == 0 {
+			return false, errors.New("process.args must have at least one entry")
+		}
 		command := config.Process.Args[0]
 		for _, cmdPattern := range when.Commands {
 			match, err := regexp.MatchString(cmdPattern, command)

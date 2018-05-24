@@ -142,25 +142,33 @@ func TestCommands(t *testing.T) {
 			"^/bin/sh$",
 		},
 	}
-	config := &rspec.Spec{Process: &rspec.Process{}}
+	config := &rspec.Spec{}
 	for _, test := range []struct {
-		name  string
-		args  []string
-		match bool
+		name    string
+		process *rspec.Process
+		match   bool
 	}{
 		{
-			name:  "good",
-			args:  []string{"/bin/sh", "a", "b"},
+			name: "good",
+			process: &rspec.Process{
+				Args: []string{"/bin/sh", "a", "b"},
+			},
 			match: true,
 		},
 		{
-			name:  "extra characters",
-			args:  []string{"/bin/shell", "a", "b"},
+			name: "extra characters",
+			process: &rspec.Process{
+				Args: []string{"/bin/shell", "a", "b"},
+			},
+			match: false,
+		},
+		{
+			name:  "process unset",
 			match: false,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			config.Process.Args = test.args
+			config.Process = test.process
 			match, err := when.Match(config, map[string]string{}, false)
 			if err != nil {
 				t.Fatal(err)
@@ -168,6 +176,22 @@ func TestCommands(t *testing.T) {
 			assert.Equal(t, test.match, match)
 		})
 	}
+}
+
+func TestCommandsEmptyProcessArgs(t *testing.T) {
+	when := When{
+		Commands: []string{
+			"^/bin/sh$",
+		},
+	}
+	config := &rspec.Spec{
+		Process: &rspec.Process{},
+	}
+	_, err := when.Match(config, map[string]string{}, false)
+	if err == nil {
+		t.Fatal("unexpected success")
+	}
+	assert.Regexp(t, "^process\\.args must have at least one entry$", err.Error())
 }
 
 func TestHasBindMountsAndCommands(t *testing.T) {
