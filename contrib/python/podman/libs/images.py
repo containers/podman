@@ -3,6 +3,9 @@ import collections
 import functools
 import json
 
+from . import Config
+from .containers import Container
+
 
 class Image(collections.UserDict):
     """Model for an Image."""
@@ -25,8 +28,42 @@ class Image(collections.UserDict):
         """Get items from parent dict."""
         return super().__getitem__(key)
 
+    def _split_token(self, values=None, sep='='):
+        mapped = {}
+        if values:
+            for var in values:
+                k, v = var.split(sep, 1)
+                mapped[k] = v
+        return mapped
+
+    def create(self, *args, **kwargs):
+        """Create container from image.
+
+        Pulls defaults from image.inspect()
+        """
+        # Inialize config from parameters
+        with self._client() as podman:
+            details = self.inspect()
+
+        # TODO: remove network settings once defaults implemented on service side
+        config = Config(image_id=self.id, **kwargs)
+        config['command'] = details.containerconfig['cmd']
+        config['env'] = self._split_token(details.containerconfig['env'])
+        config['image'] = details.repotags[0]
+        config['labels'] = self._split_token(details.labels)
+        config['net_mode'] = 'bridge'
+        config['network'] = 'bridge'
+        config['work_dir'] = '/tmp'
+
+        with self._client() as podman:
+            id = podman.CreateContainer(config)['container']
+            cntr = podman.GetContainer(id)
+        return Container(self._client, id, cntr['container'])
+
+    container = create
+
     def export(self, dest, compressed=False):
-        """Write image to dest, return True on success."""
+        """Write image to dest, return id on success."""
         with self._client() as podman:
             results = podman.ExportImage(self.id, dest, compressed)
         return results['image']
@@ -50,8 +87,8 @@ class Image(collections.UserDict):
         """Retrieve details about image."""
         with self._client() as podman:
             results = podman.InspectImage(self.id)
-            obj = json.loads(results['image'], object_hook=self._lower_hook())
-            return collections.namedtuple('ImageInspect', obj.keys())(**obj)
+        obj = json.loads(results['image'], object_hook=self._lower_hook())
+        return collections.namedtuple('ImageInspect', obj.keys())(**obj)
 
     def push(self, target, tlsverify=False):
         """Copy image to target, return id on success."""
@@ -89,12 +126,6 @@ class Images(object):
         for img in results['images']:
             yield Image(self._client, img['id'], img)
 
-    def create(self, *args, **kwargs):
-        """Create image from configuration."""
-        with self._client() as podman:
-            results = podman.CreateImage()
-        return results['image']
-
     def build(self, *args, **kwargs):
         """Build container from image.
 
@@ -125,9 +156,9 @@ class Images(object):
     def search(self, id, limit=25):
         """Search registries for id."""
         with self._client() as podman:
-            results = podman.SearchImage(id)
+            results = podman.SearchImage(id, limit)
         for img in results['images']:
-            yield img
+            yield collections.namedtuple('ImageSearch', img.keys())(**img)
 
     def get(self, id):
         """Get Image from id."""

@@ -40,7 +40,7 @@ fi
 export PATH=../../bin:$PATH
 
 function showlog {
-  [ -s "$1" ] && (echo $1 =====; cat "$1")
+  [ -s "$1" ] && (echo $1 =====; cat "$1"; echo)
 }
 
 # Need a location to store the podman socket
@@ -109,8 +109,9 @@ else
 fi
 
 set +x
-pkill podman
+pkill -9 podman
 pkill -9 conmon
 
+showlog /tmp/test_runner.output
 showlog /tmp/alpine.log
 showlog /tmp/busybox.log

@@ -1,8 +1,8 @@
 """Support files for podman API implementation."""
 import datetime
-import threading
-from dateutil.parser import parse as dateutil_parse
+import functools
 
+from dateutil.parser import parse as dateutil_parse
 
 __all__ = [
     'cached_property',
@@ -11,37 +11,28 @@ __all__ = [
 ]
 
 
-class cached_property(object):
-    """cached_property() - computed once per instance, cached as attribute.
+def cached_property(fn):
+    """Cache return to save future expense."""
+    return property(functools.lru_cache(maxsize=8)(fn))
 
-    Maybe this will make a future version of python.
-    """
 
-    def __init__(self, func):
-        """Construct context manager."""
-        self.func = func
-        self.__doc__ = func.__doc__
-        self.lock = threading.RLock()
+# Cannot subclass collections.UserDict, breaks varlink
+class Config(dict):
+    """Silently ignore None values, only take key once."""
 
-    def __get__(self, instance, cls=None):
-        """Retrieve previous value, or call func()."""
-        if instance is None:
-            return self
+    def __init__(self, **kwargs):
+        """Construct dictionary."""
+        super(Config, self).__init__(kwargs)
 
-        attrname = self.func.__name__
-        try:
-            cache = instance.__dict__
-        except AttributeError:  # objects with __slots__ have no __dict__
-            msg = ("No '__dict__' attribute on {}"
-                   " instance to cache {} property.").format(
-                       repr(type(instance).__name__), repr(attrname))
-            raise TypeError(msg) from None
+    def __setitem__(self, key, value):
+        """Store unique, not None values."""
+        if value is None:
+            return
 
-        with self.lock:
-            # check if another thread filled cache while we awaited lock
-            if attrname not in cache:
-                cache[attrname] = self.func(instance)
-        return cache[attrname]
+        if super().__contains__(key):
+            return
+
+        super().__setitem__(key, value)
 
 
 def datetime_parse(string):

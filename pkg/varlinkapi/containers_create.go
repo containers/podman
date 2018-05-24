@@ -41,7 +41,7 @@ func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, conf
 
 	newImage, err := runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	data, err := newImage.Inspect(ctx)
 
