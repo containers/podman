@@ -1,3 +1,29 @@
+- Changelog for v0.5.4 (2018-05-25):
+  * Vendor in latest projectatomic/buildah
+  * Rename addFIPSsModeSecret to addFIPSModeSecret
+  * Make references to the Process part of Spec conditional
+  * save and load should support multi-tag for docker-archive
+  * Implement python podman create and start
+  * Spell check strings and comments
+  * hooks/1.0.0: Error on empty process.args instead of panicking
+  * Set Entrypoint from image only if not already set
+  * Update podman build to match buildah bud functionality
+  * Fix test_runner call of podman varlink
+  * Fix handling of command in images
+  * Add support for Zulu timestamp parsing
+  * Clarify using podman build with a URL, Git repo, or archive.
+  * Vendor in latest container/storage for devicemapper support
+  * set varlink timeout to 1 seconds
+  * podman create, start, getattachsocket
+  * use $GO env-var instead of hard-coded go binary
+  * tidy up the copr spec
+  * honor multiple change values
+  * hooks/README: Fix some Markdown typos (e.g. missing runc target)
+  * oci-hooks.5: Discuss directory precedence and monitoring
+  * finish changing the path for varlink
+  * Tighten the security on the podman varlink socket
+  * Implement podman.containers.commit()
+
 - Changelog for v0.5.3 (2018-05-18):
   * remove hooks files reference and no varlink-python on f27 or epel
   * contrib/spec/podman.spec.in: Drop README-hooks
