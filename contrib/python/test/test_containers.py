@@ -1,11 +1,9 @@
 import os
 import signal
-import time
 import unittest
 from test.podman_testcase import PodmanTestCase
 
 import podman
-from podman import datetime_parse
 
 
 class TestContainers(PodmanTestCase):
@@ -65,8 +63,22 @@ class TestContainers(PodmanTestCase):
             self.pclient.containers.get("bozo")
 
     def test_attach(self):
-        with self.assertRaisesNotImplemented():
-            self.alpine_ctnr.attach()
+        # StringIO does not support fileno() so we had to go old school
+        input = os.path.join(self.tmpdir, 'test_attach.stdin')
+        output = os.path.join(self.tmpdir, 'test_attach.stdout')
+
+        with open(input, 'w+') as mock_in, open(output, 'w+') as mock_out:
+            # double quote is indeed in the expected place
+            mock_in.write('echo H"ello, World"; exit\n')
+            mock_in.seek(0, 0)
+
+            self.alpine_ctnr.attach(
+                stdin=mock_in.fileno(), stdout=mock_out.fileno())
+
+            mock_out.flush()
+            mock_out.seek(0, 0)
+            output = mock_out.read()
+            self.assertIn('Hello', output)
 
     def test_processes(self):
         actual = list(self.alpine_ctnr.processes())

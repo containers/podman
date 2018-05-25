@@ -1,4 +1,5 @@
 """Support files for podman API implementation."""
+import collections
 import datetime
 import functools
 
@@ -12,12 +13,11 @@ __all__ = [
 
 
 def cached_property(fn):
-    """Cache return to save future expense."""
+    """Decorate property to cache return value."""
     return property(functools.lru_cache(maxsize=8)(fn))
 
 
-# Cannot subclass collections.UserDict, breaks varlink
-class Config(dict):
+class Config(collections.UserDict):
     """Silently ignore None values, only take key once."""
 
     def __init__(self, **kwargs):

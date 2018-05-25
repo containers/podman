@@ -6,8 +6,10 @@ import json
 import signal
 import time
 
+from ._containers_attach import Mixin as AttachMixin
 
-class Container(collections.UserDict):
+
+class Container(collections.UserDict, AttachMixin):
     """Model for a container."""
 
     def __init__(self, client, id, data):
@@ -45,12 +47,6 @@ class Container(collections.UserDict):
         """Refresh status fields for this container."""
         with self._client() as podman:
             return self._refresh(podman)
-
-    def attach(self, detach_key=None, no_stdin=False, sig_proxy=True):
-        """Attach to running container."""
-        with self._client() as podman:
-            # TODO: streaming and port magic occur, need arguments
-            podman.AttachToContainer()
 
     def processes(self):
         """Show processes running in container."""
