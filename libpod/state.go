@@ -56,7 +56,7 @@ type State interface {
 	// Only empty pods can be removed from the state
 	RemovePod(pod *Pod) error
 	// Remove all containers from a pod
-	// Used to simulataneously remove containers that might otherwise have
+	// Used to simultaneously remove containers that might otherwise have
 	// dependency issues
 	// Will fail if a dependency outside the pod is encountered
 	RemovePodContainers(pod *Pod) error

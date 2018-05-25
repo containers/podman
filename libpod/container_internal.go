@@ -83,7 +83,7 @@ func (c *Container) rootFsSize() (int64, error) {
 		}
 	}
 	// Get the size of the last layer.  Has to be outside of the loop
-	// because the parent of the last layer is "", andlstore.Get("")
+	// because the parent of the last layer is "", and lstore.Get("")
 	// will return an error.
 	layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
 	return size + layerSize, err

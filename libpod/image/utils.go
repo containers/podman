@@ -72,7 +72,7 @@ func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDocke
 	}
 }
 
-// getPolicyContext sets up, intializes and returns a new context for the specified policy
+// getPolicyContext sets up, initializes and returns a new context for the specified policy
 func getPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error) {
 	policy, err := signature.DefaultPolicy(ctx)
 	if err != nil {

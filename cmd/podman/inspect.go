@@ -60,7 +60,7 @@ func inspectCmd(c *cli.Context) error {
 	}
 
 	if len(args) > 0 && latestContainer {
-		return errors.Errorf("you cannot provide additional arguements with --latest")
+		return errors.Errorf("you cannot provide additional arguments with --latest")
 	}
 	if err := validateFlags(c, inspectFlags); err != nil {
 		return err

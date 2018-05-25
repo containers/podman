@@ -51,7 +51,7 @@ type ImageHistory (
 )
 
 # ImageSearch is the returned structure for SearchImage.  It is returned
-# in arrary form.
+# in array form.
 type ImageSearch (
     description: string,
     is_official: bool,
@@ -330,7 +330,7 @@ method InspectContainer(name: string) -> (container: string)
 
 # ListContainerProcesses takes a name or ID of a container and returns the processes
 # running inside the container as array of strings.  It will accept an array of string
-# arguements that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+# arguments that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
 # error will be returned.
 # #### Example
 # ~~~
@@ -398,7 +398,7 @@ method ResizeContainerTty() -> (notimplemented: NotImplemented)
 method StartContainer(name: string) -> (container: string)
 
 # StopContainer stops a container given a timeout.  It takes the name or ID of a container as well as a
-# timeout value.  The timeout value the time before a forceable stop to the container is applied.  It
+# timeout value.  The timeout value the time before a forcible stop to the container is applied.  It
 # returns the container ID once stopped. If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
 # error will be returned instead. See also [KillContainer](KillContainer).
 # #### Error
@@ -411,7 +411,7 @@ method StartContainer(name: string) -> (container: string)
 method StopContainer(name: string, timeout: int) -> (container: string)
 
 # RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
-# value is the time before a forceable stop is used to stop the container.  If the container cannot be found by
+# value is the time before a forcible stop is used to stop the container.  If the container cannot be found by
 # name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
 # container will be returned.
 method RestartContainer(name: string, timeout: int) -> (container: string)
@@ -463,7 +463,7 @@ method GetAttachSockets(name: string) -> (sockets: Sockets)
 method WaitContainer(name: string) -> (exitcode: int)
 
 # RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
-# container can be stopped and removed.  Upon sucessful removal of the container, its ID is returned.  If the
+# container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
 # container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 # #### Example
 # ~~~
@@ -479,7 +479,7 @@ method RemoveContainer(name: string, force: bool) -> (container: string)
 method DeleteStoppedContainers() -> (containers: []string)
 
 # ListImages returns an array of ImageInList structures which provide basic information about
-# an image currenly in storage.  See also [InspectImage](InspectImage).
+# an image currently in storage.  See also [InspectImage](InspectImage).
 method ListImages() -> (images: []ImageInList)
 
 # This function is not implemented yet.
@@ -507,7 +507,7 @@ method PushImage(name: string, tag: string, tlsverify: bool) -> (image: string)
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
 method TagImage(name: string, tagged: string) -> (image: string)
 
-# RemoveImage takes the name or ID of an image as well as a booleon that determines if containers using that image
+# RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 # should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 # ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
 # #### Example
@@ -542,7 +542,7 @@ method Commit(name: string, image_name: string, changes: []string, author: strin
 method ImportImage(source: string, reference: string, message: string, changes: []string) -> (image: string)
 
 # ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-# a booleon option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
+# a boolean option to force compression.  Upon completion, the ID of the image is returned. If the image cannot
 # be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
 method ExportImage(name: string, destination: string, compress: bool) -> (image: string)
 

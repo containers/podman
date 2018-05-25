@@ -36,7 +36,7 @@ func ExposedPorts(expose, publish []string, publishAll bool, imageExposedPorts m
 		}
 	}
 
-	// parse user input'd port bindings
+	// parse user inputted port bindings
 	pbPorts, portBindings, err := nat.ParsePortSpecs(publish)
 	if err != nil {
 		return nil, err

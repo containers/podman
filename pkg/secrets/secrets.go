@@ -237,7 +237,7 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 	return mounts, nil
 }
 
-// addFIPSModeSecret creates /run/secrets/system-fips in the container
+// addFIPSsModeSecret creates /run/secrets/system-fips in the container
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.

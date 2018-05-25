@@ -109,7 +109,7 @@ func pullCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error pulling image %q", image)
 	}
 
-	// Intentially choosing to ignore if there is an error because
+	// Intentionally choosing to ignore if there is an error because
 	// outputting the image ID is a NTH and not integral to the pull
 	fmt.Println(newImage.ID())
 	return nil

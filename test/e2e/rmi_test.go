@@ -59,7 +59,7 @@ var _ = Describe("Podman rmi", func() {
 
 	})
 
-	It("podman rmi all images forceably with short options", func() {
+	It("podman rmi all images forcibly with short options", func() {
 		podmanTest.PullImages([]string{image3})
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()

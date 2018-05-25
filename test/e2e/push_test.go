@@ -160,7 +160,7 @@ var _ = Describe("Podman push", func() {
 
 			defer podmanTest.SystemExec("systemctl", []string{"stop", "docker"})
 		} else if setup.ExitCode() != 0 {
-			Skip("Docker is not avaiable")
+			Skip("Docker is not available")
 		}
 
 		session := podmanTest.Podman([]string{"push", ALPINE, "docker-daemon:alpine:podmantest"})

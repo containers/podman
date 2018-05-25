@@ -418,7 +418,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, err
 	}
 
-	// SHM SIze
+	// SHM Size
 	shmSize, err := units.FromHumanSize(c.String("shm-size"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
