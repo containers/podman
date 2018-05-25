@@ -54,6 +54,7 @@ type containerImageRef struct {
 	preferredManifestType string
 	exporting             bool
 	squash                bool
+	tarPath               func(path string) (io.ReadCloser, error)
 }
 
 type containerImageSource struct {
@@ -132,10 +133,7 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
 	}
-	tarOptions := &archive.TarOptions{
-		Compression: archive.Uncompressed,
-	}
-	rc, err := archive.TarWithOptions(mountPoint, tarOptions)
+	rc, err := i.tarPath(mountPoint)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
 	}
@@ -623,6 +621,7 @@ func (b *Builder) makeImageRef(manifestType string, exporting bool, squash bool,
 		preferredManifestType: manifestType,
 		exporting:             exporting,
 		squash:                squash,
+		tarPath:               b.tarPath(),
 	}
 	return ref, nil
 }

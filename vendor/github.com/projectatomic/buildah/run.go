@@ -11,13 +11,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/docker/docker/profiles/seccomp"
 	units "github.com/docker/go-units"
@@ -26,6 +31,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah/util"
 	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -69,11 +75,44 @@ func (t TerminalPolicy) String() string {
 	return fmt.Sprintf("unrecognized terminal setting %d", t)
 }
 
+// NamespaceOption controls how we set up a namespace when launching processes.
+type NamespaceOption struct {
+	// Name specifies the type of namespace, typically matching one of the
+	// ...Namespace constants defined in
+	// github.com/opencontainers/runtime-spec/specs-go.
+	Name string
+	// Host is used to force our processes to use the host's namespace of
+	// this type.
+	Host bool
+	// Path is the path of the namespace to attach our process to, if Host
+	// is not set.  If Host is not set and Path is also empty, a new
+	// namespace will be created for the process that we're starting.
+	// If Name is specs.NetworkNamespace, if Path doesn't look like an
+	// absolute path, it is treated as a comma-separated list of CNI
+	// configuration names which will be selected from among all of the CNI
+	// network configurations which we find.
+	Path string
+}
+
+// NamespaceOptions provides some helper methods for a slice of NamespaceOption
+// structs.
+type NamespaceOptions []NamespaceOption
+
+// IDMappingOptions controls how we set up UID/GID mapping when we set up a
+// user namespace.
+type IDMappingOptions struct {
+	HostUIDMapping bool
+	HostGIDMapping bool
+	UIDMap         []specs.LinuxIDMapping
+	GIDMap         []specs.LinuxIDMapping
+}
+
 // RunOptions can be used to alter how a command is run in the container.
 type RunOptions struct {
 	// Hostname is the hostname we set for the running container.
 	Hostname string
-	// Runtime is the name of the command to run.  It should accept the same arguments that runc does.
+	// Runtime is the name of the command to run.  It should accept the same arguments
+	// that runc does, and produce similar output.
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
@@ -91,8 +130,20 @@ type RunOptions struct {
 	Cmd []string
 	// Entrypoint is an override for the configured entry point.
 	Entrypoint []string
-	// NetworkDisabled puts the container into its own network namespace.
-	NetworkDisabled bool
+	// NamespaceOptions controls how we set up the namespaces for the process.
+	NamespaceOptions NamespaceOptions
+	// ConfigureNetwork controls whether or not network interfaces and
+	// routing are configured for a new network namespace (i.e., when not
+	// joining another's namespace and not just using the host's
+	// namespace), effectively deciding whether or not the process has a
+	// usable network.
+	ConfigureNetwork NetworkConfigurationPolicy
+	// CNIPluginPath is the location of CNI plugin helpers, if they should be
+	// run from a location other than the default location.
+	CNIPluginPath string
+	// CNIConfigDir is the location of CNI configuration files, if the files in
+	// the default configuration directory shouldn't be used.
+	CNIConfigDir string
 	// Terminal provides a way to specify whether or not the command should
 	// be run with a pseudoterminal.  By default (DefaultTerminal), a
 	// terminal is used if os.Stdout is connected to a terminal, but that
@@ -101,6 +152,59 @@ type RunOptions struct {
 	Terminal TerminalPolicy
 	// Quiet tells the run to turn off output to stdout.
 	Quiet bool
+}
+
+// DefaultNamespaceOptions returns the default namespace settings from the
+// runtime-tools generator library.
+func DefaultNamespaceOptions() NamespaceOptions {
+	options := NamespaceOptions{
+		{Name: string(specs.CgroupNamespace), Host: true},
+		{Name: string(specs.IPCNamespace), Host: true},
+		{Name: string(specs.MountNamespace), Host: true},
+		{Name: string(specs.NetworkNamespace), Host: true},
+		{Name: string(specs.PIDNamespace), Host: true},
+		{Name: string(specs.UserNamespace), Host: true},
+		{Name: string(specs.UTSNamespace), Host: true},
+	}
+	g := generate.New()
+	spec := g.Spec()
+	if spec.Linux != nil {
+		for _, ns := range spec.Linux.Namespaces {
+			options.AddOrReplace(NamespaceOption{
+				Name: string(ns.Type),
+				Path: ns.Path,
+			})
+		}
+	}
+	return options
+}
+
+// Find the configuration for the namespace of the given type.  If there are
+// duplicates, find the _last_ one of the type, since we assume it was appended
+// more recently.
+func (n *NamespaceOptions) Find(namespace string) *NamespaceOption {
+	for i := range *n {
+		j := len(*n) - 1 - i
+		if (*n)[j].Name == namespace {
+			return &((*n)[j])
+		}
+	}
+	return nil
+}
+
+// AddOrReplace either adds or replaces the configuration for a given namespace.
+func (n *NamespaceOptions) AddOrReplace(options ...NamespaceOption) {
+nextOption:
+	for _, option := range options {
+		for i := range *n {
+			j := len(*n) - 1 - i
+			if (*n)[j].Name == option.Name {
+				(*n)[j] = option
+				continue nextOption
+			}
+		}
+		*n = append(*n, option)
+	}
 }
 
 func addRlimits(ulimit []string, g *generate.Generator) error {
@@ -179,8 +283,8 @@ func addCommonOptsToSpec(commonOpts *CommonBuildOptions, g *generate.Generator) 
 	return nil
 }
 
-func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts []specs.Mount, bindFiles map[string]string, builtinVolumes, volumeMounts []string, shmSize string) error {
-	// The passed-in mounts matter the most to us.
+func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts []specs.Mount, bindFiles map[string]string, builtinVolumes, volumeMounts []string, shmSize string, namespaceOptions NamespaceOptions) error {
+	// Start building a new list of mounts.
 	mounts := make([]specs.Mount, len(optionMounts))
 	copy(mounts, optionMounts)
 	haveMount := func(destination string) bool {
@@ -192,65 +296,156 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 		}
 		return false
 	}
-	// Add mounts from the generated list, unless they conflict.
+
+	// Copy mounts from the generated list.
+	mountCgroups := true
+	specMounts := []specs.Mount{}
 	for _, specMount := range spec.Mounts {
+		// Override some of the mounts from the generated list if we're doing different things with namespaces.
 		if specMount.Destination == "/dev/shm" {
 			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777", "size=" + shmSize}
+			user := namespaceOptions.Find(string(specs.UserNamespace))
+			ipc := namespaceOptions.Find(string(specs.IPCNamespace))
+			if (ipc == nil || ipc.Host) && (user != nil && !user.Host) {
+				if _, err := os.Stat("/dev/shm"); err != nil && os.IsNotExist(err) {
+					continue
+				}
+				specMount = specs.Mount{
+					Source:      "/dev/shm",
+					Type:        "bind",
+					Destination: "/dev/shm",
+					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev"},
+				}
+			}
 		}
-		if haveMount(specMount.Destination) {
-			// Already have something to mount there, so skip this one.
-			continue
+		if specMount.Destination == "/dev/mqueue" {
+			user := namespaceOptions.Find(string(specs.UserNamespace))
+			ipc := namespaceOptions.Find(string(specs.IPCNamespace))
+			if (ipc == nil || ipc.Host) && (user != nil && !user.Host) {
+				if _, err := os.Stat("/dev/mqueue"); err != nil && os.IsNotExist(err) {
+					continue
+				}
+				specMount = specs.Mount{
+					Source:      "/dev/mqueue",
+					Type:        "bind",
+					Destination: "/dev/mqueue",
+					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev"},
+				}
+			}
 		}
-		mounts = append(mounts, specMount)
-	}
-	// Add bind mounts for important files, unless they conflict.
-	for dest, src := range bindFiles {
-		if haveMount(dest) {
-			// Already have something to mount there, so skip this one.
-			continue
+		if specMount.Destination == "/sys" {
+			user := namespaceOptions.Find(string(specs.UserNamespace))
+			net := namespaceOptions.Find(string(specs.NetworkNamespace))
+			if (net == nil || net.Host) && (user != nil && !user.Host) {
+				mountCgroups = false
+				if _, err := os.Stat("/sys"); err != nil && os.IsNotExist(err) {
+					continue
+				}
+				specMount = specs.Mount{
+					Source:      "/sys",
+					Type:        "bind",
+					Destination: "/sys",
+					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev", "ro"},
+				}
+			}
 		}
-		mounts = append(mounts, specs.Mount{
-			Source:      src,
-			Destination: dest,
-			Type:        "bind",
-			Options:     []string{"rbind", "ro"},
-		})
+		specMounts = append(specMounts, specMount)
 	}
 
+	// Add a mount for the cgroups filesystem, unless we're already
+	// recursively bind mounting all of /sys, in which case we shouldn't
+	// bother with it.
+	sysfsMount := []specs.Mount{}
+	if mountCgroups {
+		sysfsMount = []specs.Mount{{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nobuildahbind", "nosuid", "noexec", "nodev", "relatime", "ro"},
+		}}
+	}
+
+	// Get the list of files we need to bind into the container.
+	bindFileMounts, err := runSetupBoundFiles(bindFiles)
+	if err != nil {
+		return err
+	}
+
+	// After this point we need to know the per-container persistent storage directory.
 	cdir, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
 		return errors.Wrapf(err, "error determining work directory for container %q", b.ContainerID)
 	}
 
-	// Add secrets mounts
-	secretMounts := secrets.SecretMounts(b.MountLabel, cdir, b.DefaultMountsFilePath)
-	for _, mount := range secretMounts {
-		if haveMount(mount.Destination) {
-			continue
-		}
-		mounts = append(mounts, mount)
+	// Figure out which UID and GID to tell the secrets package to use
+	// for files that it creates.
+	rootUID, rootGID, err := getHostRootIDs(spec)
+	if err != nil {
+		return err
 	}
+
+	// Get the list of secrets mounts.
+	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID))
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
-	for _, volume := range builtinVolumes {
-		if haveMount(volume) {
-			// Already mounting something there, no need to bother.
+	copyWithTar := b.copyWithTar(nil)
+	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes)
+	if err != nil {
+		return err
+	}
+
+	// Get the list of explicitly-specified volume mounts.
+	volumes, err := runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts)
+	if err != nil {
+		return err
+	}
+
+	// Add them all, in the preferred order, except where they conflict with something that was previously added.
+	for _, mount := range append(append(append(append(append(volumes, builtins...), secretMounts...), bindFileMounts...), specMounts...), sysfsMount...) {
+		if haveMount(mount.Destination) {
+			// Already mounting something there, no need to bother with this one.
 			continue
 		}
+		// Add the mount.
+		mounts = append(mounts, mount)
+	}
+
+	// Set the list in the spec.
+	spec.Mounts = mounts
+	return nil
+}
+
+func runSetupBoundFiles(bindFiles map[string]string) (mounts []specs.Mount, err error) {
+	for dest, src := range bindFiles {
+		mounts = append(mounts, specs.Mount{
+			Source:      src,
+			Destination: dest,
+			Type:        "bind",
+			Options:     []string{"rbind"},
+		})
+	}
+	return mounts, nil
+}
+
+func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWithTar func(srcPath, dstPath string) error, builtinVolumes []string) ([]specs.Mount, error) {
+	var mounts []specs.Mount
+	// Add temporary copies of the contents of volume locations at the
+	// volume locations, unless we already have something there.
+	for _, volume := range builtinVolumes {
 		subdir := digest.Canonical.FromString(volume).Hex()
-		volumePath := filepath.Join(cdir, "buildah-volumes", subdir)
+		volumePath := filepath.Join(containerDir, "buildah-volumes", subdir)
 		// If we need to, initialize the volume path's initial contents.
-		if _, err = os.Stat(volumePath); os.IsNotExist(err) {
+		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, volume, b.ContainerID)
+				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", volumePath, volume)
 			}
-			if err = label.Relabel(volumePath, b.MountLabel, false); err != nil {
-				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, volume, b.ContainerID)
+			if err = label.Relabel(volumePath, mountLabel, false); err != nil {
+				return nil, errors.Wrapf(err, "error relabeling directory %q for volume %q", volumePath, volume)
 			}
 			srcPath := filepath.Join(mountPoint, volume)
 			if err = copyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, volume, b.ContainerID, srcPath)
+				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
 			}
 
 		}
@@ -262,15 +457,18 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 			Options:     []string{"bind"},
 		})
 	}
+	return mounts, nil
+}
+
+func runSetupVolumeMounts(mountLabel string, volumeMounts []string) ([]specs.Mount, error) {
+	var mounts []specs.Mount
+
 	// Bind mount volumes given by the user at execution
-	var options []string
 	for _, i := range volumeMounts {
+		var options []string
 		spliti := strings.Split(i, ":")
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
-		}
-		if haveMount(spliti[1]) {
-			continue
 		}
 		options = append(options, "rbind")
 		var foundrw, foundro, foundz, foundZ bool
@@ -293,13 +491,13 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 			options = append(options, "rw")
 		}
 		if foundz {
-			if err := label.Relabel(spliti[0], spec.Linux.MountLabel, true); err != nil {
-				return errors.Wrapf(err, "relabel failed %q", spliti[0])
+			if err := label.Relabel(spliti[0], mountLabel, true); err != nil {
+				return nil, errors.Wrapf(err, "relabeling %q failed", spliti[0])
 			}
 		}
 		if foundZ {
-			if err := label.Relabel(spliti[0], spec.Linux.MountLabel, false); err != nil {
-				return errors.Wrapf(err, "relabel failed %q", spliti[0])
+			if err := label.Relabel(spliti[0], mountLabel, false); err != nil {
+				return nil, errors.Wrapf(err, "relabeling %q failed", spliti[0])
 			}
 		}
 		if rootProp == "" {
@@ -313,31 +511,182 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 			Options:     options,
 		})
 	}
-	// Set the list in the spec.
-	spec.Mounts = mounts
-	return nil
+	return mounts, nil
 }
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
 func (b *Builder) addNetworkConfig(rdir, hostPath string) (string, error) {
-	stat, err := os.Stat(hostPath)
-	if err != nil {
-		return "", errors.Wrapf(err, "stat %q failed", hostPath)
+	copyFileWithTar := b.copyFileWithTar(nil)
+
+	cfile := filepath.Join(rdir, filepath.Base(hostPath))
+
+	if err := copyFileWithTar(hostPath, cfile); err != nil {
+		return "", errors.Wrapf(err, "error copying %q for container %q", cfile, b.ContainerID)
 	}
 
-	buf, err := ioutil.ReadFile(hostPath)
-	if err != nil {
-		return "", errors.Wrapf(err, "opening %q failed", hostPath)
-	}
-	cfile := filepath.Join(rdir, filepath.Base(hostPath))
-	if err := ioutil.WriteFile(cfile, buf, stat.Mode()); err != nil {
-		return "", errors.Wrapf(err, "opening %q failed", cfile)
-	}
-	if err = label.Relabel(cfile, b.MountLabel, false); err != nil {
+	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
 		return "", errors.Wrapf(err, "error relabeling %q in container %q", cfile, b.ContainerID)
 	}
 
 	return cfile, nil
+}
+
+func setupMaskedPaths(g *generate.Generator) {
+	for _, mp := range []string{
+		"/proc/kcore",
+		"/proc/latency_stats",
+		"/proc/timer_list",
+		"/proc/timer_stats",
+		"/proc/sched_debug",
+		"/proc/scsi",
+		"/sys/firmware",
+	} {
+		g.AddLinuxMaskedPaths(mp)
+	}
+}
+
+func setupReadOnlyPaths(g *generate.Generator) {
+	for _, rp := range []string{
+		"/proc/asound",
+		"/proc/bus",
+		"/proc/fs",
+		"/proc/irq",
+		"/proc/sys",
+		"/proc/sysrq-trigger",
+	} {
+		g.AddLinuxReadonlyPaths(rp)
+	}
+}
+
+func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
+	if seccompProfilePath != "unconfined" {
+		if seccompProfilePath != "" {
+			seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
+			if err != nil {
+				return errors.Wrapf(err, "opening seccomp profile (%s) failed", seccompProfilePath)
+			}
+			seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
+			if err != nil {
+				return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
+			}
+			spec.Linux.Seccomp = seccompConfig
+		} else {
+			seccompConfig, err := seccomp.GetDefaultProfile(spec)
+			if err != nil {
+				return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
+			}
+			spec.Linux.Seccomp = seccompConfig
+		}
+	}
+	return nil
+}
+
+func setupApparmor(spec *specs.Spec, apparmorProfile string) error {
+	spec.Process.ApparmorProfile = apparmorProfile
+	return nil
+}
+
+func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy) {
+	switch terminalPolicy {
+	case DefaultTerminal:
+		g.SetProcessTerminal(terminal.IsTerminal(int(os.Stdout.Fd())))
+	case WithTerminal:
+		g.SetProcessTerminal(true)
+	case WithoutTerminal:
+		g.SetProcessTerminal(false)
+	}
+}
+
+func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, idmapOptions IDMappingOptions, policy NetworkConfigurationPolicy) (configureNetwork bool, configureNetworks []string, configureUTS bool, err error) {
+	// Set namespace options in the container configuration.
+	hostPidns := false
+	configureUserns := false
+	specifiedNetwork := false
+	for _, namespaceOption := range namespaceOptions {
+		switch namespaceOption.Name {
+		case string(specs.UserNamespace):
+			configureUserns = false
+			if !namespaceOption.Host && namespaceOption.Path == "" {
+				configureUserns = true
+			}
+		case string(specs.PIDNamespace):
+			hostPidns = namespaceOption.Host
+		case string(specs.NetworkNamespace):
+			specifiedNetwork = true
+			configureNetwork = false
+			if !namespaceOption.Host && (namespaceOption.Path == "" || !filepath.IsAbs(namespaceOption.Path)) {
+				if namespaceOption.Path != "" && !filepath.IsAbs(namespaceOption.Path) {
+					configureNetworks = strings.Split(namespaceOption.Path, ",")
+					namespaceOption.Path = ""
+				}
+				configureNetwork = (policy != NetworkDisabled)
+			}
+		case string(specs.UTSNamespace):
+			configureUTS = false
+			if !namespaceOption.Host && namespaceOption.Path == "" {
+				configureUTS = true
+			}
+		}
+		if namespaceOption.Host {
+			if err := g.RemoveLinuxNamespace(namespaceOption.Name); err != nil {
+				return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", namespaceOption.Name)
+			}
+		} else if err := g.AddOrReplaceLinuxNamespace(namespaceOption.Name, namespaceOption.Path); err != nil {
+			if namespaceOption.Path == "" {
+				return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", namespaceOption.Name)
+			}
+			return false, nil, false, errors.Wrapf(err, "error adding %q namespace %q for run", namespaceOption.Name, namespaceOption.Path)
+		}
+	}
+	// If we've got mappings, we're going to have to create a user namespace.
+	if len(idmapOptions.UIDMap) > 0 || len(idmapOptions.GIDMap) > 0 || configureUserns {
+		if hostPidns {
+			return false, nil, false, errors.Wrapf(err, "unable to mix host PID namespace with user namespace")
+		}
+		if err := g.AddOrReplaceLinuxNamespace(specs.UserNamespace, ""); err != nil {
+			return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.UserNamespace))
+		}
+		for _, m := range idmapOptions.UIDMap {
+			g.AddLinuxUIDMapping(m.HostID, m.ContainerID, m.Size)
+		}
+		if len(idmapOptions.UIDMap) == 0 {
+			mappings, err := getProcIDMappings("/proc/self/uid_map")
+			if err != nil {
+				return false, nil, false, err
+			}
+			for _, m := range mappings {
+				g.AddLinuxUIDMapping(m.ContainerID, m.ContainerID, m.Size)
+			}
+		}
+		for _, m := range idmapOptions.GIDMap {
+			g.AddLinuxGIDMapping(m.HostID, m.ContainerID, m.Size)
+		}
+		if len(idmapOptions.GIDMap) == 0 {
+			mappings, err := getProcIDMappings("/proc/self/gid_map")
+			if err != nil {
+				return false, nil, false, err
+			}
+			for _, m := range mappings {
+				g.AddLinuxGIDMapping(m.ContainerID, m.ContainerID, m.Size)
+			}
+		}
+		if !specifiedNetwork {
+			if err := g.AddOrReplaceLinuxNamespace(specs.NetworkNamespace, ""); err != nil {
+				return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.NetworkNamespace))
+			}
+			configureNetwork = (policy != NetworkDisabled)
+		}
+	} else {
+		if err := g.RemoveLinuxNamespace(specs.UserNamespace); err != nil {
+			return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.UserNamespace))
+		}
+		if !specifiedNetwork {
+			if err := g.RemoveLinuxNamespace(specs.NetworkNamespace); err != nil {
+				return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.NetworkNamespace))
+			}
+		}
+	}
+	return configureNetwork, configureNetworks, configureUTS, nil
 }
 
 // Run runs the specified command in the container's root filesystem.
@@ -353,7 +702,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			logrus.Errorf("error removing %q: %v", path, err2)
 		}
 	}()
-	g := generate.New()
+	gp := generate.New()
+	g := &gp
 
 	for _, envSpec := range append(b.Env(), options.Env...) {
 		env := strings.SplitN(envSpec, "=", 2)
@@ -366,7 +716,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return errors.Errorf("Invalid format on container you must recreate the container")
 	}
 
-	if err := addCommonOptsToSpec(b.CommonBuildOpts, &g); err != nil {
+	if err := addCommonOptsToSpec(b.CommonBuildOpts, g); err != nil {
 		return err
 	}
 
@@ -380,11 +730,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	} else if b.WorkDir() != "" {
 		g.SetProcessCwd(b.WorkDir())
 	}
-	if options.Hostname != "" {
-		g.SetHostname(options.Hostname)
-	} else if b.Hostname() != "" {
-		g.SetHostname(b.Hostname())
-	}
 	g.SetProcessSelinuxLabel(b.ProcessLabel)
 	g.SetLinuxMountLabel(b.MountLabel)
 	mountPoint, err := b.Mount(b.MountLabel)
@@ -396,49 +741,51 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			logrus.Errorf("error unmounting container: %v", err2)
 		}
 	}()
-	for _, mp := range []string{
-		"/proc/kcore",
-		"/proc/latency_stats",
-		"/proc/timer_list",
-		"/proc/timer_stats",
-		"/proc/sched_debug",
-		"/proc/scsi",
-		"/sys/firmware",
-	} {
-		g.AddLinuxMaskedPaths(mp)
+
+	setupMaskedPaths(g)
+	setupReadOnlyPaths(g)
+
+	g.SetRootPath(mountPoint)
+
+	setupTerminal(g, options.Terminal)
+
+	namespaceOptions := DefaultNamespaceOptions()
+	namespaceOptions.AddOrReplace(b.NamespaceOptions...)
+	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
+
+	networkPolicy := options.ConfigureNetwork
+	if networkPolicy == NetworkDefault {
+		networkPolicy = b.ConfigureNetwork
 	}
 
-	for _, rp := range []string{
-		"/proc/asound",
-		"/proc/bus",
-		"/proc/fs",
-		"/proc/irq",
-		"/proc/sys",
-		"/proc/sysrq-trigger",
-	} {
-		g.AddLinuxReadonlyPaths(rp)
-	}
-	g.SetRootPath(mountPoint)
-	switch options.Terminal {
-	case DefaultTerminal:
-		g.SetProcessTerminal(terminal.IsTerminal(int(os.Stdout.Fd())))
-	case WithTerminal:
-		g.SetProcessTerminal(true)
-	case WithoutTerminal:
-		g.SetProcessTerminal(false)
-	}
-	if !options.NetworkDisabled {
-		if err = g.RemoveLinuxNamespace("network"); err != nil {
-			return errors.Wrapf(err, "error removing network namespace for run")
-		}
-	}
-	user, err = b.user(mountPoint, options.User)
+	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(g, namespaceOptions, b.IDMappingOptions, networkPolicy)
 	if err != nil {
+		return err
+	}
+
+	if configureUTS {
+		if options.Hostname != "" {
+			g.SetHostname(options.Hostname)
+		} else if b.Hostname() != "" {
+			g.SetHostname(b.Hostname())
+		}
+	} else {
+		g.SetHostname("")
+	}
+
+	if user, err = b.user(mountPoint, options.User); err != nil {
 		return err
 	}
 	g.SetProcessUID(user.UID)
 	g.SetProcessGID(user.GID)
+	for _, gid := range user.AdditionalGids {
+		g.AddProcessAdditionalGid(gid)
+	}
+
+	// Now grab the spec from the generator.  Set the generator to nil so that future contributors
+	// will quickly be able to tell that they're supposed to be modifying the spec directly from here.
 	spec := g.Spec()
+	g = nil
 	if spec.Process.Cwd == "" {
 		spec.Process.Cwd = DefaultWorkingDir
 	}
@@ -447,36 +794,15 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	// Set the apparmor profile name.
-	g.SetProcessApparmorProfile(b.CommonBuildOpts.ApparmorProfile)
+	if err = setupApparmor(spec, b.CommonBuildOpts.ApparmorProfile); err != nil {
+		return err
+	}
 
 	// Set the seccomp configuration using the specified profile name.
-	if b.CommonBuildOpts.SeccompProfilePath != "unconfined" {
-		if b.CommonBuildOpts.SeccompProfilePath != "" {
-			seccompProfile, err := ioutil.ReadFile(b.CommonBuildOpts.SeccompProfilePath)
-			if err != nil {
-				return errors.Wrapf(err, "opening seccomp profile (%s) failed", b.CommonBuildOpts.SeccompProfilePath)
-			}
-			seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
-			if err != nil {
-				return errors.Wrapf(err, "loading seccomp profile (%s) failed", b.CommonBuildOpts.SeccompProfilePath)
-			}
-			spec.Linux.Seccomp = seccompConfig
-		} else {
-			seccompConfig, err := seccomp.GetDefaultProfile(spec)
-			if err != nil {
-				return errors.Wrapf(err, "loading seccomp profile (%s) failed", b.CommonBuildOpts.SeccompProfilePath)
-			}
-			spec.Linux.Seccomp = seccompConfig
-		}
+	if err = setupSeccomp(spec, b.CommonBuildOpts.SeccompProfilePath); err != nil {
+		return err
 	}
 
-	cgroupMnt := specs.Mount{
-		Destination: "/sys/fs/cgroup",
-		Type:        "cgroup",
-		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-	}
-	g.AddMount(cgroupMnt)
 	hostFile, err := b.addNetworkConfig(path, "/etc/hosts")
 	if err != nil {
 		return err
@@ -494,29 +820,47 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		"/etc/hosts":       hostFile,
 		"/etc/resolv.conf": resolvFile,
 	}
-	err = b.setupMounts(mountPoint, spec, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize)
+	err = b.setupMounts(mountPoint, spec, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, append(b.NamespaceOptions, options.NamespaceOptions...))
 	if err != nil {
 		return errors.Wrapf(err, "error resolving mountpoints for container")
 	}
-	return b.runUsingRuntimeSubproc(options, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+
+	if options.CNIConfigDir == "" {
+		options.CNIConfigDir = b.CNIConfigDir
+		if b.CNIConfigDir == "" {
+			options.CNIConfigDir = util.DefaultCNIConfigDir
+		}
+	}
+	if options.CNIPluginPath == "" {
+		options.CNIPluginPath = b.CNIPluginPath
+		if b.CNIPluginPath == "" {
+			options.CNIPluginPath = util.DefaultCNIPluginPath
+		}
+	}
+
+	return b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 }
 
 type runUsingRuntimeSubprocOptions struct {
-	Options       RunOptions
-	Spec          *specs.Spec
-	RootPath      string
-	BundlePath    string
-	ContainerName string
+	Options           RunOptions
+	Spec              *specs.Spec
+	RootPath          string
+	BundlePath        string
+	ConfigureNetwork  bool
+	ConfigureNetworks []string
+	ContainerName     string
 }
 
-func (b *Builder) runUsingRuntimeSubproc(options RunOptions, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
+func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bool, configureNetworks []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
 	var confwg sync.WaitGroup
 	config, conferr := json.Marshal(runUsingRuntimeSubprocOptions{
-		Options:       options,
-		Spec:          spec,
-		RootPath:      rootPath,
-		BundlePath:    bundlePath,
-		ContainerName: containerName,
+		Options:           options,
+		Spec:              spec,
+		RootPath:          rootPath,
+		BundlePath:        bundlePath,
+		ConfigureNetwork:  configureNetwork,
+		ConfigureNetworks: configureNetworks,
+		ContainerName:     containerName,
 	})
 	if conferr != nil {
 		return errors.Wrapf(conferr, "error encoding configuration for %q", runUsingRuntimeCommand)
@@ -577,7 +921,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Run the container, start to finish.
-	status, err := runUsingRuntime(options.Options, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
+	status, err := runUsingRuntime(options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)
@@ -592,7 +936,21 @@ func runUsingRuntimeMain() {
 	os.Exit(1)
 }
 
-func runUsingRuntime(options RunOptions, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
+func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetworks []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
+	// Set up bind mounts for things that a namespaced user might not be able to get to directly.
+	runtime.LockOSThread()
+	unmountAll, err := runSetupIntermediateMountNamespace(spec, bundlePath)
+	if unmountAll != nil {
+		defer func() {
+			if err := unmountAll(); err != nil {
+				logrus.Error(err)
+			}
+		}()
+	}
+	if err != nil {
+		return 1, err
+	}
+
 	// Write the runtime configuration.
 	specbytes, err := json.Marshal(spec)
 	if err != nil {
@@ -639,12 +997,14 @@ func runUsingRuntime(options RunOptions, spec *specs.Spec, rootPath, bundlePath,
 			moreCreateArgs = func() []string { return []string{"--console-socket", socketPath} }
 		} else {
 			copyStdio = true
-			// Create pipes to use for relaying stdio.
-			for i := range stdioPipe {
-				stdioPipe[i] = make([]int, 2)
-				if err = unix.Pipe(stdioPipe[i]); err != nil {
-					return 1, errors.Wrapf(err, "error creating pipe for container FD %d", i)
-				}
+			// Figure out who should own the pipes.
+			uid, gid, err := getHostRootIDs(spec)
+			if err != nil {
+				return 1, err
+			}
+			// Create stdio pipes.
+			if stdioPipe, err = runMakeStdioPipe(int(uid), int(gid)); err != nil {
+				return 1, err
 			}
 			// Set stdio to our pipes.
 			getCreateStdio = func() (*os.File, *os.File, *os.File) {
@@ -696,7 +1056,7 @@ func runUsingRuntime(options RunOptions, spec *specs.Spec, rootPath, bundlePath,
 	// Actually create the container.
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error creating container for %v", spec.Process.Args)
+		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]))
 	}
 	defer func() {
 		err2 := del.Run()
@@ -726,9 +1086,19 @@ func runUsingRuntime(options RunOptions, spec *specs.Spec, rootPath, bundlePath,
 		_, err = unix.Wait4(pid, &wstatus, 0, nil)
 		if err != nil {
 			wstatus = 0
-			logrus.Errorf("error waiting for container child process: %v\n", err)
+			logrus.Errorf("error waiting for container child process %d: %v\n", pid, err)
 		}
 	}()
+
+	if configureNetwork {
+		teardown, err := runConfigureNetwork(options, configureNetwork, configureNetworks, pid, containerName, spec.Process.Args)
+		if teardown != nil {
+			defer teardown()
+		}
+		if err != nil {
+			return 1, err
+		}
+	}
 
 	if copyStdio {
 		// We don't need the ends of the pipes that belong to the container.
@@ -806,6 +1176,131 @@ func runUsingRuntime(options RunOptions, spec *specs.Spec, rootPath, bundlePath,
 	reaping.Wait()
 
 	return wstatus, nil
+}
+
+func runCollectOutput(fds ...int) string {
+	var b bytes.Buffer
+	buf := make([]byte, 8192)
+	for _, fd := range fds {
+		if err := unix.SetNonblock(fd, true); err != nil {
+			logrus.Errorf("error setting pipe descriptor %d nonblocking: %v", fd, err)
+			continue
+		}
+		nread, err := unix.Read(fd, buf)
+		if err != nil {
+			logrus.Errorf("error reading from pipe %d: %v", fd, err)
+			break
+		}
+		for nread > 0 {
+			r := buf[:nread]
+			if nwritten, err := b.Write(r); err != nil || nwritten != len(r) {
+				if nwritten != len(r) {
+					logrus.Errorf("error buffering data from pipe %d: %v", fd, err)
+					break
+				}
+			}
+			nread, err = unix.Read(fd, buf)
+			if err != nil {
+				logrus.Errorf("error reading from pipe %d: %v", fd, err)
+				break
+			}
+		}
+	}
+	return b.String()
+}
+
+func runConfigureNetwork(options RunOptions, configureNetwork bool, configureNetworks []string, pid int, containerName string, command []string) (teardown func(), err error) {
+	var netconf, undo []*libcni.NetworkConfigList
+	// Scan for CNI configuration files.
+	confdir := options.CNIConfigDir
+	files, err := libcni.ConfFiles(confdir, []string{".conf"})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error finding CNI networking configuration files named *.conf in directory %q", confdir)
+	}
+	lists, err := libcni.ConfFiles(confdir, []string{".conflist"})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error finding CNI networking configuration list files named *.conflist in directory %q", confdir)
+	}
+	logrus.Debugf("CNI network configuration file list: %#v", append(files, lists...))
+	// Read the CNI configuration files.
+	for _, file := range files {
+		nc, err := libcni.ConfFromFile(file)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error loading networking configuration from file %q for %v", file, command)
+		}
+		if len(configureNetworks) > 0 && nc.Network != nil && (nc.Network.Name == "" || !stringInSlice(nc.Network.Name, configureNetworks)) {
+			if nc.Network.Name == "" {
+				logrus.Debugf("configuration in %q has no name, skipping it", file)
+			} else {
+				logrus.Debugf("configuration in %q has name %q, skipping it", file, nc.Network.Name)
+			}
+			continue
+		}
+		cl, err := libcni.ConfListFromConf(nc)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error converting networking configuration from file %q for %v", file, command)
+		}
+		logrus.Debugf("using network configuration from %q", file)
+		netconf = append(netconf, cl)
+	}
+	for _, list := range lists {
+		cl, err := libcni.ConfListFromFile(list)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error loading networking configuration list from file %q for %v", list, command)
+		}
+		if len(configureNetworks) > 0 && (cl.Name == "" || !stringInSlice(cl.Name, configureNetworks)) {
+			if cl.Name == "" {
+				logrus.Debugf("configuration list in %q has no name, skipping it", list)
+			} else {
+				logrus.Debugf("configuration list in %q has name %q, skipping it", list, cl.Name)
+			}
+			continue
+		}
+		logrus.Debugf("using network configuration list from %q", list)
+		netconf = append(netconf, cl)
+	}
+	// Make sure we can access the container's network namespace,
+	// even after it exits, to successfully tear down the
+	// interfaces.  Ensure this by opening a handle to the network
+	// namespace, and using our copy to both configure and
+	// deconfigure it.
+	netns := fmt.Sprintf("/proc/%d/ns/net", pid)
+	netFD, err := unix.Open(netns, unix.O_RDONLY, 0)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error opening network namespace for %v", command)
+	}
+	mynetns := fmt.Sprintf("/proc/%d/fd/%d", unix.Getpid(), netFD)
+	// Build our search path for the plugins.
+	pluginPaths := strings.Split(options.CNIPluginPath, string(os.PathListSeparator))
+	cni := libcni.CNIConfig{Path: pluginPaths}
+	// Configure the interfaces.
+	rtconf := make(map[*libcni.NetworkConfigList]*libcni.RuntimeConf)
+	teardown = func() {
+		for _, nc := range undo {
+			if err = cni.DelNetworkList(nc, rtconf[nc]); err != nil {
+				logrus.Errorf("error cleaning up network %v for %v: %v", rtconf[nc].IfName, command, err)
+			}
+		}
+		unix.Close(netFD)
+	}
+	for i, nc := range netconf {
+		// Build the runtime config for use with this network configuration.
+		rtconf[nc] = &libcni.RuntimeConf{
+			ContainerID:    containerName,
+			NetNS:          mynetns,
+			IfName:         fmt.Sprintf("if%d", i),
+			Args:           [][2]string{},
+			CapabilityArgs: map[string]interface{}{},
+		}
+		// Bring it up.
+		_, err := cni.AddNetworkList(nc, rtconf[nc])
+		if err != nil {
+			return teardown, errors.Wrapf(err, "error configuring network list %v for %v", rtconf[nc].IfName, command)
+		}
+		// Add it to the list of networks to take down when the container process exits.
+		undo = append([]*libcni.NetworkConfigList{nc}, undo...)
+	}
+	return teardown, nil
 }
 
 func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}) {
@@ -1053,4 +1548,210 @@ func runSetDeathSig(cmd *exec.Cmd) {
 	if cmd.SysProcAttr.Pdeathsig == 0 {
 		cmd.SysProcAttr.Pdeathsig = syscall.SIGTERM
 	}
+}
+
+// Create pipes to use for relaying stdio.
+func runMakeStdioPipe(uid, gid int) ([][]int, error) {
+	stdioPipe := make([][]int, 3)
+	for i := range stdioPipe {
+		stdioPipe[i] = make([]int, 2)
+		if err := unix.Pipe(stdioPipe[i]); err != nil {
+			return nil, errors.Wrapf(err, "error creating pipe for container FD %d", i)
+		}
+	}
+	if err := unix.Fchown(stdioPipe[unix.Stdin][0], uid, gid); err != nil {
+		return nil, errors.Wrapf(err, "error setting owner of stdin pipe descriptor")
+	}
+	if err := unix.Fchown(stdioPipe[unix.Stdout][1], uid, gid); err != nil {
+		return nil, errors.Wrapf(err, "error setting owner of stdout pipe descriptor")
+	}
+	if err := unix.Fchown(stdioPipe[unix.Stderr][1], uid, gid); err != nil {
+		return nil, errors.Wrapf(err, "error setting owner of stderr pipe descriptor")
+	}
+	return stdioPipe, nil
+}
+
+// Create and bind mount all bind-mount sources into a subdirectory of
+// bundlePath that can only be reached by the root user of the container's user
+// namespace.
+func runSetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmountAll func() error, err error) {
+	defer func() {
+		// Strip "nobuildahbind" options out of the spec, at least. */
+		for i := range spec.Mounts {
+			if stringInSlice("nobuildahbind", spec.Mounts[i].Options) {
+				prunedOptions := make([]string, 0, len(spec.Mounts[i].Options))
+				for _, option := range spec.Mounts[i].Options {
+					if option != "nobuildahbind" {
+						prunedOptions = append(prunedOptions, option)
+					}
+				}
+				spec.Mounts[i].Options = prunedOptions
+			}
+		}
+	}()
+
+	// Create a new mount namespace in which to do the things we're doing.
+	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
+		return nil, errors.Wrapf(err, "error creating new mount namespace for %v", spec.Process.Args)
+	}
+
+	// Make all of our mounts private to our namespace.
+	if err := mount.MakePrivate("/"); err != nil {
+		return nil, errors.Wrapf(err, "error making mounts private to mount namespace for %v", spec.Process.Args)
+	}
+
+	// We expect a root directory to be defined.
+	if spec.Root == nil {
+		return nil, errors.Errorf("configuration has no root filesystem?")
+	}
+	rootPath := spec.Root.Path
+
+	// Make sure the bundle directory is searchable.  We created it with
+	// TempDir(), so it should have started with permissions set to 0700.
+	info, err := os.Stat(bundlePath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking permissions on %q", bundlePath)
+	}
+	if err = os.Chmod(bundlePath, info.Mode()|0111); err != nil {
+		return nil, errors.Wrapf(err, "error loosening permissions on %q", bundlePath)
+	}
+
+	// Figure out who needs to be able to reach these bind mounts in order
+	// for the container to be started.
+	rootUID, rootGID, err := getHostRootIDs(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	// Hand back a callback that the caller can use to clean up everything
+	// we're doing here.
+	unmount := []string{}
+	unmountAll = func() (err error) {
+		for _, mountpoint := range unmount {
+			subdirs := []string{mountpoint}
+			var infos []*mount.Info
+			infos, err = mount.GetMounts()
+			// Gather up mountpoints below this one, since we did
+			// some recursive mounting.
+			if err == nil {
+				for _, info := range infos {
+					if strings.HasPrefix(info.Mountpoint, mountpoint) {
+						subdirs = append(subdirs, info.Mountpoint)
+					}
+				}
+			}
+			// Unmount all of the lower mountpoints, then the
+			// mountpoint itself.
+			sort.Strings(subdirs)
+			for i := range subdirs {
+				var err2 error
+				subdir := subdirs[len(subdirs)-i-1]
+				for err2 == nil {
+					err2 = unix.Unmount(subdir, 0)
+				}
+				if errno, ok := err2.(syscall.Errno); !ok || errno != unix.EINVAL {
+					logrus.Warnf("error unmounting %q: %v", mountpoint, err2)
+					if err == nil {
+						err = err2
+					}
+				}
+			}
+			// Remove just the mountpoint.
+			if err2 := os.Remove(mountpoint); err2 != nil {
+				logrus.Warnf("error removing %q: %v", mountpoint, err2)
+				if err == nil {
+					err = err2
+				}
+			}
+		}
+		return err
+	}
+
+	// Create a top-level directory that the "root" user will be able to
+	// access, that "root" from containers which use different mappings, or
+	// other unprivileged users outside of containers, shouldn't be able to
+	// access.
+	mnt := filepath.Join(bundlePath, "mnt")
+	if err = idtools.MkdirAndChown(mnt, 0100, idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}); err != nil {
+		return unmountAll, errors.Wrapf(err, "error creating %q owned by the container's root user", mnt)
+	}
+
+	// Make that directory private, and add it to the list of locations we
+	// unmount at cleanup time.
+	if err = mount.MakeRPrivate(mnt); err != nil {
+		return unmountAll, errors.Wrapf(err, "error marking filesystem at %q as private", mnt)
+	}
+	unmount = append([]string{mnt}, unmount...)
+
+	// Create a bind mount for the root filesystem and add it to the list.
+	rootfs := filepath.Join(mnt, "rootfs")
+	if err = os.Mkdir(rootfs, 0000); err != nil {
+		return unmountAll, errors.Wrapf(err, "error creating directory %q", rootfs)
+	}
+	if err = unix.Mount(rootPath, rootfs, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
+		return unmountAll, errors.Wrapf(err, "error bind mounting root filesystem from %q to %q", rootPath, rootfs)
+	}
+	unmount = append([]string{rootfs}, unmount...)
+	spec.Root.Path = rootfs
+
+	// Do the same for everything we're binding in.
+	mounts := make([]specs.Mount, 0, len(spec.Mounts))
+	for i := range spec.Mounts {
+		// If we're not using an intermediate, leave it in the list.
+		if runLeaveBindMountAlone(spec.Mounts[i]) {
+			mounts = append(mounts, spec.Mounts[i])
+			continue
+		}
+		// Check if the source is a directory or something else.
+		info, err := os.Stat(spec.Mounts[i].Source)
+		if err != nil {
+			if os.IsNotExist(err) {
+				logrus.Warnf("couldn't find %q on host to bind mount into container", spec.Mounts[i].Source)
+				continue
+			}
+			return unmountAll, errors.Wrapf(err, "error checking if %q is a directory", spec.Mounts[i].Source)
+		}
+		stage := filepath.Join(mnt, fmt.Sprintf("buildah-bind-target-%d", i))
+		if info.IsDir() {
+			// If the source is a directory, make one to use as the
+			// mount target.
+			if err = os.Mkdir(stage, 0000); err != nil {
+				return unmountAll, errors.Wrapf(err, "error creating directory %q", stage)
+			}
+		} else {
+			// If the source is not a directory, create an empty
+			// file to use as the mount target.
+			file, err := os.OpenFile(stage, os.O_WRONLY|os.O_CREATE, 0000)
+			if err != nil {
+				return unmountAll, errors.Wrapf(err, "error creating file %q", stage)
+			}
+			file.Close()
+		}
+		// Bind mount the source from wherever it is to a place where
+		// we know the runtime helper will be able to get to it...
+		if err = unix.Mount(spec.Mounts[i].Source, stage, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
+			return unmountAll, errors.Wrapf(err, "error bind mounting bind object from %q to %q", spec.Mounts[i].Source, stage)
+		}
+		spec.Mounts[i].Source = stage
+		// ... and update the source location that we'll pass to the
+		// runtime to our intermediate location.
+		mounts = append(mounts, spec.Mounts[i])
+		unmount = append([]string{stage}, unmount...)
+	}
+	spec.Mounts = mounts
+
+	return unmountAll, nil
+}
+
+// Decide if the mount should not be redirected to an intermediate location first.
+func runLeaveBindMountAlone(mount specs.Mount) bool {
+	// If we know we shouldn't do a redirection for this mount, skip it.
+	if stringInSlice("nobuildahbind", mount.Options) {
+		return true
+	}
+	// If we're not bind mounting it in, we don't need to do anything for it.
+	if mount.Type != "bind" && !stringInSlice("bind", mount.Options) && !stringInSlice("rbind", mount.Options) {
+		return true
+	}
+	return false
 }
