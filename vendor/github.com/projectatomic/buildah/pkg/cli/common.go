@@ -5,11 +5,65 @@ package cli
 // that vendor in this code can use them too.
 
 import (
-	"github.com/projectatomic/buildah/imagebuildah"
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/projectatomic/buildah"
+	"github.com/projectatomic/buildah/util"
 	"github.com/urfave/cli"
 )
 
 var (
+	usernsFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "userns",
+			Usage: "'container', `path` of user namespace to join, or 'host'",
+		},
+		cli.StringSliceFlag{
+			Name:  "userns-uid-map",
+			Usage: "`containerID:hostID:length` UID mapping to use in user namespace",
+		},
+		cli.StringSliceFlag{
+			Name:  "userns-gid-map",
+			Usage: "`containerID:hostID:length` GID mapping to use in user namespace",
+		},
+		cli.StringFlag{
+			Name:  "userns-uid-map-user",
+			Usage: "`name` of entries from /etc/subuid to use to set user namespace UID mapping",
+		},
+		cli.StringFlag{
+			Name:  "userns-gid-map-group",
+			Usage: "`name` of entries from /etc/subgid to use to set user namespace GID mapping",
+		},
+	}
+
+	NamespaceFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  string(specs.IPCNamespace),
+			Usage: "'container', `path` of IPC namespace to join, or 'host'",
+		},
+		cli.StringFlag{
+			Name:  string(specs.NetworkNamespace) + ", net",
+			Usage: "'container', `path` of network namespace to join, or 'host'",
+		},
+		cli.StringFlag{
+			Name:  "cni-config-dir",
+			Usage: "`directory` of CNI configuration files",
+			Value: util.DefaultCNIConfigDir,
+		},
+		cli.StringFlag{
+			Name:  "cni-plugin-path",
+			Usage: "`path` of CNI network plugins",
+			Value: util.DefaultCNIPluginPath,
+		},
+		cli.StringFlag{
+			Name:  string(specs.PIDNamespace),
+			Usage: "'container', `path` of PID namespace to join, or 'host'",
+		},
+		cli.StringFlag{
+			Name:  string(specs.UTSNamespace),
+			Usage: "'container', `path` of UTS namespace to join, or 'host'",
+		},
+	}
+
 	BudFlags = []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "annotation",
@@ -55,7 +109,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "iidfile",
-			Usage: "Write the image ID to the file",
+			Usage: "`file` to write the image ID to",
 		},
 		cli.StringSliceFlag{
 			Name:  "label",
@@ -84,7 +138,7 @@ var (
 		cli.StringFlag{
 			Name:  "runtime",
 			Usage: "`path` to an alternate runtime",
-			Value: imagebuildah.DefaultRuntime,
+			Value: buildah.DefaultRuntime,
 		},
 		cli.StringSliceFlag{
 			Name:  "runtime-flag",
@@ -100,7 +154,7 @@ var (
 		},
 		cli.StringSliceFlag{
 			Name:  "tag, t",
-			Usage: "`tag` to apply to the built image",
+			Usage: "tagged `name` to apply to the built image",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
@@ -108,7 +162,7 @@ var (
 		},
 	}
 
-	FromAndBudFlags = []cli.Flag{
+	FromAndBudFlags = append(append([]cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "add-host",
 			Usage: "add a custom host-to-IP mapping (host:ip) (default [])",
@@ -162,5 +216,5 @@ var (
 			Name:  "volume, v",
 			Usage: "bind mount a volume into the container (default [])",
 		},
-	}
+	}, usernsFlags...), NamespaceFlags...)
 )

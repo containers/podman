@@ -16,6 +16,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 	manifest := []byte{}
 	config := []byte{}
 	imageName := ""
+	uidmap, gidmap := convertStorageIDMaps(storage.DefaultStoreOptions.UIDMap, storage.DefaultStoreOptions.GIDMap)
 
 	if imageID != "" {
 		ref, err := is.Transport.ParseStoreReference(store, imageID)
@@ -39,6 +40,13 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 			if len(img.Names) > 0 {
 				imageName = img.Names[0]
 			}
+			if img.TopLayer != "" {
+				layer, err4 := store.Layer(img.TopLayer)
+				if err4 != nil {
+					return nil, errors.Wrapf(err4, "error reading information about image's top layer")
+				}
+				uidmap, gidmap = convertStorageIDMaps(layer.UIDMap, layer.GIDMap)
+			}
 		}
 	}
 
@@ -53,6 +61,13 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		ContainerID:      containerID,
 		ImageAnnotations: map[string]string{},
 		ImageCreatedBy:   "",
+		NamespaceOptions: DefaultNamespaceOptions(),
+		IDMappingOptions: IDMappingOptions{
+			HostUIDMapping: len(uidmap) == 0,
+			HostGIDMapping: len(uidmap) == 0,
+			UIDMap:         uidmap,
+			GIDMap:         gidmap,
+		},
 	}
 
 	builder.initConfig()
@@ -87,6 +102,7 @@ func importBuilder(ctx context.Context, store storage.Store, options ImportOptio
 	if builder.FromImage != "" {
 		builder.Docker.ContainerConfig.Image = builder.FromImage
 	}
+	builder.IDMappingOptions.UIDMap, builder.IDMappingOptions.GIDMap = convertStorageIDMaps(c.UIDMap, c.GIDMap)
 
 	err = builder.Save()
 	if err != nil {

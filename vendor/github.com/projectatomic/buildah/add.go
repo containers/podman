@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
@@ -26,7 +27,7 @@ type AddAndCopyOptions struct {
 // addURL copies the contents of the source URL to the destination.  This is
 // its own function so that deferred closes happen after we're done pulling
 // down each item of potentially many.
-func addURL(destination, srcurl string) error {
+func addURL(destination, srcurl string, owner idtools.IDPair) error {
 	logrus.Debugf("saving %q to %q", srcurl, destination)
 	resp, err := http.Get(srcurl)
 	if err != nil {
@@ -36,6 +37,9 @@ func addURL(destination, srcurl string) error {
 	f, err := os.Create(destination)
 	if err != nil {
 		return errors.Wrapf(err, "error creating %q", destination)
+	}
+	if err = f.Chown(owner.UID, owner.GID); err != nil {
+		return errors.Wrapf(err, "error setting owner of %q", destination)
 	}
 	if last := resp.Header.Get("Last-Modified"); last != "" {
 		if mtime, err2 := time.Parse(time.RFC1123, last); err2 != nil {
@@ -80,11 +84,17 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if err != nil {
 		return err
 	}
+	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	hostUID, hostGID, err := getHostIDs(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap, user.UID, user.GID)
+	if err != nil {
+		return err
+	}
+	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 	dest := mountPoint
 	if destination != "" && filepath.IsAbs(destination) {
 		dest = filepath.Join(dest, destination)
 	} else {
-		if err = ensureDir(filepath.Join(dest, b.WorkDir()), user, 0755); err != nil {
+		if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
 			return err
 		}
 		dest = filepath.Join(dest, b.WorkDir(), destination)
@@ -93,7 +103,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	// with a '/', create it so that we can be sure that it's a directory,
 	// and any files we're copying will be placed in the directory.
 	if len(destination) > 0 && destination[len(destination)-1] == os.PathSeparator {
-		if err = ensureDir(dest, user, 0755); err != nil {
+		if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
 			return err
 		}
 	}
@@ -112,6 +122,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if len(source) > 1 && (destfi == nil || !destfi.IsDir()) {
 		return errors.Errorf("destination %q is not a directory", dest)
 	}
+	copyFileWithTar := b.copyFileWithTar(&containerOwner)
+	copyWithTar := b.copyWithTar(&containerOwner)
+	untarPath := b.untarPath(nil)
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -127,10 +140,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if destfi != nil && destfi.IsDir() {
 				d = filepath.Join(dest, path.Base(url.Path))
 			}
-			if err := addURL(d, src); err != nil {
-				return err
-			}
-			if err := setOwner("", d, user); err != nil {
+			if err := addURL(d, src, hostOwner); err != nil {
 				return err
 			}
 			continue
@@ -153,15 +163,12 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				// the source directory into the target directory.  Try
 				// to create it first, so that if there's a problem,
 				// we'll discover why that won't work.
-				if err = ensureDir(dest, user, 0755); err != nil {
+				if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
 					return err
 				}
 				logrus.Debugf("copying %q to %q", gsrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
 				if err := copyWithTar(gsrc, dest); err != nil {
 					return errors.Wrapf(err, "error copying %q to %q", gsrc, dest)
-				}
-				if err := setOwner(gsrc, dest, user); err != nil {
-					return err
 				}
 				continue
 			}
@@ -177,9 +184,6 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				logrus.Debugf("copying %q to %q", gsrc, d)
 				if err := copyFileWithTar(gsrc, d); err != nil {
 					return errors.Wrapf(err, "error copying %q to %q", gsrc, d)
-				}
-				if err := setOwner(gsrc, d, user); err != nil {
-					return err
 				}
 				continue
 			}
@@ -205,49 +209,16 @@ func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
 		GID:      gid,
 		Username: userspec,
 	}
-	return u, err
-}
-
-// setOwner sets the uid and gid owners of a given path.
-func setOwner(src, dest string, user specs.User) error {
-	fid, err := os.Stat(dest)
-	if err != nil {
-		return errors.Wrapf(err, "error reading %q", dest)
-	}
-	if !fid.IsDir() || src == "" {
-		if err := os.Lchown(dest, int(user.UID), int(user.GID)); err != nil {
-			return errors.Wrapf(err, "error setting ownership of %q", dest)
-		}
-		return nil
-	}
-	err = filepath.Walk(src, func(p string, info os.FileInfo, we error) error {
-		relPath, err2 := filepath.Rel(src, p)
+	if !strings.Contains(userspec, ":") {
+		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
 		if err2 != nil {
-			return errors.Wrapf(err2, "error getting relative path of %q to set ownership on destination", p)
-		}
-		if relPath != "." {
-			absPath := filepath.Join(dest, relPath)
-			if err2 := os.Lchown(absPath, int(user.UID), int(user.GID)); err != nil {
-				return errors.Wrapf(err2, "error setting ownership of %q", absPath)
+			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+				err = err2
 			}
+		} else {
+			u.AdditionalGids = groups
 		}
-		return nil
-	})
-	if err != nil {
-		return errors.Wrapf(err, "error walking dir %q to set ownership", src)
-	}
-	return nil
-}
 
-// ensureDir creates a directory if it doesn't exist, setting ownership and permissions as passed by user and perm.
-func ensureDir(path string, user specs.User, perm os.FileMode) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := os.MkdirAll(path, perm); err != nil {
-			return errors.Wrapf(err, "error ensuring directory %q exists", path)
-		}
-		if err := os.Chown(path, int(user.UID), int(user.GID)); err != nil {
-			return errors.Wrapf(err, "error setting ownership of %q", path)
-		}
 	}
-	return nil
+	return u, err
 }
