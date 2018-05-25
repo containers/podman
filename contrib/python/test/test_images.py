@@ -46,8 +46,11 @@ class TestImages(PodmanTestCase):
             self.pclient.images.build()
 
     def test_create(self):
-        with self.assertRaisesNotImplemented():
-            self.pclient.images.create()
+        actual = self.alpine_image.container()
+        self.assertIsNotNone(actual)
+        self.assertEqual(actual.status, 'configured')
+        cntr = actual.start()
+        self.assertIn(cntr.status, ['running', 'exited'])
 
     def test_export(self):
         path = os.path.join(self.tmpdir, 'alpine_export.tar')
@@ -58,9 +61,7 @@ class TestImages(PodmanTestCase):
         self.assertTrue(os.path.isfile(path))
 
     def test_history(self):
-        count = 0
-        for record in self.alpine_image.history():
-            count += 1
+        for count, record in enumerate(self.alpine_image.history()):
             self.assertEqual(record.id, self.alpine_image.id)
         self.assertGreater(count, 0)
 
@@ -88,13 +89,6 @@ class TestImages(PodmanTestCase):
         # assertRaises doesn't follow the import name :(
         with self.assertRaises(podman.ErrorOccurred):
             self.alpine_image.remove()
-
-        # TODO: remove this block once force=True works
-        with podman.Client(self.host) as pclient:
-            for ctnr in pclient.containers.list():
-                if 'alpine' in ctnr.image:
-                    ctnr.stop()
-                    ctnr.remove()
 
         actual = self.alpine_image.remove(force=True)
         self.assertEqual(self.alpine_image.id, actual)
@@ -136,11 +130,11 @@ class TestImages(PodmanTestCase):
 
     def test_search(self):
         actual = self.pclient.images.search('alpine', 25)
-        names, lengths = itertools.tee(actual)
+        names, length = itertools.tee(actual)
 
         for img in names:
-            self.assertIn('alpine', img['name'])
-        self.assertTrue(0 < len(list(lengths)) <= 25)
+            self.assertIn('alpine', img.name)
+        self.assertTrue(0 < len(list(length)) <= 25)
 
 
 if __name__ == '__main__':

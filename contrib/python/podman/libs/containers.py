@@ -4,6 +4,7 @@ import functools
 import getpass
 import json
 import signal
+import time
 
 
 class Container(collections.UserDict):
@@ -16,28 +17,34 @@ class Container(collections.UserDict):
         self._client = client
         self._id = id
 
-        self._refresh(data)
+        with client() as podman:
+            self._refresh(podman)
+
         assert self._id == self.data['id'],\
             'Requested container id({}) does not match store id({})'.format(
                 self._id, self.id
             )
 
     def __getitem__(self, key):
-        """Get items from parent dict + apply aliases."""
-        if key == 'running':
-            key = 'containerrunning'
+        """Get items from parent dict."""
         return super().__getitem__(key)
 
-    def _refresh(self, data):
-        super().update(data)
-        for k, v in data.items():
+    def _refresh(self, podman):
+        ctnr = podman.GetContainer(self._id)
+        super().update(ctnr['container'])
+
+        for k, v in self.data.items():
             setattr(self, k, v)
-        setattr(self, 'running', data['containerrunning'])
+        if 'containerrunning' in self.data:
+            setattr(self, 'running', self.data['containerrunning'])
+            self.data['running'] = self.data['containerrunning']
+
+        return self
 
     def refresh(self):
         """Refresh status fields for this container."""
-        ctnr = Containers(self._client).get(self.id)
-        self._refresh(ctnr)
+        with self._client() as podman:
+            return self._refresh(podman)
 
     def attach(self, detach_key=None, no_stdin=False, sig_proxy=True):
         """Attach to running container."""
@@ -49,8 +56,7 @@ class Container(collections.UserDict):
         """Show processes running in container."""
         with self._client() as podman:
             results = podman.ListContainerProcesses(self.id)
-        for p in results['container']:
-            yield p
+        yield from results['container']
 
     def changes(self):
         """Retrieve container changes."""
@@ -58,14 +64,24 @@ class Container(collections.UserDict):
             results = podman.ListContainerChanges(self.id)
         return results['container']
 
-    def kill(self, signal=signal.SIGTERM):
-        """Send signal to container, return id if successful.
+    def kill(self, signal=signal.SIGTERM, wait=25):
+        """Send signal to container.
 
         default signal is signal.SIGTERM.
+        wait n of seconds, 0 waits forever.
         """
         with self._client() as podman:
-            results = podman.KillContainer(self.id, signal)
-        return results['container']
+            podman.KillContainer(self.id, signal)
+            timeout = time.time() + wait
+            while True:
+                self._refresh(podman)
+                if self.status != 'running':
+                    return self
+
+                if wait and timeout < time.time():
+                    raise TimeoutError()
+
+                time.sleep(0.5)
 
     def _lower_hook(self):
         """Convert all keys to lowercase."""
@@ -80,10 +96,8 @@ class Container(collections.UserDict):
         """Retrieve details about containers."""
         with self._client() as podman:
             results = podman.InspectContainer(self.id)
-            obj = json.loads(
-                results['container'], object_hook=self._lower_hook())
-            return collections.namedtuple('ContainerInspect',
-                                          obj.keys())(**obj)
+        obj = json.loads(results['container'], object_hook=self._lower_hook())
+        return collections.namedtuple('ContainerInspect', obj.keys())(**obj)
 
     def export(self, target):
         """Export container from store to tarball.
@@ -134,16 +148,16 @@ class Container(collections.UserDict):
         return results['image']
 
     def start(self):
-        """Start container, return id on success."""
+        """Start container, return container on success."""
         with self._client() as podman:
-            results = podman.StartContainer(self.id)
-        return results['container']
+            podman.StartContainer(self.id)
+            return self._refresh(podman)
 
     def stop(self, timeout=25):
         """Stop container, return id on success."""
         with self._client() as podman:
-            results = podman.StopContainer(self.id, timeout)
-        return results['container']
+            podman.StopContainer(self.id, timeout)
+            return self._refresh(podman)
 
     def remove(self, force=False):
         """Remove container, return id on success.
@@ -157,8 +171,8 @@ class Container(collections.UserDict):
     def restart(self, timeout=25):
         """Restart container with timeout, return id on success."""
         with self._client() as podman:
-            results = podman.RestartContainer(self.id, timeout)
-        return results['container']
+            podman.RestartContainer(self.id, timeout)
+            return self._refresh(podman)
 
     def rename(self, target):
         """Rename container, return id on success."""
@@ -177,21 +191,20 @@ class Container(collections.UserDict):
     def pause(self):
         """Pause container, return id on success."""
         with self._client() as podman:
-            results = podman.PauseContainer(self.id)
-        return results['container']
+            podman.PauseContainer(self.id)
+            return self._refresh(podman)
 
     def unpause(self):
         """Unpause container, return id on success."""
         with self._client() as podman:
-            results = podman.UnpauseContainer(self.id)
-        return results['container']
+            podman.UnpauseContainer(self.id)
+            return self._refresh(podman)
 
     def update_container(self, *args, **kwargs):
         """TODO: Update container..., return id on success."""
         with self._client() as podman:
-            results = podman.UpdateContainer()
-        self.refresh()
-        return results['container']
+            podman.UpdateContainer()
+            return self._refresh(podman)
 
     def wait(self):
         """Wait for container to finish, return 'returncode'."""
@@ -210,8 +223,7 @@ class Container(collections.UserDict):
         """Retrieve container logs."""
         with self._client() as podman:
             results = podman.GetContainerLogs(self.id)
-        for line in results:
-            yield line
+        yield from results
 
 
 class Containers(object):
@@ -233,15 +245,6 @@ class Containers(object):
         with self._client() as podman:
             results = podman.DeleteStoppedContainers()
         return results['containers']
-
-    def create(self, *args, **kwargs):
-        """Create container layer over the specified image.
-
-        See podman-create.1.md for kwargs details.
-        """
-        with self._client() as podman:
-            results = podman.CreateContainer()
-        return results['id']
 
     def get(self, id):
         """Retrieve container details from store."""
