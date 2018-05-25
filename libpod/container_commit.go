@@ -84,9 +84,13 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	importBuilder.SetCmd(c.config.Command)
 
 	// Env
-	for _, e := range c.config.Spec.Process.Env {
-		splitEnv := strings.Split(e, "=")
-		importBuilder.SetEnv(splitEnv[0], splitEnv[1])
+	// TODO - this includes all the default environment vars as well
+	// Should we store the ENV we actually want in the spec separately?
+	if c.config.Spec.Process != nil {
+		for _, e := range c.config.Spec.Process.Env {
+			splitEnv := strings.Split(e, "=")
+			importBuilder.SetEnv(splitEnv[0], splitEnv[1])
+		}
 	}
 	// Expose ports
 	for _, p := range c.config.PortMappings {

@@ -13,7 +13,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	runtimeInfo := c.state
 	spec := c.config.Spec
 
-	args := config.Spec.Process.Args
+	// Process is allowed to be nil in the spec
+	args := []string{}
+	if config.Spec.Process != nil {
+		args = config.Spec.Process.Args
+	}
 	var path string
 	if len(args) > 0 {
 		path = args[0]
