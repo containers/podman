@@ -88,7 +88,7 @@ func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
 	return runtimeSpec, nil
 }
 
-// TestPIDsLimit verifies the inputed pid-limit is correctly defined in the spec
+// TestPIDsLimit verifies the inputted pid-limit is correctly defined in the spec
 func TestPIDsLimit(t *testing.T) {
 	a := createCLI()
 	args := []string{"--pids-limit", "22"}
@@ -100,7 +100,7 @@ func TestPIDsLimit(t *testing.T) {
 	assert.Equal(t, runtimeSpec.Linux.Resources.Pids.Limit, int64(22))
 }
 
-// TestBLKIOWeightDevice verifies the inputed blkio weigh device is correctly defined in the spec
+// TestBLKIOWeightDevice verifies the inputted blkio weigh device is correctly defined in the spec
 func TestBLKIOWeightDevice(t *testing.T) {
 	a := createCLI()
 	args := []string{"--blkio-weight-device", "/dev/zero:100"}
@@ -112,7 +112,7 @@ func TestBLKIOWeightDevice(t *testing.T) {
 	assert.Equal(t, *runtimeSpec.Linux.Resources.BlockIO.WeightDevice[0].Weight, uint16(100))
 }
 
-// TestMemorySwap verifies that the inputed memory swap is correctly defined in the spec
+// TestMemorySwap verifies that the inputted memory swap is correctly defined in the spec
 func TestMemorySwap(t *testing.T) {
 	a := createCLI()
 	args := []string{"--memory-swap", "45m", "--memory", "40m"}

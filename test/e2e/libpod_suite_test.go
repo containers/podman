@@ -254,7 +254,7 @@ func (s *PodmanSession) OutputToStringArray() []string {
 	return strings.Split(output, "\n")
 }
 
-// IsJSONOutputValid attempts to unmarshall the session buffer
+// IsJSONOutputValid attempts to unmarshal the session buffer
 // and if successful, returns true, else false
 func (s *PodmanSession) IsJSONOutputValid() bool {
 	var i interface{}

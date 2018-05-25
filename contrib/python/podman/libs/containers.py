@@ -42,7 +42,7 @@ class Container(collections.UserDict):
     def attach(self, detach_key=None, no_stdin=False, sig_proxy=True):
         """Attach to running container."""
         with self._client() as podman:
-            # TODO: streaming and port magic occur, need arguements
+            # TODO: streaming and port magic occur, need arguments
             podman.AttachToContainer()
 
     def processes(self):
@@ -163,7 +163,7 @@ class Container(collections.UserDict):
     def rename(self, target):
         """Rename container, return id on success."""
         with self._client() as podman:
-            # TODO: Need arguements
+            # TODO: Need arguments
             results = podman.RenameContainer()
         # TODO: fixup objects cached information
         return results['container']
@@ -171,7 +171,7 @@ class Container(collections.UserDict):
     def resize_tty(self, width, height):
         """Resize container tty."""
         with self._client() as podman:
-            # TODO: magic re: attach(), arguements
+            # TODO: magic re: attach(), arguments
             podman.ResizeContainerTty()
 
     def pause(self):

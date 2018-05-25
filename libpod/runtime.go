@@ -589,7 +589,7 @@ func (r *Runtime) Info() ([]InfoData, error) {
 	return info, nil
 }
 
-// generateName generates a unigue name for a container or pod.
+// generateName generates a unique name for a container or pod.
 func (r *Runtime) generateName() (string, error) {
 	for {
 		name := namesgenerator.GetRandomName(0)

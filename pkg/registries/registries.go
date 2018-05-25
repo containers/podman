@@ -22,7 +22,7 @@ func GetRegistries() ([]string, error) {
 	return searchRegistries, nil
 }
 
-// GetInsecureRegistries obtains the list of inseure registries from the global registration file.
+// GetInsecureRegistries obtains the list of insecure registries from the global registration file.
 func GetInsecureRegistries() ([]string, error) {
 	registryConfigPath := ""
 	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")

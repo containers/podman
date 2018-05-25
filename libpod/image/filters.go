@@ -67,7 +67,7 @@ func OutputImageFilter(userImage *Image) ResultFilter {
 	}
 }
 
-// FilterImages filters images using a set of predefined fitler funcs
+// FilterImages filters images using a set of predefined filter funcs
 func FilterImages(images []*Image, filters []ResultFilter) []*Image {
 	var filteredImages []*Image
 	for _, image := range images {

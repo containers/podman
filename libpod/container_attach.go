@@ -65,7 +65,7 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 }
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO
-// TODO add a channel to allow interruptiong
+// TODO add a channel to allow interrupting
 func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams) error {
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		controlPath := filepath.Join(c.bundlePath(), "ctl")

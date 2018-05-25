@@ -32,7 +32,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "author, a",
-			Usage: "Set the author for the image comitted",
+			Usage: "Set the author for the image committed",
 		},
 		cli.BoolTFlag{
 			Name:  "pause, p",

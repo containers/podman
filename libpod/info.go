@@ -38,7 +38,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 
 	kv, err := readKernelVersion()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading kernet version")
+		return nil, errors.Wrapf(err, "error reading kernel version")
 	}
 	info["kernel"] = kv
 

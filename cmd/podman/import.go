@@ -120,7 +120,7 @@ func importCmd(c *cli.Context) error {
 }
 
 // donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and tempoarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
+// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
 func downloadFromURL(source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)
 
