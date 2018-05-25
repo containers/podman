@@ -156,7 +156,7 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
-		if err := addFIPSsModeSecret(&secretMounts, containerWorkingDir); err != nil {
+		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir); err != nil {
 			logrus.Warnf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
@@ -237,11 +237,11 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 	return mounts, nil
 }
 
-// addFIPSsModeSecret creates /run/secrets/system-fips in the container
+// addFIPSModeSecret creates /run/secrets/system-fips in the container
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSsModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
+func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
 	secretsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
