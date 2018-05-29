@@ -1,6 +1,4 @@
-% podman(1) podman-pull - Simple tool to pull an image from a registry
-% Urvashi Mohnani
-# podman-pull "1" "July 2017" "podman"
+% podman-pull "1"
 
 ## NAME
 podman\-pull - Pull an image from a registry

@@ -1,6 +1,4 @@
-% podman(1) podman-inspect - Display a container or image's configuration
-% Dan Walsh
-# podman-inspect "1" "July 2017" "podman"
+% podman-inspect "1"
 
 ## NAME
 podman\-inspect - Display a container or image's configuration

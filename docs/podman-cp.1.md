@@ -1,6 +1,4 @@
-% podman(1) podman-cp - Copy content between container's file system and the host
-% Dan Walsh
-# podman-cp "1" "August 2017" "podman"
+% podman-cp "1"
 
 ## NAME
 podman\-cp - Copy files/folders between a container and the local filesystem

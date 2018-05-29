@@ -1,6 +1,4 @@
-% podman(1) podman-import - Simple tool to import a tarball as an image
-% Urvashi Mohnani
-# podman-import "1" "November 2017" "podman"
+% podman-import "1"
 
 ## NAME
 podman\-import - Import a tarball and save it as a filesystem image

@@ -1,6 +1,4 @@
-% podman(1) podman-ps - Simple tool to list containers
-% Urvashi Mohnani
-% podman-ps "1" "AUGUST 2017" "podman"
+% podman-ps "1"
 
 ## NAME
 podman\-ps - Prints out information about containers

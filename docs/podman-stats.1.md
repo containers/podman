@@ -1,6 +1,4 @@
-% podman(1) podman-stats - Display a live stream of 1 or more containers' resource usage statistics
-% Ryan Cole
-# podman-stats "1" "July 2017" "podman"
+% podman-stats "1"
 
 ## NAME
 podman\-stats - Display a live stream of 1 or more containers' resource usage statistics

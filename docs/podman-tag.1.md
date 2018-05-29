@@ -1,6 +1,4 @@
-% podman(1) podman-tag - Add tags to an image
-% Ryan Cole
-# podman-tag "1" "July 2017" "podman"
+% podman-tag "1"
 
 ## NAME
 podman\-tag - Add an additional name to a local image

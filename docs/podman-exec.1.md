@@ -1,6 +1,4 @@
-% podman(1) podman-exec - Execute a command in a running container
-% Brent Baude
-# podman-exec "1" "December 2017" "podman"
+% podman-exec "1"
 
 ## NAME
 podman\-exec - Execute a command in a running container

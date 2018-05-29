@@ -1,6 +1,4 @@
-% podman(1) podman-unpause - Unpause one or more containers
-% Dan Walsh
-# podman-unpause "1" "September 2017" "podman"
+% podman-unpause "1"
 
 ## NAME
 podman\-unpause - Unpause one or more containers
