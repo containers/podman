@@ -248,7 +248,7 @@ type Create (
 )
 
 # CreateResourceConfig is an input structure used to describe host attributes during
-# container creation.  It is only valid inside a (Create)[#Create] type.
+# container creation.  It is only valid inside a [Create](#Create) type.
 type CreateResourceConfig (
     blkio_weight: int,
     blkio_weight_device: []string,
@@ -291,6 +291,35 @@ type IDMap (
     size: int
 )
 
+# BuildInfo is used to describe user input for building images
+type BuildInfo (
+    # paths to one or more dockerfiles
+    dockerfile: []string,
+    tags: []string,
+    add_hosts: []string,
+    cgroup_parent: string,
+    cpu_period: int,
+    cpu_quota: int,
+    cpu_shares: int,
+    cpuset_cpus: string,
+    cpuset_mems: string,
+    memory: string,
+    memory_swap: string,
+    security_opts: []string,
+    shm_size: string,
+    ulimit: []string,
+    volume: []string,
+    squash: bool,
+    pull: bool,
+    pull_always: bool,
+    force_rm: bool,
+    rm: bool,
+    label: []string,
+    annotations: []string,
+    build_args: [string]string,
+    image_format: string
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -317,10 +346,19 @@ method ListContainers() -> (containers: []ListContainerData)
 
 # GetContainer takes a name or ID of a container and returns single ListContainerData
 # structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
-# See also [ListContainers](ListContainers) and [InspectContainer](InspectContainer).
+# See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
 method GetContainer(name: string) -> (container: ListContainerData)
 
-# CreateContainer creates a new container from an image.  It uses a (Create)[#Create] type for input.
+# CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
+# input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
+# error will be returned.  Otherwise, the ID of the newly created container will be returned.
+# #### Example
+# ~~~
+# $ varlink call unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.CreateContainer '{"create": {"image": "alpine"}}'
+# {
+#   "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
+# }
+# ~~~
 method CreateContainer(create: Create) -> (container: string)
 
 # InspectContainer data takes a name or ID of a container returns the inspection
@@ -429,12 +467,12 @@ method RenameContainer() -> (notimplemented: NotImplemented)
 
 # PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
 # a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
-# See also [UnpauseContainer](UnpauseContainer).
+# See also [UnpauseContainer](#UnpauseContainer).
 method PauseContainer(name: string) -> (container: string)
 
 # UnpauseContainer takes the name or ID of container and unpauses a paused container.  If the container cannot be
 # found, a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
-# See also [PauseContainer](PauseContainer).
+# See also [PauseContainer](#PauseContainer).
 method UnpauseContainer(name: string) -> (container: string)
 
 # This method has not be implemented yet.
@@ -482,8 +520,14 @@ method DeleteStoppedContainers() -> (containers: []string)
 # an image currently in storage.  See also [InspectImage](InspectImage).
 method ListImages() -> (images: []ImageInList)
 
-# This function is not implemented yet.
-method BuildImage() -> (notimplemented: NotImplemented)
+# GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
+# If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
+method GetImage(name: string) -> (image: ImageInList)
+
+# BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
+# 'dockerfile' and 'tags' options in the BuildInfo structure.  Upon a successful build, it will
+# return the ID of the container.
+method BuildImage(build: BuildInfo) -> (image: []string)
 
 # This function is not implemented yet.
 method CreateImage() -> (notimplemented: NotImplemented)

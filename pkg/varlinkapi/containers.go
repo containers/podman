@@ -182,6 +182,9 @@ func (i *LibpodAPI) GetContainerLogs(call ioprojectatomicpodman.VarlinkCall, nam
 			logs = append(logs, line)
 		}
 	}
+
+	call.Continues = false
+
 	return call.ReplyGetContainerLogs(logs)
 }
 

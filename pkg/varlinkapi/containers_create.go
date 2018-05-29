@@ -22,14 +22,6 @@ import (
 
 // CreateContainer ...
 func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, config ioprojectatomicpodman.Create) error {
-	//mappings, err := util.ParseIDMapping(config.Uidmap, config.Gidmap, config.Subuidmap, config.Subgidmap)
-	//if err != nil {
-	//	return err
-	//}
-	//storageOpts := storage.DefaultStoreOptions
-	//storageOpts.UIDMap = mappings.UIDMap
-	//storageOpts.GIDMap = mappings.GIDMap
-
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
 		return call.ReplyRuntimeError(err.Error())
@@ -120,7 +112,7 @@ func varlinkCreateToCreateConfig(ctx context.Context, create ioprojectatomicpodm
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
-	} else if len(data.ContainerConfig.Cmd) > 0 && len(create.Entrypoint) > 0 {
+	} else if len(data.ContainerConfig.Cmd) > 0 && len(command) == 0 {
 		// If not user command, add CMD
 		command = append(command, data.ContainerConfig.Cmd...)
 	}

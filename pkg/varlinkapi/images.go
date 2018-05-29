@@ -3,12 +3,21 @@ package varlinkapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"bytes"
 	"github.com/containers/image/docker"
+	"github.com/containers/image/types"
+	"github.com/docker/go-units"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
+	"github.com/projectatomic/buildah/imagebuildah"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
+	"github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	sysreg "github.com/projectatomic/libpod/pkg/registries"
@@ -28,9 +37,9 @@ func (i *LibpodAPI) ListImages(call ioprojectatomicpodman.VarlinkCall) error {
 	}
 	var imageList []ioprojectatomicpodman.ImageInList
 	for _, image := range images {
-		//size, _:= image.Size(getContext())
 		labels, _ := image.Labels(getContext())
 		containers, _ := image.Containers()
+		size, _ := image.Size(getContext())
 
 		i := ioprojectatomicpodman.ImageInList{
 			Id:          image.ID(),
@@ -38,7 +47,7 @@ func (i *LibpodAPI) ListImages(call ioprojectatomicpodman.VarlinkCall) error {
 			RepoTags:    image.Names(),
 			RepoDigests: image.RepoDigests(),
 			Created:     image.Created().String(),
-			//Size: size,
+			Size:        int64(*size),
 			VirtualSize: image.VirtualSize,
 			Containers:  int64(len(containers)),
 			Labels:      labels,
@@ -48,10 +57,197 @@ func (i *LibpodAPI) ListImages(call ioprojectatomicpodman.VarlinkCall) error {
 	return call.ReplyListImages(imageList)
 }
 
+// GetImage returns a single image in the form of a ImageInList
+func (i *LibpodAPI) GetImage(call ioprojectatomicpodman.VarlinkCall, name string) error {
+	runtime, err := libpodruntime.GetRuntime(i.Cli)
+	if err != nil {
+		return call.ReplyRuntimeError(err.Error())
+	}
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	labels, err := newImage.Labels(getContext())
+	if err != nil {
+		return err
+	}
+	containers, err := newImage.Containers()
+	if err != nil {
+		return err
+	}
+	size, err := newImage.Size(getContext())
+	if err != nil {
+		return err
+	}
+
+	il := ioprojectatomicpodman.ImageInList{
+		Id:          newImage.ID(),
+		ParentId:    newImage.Parent,
+		RepoTags:    newImage.Names(),
+		RepoDigests: newImage.RepoDigests(),
+		Created:     newImage.Created().String(),
+		Size:        int64(*size),
+		VirtualSize: newImage.VirtualSize,
+		Containers:  int64(len(containers)),
+		Labels:      labels,
+	}
+	return call.ReplyGetImage(il)
+}
+
 // BuildImage ...
-// TODO Waiting for buildah to be vendored into libpod to do this only one
-func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("BuildImage")
+func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config ioprojectatomicpodman.BuildInfo) error {
+	var (
+		memoryLimit int64
+		memorySwap  int64
+	)
+
+	runtime, err := libpodruntime.GetRuntime(i.Cli)
+	if err != nil {
+		return call.ReplyRuntimeError(err.Error())
+	}
+	defer runtime.Shutdown(false)
+
+	systemContext := types.SystemContext{}
+	dockerfiles := config.Dockerfile
+	contextDir := ""
+
+	for i := range dockerfiles {
+		if strings.HasPrefix(dockerfiles[i], "http://") ||
+			strings.HasPrefix(dockerfiles[i], "https://") ||
+			strings.HasPrefix(dockerfiles[i], "git://") ||
+			strings.HasPrefix(dockerfiles[i], "github.com/") {
+			continue
+		}
+		absFile, err := filepath.Abs(dockerfiles[i])
+		if err != nil {
+			return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
+		}
+		contextDir = filepath.Dir(absFile)
+		dockerfiles[i], err = filepath.Rel(contextDir, absFile)
+		if err != nil {
+			return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
+		}
+		break
+	}
+
+	pullPolicy := imagebuildah.PullNever
+	if config.Pull {
+		pullPolicy = imagebuildah.PullIfMissing
+	}
+
+	if config.Pull_always {
+		pullPolicy = imagebuildah.PullAlways
+	}
+
+	format := "oci"
+	if config.Image_format != "" {
+		format = config.Image_format
+	}
+
+	if strings.HasPrefix(format, "oci") {
+		format = imagebuildah.OCIv1ImageFormat
+	} else if strings.HasPrefix(format, "docker") {
+		format = imagebuildah.Dockerv2ImageFormat
+	} else {
+		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image type %q", format))
+	}
+
+	if config.Memory != "" {
+		memoryLimit, err = units.RAMInBytes(config.Memory)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+	}
+
+	if config.Memory_swap != "" {
+		memorySwap, err = units.RAMInBytes(config.Memory_swap)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+	}
+
+	output := bytes.NewBuffer([]byte{})
+	commonOpts := &buildah.CommonBuildOptions{
+		AddHost:      config.Add_hosts,
+		CgroupParent: config.Cgroup_parent,
+		CPUPeriod:    uint64(config.Cpu_period),
+		CPUQuota:     config.Cpu_quota,
+		CPUSetCPUs:   config.Cpuset_cpus,
+		CPUSetMems:   config.Cpuset_mems,
+		Memory:       memoryLimit,
+		MemorySwap:   memorySwap,
+		ShmSize:      config.Shm_size,
+		Ulimit:       config.Ulimit,
+		Volumes:      config.Volume,
+	}
+
+	options := imagebuildah.BuildOptions{
+		ContextDirectory: contextDir,
+		PullPolicy:       pullPolicy,
+		Compression:      imagebuildah.Gzip,
+		Quiet:            false,
+		//SignaturePolicyPath:
+		Args: config.Build_args,
+		//Output:
+		AdditionalTags: config.Tags,
+		//Runtime: runtime.
+		//RuntimeArgs: ,
+		OutputFormat:    format,
+		SystemContext:   &systemContext,
+		CommonBuildOpts: commonOpts,
+		Squash:          config.Squash,
+		Labels:          config.Label,
+		Annotations:     config.Annotations,
+		ReportWriter:    output,
+	}
+
+	if call.WantsMore() {
+		call.Continues = true
+	}
+
+	c := build(runtime, options, config.Dockerfile)
+	var log []string
+	done := false
+	for {
+		line, err := output.ReadString('\n')
+		if err == nil {
+			log = append(log, line)
+			continue
+		} else if err == io.EOF {
+			select {
+			case err := <-c:
+				if err != nil {
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				done = true
+			default:
+				if !call.WantsMore() {
+					time.Sleep(1 * time.Second)
+					break
+				}
+				call.ReplyBuildImage(log)
+				log = []string{}
+			}
+		} else {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if done {
+			break
+		}
+	}
+	call.Continues = false
+	return call.ReplyBuildImage(log)
+}
+
+func build(runtime *libpod.Runtime, options imagebuildah.BuildOptions, dockerfiles []string) chan error {
+	c := make(chan error)
+	go func() {
+		err := runtime.Build(getContext(), options, dockerfiles...)
+		c <- err
+		close(c)
+	}()
+
+	return c
 }
 
 // CreateImage ...
