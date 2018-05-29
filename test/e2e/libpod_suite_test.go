@@ -629,6 +629,14 @@ func IsCommandAvailable(command string) bool {
 	return true
 }
 
+// WriteJsonFile write json format data to a json file
+func WriteJsonFile(data []byte, filePath string) error {
+	var jsonData map[string]interface{}
+	json.Unmarshal(data, &jsonData)
+	formatJson, _ := json.MarshalIndent(jsonData, "", "	")
+	return ioutil.WriteFile(filePath, formatJson, 0644)
+}
+
 func getTestContext() context.Context {
 	return context.Background()
 }
