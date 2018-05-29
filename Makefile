@@ -165,7 +165,7 @@ MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 
 $(MANPAGES): %: %.md .gopathok
-	$(GOMD2MAN) -in $< -out $@
+	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $@
 
 docs: $(MANPAGES)
 

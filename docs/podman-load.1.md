@@ -1,6 +1,4 @@
-% podman(1) podman-load - Simple tool to load an image from an archive to containers-storage
-% Urvashi Mohnani
-# podman-load "1" "July 2017" "podman"
+% podman-load  "1"
 
 ## NAME
 podman\-load - Load an image from docker archive

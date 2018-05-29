@@ -1,6 +1,4 @@
-% libpod.conf(5) library for running OCI-based containers in Pods
-% Nathan Williams
-% APRIL 2018
+% libpod.conf "5"
 
 # NAME
 libpod.conf - libpod configuration file

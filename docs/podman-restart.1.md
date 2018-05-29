@@ -1,6 +1,4 @@
-% podman(1) podman-restart - Restart a container
-% Matt Heon
-# podman-restart "1" "March 2017" "podman"
+% podman-restart "1"
 
 ## NAME
 podman\-restart - Restart a container

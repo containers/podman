@@ -1,6 +1,4 @@
-% podman(1) podman-history - Simple tool to view the history of an image
-% Urvashi Mohnani
-% podman-history "1" "JULY 2017" "podman"
+% podman-history "1"
 
 ## NAME
 podman\-history - Shows the history of an image

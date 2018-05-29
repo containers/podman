@@ -1,6 +1,4 @@
-% podman(1) podman-rm - Remove one or more containers
-% Ryan Cole
-# podman-rm "1" "August 2017" "podman"
+% podman-rm "1"
 
 ## NAME
 podman\-rm - Remove one or more containers

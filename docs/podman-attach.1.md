@@ -1,6 +1,4 @@
-% podman(1) podman-attach - See the output of pid 1 of a container or enter the container
-% Dan Walsh
-# podman-attach "1" "December 2017" "podman"
+% podman-attach "1"
 
 ## NAME
 podman\-attach - Attach to a running container

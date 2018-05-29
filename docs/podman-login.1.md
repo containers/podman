@@ -1,6 +1,4 @@
-% podman(1) podman-login - Simple tool to login to a registry server
-% Urvashi Mohnani
-# podman-login "1" "August 2017" "podman"
+% podman-login "1"
 
 ## NAME
 podman\-login - Login to a container registry

@@ -1,6 +1,4 @@
-% podman(1) podman-pause - Pause one or more containers
-% Dan Walsh
-# podman-pause "1" "September 2017" "podman"
+% podman-pause "1"
 
 ## NAME
 podman\-pause - Pause one or more containers

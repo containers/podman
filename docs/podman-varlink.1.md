@@ -1,6 +1,4 @@
-% podman(1) podman-varlink - Waits on a container
-% Brent Baude
-# podman-varlink "1" "April 2018" "podman"
+% podman-varlink "1"
 
 ## NAME
 podman\-varlink - Runs the varlink backend interface

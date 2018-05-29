@@ -1,6 +1,4 @@
-% podman(1) podman-version - Simple tool to view version information
-% Urvashi Mohnani
-# podman-version "1" "July 2017" "podman"
+% podman-version "1"
 
 ## NAME
 podman\-version - Display the PODMAN Version Information

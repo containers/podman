@@ -1,5 +1,4 @@
-% podman(1) podman-run - Run a command in a container
-% Dan Walsh
+% podman-run "1"
 
 ## NAME
 podman\-run - Run a command in a new container

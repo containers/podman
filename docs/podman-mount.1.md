@@ -1,6 +1,4 @@
-% podman(1) podman-mount - Mount a working container's root filesystem.
-% Dan Walsh
-# podman-mount "1" "July 2017" "podman"
+% podman-mount "1"
 
 ## NAME
 podman\-mount - Mount a working container's root filesystem

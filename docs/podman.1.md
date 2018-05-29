@@ -1,6 +1,5 @@
-% podman(1) podman - Simple management tool for pods and images
-% Dan Walsh
-# podman "1" "September 2016" "podman"
+% podman "1"
+
 ## NAME
 podman - Simple management tool for containers and images
 

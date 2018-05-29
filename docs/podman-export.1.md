@@ -1,6 +1,4 @@
-% podman(1) podman-export - Simple tool to export a container's filesystem as a tarball
-% Urvashi Mohnani
-# podman-export "1" "July 2017" "podman"
+% podman-export "1"
 
 ## NAME
 podman export - Export container's filesystem contents as a tar archive

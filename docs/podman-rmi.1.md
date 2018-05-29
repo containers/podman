@@ -1,6 +1,4 @@
-% podman(1) podman-rmi - Removes one or more images
-% Dan Walsh
-# podman-rmi "1" "March 2017" "podman"
+% podman-rmi "1"
 
 ## NAME
 podman\-rmi - Removes one or more images

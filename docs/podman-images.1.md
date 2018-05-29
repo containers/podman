@@ -1,6 +1,4 @@
-% podman(1) podman-images - List images in local storage
-% Dan Walsh
-# podman-images "1" "March 2017" "podman"
+% podman-images "1"
 
 ## NAME
 podman\-images - List images in local storage

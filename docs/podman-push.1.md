@@ -1,6 +1,4 @@
-% podman(1) podman-push - Push an image from local storage to elsewhere
-% Dan Walsh
-# podman-push "1" "June 2017" "podman"
+% podman-push "1"
 
 ## NAME
 podman\-push - Push an image from local storage to elsewhere
