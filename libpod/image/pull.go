@@ -225,7 +225,23 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 			images = append(images, imageInfo.image)
 		}
 	}
-	return images, errors.Wrapf(err, "error pulling image from")
+	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
+	if len(images) == 0 {
+		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
+		searchRegistries, err := registries.GetRegistries()
+		if err != nil {
+			return nil, err
+		}
+		hasRegistryInName, err := i.hasRegistry()
+		if err != nil {
+			return nil, err
+		}
+		if !hasRegistryInName && len(searchRegistries) == 0 {
+			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
+		}
+		return nil, errors.Errorf("unable to find image in the registries defined in %q", registryPath)
+	}
+	return images, nil
 }
 
 // createNamesToPull looks at a decomposed image and determines the possible
@@ -280,4 +296,14 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 	}
 
 	return pullNames, nil
+}
+
+// isShortName returns a bool response if the input image name has a registry
+// name in it or not
+func (i *Image) isShortName() (bool, error) {
+	decomposedImage, err := decompose(i.InputName)
+	if err != nil {
+		return false, err
+	}
+	return decomposedImage.hasRegistry, nil
 }
