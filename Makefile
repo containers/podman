@@ -110,6 +110,7 @@ clean:
 		test/checkseccomp/checkseccomp \
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
+		cmd/podman/varlink/ioprojectatomicpodman.go \
 		$(MANPAGES)
 ifdef HAS_PYTHON3
 		$(MAKE) -C contrib/python clean
