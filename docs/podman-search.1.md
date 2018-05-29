@@ -1,6 +1,4 @@
-% podman(1) podman-search - Tool to search registries for an image
-% Urvashi Mohnani
-# podman-search "1" "January 2018" "podman"
+% podman-search "1"
 
 ## NAME
 podman\-search - Search a registry for an image

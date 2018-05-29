@@ -1,6 +1,4 @@
-% podman(1) podman-save - Simple tool to save an image to an archive
-% Urvashi Mohnani
-# podman-save "1" "July 2017" "podman"
+% podman-save "1"
 
 ## NAME
 podman\-save - Save an image to docker-archive or oci-archive

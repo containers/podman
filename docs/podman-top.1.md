@@ -1,5 +1,4 @@
-% podman(1) podman-top - display the running processes of a container
-% Brent Baude
+% podman-top "1"
 
 ## NAME
 podman\-top - Display the running processes of a container

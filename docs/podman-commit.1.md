@@ -1,6 +1,4 @@
-% podman(1) podman-commit - Tool to create new image based on the changed container
-% Urvashi Mohnani
-# podman-commit "1" "December 2017" "podman"
+% podman-commit "1"
 
 ## NAME
 podman\-commit - Create new image based on the changed container

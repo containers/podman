@@ -1,6 +1,4 @@
-% podman(1) podman-logout - Simple tool to logout of a registry server
-% Urvashi Mohnani
-# podman-logout "1" "August 2017" "podman"
+% podman-logout "1"
 
 ## NAME
 podman\-logout - Logout of a container registry

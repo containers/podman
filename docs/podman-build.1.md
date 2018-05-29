@@ -1,6 +1,4 @@
-% podman(1) podman-build - Simple tool to build a container image
-% Tom Sweeney
-# podman-build "7" "December 2017" "podman"
+% podman-build "1"
 
 ## NAME
 podman\-build - Build a container image using a Dockerfile.

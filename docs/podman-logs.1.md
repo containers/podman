@@ -1,6 +1,4 @@
-% podman(1) podman-logs - Fetch the logs of a container
-% Ryan Cole
-# podman-logs "1" "March 2017" "podman"
+% podman-logs "1"
 
 ## NAME
 podman\-logs - Fetch the logs of a container

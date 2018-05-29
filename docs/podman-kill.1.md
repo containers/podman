@@ -1,6 +1,4 @@
-% podman(1) podman-kill- Kill one or more containers with a signal
-% Brent Baude
-# podman-kill"1" "September 2017" "podman"
+% podman-kill "1"
 
 ## NAME
 podman\-kill - Kills one or more containers with a signal

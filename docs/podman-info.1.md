@@ -1,6 +1,4 @@
-% podman(1) podman-version - Simple tool to view version information
-% Vincent Batts
-% podman-version "1" "JULY 2017" "podman"
+% podman-version "1"
 
 ## NAME
 podman\-info - Display system information

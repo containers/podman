@@ -1,6 +1,4 @@
-% podman(1) podman-wait - Waits on a container
-% Brent Baude
-# podman-wait "1" "September 2017" "podman"
+% podman-wait "1"
 
 ## NAME
 podman\-wait - Waits on one or more containers to stop and prints exit code

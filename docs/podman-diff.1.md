@@ -1,6 +1,4 @@
-% podman(1) podman-diff - Inspect changes on a container or image's filesystem
-% Dan Walsh
-# podman-diff "1" "August 2017" "podman"
+% podman-diff "1"
 
 ## NAME
 podman\-diff - Inspect changes on a container or image's filesystem

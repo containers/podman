@@ -1,6 +1,4 @@
-% podman(1) podman-port - List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
-% Brent Baude
-# podman-port "1" "January 2018" "podman"
+% podman-port "1"
 
 ## NAME
 podman\-port - List port mappings for a container

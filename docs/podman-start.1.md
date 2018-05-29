@@ -1,6 +1,4 @@
-% podman(1) podman-start - Stop one or more containers
-% Brent Baude
-# podman-start "1" "November 2017" "podman"
+% podman-start "1"
 
 ## NAME
 podman\-start - Start one or more containers
