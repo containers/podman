@@ -45,6 +45,11 @@ type namedHooks []*namedHook
 // increasing preference (hook configurations in later directories
 // override configurations with the same filename from earlier
 // directories).
+//
+// extensionStages allows callers to add additional stages beyond
+// those specified in the OCI Runtime Specification and to control
+// OCI-defined stages instead of delagating to the OCI runtime.  See
+// Hooks() for more information.
 func New(ctx context.Context, directories []string, extensionStages []string, lang language.Tag) (manager *Manager, err error) {
 	manager = &Manager{
 		hooks:           map[string]*current.Hook{},
@@ -82,13 +87,24 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 }
 
 // Hooks injects OCI runtime hooks for a given container configuration.
+//
+// If the extensionStages slice was set when initializing the Manager,
+// matching hooks requesting those stages will be returned in the
+// extensionStages map.  This takes precedence over their inclusion in
+// the OCI configuration.  For example:
+//
+//   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"}, lang)
+//   extensionStages, err := manager.Hooks(config, annotations, hasBindMounts)
+//
+// will have any matching post-stop hooks in extensionStages and will
+// not insert them into config.Hooks.Poststop.
 func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStages map[string][]rspec.Hook, err error) {
 	hooks := m.namedHooks()
 	collator := collate.New(m.language, collate.IgnoreCase, collate.IgnoreWidth)
 	collator.Sort(namedHooks(hooks))
-	validStages := map[string]bool{} // beyond the OCI stages
+	localStages := map[string]bool{} // stages destined for extensionStages
 	for _, stage := range m.extensionStages {
-		validStages[stage] = true
+		localStages[stage] = true
 	}
 	for _, namedHook := range hooks {
 		match, err := namedHook.hook.When.Match(config, annotations, hasBindMounts)
@@ -100,21 +116,22 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 				config.Hooks = &rspec.Hooks{}
 			}
 			for _, stage := range namedHook.hook.Stages {
-				switch stage {
-				case "prestart":
-					config.Hooks.Prestart = append(config.Hooks.Prestart, namedHook.hook.Hook)
-				case "poststart":
-					config.Hooks.Poststart = append(config.Hooks.Poststart, namedHook.hook.Hook)
-				case "poststop":
-					config.Hooks.Poststop = append(config.Hooks.Poststop, namedHook.hook.Hook)
-				default:
-					if !validStages[stage] {
-						return extensionStages, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
-					}
+				if _, ok := localStages[stage]; ok {
 					if extensionStages == nil {
 						extensionStages = map[string][]rspec.Hook{}
 					}
 					extensionStages[stage] = append(extensionStages[stage], namedHook.hook.Hook)
+				} else {
+					switch stage {
+					case "prestart":
+						config.Hooks.Prestart = append(config.Hooks.Prestart, namedHook.hook.Hook)
+					case "poststart":
+						config.Hooks.Poststart = append(config.Hooks.Poststart, namedHook.hook.Hook)
+					case "poststop":
+						config.Hooks.Poststop = append(config.Hooks.Poststop, namedHook.hook.Hook)
+					default:
+						return extensionStages, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
+					}
 				}
 			}
 		}
