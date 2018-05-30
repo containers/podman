@@ -438,6 +438,13 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		}
 	}
 
+	// Make sure if network is set to container namespace, port binding is not also being asked for
+	if strings.HasPrefix(networkMode, "container") {
+		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
+			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
+		}
+	}
+
 	// Verify the additional hosts are in correct format
 	for _, host := range c.StringSlice("add-host") {
 		if _, err := validateExtraHost(host); err != nil {
