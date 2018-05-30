@@ -19,6 +19,8 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/coreos/go-systemd/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	selinux "github.com/opencontainers/selinux/go-selinux"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -281,6 +283,22 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	logrus.WithFields(logrus.Fields{
 		"args": args,
 	}).Debugf("running conmon: %s", r.conmonPath)
+
+	if selinux.GetEnabled() {
+		// Set the label of the conmon process to be level :s0
+		// This will allow the container processes to talk to fifo-files
+		// passed into the container by conmon
+		plabel, err := selinux.CurrentLabel()
+		if err != nil {
+			return errors.Wrapf(err, "Failed to get current SELinux label")
+		}
+
+		c := selinux.NewContext(plabel)
+		if c["level"] != "s0" && c["level"] != "" {
+			c["level"] = "s0"
+			label.SetProcessLabel(c.Get())
+		}
+	}
 
 	cmd := exec.Command(r.conmonPath, args...)
 	cmd.Dir = ctr.bundlePath()
