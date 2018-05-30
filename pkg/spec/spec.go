@@ -388,8 +388,19 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 }
 
 func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
+	useNotRoot := func(user string) bool {
+		if user == "" || user == "root" || user == "0" {
+			return false
+		}
+		return true
+	}
+
 	var err error
 	var caplist []string
+	bounding := configSpec.Process.Capabilities.Bounding
+	if useNotRoot(config.User) {
+		configSpec.Process.Capabilities.Bounding = caplist
+	}
 	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
 	if err != nil {
 		return err
@@ -399,6 +410,14 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 	configSpec.Process.Capabilities.Permitted = caplist
 	configSpec.Process.Capabilities.Inheritable = caplist
 	configSpec.Process.Capabilities.Effective = caplist
+	configSpec.Process.Capabilities.Ambient = caplist
+	if useNotRoot(config.User) {
+		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop)
+		if err != nil {
+			return err
+		}
+	}
+	configSpec.Process.Capabilities.Bounding = caplist
 	return nil
 }
 

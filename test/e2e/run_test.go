@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
@@ -367,6 +368,14 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=21(ftp)"))
+	})
+
+	It("podman run with user, verify caps dropped", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--user=1234", ALPINE, "grep", "CapEff", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		capEff := strings.Split(session.OutputToString(), " ")
+		Expect("0000000000000000").To(Equal(capEff[1]))
 	})
 
 	It("podman run with attach stdin outputs container ID", func() {
