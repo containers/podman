@@ -54,7 +54,7 @@ func TestGoodNew(t *testing.T) {
 	}
 
 	config := &rspec.Spec{}
-	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
+	extensionStageHooks, err := manager.Hooks(config, map[string]string{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +91,8 @@ func TestGoodNew(t *testing.T) {
 		},
 	}, config.Hooks)
 
-	var nilExtensionStages map[string][]rspec.Hook
-	assert.Equal(t, nilExtensionStages, extensionStages)
+	var nilExtensionStageHooks map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStageHooks, extensionStageHooks)
 }
 
 func TestBadNew(t *testing.T) {
@@ -142,14 +142,14 @@ func TestBrokenMatch(t *testing.T) {
 			Args: []string{"/bin/sh"},
 		},
 	}
-	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
+	extensionStageHooks, err := manager.Hooks(config, map[string]string{}, false)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
 	assert.Regexp(t, "^matching hook \"a\\.json\": command: error parsing regexp: .*", err.Error())
 
-	var nilExtensionStages map[string][]rspec.Hook
-	assert.Equal(t, nilExtensionStages, extensionStages)
+	var nilExtensionStageHooks map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStageHooks, extensionStageHooks)
 }
 
 func TestInvalidStage(t *testing.T) {
@@ -168,14 +168,14 @@ func TestInvalidStage(t *testing.T) {
 			},
 		},
 	}
-	extensionStages, err := manager.Hooks(&rspec.Spec{}, map[string]string{}, false)
+	extensionStageHooks, err := manager.Hooks(&rspec.Spec{}, map[string]string{}, false)
 	if err == nil {
 		t.Fatal("unexpected success")
 	}
 	assert.Regexp(t, "^hook \"a\\.json\": unknown stage \"does-not-exist\"$", err.Error())
 
-	var nilExtensionStages map[string][]rspec.Hook
-	assert.Equal(t, nilExtensionStages, extensionStages)
+	var nilExtensionStageHooks map[string][]rspec.Hook
+	assert.Equal(t, nilExtensionStageHooks, extensionStageHooks)
 }
 
 func TestExtensionStage(t *testing.T) {
@@ -197,7 +197,7 @@ func TestExtensionStage(t *testing.T) {
 	}
 
 	config := &rspec.Spec{}
-	extensionStages, err := manager.Hooks(config, map[string]string{}, false)
+	extensionStageHooks, err := manager.Hooks(config, map[string]string{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestExtensionStage(t *testing.T) {
 				Path: "/a/b/c",
 			},
 		},
-	}, extensionStages)
+	}, extensionStageHooks)
 }
 
 func init() {

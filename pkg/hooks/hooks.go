@@ -88,28 +88,28 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 
 // Hooks injects OCI runtime hooks for a given container configuration.
 //
-// If the extensionStages slice was set when initializing the Manager,
-// matching hooks requesting those stages will be returned in the
-// extensionStages map.  This takes precedence over their inclusion in
+// If extensionStages was set when initializing the Manager,
+// matching hooks requesting those stages will be returned in
+// extensionStageHooks.  This takes precedence over their inclusion in
 // the OCI configuration.  For example:
 //
 //   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"}, lang)
-//   extensionStages, err := manager.Hooks(config, annotations, hasBindMounts)
+//   extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
 //
-// will have any matching post-stop hooks in extensionStages and will
-// not insert them into config.Hooks.Poststop.
-func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStages map[string][]rspec.Hook, err error) {
+// will have any matching post-stop hooks in extensionStageHooks and
+// will not insert them into config.Hooks.Poststop.
+func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStageHooks map[string][]rspec.Hook, err error) {
 	hooks := m.namedHooks()
 	collator := collate.New(m.language, collate.IgnoreCase, collate.IgnoreWidth)
 	collator.Sort(namedHooks(hooks))
-	localStages := map[string]bool{} // stages destined for extensionStages
+	localStages := map[string]bool{} // stages destined for extensionStageHooks
 	for _, stage := range m.extensionStages {
 		localStages[stage] = true
 	}
 	for _, namedHook := range hooks {
 		match, err := namedHook.hook.When.Match(config, annotations, hasBindMounts)
 		if err != nil {
-			return extensionStages, errors.Wrapf(err, "matching hook %q", namedHook.name)
+			return extensionStageHooks, errors.Wrapf(err, "matching hook %q", namedHook.name)
 		}
 		if match {
 			if config.Hooks == nil {
@@ -117,10 +117,10 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 			}
 			for _, stage := range namedHook.hook.Stages {
 				if _, ok := localStages[stage]; ok {
-					if extensionStages == nil {
-						extensionStages = map[string][]rspec.Hook{}
+					if extensionStageHooks == nil {
+						extensionStageHooks = map[string][]rspec.Hook{}
 					}
-					extensionStages[stage] = append(extensionStages[stage], namedHook.hook.Hook)
+					extensionStageHooks[stage] = append(extensionStageHooks[stage], namedHook.hook.Hook)
 				} else {
 					switch stage {
 					case "prestart":
@@ -130,14 +130,14 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 					case "poststop":
 						config.Hooks.Poststop = append(config.Hooks.Poststop, namedHook.hook.Hook)
 					default:
-						return extensionStages, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
+						return extensionStageHooks, fmt.Errorf("hook %q: unknown stage %q", namedHook.name, stage)
 					}
 				}
 			}
 		}
 	}
 
-	return extensionStages, nil
+	return extensionStageHooks, nil
 }
 
 // remove remove a hook by name.
