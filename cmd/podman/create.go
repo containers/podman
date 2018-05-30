@@ -430,9 +430,12 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if c.IsSet("network") && c.IsSet("net") {
 		return nil, errors.Errorf("cannot use --network and --net together.  use only --network instead")
 	}
-	networkMode := c.String("network")
-	if !c.IsSet("network") && c.IsSet("net") {
-		networkMode = c.String("net")
+	netMode := container.NetworkMode(c.String("network"))
+	// Make sure if network is set to container namespace, port binding is not also being asked for
+	if netMode.IsContainer() {
+		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
+			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
+		}
 	}
 
 	// Verify the additional hosts are in correct format
@@ -496,10 +499,10 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		LogDriverOpt:   c.StringSlice("log-opt"),
 		MacAddress:     c.String("mac-address"),
 		Name:           c.String("name"),
-		Network:        networkMode,
+		Network:        c.String("network"),
 		NetworkAlias:   c.StringSlice("network-alias"),
 		IpcMode:        ipcMode,
-		NetMode:        container.NetworkMode(networkMode),
+		NetMode:        netMode,
 		UtsMode:        utsMode,
 		PidMode:        pidMode,
 		Pod:            c.String("pod"),
