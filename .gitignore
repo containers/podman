@@ -14,3 +14,5 @@
 .nfs*
 .ropeproject
 __pycache__
+/cmd/podman/varlink/ioprojectatomicpodman.go
+.gopathok
