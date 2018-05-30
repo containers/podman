@@ -194,8 +194,8 @@ method ExportImage(name: [string](https://godoc.org/builtin#string), destination
 ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
 a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
 tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
-of the image is returned. If the image cannot
-be found in local storage, an [ImageNotFound](#ImageNotFound) error will be returned. See also [ImportImage](ImportImage).
+of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
+error will be returned. See also [ImportImage](ImportImage).
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -317,7 +317,7 @@ container cannot be found, a [ContainerNotFound](#ContainerNotFound) error will 
 method ListContainerProcesses(name: [string](https://godoc.org/builtin#string), opts: [[]string](#[]string)) [[]string](#[]string)</div>
 ListContainerProcesses takes a name or ID of a container and returns the processes
 running inside the container as array of strings.  It will accept an array of string
-arguements that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
+arguments that represent ps options.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
 error will be returned.
 #### Example
 ~~~
@@ -342,7 +342,7 @@ returned as an array of ListContainerData structs.  See also [GetContainer](#Get
 
 method ListImages() [ImageInList](#ImageInList)</div>
 ListImages returns an array of ImageInList structures which provide basic information about
-an image currenly in storage.  See also [InspectImage](InspectImage).
+an image currently in storage.  See also [InspectImage](InspectImage).
 ### <a name="PauseContainer"></a>func PauseContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -389,7 +389,7 @@ the image cannot be found in local storage; otherwise the ID of the image will b
 
 method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
-container can be stopped and removed.  Upon sucessful removal of the container, its ID is returned.  If the
+container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
 container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Example
 ~~~
@@ -402,7 +402,7 @@ $ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podm
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method RemoveImage(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
-RemoveImage takes the name or ID of an image as well as a booleon that determines if containers using that image
+RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
 #### Example
@@ -427,7 +427,7 @@ This method has not be implemented yet.
 
 method RestartContainer(name: [string](https://godoc.org/builtin#string), timeout: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
 RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
-value is the time before a forceable stop is used to stop the container.  If the container cannot be found by
+value is the time before a forcible stop is used to stop the container.  If the container cannot be found by
 name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
 container will be returned.
 ### <a name="SearchImage"></a>func SearchImage
@@ -449,7 +449,7 @@ error will be returned.  See also [CreateContainer](#CreateContainer).
 
 method StopContainer(name: [string](https://godoc.org/builtin#string), timeout: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
 StopContainer stops a container given a timeout.  It takes the name or ID of a container as well as a
-timeout value.  The timeout value the time before a forceable stop to the container is applied.  It
+timeout value.  The timeout value the time before a forcible stop to the container is applied.  It
 returns the container ID once stopped. If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
 error will be returned instead. See also [KillContainer](KillContainer).
 #### Error
@@ -804,7 +804,7 @@ labels [map[string]](#map[string])
 ### <a name="ImageSearch"></a>type ImageSearch
 
 ImageSearch is the returned structure for SearchImage.  It is returned
-in arrary form.
+in array form.
 
 description [string](https://godoc.org/builtin#string)
 
