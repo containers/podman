@@ -14,15 +14,17 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
+	"sort"
 )
 
 type imagesTemplateParams struct {
-	Repository string
-	Tag        string
-	ID         string
-	Digest     digest.Digest
-	Created    string
-	Size       string
+	Repository  string
+	Tag         string
+	ID          string
+	Digest      digest.Digest
+	Created     string
+	CreatedTime time.Time
+	Size        string
 }
 
 type imagesJSONParams struct {
@@ -41,6 +43,13 @@ type imagesOptions struct {
 	format       string
 	outputformat string
 }
+
+// Type declaration and functions for sorting the PS output by time
+type imagesSorted []imagesTemplateParams
+
+func (a imagesSorted) Len() int           { return len(a) }
+func (a imagesSorted) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a imagesSorted) Less(i, j int) bool { return a[i].CreatedTime.After(a[j].CreatedTime) }
 
 var (
 	imagesFlags = []cli.Flag{
@@ -183,7 +192,7 @@ func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSON
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput []imagesTemplateParams) {
+func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput imagesSorted) {
 	for _, img := range images {
 		createdTime := img.Created()
 
@@ -199,17 +208,21 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 					size = nil
 				}
 				params := imagesTemplateParams{
-					Repository: repo,
-					Tag:        tag,
-					ID:         imageID,
-					Digest:     img.Digest(),
-					Created:    units.HumanDuration(time.Since((createdTime))) + " ago",
-					Size:       units.HumanSizeWithPrecision(float64(*size), 3),
+					Repository:  repo,
+					Tag:         tag,
+					ID:          imageID,
+					Digest:      img.Digest(),
+					CreatedTime: createdTime,
+					Created:     units.HumanDuration(time.Since((createdTime))) + " ago",
+					Size:        units.HumanSizeWithPrecision(float64(*size), 3),
 				}
 				imagesOutput = append(imagesOutput, params)
 			}
 		}
 	}
+
+	// Sort images by created time
+	sort.Sort(imagesSorted(imagesOutput))
 	return
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -26,25 +27,26 @@ import (
 const mountTruncLength = 12
 
 type psTemplateParams struct {
-	ID         string
-	Image      string
-	Command    string
-	CreatedAt  string
-	RunningFor string
-	Status     string
-	Ports      string
-	Size       string
-	Names      string
-	Labels     string
-	Mounts     string
-	PID        int
-	Cgroup     string
-	IPC        string
-	MNT        string
-	NET        string
-	PIDNS      string
-	User       string
-	UTS        string
+	ID            string
+	Image         string
+	Command       string
+	CreatedAtTime time.Time
+	Created       string
+	RunningFor    string
+	Status        string
+	Ports         string
+	Size          string
+	Names         string
+	Labels        string
+	Mounts        string
+	PID           int
+	Cgroup        string
+	IPC           string
+	MNT           string
+	NET           string
+	PIDNS         string
+	User          string
+	UTS           string
 }
 
 // psJSONParams is only used when the JSON format is specified,
@@ -68,6 +70,13 @@ type psJSONParams struct {
 	ContainerRunning bool                      `json:"ctrRunning"`
 	Namespaces       *batchcontainer.Namespace `json:"namespace,omitempty"`
 }
+
+// Type declaration and functions for sorting the PS output by time
+type psSorted []psTemplateParams
+
+func (a psSorted) Len() int           { return len(a) }
+func (a psSorted) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a psSorted) Less(i, j int) bool { return a[i].CreatedAtTime.After(a[j].CreatedAtTime) }
 
 var (
 	psFlags = []cli.Flag{
@@ -335,7 +344,7 @@ func genPsFormat(format string, quiet, size, namespace bool) string {
 	if namespace {
 		return "table {{.ID}}\t{{.Names}}\t{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t"
 	}
-	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
+	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Created}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
 	if size {
 		format += "{{.Size}}\t"
 	}
@@ -372,9 +381,9 @@ func (p *psTemplateParams) headerMap() map[string]string {
 }
 
 // getTemplateOutput returns the modified container information
-func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) ([]psTemplateParams, error) {
+func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) (psSorted, error) {
 	var (
-		psOutput     []psTemplateParams
+		psOutput     psSorted
 		status, size string
 		ns           *batchcontainer.Namespace
 	)
@@ -399,7 +408,6 @@ func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOpt
 		if !batchInfo.StartedTime.IsZero() {
 			runningFor = units.HumanDuration(time.Since(batchInfo.StartedTime))
 		}
-		createdAt := batchInfo.ConConfig.CreatedTime.Format("2006-01-02 15:04:05 -0700 MST")
 		imageName := batchInfo.ConConfig.RootfsImageName
 
 		var createArtifact cc.CreateConfig
@@ -446,20 +454,20 @@ func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOpt
 			ctrID = shortID(ctr.ID())
 			imageName = batchInfo.ConConfig.RootfsImageName
 		}
-
 		params := psTemplateParams{
-			ID:         ctrID,
-			Image:      imageName,
-			Command:    command,
-			CreatedAt:  createdAt,
-			RunningFor: runningFor,
-			Status:     status,
-			Ports:      ports,
-			Size:       size,
-			Names:      ctr.Name(),
-			Labels:     labels,
-			Mounts:     mounts,
-			PID:        batchInfo.Pid,
+			ID:            ctrID,
+			Image:         imageName,
+			Command:       command,
+			CreatedAtTime: batchInfo.ConConfig.CreatedTime,
+			Created:       units.HumanDuration(time.Since(batchInfo.ConConfig.CreatedTime)) + " ago",
+			RunningFor:    runningFor,
+			Status:        status,
+			Ports:         ports,
+			Size:          size,
+			Names:         ctr.Name(),
+			Labels:        labels,
+			Mounts:        mounts,
+			PID:           batchInfo.Pid,
 		}
 
 		if opts.Namespace {
@@ -473,6 +481,9 @@ func getTemplateOutput(containers []*libpod.Container, opts batchcontainer.PsOpt
 		}
 		psOutput = append(psOutput, params)
 	}
+	// Sort the ps entries by created time
+	sort.Sort(psSorted(psOutput))
+
 	return psOutput, nil
 }
 
