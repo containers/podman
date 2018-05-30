@@ -190,10 +190,10 @@ func TestExtensionStage(t *testing.T) {
 				When: current.When{
 					Always: &always,
 				},
-				Stages: []string{"prestart", "a", "b"},
+				Stages: []string{"prestart", "poststop", "a", "b"},
 			},
 		},
-		extensionStages: []string{"a", "b", "c"},
+		extensionStages: []string{"poststop", "a", "b", "c"},
 	}
 
 	config := &rspec.Spec{}
@@ -211,6 +211,11 @@ func TestExtensionStage(t *testing.T) {
 	}, config.Hooks)
 
 	assert.Equal(t, map[string][]rspec.Hook{
+		"poststop": {
+			{
+				Path: "/a/b/c",
+			},
+		},
 		"a": {
 			{
 				Path: "/a/b/c",
