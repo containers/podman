@@ -153,7 +153,7 @@ method Commit(name: [string](https://godoc.org/builtin#string), image_name: [str
 Commit, creates an image from an existing container. It requires the name or
 ID of the container as well as the resulting image name.  Optionally, you can define an author and message
 to be added to the resulting image.  You can also define changes to the resulting image for the following
-attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
+attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
 container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
 the resulting image's ID will be returned as a string.

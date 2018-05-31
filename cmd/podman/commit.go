@@ -19,7 +19,7 @@ var (
 	commitFlags = []cli.Flag{
 		cli.StringSliceFlag{
 			Name:  "change, c",
-			Usage: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR",
+			Usage: fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")),
 		},
 		cli.StringFlag{
 			Name:  "format, f",
@@ -92,7 +92,7 @@ func commitCmd(c *cli.Context) error {
 	if c.IsSet("change") {
 		for _, change := range c.StringSlice("change") {
 			splitChange := strings.Split(strings.ToUpper(change), "=")
-			if !util.StringInSlice(splitChange[0], []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}) {
+			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
 				return errors.Errorf("invalid syntax for --change ", change)
 			}
 		}
