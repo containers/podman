@@ -1,16 +1,20 @@
 package batchcontainer
 
 import (
-	"time"
-
-	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/sirupsen/logrus"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/inspect"
+	cc "github.com/projectatomic/libpod/pkg/spec"
+	"github.com/sirupsen/logrus"
 )
 
 // PsOptions describes the struct being formed for ps
@@ -156,4 +160,147 @@ func getStrFromSquareBrackets(cmd string) string {
 	}
 	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
 	return strings.Join(arr, ",")
+}
+
+// GetCtrInspectInfo takes container inspect data and collects all its info into a ContainerData
+// structure for inspection related methods
+func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerInspectData) (*inspect.ContainerData, error) {
+	config := ctr.Config()
+	spec := config.Spec
+
+	cpus, mems, period, quota, realtimePeriod, realtimeRuntime, shares := getCPUInfo(spec)
+	blkioWeight, blkioWeightDevice, blkioReadBps, blkioWriteBps, blkioReadIOPS, blkioeWriteIOPS := getBLKIOInfo(spec)
+	memKernel, memReservation, memSwap, memSwappiness, memDisableOOMKiller := getMemoryInfo(spec)
+	pidsLimit := getPidsInfo(spec)
+	cgroup := getCgroup(spec)
+
+	var createArtifact cc.CreateConfig
+	artifact, err := ctr.GetArtifact("create-config")
+	if err == nil {
+		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
+			return nil, err
+		}
+	} else {
+		logrus.Errorf("couldn't get some inspect information, error getting artifact %q: %v", ctr.ID(), err)
+	}
+
+	data := &inspect.ContainerData{
+		ctrInspectData,
+		&inspect.HostConfig{
+			ConsoleSize:          spec.Process.ConsoleSize,
+			OomScoreAdj:          spec.Process.OOMScoreAdj,
+			CPUShares:            shares,
+			BlkioWeight:          blkioWeight,
+			BlkioWeightDevice:    blkioWeightDevice,
+			BlkioDeviceReadBps:   blkioReadBps,
+			BlkioDeviceWriteBps:  blkioWriteBps,
+			BlkioDeviceReadIOps:  blkioReadIOPS,
+			BlkioDeviceWriteIOps: blkioeWriteIOPS,
+			CPUPeriod:            period,
+			CPUQuota:             quota,
+			CPURealtimePeriod:    realtimePeriod,
+			CPURealtimeRuntime:   realtimeRuntime,
+			CPUSetCPUs:           cpus,
+			CPUSetMems:           mems,
+			Devices:              spec.Linux.Devices,
+			KernelMemory:         memKernel,
+			MemoryReservation:    memReservation,
+			MemorySwap:           memSwap,
+			MemorySwappiness:     memSwappiness,
+			OomKillDisable:       memDisableOOMKiller,
+			PidsLimit:            pidsLimit,
+			Privileged:           config.Privileged,
+			ReadonlyRootfs:       spec.Root.Readonly,
+			Runtime:              ctr.RuntimeName(),
+			NetworkMode:          string(createArtifact.NetMode),
+			IpcMode:              string(createArtifact.IpcMode),
+			Cgroup:               cgroup,
+			UTSMode:              string(createArtifact.UtsMode),
+			UsernsMode:           string(createArtifact.UsernsMode),
+			GroupAdd:             spec.Process.User.AdditionalGids,
+			ContainerIDFile:      createArtifact.CidFile,
+			AutoRemove:           createArtifact.Rm,
+			CapAdd:               createArtifact.CapAdd,
+			CapDrop:              createArtifact.CapDrop,
+			DNS:                  createArtifact.DNSServers,
+			DNSOptions:           createArtifact.DNSOpt,
+			DNSSearch:            createArtifact.DNSSearch,
+			PidMode:              string(createArtifact.PidMode),
+			CgroupParent:         createArtifact.CgroupParent,
+			ShmSize:              createArtifact.Resources.ShmSize,
+			Memory:               createArtifact.Resources.Memory,
+			Ulimits:              createArtifact.Resources.Ulimit,
+			SecurityOpt:          createArtifact.SecurityOpts,
+			Tmpfs:                createArtifact.Tmpfs,
+		},
+		&inspect.CtrConfig{
+			Hostname:    spec.Hostname,
+			User:        spec.Process.User,
+			Env:         spec.Process.Env,
+			Image:       config.RootfsImageName,
+			WorkingDir:  spec.Process.Cwd,
+			Labels:      config.Labels,
+			Annotations: spec.Annotations,
+			Tty:         spec.Process.Terminal,
+			OpenStdin:   config.Stdin,
+			StopSignal:  config.StopSignal,
+			Cmd:         config.Spec.Process.Args,
+			Entrypoint:  strings.Join(createArtifact.Entrypoint, " "),
+		},
+	}
+	return data, nil
+}
+
+func getCPUInfo(spec *specs.Spec) (string, string, *uint64, *int64, *uint64, *int64, *uint64) {
+	if spec.Linux.Resources == nil {
+		return "", "", nil, nil, nil, nil, nil
+	}
+	cpu := spec.Linux.Resources.CPU
+	if cpu == nil {
+		return "", "", nil, nil, nil, nil, nil
+	}
+	return cpu.Cpus, cpu.Mems, cpu.Period, cpu.Quota, cpu.RealtimePeriod, cpu.RealtimeRuntime, cpu.Shares
+}
+
+func getBLKIOInfo(spec *specs.Spec) (*uint16, []specs.LinuxWeightDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice) {
+	if spec.Linux.Resources == nil {
+		return nil, nil, nil, nil, nil, nil
+	}
+	blkio := spec.Linux.Resources.BlockIO
+	if blkio == nil {
+		return nil, nil, nil, nil, nil, nil
+	}
+	return blkio.Weight, blkio.WeightDevice, blkio.ThrottleReadBpsDevice, blkio.ThrottleWriteBpsDevice, blkio.ThrottleReadIOPSDevice, blkio.ThrottleWriteIOPSDevice
+}
+
+func getMemoryInfo(spec *specs.Spec) (*int64, *int64, *int64, *uint64, *bool) {
+	if spec.Linux.Resources == nil {
+		return nil, nil, nil, nil, nil
+	}
+	memory := spec.Linux.Resources.Memory
+	if memory == nil {
+		return nil, nil, nil, nil, nil
+	}
+	return memory.Kernel, memory.Reservation, memory.Swap, memory.Swappiness, memory.DisableOOMKiller
+}
+
+func getPidsInfo(spec *specs.Spec) *int64 {
+	if spec.Linux.Resources == nil {
+		return nil
+	}
+	pids := spec.Linux.Resources.Pids
+	if pids == nil {
+		return nil
+	}
+	return &pids.Limit
+}
+
+func getCgroup(spec *specs.Spec) string {
+	cgroup := "host"
+	for _, ns := range spec.Linux.Namespaces {
+		if ns.Type == specs.CgroupNamespace && ns.Path != "" {
+			cgroup = "container"
+		}
+	}
+	return cgroup
 }
