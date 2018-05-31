@@ -136,6 +136,13 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 	if subUIDMap == "" && subGIDMap != "" {
 		subUIDMap = subGIDMap
 	}
+	if len(GIDMapSlice) == 0 && len(UIDMapSlice) != 0 {
+		GIDMapSlice = UIDMapSlice
+	}
+	if len(UIDMapSlice) == 0 && len(GIDMapSlice) != 0 {
+		UIDMapSlice = GIDMapSlice
+	}
+
 	parseTriple := func(spec []string) (container, host, size int, err error) {
 		cid, err := strconv.ParseUint(spec[0], 10, 32)
 		if err != nil {
