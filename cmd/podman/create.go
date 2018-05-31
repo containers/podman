@@ -424,12 +424,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
 	}
 	// Network
-	// Both --network and --net have default values of 'bridge'
-	// --net only overrides --network when --network is not explicitly
-	// set and --net is.
-	if c.IsSet("network") && c.IsSet("net") {
-		return nil, errors.Errorf("cannot use --network and --net together.  use only --network instead")
-	}
 	netMode := container.NetworkMode(c.String("network"))
 	// Make sure if network is set to container namespace, port binding is not also being asked for
 	if netMode.IsContainer() {
