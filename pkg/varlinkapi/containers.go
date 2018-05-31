@@ -409,6 +409,7 @@ func (i *LibpodAPI) WaitContainer(call ioprojectatomicpodman.VarlinkCall, name s
 
 // RemoveContainer ...
 func (i *LibpodAPI) RemoveContainer(call ioprojectatomicpodman.VarlinkCall, name string, force bool) error {
+	ctx := getContext()
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
 		return call.ReplyRuntimeError(err.Error())
@@ -417,7 +418,7 @@ func (i *LibpodAPI) RemoveContainer(call ioprojectatomicpodman.VarlinkCall, name
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	if err := runtime.RemoveContainer(ctr, force); err != nil {
+	if err := runtime.RemoveContainer(ctx, ctr, force); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyRemoveContainer(ctr.ID())
@@ -426,6 +427,7 @@ func (i *LibpodAPI) RemoveContainer(call ioprojectatomicpodman.VarlinkCall, name
 
 // DeleteStoppedContainers ...
 func (i *LibpodAPI) DeleteStoppedContainers(call ioprojectatomicpodman.VarlinkCall) error {
+	ctx := getContext()
 	var deletedContainers []string
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
@@ -441,7 +443,7 @@ func (i *LibpodAPI) DeleteStoppedContainers(call ioprojectatomicpodman.VarlinkCa
 			return call.ReplyErrorOccurred(err.Error())
 		}
 		if state != libpod.ContainerStateRunning {
-			if err := runtime.RemoveContainer(ctr, false); err != nil {
+			if err := runtime.RemoveContainer(ctx, ctr, false); err != nil {
 				return call.ReplyErrorOccurred(err.Error())
 			}
 			deletedContainers = append(deletedContainers, ctr.ID())

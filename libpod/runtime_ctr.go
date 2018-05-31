@@ -154,16 +154,16 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *Runtime) RemoveContainer(c *Container, force bool) error {
+func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	return r.removeContainer(c, force)
+	return r.removeContainer(ctx, c, force)
 }
 
 // Internal function to remove a container
 // Locks the container, but does not lock the runtime
-func (r *Runtime) removeContainer(c *Container, force bool) error {
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool) error {
 	if !c.valid {
 		// Container probably already removed
 		// Or was never in the runtime to begin with
@@ -263,8 +263,9 @@ func (r *Runtime) removeContainer(c *Container, force bool) error {
 	// Only do this if we're not ContainerStateConfigured - if we are,
 	// we haven't been created in the runtime yet
 	if c.state.State != ContainerStateConfigured {
-		if err := r.ociRuntime.deleteContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container %s from OCI runtime", c.ID())
+		err = c.delete(ctx)
+		if err != nil {
+			return err
 		}
 	}
 

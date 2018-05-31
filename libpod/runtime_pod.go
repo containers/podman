@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"path"
 	"path/filepath"
 	"strings"
@@ -91,7 +92,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 // If force is specified with removeCtrs, all containers will be stopped before
 // being removed
 // Otherwise, the pod will not be removed if any containers are running
-func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
+func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -206,11 +207,10 @@ func (r *Runtime) RemovePod(p *Pod, removeCtrs, force bool) error {
 		// Delete the container from runtime (only if we are not
 		// ContainerStateConfigured)
 		if ctr.state.State != ContainerStateConfigured {
-			if err := r.ociRuntime.deleteContainer(ctr); err != nil {
-				return errors.Wrapf(err, "error removing container %s from runtime", ctr.ID())
+			if err := ctr.delete(ctx); err != nil {
+				return err
 			}
 		}
-
 	}
 
 	// Remove containers from the state
