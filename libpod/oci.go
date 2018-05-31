@@ -423,7 +423,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 
 	out, err := exec.Command(r.path, "state", ctr.ID()).CombinedOutput()
 	if err != nil {
-		if strings.HasSuffix(string(out), "does not exist") {
+		if strings.Contains(string(out), "does not exist") {
 			ctr.removeConmonFiles()
 			ctr.state.State = ContainerStateConfigured
 			return nil
