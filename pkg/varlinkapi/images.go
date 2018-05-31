@@ -360,6 +360,7 @@ func (i *LibpodAPI) TagImage(call ioprojectatomicpodman.VarlinkCall, name, tag s
 // RemoveImage accepts a image name or ID as a string and force bool to determine if it should
 // remove the image even if being used by stopped containers
 func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name string, force bool) error {
+	ctx := getContext()
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
 	if err != nil {
 		return call.ReplyRuntimeError(err.Error())
@@ -368,7 +369,7 @@ func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name str
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
-	imageID, err := runtime.RemoveImage(newImage, force)
+	imageID, err := runtime.RemoveImage(ctx, newImage, force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

@@ -225,7 +225,7 @@ func runCmd(c *cli.Context) error {
 	}
 
 	if createConfig.Rm {
-		return runtime.RemoveContainer(ctr, true)
+		return runtime.RemoveContainer(ctx, ctr, true)
 	}
 
 	if err := ctr.Cleanup(); err != nil {
