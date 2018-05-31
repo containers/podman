@@ -42,16 +42,7 @@ func normalizeRegistries(regs *registries) {
 // Reads the global registry file from the filesystem. Returns
 // a byte array
 func readRegistryConf(sys *types.SystemContext) ([]byte, error) {
-	dirPath := systemRegistriesConfPath
-	if sys != nil {
-		if sys.SystemRegistriesConfPath != "" {
-			dirPath = sys.SystemRegistriesConfPath
-		} else if sys.RootForImplicitAbsolutePaths != "" {
-			dirPath = filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
-		}
-	}
-	configBytes, err := ioutil.ReadFile(dirPath)
-	return configBytes, err
+	return ioutil.ReadFile(RegistriesConfPath(sys))
 }
 
 // For mocking in unittests
@@ -96,4 +87,17 @@ func GetInsecureRegistries(sys *types.SystemContext) ([]string, error) {
 		return nil, err
 	}
 	return config.Registries.Insecure.Registries, nil
+}
+
+// RegistriesConfPath is the path to the system-wide registry configuration file
+func RegistriesConfPath(ctx *types.SystemContext) string {
+	path := systemRegistriesConfPath
+	if ctx != nil {
+		if ctx.SystemRegistriesConfPath != "" {
+			path = ctx.SystemRegistriesConfPath
+		} else if ctx.RootForImplicitAbsolutePaths != "" {
+			path = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
+		}
+	}
+	return path
 }
