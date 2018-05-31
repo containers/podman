@@ -270,12 +270,7 @@ var createFlags = []cli.Flag{
 		Usage: "Assign a name to the container",
 	},
 	cli.StringFlag{
-		Name:  "net",
-		Usage: "Connect a container to a network (alias for --network)",
-		Value: "bridge",
-	},
-	cli.StringFlag{
-		Name:  "network",
+		Name:  "net, network",
 		Usage: "Connect a container to a network",
 		Value: "bridge",
 	},
