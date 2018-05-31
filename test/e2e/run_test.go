@@ -9,6 +9,7 @@ import (
 	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman run", func() {
@@ -50,8 +51,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run selinux grep test", func() {
-		selinux := podmanTest.SystemExec("ls", []string{"/usr/sbin/selinuxenabled"})
-		if selinux.ExitCode() != 0 {
+		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
 		}
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=level:s0:c1,c2", ALPINE, "cat", "/proc/self/attr/current"})
