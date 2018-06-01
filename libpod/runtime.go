@@ -183,7 +183,9 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	configPath := ConfigPath
 	foundConfig := true
-	if _, err := os.Stat(OverrideConfigPath); err == nil {
+	if os.Getuid() != 0 {
+		foundConfig = false
+	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath
 	} else if _, err := os.Stat(ConfigPath); err != nil {
