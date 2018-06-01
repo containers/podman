@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -141,6 +142,12 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 	}
 	if len(UIDMapSlice) == 0 && len(GIDMapSlice) != 0 {
 		UIDMapSlice = GIDMapSlice
+	}
+	if len(UIDMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
+		UIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
+	}
+	if len(GIDMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
+		GIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
 	}
 
 	parseTriple := func(spec []string) (container, host, size int, err error) {
