@@ -207,7 +207,7 @@ func TestRunKillTimeout(t *testing.T) {
 	}
 	hookErr, err := Run(ctx, hook, []byte("{}"), nil, nil, time.Duration(0))
 	assert.Equal(t, context.DeadlineExceeded, err)
-	assert.Regexp(t, "^failed to reap process within 0s of the kill signal$", hookErr)
+	assert.Regexp(t, "^(failed to reap process within 0s of the kill signal|signal: killed)$", hookErr)
 }
 
 func init() {
