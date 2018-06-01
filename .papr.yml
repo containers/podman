@@ -4,7 +4,7 @@ branches:
   - try
 
 host:
-  distro: fedora/27/atomic
+  distro: fedora/28/atomic
   specs:
      ram: 8192
      cpus: 4
@@ -16,7 +16,7 @@ timeout: 45m
 tests:
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 
-context: "FAH27"
+context: "FAH28"
 ---
 
 host:
@@ -45,13 +45,13 @@ context: "CAH smoketested"
 
 inherit: true
 host:
-    distro: fedora/27/cloud/pungi
+    distro: fedora/28/cloud/pungi
     specs:
         ram: 8192
         cpus: 4
 extra-repos:
     - name: crio_copr
-      baseurl: https://copr-be.cloud.fedoraproject.org/results/baude/Upstream_CRIO_Family/fedora-27-x86_64/
+      baseurl: https://copr-be.cloud.fedoraproject.org/results/baude/Upstream_CRIO_Family/fedora-28-x86_64/
       gpgcheck: 0
 packages:
     - podman
@@ -59,4 +59,4 @@ packages:
 tests:
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 required: false
-context: "Fedora fedora/27/cloud Podman"
+context: "Fedora fedora/28/cloud Podman"
