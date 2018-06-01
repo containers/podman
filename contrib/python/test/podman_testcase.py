@@ -62,7 +62,8 @@ class PodmanTestCase(unittest.TestCase):
 
         cmd = ['podman']
         cmd.extend(podman_args)
-        cmd.extend(['run', '-d', 'alpine', 'sleep', '500'])
+        # cmd.extend(['run', '-d', 'alpine', 'sleep', '500'])
+        cmd.extend(['run', '-dt', 'alpine', '/bin/sh'])
         PodmanTestCase.alpine_process = subprocess.Popen(
             cmd,
             stdout=PodmanTestCase.alpine_log,
