@@ -1,5 +1,6 @@
 """Models for manipulating images in/to/from storage."""
 import collections
+import copy
 import functools
 import json
 
@@ -45,12 +46,12 @@ class Image(collections.UserDict):
         with self._client() as podman:
             details = self.inspect()
 
-        # TODO: remove network settings once defaults implemented on service side
+        # TODO: remove network settings once defaults implemented in service
         config = Config(image_id=self.id, **kwargs)
         config['command'] = details.containerconfig['cmd']
         config['env'] = self._split_token(details.containerconfig['env'])
-        config['image'] = details.repotags[0]
-        config['labels'] = self._split_token(details.labels)
+        config['image'] = copy.deepcopy(details.repotags[0])
+        config['labels'] = copy.deepcopy(details.labels)
         config['net_mode'] = 'bridge'
         config['network'] = 'bridge'
         config['work_dir'] = '/tmp'
