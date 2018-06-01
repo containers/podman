@@ -5,7 +5,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func AttachToContainer() NotImplemented](#AttachToContainer)
 
-[func BuildImage() NotImplemented](#BuildImage)
+[func BuildImage(build: BuildInfo) []string](#BuildImage)
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) string](#Commit)
 
@@ -28,6 +28,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 [func GetContainerLogs(name: string) []string](#GetContainerLogs)
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
+
+[func GetImage(name: string) ImageInList](#GetImage)
 
 [func GetInfo() PodmanInfo](#GetInfo)
 
@@ -82,6 +84,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 [func UpdateContainer() NotImplemented](#UpdateContainer)
 
 [func WaitContainer(name: string) int](#WaitContainer)
+
+[type BuildInfo](#BuildInfo)
 
 [type ContainerChanges](#ContainerChanges)
 
@@ -144,8 +148,10 @@ This method has not be implemented yet.
 ### <a name="BuildImage"></a>func BuildImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method BuildImage() [NotImplemented](#NotImplemented)</div>
-This function is not implemented yet.
+method BuildImage(build: [BuildInfo](#BuildInfo)) [[]string](#[]string)</div>
+BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
+'dockerfile' and 'tags' options in the BuildInfo structure.  Upon a successful build, it will
+return the ID of the container.
 ### <a name="Commit"></a>func Commit
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -161,7 +167,16 @@ the resulting image's ID will be returned as a string.
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method CreateContainer(create: [Create](#Create)) [string](https://godoc.org/builtin#string)</div>
-CreateContainer creates a new container from an image.  It uses a (Create)[#Create] type for input.
+CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
+input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
+error will be returned.  Otherwise, the ID of the newly created container will be returned.
+#### Example
+~~~
+$ varlink call unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.CreateContainer '{"create": {"image": "alpine"}}'
+{
+  "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
+}
+~~~
 ### <a name="CreateImage"></a>func CreateImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -221,7 +236,7 @@ $ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetA
 method GetContainer(name: [string](https://godoc.org/builtin#string)) [ListContainerData](#ListContainerData)</div>
 GetContainer takes a name or ID of a container and returns single ListContainerData
 structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
-See also [ListContainers](ListContainers) and [InspectContainer](InspectContainer).
+See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
 ### <a name="GetContainerLogs"></a>func GetContainerLogs
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -258,6 +273,12 @@ $ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podm
   }
 }
 ~~~
+### <a name="GetImage"></a>func GetImage
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetImage(name: [string](https://godoc.org/builtin#string)) [ImageInList](#ImageInList)</div>
+GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
+If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
 ### <a name="GetInfo"></a>func GetInfo
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -349,7 +370,7 @@ an image currently in storage.  See also [InspectImage](InspectImage).
 method PauseContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
 a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
-See also [UnpauseContainer](UnpauseContainer).
+See also [UnpauseContainer](#UnpauseContainer).
 ### <a name="Ping"></a>func Ping
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -471,7 +492,7 @@ be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, 
 method UnpauseContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 UnpauseContainer takes the name or ID of container and unpauses a paused container.  If the container cannot be
 found, a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
-See also [PauseContainer](PauseContainer).
+See also [PauseContainer](#PauseContainer).
 ### <a name="UpdateContainer"></a>func UpdateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -485,6 +506,57 @@ WaitContainer takes the name or ID of a container and waits until the container 
 code of the container is returned. If the container container cannot be found by ID or name,
 a [ContainerNotFound](#ContainerNotFound) error is returned.
 ## Types
+### <a name="BuildInfo"></a>type BuildInfo
+
+BuildInfo is used to describe user input for building images
+
+dockerfile [[]string](#[]string)
+
+tags [[]string](#[]string)
+
+add_hosts [[]string](#[]string)
+
+cgroup_parent [string](https://godoc.org/builtin#string)
+
+cpu_period [int](https://godoc.org/builtin#int)
+
+cpu_quota [int](https://godoc.org/builtin#int)
+
+cpu_shares [int](https://godoc.org/builtin#int)
+
+cpuset_cpus [string](https://godoc.org/builtin#string)
+
+cpuset_mems [string](https://godoc.org/builtin#string)
+
+memory [string](https://godoc.org/builtin#string)
+
+memory_swap [string](https://godoc.org/builtin#string)
+
+security_opts [[]string](#[]string)
+
+shm_size [string](https://godoc.org/builtin#string)
+
+ulimit [[]string](#[]string)
+
+volume [[]string](#[]string)
+
+squash [bool](https://godoc.org/builtin#bool)
+
+pull [bool](https://godoc.org/builtin#bool)
+
+pull_always [bool](https://godoc.org/builtin#bool)
+
+force_rm [bool](https://godoc.org/builtin#bool)
+
+rm [bool](https://godoc.org/builtin#bool)
+
+label [[]string](#[]string)
+
+annotations [[]string](#[]string)
+
+build_args [map[string]](#map[string])
+
+image_format [string](https://godoc.org/builtin#string)
 ### <a name="ContainerChanges"></a>type ContainerChanges
 
 ContainerChanges describes the return struct for ListContainerChanges
@@ -695,7 +767,7 @@ security_opts [[]string](#[]string)
 ### <a name="CreateResourceConfig"></a>type CreateResourceConfig
 
 CreateResourceConfig is an input structure used to describe host attributes during
-container creation.  It is only valid inside a (Create)[#Create] type.
+container creation.  It is only valid inside a [Create](#Create) type.
 
 blkio_weight [int](https://godoc.org/builtin#int)
 
