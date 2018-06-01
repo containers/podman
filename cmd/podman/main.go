@@ -154,6 +154,10 @@ func main() {
 			Usage: "path to the root directory in which data, including images, is stored",
 		},
 		cli.StringFlag{
+			Name:  "tmpdir",
+			Usage: "path to the tmp directory",
+		},
+		cli.StringFlag{
 			Name:  "runroot",
 			Usage: "path to the 'run directory' where all state information is stored",
 		},
