@@ -151,6 +151,7 @@ var (
 			"/usr/lib/cri-o-runc/sbin/runc",
 		},
 		ConmonPath: []string{
+			"/usr/libexec/podman/conmon",
 			"/usr/libexec/crio/conmon",
 			"/usr/local/libexec/crio/conmon",
 			"/usr/bin/conmon",
