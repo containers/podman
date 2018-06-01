@@ -512,6 +512,9 @@ func (c *Container) completeNetworkSetup() error {
 	if !c.config.PostConfigureNetNS {
 		return nil
 	}
+	if os.Getuid() != 0 {
+		return nil
+	}
 	if err := c.syncContainer(); err != nil {
 		return err
 	}
