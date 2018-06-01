@@ -285,8 +285,7 @@ func addCommonOptsToSpec(commonOpts *CommonBuildOptions, g *generate.Generator) 
 
 func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts []specs.Mount, bindFiles map[string]string, builtinVolumes, volumeMounts []string, shmSize string, namespaceOptions NamespaceOptions) error {
 	// Start building a new list of mounts.
-	mounts := make([]specs.Mount, len(optionMounts))
-	copy(mounts, optionMounts)
+	var mounts []specs.Mount
 	haveMount := func(destination string) bool {
 		for _, mount := range mounts {
 			if mount.Destination == destination {
@@ -396,7 +395,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 	}
 
 	// Get the list of explicitly-specified volume mounts.
-	volumes, err := runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts)
+	volumes, err := runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts, optionMounts)
 	if err != nil {
 		return err
 	}
@@ -460,17 +459,10 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 	return mounts, nil
 }
 
-func runSetupVolumeMounts(mountLabel string, volumeMounts []string) ([]specs.Mount, error) {
+func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount) ([]specs.Mount, error) {
 	var mounts []specs.Mount
 
-	// Bind mount volumes given by the user at execution
-	for _, i := range volumeMounts {
-		var options []string
-		spliti := strings.Split(i, ":")
-		if len(spliti) > 2 {
-			options = strings.Split(spliti[2], ",")
-		}
-		options = append(options, "rbind")
+	parseMount := func(host, container string, options []string) (specs.Mount, error) {
 		var foundrw, foundro, foundz, foundZ bool
 		var rootProp string
 		for _, opt := range options {
@@ -491,25 +483,46 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string) ([]specs.Mou
 			options = append(options, "rw")
 		}
 		if foundz {
-			if err := label.Relabel(spliti[0], mountLabel, true); err != nil {
-				return nil, errors.Wrapf(err, "relabeling %q failed", spliti[0])
+			if err := label.Relabel(host, mountLabel, true); err != nil {
+				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
 			}
 		}
 		if foundZ {
-			if err := label.Relabel(spliti[0], mountLabel, false); err != nil {
-				return nil, errors.Wrapf(err, "relabeling %q failed", spliti[0])
+			if err := label.Relabel(host, mountLabel, false); err != nil {
+				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
 			}
 		}
 		if rootProp == "" {
 			options = append(options, "private")
 		}
-
-		mounts = append(mounts, specs.Mount{
-			Destination: spliti[1],
+		return specs.Mount{
+			Destination: container,
 			Type:        "bind",
-			Source:      spliti[0],
+			Source:      host,
 			Options:     options,
-		})
+		}, nil
+	}
+	// Bind mount volumes specified for this particular Run() invocation
+	for _, i := range optionMounts {
+		mount, err := parseMount(i.Source, i.Destination, append(i.Options, "rbind"))
+		if err != nil {
+			return nil, err
+		}
+		mounts = append(mounts, mount)
+	}
+	// Bind mount volumes given by the user when the container was created
+	for _, i := range volumeMounts {
+		var options []string
+		spliti := strings.Split(i, ":")
+		if len(spliti) > 2 {
+			options = strings.Split(spliti[2], ",")
+		}
+		options = append(options, "rbind")
+		mount, err := parseMount(spliti[0], spliti[1], options)
+		if err != nil {
+			return nil, err
+		}
+		mounts = append(mounts, mount)
 	}
 	return mounts, nil
 }
@@ -692,7 +705,13 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
 	var user specs.User
-	path, err := ioutil.TempDir(os.TempDir(), Package)
+	p, err := ioutil.TempDir(os.TempDir(), Package)
+	if err != nil {
+		return err
+	}
+	// On some hosts like AH, /tmp is a symlink and we need an
+	// absolute path.
+	path, err := filepath.EvalSymlinks(p)
 	if err != nil {
 		return err
 	}
@@ -976,6 +995,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Figure out how we're doing stdio handling, and create pipes and sockets.
 	var stdio sync.WaitGroup
 	var consoleListener *net.UnixListener
+	var errorFds []int
 	stdioPipe := make([][]int, 3)
 	copyConsole := false
 	copyStdio := false
@@ -1006,6 +1026,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 			if stdioPipe, err = runMakeStdioPipe(int(uid), int(gid)); err != nil {
 				return 1, err
 			}
+			errorFds = []int{stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]}
 			// Set stdio to our pipes.
 			getCreateStdio = func() (*os.File, *os.File, *os.File) {
 				stdin := os.NewFile(uintptr(stdioPipe[unix.Stdin][0]), "/dev/stdin")
@@ -1056,7 +1077,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Actually create the container.
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]))
+		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(errorFds...))
 	}
 	defer func() {
 		err2 := del.Run()
