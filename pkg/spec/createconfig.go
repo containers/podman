@@ -360,7 +360,11 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	// does not have one
 	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
 
-	if c.NetMode.IsContainer() {
+	if os.Getuid() != 0 {
+		if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
+			options = append(options, libpod.WithNetNS(portBindings, true))
+		}
+	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
