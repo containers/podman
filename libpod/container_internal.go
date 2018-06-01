@@ -1173,8 +1173,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	var err error
-	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, &g); err != nil {
-		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
+	if os.Getuid() == 0 {
+		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, &g); err != nil {
+			return nil, errors.Wrapf(err, "error setting up OCI Hooks")
+		}
 	}
 	// Bind builtin image volumes
 	if c.config.Rootfs == "" && c.config.ImageVolumes {
