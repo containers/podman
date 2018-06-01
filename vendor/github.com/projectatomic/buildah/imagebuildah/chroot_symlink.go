@@ -37,7 +37,7 @@ func resolveChrootedSymlinks() {
 		os.Exit(1)
 	}
 
-	// Our second paramter is the path name to evaluate for symbolic links
+	// Our second parameter is the path name to evaluate for symbolic links
 	symLink, err := getSymbolicLink(flag.Arg(0), flag.Arg(1))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting symbolic links: %v\n", err)

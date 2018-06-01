@@ -24,6 +24,9 @@ type ContainerCommitOptions struct {
 	Changes []string
 }
 
+// ChangeCmds is the list of valid Changes commands to passed to the Commit call
+var ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
+
 // Commit commits the changes between a container and its image, creating a new
 // image
 func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
@@ -138,6 +141,8 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 				isLabelCleared = true
 			}
 			importBuilder.SetLabel(splitChange[1], splitChange[2])
+		case "ONBUILD":
+			importBuilder.SetOnBuild(splitChange[1])
 		case "STOPSIGNAL":
 			// No Set StopSignal
 		case "USER":

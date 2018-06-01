@@ -24,7 +24,9 @@ Set the author for the committed image
 
 **--change, -c**
 Apply the following possible instructions to the created image:
-**CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
+**CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **ONBUILD** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
+
+
 Can be set multiple times
 
 **--format, -f**

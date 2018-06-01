@@ -52,6 +52,9 @@ type CommitOptions struct {
 	// Squash tells the builder to produce an image with a single layer
 	// instead of with possibly more than one layer.
 	Squash bool
+
+	// OnBuild is a list of commands to be run by images based on this image
+	OnBuild []string
 }
 
 // PushOptions can be used to alter how an image is copied somewhere.

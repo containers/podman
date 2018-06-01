@@ -138,6 +138,8 @@ type BuildOptions struct {
 	Labels []string
 	// Annotation metadata for an image
 	Annotations []string
+	// OnBuild commands to be run by images based on this image
+	OnBuild []string
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -183,6 +185,7 @@ type Executor struct {
 	squash                         bool
 	labels                         []string
 	annotations                    []string
+	onbuild                        []string
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -598,6 +601,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 		Labels:     builder.Labels(),
 		Shell:      builder.Shell(),
 		StopSignal: builder.StopSignal(),
+		OnBuild:    builder.OnBuild(),
 	}
 	var rootfs *docker.RootFS
 	if builder.Docker.RootFS != nil {
@@ -713,6 +717,10 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 	b.builder.ClearVolumes()
 	for v := range config.Volumes {
 		b.builder.AddVolume(v)
+	}
+	b.builder.ClearOnBuild()
+	for _, onBuildSpec := range config.OnBuild {
+		b.builder.SetOnBuild(onBuildSpec)
 	}
 	b.builder.SetWorkDir(config.WorkingDir)
 	b.builder.SetEntrypoint(config.Entrypoint)
