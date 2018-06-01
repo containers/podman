@@ -13,3 +13,4 @@ clean:
 	$(PYTHON) setup.py clean --all
 	rm -rf podman.egg-info dist
 	find . -depth -name __pycache__ -exec rm -rf {} \;
+	find . -depth -name \*.pyc -exec rm -f {} \;
