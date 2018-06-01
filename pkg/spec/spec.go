@@ -1,6 +1,7 @@
 package createconfig
 
 import (
+	"os"
 	"strings"
 
 	"github.com/docker/docker/daemon/caps"
@@ -43,6 +44,16 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
 		}
 		g.AddMount(sysMnt)
+	}
+	if os.Getuid() != 0 {
+		g.RemoveMount("/dev/pts")
+		devPts := spec.Mount{
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Source:      "devpts",
+			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		}
+		g.AddMount(devPts)
 	}
 
 	if addCgroup {
