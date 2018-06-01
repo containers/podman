@@ -21,12 +21,6 @@ write_go_version()
 	sed -i "s/^\(const Version = \"\).*/\1${LOCAL_VERSION}\"/" version/version.go
 }
 
-write_python_version()
-{
-	LOCAL_VERSION="$1"
-	sed -i "s/^\( *version='*\).*/\1${LOCAL_VERSION}'/" contrib/python/setup.py
-}
-
 write_spec_version()
 {
 	LOCAL_VERSION="$1"
@@ -51,7 +45,7 @@ write_changelog()
 release_commit()
 {
 	write_go_version "${VERSION}" &&
-	write_python_version "${VERSION}" &&
+	write_spec_version "${VERSION}" &&
 	write_changelog &&
 	git commit -asm "Bump to v${VERSION}"
 }
@@ -59,8 +53,7 @@ release_commit()
 dev_version_commit()
 {
 	write_go_version "${NEXT_VERSION}-dev" &&
-	write_python_version "${NEXT_VERSION}" &&
-	write_spec_version "${VERSION}" &&
+	write_spec_version "${NEXT_VERSION}" &&
 	git commit -asm "Bump to v${NEXT_VERSION}-dev"
 }
 
