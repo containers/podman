@@ -1,3 +1,39 @@
+- Changelog for v0.6.1 (2018-06-01)
+  * hack/release.sh: Bump spec in dev_version_commit
+  * hack/release.sh: No longer need to bump setup.py
+  * Provide examples for python podman API
+  * Bump Buildah vendor to pick up fix for tests
+  * Log podman build failures in papr
+  * Use Version from spec file in setup.py
+  * Attempt to use fedora 28 atomic host
+  * Fix lable handling
+  * runtime: add /usr/libexec/podman/conmon to the conmon paths
+  * varlink build
+  * Add OnBuild support for podman build
+  * return all inspect info for varlink containerinspect
+  * hooks/exec: Allow successful reaps for 0s post-kill timeouts
+  * hack/release.sh: Add a release script
+  * Implement container attach
+  * If user specifies UIDMapSlice without GIDMapSlice, set them equal
+  * fix panic with podman pull
+  * pkg/hooks/exec: Add a new package for local hook execution
+  * Remove --net flag and make it an alias for --network
+  * Catch does not exist error
+  * hooks: Rename Hooks() output to extensionStageHooks
+  * hooks: Allow local control of OCI stages via extensionStages
+  * We need to change the SELinux label of the conmon process to s0
+  * Clear all caps, except the bounding set, when --user is specified.
+  * Makefile: Add stderr redirect to HAS_PYTHON3 definition
+  * Force update of API.md
+  * do not allow port related args to be used with --network=container:
+  * Update .gitignore for Varlink code and gopathok
+  * sort containers and images by create time
+  * Cleanup man pages
+  * add go generate varlink to copr spec
+  * Remove varlink's generated Go file
+  * Bump gitvalidation epoch
+  * Bump to v0.6.1-dev
+
 - Changelog for v0.5.4 (2018-05-25):
   * Vendor in latest projectatomic/buildah
   * Rename addFIPSsModeSecret to addFIPSModeSecret
