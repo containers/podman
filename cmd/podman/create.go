@@ -9,7 +9,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/storage"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
@@ -81,7 +80,10 @@ func createCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	storageOpts := storage.DefaultStoreOptions
+	storageOpts, err := libpodruntime.GetDefaultStoreOptions()
+	if err != nil {
+		return err
+	}
 	storageOpts.UIDMap = mappings.UIDMap
 	storageOpts.GIDMap = mappings.GIDMap
 

@@ -1,6 +1,10 @@
 package libpodruntime
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/containers/storage"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
@@ -8,8 +12,42 @@ import (
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts := storage.DefaultStoreOptions
+	storageOpts, err := GetDefaultStoreOptions()
+	if err != nil {
+		return nil, err
+	}
 	return GetRuntimeWithStorageOpts(c, &storageOpts)
+}
+
+func GetRootlessStorageOpts() (storage.StoreOptions, error) {
+	var opts storage.StoreOptions
+
+	opts.RunRoot = filepath.Join(libpod.GetRootlessRuntimeDir(), "run")
+
+	dataDir := os.Getenv("XDG_DATA_DIR")
+	if dataDir != "" {
+		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	} else {
+		home := os.Getenv("HOME")
+		if home == "" {
+			return opts, fmt.Errorf("HOME not specified")
+		}
+		opts.GraphRoot = filepath.Join(home, ".containers", "storage")
+	}
+	opts.GraphDriverName = "vfs"
+	return opts, nil
+}
+
+func GetDefaultStoreOptions() (storage.StoreOptions, error) {
+	storageOpts := storage.DefaultStoreOptions
+	if os.Getuid() != 0 {
+		var err error
+		storageOpts, err = GetRootlessStorageOpts()
+		if err != nil {
+			return storageOpts, err
+		}
+	}
+	return storageOpts, nil
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
