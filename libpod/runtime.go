@@ -2,10 +2,12 @@ package libpod
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
@@ -164,13 +166,44 @@ var (
 		CgroupManager: CgroupfsCgroupsManager,
 		HooksDir:      hooks.DefaultDir,
 		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
-		TmpDir:        "/var/run/libpod",
+		TmpDir:        getDefaultTmpDir(),
 		MaxLogSize:    -1,
 		NoPivotRoot:   false,
 		CNIConfigDir:  "/etc/cni/net.d/",
 		CNIPluginDir:  []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
 	}
 )
+
+// GetRootlessRuntimeDir returns the runtime directory when running as non root
+func GetRootlessRuntimeDir() string {
+	hasNoEnv := false
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir == "" {
+		hasNoEnv = true
+		tmpDir := filepath.Join(os.TempDir(), "user", fmt.Sprintf("%d", os.Getuid()))
+		os.MkdirAll(tmpDir, 0700)
+		st, err := os.Stat(tmpDir)
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+			runtimeDir = tmpDir
+		}
+	}
+	if runtimeDir == "" {
+		runtimeDir = filepath.Join(os.Getenv("HOME"), "rundir")
+	}
+	if hasNoEnv {
+		os.Setenv("XDG_RUNTIME_DIR", runtimeDir)
+	}
+	return runtimeDir
+}
+
+func getDefaultTmpDir() string {
+	if os.Getuid() == 0 {
+		return "/var/run/libpod"
+	}
+
+	rootlessRuntimeDir := GetRootlessRuntimeDir()
+	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp")
+}
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime

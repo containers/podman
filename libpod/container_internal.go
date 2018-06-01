@@ -1296,7 +1296,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+	if os.Getuid() != 0 {
+		g.SetLinuxCgroupsPath("")
+	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name

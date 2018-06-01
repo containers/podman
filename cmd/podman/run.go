@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
@@ -54,7 +53,10 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	storageOpts := storage.DefaultStoreOptions
+	storageOpts, err := libpodruntime.GetDefaultStoreOptions()
+	if err != nil {
+		return err
+	}
 	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
 	if err != nil {
 		return err
