@@ -81,7 +81,11 @@ func (i *LibpodAPI) InspectContainer(call ioprojectatomicpodman.VarlinkCall, nam
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	b, err := json.Marshal(inspectInfo)
+	data, err := batchcontainer.GetCtrInspectInfo(ctr, inspectInfo)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	b, err := json.Marshal(data)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to serialize"))
 	}
