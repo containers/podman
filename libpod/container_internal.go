@@ -231,7 +231,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
+	if os.Getuid() == 0 && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
 		info, err := os.Stat(c.runtime.config.TmpDir)
 		if err != nil {
 			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
@@ -935,8 +935,10 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
-	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
-		return errors.Wrapf(err, "error chown %s", c.state.RunDir)
+	if os.Getuid() == 0 {
+		if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+			return errors.Wrapf(err, "cannot chown run directory %s", c.state.RunDir)
+		}
 	}
 
 	if c.state.BindMounts == nil {
@@ -1013,8 +1015,10 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 		return "", errors.Wrapf(err, "unable to create %s", destFileName)
 	}
 	defer f.Close()
-	if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
-		return "", err
+	if os.Getuid() == 0 {
+		if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
+			return "", err
+		}
 	}
 
 	if _, err := f.WriteString(output); err != nil {
