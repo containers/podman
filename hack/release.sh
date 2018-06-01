@@ -45,6 +45,7 @@ write_changelog()
 release_commit()
 {
 	write_go_version "${VERSION}" &&
+	write_spec_version "${VERSION}" &&
 	write_changelog &&
 	git commit -asm "Bump to v${VERSION}"
 }
@@ -52,7 +53,7 @@ release_commit()
 dev_version_commit()
 {
 	write_go_version "${NEXT_VERSION}-dev" &&
-	write_spec_version "${VERSION}" &&
+	write_spec_version "${NEXT_VERSION}" &&
 	git commit -asm "Bump to v${NEXT_VERSION}-dev"
 }
 
