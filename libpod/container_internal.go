@@ -685,25 +685,26 @@ func (c *Container) mountStorage() (err error) {
 		return nil
 	}
 
-	// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
-
-	mounted, err := mount.Mounted(c.config.ShmDir)
-	if err != nil {
-		return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
-	}
-
-	if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-		return err
-	}
-
-	if !mounted {
-		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
-		if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
-			label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
-			return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+	if os.Getuid() == 0 {
+		// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
+		mounted, err := mount.Mounted(c.config.ShmDir)
+		if err != nil {
+			return errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
 		}
+
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
 			return errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
+		}
+
+		if !mounted {
+			shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
+			if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
+				label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
+				return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+			}
+			if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
+				return errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
+			}
 		}
 	}
 
