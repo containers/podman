@@ -14,6 +14,9 @@ timeout: 45m
 tests:
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 
+artifacts:
+  - build.log
+
 context: "FAH28"
 ---
 
@@ -35,6 +38,9 @@ timeout: 45m
 
 tests:
   - sh .papr_prepare.sh
+
+artifacts:
+  - build.log
 
 context: "CAH smoketested"
 
