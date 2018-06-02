@@ -56,6 +56,11 @@ type (
 		// replaced with the matching name from this map.
 		RebaseNames map[string]string
 		InUserNS    bool
+		// CopyPass indicates that the contents of any archive we're creating
+		// will instantly be extracted and written to disk, so we can deviate
+		// from the traditional behavior/format to get features like subsecond
+		// precision in timestamps.
+		CopyPass bool
 	}
 )
 
@@ -396,6 +401,11 @@ type tarAppender struct {
 	// by the AUFS standard are used as the tar whiteout
 	// standard.
 	WhiteoutConverter tarWhiteoutConverter
+	// CopyPass indicates that the contents of any archive we're creating
+	// will instantly be extracted and written to disk, so we can deviate
+	// from the traditional behavior/format to get features like subsecond
+	// precision in timestamps.
+	CopyPass bool
 }
 
 func newTarAppender(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarAppender {
@@ -445,6 +455,9 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	}
 	if err := ReadSecurityXattrToTarHeader(path, hdr); err != nil {
 		return err
+	}
+	if ta.CopyPass {
+		copyPassHeader(hdr)
 	}
 
 	// if it's not a directory and has more than 1 link,
@@ -710,6 +723,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			options.ChownOpts,
 		)
 		ta.WhiteoutConverter = getWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+		ta.CopyPass = options.CopyPass
 
 		defer func() {
 			// Make sure to check the error on Close.
@@ -1039,6 +1053,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		UIDMaps:     tarMappings.UIDs(),
 		GIDMaps:     tarMappings.GIDs(),
 		Compression: Uncompressed,
+		CopyPass:    true,
 	}
 	archive, err := TarWithOptions(src, options)
 	if err != nil {
@@ -1145,6 +1160,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		}
 		hdr.Name = filepath.Base(dst)
 		hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
+		copyPassHeader(hdr)
 
 		if err := remapIDs(archiver.TarIDMappings, nil, archiver.ChownOpts, hdr); err != nil {
 			return err
