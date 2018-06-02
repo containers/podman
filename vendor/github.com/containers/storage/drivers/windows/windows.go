@@ -940,11 +940,6 @@ func (d *Driver) AdditionalImageStores() []string {
 	return nil
 }
 
-// AdditionalImageStores returns additional image stores supported by the driver
-func (d *Driver) AdditionalImageStores() []string {
-	return nil
-}
-
 // UpdateLayerIDMap changes ownerships in the layer's filesystem tree from
 // matching those in toContainer to matching those in toHost.
 func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {

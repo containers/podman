@@ -1,7 +1,7 @@
 package graphdriver
 
 import (
-	"os"
+	"fmt"
 	"syscall"
 )
 
