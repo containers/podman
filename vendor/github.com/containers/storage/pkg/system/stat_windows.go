@@ -28,6 +28,20 @@ func (s StatT) Mtim() time.Time {
 	return time.Time(s.mtim)
 }
 
+// UID returns file's user id of owner.
+//
+// on windows this is always 0 because there is no concept of UID
+func (s StatT) UID() uint32 {
+	return 0
+}
+
+// GID returns file's group id of owner.
+//
+// on windows this is always 0 because there is no concept of GID
+func (s StatT) GID() uint32 {
+	return 0
+}
+
 // Stat takes a path to a file and returns
 // a system.StatT type pertaining to that file.
 //

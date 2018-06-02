@@ -40,6 +40,11 @@ type Image struct {
 	// same top layer.
 	TopLayer string `json:"layer,omitempty"`
 
+	// MappedTopLayers are the IDs of alternate versions of the top layer
+	// which have the same contents and parent, and which differ from
+	// TopLayer only in which ID mappings they use.
+	MappedTopLayers []string `json:"mapped-layers,omitempty"`
+
 	// Metadata is data we keep for the convenience of the caller.  It is not
 	// expected to be large, since it is kept in memory.
 	Metadata string `json:"metadata,omitempty"`
@@ -126,16 +131,17 @@ type imageStore struct {
 
 func copyImage(i *Image) *Image {
 	return &Image{
-		ID:             i.ID,
-		Digest:         i.Digest,
-		Names:          copyStringSlice(i.Names),
-		TopLayer:       i.TopLayer,
-		Metadata:       i.Metadata,
-		BigDataNames:   copyStringSlice(i.BigDataNames),
-		BigDataSizes:   copyStringInt64Map(i.BigDataSizes),
-		BigDataDigests: copyStringDigestMap(i.BigDataDigests),
-		Created:        i.Created,
-		Flags:          copyStringInterfaceMap(i.Flags),
+		ID:              i.ID,
+		Digest:          i.Digest,
+		Names:           copyStringSlice(i.Names),
+		TopLayer:        i.TopLayer,
+		MappedTopLayers: copyStringSlice(i.MappedTopLayers),
+		Metadata:        i.Metadata,
+		BigDataNames:    copyStringSlice(i.BigDataNames),
+		BigDataSizes:    copyStringInt64Map(i.BigDataSizes),
+		BigDataDigests:  copyStringDigestMap(i.BigDataDigests),
+		Created:         i.Created,
+		Flags:           copyStringInterfaceMap(i.Flags),
 	}
 }
 
@@ -360,6 +366,14 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 		image = copyImage(image)
 	}
 	return image, err
+}
+
+func (r *imageStore) addMappedTopLayer(id, layer string) error {
+	if image, ok := r.lookup(id); ok {
+		image.MappedTopLayers = append(image.MappedTopLayers, layer)
+		return r.Save()
+	}
+	return ErrImageUnknown
 }
 
 func (r *imageStore) Metadata(id string) (string, error) {
