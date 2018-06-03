@@ -10,6 +10,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 )
@@ -112,6 +113,7 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 			return extensionStageHooks, errors.Wrapf(err, "matching hook %q", namedHook.name)
 		}
 		if match {
+			logrus.Debugf("hook %s matched; adding to stages %v", namedHook.name, namedHook.hook.Stages)
 			if config.Hooks == nil {
 				config.Hooks = &rspec.Hooks{}
 			}
@@ -134,6 +136,8 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 					}
 				}
 			}
+		} else {
+			logrus.Debugf("hook %s did not match", namedHook.name)
 		}
 	}
 

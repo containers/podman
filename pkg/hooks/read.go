@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
+	"github.com/sirupsen/logrus"
 )
 
 type reader func(content []byte) (*current.Hook, error)
@@ -61,23 +62,28 @@ func read(content []byte) (hook *current.Hook, err error) {
 // ReadDir reads hook JSON files from a directory into the given map,
 // clobbering any previous entries with the same filenames.
 func ReadDir(path string, extensionStages []string, hooks map[string]*current.Hook) error {
+	logrus.Debugf("reading hooks from %s", path)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return err
 	}
 
 	for _, file := range files {
-		hook, err := Read(filepath.Join(path, file.Name()), extensionStages)
+		filePath := filepath.Join(path, file.Name())
+		hook, err := Read(filePath, extensionStages)
 		if err != nil {
 			if err == ErrNoJSONSuffix {
 				continue
 			}
 			if os.IsNotExist(err) {
-				continue
+				if err2, ok := err.(*os.PathError); ok && err2.Path == filePath {
+					continue
+				}
 			}
 			return err
 		}
 		hooks[file.Name()] = hook
+		logrus.Debugf("added hook %s", filePath)
 	}
 	return nil
 }
