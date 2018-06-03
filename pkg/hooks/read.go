@@ -67,13 +67,16 @@ func ReadDir(path string, extensionStages []string, hooks map[string]*current.Ho
 	}
 
 	for _, file := range files {
-		hook, err := Read(filepath.Join(path, file.Name()), extensionStages)
+		filePath := filepath.Join(path, file.Name())
+		hook, err := Read(filePath, extensionStages)
 		if err != nil {
 			if err == ErrNoJSONSuffix {
 				continue
 			}
 			if os.IsNotExist(err) {
-				continue
+				if err2, ok := err.(*os.PathError); ok && err2.Path == filePath {
+					continue
+				}
 			}
 			return err
 		}
