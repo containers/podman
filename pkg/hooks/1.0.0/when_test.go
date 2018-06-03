@@ -218,7 +218,7 @@ func TestHasBindMountsAndCommands(t *testing.T) {
 			match:         true,
 		},
 		{
-			name:          "both, and",
+			name:          "both, or",
 			command:       "/bin/sh",
 			hasBindMounts: true,
 			or:            true,
