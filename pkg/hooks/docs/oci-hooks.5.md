@@ -119,6 +119,7 @@ The following example injects `nvidia-container-runtime-hook prestart` with part
 ```console
 $ cat /etc/containers/oci/hooks.d/nvidia.json
 {
+  "version": "1.0.0",
   "hook": {
     "path": "/usr/sbin/nvidia-container-runtime-hook",
     "args": ["nvidia-container-runtime-hook", "prestart"],
@@ -129,7 +130,7 @@ $ cat /etc/containers/oci/hooks.d/nvidia.json
   },
   "when": {
     "annotations": {
-      "^com\.example\.department$": ".*fluid-dynamics$"
+      "^com\\.example\\.department$": ".*fluid-dynamics$"
     }
   },
   "stages": ["prestart"]
