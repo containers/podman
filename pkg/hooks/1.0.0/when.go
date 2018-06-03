@@ -10,7 +10,7 @@ import (
 // When holds hook-injection conditions.
 type When struct {
 	Always        *bool             `json:"always,omitempty"`
-	Annotations   map[string]string `json:"annotation,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
 	Commands      []string          `json:"commands,omitempty"`
 	HasBindMounts *bool             `json:"hasBindMounts,omitempty"`
 
