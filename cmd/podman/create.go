@@ -19,6 +19,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
+	ann "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
@@ -377,6 +378,27 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		}
 	}
 
+	// ANNOTATIONS
+	annotations := make(map[string]string)
+	// First, add our default annotations
+	annotations[ann.ContainerType] = "sandbox"
+	annotations[ann.TTY] = "false"
+	if tty {
+		annotations[ann.TTY] = "true"
+	}
+	// Next, add annotations from the image
+	for key, value := range data.Annotations {
+		annotations[key] = value
+	}
+	// Last, add user annotations
+	for _, annotation := range c.StringSlice("annotation") {
+		splitAnnotation := strings.SplitN(annotation, "=", 2)
+		if len(splitAnnotation) < 2 {
+			return nil, errors.Errorf("Annotations must be formatted KEY=VALUE")
+		}
+		annotations[splitAnnotation[0]] = splitAnnotation[1]
+	}
+
 	// WORKING DIRECTORY
 	workDir := "/"
 	if c.IsSet("workdir") {
@@ -463,6 +485,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
+		Annotations:       annotations,
 		BuiltinImgVolumes: ImageVolumes,
 		ConmonPidFile:     c.String("conmon-pidfile"),
 		ImageVolumeType:   c.String("image-volume"),

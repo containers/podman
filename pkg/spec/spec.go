@@ -58,7 +58,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	g.SetProcessArgs(config.Command)
 	g.SetProcessTerminal(config.Tty)
 
-	for key, val := range config.GetAnnotations() {
+	for key, val := range config.Annotations {
 		g.AddAnnotation(key, val)
 	}
 	g.SetRootReadonly(config.ReadOnlyRootfs)

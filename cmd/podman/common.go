@@ -80,6 +80,10 @@ var createFlags = []cli.Flag{
 		Usage: "Add a custom host-to-IP mapping (host:ip) (default [])",
 	},
 	cli.StringSliceFlag{
+		Name:  "annotation",
+		Usage: "Add annotations to container (key:value) (default [])",
+	},
+	cli.StringSliceFlag{
 		Name:  "attach, a",
 		Usage: "Attach to STDIN, STDOUT or STDERR (default [])",
 	},
