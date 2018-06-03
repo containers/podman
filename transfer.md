@@ -1,16 +1,14 @@
-# PODMAN Usage Transfer
+# Podman Usage Transfer
 
-This document outlines useful information for ops and dev transfer as it relates to infrastructure that utilizes PODMAN.
+This document outlines useful information for ops and dev transfer as it relates to infrastructure that utilizes `Podman`.
 
 ## Operational Transfer
 
 ## Abstract
 
-The `crio` daemon is intended to provide the [CRI](https://github.com/kubernetes/community/blob/master/contributors/devel/container-runtime-interface.md) socket needed for Kubernetes to use for automating deployment, scaling, and management of containerized applications (See the document for [configuring kubernetes to use PODMAN](./kubernetes.md) for more information on that).
-Therefore the `crioctl` command line is a client that interfaces to the same grpc socket as the kubernetes daemon would, for talking to the `crio` daemon.
-In many ways `crioctl` is only as feature rich as the Kubernetes CRI requires.
-There are additional tools e.g. `podman` and [`buildah`](https://github.com/projectatomic/buildah) that provide a feature rich set of commands for all operational needs in a Kubernetes environment.
-
+Podman is a tool for managing Pods, Containers, and Container Images.  The CLI
+for Podman is based on the Docker CLI, although Podman does not require a
+runtime daemon to be running in order to function.
 
 ## System Tools
 
@@ -20,9 +18,9 @@ As well as some systemd helpers like `systemd-cgls` and `systemd-cgtop` are stil
 ## Equivalents
 
 For many troubleshooting and information collection steps, there may be an existing pattern.
-Following provides equivalent with PODMAN tools for gathering information or jumping into containers, for operational use.
+Following provides equivalent with `Podman` tools for gathering information or jumping into containers, for operational use.
 
-| Existing Step | PODMAN (and friends) |
+| Existing Step | `Podman` (and friends) |
 | :--- | :--- |
 | `docker run`  | [`podman run`](./docs/podman-run.1.md) |
 | `docker exec` | [`podman exec`](./docs/podman-exec.1.md) |
@@ -36,7 +34,7 @@ Following provides equivalent with PODMAN tools for gathering information or jum
 
 There are other equivalents for these tools
 
-| Existing Step | PODMAN (and friends) |
+| Existing Step | `Podman` (and friends) |
 | :--- | :--- |
 | `docker attach`  | [`podman exec`](./docs/podman-attach.1.md)      |
 | `docker build`   | [`podman build`](./docs/podman-build.1.md)      |
