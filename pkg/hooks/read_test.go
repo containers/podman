@@ -191,3 +191,24 @@ func TestBadDir(t *testing.T) {
 	}
 	assert.Regexp(t, "^parsing hook \"[^\"]*a.json\": unrecognized hook version: \"-1\"$", err.Error())
 }
+
+func TestHookExecutableDoesNotExit(t *testing.T) {
+	dir, err := ioutil.TempDir("", "hooks-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	jsonPath := filepath.Join(dir, "hook.json")
+	err = ioutil.WriteFile(jsonPath, []byte("{\"version\": \"1.0.0\", \"hook\": {\"path\": \"/does/not/exist\"}, \"when\": {\"always\": true}, \"stages\": [\"prestart\"]}"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hooks := map[string]*current.Hook{}
+	err = ReadDir(dir, []string{}, hooks)
+	if err == nil {
+		t.Fatal("unexpected success")
+	}
+	assert.Regexp(t, "^stat /does/not/exist: no such file or directory$", err.Error())
+}
