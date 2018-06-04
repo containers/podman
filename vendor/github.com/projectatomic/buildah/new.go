@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -149,6 +150,81 @@ func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMapp
 	}
 	return options
 }
+
+func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, *storage.Image, error) {
+	var ref types.ImageReference
+	var img *storage.Image
+	for _, image := range util.ResolveName(options.FromImage, options.Registry, systemContext, store) {
+		var err error
+		if len(image) >= minimumTruncatedIDLength {
+			if img, err = store.Image(image); err == nil && img != nil && strings.HasPrefix(img.ID, image) {
+				if ref, err = is.Transport.ParseStoreReference(store, img.ID); err != nil {
+					return nil, nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+				}
+				break
+			}
+		}
+
+		if options.PullPolicy == PullAlways {
+			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, image, options, systemContext)
+			if err != nil {
+				logrus.Debugf("error pulling and reading image %q: %v", image, err)
+				continue
+			}
+			ref = pulledReference
+			img = pulledImg
+			break
+		}
+
+		srcRef, err := alltransports.ParseImageName(image)
+		if err != nil {
+			if options.Transport == "" {
+				logrus.Debugf("error parsing image name %q: %v", image, err)
+				continue
+			}
+			transport := options.Transport
+			if transport != DefaultTransport {
+				transport = transport + ":"
+			}
+			srcRef2, err := alltransports.ParseImageName(transport + image)
+			if err != nil {
+				logrus.Debugf("error parsing image name %q: %v", image, err)
+				continue
+			}
+			srcRef = srcRef2
+		}
+
+		destImage, err := localImageNameForReference(ctx, store, srcRef, options.FromImage)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "error computing local image name for %q", transports.ImageName(srcRef))
+		}
+		if destImage == "" {
+			return nil, nil, errors.Errorf("error computing local image name for %q", transports.ImageName(srcRef))
+		}
+
+		ref, err = is.Transport.ParseStoreReference(store, destImage)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "error parsing reference to image %q", destImage)
+		}
+		img, err = is.Transport.GetStoreImage(store, ref)
+		if err != nil {
+			if errors.Cause(err) == storage.ErrImageUnknown && options.PullPolicy != PullIfMissing {
+				logrus.Debugf("no such image %q: %v", transports.ImageName(ref), err)
+				continue
+			}
+			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, image, options, systemContext)
+			if err != nil {
+				logrus.Debugf("error pulling and reading image %q: %v", image, err)
+				continue
+			}
+			ref = pulledReference
+			img = pulledImg
+		}
+		break
+	}
+	return ref, img, nil
+}
+
 func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions) (*Builder, error) {
 	var ref types.ImageReference
 	var img *storage.Image
@@ -165,83 +241,17 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 
-	for _, image := range util.ResolveName(options.FromImage, options.Registry, systemContext, store) {
-		if len(image) >= minimumTruncatedIDLength {
-			if img, err = store.Image(image); err == nil && img != nil && strings.HasPrefix(img.ID, image) {
-				if ref, err = is.Transport.ParseStoreReference(store, img.ID); err != nil {
-					return nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
-				}
-				break
-			}
-		}
-
-		if options.PullPolicy == PullAlways {
-			pulledImg, pulledReference, err2 := pullAndFindImage(ctx, store, image, options, systemContext)
-			if err2 != nil {
-				logrus.Debugf("error pulling and reading image %q: %v", image, err2)
-				err = err2
-				continue
-			}
-			ref = pulledReference
-			img = pulledImg
-			break
-		}
-
-		srcRef, err2 := alltransports.ParseImageName(image)
-		if err2 != nil {
-			if options.Transport == "" {
-				logrus.Debugf("error parsing image name %q: %v", image, err2)
-				err = err2
-				continue
-			}
-			transport := options.Transport
-			if transport != DefaultTransport {
-				transport = transport + ":"
-			}
-			srcRef2, err3 := alltransports.ParseImageName(transport + image)
-			if err3 != nil {
-				logrus.Debugf("error parsing image name %q: %v", image, err2)
-				err = err3
-				continue
-			}
-			srcRef = srcRef2
-		}
-
-		destImage, err2 := localImageNameForReference(ctx, store, srcRef, options.FromImage)
-		if err2 != nil {
-			return nil, errors.Wrapf(err2, "error computing local image name for %q", transports.ImageName(srcRef))
-		}
-		if destImage == "" {
-			return nil, errors.Errorf("error computing local image name for %q", transports.ImageName(srcRef))
-		}
-
-		ref, err = is.Transport.ParseStoreReference(store, destImage)
+	if options.FromImage != "scratch" {
+		ref, img, err = resolveImage(ctx, systemContext, store, options)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing reference to image %q", destImage)
+			return nil, err
 		}
-		img, err = is.Transport.GetStoreImage(store, ref)
-		if err != nil {
-			if errors.Cause(err) == storage.ErrImageUnknown && options.PullPolicy != PullIfMissing {
-				logrus.Debugf("no such image %q: %v", transports.ImageName(ref), err)
-				continue
-			}
-			pulledImg, pulledReference, err2 := pullAndFindImage(ctx, store, image, options, systemContext)
-			if err2 != nil {
-				logrus.Debugf("error pulling and reading image %q: %v", image, err2)
-				err = err2
-				continue
-			}
-			ref = pulledReference
-			img = pulledImg
+		if options.FromImage != "" && (ref == nil || img == nil) {
+			// If options.FromImage is set but we ended up
+			// with nil in ref or in img then there was an error that
+			// we should return.
+			return nil, errors.Wrapf(storage.ErrImageUnknown, "image %q not found in %s registries", options.FromImage, sysregistries.RegistriesConfPath(systemContext))
 		}
-		break
-	}
-
-	if options.FromImage != "" && (ref == nil || img == nil) {
-		// If options.FromImage is set but we ended up
-		// with nil in ref or in img then there was an error that
-		// we should return.
-		return nil, util.GetFailureCause(err, errors.Wrapf(storage.ErrImageUnknown, "no such image %q in registry", options.FromImage))
 	}
 	image := options.FromImage
 	imageID := ""

@@ -705,7 +705,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
 	var user specs.User
-	p, err := ioutil.TempDir(os.TempDir(), Package)
+	p, err := ioutil.TempDir("", Package)
 	if err != nil {
 		return err
 	}
