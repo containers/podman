@@ -54,4 +54,18 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 	})
+
+	It("podman create adds annotation", func() {
+		session := podmanTest.Podman([]string{"create", "--annotation", "HELLO=WORLD", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		check := podmanTest.Podman([]string{"inspect", "-l"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectContainerToJSON()
+		value, ok := data[0].Config.Annotations["HELLO"]
+		Expect(ok).To(BeTrue())
+		Expect(value).To(Equal("WORLD"))
+	})
 })

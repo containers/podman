@@ -1134,6 +1134,7 @@ _podman_push() {
 _podman_container_run() {
 	local options_with_args="
 		--add-host
+		--annotation
 		--attach -a
 		--blkio-weight
 		--blkio-weight-device

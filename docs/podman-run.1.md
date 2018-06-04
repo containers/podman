@@ -35,6 +35,10 @@ is located at `/run/.containerenv`.
    Add a line to /etc/hosts. The format is hostname:ip.  The **--add-host**
 option can be set multiple times.
 
+**--annotation**=[]
+   Add an annotation to the container. The format is key=value.
+The **--annotation** option can be set multiple times.
+
 **-a**, **--attach**=[]
    Attach to STDIN, STDOUT or STDERR.
 

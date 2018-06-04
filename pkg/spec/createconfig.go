@@ -16,7 +16,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
-	ann "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -67,6 +66,7 @@ type CreateResourceConfig struct {
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
 type CreateConfig struct {
 	Runtime            *libpod.Runtime
+	Annotations        map[string]string
 	Args               []string
 	CapAdd             []string // cap-add
 	CapDrop            []string // cap-drop
@@ -217,51 +217,6 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 		ltds = append(ltds, ltd)
 	}
 	return ltds, nil
-}
-
-// GetAnnotations returns the all the annotations for the container
-func (c *CreateConfig) GetAnnotations() map[string]string {
-	a := getDefaultAnnotations()
-	// TODO - Which annotations do we want added by default
-	// TODO - This should be added to the DB long term
-	if c.Tty {
-		a["io.kubernetes.cri-o.TTY"] = "true"
-	}
-	return a
-}
-
-func getDefaultAnnotations() map[string]string {
-	var annotations map[string]string
-	annotations = make(map[string]string)
-	annotations[ann.Annotations] = ""
-	annotations[ann.ContainerID] = ""
-	annotations[ann.ContainerName] = ""
-	annotations[ann.ContainerType] = "sandbox"
-	annotations[ann.Created] = ""
-	annotations[ann.HostName] = ""
-	annotations[ann.IP] = ""
-	annotations[ann.Image] = ""
-	annotations[ann.ImageName] = ""
-	annotations[ann.ImageRef] = ""
-	annotations[ann.KubeName] = ""
-	annotations[ann.Labels] = ""
-	annotations[ann.LogPath] = ""
-	annotations[ann.Metadata] = ""
-	annotations[ann.Name] = ""
-	annotations[ann.PrivilegedRuntime] = ""
-	annotations[ann.ResolvPath] = ""
-	annotations[ann.HostnamePath] = ""
-	annotations[ann.SandboxID] = ""
-	annotations[ann.SandboxName] = ""
-	annotations[ann.ShmPath] = ""
-	annotations[ann.MountPoint] = ""
-	annotations[ann.TrustedSandbox] = ""
-	annotations[ann.TTY] = "false"
-	annotations[ann.Stdin] = ""
-	annotations[ann.StdinOnce] = ""
-	annotations[ann.Volumes] = ""
-
-	return annotations
 }
 
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
