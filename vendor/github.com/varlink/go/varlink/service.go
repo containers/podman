@@ -198,6 +198,10 @@ func (s *Service) teardown() {
 
 func (s *Service) parseAddress(address string) error {
 	words := strings.SplitN(address, ":", 2)
+	if len(words) != 2 {
+		return fmt.Errorf("Unknown protocol")
+	}
+
 	s.protocol = words[0]
 	s.address = words[1]
 

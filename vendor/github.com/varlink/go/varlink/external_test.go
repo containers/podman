@@ -110,6 +110,36 @@ func TestUnix(t *testing.T) {
 	}
 }
 
+func TestInvalidAddress(t *testing.T) {
+	newTestInterface := new(VarlinkInterface)
+	service, err := varlink.NewService(
+		"Varlink",
+		"Varlink Test",
+		"1",
+		"https://github.com/varlink/go/varlink",
+	)
+
+	if err != nil {
+		t.Fatalf("NewService(): %v", err)
+	}
+
+	if err = service.RegisterInterface(newTestInterface); err != nil {
+		t.Fatalf("RegisterInterface(): %v", err)
+	}
+
+	if err = service.Listen("foo", 0); err == nil {
+		t.Fatalf("service.Listen() should error")
+	}
+
+	if err = service.Listen("", 0); err == nil {
+		t.Fatalf("service.Listen() should error")
+	}
+
+	if err = service.Listen("unix", 0); err == nil {
+		t.Fatalf("service.Listen() should error")
+	}
+}
+
 func TestAnonUnix(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		return
