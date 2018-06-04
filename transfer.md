@@ -1,3 +1,4 @@
+![PODMAN logo](logo/podman-logo-source.svg)
 # Podman Usage Transfer
 
 This document outlines useful information for ops and dev transfer as it relates to infrastructure that utilizes `Podman`.
