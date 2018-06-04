@@ -124,6 +124,6 @@ func commitCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(newImage.ID())
+	fmt.Println(newImage.PrependImageDigestTypeToID())
 	return nil
 }
