@@ -166,6 +166,10 @@ type containerState struct {
 	// UserNSRoot is the directory used as root for the container when using
 	// user namespaces.
 	UserNSRoot string `json:"userNSRoot,omitempty"`
+
+	// ExtensionStageHooks holds hooks which will be executed by libpod
+	// and not delegated to the OCI runtime.
+	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
 }
 
 // ExecSession contains information on an active exec session

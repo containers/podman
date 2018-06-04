@@ -75,7 +75,7 @@ type CopyOptions struct {
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(image *image.Image, force bool) (string, error) {
+func (r *Runtime) RemoveImage(ctx context.Context, image *image.Image, force bool) (string, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -97,7 +97,7 @@ func (r *Runtime) RemoveImage(image *image.Image, force bool) (string, error) {
 	if len(imageCtrs) > 0 && len(image.Names()) <= 1 {
 		if force {
 			for _, ctr := range imageCtrs {
-				if err := r.removeContainer(ctr, true); err != nil {
+				if err := r.removeContainer(ctx, ctr, true); err != nil {
 					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", image.ID(), ctr.ID())
 				}
 			}

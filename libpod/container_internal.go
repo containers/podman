@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/projectatomic/libpod/pkg/hooks"
+	"github.com/projectatomic/libpod/pkg/hooks/exec"
 	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -548,10 +550,10 @@ func (c *Container) reinit(ctx context.Context) error {
 		return err
 	}
 
-	// Delete the container in the runtime
-	if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
-		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+	if err := c.delete(ctx); err != nil {
+		return err
 	}
+
 	// Our state is now Configured, as we've removed ourself from
 	// the runtime
 	// Set and save now to make sure that, if the init() below fails
@@ -850,6 +852,62 @@ func (c *Container) cleanup() error {
 	return lastError
 }
 
+// delete deletes the container and runs any configured poststop
+// hooks.
+func (c *Container) delete(ctx context.Context) (err error) {
+	if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
+		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+	}
+
+	if err := c.postDeleteHooks(ctx); err != nil {
+		return errors.Wrapf(err, "container %s poststop hooks", c.ID())
+	}
+
+	return nil
+}
+
+// postDeleteHooks runs the poststop hooks (if any) as specified by
+// the OCI Runtime Specification (which requires them to run
+// post-delete, despite the stage name).
+func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
+	if c.state.ExtensionStageHooks != nil {
+		extensionHooks, ok := c.state.ExtensionStageHooks["poststop"]
+		if ok {
+			state, err := json.Marshal(spec.State{
+				Version:     spec.Version,
+				ID:          c.ID(),
+				Status:      "stopped",
+				Bundle:      c.bundlePath(),
+				Annotations: c.config.Spec.Annotations,
+			})
+			if err != nil {
+				return err
+			}
+			for i, hook := range extensionHooks {
+				logrus.Debugf("container %s: invoke poststop hook %d", c.ID(), i)
+				var stderr, stdout bytes.Buffer
+				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
+				if err != nil {
+					logrus.Warnf("container %s: poststop hook %d: %v", c.ID(), i, err)
+					if hookErr != err {
+						logrus.Debugf("container %s: poststop hook %d (hook error): %v", c.ID(), i, hookErr)
+					}
+					stdoutString := stdout.String()
+					if stdoutString != "" {
+						logrus.Debugf("container %s: poststop hook %d: stdout:\n%s", c.ID(), i, stdoutString)
+					}
+					stderrString := stderr.String()
+					if stderrString != "" {
+						logrus.Debugf("container %s: poststop hook %d: stderr:\n%s", c.ID(), i, stderrString)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
 	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
@@ -1092,7 +1150,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if err := c.setupOCIHooks(ctx, &g); err != nil {
+	var err error
+	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, &g); err != nil {
 		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 	}
 	// Bind builtin image volumes
@@ -1313,9 +1372,9 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) error {
+func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) (extensionStageHooks map[string][]spec.Hook, err error) {
 	if c.runtime.config.HooksDir == "" {
-		return nil
+		return nil, nil
 	}
 
 	var locale string
@@ -1341,19 +1400,18 @@ func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) er
 		logrus.Warnf("failed to parse language %q: %s", langString, err)
 		lang, err = language.Parse("und-u-va-posix")
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, []string{}, lang)
+	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, []string{"poststop"}, lang)
 	if err != nil {
 		if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
-			return err
+			return nil, err
 		}
 		logrus.Warnf("failed to load hooks: {}", err)
-		return nil
+		return nil, nil
 	}
 
-	_, err = manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
-	return err
+	return manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
 }

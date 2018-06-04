@@ -35,6 +35,7 @@ var (
 )
 
 func rmiCmd(c *cli.Context) error {
+	ctx := getContext()
 	if err := validateFlags(c, rmiFlags); err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func rmiCmd(c *cli.Context) error {
 		return errors.Errorf("no valid images to delete")
 	}
 	for _, img := range imagesToDelete {
-		msg, err := runtime.RemoveImage(img, c.Bool("force"))
+		msg, err := runtime.RemoveImage(ctx, img, c.Bool("force"))
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())

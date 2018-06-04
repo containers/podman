@@ -37,6 +37,7 @@ var (
 
 // saveCmd saves the image to either docker-archive or oci
 func rmCmd(c *cli.Context) error {
+	ctx := getContext()
 	if err := validateFlags(c, rmFlags); err != nil {
 		return err
 	}
@@ -81,7 +82,7 @@ func rmCmd(c *cli.Context) error {
 		}
 	}
 	for _, container := range delContainers {
-		err = runtime.RemoveContainer(container, c.Bool("force"))
+		err = runtime.RemoveContainer(ctx, container, c.Bool("force"))
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
