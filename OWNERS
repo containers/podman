@@ -1,7 +1,13 @@
 approvers:
-  - mrunalp
-  - runcom
-  - rhatdan
-  - nalind
   - mheon
   - baude
+  - mrunalp
+  - rhatdan
+reviewers:
+  - mtrmac
+  - jwhonce
+  - runcom
+  - nalind
+  - wking
+  - TomSweeneyRedHat
+  - umohnani8
