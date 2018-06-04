@@ -261,10 +261,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
-	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
-	}
-
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
@@ -818,7 +814,10 @@ func (c *Container) cleanupStorage() error {
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
-	return c.save()
+	if c.valid {
+		return c.save()
+	}
+	return nil
 }
 
 // Unmount the a container and free its resources

@@ -238,24 +238,41 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
+	var cleanupErr error
+	// Remove the container from the state
+	if c.config.Pod != "" {
+		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("removing container from pod: %v", err)
+			}
+		}
+	} else {
+		if err := r.state.RemoveContainer(c); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("removing container: %v", err)
+			}
+		}
+	}
+
 	// Clean up network namespace, cgroups, mounts
 	if err := c.cleanup(); err != nil {
-		return err
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("cleanup network, cgroups, mounts: %v", err)
+		}
 	}
 
 	// Stop the container's storage
 	if err := c.teardownStorage(); err != nil {
-		return err
-	}
-
-	// Remove the container from the state
-	if c.config.Pod != "" {
-		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			return err
-		}
-	} else {
-		if err := r.state.RemoveContainer(c); err != nil {
-			return err
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("cleanup storage: %v", err)
 		}
 	}
 
@@ -263,16 +280,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	// Only do this if we're not ContainerStateConfigured - if we are,
 	// we haven't been created in the runtime yet
 	if c.state.State != ContainerStateConfigured {
-		err = c.delete(ctx)
-		if err != nil {
-			return err
+		if err := c.delete(ctx); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("delete container: %v", err)
+			}
 		}
 	}
 
 	// Set container as invalid so it can no longer be used
 	c.valid = false
 
-	return nil
+	return cleanupErr
 }
 
 // GetContainer retrieves a container by its ID
