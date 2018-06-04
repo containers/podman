@@ -889,16 +889,20 @@ _podman_info() {
 
 _podman_images() {
     local boolean_options="
-     --help
-     -h
-     --quiet
-     -q
-     --noheading
-     -n
-     --no-trunc
+     -a
+     --all
      --digests
-     --filter
+     --digests
      -f
+     --filter
+     -h
+     --help
+     --no-trunc
+     --notruncate
+     -n
+     --noheading
+     -q
+     --quiet
      "
     local options_with_args="
     --format
