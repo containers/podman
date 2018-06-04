@@ -73,6 +73,16 @@ func writeType(b *bytes.Buffer, t *idl.Type, json bool, ident int) {
 	}
 }
 
+func writeDocString(b *bytes.Buffer, s string) {
+	if s == "" {
+		return
+	}
+
+	// Quote multi-line docstrings
+	b.WriteString("// " + strings.Replace(s, "\n", "\n// ", -1))
+	b.WriteString("\n")
+}
+
 func generateTemplate(description string) (string, []byte, error) {
 	description = strings.TrimRight(description, "\n")
 
@@ -84,19 +94,25 @@ func generateTemplate(description string) (string, []byte, error) {
 	pkgname := strings.Replace(midl.Name, ".", "", -1)
 
 	var b bytes.Buffer
-	b.WriteString("// Generated with github.com/varlink/go/cmd/varlink-go-interface-generator\n")
+	b.WriteString("// Generated with github.com/varlink/go/cmd/varlink-go-interface-generator\n\n")
+
+	writeDocString(&b, midl.Doc)
 	b.WriteString("package " + pkgname + "\n\n")
 	b.WriteString("@IMPORTS@\n\n")
 
-	b.WriteString("// Type declarations\n")
+	b.WriteString("// Generated type declarations\n\n")
+
 	for _, a := range midl.Aliases {
+		writeDocString(&b, a.Doc)
 		b.WriteString("type " + a.Name + " ")
 		writeType(&b, a.Type, true, 0)
 		b.WriteString("\n\n")
 	}
 
-	b.WriteString("// Client method calls\n")
+	b.WriteString("// Generated client method calls\n\n")
+
 	for _, m := range midl.Methods {
+		writeDocString(&b, m.Doc)
 		b.WriteString("type " + m.Name + "_methods struct{}\n")
 		b.WriteString("func " + m.Name + "() " + m.Name + "_methods { return " + m.Name + "_methods{} }\n\n")
 
@@ -196,7 +212,8 @@ func generateTemplate(description string) (string, []byte, error) {
 		b.WriteString("}\n\n")
 	}
 
-	b.WriteString("// Service interface with all methods\n")
+	b.WriteString("// Generated service interface with all methods\n\n")
+
 	b.WriteString("type " + pkgname + "Interface interface {\n")
 	for _, m := range midl.Methods {
 		b.WriteString("\t" + m.Name + "(c VarlinkCall")
@@ -208,11 +225,14 @@ func generateTemplate(description string) (string, []byte, error) {
 	}
 	b.WriteString("}\n\n")
 
-	b.WriteString("// Service object with all methods\n")
+	b.WriteString("// Generated service object with all methods\n\n")
+
 	b.WriteString("type VarlinkCall struct{ varlink.Call }\n\n")
 
-	b.WriteString("// Reply methods for all varlink errors\n")
+	b.WriteString("// Generated reply methods for all varlink errors\n\n")
+
 	for _, e := range midl.Errors {
+		writeDocString(&b, e.Doc)
 		b.WriteString("func (c *VarlinkCall) Reply" + e.Name + "(")
 		for i, field := range e.Type.Fields {
 			if i > 0 {
@@ -244,7 +264,8 @@ func generateTemplate(description string) (string, []byte, error) {
 		b.WriteString("}\n\n")
 	}
 
-	b.WriteString("// Reply methods for all varlink methods\n")
+	b.WriteString("// Generated reply methods for all varlink methods\n\n")
+
 	for _, m := range midl.Methods {
 		b.WriteString("func (c *VarlinkCall) Reply" + m.Name + "(")
 		for i, field := range m.Out.Fields {
@@ -277,8 +298,10 @@ func generateTemplate(description string) (string, []byte, error) {
 		b.WriteString("}\n\n")
 	}
 
-	b.WriteString("// Dummy implementations for all varlink methods\n")
+	b.WriteString("// Generated dummy implementations for all varlink methods\n\n")
+
 	for _, m := range midl.Methods {
+		writeDocString(&b, m.Doc)
 		b.WriteString("func (s *VarlinkInterface) " + m.Name + "(c VarlinkCall")
 		for _, field := range m.In.Fields {
 			b.WriteString(", " + field.Name + "_ ")
@@ -289,7 +312,8 @@ func generateTemplate(description string) (string, []byte, error) {
 			"}\n\n")
 	}
 
-	b.WriteString("// Method call dispatcher\n")
+	b.WriteString("// Generated method call dispatcher\n\n")
+
 	b.WriteString("func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string) error {\n" +
 		"\tswitch methodname {\n")
 	for _, m := range midl.Methods {
@@ -327,15 +351,19 @@ func generateTemplate(description string) (string, []byte, error) {
 		"\t}\n" +
 		"}\n\n")
 
-	b.WriteString("// Varlink interface name\n")
+	b.WriteString("// Generated varlink interface name\n\n")
+
 	b.WriteString("func (s *VarlinkInterface) VarlinkGetName() string {\n" +
 		"\treturn `" + midl.Name + "`\n" + "}\n\n")
 
-	b.WriteString("// Varlink interface description\n")
-	b.WriteString("func (s *VarlinkInterface) VarlinkGetDescription() string {\n" +
-		"\treturn `" + midl.Description + "\n`\n}\n\n")
+	b.WriteString("// Generated varlink interface description\n\n")
 
-	b.WriteString("// Service interface\n")
+	// Special-quote backtick, it cannot be part of a backtick-quoted string
+	b.WriteString("func (s *VarlinkInterface) VarlinkGetDescription() string {\n" +
+		"\treturn `" + strings.Replace(midl.Description, "`", "` + \"`\" + `", -1) + "\n`\n}\n\n")
+
+	b.WriteString("// Generated service interface\n\n")
+
 	b.WriteString("type VarlinkInterface struct {\n" +
 		"\t" + pkgname + "Interface\n" +
 		"}\n\n")
