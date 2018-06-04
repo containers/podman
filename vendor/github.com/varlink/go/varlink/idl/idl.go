@@ -69,9 +69,9 @@ type IDL struct {
 	Doc         string
 	Description string
 	Members     []interface{}
-	Aliases     map[string]*Alias
-	Methods     map[string]*Method
-	Errors      map[string]*Error
+	Aliases     []*Alias
+	Methods     []*Method
+	Errors      []*Error
 }
 
 type parser struct {
@@ -413,9 +413,9 @@ func (p *parser) readIDL() (*IDL, error) {
 
 	idl := &IDL{
 		Members: make([]interface{}, 0),
-		Aliases: make(map[string]*Alias),
-		Methods: make(map[string]*Method),
-		Errors:  make(map[string]*Error),
+		Aliases: make([]*Alias, 0),
+		Methods: make([]*Method, 0),
+		Errors:  make([]*Error, 0),
 	}
 
 	p.advance()
@@ -424,6 +424,9 @@ func (p *parser) readIDL() (*IDL, error) {
 	if idl.Name == "" {
 		return nil, fmt.Errorf("interface name")
 	}
+
+	// Check for duplicates
+	members := make(map[string]struct{}, 0)
 
 	for {
 		if !p.advance() {
@@ -436,30 +439,36 @@ func (p *parser) readIDL() (*IDL, error) {
 			if err != nil {
 				return nil, err
 			}
-
+			if _, ok := members[a.Name]; ok {
+				return nil, fmt.Errorf("type `%s` already defined", a.Name)
+			}
+			members[a.Name] = struct{}{}
+			idl.Aliases = append(idl.Aliases, a)
 			idl.Members = append(idl.Members, a)
-			idl.Aliases[a.Name] = a
 
 		case "method":
 			m, err := p.readMethod(idl)
 			if err != nil {
 				return nil, err
 			}
-
-			idl.Members = append(idl.Members, m)
-			if _, ok := idl.Methods[m.Name]; ok {
+			if _, ok := members[m.Name]; ok {
 				return nil, fmt.Errorf("method `%s` already defined", m.Name)
 			}
-			idl.Methods[m.Name] = m
+			members[m.Name] = struct{}{}
+			idl.Methods = append(idl.Methods, m)
+			idl.Members = append(idl.Members, m)
 
 		case "error":
 			e, err := p.readError(idl)
 			if err != nil {
 				return nil, err
 			}
-
+			if _, ok := members[e.Name]; ok {
+				return nil, fmt.Errorf("error `%s` already defined", e.Name)
+			}
+			members[e.Name] = struct{}{}
+			idl.Errors = append(idl.Errors, e)
 			idl.Members = append(idl.Members, e)
-			idl.Errors[e.Name] = e
 
 		default:
 			return nil, fmt.Errorf("unknown keyword '%s'", keyword)
