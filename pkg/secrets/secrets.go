@@ -101,13 +101,14 @@ func getHostSecretData(hostDir string) ([]secretData, error) {
 func getMounts(filePath string) []string {
 	file, err := os.Open(filePath)
 	if err != nil {
-		logrus.Warnf("file %q not found, skipping...", filePath)
+		// This is expected on most systems
+		logrus.Debugf("file %q not found, skipping...", filePath)
 		return nil
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	if err = scanner.Err(); err != nil {
-		logrus.Warnf("error reading file %q, skipping...", filePath)
+		logrus.Errorf("error reading file %q, %v skipping...", filePath, err)
 		return nil
 	}
 	var mounts []string
@@ -157,12 +158,12 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
 		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir); err != nil {
-			logrus.Warnf("error adding FIPS mode secret to container: %v", err)
+			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
 		logrus.Debug("/etc/system-fips does not exist on host, not mounting FIPS mode secret")
 	} else {
-		logrus.Errorf("error stating /etc/system-fips for FIPS mode secret: %v", err)
+		logrus.Errorf("stat /etc/system-fips failed for FIPS mode secret: %v", err)
 	}
 	return secretMounts
 }
@@ -184,9 +185,12 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 			return nil, err
 		}
 		// skip if the hostDir path doesn't exist
-		if _, err = os.Stat(hostDir); os.IsNotExist(err) {
-			logrus.Warnf("%q doesn't exist, skipping", hostDir)
-			continue
+		if _, err = os.Stat(hostDir); err != nil {
+			if os.IsNotExist(err) {
+				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDir, filePath)
+				continue
+			}
+			return nil, errors.Wrapf(err, "failed to stat %q", hostDir)
 		}
 
 		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
@@ -195,7 +199,7 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 		_, err = os.Stat(ctrDirOnHost)
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
-				return nil, errors.Wrapf(err, "making container directory failed")
+				return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOnHost)
 			}
 			hostDir, err = resolveSymbolicLink(hostDir)
 			if err != nil {
