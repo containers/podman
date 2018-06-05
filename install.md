@@ -73,8 +73,8 @@ Debian, Ubuntu, and related distributions will also need to do the following set
 
  * A copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
  * [Add required configuration files](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#adding-required-configuration-files)
- * Install conman, CNI plugins and runc
-   * [Install conman](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)
+ * Install conmon, CNI plugins and runc
+   * [Install conmon](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)
    * [Install CNI plugins](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-cni-plugins)
    * [runc Installation](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) - Although installable, the latest runc is not available in the Ubuntu repos. Version 1.0.0-rc4 is the minimal requirement.
 
