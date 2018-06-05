@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
@@ -99,6 +100,7 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 	var (
 		memoryLimit int64
 		memorySwap  int64
+		namespace   []buildah.NamespaceOption
 	)
 
 	runtime, err := libpodruntime.GetRuntime(i.Cli)
@@ -181,6 +183,13 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		Volumes:      config.Volume,
 	}
 
+	hostNetwork := buildah.NamespaceOption{
+		Name: specs.NetworkNamespace,
+		Host: true,
+	}
+
+	namespace = append(namespace, hostNetwork)
+
 	options := imagebuildah.BuildOptions{
 		ContextDirectory: contextDir,
 		PullPolicy:       pullPolicy,
@@ -192,13 +201,14 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		AdditionalTags: config.Tags,
 		//Runtime: runtime.
 		//RuntimeArgs: ,
-		OutputFormat:    format,
-		SystemContext:   &systemContext,
-		CommonBuildOpts: commonOpts,
-		Squash:          config.Squash,
-		Labels:          config.Label,
-		Annotations:     config.Annotations,
-		ReportWriter:    output,
+		OutputFormat:     format,
+		SystemContext:    &systemContext,
+		CommonBuildOpts:  commonOpts,
+		Squash:           config.Squash,
+		Labels:           config.Label,
+		Annotations:      config.Annotations,
+		ReportWriter:     output,
+		NamespaceOptions: namespace,
 	}
 
 	if call.WantsMore() {
@@ -225,7 +235,10 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 					time.Sleep(1 * time.Second)
 					break
 				}
-				call.ReplyBuildImage(log)
+				br := ioprojectatomicpodman.BuildResponse{
+					Logs: log,
+				}
+				call.ReplyBuildImage(br)
 				log = []string{}
 			}
 		} else {
@@ -236,7 +249,15 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		}
 	}
 	call.Continues = false
-	return call.ReplyBuildImage(log)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(config.Tags[0])
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	br := ioprojectatomicpodman.BuildResponse{
+		Logs: log,
+		Id:   newImage.ID(),
+	}
+	return call.ReplyBuildImage(br)
 }
 
 func build(runtime *libpod.Runtime, options imagebuildah.BuildOptions, dockerfiles []string) chan error {
