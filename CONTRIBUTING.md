@@ -1,3 +1,4 @@
+![PODMAN logo](logo/podman-logo-source.svg)
 # Contributing to Libpod
 
 We'd love to have you join the community! Below summarizes the processes
@@ -109,6 +110,17 @@ Use your real name (sorry, no pseudonyms or anonymous contributions.)
 
 If you set your `user.name` and `user.email` git configs, you can sign your
 commit automatically with `git commit -s`.
+
+### Integration Tests
+
+Our primary means of performing integration testing for libpod is with the
+[Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows
+us to use native Golang to perform our tests and there is a strong affiliation
+between Ginkgo and the Go test framework.  Adequate test cases are expected to
+be provided with PRs.
+
+For details on how to run the tests for Podman in your test environment, see the
+Integration Tests [README.md](test/README.md).
 
 ## Communications
 
