@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime/pprof"
+	"syscall"
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/pkg/errors"
@@ -175,6 +177,12 @@ func main() {
 		if debug {
 			logrus.Errorf(err.Error())
 		} else {
+			// Retrieve the exit error from the exec call, if it exists
+			if ee, ok := err.(*exec.ExitError); ok {
+				if status, ok := ee.Sys().(syscall.WaitStatus); ok {
+					exitCode = status.ExitStatus()
+				}
+			}
 			fmt.Fprintln(os.Stderr, err.Error())
 		}
 	} else {
