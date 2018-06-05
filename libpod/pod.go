@@ -78,7 +78,7 @@ func (p *Pod) UsePodCgroup() bool {
 // CgroupPath returns the path to the pod's CGroup
 func (p *Pod) CgroupPath() (string, error) {
 	p.lock.Lock()
-	p.lock.Unlock()
+	defer p.lock.Unlock()
 	if err := p.updatePod(); err != nil {
 		return "", err
 	}
