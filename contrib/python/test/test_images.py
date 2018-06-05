@@ -1,6 +1,7 @@
 import itertools
 import os
 import unittest
+from datetime import datetime, timezone
 from test.podman_testcase import PodmanTestCase
 
 import podman
@@ -34,6 +35,7 @@ class TestImages(PodmanTestCase):
                 i for i in self.images
                 if 'docker.io/library/alpine:latest' in i['repoTags']
             ] or []), None)
+
         return self.images
 
     def test_list(self):
@@ -42,15 +44,29 @@ class TestImages(PodmanTestCase):
         self.assertIsNotNone(self.alpine_image)
 
     def test_build(self):
-        with self.assertRaisesNotImplemented():
-            self.pclient.images.build()
+        path = os.path.join(self.tmpdir, 'ctnr', 'Dockerfile')
+        img, logs = self.pclient.images.build(
+            dockerfile=[path],
+            tags=['alpine-unittest'],
+        )
+        self.assertIsNotNone(img)
+        self.assertIn('localhost/alpine-unittest:latest', img.repoTags)
+        self.assertLess(
+            podman.datetime_parse(img.created), datetime.now(timezone.utc))
+        self.assertTrue(logs)
 
     def test_create(self):
+        img_details = self.alpine_image.inspect()
+
         actual = self.alpine_image.container()
         self.assertIsNotNone(actual)
         self.assertEqual(actual.status, 'configured')
-        cntr = actual.start()
-        self.assertIn(cntr.status, ['running', 'exited'])
+        ctnr = actual.start()
+        self.assertIn(ctnr.status, ['running', 'exited'])
+
+        ctnr_details = ctnr.inspect()
+        for e in img_details.containerconfig['env']:
+            self.assertIn(e, ctnr_details.config['env'])
 
     def test_export(self):
         path = os.path.join(self.tmpdir, 'alpine_export.tar')
@@ -59,6 +75,10 @@ class TestImages(PodmanTestCase):
         actual = self.alpine_image.export(target, False)
         self.assertTrue(actual)
         self.assertTrue(os.path.isfile(path))
+
+    def test_get(self):
+        actual = self.pclient.images.get(self.alpine_image.id)
+        self.assertEqual(actual, self.alpine_image)
 
     def test_history(self):
         for count, record in enumerate(self.alpine_image.history()):
@@ -102,8 +122,11 @@ class TestImages(PodmanTestCase):
         before = self.loadCache()
         # create unused image, so we have something to delete
         source = os.path.join(self.tmpdir, 'alpine_gold.tar')
-        new_img = self.pclient.images.import_image(source, 'alpine2:latest',
-                                                   'unittest.test_import')
+        new_img = self.pclient.images.import_image(
+            source,
+            'alpine2:latest',
+            'unittest.test_import',
+        )
         after = self.loadCache()
 
         self.assertEqual(len(before) + 1, len(after))
