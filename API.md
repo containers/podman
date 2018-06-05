@@ -5,7 +5,7 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [func AttachToContainer() NotImplemented](#AttachToContainer)
 
-[func BuildImage(build: BuildInfo) []string](#BuildImage)
+[func BuildImage(build: BuildInfo) BuildResponse](#BuildImage)
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) string](#Commit)
 
@@ -87,6 +87,8 @@ in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file
 
 [type BuildInfo](#BuildInfo)
 
+[type BuildResponse](#BuildResponse)
+
 [type ContainerChanges](#ContainerChanges)
 
 [type ContainerMount](#ContainerMount)
@@ -148,10 +150,10 @@ This method has not be implemented yet.
 ### <a name="BuildImage"></a>func BuildImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method BuildImage(build: [BuildInfo](#BuildInfo)) [[]string](#[]string)</div>
+method BuildImage(build: [BuildInfo](#BuildInfo)) [BuildResponse](#BuildResponse)</div>
 BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-'dockerfile' and 'tags' options in the BuildInfo structure.  Upon a successful build, it will
-return the ID of the container.
+'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
+that contains the build logs and resulting image ID.
 ### <a name="Commit"></a>func Commit
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -557,6 +559,13 @@ annotations [[]string](#[]string)
 build_args [map[string]](#map[string])
 
 image_format [string](https://godoc.org/builtin#string)
+### <a name="BuildResponse"></a>type BuildResponse
+
+BuildResponse is used to describe the responses for building images
+
+logs [[]string](#[]string)
+
+id [string](https://godoc.org/builtin#string)
 ### <a name="ContainerChanges"></a>type ContainerChanges
 
 ContainerChanges describes the return struct for ListContainerChanges

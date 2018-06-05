@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
 	buildahcli "github.com/projectatomic/buildah/pkg/cli"
 	"github.com/projectatomic/buildah/pkg/parse"
@@ -30,6 +32,8 @@ var (
 func buildCmd(c *cli.Context) error {
 	// The following was taken directly from projectatomic/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
+
+	var namespace []buildah.NamespaceOption
 	output := ""
 	tags := []string{}
 	if c.IsSet("tag") || c.IsSet("t") {
@@ -151,6 +155,13 @@ func buildCmd(c *cli.Context) error {
 		return err
 	}
 
+	hostNetwork := buildah.NamespaceOption{
+		Name: specs.NetworkNamespace,
+		Host: true,
+	}
+
+	namespace = append(namespace, hostNetwork)
+
 	options := imagebuildah.BuildOptions{
 		ContextDirectory:      contextDir,
 		PullPolicy:            pullPolicy,
@@ -170,6 +181,7 @@ func buildCmd(c *cli.Context) error {
 		Squash:                c.Bool("squash"),
 		Labels:                c.StringSlice("label"),
 		Annotations:           c.StringSlice("annotation"),
+		NamespaceOptions:      namespace,
 	}
 
 	if !c.Bool("quiet") {

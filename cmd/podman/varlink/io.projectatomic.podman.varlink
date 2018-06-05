@@ -320,6 +320,12 @@ type BuildInfo (
     image_format: string
 )
 
+# BuildResponse is used to describe the responses for building images
+type BuildResponse (
+    logs: []string,
+    id: string
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -525,9 +531,9 @@ method ListImages() -> (images: []ImageInList)
 method GetImage(name: string) -> (image: ImageInList)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-# 'dockerfile' and 'tags' options in the BuildInfo structure.  Upon a successful build, it will
-# return the ID of the container.
-method BuildImage(build: BuildInfo) -> (image: []string)
+# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
+# that contains the build logs and resulting image ID.
+method BuildImage(build: BuildInfo) -> (image: BuildResponse)
 
 # This function is not implemented yet.
 method CreateImage() -> (notimplemented: NotImplemented)
