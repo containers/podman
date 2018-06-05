@@ -38,7 +38,7 @@ class Client(object):
 
         @contextlib.contextmanager
         def _podman(uri, interface):
-            """Context manager for API children to access varlink."""
+            """Context manager for API workers to access varlink."""
             client = VarlinkClient(address=uri)
             try:
                 iface = client.open(interface)

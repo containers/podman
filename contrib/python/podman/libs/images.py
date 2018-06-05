@@ -30,23 +30,18 @@ class Image(collections.UserDict):
         return super().__getitem__(key)
 
     def _split_token(self, values=None, sep='='):
-        mapped = {}
-        if values:
-            for var in values:
-                k, v = var.split(sep, 1)
-                mapped[k] = v
-        return mapped
+        return dict([v.split(sep, 1) for v in values if values])
 
     def create(self, *args, **kwargs):
         """Create container from image.
 
         Pulls defaults from image.inspect()
         """
-        # Inialize config from parameters
         with self._client() as podman:
             details = self.inspect()
 
         # TODO: remove network settings once defaults implemented in service
+        # Inialize config from parameters, then add image information
         config = Config(image_id=self.id, **kwargs)
         config['command'] = details.containerconfig['cmd']
         config['env'] = self._split_token(details.containerconfig['env'])
@@ -75,9 +70,8 @@ class Image(collections.UserDict):
             for r in podman.HistoryImage(self.id)['history']:
                 yield collections.namedtuple('HistoryDetail', r.keys())(**r)
 
+    # Convert all keys to lowercase.
     def _lower_hook(self):
-        """Convert all keys to lowercase."""
-
         @functools.wraps(self._lower_hook)
         def wrapped(input):
             return {k.lower(): v for (k, v) in input.items()}
@@ -127,14 +121,26 @@ class Images(object):
         for img in results['images']:
             yield Image(self._client, img['id'], img)
 
-    def build(self, *args, **kwargs):
+    def build(self, dockerfile=None, tags=None, **kwargs):
         """Build container from image.
 
         See podman-build.1.md for kwargs details.
         """
+        if dockerfile is None:
+            raise ValueError('"dockerfile" is a required argument.')
+        elif not hasattr(dockerfile, '__iter__'):
+            raise ValueError('"dockerfile" is required to be an iter.')
+
+        if tags is None:
+            raise ValueError('"tags" is a required argument.')
+        elif not hasattr(tags, '__iter__'):
+            raise ValueError('"tags" is required to be an iter.')
+
+        config = Config(dockerfile=dockerfile, tags=tags, **kwargs)
         with self._client() as podman:
-            # TODO: Need arguments
-            podman.BuildImage()
+            result = podman.BuildImage(config)
+        return self.get(result['image']['id']), \
+            (line for line in result['image']['logs'])
 
     def delete_unused(self):
         """Delete Images not associated with a container."""
@@ -163,4 +169,6 @@ class Images(object):
 
     def get(self, id):
         """Get Image from id."""
-        return next((i for i in self.list() if i.id == id), None)
+        with self._client() as podman:
+            result = podman.GetImage(id)
+        return Image(self._client, result['image']['id'], result['image'])

@@ -6,6 +6,13 @@ if [[ $(id -u) != 0 ]]; then
   exit 2
 fi
 
+# setup path to find new binaries _NOT_ system binaries
+if [[ ! -x ../../bin/podman ]]; then
+  echo 1>&2 Cannot find podman binary from libpod root directory. Run \"make binaries\"
+  exit 1
+fi
+export PATH=../../bin:$PATH
+
 while getopts "vh" arg; do
   case $arg in
     v ) VERBOSE='-v' ;;
@@ -14,8 +21,16 @@ while getopts "vh" arg; do
 done
 shift $((OPTIND-1))
 
+function cleanup {
+  # aggressive cleanup as tests may crash leaving crap around
+  umount '^(shm|nsfs)'
+  umount '\/run\/netns'
+  rm -r "$1"
+}
+
 # Create temporary directory for storage
 export TMPDIR=`mktemp -d /tmp/podman.XXXXXXXXXX`
+trap "cleanup $TMPDIR" EXIT
 
 function umount {
   # xargs -r always ran once, so write any mount points to file first
@@ -25,26 +40,16 @@ function umount {
   fi
 }
 
-function cleanup {
-  umount '^(shm|nsfs)'
-  umount '\/run\/netns'
-  rm -fr ${TMPDIR}
-}
-trap cleanup EXIT
-
-# setup path to find new binaries _NOT_ system binaries
-if [[ ! -x ../../bin/podman ]]; then
-  echo 1>&2 Cannot find podman binary from libpod root directory, Or, run \"make binaries\"
-  exit 1
-fi
-export PATH=../../bin:$PATH
-
 function showlog {
-  [ -s "$1" ] && (echo $1 =====; cat "$1"; echo)
+  [[ -s $1 ]] && cat <<-EOT
+$1 =====
+$(cat "$1")
+
+EOT
 }
 
-# Need a location to store the podman socket
-mkdir -p ${TMPDIR}/{podman,crio,crio-run,cni/net.d}
+# Need locations to store stuff
+mkdir -p ${TMPDIR}/{podman,crio,crio-run,cni/net.d,ctnr}
 
 # Cannot be done in python unittest fixtures.  EnvVar not picked up.
 export REGISTRIES_CONFIG_PATH=${TMPDIR}/registry.conf
@@ -83,6 +88,17 @@ cat >$CNI_CONFIG_PATH/87-podman-bridge.conflist <<-EOT
     }
   ]
 }
+EOT
+
+cat >$TMPDIR/ctnr/hello.sh <<-EOT
+echo 'Hello, World'
+EOT
+
+cat >$TMPDIR/ctnr/Dockerfile <<-EOT
+FROM alpine:latest
+COPY ./hello.sh /tmp/hello.sh
+RUN chmod 755 /tmp/hello.sh
+ENTRYPOINT ["/tmp/hello.sh"]
 EOT
 
 export PODMAN_HOST="unix:${TMPDIR}/podman/io.projectatomic.podman"
