@@ -51,6 +51,13 @@ type Service struct {
 	address      string
 }
 
+// ServiceTimoutError helps API users to special-case timeouts.
+type ServiceTimeoutError struct {}
+
+func (ServiceTimeoutError) Error() string {
+	return "service timeout"
+}
+
 func (s *Service) getInfo(c Call) error {
 	return c.replyGetInfo(s.vendor, s.product, s.version, s.url, s.names)
 }
@@ -297,7 +304,7 @@ func (s *Service) Listen(address string, timeout time.Duration) error {
 				s.mutex.Lock()
 				if s.conncounter == 0 {
 					s.mutex.Unlock()
-					return nil
+					return ServiceTimeoutError{}
 				}
 				s.mutex.Unlock()
 				continue

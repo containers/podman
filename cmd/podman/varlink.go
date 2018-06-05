@@ -7,6 +7,7 @@ import (
 	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/pkg/varlinkapi"
 	"github.com/projectatomic/libpod/version"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/varlink/go/varlink"
 )
@@ -62,7 +63,13 @@ func varlinkCmd(c *cli.Context) error {
 
 	// Run the varlink server at the given address
 	if err = service.Listen(args[0], timeout); err != nil {
-		return errors.Errorf("unable to start varlink service")
+		switch err.(type) {
+		case varlink.ServiceTimeoutError:
+			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms)", c.Int64("timeout"))
+			return nil
+		default:
+			return errors.Errorf("unable to start varlink service")
+		}
 	}
 
 	return nil
