@@ -284,22 +284,6 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 		"args": args,
 	}).Debugf("running conmon: %s", r.conmonPath)
 
-	if selinux.GetEnabled() {
-		// Set the label of the conmon process to be level :s0
-		// This will allow the container processes to talk to fifo-files
-		// passed into the container by conmon
-		plabel, err := selinux.CurrentLabel()
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get current SELinux label")
-		}
-
-		c := selinux.NewContext(plabel)
-		if c["level"] != "s0" && c["level"] != "" {
-			c["level"] = "s0"
-			label.SetProcessLabel(c.Get())
-		}
-	}
-
 	cmd := exec.Command(r.conmonPath, args...)
 	cmd.Dir = ctr.bundlePath()
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -327,7 +311,33 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
 	}
 
-	err = cmd.Start()
+	if selinux.GetEnabled() {
+		// Set the label of the conmon process to be level :s0
+		// This will allow the container processes to talk to fifo-files
+		// passed into the container by conmon
+		plabel, err := selinux.CurrentLabel()
+		if err != nil {
+			childPipe.Close()
+			return errors.Wrapf(err, "Failed to get current SELinux label")
+		}
+
+		c := selinux.NewContext(plabel)
+		runtime.LockOSThread()
+		if c["level"] != "s0" && c["level"] != "" {
+			c["level"] = "s0"
+			if err := label.SetProcessLabel(c.Get()); err != nil {
+				runtime.UnlockOSThread()
+				return err
+			}
+		}
+		err = cmd.Start()
+		// Ignore error returned from SetProcessLabel("") call,
+		// can't recover.
+		label.SetProcessLabel("")
+		runtime.UnlockOSThread()
+	} else {
+		err = cmd.Start()
+	}
 	if err != nil {
 		childPipe.Close()
 		return err
