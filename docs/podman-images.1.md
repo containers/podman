@@ -11,6 +11,10 @@ Displays locally stored images, their names, and their IDs.
 
 ## OPTIONS
 
+**--all, -a**
+
+Show all images (by default filter out the intermediate image layers). The default is false. (This is a NOOP until podman build supports caching.)
+
 **--digests**
 
 Show image digests

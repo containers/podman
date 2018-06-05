@@ -54,8 +54,20 @@ func (a imagesSorted) Less(i, j int) bool { return a[i].CreatedTime.After(a[j].C
 var (
 	imagesFlags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "display only image IDs",
+			Name:  "all, a",
+			Usage: "Show all images (default hides intermediate images)",
+		},
+		cli.BoolFlag{
+			Name:  "digests",
+			Usage: "show digests",
+		},
+		cli.StringSliceFlag{
+			Name:  "filter, f",
+			Usage: "filter output based on conditions provided (default [])",
+		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: "Change the output format to JSON or a Go template",
 		},
 		cli.BoolFlag{
 			Name:  "noheading, n",
@@ -66,16 +78,8 @@ var (
 			Usage: "do not truncate output",
 		},
 		cli.BoolFlag{
-			Name:  "digests",
-			Usage: "show digests",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format to JSON or a Go template",
-		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "filter output based on conditions provided (default [])",
+			Name:  "quiet, q",
+			Usage: "display only image IDs",
 		},
 	}
 
