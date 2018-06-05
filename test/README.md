@@ -1,4 +1,5 @@
-# Integration testing
+![PODMAN logo](../logo/podman-logo-source.svg)
+# Integration Tests
 
 Our primary means of performing integration testing for libpod is with the
 [Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows

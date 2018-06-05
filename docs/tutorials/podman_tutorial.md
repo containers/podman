@@ -163,7 +163,11 @@ To remove the httpd container:
 $ sudo podman rm --latest
 ```
 You can verify the deletion of the container by running *podman ps -a*.
+
+## Integration Tests
+For more information on how to setup and run the integration tests in your environment, checkout the Integration Tests [README.md](../../test/README.md)
+
 ## More information
 
-For more information on Podman and its subcommands, checkout the asciiart demos on the [README](https://github.com/projectatomic/libpod#commands)
+For more information on Podman and its subcommands, checkout the asciiart demos on the [README.md](../../README.md#commands)
 page.
