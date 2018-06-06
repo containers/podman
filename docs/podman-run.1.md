@@ -71,9 +71,9 @@ each of stdin, stdout, and stderr.
    Write the pid of the `conmon` process to a file. `conmon` daemonizes separate from Podman, so this is necessary when using systemd to restart Podman containers.
 
 **--cpu-period**=*0*
-    Limit the CPU CFS (Completely Fair Scheduler) period
+   Limit the CPU CFS (Completely Fair Scheduler) period
 
-    Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
+   Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
 
 **--cpu-quota**=*0*
    Limit the CPU CFS (Completely Fair Scheduler) quota
@@ -193,6 +193,7 @@ is the case the **--dns** flags is necessary for every run.
    Overwrite the default ENTRYPOINT of the image
 
    This option allows you to overwrite the default entrypoint of the image.
+
    The ENTRYPOINT of an image is similar to a COMMAND
 because it specifies what executable to run when the container starts, but it is
 (purposely) more difficult to override. The ENTRYPOINT gives a container its
@@ -234,12 +235,15 @@ inside of the container.
    Print usage statement
 
 **--image-volume**, **builtin-volume**=*bind*|*tmpfs*|*ignore*
-    Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind')
-    bind: A directory is created inside the container state directory and bind mounted into
-	the container for the volumes.
-    tmpfs: The volume is mounted onto the container as a tmpfs, which allows the users to create
-	content that disappears when the container is stopped.
-    ignore: All volumes are just ignored and no action is taken.
+   Tells podman how to handle the builtin image volumes.
+
+   The options are: `bind`, `tmpfs`, or `ignore` (default `bind`)
+
+  - `bind`: A directory is created inside the container state directory and bind mounted into
+    the container for the volumes.
+  - `tmpfs`: The volume is mounted onto the container as a tmpfs, which allows the users to create
+    content that disappears when the container is stopped.
+  - `ignore`: All volumes are just ignored and no action is taken.
 
 **-i**, **--interactive**=*true*|*false*
    Keep STDIN open even if not attached. The default is *false*.
@@ -254,8 +258,9 @@ inside of the container.
 
 **--ipc**=""
    Default is to create a private IPC namespace (POSIX SysV IPC) for the container
-			       'container:<name|id>': reuses another container shared memory, semaphores and message queues
-			       'host': use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
+
+  - `container:<name|id>`: reuses another container shared memory, semaphores and message queues
+  - `host`: use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
 
 **--kernel-memory**=""
    Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)
@@ -276,17 +281,18 @@ millions of trillions.
    Not implemented
 
 **--log-driver**="*json-file*"
-  Logging driver for the container. Default is defined by daemon `--log-driver` flag.
-  **Warning**: the `podman logs` command works only for the `json-file` and
+   Logging driver for the container. Default is defined by daemon `--log-driver` flag.
+
+   **Warning**: the `podman logs` command works only for the `json-file` and
   `journald` logging drivers.
 
 **--log-opt**=[]
-  Logging driver specific options.
+   Logging driver specific options.
 
-    "path=/var/log/container/mycontainer.json"   : Set the path to the container log file.
+   `path=/var/log/container/mycontainer.json`: Set the path to the container log file.
 
 **--mac-address**=""
-   Container MAC address (e.g. 92:d0:c6:0a:29:33)
+   Container MAC address (e.g. `92:d0:c6:0a:29:33`)
 
    Remember that the MAC address in an Ethernet network must be unique.
 The IPv6 link-local address will be based on the device's MAC address
@@ -327,9 +333,9 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
    Assign a name to the container
 
    The operator can identify a container in three ways:
-    UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
-    UUID short identifier (“f78375b1c487”)
-    Name (“jonah”)
+  - UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
+  - UUID short identifier (“f78375b1c487”)
+  - Name (“jonah”)
 
    podman generates a UUID for each container, and if a name is not assigned
 to the container with **--name** then the daemon will also generate a random
@@ -337,12 +343,12 @@ string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
 **--network**="*bridge*"
-   Set the Network mode for the container
-			       'bridge': create a network stack on the default bridge
-			       'none': no networking
-			       'container:<name|id>': reuse another container's network stack
-			       'host': use the podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-			       '<network-name>|<network-id>': connect to a user-defined network
+   Set the Network mode for the container:
+  - `bridge`: create a network stack on the default bridge
+  - `none`: no networking
+  - `container:<name|id>`: reuse another container's network stack
+  - `host`: use the podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+  - `<network-name>|<network-id>`: connect to a user-defined network
 
 **--network-alias**=[]
     Not implemented
@@ -355,9 +361,11 @@ This works for both background and foreground containers.
 
 **--pid**=""
    Set the PID mode for the container
+
    Default is to create a private PID namespace for the container
-			       'container:<name|id>': join another container's PID namespace
-			       'host': use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
+
+  - `container:<name|id>`: join another container's PID namespace
+  - `host`: use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
 
 **--pids-limit**=""
    Tune the container's pids limit. Set `-1` to have unlimited pids for the container.
@@ -368,10 +376,10 @@ This works for both background and foreground containers.
 **--privileged**=*true*|*false*
    Give extended privileges to this container. The default is *false*.
 
-   By default, podman containers are
-“unprivileged” (=false) and cannot, for example, modify parts of the kernel.
-This is because by default a container is not allowed to access any devices.
-A “privileged” container is given access to all devices.
+   By default, podman containers are “unprivileged” (=false) and cannot,
+for example, modify parts of the kernel. This is because by default a
+container is not allowed to access any devices. A “privileged” container
+is given access to all devices.
 
    When the operator executes **podman run --privileged**, podman enables access
 to all devices on the host as well as set turn off most of the security measures
@@ -381,12 +389,16 @@ protecting the host from the container.
    Publish a container's port, or range of ports, to the host
 
    Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
-Both hostPort and containerPort can be specified as a range of ports.
-When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
-(e.g., `podman run -p 1234-1236:1222-1224 --name thisWorks -t busybox`
-but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanRangeHostPorts -t busybox`)
-With ip: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
-Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
+
+   Both hostPort and containerPort can be specified as a range of ports.
+
+   When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
+   (e.g., `podman run -p 1234-1236:1222-1224 --name thisWorks -t busybox`
+   but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanRangeHostPorts -t busybox`)
+
+   With ip: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
+
+   Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
 **-P**, **--publish-all**=*true*|*false*
    Publish all exposed ports to random ports on the host interfaces. The default is *false*.
@@ -394,10 +406,11 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
    When set to true publish all exposed ports to the host interfaces. The
 default is false. If the operator uses -P (or -p) then podman will make the
 exposed port accessible on the host and the ports will be available to any
-client that can reach the host. When using -P, podman will bind any exposed
-port to a random port on the host within an *ephemeral port range* defined by
-`/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
-ports and the exposed ports, use `podman port`.
+client that can reach the host.
+
+   When using -P, podman will bind any exposed port to a random port on the host
+within an *ephemeral port range* defined by `/proc/sys/net/ipv4/ip_local_port_range`.
+To find the mapping between the host ports and the exposed ports, use `podman port`.
 
 **--quiet, -q**
 
@@ -416,18 +429,18 @@ its root filesystem mounted as read only prohibiting any writes.
 **--security-opt**=[]
    Security Options
 
-    "label=user:USER"   : Set the label user for the container
-    "label=role:ROLE"   : Set the label role for the container
-    "label=type:TYPE"   : Set the label type for the container
-    "label=level:LEVEL" : Set the label level for the container
-    "label=disable"     : Turn off label confinement for the container
-    "no-new-privileges" : Disable container processes from gaining additional privileges
+  - `label=user:USER`   : Set the label user for the container
+  - `label=role:ROLE`   : Set the label role for the container
+  - `label=type:TYPE`   : Set the label type for the container
+  - `label=level:LEVEL` : Set the label level for the container
+  - `label=disable`     : Turn off label confinement for the container
+  - `no-new-privileges` : Disable container processes from gaining additional privileges
 
-    "seccomp=unconfined" : Turn off seccomp confinement for the container
-    "seccomp=profile.json :  White listed syscalls seccomp Json file to be used as a seccomp filter
+  - `seccomp=unconfined` : Turn off seccomp confinement for the container
+  - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
-    "apparmor=unconfined" : Turn off apparmor confinement for the container
-    "apparmor=your-profile" : Set the apparmor confinement profile for the container
+  - `apparmor=unconfined` : Turn off apparmor confinement for the container
+  - `apparmor=your-profile` : Set the apparmor confinement profile for the container
 
 **--shm-size**=""
    Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
@@ -438,10 +451,10 @@ its root filesystem mounted as read only prohibiting any writes.
    Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
 
 **--stop-signal**=*SIGTERM*
-  Signal to stop a container. Default is SIGTERM.
+   Signal to stop a container. Default is SIGTERM.
 
 **--stop-timeout**=*10*
-  Timeout (in seconds) to stop a container. Default is 10.
+   Timeout (in seconds) to stop a container. Default is 10.
 
 **--subgidname**=name
    Name for GID map from the `/etc/subgid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--gidmap`.
@@ -450,25 +463,32 @@ its root filesystem mounted as read only prohibiting any writes.
    Name for UID map from the `/etc/subuid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--uidmap`.
 
 **--sysctl**=SYSCTL
-  Configure namespaced kernel parameters at runtime
+   Configure namespaced kernel parameters at runtime
 
-  IPC Namespace - current sysctls allowed:
+   IPC Namespace - current sysctls allowed:
 
-  kernel.msgmax, kernel.msgmnb, kernel.msgmni, kernel.sem, kernel.shmall, kernel.shmmax, kernel.shmmni, kernel.shm_rmid_forced
-  Sysctls beginning with fs.mqueue.*
+  - kernel.msgmax
+  - kernel.msgmnb
+  - kernel.msgmni
+  - kernel.sem
+  - kernel.shmall
+  - kernel.shmmax
+  - kernel.shmmni
+  - kernel.shm_rmid_forced
+  - Sysctls beginning with fs.mqueue.*
 
-  Note: if you use the `--ipc=host` option these sysctls will not be allowed.
+   Note: if you use the `--ipc=host` option these sysctls will not be allowed.
 
-  Network Namespace - current sysctls allowed:
-      Sysctls beginning with net.*
+   Network Namespace - current sysctls allowed:
+  - Sysctls beginning with net.*
 
-  Note: if you use the `--network=host` option these sysctls will not be allowed.
+   Note: if you use the `--network=host` option these sysctls will not be allowed.
 
 **--tmpfs**=[] Create a tmpfs mount
 
    Mount a temporary filesystem (`tmpfs`) mount into a container, for example:
 
-   $ podman run -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
+    $ podman run -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
 
    This command mounts a `tmpfs` at `/tmp` within the container.  The supported mount
 options are the same as the Linux default `mount` flags. If you do not specify
@@ -482,7 +502,7 @@ any options, the systems uses the following options:
 input of the container. This can be used, for example, to run a throwaway
 interactive shell. The default is false.
 
-Note: The **-t** option is incompatible with a redirection of the podman client
+   **NOTE**: The **-t** option is incompatible with a redirection of the podman client
 standard input.
 
 **--uidmap**=map
@@ -504,20 +524,22 @@ standard input.
 **--userns**=""
    Set the usernamespace mode for the container. The use of userns is disabled by default.
 
-     **host**: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
+   `host`: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
 
 **--uts**=*host*
    Set the UTS mode for the container
-     **host**: use the host's UTS namespace inside the container.
-     Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
+
+   `host`: use the host's UTS namespace inside the container.
+
+   **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
 **-v**|**--volume**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman
    container. The `OPTIONS` are a comma delimited list and can be:
 
-   * [rw|ro]
-   * [z|Z]
+   * [`rw`|`ro`]
+   * [`z`|`Z`]
    * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
@@ -790,11 +812,7 @@ You would have to write policy defining a `svirt_apache_t` type.
 If you want to set `/dev/sda` device weight to `200`, you can specify the device
 weight by `--blkio-weight-device` flag. Use the following command:
 
-   # podman run -it --blkio-weight-device "/dev/sda:200" ubuntu
-
-```
-$ podman run -d busybox top
-```
+    # podman run -it --blkio-weight-device "/dev/sda:200" ubuntu
 
 ### Setting Namespaced Kernel Parameters (Sysctls)
 
