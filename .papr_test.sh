@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo $CGROUP_MANAGER
 # Install ginkgo
 set -xeuo pipefail
 

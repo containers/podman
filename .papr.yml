@@ -99,6 +99,8 @@ packages:
     - iptables
     - containernetworking-cni
 tests:
-    - runcon system_u:system_r:spc_t:s0 ./.papr_test.sh
+    - chmod +x ./.papr_test.sh
+    - chcon -t container_share_t ./.papr_test.sh
+    - CGROUP_MANAGER=systemd runcon system_u:system_r:spc_t:s0 ./.papr_test.sh
 required: false
 context: "fedora 28 cloud podman systemd cgroups"

@@ -69,6 +69,7 @@ type PodmanTest struct {
 	SignaturePolicyPath string
 	ArtifactPath        string
 	TempDir             string
+	CgroupManager       string
 }
 
 // TestLibpod ginkgo master function
@@ -131,6 +132,10 @@ func PodmanCreate(tempDir string) PodmanTest {
 	if os.Getenv("PODMAN_BINARY") != "" {
 		podmanBinary = os.Getenv("PODMAN_BINARY")
 	}
+	cgroupManager := "cgroupfs"
+	if os.Getenv("PODMAN_BINARY") != "" {
+		cgroupManager = os.Getenv("CGROUP_MANAGER")
+	}
 	conmonBinary := filepath.Join("/usr/libexec/crio/conmon")
 	altConmonBinary := "/usr/libexec/podman/conmon"
 	if _, err := os.Stat(altConmonBinary); err == nil {
@@ -158,13 +163,14 @@ func PodmanCreate(tempDir string) PodmanTest {
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		ArtifactPath:        ARTIFACT_DIR,
 		TempDir:             tempDir,
+		CgroupManager:       cgroupManager,
 	}
 }
 
 //MakeOptions assembles all the podman main options
 func (p *PodmanTest) MakeOptions() []string {
-	return strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s",
-		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir), " ")
+	return strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
+		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
 }
 
 // Podman is the exec call to podman on the filesystem, uid and gid the credentials to use
