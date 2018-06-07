@@ -150,6 +150,11 @@ type RunOptions struct {
 	// decision can be overridden by specifying either WithTerminal or
 	// WithoutTerminal.
 	Terminal TerminalPolicy
+	// The stdin/stdout/stderr descriptors to use.  If set to nil, the
+	// corresponding files in the "os" package are used as defaults.
+	Stdin  io.ReadCloser  `json:"-"`
+	Stdout io.WriteCloser `json:"-"`
+	Stderr io.WriteCloser `json:"-"`
 	// Quiet tells the run to turn off output to stdout.
 	Quiet bool
 }
@@ -886,9 +891,18 @@ func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bo
 	}
 	cmd := reexec.Command(runUsingRuntimeCommand)
 	cmd.Dir = bundlePath
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdin = options.Stdin
+	if cmd.Stdin == nil {
+		cmd.Stdin = os.Stdin
+	}
+	cmd.Stdout = options.Stdout
+	if cmd.Stdout == nil {
+		cmd.Stdout = os.Stdout
+	}
+	cmd.Stderr = options.Stderr
+	if cmd.Stderr == nil {
+		cmd.Stderr = os.Stderr
+	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel()))
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
@@ -990,7 +1004,9 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Default to not specifying a console socket location.
 	moreCreateArgs := func() []string { return nil }
 	// Default to just passing down our stdio.
-	getCreateStdio := func() (*os.File, *os.File, *os.File) { return os.Stdin, os.Stdout, os.Stderr }
+	getCreateStdio := func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
+		return os.Stdin, os.Stdout, os.Stderr
+	}
 
 	// Figure out how we're doing stdio handling, and create pipes and sockets.
 	var stdio sync.WaitGroup
@@ -1028,7 +1044,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 			}
 			errorFds = []int{stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]}
 			// Set stdio to our pipes.
-			getCreateStdio = func() (*os.File, *os.File, *os.File) {
+			getCreateStdio = func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
 				stdin := os.NewFile(uintptr(stdioPipe[unix.Stdin][0]), "/dev/stdin")
 				stdout := os.NewFile(uintptr(stdioPipe[unix.Stdout][1]), "/dev/stdout")
 				stderr := os.NewFile(uintptr(stdioPipe[unix.Stderr][1]), "/dev/stderr")
@@ -1038,7 +1054,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	} else {
 		if options.Quiet {
 			// Discard stdout.
-			getCreateStdio = func() (*os.File, *os.File, *os.File) {
+			getCreateStdio = func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
 				return os.Stdin, nil, os.Stderr
 			}
 		}
@@ -1203,14 +1219,18 @@ func runCollectOutput(fds ...int) string {
 	var b bytes.Buffer
 	buf := make([]byte, 8192)
 	for _, fd := range fds {
-		if err := unix.SetNonblock(fd, true); err != nil {
-			logrus.Errorf("error setting pipe descriptor %d nonblocking: %v", fd, err)
-			continue
-		}
 		nread, err := unix.Read(fd, buf)
 		if err != nil {
-			logrus.Errorf("error reading from pipe %d: %v", fd, err)
-			break
+			if errno, isErrno := err.(syscall.Errno); isErrno {
+				switch errno {
+				default:
+					logrus.Errorf("error reading from pipe %d: %v", fd, err)
+				case syscall.EINTR, syscall.EAGAIN:
+				}
+			} else {
+				logrus.Errorf("unable to wait for data from pipe %d: %v", fd, err)
+			}
+			continue
 		}
 		for nread > 0 {
 			r := buf[:nread]
@@ -1222,7 +1242,15 @@ func runCollectOutput(fds ...int) string {
 			}
 			nread, err = unix.Read(fd, buf)
 			if err != nil {
-				logrus.Errorf("error reading from pipe %d: %v", fd, err)
+				if errno, isErrno := err.(syscall.Errno); isErrno {
+					switch errno {
+					default:
+						logrus.Errorf("error reading from pipe %d: %v", fd, err)
+					case syscall.EINTR, syscall.EAGAIN:
+					}
+				} else {
+					logrus.Errorf("unable to wait for data from pipe %d: %v", fd, err)
+				}
 				break
 			}
 		}
@@ -1440,11 +1468,11 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 			if pollFd.Revents&unix.POLLHUP == unix.POLLHUP {
 				removes = append(removes, int(pollFd.Fd))
 			}
-			// If the EPOLLIN flag isn't set, then there's no data to be read from this descriptor.
+			// If the POLLIN flag isn't set, then there's no data to be read from this descriptor.
 			if pollFd.Revents&unix.POLLIN == 0 {
-				// If we're using pipes and it's our stdin, close the writing end
-				// of the corresponding pipe.
-				if copyStdio && int(pollFd.Fd) == unix.Stdin {
+				// If we're using pipes and it's our stdin and it's closed, close the writing
+				// end of the corresponding pipe.
+				if copyStdio && int(pollFd.Fd) == unix.Stdin && pollFd.Revents&unix.POLLHUP != 0 {
 					unix.Close(stdioPipe[unix.Stdin][1])
 					stdioPipe[unix.Stdin][1] = -1
 				}

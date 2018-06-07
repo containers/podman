@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	tarfile "github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -166,12 +167,25 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	}()
 
 	logrus.Debugf("copying %q to %q", spec, destName)
-
 	err = cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, options.SystemContext, nil, ""))
 	if err == nil {
 		return destRef, nil
 	}
-	return nil, err
+
+	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
+	registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
+	searchRegistries, err := getRegistries()
+	if err != nil {
+		return nil, err
+	}
+	hasRegistryInName, err := hasRegistry(imageName)
+	if err != nil {
+		return nil, err
+	}
+	if !hasRegistryInName && len(searchRegistries) == 0 {
+		return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
+	}
+	return nil, errors.Errorf("unable to find image in the registries defined in %q", registryPath)
 }
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID
