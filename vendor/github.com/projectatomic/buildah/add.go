@@ -19,15 +19,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//AddAndCopyOptions holds options for add and copy commands.
+// AddAndCopyOptions holds options for add and copy commands.
 type AddAndCopyOptions struct {
+	// Chown is a spec for the user who should be given ownership over the
+	// newly-added content, potentially overriding permissions which would
+	// otherwise match those of local files and directories being copied.
 	Chown string
+	// All of the data being copied will pass through Hasher, if set.
+	// If the sources are URLs or files, their contents will be passed to
+	// Hasher.
+	// If the sources include directory trees, Hasher will be passed
+	// tar-format archives of the directory trees.
+	Hasher io.Writer
 }
 
 // addURL copies the contents of the source URL to the destination.  This is
 // its own function so that deferred closes happen after we're done pulling
 // down each item of potentially many.
-func addURL(destination, srcurl string, owner idtools.IDPair) error {
+func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) error {
 	logrus.Debugf("saving %q to %q", srcurl, destination)
 	resp, err := http.Get(srcurl)
 	if err != nil {
@@ -53,7 +62,11 @@ func addURL(destination, srcurl string, owner idtools.IDPair) error {
 		}
 	}
 	defer f.Close()
-	n, err := io.Copy(f, resp.Body)
+	bodyReader := io.Reader(resp.Body)
+	if hasher != nil {
+		bodyReader = io.TeeReader(bodyReader, hasher)
+	}
+	n, err := io.Copy(f, bodyReader)
 	if err != nil {
 		return errors.Wrapf(err, "error reading contents for %q", destination)
 	}
@@ -122,9 +135,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if len(source) > 1 && (destfi == nil || !destfi.IsDir()) {
 		return errors.Errorf("destination %q is not a directory", dest)
 	}
-	copyFileWithTar := b.copyFileWithTar(&containerOwner)
-	copyWithTar := b.copyWithTar(&containerOwner)
-	untarPath := b.untarPath(nil)
+	copyFileWithTar := b.copyFileWithTar(&containerOwner, options.Hasher)
+	copyWithTar := b.copyWithTar(&containerOwner, options.Hasher)
+	untarPath := b.untarPath(nil, options.Hasher)
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -140,7 +153,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if destfi != nil && destfi.IsDir() {
 				d = filepath.Join(dest, path.Base(url.Path))
 			}
-			if err := addURL(d, src, hostOwner); err != nil {
+			if err := addURL(d, src, hostOwner, options.Hasher); err != nil {
 				return err
 			}
 			continue

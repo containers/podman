@@ -1,11 +1,13 @@
 package buildah
 
 import (
+	"archive/tar"
 	"bufio"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/sysregistries"
@@ -91,30 +93,73 @@ func convertRuntimeIDMaps(UIDMap, GIDMap []rspec.LinuxIDMapping) ([]idtools.IDMa
 // copyFileWithTar returns a function which copies a single file from outside
 // of any container into our working container, mapping permissions using the
 // container's ID maps, possibly overridden using the passed-in chownOpts
-func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair) func(src, dest string) error {
+func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
 	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
 	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
+			contentReader, contentWriter, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			defer contentReader.Close()
+			defer contentWriter.Close()
+			var hashError error
+			var hashWorker sync.WaitGroup
+			hashWorker.Add(1)
+			go func() {
+				t := tar.NewReader(contentReader)
+				_, err := t.Next()
+				if err != nil {
+					hashError = err
+				}
+				if _, err = io.Copy(hasher, t); err != nil && err != io.EOF {
+					hashError = err
+				}
+				hashWorker.Done()
+			}()
+			err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options)
+			hashWorker.Wait()
+			if err == nil {
+				err = hashError
+			}
+			return err
+		}
+	}
 	return archiver.CopyFileWithTar
 }
 
 // copyWithTar returns a function which copies a directory tree from outside of
 // any container into our working container, mapping permissions using the
 // container's ID maps, possibly overridden using the passed-in chownOpts
-func (b *Builder) copyWithTar(chownOpts *idtools.IDPair) func(src, dest string) error {
+func (b *Builder) copyWithTar(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
 	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
 	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
+			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
+		}
+	}
 	return archiver.CopyWithTar
 }
 
 // untarPath returns a function which extracts an archive in a specified
 // location into our working container, mapping permissions using the
 // container's ID maps, possibly overridden using the passed-in chownOpts
-func (b *Builder) untarPath(chownOpts *idtools.IDPair) func(src, dest string) error {
+func (b *Builder) untarPath(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
 	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
 	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
+			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
+		}
+	}
 	return archiver.UntarPath
 }
 

@@ -255,9 +255,11 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 	image := options.FromImage
 	imageID := ""
+	topLayer := ""
 	if img != nil {
 		image = getImageName(imageNamePrefix(image), img)
 		imageID = img.ID
+		topLayer = img.TopLayer
 	}
 	if manifest, config, err = imageManifestAndConfig(ctx, ref, systemContext); err != nil {
 		return nil, errors.Wrapf(err, "error reading data from image %q", transports.ImageName(ref))
@@ -335,6 +337,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			GIDMap:         gidmap,
 		},
 		CommonBuildOpts: options.CommonBuildOpts,
+		TopLayer:        topLayer,
 	}
 
 	if options.Mount {

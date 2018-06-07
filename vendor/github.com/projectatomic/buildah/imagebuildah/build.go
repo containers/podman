@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -20,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
@@ -141,6 +143,11 @@ type BuildOptions struct {
 	Annotations []string
 	// OnBuild commands to be run by images based on this image
 	OnBuild []string
+	// Layers tells the builder to create a cache of images for each step in the Dockerfile
+	Layers bool
+	// NoCache tells the builder to build the image from scratch without checking for a cache.
+	// It creates a new set of cached images for the build.
+	NoCache bool
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -187,6 +194,9 @@ type Executor struct {
 	labels                         []string
 	annotations                    []string
 	onbuild                        []string
+	layers                         bool
+	topLayers                      []string
+	noCache                        bool
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -539,6 +549,8 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		squash:                options.Squash,
 		labels:                append([]string{}, options.Labels...),
 		annotations:           append([]string{}, options.Annotations...),
+		layers:                options.Layers,
+		noCache:               options.NoCache,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -646,6 +658,9 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 	}
 	b.mountPoint = mountPoint
 	b.builder = builder
+	// Add the top  layer of this image to b.topLayers so we can keep track of them
+	// when building with cached images.
+	b.topLayers = append(b.topLayers, builder.TopLayer)
 	return nil
 }
 
@@ -661,7 +676,9 @@ func (b *Executor) Delete() (err error) {
 }
 
 // Execute runs each of the steps in the parsed tree, in turn.
-func (b *Executor) Execute(ib *imagebuilder.Builder, node *parser.Node) error {
+func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *parser.Node) error {
+	checkForLayers := true
+	children := node.Children
 	for i, node := range node.Children {
 		step := ib.Step()
 		if err := step.Resolve(node); err != nil {
@@ -675,42 +692,270 @@ func (b *Executor) Execute(ib *imagebuilder.Builder, node *parser.Node) error {
 		if i < len(node.Children)-1 {
 			requiresStart = ib.RequiresStart(&parser.Node{Children: node.Children[i+1:]})
 		}
-		err := ib.Run(step, b, requiresStart)
-		if err != nil {
-			return errors.Wrapf(err, "error building at step %+v", *step)
+
+		if !b.layers && !b.noCache {
+			err := ib.Run(step, b, requiresStart)
+			if err != nil {
+				return errors.Wrapf(err, "error building at step %+v", *step)
+			}
+			continue
+		}
+
+		var (
+			cacheID string
+			err     error
+			imgID   string
+		)
+		// checkForLayers will be true if b.layers is true and a cached intermediate image is found.
+		// checkForLayers is set to false when either there is no cached image or a break occurs where
+		// the instructions in the Dockerfile change from a previous build.
+		// Don't check for cache if b.noCache is set to true.
+		if checkForLayers && !b.noCache {
+			cacheID, err = b.layerExists(ctx, node, children[:i])
+			if err != nil {
+				return errors.Wrap(err, "error checking if cached image exists from a previous build")
+			}
+		}
+		if cacheID == "" || !checkForLayers {
+			checkForLayers = false
+			err := ib.Run(step, b, requiresStart)
+			if err != nil {
+				return errors.Wrapf(err, "error building at step %+v", *step)
+			}
+		} else {
+			b.log("Using cache %s", cacheID)
+		}
+		// Commit if at the last step of the Dockerfile and a cached image is found.
+		// Also commit steps if no cache is found.
+		if (cacheID != "" && i == len(children)-1) || cacheID == "" {
+			imgID, err = b.Commit(ctx, ib, getCreatedBy(node))
+			if err != nil {
+				return errors.Wrapf(err, "error committing container for step %+v", *step)
+			}
+			if i == len(children)-1 {
+				b.log("COMMIT %s", b.output)
+			}
+		} else {
+			// Cache is found, assign imgID the id of the cached image so
+			// it is used to create the container for the next step.
+			imgID = cacheID
+		}
+		// Delete the intermediate container.
+		if err := b.Delete(); err != nil {
+			return errors.Wrap(err, "error deleting intermediate container")
+		}
+		// Prepare for the next step with imgID as the new base image.
+		if i != len(children)-1 {
+			if err := b.Prepare(ctx, ib, node, imgID); err != nil {
+				return errors.Wrap(err, "error preparing container for next step")
+			}
 		}
 	}
 	return nil
 }
 
+// layerExists returns true if an intermediate image of currNode exists in the image store from a previous build.
+// It verifies tihis by checking the parent of the top layer of the image and the history.
+func (b *Executor) layerExists(ctx context.Context, currNode *parser.Node, children []*parser.Node) (string, error) {
+	// Get the list of images available in the image store
+	images, err := b.store.Images()
+	if err != nil {
+		return "", errors.Wrap(err, "error getting image list from store")
+	}
+	for _, image := range images {
+		layer, err := b.store.Layer(image.TopLayer)
+		if err != nil {
+			return "", errors.Wrapf(err, "error getting top layer info")
+		}
+		// If the parent of the top layer of an image is equal to the last entry in b.topLayers
+		// it means that this image is potentially a cached intermediate image from a previous
+		// build. Next we double check that the history of this image is equivalent to the previous
+		// lines in the Dockerfile up till the point we are at in the build.
+		if layer.Parent == b.topLayers[len(b.topLayers)-1] {
+			history, err := b.getImageHistory(ctx, image.ID)
+			if err != nil {
+				return "", errors.Wrapf(err, "error getting history of %q", image.ID)
+			}
+			// children + currNode is the point of the Dockerfile we are currently at.
+			if historyMatches(append(children, currNode), history) {
+				// This checks if the files copied during build have been changed if the node is
+				// a COPY or ADD command.
+				filesMatch, err := b.copiedFilesMatch(currNode, history[len(history)-1].Created)
+				if err != nil {
+					return "", errors.Wrapf(err, "error checking if copied files match")
+				}
+				if filesMatch {
+					return image.ID, nil
+				}
+			}
+		}
+	}
+	return "", nil
+}
+
+// getImageHistory returns the history of imageID.
+func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.History, error) {
+	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting image reference %q", imageID)
+	}
+	ref, err := imageRef.NewImage(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating new image from reference")
+	}
+	oci, err := ref.OCIConfig(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting oci config of image %q", imageID)
+	}
+	return oci.History, nil
+}
+
+// getCreatedBy returns the command the image at node will be created by.
+func getCreatedBy(node *parser.Node) string {
+	if node.Value == "run" {
+		return "/bin/sh -c " + node.Original[4:]
+	}
+	return "/bin/sh -c #(nop) " + node.Original
+}
+
+// historyMatches returns true if the history of the image matches the lines
+// in the Dockerfile till the point of build we are at.
+// Used to verify whether a cache of the intermediate image exists and whether
+// to run the build again.
+func historyMatches(children []*parser.Node, history []v1.History) bool {
+	i := len(history) - 1
+	for j := len(children) - 1; j >= 0; j-- {
+		instruction := children[j].Original
+		if children[j].Value == "run" {
+			instruction = instruction[4:]
+		}
+		if !strings.Contains(history[i].CreatedBy, instruction) {
+			return false
+		}
+		i--
+	}
+	return true
+}
+
+// getFilesToCopy goes through node to get all the src files that are copied, added or downloaded.
+// It is possible for the Dockerfile to have src as hom*, which means all files that have hom as a prefix.
+// Another format is hom?.txt, which means all files that have that name format with the ? replaced by another character.
+func (b *Executor) getFilesToCopy(node *parser.Node) ([]string, error) {
+	currNode := node.Next
+	var src []string
+	for currNode.Next != nil {
+		if currNode.Next == nil {
+			break
+		}
+		if strings.HasPrefix(currNode.Value, "http://") || strings.HasPrefix(currNode.Value, "https://") {
+			src = append(src, currNode.Value)
+			continue
+		}
+		matches, err := filepath.Glob(filepath.Join(b.contextDir, currNode.Value))
+		if err != nil {
+			return nil, errors.Wrapf(err, "error finding match for pattern %q", currNode.Value)
+		}
+		src = append(src, matches...)
+		currNode = currNode.Next
+	}
+	return src, nil
+}
+
+// copiedFilesMatch checks to see if the node instruction is a COPY or ADD.
+// If it is either of those two it checks the timestamps on all the files copied/added
+// by the dockerfile. If the host version has a time stamp greater than the time stamp
+// of the build, the build will not use the cached version and will rebuild.
+func (b *Executor) copiedFilesMatch(node *parser.Node, historyTime *time.Time) (bool, error) {
+	if node.Value != "add" && node.Value != "copy" {
+		return true, nil
+	}
+
+	src, err := b.getFilesToCopy(node)
+	if err != nil {
+		return false, err
+	}
+	for _, item := range src {
+		// for urls, check the Last-Modified field in the header.
+		if strings.HasPrefix(item, "http://") || strings.HasPrefix(item, "https://") {
+			urlContentNew, err := urlContentModified(item, historyTime)
+			if err != nil {
+				return false, err
+			}
+			if urlContentNew {
+				return false, nil
+			}
+			continue
+		}
+		// For local files, walk the file tree and check the time stamps.
+		timeIsGreater := false
+		err := filepath.Walk(item, func(path string, info os.FileInfo, err error) error {
+			if info.ModTime().After(*historyTime) {
+				timeIsGreater = true
+				return nil
+			}
+			return nil
+		})
+		if err != nil {
+			return false, errors.Wrapf(err, "error walking file tree %q", item)
+		}
+		if timeIsGreater {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// urlContentModified sends a get request to the url and checks if the header has a value in
+// Last-Modified, and if it does compares the time stamp to that of the history of the cached image.
+// returns true if there is no Last-Modified value in the header.
+func urlContentModified(url string, historyTime *time.Time) (bool, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return false, errors.Wrapf(err, "error getting %q", url)
+	}
+	if lastModified := resp.Header.Get("Last-Modified"); lastModified != "" {
+		lastModifiedTime, err := time.Parse(time.RFC1123, lastModified)
+		if err != nil {
+			return false, errors.Wrapf(err, "error parsing time for %q", url)
+		}
+		return lastModifiedTime.After(*historyTime), nil
+	}
+	logrus.Debugf("Response header did not have Last-Modified %q, will rebuild.", url)
+	return true, nil
+}
+
 // Commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
-func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err error) {
-	var imageRef types.ImageReference
+func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, createdBy string) (string, error) {
+	var (
+		imageRef types.ImageReference
+		err      error
+	)
 
 	if b.output != "" {
 		imageRef, err = alltransports.ParseImageName(b.output)
 		if err != nil {
 			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
 			if len(candidates) == 0 {
-				return errors.Errorf("error parsing target image name %q", b.output)
+				return "", errors.Errorf("error parsing target image name %q", b.output)
 			}
 			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
 			if err2 != nil {
-				return errors.Wrapf(err, "error parsing target image name %q", b.output)
+				return "", errors.Wrapf(err, "error parsing target image name %q", b.output)
 			}
 			imageRef = imageRef2
 		}
 	} else {
 		imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
 		if err != nil {
-			return errors.Wrapf(err, "error parsing reference for image to be written")
+			return "", errors.Wrapf(err, "error parsing reference for image to be written")
 		}
 	}
 	if ib.Author != "" {
 		b.builder.SetMaintainer(ib.Author)
 	}
 	config := ib.Config()
+	b.builder.SetCreatedBy(createdBy)
 	b.builder.SetHostname(config.Hostname)
 	b.builder.SetDomainname(config.Domainname)
 	b.builder.SetUser(config.User)
@@ -758,32 +1003,37 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 	if imageRef != nil {
 		logName := transports.ImageName(imageRef)
 		logrus.Debugf("COMMIT %q", logName)
-		if !b.quiet {
+		if !b.quiet && !b.layers && !b.noCache {
 			b.log("COMMIT %s", logName)
 		}
 	} else {
 		logrus.Debugf("COMMIT")
-		if !b.quiet {
+		if !b.quiet && !b.layers && !b.noCache {
 			b.log("COMMIT")
 		}
+	}
+	writer := b.reportWriter
+	if b.layers || b.noCache {
+		writer = nil
 	}
 	options := buildah.CommitOptions{
 		Compression:           b.compression,
 		SignaturePolicyPath:   b.signaturePolicyPath,
 		AdditionalTags:        b.additionalTags,
-		ReportWriter:          b.reportWriter,
+		ReportWriter:          writer,
 		PreferredManifestType: b.outputFormat,
 		IIDFile:               b.iidfile,
 		Squash:                b.squash,
+		Parent:                b.builder.FromImageID,
 	}
 	imgID, err := b.builder.Commit(ctx, imageRef, options)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if options.IIDFile == "" && imgID != "" {
 		fmt.Fprintf(b.out, "%s\n", imgID)
 	}
-	return nil
+	return imgID, nil
 }
 
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
@@ -799,11 +1049,15 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 			return err
 		}
 		defer stageExecutor.Delete()
-		if err := stageExecutor.Execute(stage.Builder, stage.Node); err != nil {
+		if err := stageExecutor.Execute(ctx, stage.Builder, stage.Node); err != nil {
 			return err
 		}
 	}
-	return stageExecutor.Commit(ctx, stages[len(stages)-1].Builder)
+	if b.layers || b.noCache {
+		return nil
+	}
+	_, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
+	return err
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be

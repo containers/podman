@@ -5,6 +5,10 @@ package cli
 // that vendor in this code can use them too.
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/util"
@@ -120,8 +124,12 @@ var (
 			Usage: "Set metadata for an image (default [])",
 		},
 		cli.BoolFlag{
+			Name:  "layers",
+			Usage: fmt.Sprintf("cache intermediate layers during build (default %t)", UseLayers()),
+		},
+		cli.BoolFlag{
 			Name:  "no-cache",
-			Usage: "Do not use caching for the container build. The build process does not currently support caching so this is a NOOP.",
+			Usage: "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.",
 		},
 		cli.StringFlag{
 			Name:  "logfile",
@@ -230,3 +238,13 @@ var (
 		},
 	}, usernsFlags...), NamespaceFlags...)
 )
+
+// UseLayers returns true if BUILDAH_LAYERS is set to "1" or "true"
+// otherwise it returns false
+func UseLayers() bool {
+	layers := os.Getenv("BUILDAH_LAYERS")
+	if strings.ToLower(layers) == "true" || layers == "1" {
+		return true
+	}
+	return false
+}
