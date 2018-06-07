@@ -96,4 +96,19 @@ var _ = Describe("Podman search", func() {
 			Expect(output[i]).To(Equal(""))
 		}
 	})
+
+	It("podman search attempts HTTP if tls-verify flag is set false", func() {
+		fakereg := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "registry:2"})
+		fakereg.WaitWithDefaultTimeout()
+		Expect(fakereg.ExitCode()).To(Equal(0))
+
+		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "fake/image:andtag", "--tls-verify=false"})
+		search.WaitWithDefaultTimeout()
+
+		// if this test succeeded, there will be no output (there is no entry named fake/image:andtag in an empty registry)
+		// and the exit code will be 0
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.OutputToString()).Should(BeEmpty())
+
+	})
 })

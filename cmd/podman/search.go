@@ -43,6 +43,10 @@ var (
 			Name:  "registry",
 			Usage: "specific registry to search",
 		},
+		cli.BoolTFlag{
+			Name:  "tls-verify",
+			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+		},
 	}
 	searchDescription = `
 	Search registries for a given image. Can search all the default registries or a specific registry.
@@ -67,10 +71,11 @@ type searchParams struct {
 }
 
 type searchOpts struct {
-	filter  []string
-	limit   int
-	noTrunc bool
-	format  string
+	filter     []string
+	limit      int
+	noTrunc    bool
+	format     string
+	skipVerify bool
 }
 
 type searchFilterParams struct {
@@ -101,10 +106,11 @@ func searchCmd(c *cli.Context) error {
 
 	format := genSearchFormat(c.String("format"))
 	opts := searchOpts{
-		format:  format,
-		noTrunc: c.Bool("no-trunc"),
-		limit:   c.Int("limit"),
-		filter:  c.StringSlice("filter"),
+		format:     format,
+		noTrunc:    c.Bool("no-trunc"),
+		limit:      c.Int("limit"),
+		filter:     c.StringSlice("filter"),
+		skipVerify: !c.BoolT("tls-verify"),
 	}
 
 	var registries []string
@@ -155,6 +161,13 @@ func (s *searchParams) headerMap() map[string]string {
 
 func getSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
 	sc := common.GetSystemContext("", "", false)
+
+	// If user flagged to skip verify for HTTP connections, set System Context as such
+	// docker client will retry without TLS after making an attempt with TLS, so it will
+	// not effect normal HTTPS requests
+	if opts.skipVerify {
+		sc.DockerInsecureSkipTLSVerify = true
+	}
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if opts.limit != 0 {
