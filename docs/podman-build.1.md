@@ -133,7 +133,7 @@ value can be entered.  The password is entered without echo.
 
 **--disable-content-trust**
 
-This is a Docker specific option to disable image verification to a Docker 
+This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Buildah.  This flag is a NOOP and provided
 soley for scripting compatibility.
 
