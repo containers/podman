@@ -168,8 +168,8 @@ func (p *PodmanTest) MakeOptions() []string {
 		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir), " ")
 }
 
-// Podman is the exec call to podman on the filesystem
-func (p *PodmanTest) Podman(args []string) *PodmanSession {
+// Podman is the exec call to podman on the filesystem, uid and gid the credentials to use
+func (p *PodmanTest) PodmanAsUser(args []string, uid, gid uint32, env []string) *PodmanSession {
 	podmanOptions := p.MakeOptions()
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
@@ -178,11 +178,25 @@ func (p *PodmanTest) Podman(args []string) *PodmanSession {
 	podmanOptions = append(podmanOptions, args...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
+
+	if uid != 0 || gid != 0 {
+		command.SysProcAttr = &syscall.SysProcAttr{}
+		command.SysProcAttr.Credential = &syscall.Credential{Uid: uid, Gid: gid}
+	}
+	if env != nil {
+		command.Env = env
+	}
+
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run podman command: %s\n%v", strings.Join(podmanOptions, " "), err))
 	}
 	return &PodmanSession{session}
+}
+
+// Podman is the exec call to podman on the filesystem
+func (p *PodmanTest) Podman(args []string) *PodmanSession {
+	return p.PodmanAsUser(args, 0, 0, nil)
 }
 
 //WaitForContainer waits on a started container
