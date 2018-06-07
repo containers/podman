@@ -5,9 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
 	buildahcli "github.com/projectatomic/buildah/pkg/cli"
 	"github.com/projectatomic/buildah/pkg/parse"
@@ -33,7 +31,6 @@ func buildCmd(c *cli.Context) error {
 	// The following was taken directly from projectatomic/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
 
-	var namespace []buildah.NamespaceOption
 	output := ""
 	tags := []string{}
 	if c.IsSet("tag") || c.IsSet("t") {
@@ -145,22 +142,41 @@ func buildCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
+	var stdout, stderr, reporter *os.File
+	stdout = os.Stdout
+	stderr = os.Stderr
+	reporter = os.Stderr
+	if c.IsSet("logfile") {
+		f, err := os.OpenFile(c.String("logfile"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		if err != nil {
+			return errors.Errorf("error opening logfile %q: %v", c.String("logfile"), err)
+		}
+		defer f.Close()
+		logrus.SetOutput(f)
+		stdout = f
+		stderr = f
+		reporter = f
+	}
+
 	systemContext, err := parse.SystemContextFromOptions(c)
 	if err != nil {
 		return errors.Wrapf(err, "error building system context")
 	}
 
-	commonOpts, err := parse.ParseCommonBuildOptions(c)
+	commonOpts, err := parse.CommonBuildOptions(c)
 	if err != nil {
 		return err
 	}
 
-	hostNetwork := buildah.NamespaceOption{
-		Name: specs.NetworkNamespace,
-		Host: true,
+	namespaceOptions, networkPolicy, err := parse.NamespaceOptions(c)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing namespace-related options")
 	}
-
-	namespace = append(namespace, hostNetwork)
+	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing ID mapping options")
+	}
+	namespaceOptions.AddOrReplace(usernsOption...)
 
 	options := imagebuildah.BuildOptions{
 		ContextDirectory:      contextDir,
@@ -171,17 +187,24 @@ func buildCmd(c *cli.Context) error {
 		Args:                  args,
 		Output:                output,
 		AdditionalTags:        tags,
+		Out:                   stdout,
+		Err:                   stderr,
+		ReportWriter:          reporter,
 		Runtime:               c.String("runtime"),
 		RuntimeArgs:           runtimeFlags,
 		OutputFormat:          format,
 		SystemContext:         systemContext,
+		NamespaceOptions:      namespaceOptions,
+		ConfigureNetwork:      networkPolicy,
+		CNIPluginPath:         c.String("cni-plugin-path"),
+		CNIConfigDir:          c.String("cni-config-dir"),
+		IDMappingOptions:      idmappingOptions,
 		CommonBuildOpts:       commonOpts,
 		DefaultMountsFilePath: c.GlobalString("default-mounts-file"),
 		IIDFile:               c.String("iidfile"),
 		Squash:                c.Bool("squash"),
 		Labels:                c.StringSlice("label"),
 		Annotations:           c.StringSlice("annotation"),
-		NamespaceOptions:      namespace,
 	}
 
 	if !c.Bool("quiet") {

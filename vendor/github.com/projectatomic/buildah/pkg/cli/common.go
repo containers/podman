@@ -79,7 +79,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "cache-from",
-			Usage: "Images to utilise as potential cache sources. Buildah does not currently support caching so this is a NOOP.",
+			Usage: "Images to utilise as potential cache sources. The build process does not currently support caching so this is a NOOP.",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
@@ -95,13 +95,17 @@ var (
 			Value: "",
 			Usage: "use `[username[:password]]` for accessing the registry",
 		},
+		cli.BoolFlag{
+			Name:  "disable-content-trust",
+			Usage: "This is a Docker specific option and is a NOOP",
+		},
 		cli.StringSliceFlag{
 			Name:  "file, f",
 			Usage: "`pathname or URL` of a Dockerfile",
 		},
 		cli.BoolFlag{
 			Name:  "force-rm",
-			Usage: "Always remove intermediate containers after a build. Buildah does not currently support caching so this is a NOOP.",
+			Usage: "Always remove intermediate containers after a build. The build process does not currently support caching so this is a NOOP.",
 		},
 		cli.StringFlag{
 			Name:  "format",
@@ -117,7 +121,11 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "no-cache",
-			Usage: "Do not use caching for the container build. Buildah does not currently support caching so this is a NOOP.",
+			Usage: "Do not use caching for the container build. The build process does not currently support caching so this is a NOOP.",
+		},
+		cli.StringFlag{
+			Name:  "logfile",
+			Usage: "log to `file` instead of stdout/stderr",
 		},
 		cli.BoolTFlag{
 			Name:  "pull",
@@ -133,7 +141,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "rm",
-			Usage: "Remove intermediate containers after a successful build. Buildah does not currently support caching so this is a NOOP.",
+			Usage: "Remove intermediate containers after a successful build. The build process does not currently support caching so this is a NOOP.",
 		},
 		cli.StringFlag{
 			Name:  "runtime",
@@ -150,7 +158,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "squash",
-			Usage: "Squash newly built layers into a single new layer. Buildah does not currently support caching so this is a NOOP.",
+			Usage: "Squash newly built layers into a single new layer. The build process does not currently support caching so this is a NOOP.",
 		},
 		cli.BoolTFlag{
 			Name:  "stream",

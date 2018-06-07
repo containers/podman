@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
@@ -438,6 +439,11 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 	if b.builder == nil {
 		return errors.Errorf("no build container available")
 	}
+	devNull, err := os.Open(os.DevNull)
+	if err != nil {
+		return errors.Errorf("error opening %q for reading: %v", os.DevNull, err)
+	}
+	defer devNull.Close()
 	options := buildah.RunOptions{
 		Hostname:   config.Hostname,
 		Runtime:    b.runtime,
@@ -448,6 +454,9 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 		WorkingDir: config.WorkingDir,
 		Entrypoint: config.Entrypoint,
 		Cmd:        config.Cmd,
+		Stdin:      devNull,
+		Stdout:     ioutils.NopWriteCloser(b.out),
+		Stderr:     ioutils.NopWriteCloser(b.err),
 		Quiet:      b.quiet,
 	}
 	if config.NetworkDisabled {
@@ -463,7 +472,7 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 	if err := b.volumeCacheSave(); err != nil {
 		return err
 	}
-	err := b.builder.Run(args, options)
+	err = b.builder.Run(args, options)
 	if err2 := b.volumeCacheRestore(); err2 != nil {
 		if err == nil {
 			return err2
@@ -772,7 +781,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder) (err er
 		return err
 	}
 	if options.IIDFile == "" && imgID != "" {
-		fmt.Printf("%s\n", imgID)
+		fmt.Fprintf(b.out, "%s\n", imgID)
 	}
 	return nil
 }

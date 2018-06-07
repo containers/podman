@@ -168,7 +168,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		if options.PullPolicy == PullAlways {
 			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, image, options, systemContext)
 			if err != nil {
-				logrus.Debugf("error pulling and reading image %q: %v", image, err)
+				logrus.Debugf("unable to pull and read image %q: %v", image, err)
 				continue
 			}
 			ref = pulledReference
@@ -214,7 +214,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 			}
 			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, image, options, systemContext)
 			if err != nil {
-				logrus.Debugf("error pulling and reading image %q: %v", image, err)
+				logrus.Debugf("unable to pull and read image %q: %v", image, err)
 				continue
 			}
 			ref = pulledReference
