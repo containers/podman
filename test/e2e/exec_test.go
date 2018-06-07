@@ -86,5 +86,14 @@ var _ = Describe("Podman exec", func() {
 		os.Unsetenv("FOO")
 
 	})
+	It("podman exec exit code", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "test1", "sh", "-c", "exit 100"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(100))
+	})
 
 })
