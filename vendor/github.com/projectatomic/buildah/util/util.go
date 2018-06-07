@@ -112,11 +112,6 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
 		registries = []string{}
 	}
-	if sc.DockerInsecureSkipTLSVerify {
-		if unverifiedRegistries, err := sysregistries.GetInsecureRegistries(sc); err == nil {
-			registries = append(registries, unverifiedRegistries...)
-		}
-	}
 
 	// Create all of the combinations.  Some registries need an additional component added, so
 	// use our lookaside map to keep track of them.  If there are no configured registries, we'll

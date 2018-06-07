@@ -393,7 +393,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
-	copyWithTar := b.copyWithTar(nil)
+	copyWithTar := b.copyWithTar(nil, nil)
 	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes)
 	if err != nil {
 		return err
@@ -534,7 +534,7 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
 func (b *Builder) addNetworkConfig(rdir, hostPath string) (string, error) {
-	copyFileWithTar := b.copyFileWithTar(nil)
+	copyFileWithTar := b.copyFileWithTar(nil, nil)
 
 	cfile := filepath.Join(rdir, filepath.Base(hostPath))
 
@@ -809,6 +809,15 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	// Now grab the spec from the generator.  Set the generator to nil so that future contributors
 	// will quickly be able to tell that they're supposed to be modifying the spec directly from here.
 	spec := g.Spec()
+
+	//Remove capabilities if not running as root
+	if user.UID != 0 {
+		var caplist []string
+		spec.Process.Capabilities.Permitted = caplist
+		spec.Process.Capabilities.Inheritable = caplist
+		spec.Process.Capabilities.Effective = caplist
+		spec.Process.Capabilities.Ambient = caplist
+	}
 	g = nil
 	if spec.Process.Cwd == "" {
 		spec.Process.Cwd = DefaultWorkingDir

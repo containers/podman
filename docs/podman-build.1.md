@@ -62,6 +62,18 @@ This option is added to be aligned with other containers CLIs.
 Podman doesn't communicate with a daemon or a remote server.
 Thus, compressing the data before sending it is irrelevant to Podman.
 
+**--cni-config-dir**=*directory*
+
+Location of CNI configuration files which will dictate which plugins will be
+used to configure network interfaces and routing for containers created for
+handling `RUN` instructions, if those containers will be run in their own
+network namespaces, and networking is not disabled.
+
+**--cni-plugin-path**=*directory[:directory[:directory[...]]]*
+
+List of directories in which the CNI plugins which will be used for configuring
+network namespaces can be found.
+
 **--cpu-period**=*0*
 
 Limit the CPU CFS (Completely Fair Scheduler) period
@@ -162,6 +174,15 @@ Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 
 Write the image ID to the file.
 
+**--ipc** *how*
+
+Sets the configuration for IPC namespaces when handling `RUN` instructions.
+The configured value can be "" (the empty string) or "container" to indicate
+that a new IPC namespace should be created, or it can be "host" to indicate
+that the IPC namespace in which `buildah` itself is being run should be reused,
+or it can be the path to an IPC namespace which is already in use by
+another process.
+
 **--isolation** [Not Supported]
 
 Podman is not currently supported on Windows, and does not have a daemon.
@@ -171,6 +192,18 @@ OCI Runtime, using the --runtime flag.
 **--label** *label*
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used multiple times.
+
+**--layers**
+
+Cache intermediate images during the build process (Default is `false`).
+
+Note: You can also override the default value of layers by setting the BUILDAH_LAYERS
+environment variable. `export BUILDAH_LAYERS=true`
+
+**--logfile** *filename*
+
+Log output which would be sent to standard output and standard error to the
+specified file instead of to standard output and standard error.
 
 **--memory, -m**=""
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
@@ -192,9 +225,28 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
+**--net** *how*
+**--network** *how*
+
+Sets the configuration for network namespaces when handling `RUN` instructions.
+The configured value can be "" (the empty string) or "container" to indicate
+that a new network namespace should be created, or it can be "host" to indicate
+that the network namespace in which `buildah` itself is being run should be
+reused, or it can be the path to a network namespace which is already in use by
+another process.
+
 **--no-cache**
 
-Do not use caching for the container build. Podman does not currently support caching so this is a NOOP.
+Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
+
+**--pid** *how*
+
+Sets the configuration for PID namespaces when handling `RUN` instructions.
+The configured value can be "" (the empty string) or "container" to indicate
+that a new PID namespace should be created, or it can be "host" to indicate
+that the PID namespace in which `buildah` itself is being run should be reused,
+or it can be the path to a PID namespace which is already in use by another
+process.
 
 **--pull**
 
@@ -293,6 +345,72 @@ include:
   "sigpending": maximum number of pending signals (ulimit -i)
   "stack": maximum stack size (ulimit -s)
 
+**--userns** *how*
+
+Sets the configuration for user namespaces when handling `RUN` instructions.
+The configured value can be "" (the empty string) or "container" to indicate
+that a new user namespace should be created, it can be "host" to indicate that
+the user namespace in which `buildah` itself is being run should be reused, or
+it can be the path to an user namespace which is already in use by another
+process.
+
+**--userns-uid-map** *mapping*
+
+Directly specifies a UID mapping which should be used to set ownership, at the
+filesytem level, on the working container's contents.
+Commands run when handling `RUN` instructions will default to being run in
+their own user namespaces, configured using the UID and GID maps.
+Entries in this map take the form of one or more triples of a starting
+in-container UID, a corresponding starting host-level UID, and the number of
+consecutive IDs which the map entry represents.
+If none of --userns-uid-map-user, --userns-gid-map-group, or --userns-uid-map
+are specified, but --userns-gid-map is specified, the UID map will be set to
+use the same numeric values as the GID map.
+
+**--userns-gid-map** *mapping*
+
+Directly specifies a GID mapping which should be used to set ownership, at the
+filesytem level, on the working container's contents.
+Commands run when handling `RUN` instructions will default to being run in
+their own user namespaces, configured using the UID and GID maps.
+Entries in this map take the form of one or more triples of a starting
+in-container GID, a corresponding starting host-level GID, and the number of
+consecutive IDs which the map entry represents.
+If none of --userns-uid-map-user, --userns-gid-map-group, or --userns-gid-map
+are specified, but --userns-uid-map is specified, the GID map will be set to
+use the same numeric values as the UID map.
+
+**--userns-uid-map-user** *user*
+
+Specifies that a UID mapping which should be used to set ownership, at the
+filesytem level, on the working container's contents, can be found in entries
+in the `/etc/subuid` file which correspond to the specified user.
+Commands run when handling `RUN` instructions will default to being run in
+their own user namespaces, configured using the UID and GID maps.
+If --userns-gid-map-group is specified, but --userns-uid-map-user is not
+specified, `buildah` will assume that the specified group name is also a
+suitable user name to use as the default setting for this option.
+
+**--userns-gid-map-group** *group*
+
+Specifies that a GID mapping which should be used to set ownership, at the
+filesytem level, on the working container's contents, can be found in entries
+in the `/etc/subgid` file which correspond to the specified group.
+Commands run when handling `RUN` instructions will default to being run in
+their own user namespaces, configured using the UID and GID maps.
+If --userns-uid-map-user is specified, but --userns-gid-map-group is not
+specified, `buildah` will assume that the specified user name is also a
+suitable group name to use as the default setting for this option.
+
+**--uts** *how*
+
+Sets the configuration for UTS namespaces when the handling `RUN` instructions.
+The configured value can be "" (the empty string) or "container" to indicate
+that a new UTS namespace should be created, or it can be "host" to indicate
+that the UTS namespace in which `buildah` itself is being run should be reused,
+or it can be the path to a UTS namespace which is already in use by another
+process.
+
 **--volume, -v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
@@ -387,6 +505,10 @@ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1
 podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cgroup/parent -t imageName .
 
 podman build --volume /home/test:/myvol:ro,Z -t imageName .
+
+podman build --layers -t imageName .
+
+podman build --no-cache -t imageName .
 
 ### Building an image using a URL, Git repo, or archive
 

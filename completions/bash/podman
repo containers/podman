@@ -697,13 +697,15 @@ _podman_commit() {
 
 _podman_build() {
      local boolean_options="
-     --build
      --help
      -h
+     --layers
+     --no-cache
      --pull
      --pull-always
      --quiet
      -q
+     --squash
      --tls-verify
   "
 
@@ -714,6 +716,8 @@ _podman_build() {
      --build-arg
      --cert-dir
      --cgroup-parent
+     --cni-config-dir
+     --cni-plugin-path
      --cpu-period
      --cpu-quota
      --cpu-shares
@@ -724,10 +728,14 @@ _podman_build() {
      --file
      --format
      --iidfile
+     --ipc
      --label
      -m
      --memory
      --memory-swap
+     --net
+     --network
+     --pid
      --runtime
      --runtime-flag
      --security-opt
@@ -736,8 +744,14 @@ _podman_build() {
      -t
      --tag
      --ulimit
-     -v
+     --userns
+     --userns-uid-map
+     --userns-gid-map
+     --userns-uid-map-user
+     --userns-gid-map-group
+     --uts
      --volume
+     -v
   "
 
      local all_options="$options_with_args $boolean_options"
