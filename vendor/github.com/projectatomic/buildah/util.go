@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
@@ -199,4 +202,32 @@ func getHostRootIDs(spec *rspec.Spec) (uint32, uint32, error) {
 		return 0, 0, nil
 	}
 	return getHostIDs(spec.Linux.UIDMappings, spec.Linux.GIDMappings, 0, 0)
+}
+
+// getRegistries obtains the list of registries defined in the global registries file.
+func getRegistries() ([]string, error) {
+	registryConfigPath := ""
+	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
+	if len(envOverride) > 0 {
+		registryConfigPath = envOverride
+	}
+	searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
+	}
+	return searchRegistries, nil
+}
+
+// hasRegistry returns a bool/err response if the image has a registry in its
+// name
+func hasRegistry(imageName string) (bool, error) {
+	imgRef, err := reference.Parse(imageName)
+	if err != nil {
+		return false, err
+	}
+	registry := reference.Domain(imgRef.(reference.Named))
+	if registry != "" {
+		return true, nil
+	}
+	return false, nil
 }
