@@ -1,3 +1,40 @@
+- Changelog for v0.6.2 (2018-06-08)
+  * Test to make sure we are getting proper exit codes on podman run
+  * Propegate exit code on Exec calls and integrated test
+  * Vendor in latest buildah code
+  * Update epoch to fix validation problems
+  * Touch up whitespace issue in build man
+  * Add disable-content flag info to man page for build
+  * podman-run: clean up some formatting issues
+  * Add pointers for Integration Tests to docs
+  * Remove SELinux transition rule after conmon is started.
+  * Add --all flag even though it is a noop so scripts will work
+  * Add support for BuildImage
+  * Added a defer to an Unlock that immediately followed a Lock
+  * varlink build fixes
+  * podman-varlink: log timeouts
+  * bash completion: remove shebang
+  * install.md: fix typo
+  * Vendor in latest buildah code
+  * Update OWNERS file to be based on reality
+  * Add logo to transfer page
+  * libpod: Execute poststop hooks locally
+  * Add some test for podman run flag security-opt
+  * Add a function for e2e test to write json file
+  * Use go-selinux for selinux check
+  * Add flag to add annotations to a container
+  * Want to change the log level on buildah by default to warnf
+  * vendor in latest github.com/varlink/go
+  * hooks: Add debug logging for initial hook loading
+  * hooks/docs: Fix 1.0.0 Nvidia example (adding version, etc.)
+  * hooks/1.0.0/when_test: Fix "both, and" -> "both, or" name typo
+  * hooks/1.0.0: Fix 'annotation' -> 'annotations' in JSON
+  * hooks: Fail ReadDir if a configured hook executable is missing
+  * Cleanup transfer.md page, remove CRI-O content
+  * Vendor in latest containers/storage
+  * Bump gitvalidation epoch
+  * Bump to v0.6.2-dev
+
 - Changelog for v0.6.1 (2018-06-01)
   * hack/release.sh: Bump spec in dev_version_commit
   * hack/release.sh: No longer need to bump setup.py
