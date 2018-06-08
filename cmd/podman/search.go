@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"context"
 	"github.com/containers/image/docker"
@@ -175,11 +176,11 @@ func (s *searchParams) headerMap() map[string]string {
 func getSystemContextAndRegistries(c *cli.Context) ([]string, *types.SystemContext, error) {
 	sc := common.GetSystemContext("", "", false)
 
+	sc.DockerCertPath = c.String("cert-dir")
+	sc.SignaturePolicyPath = c.String("signature-policy")
+
 	tlsVerify := c.BoolT("tls-verify")
 	regFlagged := len(c.StringSlice("registry")) > 0
-	certDir := c.String("cert-dir")
-	sigPolicy := c.String("signature-policy")
-	// TODO make sure certdr and cig policy are empty if not set
 	forceSecure := false
 
 	if c.IsSet("tls-verify") {
@@ -203,13 +204,6 @@ func getSystemContextAndRegistries(c *cli.Context) ([]string, *types.SystemConte
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "error getting registries to search")
 		}
-	}
-
-	if certDir != "" {
-		sc.DockerCertPath = certDir
-	}
-	if sigPolicy != "" {
-		sc.SignaturePolicyPath = sigPolicy
 	}
 
 	// If user flagged to skip verify for HTTP connections, set System Context as such
