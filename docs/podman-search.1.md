@@ -64,6 +64,12 @@ Do not truncate the output
 **--registry**
 Specific registry to search (only the given registry will be searched, not the default registries)
 
+**--tls-verify**
+
+Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
+then tls verification will be used, If set to false then tls verification will not be used. If not specified
+both insecured and default registries will be searched through, and tls will be used when possible.
+
 ## EXAMPLES
 
 ```
