@@ -465,4 +465,15 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
+	It("podman run exit code on failure to exec", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(126))
+	})
+
+	It("podman run error on exec", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 100"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(100))
+	})
 })
