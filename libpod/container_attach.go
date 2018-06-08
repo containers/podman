@@ -85,7 +85,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: c.AttachSocketPath(), Net: "unixpacket"})
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v")
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", c.AttachSocketPath())
 	}
 	defer conn.Close()
 
