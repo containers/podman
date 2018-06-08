@@ -1,22 +1,21 @@
 package main
 
 import (
-    "fmt"
-    "os"
+	"fmt"
 
-	"strings"
 	"context"
-	"reflect"
-	"strconv"
 	"github.com/containers/image/docker"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod/common"
-    "github.com/projectatomic/libpod/pkg/util"
 	sysreg "github.com/projectatomic/libpod/pkg/registries"
+	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -79,8 +78,8 @@ type searchOpts struct {
 	noTrunc     bool
 	format      string
 	tlsVerify   bool
-    forceSecure bool
-    regFlagged  bool
+	forceSecure bool
+	regFlagged  bool
 }
 
 type searchFilterParams struct {
@@ -115,14 +114,14 @@ func searchCmd(c *cli.Context) error {
 	}
 	format := genSearchFormat(c.String("format"))
 	opts := searchOpts{
-		format:     format,
-		noTrunc:    c.Bool("no-trunc"),
-		limit:      c.Int("limit"),
-		filter:     c.StringSlice("filter"),
-		tlsVerify: c.BoolT("tls-verify"),
-        forceSecure: forceSecure,
-        regFlagged: len(c.StringSlice("registry")) > 0,
-    }
+		format:      format,
+		noTrunc:     c.Bool("no-trunc"),
+		limit:       c.Int("limit"),
+		filter:      c.StringSlice("filter"),
+		tlsVerify:   c.BoolT("tls-verify"),
+		forceSecure: forceSecure,
+		regFlagged:  len(c.StringSlice("registry")) > 0,
+	}
 
 	var registries []string
 	if opts.regFlagged {
@@ -176,26 +175,25 @@ func getSearchOutput(term string, registries []string, opts searchOpts, filter s
 	// If user flagged to skip verify for HTTP connections, set System Context as such
 	// docker client will retry without TLS after making an attempt with TLS, so it will
 	// not effect normal HTTPS requests
-    // `if !opts.tlsVerify {
-    // `    sc.DockerInsecureSkipTLSVerify = true
-    // `} else 
-    if !opts.forceSecure {
-        // if the user didn't allow nor disallow insecure registries, check to see if the registry
-        // is insecure
-        insecureRegistries, err := sysreg.GetInsecureRegistries()
-        if err != nil {
-            return nil, errors.Wrapf(err, "error getting insecure registries to search")
-        }
+	// `if !opts.tlsVerify {
+	// `    sc.DockerInsecureSkipTLSVerify = true
+	// `} else
+	if !opts.forceSecure {
+		// if the user didn't allow nor disallow insecure registries, check to see if the registry
+		// is insecure
+		insecureRegistries, err := sysreg.GetInsecureRegistries()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting insecure registries to search")
+		}
 
-        if opts.regFlagged && util.StringInSlice(registries[0], insecureRegistries) {
-            sc.DockerInsecureSkipTLSVerify = true
-            logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registries[0]))
-        } else if !opts.regFlagged {
-            sc.DockerInsecureSkipTLSVerify = true
-            registries = append(registries, insecureRegistries...)
-        }
-    }
-    fmt.Fprintf(os.Stdout, strings.Join(registries, " "))
+		if opts.regFlagged && util.StringInSlice(registries[0], insecureRegistries) {
+			sc.DockerInsecureSkipTLSVerify = true
+			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registries[0]))
+		} else if !opts.regFlagged {
+			sc.DockerInsecureSkipTLSVerify = true
+			registries = append(registries, insecureRegistries...)
+		}
+	}
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if opts.limit != 0 {
