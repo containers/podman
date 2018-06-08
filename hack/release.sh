@@ -12,6 +12,15 @@
 
 VERSION="$1"
 NEXT_VERSION="$2"
+
+if test "${NEXT_VERSION}" != "${NEXT_VERSION%-dev}"
+then
+	echo "The next-version argument '${NEXT_VERSION}' should not end in '-dev'." >&2
+	echo "This script will add the -dev suffix as needed internally.  Try:" >&2
+	echo "  $0 ${VERSION} ${NEXT_VERSION%-dev}" >&2
+	exit 1
+fi
+
 DATE=$(date '+%Y-%m-%d')
 LAST_TAG=$(git describe --tags --abbrev=0)
 
