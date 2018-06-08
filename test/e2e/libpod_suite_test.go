@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,8 +12,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"github.com/containers/image/copy"
 	"github.com/containers/image/signature"
@@ -265,6 +264,36 @@ func (s *PodmanSession) OutputToString() string {
 // where each array item is a line split by newline
 func (s *PodmanSession) OutputToStringArray() []string {
 	output := fmt.Sprintf("%s", s.Out.Contents())
+	return strings.Split(output, "\n")
+}
+
+// ErrorGrepString takes session stderr output and behaves like grep. it returns a bool
+// if successful and an array of strings on positive matches
+func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
+	var (
+		greps   []string
+		matches bool
+	)
+
+	for _, line := range strings.Split(s.ErrorToString(), "\n") {
+		if strings.Contains(line, term) {
+			matches = true
+			greps = append(greps, line)
+		}
+	}
+	return matches, greps
+}
+
+// ErrorToString formats session stderr to string
+func (s *PodmanSession) ErrorToString() string {
+	fields := strings.Fields(fmt.Sprintf("%s", s.Err.Contents()))
+	return strings.Join(fields, " ")
+}
+
+// ErrorToStringArray returns the stderr output as a []string
+// where each array item is a line split by newline
+func (s *PodmanSession) ErrorToStringArray() []string {
+	output := fmt.Sprintf("%s", s.Err.Contents())
 	return strings.Split(output, "\n")
 }
 
