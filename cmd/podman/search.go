@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"context"
 	"github.com/containers/image/docker"
@@ -174,18 +173,8 @@ func (s *searchParams) headerMap() map[string]string {
 // A wrapper for GetSystemContext and GetInsecureRegistries
 // Sets up system context and active list of registries to search with
 func getSystemContextAndRegistries(c *cli.Context) ([]string, *types.SystemContext, error) {
-	sc := common.GetSystemContext("", "", false)
-
+	sc := common.GetSystemContext(c.String("signature-policy"), "", false)
 	sc.DockerCertPath = c.String("cert-dir")
-	sc.SignaturePolicyPath = c.String("signature-policy")
-
-	tlsVerify := c.BoolT("tls-verify")
-	regFlagged := len(c.StringSlice("registry")) > 0
-	forceSecure := false
-
-	if c.IsSet("tls-verify") {
-		forceSecure = c.Bool("tls-verify")
-	}
 
 	if c.IsSet("creds") {
 		creds, err := util.ParseRegistryCreds(c.String("creds"))
@@ -194,6 +183,16 @@ func getSystemContextAndRegistries(c *cli.Context) ([]string, *types.SystemConte
 		}
 		sc.DockerAuthConfig = creds
 	}
+
+    // Variables for setting up Registry and TLSVerify
+	tlsVerify := c.BoolT("tls-verify")
+	regFlagged := len(c.StringSlice("registry")) > 0
+	forceSecure := false
+
+	if c.IsSet("tls-verify") {
+		forceSecure = c.Bool("tls-verify")
+	}
+
 
 	var registries []string
 	if regFlagged {
