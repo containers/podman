@@ -5,6 +5,7 @@ import (
 
 	"context"
 	"github.com/containers/image/docker"
+	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -25,6 +26,18 @@ const (
 
 var (
 	searchFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "authfile",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+		},
+		cli.StringFlag{
+			Name:  "cert-dir",
+			Usage: "`pathname` of a directory containing TLS certificates and keys",
+		},
+		cli.StringFlag{
+			Name:  "creds",
+			Usage: "`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+		},
 		cli.StringSliceFlag{
 			Name:  "filter, f",
 			Usage: "filter output based on conditions provided (default [])",
@@ -44,6 +57,10 @@ var (
 		cli.StringSliceFlag{
 			Name:  "registry",
 			Usage: "specific registry to search",
+		},
+		cli.StringFlag{
+			Name:  "signature-policy",
+			Usage: "`pathname` of signature policy file (not usually used)",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
@@ -73,13 +90,10 @@ type searchParams struct {
 }
 
 type searchOpts struct {
-	filter      []string
-	limit       int
-	noTrunc     bool
-	format      string
-	tlsVerify   bool
-	forceSecure bool
-	regFlagged  bool
+	filter  []string
+	limit   int
+	noTrunc bool
+	format  string
 }
 
 type searchFilterParams struct {
@@ -89,7 +103,6 @@ type searchFilterParams struct {
 }
 
 func searchCmd(c *cli.Context) error {
-	forceSecure := false
 	args := c.Args()
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments. Requires exactly 1")
@@ -109,28 +122,16 @@ func searchCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	if c.IsSet("tls-verify") {
-		forceSecure = c.Bool("tls-verify")
-	}
 	format := genSearchFormat(c.String("format"))
 	opts := searchOpts{
-		format:      format,
-		noTrunc:     c.Bool("no-trunc"),
-		limit:       c.Int("limit"),
-		filter:      c.StringSlice("filter"),
-		tlsVerify:   c.BoolT("tls-verify"),
-		forceSecure: forceSecure,
-		regFlagged:  len(c.StringSlice("registry")) > 0,
+		format:  format,
+		noTrunc: c.Bool("no-trunc"),
+		limit:   c.Int("limit"),
+		filter:  c.StringSlice("filter"),
 	}
-
-	var registries []string
-	if opts.regFlagged {
-		registries = c.StringSlice("registry")
-	} else {
-		registries, err = sysreg.GetRegistries()
-		if err != nil {
-			return errors.Wrapf(err, "error getting registries to search")
-		}
+	registries, sc, err := getSystemContextAndRegistries(c)
+	if err != nil {
+		return err
 	}
 
 	filter, err := parseSearchFilter(&opts)
@@ -138,7 +139,7 @@ func searchCmd(c *cli.Context) error {
 		return err
 	}
 
-	return generateSearchOutput(term, registries, opts, *filter)
+	return generateSearchOutput(term, registries, opts, *filter, sc)
 }
 
 func genSearchFormat(format string) string {
@@ -169,31 +170,72 @@ func (s *searchParams) headerMap() map[string]string {
 	return values
 }
 
-func getSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
+// A wrapper for GetSystemContext and GetInsecureRegistries
+// Sets up system context and active list of registries to search with
+func getSystemContextAndRegistries(c *cli.Context) ([]string, *types.SystemContext, error) {
 	sc := common.GetSystemContext("", "", false)
 
+	tlsVerify := c.BoolT("tls-verify")
+	regFlagged := len(c.StringSlice("registry")) > 0
+	certDir := c.String("cert-dir")
+	sigPolicy := c.String("signature-policy")
+	// TODO make sure certdr and cig policy are empty if not set
+	forceSecure := false
+
+	if c.IsSet("tls-verify") {
+		forceSecure = c.Bool("tls-verify")
+	}
+
+	if c.IsSet("creds") {
+		creds, err := util.ParseRegistryCreds(c.String("creds"))
+		if err != nil {
+			return nil, nil, err
+		}
+		sc.DockerAuthConfig = creds
+	}
+
+	var registries []string
+	if regFlagged {
+		registries = c.StringSlice("registry")
+	} else {
+		var err error
+		registries, err = sysreg.GetRegistries()
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "error getting registries to search")
+		}
+	}
+
+	if certDir != "" {
+		sc.DockerCertPath = certDir
+	}
+	if sigPolicy != "" {
+		sc.SignaturePolicyPath = sigPolicy
+	}
+
 	// If user flagged to skip verify for HTTP connections, set System Context as such
-	// docker client will retry without TLS after making an attempt with TLS, so it will
-	// not effect normal HTTPS requests
-	// `if !opts.tlsVerify {
-	// `    sc.DockerInsecureSkipTLSVerify = true
-	// `} else
-	if !opts.forceSecure {
-		// if the user didn't allow nor disallow insecure registries, check to see if the registry
-		// is insecure
+	if !tlsVerify {
+		// If tls-verify is set to false, allow insecure always.
+		sc.DockerInsecureSkipTLSVerify = true
+	} else if !forceSecure {
+		// if the user didn't allow nor disallow insecure registries, check to see if the registry is insecure
 		insecureRegistries, err := sysreg.GetInsecureRegistries()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting insecure registries to search")
+			return nil, nil, errors.Wrapf(err, "error getting insecure registries to search")
 		}
 
-		if opts.regFlagged && util.StringInSlice(registries[0], insecureRegistries) {
+		if regFlagged && util.StringInSlice(registries[0], insecureRegistries) {
 			sc.DockerInsecureSkipTLSVerify = true
 			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registries[0]))
-		} else if !opts.regFlagged {
+		} else if !regFlagged {
 			sc.DockerInsecureSkipTLSVerify = true
 			registries = append(registries, insecureRegistries...)
 		}
 	}
+	//TODO FIX
+	return registries, sc, nil
+}
+
+func getSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams, sc *types.SystemContext) ([]searchParams, error) {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if opts.limit != 0 {
@@ -261,8 +303,8 @@ func getSearchOutput(term string, registries []string, opts searchOpts, filter s
 	return paramsArr, nil
 }
 
-func generateSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) error {
-	searchOutput, err := getSearchOutput(term, registries, opts, filter)
+func generateSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams, sc *types.SystemContext) error {
+	searchOutput, err := getSearchOutput(term, registries, opts, filter, sc)
 	if err != nil {
 		return err
 	}
