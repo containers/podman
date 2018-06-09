@@ -10,7 +10,7 @@ podman\-info - Display system information
 
 ## DESCRIPTION
 
-Displays information pertinent to the host, current storage stats, configured registries, and build of podman.
+Displays information pertinent to the host, current storage stats, configured container registries, and build of podman.
 
 
 ## OPTIONS
@@ -93,4 +93,4 @@ map[registries:[docker.io registry.fedoraproject.org registry.access.redhat.com]
 ```
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1), registries.conf(5), storage.conf(5), crio(8)

@@ -132,10 +132,10 @@ has the capability to debug pods/images created by crio.
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-	registries.conf is the configuration file which specifies which registries should be consulted when completing image names which do not include a registry or domain portion.
+	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-`oci-hooks(5)`, `storage.conf(5)`, `crio(8)`
+`oci-hooks(5)`, `registries.conf(5)`, `storage.conf(5)`, `crio(8)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
