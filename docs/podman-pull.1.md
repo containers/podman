@@ -136,9 +136,14 @@ Writing manifest to image destination
 Storing signatures
 03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
 ```
+## FILES
+
+**registries.conf** (`/etc/containers/registries.conf`)
+
+	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), crio(8)
+podman(1), podman-push(1), podman-login(1), registries.conf(5), crio(8)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
