@@ -29,6 +29,23 @@ using the **--filter** flag.
 
 ## OPTIONS
 
+**--authfile**
+
+Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+
+**--creds="CREDENTIALS"**
+
+The [username[:password]] to use to authenticate with the registry if required.
+If one or both values are not supplied, a command line prompt will appear and the
+value can be entered.  The password is entered without echo.
+
+**cert-dir="PATHNAME"**
+
+Pathname of a directory containing TLS certificates and keys.
+Default certificates directory is _/etc/containers/certs.d_.
+
+
 **--filter, -f**
 Filter output based on conditions provided (default [])
 
@@ -63,6 +80,12 @@ Do not truncate the output
 
 **--registry**
 Specific registry to search (only the given registry will be searched, not the default registries)
+
+**--signature-policy="PATHNAME"**
+
+Pathname of a signature policy file to use.  It is not recommended that this
+option be used, as the default behavior of using the system-wide default policy
+(frequently */etc/containers/policy.json*) is most often preferred
 
 ## EXAMPLES
 
