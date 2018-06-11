@@ -1143,6 +1143,7 @@ _podman_images() {
      "
     local options_with_args="
     --format
+    --sort
   "
 
     local all_options="$options_with_args $boolean_options"

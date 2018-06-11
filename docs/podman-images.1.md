@@ -40,6 +40,9 @@ Do not truncate output.
 
 Lists only the image IDs.
 
+**--sort**
+
+Sort by id, repository, size, tag or time (default: time)
 
 ## EXAMPLE
 
@@ -118,6 +121,16 @@ REPOSITORY   TAG      IMAGE ID       CREATED       SIZE
         "size": 126085200
     }
 ]
+```
+
+```
+# podman images --sort repository
+REPOSITORY                                   TAG      IMAGE ID       CREATED       SIZE
+<none>                                      <none>   2460217d76fc   About a minute ago   4.41MB
+docker.io/library/alpine                    latest   3fd9065eaf02   5 months ago         4.41MB
+localhost/myapp                             latest   b2e0ad03474a   About a minute ago   4.41MB
+registry.access.redhat.com/rhel7            latest   7a840db7f020   2 weeks ago          211MB
+registry.fedoraproject.org/fedora           27       801894bc0e43   6 weeks ago          246MB
 ```
 
 ## SEE ALSO

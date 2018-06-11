@@ -1,9 +1,11 @@
 package integration
 
 import (
-	"os"
-
 	"fmt"
+	"os"
+	"sort"
+
+	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,7 +30,6 @@ var _ = Describe("Podman images", func() {
 		podmanTest.Cleanup()
 
 	})
-
 	It("podman images", func() {
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
@@ -143,4 +144,25 @@ var _ = Describe("Podman images", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
+	It("podman images sort by tag", func() {
+		session := podmanTest.Podman([]string{"images", "--sort", "tag", "--format={{.Tag}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		sortedArr := session.OutputToStringArray()
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+	})
+
+	It("podman images sort by size", func() {
+		session := podmanTest.Podman([]string{"images", "--sort", "size", "--format={{.Size}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		sortedArr := session.OutputToStringArray()
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool {
+			size1, _ := units.FromHumanSize(sortedArr[i])
+			size2, _ := units.FromHumanSize(sortedArr[j])
+			return size1 < size2
+		})).To(BeTrue())
+	})
 })
