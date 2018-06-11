@@ -302,6 +302,10 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, err
 	}
 
+	if err = parseVolumesFrom(c.StringSlice("volumes-from")); err != nil {
+		return nil, err
+	}
+
 	tty := c.Bool("tty")
 
 	pidMode := container.PidMode(c.String("pid"))
@@ -596,6 +600,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		Volumes:     c.StringSlice("volume"),
 		WorkDir:     workDir,
 		Rootfs:      rootfs,
+		VolumesFrom: c.StringSlice("volumes-from"),
 	}
 
 	if !config.Privileged {

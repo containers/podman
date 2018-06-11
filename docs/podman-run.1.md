@@ -686,6 +686,40 @@ change propagation properties of source mount. Say `/` is source mount for
 To disable automatic copying of data from the container path to the volume, use
 the `nocopy` flag. The `nocopy` flag can be set on bind mounts and named volumes.
 
+**--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
+
+Mount volumes from the specified container(s).
+*OPTIONS* is a comma delimited list with the following available elements:
+
+* [rw|ro]
+* z
+
+Mounts already mounted volumes from a source container onto another
+container. You must supply the source's container-id or container-name.
+To share a volume, use the --volumes-from option when running
+the target container. You can share volumes even if the source container
+is not running.
+
+By default, podman mounts the volumes in the same mode (read-write or
+read-only) as it is mounted in the source container. Optionally, you
+can change this by suffixing the container-id with either the `ro` or
+`rw` keyword.
+
+Labeling systems like SELinux require that proper labels are placed on volume
+content mounted into a container. Without a label, the security system might
+prevent the processes running inside the container from using the content. By
+default, podman does not change the labels set by the OS.
+
+To change a label in the container context, you can add `z` to the volume mount.
+This suffix tells podman to relabel file objects on the shared volumes. The `z`
+option tells podman that two containers share the volume content. As a result,
+podman labels the content with a shared content label. Shared volume labels allow
+all containers to read/write content.
+
+If the location of the volume from the source container overlaps with
+data residing on a target container, then the volume hides
+that data on the target.
+
 **-w**, **--workdir**=""
 
 Working directory inside the container

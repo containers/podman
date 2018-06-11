@@ -127,7 +127,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Bind builtin image volumes
 	if c.config.Rootfs == "" && c.config.ImageVolumes {
-		if err := c.addImageVolumes(ctx, &g); err != nil {
+		if err := c.addLocalVolumes(ctx, &g); err != nil {
 			return nil, errors.Wrapf(err, "error mounting image volumes")
 		}
 	}

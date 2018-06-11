@@ -248,6 +248,9 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 
 	// BIND MOUNTS
+	if err := config.GetVolumesFrom(); err != nil {
+		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
+	}
 	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
