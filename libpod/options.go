@@ -885,6 +885,24 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 	}
 }
 
+// WithLocalVolumes sets the built-in volumes of the container retrieved
+// from a container passed in to the --volumes-from flag.
+// This stores the built-in volume information in the ContainerConfig so we can
+// add them when creating the container.
+func WithLocalVolumes(volumes []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if volumes != nil {
+			ctr.config.LocalVolumes = append(ctr.config.LocalVolumes, volumes...)
+		}
+
+		return nil
+	}
+}
+
 // WithEntrypoint sets the entrypoint of the container.
 // This is not used to change the container's spec, but will instead be used
 // during commit to populate the entrypoint of the new image.

@@ -1108,7 +1108,7 @@ func (c *Container) generateHosts() (string, error) {
 	return c.writeStringToRundir("hosts", hosts)
 }
 
-func (c *Container) addImageVolumes(ctx context.Context, g *generate.Generator) error {
+func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		return errors.Wrapf(ErrInternal, "container is not mounted")
@@ -1121,6 +1121,17 @@ func (c *Container) addImageVolumes(ctx context.Context, g *generate.Generator) 
 	if err != nil {
 		return err
 	}
+	// Add the built-in volumes of the container passed in to --volumes-from
+	for _, vol := range c.config.LocalVolumes {
+		if imageData.ContainerConfig.Volumes == nil {
+			imageData.ContainerConfig.Volumes = map[string]struct{}{
+				vol: {},
+			}
+		} else {
+			imageData.ContainerConfig.Volumes[vol] = struct{}{}
+		}
+	}
+
 	for k := range imageData.ContainerConfig.Volumes {
 		mount := spec.Mount{
 			Destination: k,

@@ -510,4 +510,41 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run --volumes-from flag", func() {
+		vol := filepath.Join(podmanTest.TempDir, "vol-test")
+		err := os.MkdirAll(vol, 0755)
+		Expect(err).To(BeNil())
+
+		volFile := filepath.Join(vol, "test.txt")
+		data := "Testing --volumes-from!!!"
+		err = ioutil.WriteFile(volFile, []byte(data), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"create", "--volume", vol + ":/myvol", "docker.io/library/redis:alpine", "sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ctrID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "echo", "'testing read-write!' >> myvol/test.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":z", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run --volumes-from flag with built-in volumes", func() {
+		session := podmanTest.Podman([]string{"create", "docker.io/library/redis:alpine", "sh"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ctrID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("data"))
+
+	})
 })

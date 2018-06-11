@@ -1,6 +1,7 @@
 package createconfig
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 	"strings"
@@ -123,14 +124,16 @@ type CreateConfig struct {
 	User               string               //user
 	UtsMode            container.UTSMode    //uts
 	Volumes            []string             //volume
-	WorkDir            string               //workdir
-	MountLabel         string               //SecurityOpts
-	ProcessLabel       string               //SecurityOpts
-	NoNewPrivs         bool                 //SecurityOpts
-	ApparmorProfile    string               //SecurityOpts
-	SeccompProfilePath string               //SecurityOpts
+	VolumesFrom        []string
+	WorkDir            string //workdir
+	MountLabel         string //SecurityOpts
+	ProcessLabel       string //SecurityOpts
+	NoNewPrivs         bool   //SecurityOpts
+	ApparmorProfile    string //SecurityOpts
+	SeccompProfilePath string //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
+	LocalVolumes       []string //Keeps track of the built-in volumes of container used in the --volumes-from flag
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
@@ -215,6 +218,52 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 	return m, nil
 }
 
+// GetVolumesFrom reads the create-config artifact of the container to get volumes from
+// and adds it to c.Volumes of the curent container.
+func (c *CreateConfig) GetVolumesFrom() error {
+	var options string
+	for _, vol := range c.VolumesFrom {
+		splitVol := strings.SplitN(vol, ":", 2)
+		if len(splitVol) == 2 {
+			options = splitVol[1]
+		}
+		ctr, err := c.Runtime.LookupContainer(splitVol[0])
+		if err != nil {
+			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
+		}
+		var createArtifact CreateConfig
+		artifact, err := ctr.GetArtifact("create-config")
+		if err != nil {
+			return errors.Wrapf(err, "error getting create-config artifact for %q", splitVol[0])
+		}
+		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
+			return err
+		}
+
+		for key := range createArtifact.BuiltinImgVolumes {
+			c.LocalVolumes = append(c.LocalVolumes, key)
+		}
+
+		for _, i := range createArtifact.Volumes {
+			// Volumes format is host-dir:ctr-dir[:options], so get the host and ctr dir
+			// and add on the options given by the user to the flag.
+			spliti := strings.SplitN(i, ":", 3)
+			// Throw error if mounting volume from container with Z option (private label)
+			// Override this by adding 'z' to options.
+			if len(spliti) > 2 && strings.Contains(spliti[2], "Z") && !strings.Contains(options, "z") {
+				return errors.Errorf("volume mounted with private option 'Z' in %q. Use option 'z' to mount in current container", ctr.ID())
+			}
+			if options == "" {
+				// Mount the volumes with the default options
+				c.Volumes = append(c.Volumes, createArtifact.Volumes...)
+			} else {
+				c.Volumes = append(c.Volumes, spliti[0]+":"+spliti[1]+":"+options)
+			}
+		}
+	}
+	return nil
+}
+
 //GetTmpfsMounts takes user provided input for Tmpfs mounts and creates Mount structs
 func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	var m []spec.Mount
@@ -287,6 +336,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		}
 
 		options = append(options, libpod.WithUserVolumes(volumes))
+	}
+
+	if len(c.LocalVolumes) != 0 {
+		options = append(options, libpod.WithLocalVolumes(c.LocalVolumes))
 	}
 
 	if len(c.Command) != 0 {

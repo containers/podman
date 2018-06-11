@@ -75,9 +75,6 @@ func addWarning(warnings []string, msg string) []string {
 }
 
 func parseVolumes(volumes []string) error {
-	if len(volumes) == 0 {
-		return nil
-	}
 	for _, volume := range volumes {
 		arr := strings.SplitN(volume, ":", 3)
 		if len(arr) < 2 {
@@ -91,6 +88,21 @@ func parseVolumes(volumes []string) error {
 		}
 		if len(arr) > 2 {
 			if err := validateVolumeOpts(arr[2]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func parseVolumesFrom(volumesFrom []string) error {
+	for _, vol := range volumesFrom {
+		arr := strings.SplitN(vol, ":", 2)
+		if len(arr) == 2 {
+			if strings.Contains(arr[1], "Z") || strings.Contains(arr[1], "private") || strings.Contains(arr[1], "slave") || strings.Contains(arr[1], "shared") {
+				return errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z", arr[1])
+			}
+			if err := validateVolumeOpts(arr[1]); err != nil {
 				return err
 			}
 		}
@@ -121,20 +133,20 @@ func validateVolumeOpts(option string) error {
 	for _, opt := range options {
 		switch opt {
 		case "rw", "ro":
+			foundRWRO++
 			if foundRWRO > 1 {
 				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", option)
 			}
-			foundRWRO++
 		case "z", "Z":
+			foundLabelChange++
 			if foundLabelChange > 1 {
 				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
 			}
-			foundLabelChange++
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
+			foundRootPropagation++
 			if foundRootPropagation > 1 {
 				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", option)
 			}
-			foundRootPropagation++
 		default:
 			return errors.Errorf("invalid option type %q", option)
 		}
