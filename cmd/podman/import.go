@@ -80,7 +80,7 @@ func importCmd(c *cli.Context) error {
 	}
 
 	changes := v1.ImageConfig{}
-	if c.IsSet("change") {
+	if c.IsSet("change") || c.IsSet("c") {
 		changes, err = util.GetImageConfig(c.StringSlice("change"))
 		if err != nil {
 			return errors.Wrapf(err, "error adding config changes to image %q", source)

@@ -79,7 +79,7 @@ func commitCmd(c *cli.Context) error {
 	switch c.String("format") {
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest
-		if c.IsSet("message") {
+		if c.IsSet("message") || c.IsSet("m") {
 			return errors.Errorf("messages are only compatible with the docker image format (-f docker)")
 		}
 	case "docker":
@@ -89,7 +89,7 @@ func commitCmd(c *cli.Context) error {
 	}
 	container := args[0]
 	reference := args[1]
-	if c.IsSet("change") {
+	if c.IsSet("change") || c.IsSet("c") {
 		for _, change := range c.StringSlice("change") {
 			splitChange := strings.Split(strings.ToUpper(change), "=")
 			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
