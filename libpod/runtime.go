@@ -19,6 +19,7 @@ import (
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/hooks"
 	sysreg "github.com/projectatomic/libpod/pkg/registries"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -197,7 +198,7 @@ func GetRootlessRuntimeDir() string {
 }
 
 func getDefaultTmpDir() string {
-	if os.Getuid() == 0 {
+	if !rootless.IsRootless() {
 		return "/var/run/libpod"
 	}
 
@@ -216,7 +217,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	configPath := ConfigPath
 	foundConfig := true
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		foundConfig = false
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path

@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/urfave/cli"
 )
 
@@ -40,7 +41,7 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 
 func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 	storageOpts := storage.DefaultStoreOptions
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		var err error
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
