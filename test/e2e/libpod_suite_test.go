@@ -254,6 +254,36 @@ func (s *PodmanSession) OutputToStringArray() []string {
 	return strings.Split(output, "\n")
 }
 
+// ErrorGrepString takes session stderr output and behaves like grep. it returns a bool
+// if successful and an array of strings on positive matches
+func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
+	var (
+		greps   []string
+		matches bool
+	)
+
+	for _, line := range strings.Split(s.ErrorToString(), "\n") {
+		if strings.Contains(line, term) {
+			matches = true
+			greps = append(greps, line)
+		}
+	}
+	return matches, greps
+}
+
+// ErrorToString formats session stderr to string
+func (s *PodmanSession) ErrorToString() string {
+	fields := strings.Fields(fmt.Sprintf("%s", s.Err.Contents()))
+	return strings.Join(fields, " ")
+}
+
+// ErrorToStringArray returns the stderr output as a []string
+// where each array item is a line split by newline
+func (s *PodmanSession) ErrorToStringArray() []string {
+	output := fmt.Sprintf("%s", s.Err.Contents())
+	return strings.Split(output, "\n")
+}
+
 // IsJSONOutputValid attempts to unmarshal the session buffer
 // and if successful, returns true, else false
 func (s *PodmanSession) IsJSONOutputValid() bool {
