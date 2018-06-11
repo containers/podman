@@ -173,7 +173,7 @@ func runCmd(c *cli.Context) error {
 	}
 
 	// If attach is set, clear stdin/stdout/stderr and only attach requested
-	if c.IsSet("attach") {
+	if c.IsSet("attach") || c.IsSet("a") {
 		outputStream = nil
 		errorStream = nil
 		inputStream = nil

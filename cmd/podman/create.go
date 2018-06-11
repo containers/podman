@@ -401,7 +401,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	// WORKING DIRECTORY
 	workDir := "/"
-	if c.IsSet("workdir") {
+	if c.IsSet("workdir") || c.IsSet("w") {
 		workDir = c.String("workdir")
 	} else if data.ContainerConfig.WorkingDir != "" {
 		workDir = data.ContainerConfig.WorkingDir
