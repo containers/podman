@@ -416,10 +416,10 @@ podman build --volume /home/test:/myvol:ro,Z -t imageName .
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-registries.conf is the configuration file which specifies which registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), buildah(1)
+podman(1), buildah(1), registries.conf(5)
 
 ## HISTORY
 
