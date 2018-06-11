@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
-	"sort"
 )
 
 type imagesTemplateParams struct {
@@ -42,14 +42,42 @@ type imagesOptions struct {
 	digests      bool
 	format       string
 	outputformat string
+	sort         string
 }
 
-// Type declaration and functions for sorting the PS output by time
+// Type declaration and functions for sorting the images output
 type imagesSorted []imagesTemplateParams
 
-func (a imagesSorted) Len() int           { return len(a) }
-func (a imagesSorted) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a imagesSorted) Less(i, j int) bool { return a[i].CreatedTime.After(a[j].CreatedTime) }
+func (a imagesSorted) Len() int      { return len(a) }
+func (a imagesSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type imagesSortedTime struct{ imagesSorted }
+
+func (a imagesSortedTime) Less(i, j int) bool {
+	return a.imagesSorted[i].CreatedTime.After(a.imagesSorted[j].CreatedTime)
+}
+
+type imagesSortedID struct{ imagesSorted }
+
+func (a imagesSortedID) Less(i, j int) bool { return a.imagesSorted[i].ID < a.imagesSorted[j].ID }
+
+type imagesSortedTag struct{ imagesSorted }
+
+func (a imagesSortedTag) Less(i, j int) bool { return a.imagesSorted[i].Tag < a.imagesSorted[j].Tag }
+
+type imagesSortedRepository struct{ imagesSorted }
+
+func (a imagesSortedRepository) Less(i, j int) bool {
+	return a.imagesSorted[i].Repository < a.imagesSorted[j].Repository
+}
+
+type imagesSortedSize struct{ imagesSorted }
+
+func (a imagesSortedSize) Less(i, j int) bool {
+	size1, _ := units.FromHumanSize(a.imagesSorted[i].Size)
+	size2, _ := units.FromHumanSize(a.imagesSorted[j].Size)
+	return size1 < size2
+}
 
 var (
 	imagesFlags = []cli.Flag{
@@ -80,6 +108,11 @@ var (
 		cli.BoolFlag{
 			Name:  "quiet, q",
 			Usage: "display only image IDs",
+		},
+		cli.StringFlag{
+			Name:  "sort",
+			Usage: "Sort by size, time, id, repository or tag",
+			Value: "time",
 		},
 	}
 
@@ -135,6 +168,7 @@ func imagesCmd(c *cli.Context) error {
 		noTrunc:   c.Bool("no-trunc"),
 		digests:   c.Bool("digests"),
 		format:    c.String("format"),
+		sort:      c.String("sort"),
 	}
 
 	opts.outputformat = opts.setOutputFormat()
@@ -195,6 +229,23 @@ func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSON
 	return
 }
 
+func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
+	switch sortBy {
+	case "id":
+		sort.Sort(imagesSortedID{imagesOutput})
+	case "size":
+		sort.Sort(imagesSortedSize{imagesOutput})
+	case "tag":
+		sort.Sort(imagesSortedTag{imagesOutput})
+	case "repository":
+		sort.Sort(imagesSortedRepository{imagesOutput})
+	default:
+		// default is time
+		sort.Sort(imagesSortedTime{imagesOutput})
+	}
+	return imagesOutput
+}
+
 // getImagesTemplateOutput returns the images information to be printed in human readable format
 func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput imagesSorted) {
 	for _, img := range images {
@@ -226,7 +277,7 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 	}
 
 	// Sort images by created time
-	sort.Sort(imagesSorted(imagesOutput))
+	sortImagesOutput(opts.sort, imagesOutput)
 	return
 }
 
