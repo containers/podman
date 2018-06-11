@@ -1,7 +1,6 @@
 package createconfig
 
 import (
-	"os"
 	"strings"
 
 	"github.com/docker/docker/daemon/caps"
@@ -12,6 +11,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 )
@@ -45,7 +45,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		g.AddMount(sysMnt)
 	}
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		g.RemoveMount("/dev/pts")
 		devPts := spec.Mount{
 			Destination: "/dev/pts",
@@ -82,7 +82,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.AddProcessEnv("container", "podman")
 
-	canAddResources := os.Getuid() == 0
+	canAddResources := !rootless.IsRootless()
 
 	if canAddResources {
 		// RESOURCES - MEMORY
