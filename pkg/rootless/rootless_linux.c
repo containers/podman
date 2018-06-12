@@ -66,6 +66,8 @@ get_cmd_line_args (pid_t pid)
       argc++;
 
   argv = malloc (sizeof (char *) * (argc + 1));
+  if (argv == NULL)
+    return NULL;
   argc = 0;
 
   argv[argc++] = buffer;

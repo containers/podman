@@ -1286,7 +1286,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
-	if !strings.Contains(c.config.User, ":") {
+	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
 		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Spec().Process.User.UID))
 		if err != nil && errors.Cause(err) != chrootuser.ErrNoSuchUser {
 			return nil, err
