@@ -56,27 +56,10 @@ func rmiCmd(c *cli.Context) error {
 
 	images := args[:]
 	var lastError error
-	var imagesToDelete []*image.Image
-	if removeAll {
-		imagesToDelete, err = runtime.ImageRuntime().GetImages()
-		if err != nil {
-			return errors.Wrapf(err, "unable to query local images")
-		}
-	} else {
-		// Create image.image objects for deletion from user input
-		for _, i := range images {
-			newImage, err := runtime.ImageRuntime().NewFromLocal(i)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				continue
-			}
-			imagesToDelete = append(imagesToDelete, newImage)
-		}
-	}
-	if len(imagesToDelete) == 0 {
-		return errors.Errorf("no valid images to delete")
-	}
-	for _, img := range imagesToDelete {
+	var deleted bool
+
+	removeImage := func(img *image.Image) {
+		deleted = true
 		msg, err := runtime.RemoveImage(ctx, img, c.Bool("force"))
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
@@ -90,5 +73,36 @@ func rmiCmd(c *cli.Context) error {
 			fmt.Println(msg)
 		}
 	}
+
+	if removeAll {
+		var imagesToDelete []*image.Image
+		imagesToDelete, err = runtime.ImageRuntime().GetImages()
+		if err != nil {
+			return errors.Wrapf(err, "unable to query local images")
+		}
+		for _, i := range imagesToDelete {
+			removeImage(i)
+		}
+	} else {
+		// Create image.image objects for deletion from user input.
+		// Note that we have to query the storage one-by-one to
+		// always get the latest state for each image.  Otherwise, we
+		// run inconsistency issues, for instance, with repoTags.
+		// See https://github.com/projectatomic/libpod/issues/930 as
+		// an exemplary inconsistency issue.
+		for _, i := range images {
+			newImage, err := runtime.ImageRuntime().NewFromLocal(i)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+			removeImage(newImage)
+		}
+	}
+
+	if !deleted {
+		return errors.Errorf("no valid images to delete")
+	}
+
 	return lastError
 }
