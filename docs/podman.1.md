@@ -59,12 +59,14 @@ has the capability to debug pods/images created by crio.
 | [podman-attach(1)](podman-attach.1.md)    | Attach to a running container.                                                 |
 | [podman-build(1)](podman-build.1.md)      | Build a container using a Dockerfile.                                          |
 | [podman-commit(1)](podman-commit.1.md)    | Create new image based on the changed container.                               |
+| [podman-container(1)](podman-container.1.md)    | Manage Containers.                                                       |
 | [podman-cp(1)](podman-cp.1.md)            | Copy files/folders between a container and the local filesystem.               |
 | [podman-create(1)](podman-create.1.md)    | Create a new container.                                                        |
 | [podman-diff(1)](podman-diff.1.md)        | Inspect changes on a container or image's filesystem.                          |
 | [podman-exec(1)](podman-exec.1.md)        | Execute a command in a running container.                                      |
 | [podman-export(1)](podman-export.1.md)    | Export a container's filesystem contents as a tar archive.                     |
 | [podman-history(1)](podman-history.1.md)  | Show the history of an image.                                                  |
+| [podman-image(1)](podman-image.1.md)      | Manage Images.                                                                 |
 | [podman-images(1)](podman-images.1.md)    | List images in local storage.                                                  |
 | [podman-import(1)](podman-import.1.md)    | Import a tarball and save it as a filesystem image.                            |
 | [podman-info(1)](podman-info.1.md)        | Displays Podman related system information.                                    |

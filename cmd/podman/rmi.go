@@ -32,6 +32,15 @@ var (
 		Flags:       rmiFlags,
 		UseShortOptionHandling: true,
 	}
+	rmImageCommand = cli.Command{
+		Name:        "rm",
+		Usage:       "removes one or more images from local storage",
+		Description: rmiDescription,
+		Action:      rmiCmd,
+		ArgsUsage:   "IMAGE-NAME-OR-ID [...]",
+		Flags:       rmiFlags,
+		UseShortOptionHandling: true,
+	}
 )
 
 func rmiCmd(c *cli.Context) error {

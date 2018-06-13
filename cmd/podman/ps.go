@@ -128,6 +128,15 @@ var (
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
 	}
+	lsCommand = cli.Command{
+		Name:                   "ls",
+		Usage:                  "List containers",
+		Description:            psDescription,
+		Flags:                  psFlags,
+		Action:                 psCmd,
+		ArgsUsage:              "",
+		UseShortOptionHandling: true,
+	}
 )
 
 func psCmd(c *cli.Context) error {

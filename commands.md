@@ -8,12 +8,14 @@
 | [podman-attach(1)](/docs/podman-attach.1.md)             | Attach to a running container                                             |[![...](/docs/play.png)](https://asciinema.org/a/XDlocUrHVETFECg4zlO9nBbLf)|
 | [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                        ||
 | [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
+| [podman-container(1)](/docs/podman-container.1.md)       | Manage Containers                    ||
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
 | [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container
 | [podman-export(1)](/docs/podman-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [podman-history(1)](/docs/podman-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
+| [podman-image(1)](/docs/podman-image.1.md)             | Manage Images||
 | [podman-images(1)](/docs/podman-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
 | [podman-import(1)](/docs/podman-import.1.md)             | Import a tarball and save it as a filesystem image                        ||
 | [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                |[![...](/docs/play.png)](https://asciinema.org/a/yKbi5fQ89y5TJ8e1RfJd4ivTD)|
