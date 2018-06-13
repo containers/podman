@@ -153,7 +153,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 	}
 
-
 	for _, uidmap := range config.IDMappings.UIDMap {
 		g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 	}
@@ -286,30 +285,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			configSpec.Linux.Resources.BlockIO = blkio
 		}
 	}
-
-	/*
-			//Annotations
-				Resources: &configSpec.LinuxResources{
-					BlockIO: &blkio,
-					//HugepageLimits:
-					Network: &configSpec.LinuxNetwork{
-					// ClassID *uint32
-					// Priorites []LinuxInterfacePriority
-					},
-				},
-				//CgroupsPath:
-				//Namespaces: []LinuxNamespace
-				// DefaultAction:
-				// Architectures
-				// Syscalls:
-				},
-				// RootfsPropagation
-				// MaskedPaths
-				// ReadonlyPaths:
-				// IntelRdt
-			},
-		}
-	*/
 
 	// If we cannot add resources be sure everything is cleared out
 	if !canAddResources {
