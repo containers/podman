@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -34,8 +36,7 @@ func topCmd(c *cli.Context) error {
 	var container *libpod.Container
 	var err error
 	args := c.Args()
-	var psArgs []string
-	psOpts := []string{"-o", "uid,pid,ppid,c,stime,tname,time,cmd"}
+
 	if len(args) < 1 && !c.Bool("latest") {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
@@ -48,9 +49,6 @@ func topCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
-	if len(args) > 1 {
-		psOpts = args[1:]
-	}
 
 	if c.Bool("latest") {
 		container, err = runtime.GetLatestContainer()
@@ -69,14 +67,15 @@ func topCmd(c *cli.Context) error {
 		return errors.Errorf("top can only be used on running containers")
 	}
 
-	psArgs = append(psArgs, psOpts...)
-
-	psOutput, err := container.GetContainerPidInformation(psArgs)
+	psOutput, err := container.GetContainerPidInformation([]string{})
 	if err != nil {
 		return err
 	}
-	for _, line := range psOutput {
-		fmt.Println(line)
+
+	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
+	for _, proc := range psOutput {
+		fmt.Fprintln(w, proc)
 	}
+	w.Flush()
 	return nil
 }

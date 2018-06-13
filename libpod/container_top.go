@@ -44,8 +44,20 @@ func (c *Container) getContainerPids() ([]string, error) {
 }
 
 // GetContainerPidInformation calls ps with the appropriate options and returns
-// the results as a string and the container's PIDs as a []string
+// the results as a string and the container's PIDs as a []string.  Note that
+// the ps output columns of each string are separated by a '\t\'.  Currently,
+// the args argument is overwriten with []string{"-ef"} until there is a
+// portable library for ps-1 or to parse the procFS to extract all data.
 func (c *Container) GetContainerPidInformation(args []string) ([]string, error) {
+	// XXX(ps-issue): args is overwriten with []{"-ef"} as the ps-1 tool
+	// doesn't support a generic way of splitting columns, rendering its
+	// output hard to parse.  Docker first deterimes the number of columns
+	// and merges all exceeding ones into the last one.  We believe that
+	// writing a go library which parses procFS in a ps-compatible way may
+	// be more beneficial in the long run.  Until then, args will be
+	// ignored.
+	args = []string{"-ef"}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -80,7 +92,7 @@ func filterPids(psOutput string, pids []string) ([]string, error) {
 	// Pids that don't belong.
 
 	// append the headers back in
-	output = append(output, results[0])
+	output = append(output, strings.Join(headers, "\t"))
 
 	pidIndex := -1
 	for i, header := range headers {
@@ -98,7 +110,13 @@ func filterPids(psOutput string, pids []string) ([]string, error) {
 		cols := fieldsASCII(l)
 		pid := cols[pidIndex]
 		if util.StringInSlice(pid, pids) {
-			output = append(output, l)
+			// XXX(ps-issue): Strip cols down to the header's size
+			// and merge exceeding fields. This is required to
+			// "merge" the overhanging CMD entries which can
+			// contain white spaces.
+			out := cols[:len(headers)-1]
+			out = append(out, strings.Join(cols[len(headers)-1:], " "))
+			output = append(output, strings.Join(out, "\t"))
 		}
 	}
 	return output, nil
