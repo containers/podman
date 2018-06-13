@@ -40,11 +40,13 @@ There are other equivalents for these tools
 | `docker attach`  | [`podman exec`](./docs/podman-attach.1.md)      |
 | `docker build`   | [`podman build`](./docs/podman-build.1.md)      |
 | `docker commit`  | [`podman commit`](./docs/podman-commit.1.md)    |
+| `docker container`|[`podman container`](./docs/podman-container.1.md)        |
 | `docker cp`      | [`podman mount`](./docs/podman-cp.1.md) ****    |
 | `docker create`  | [`podman create`](./docs/podman-create.1.md)    |
 | `docker diff`    | [`podman diff`](./docs/podman-diff.1.md)        |
 | `docker export`  | [`podman export`](./docs/podman-export.1.md)    |
 | `docker history` | [`podman history`](./docs/podman-history.1.md)  |
+| `docker image`   | [`podman image`](./docs/podman-image.1.md)        |
 | `docker images`  | [`podman images`](./docs/podman-images.1.md)    |
 | `docker import`  | [`podman import`](./docs/podman-import.1.md)    |
 | `docker kill`    | [`podman kill`](./docs/podman-kill.1.md)        |
@@ -55,6 +57,7 @@ There are other equivalents for these tools
 | `docker ps`      | [`podman ps`](./docs/podman-ps.1.md)            |
 | `docker pull`    | [`podman pull`](./docs/podman-pull.1.md)        |
 | `docker push`    | [`podman push`](./docs/podman-push.1.md)        |
+| `docker port`    | [`podman port`](./docs/podman-port.1.md)        |
 | `docker restart` | [`podman restart`](./docs/podman-restart.1.md)] |
 | `docker rm`      | [`podman rm`](./docs/podman-rm.1.md)            |
 | `docker rmi`     | [`podman rmi`](./docs/podman-rmi.1.md)          |
@@ -77,13 +80,10 @@ Those Docker commands currently do not have equivalents in `podman`:
 
 | Missing command | Description|
 | :--- | :--- |
-| `docker container`||
 | `docker events`   ||
-| `docker image`    ||
 | `docker network`  ||
 | `docker node`     ||
 | `docker plugin`   |podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
-| `docker port`     ||
 | `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
 | `docker secret`   ||
 | `docker service`  ||

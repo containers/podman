@@ -666,6 +666,149 @@ _podman_attach() {
     esac
 }
 
+_podman_container_attach() {
+     _podman_attach
+}
+
+_podman_container_commit() {
+     _podman_commit
+}
+
+_podman_container_create() {
+     _podman_create
+}
+
+_podman_container_diff() {
+     _podman_diff
+}
+
+_podman_container_exec() {
+     _podman_exec
+}
+
+_podman_container_export() {
+     _podman_export
+}
+
+_podman_container_inspect() {
+     _podman_inspect
+}
+
+_podman_container_kill() {
+     _podman_kill
+}
+
+_podman_container_ls() {
+     _podman_ls
+}
+
+_podman_container_logs() {
+     _podman_logs
+}
+
+_podman_container_mount() {
+     _podman_mount
+}
+
+_podman_container_pause() {
+     _podman_pause
+}
+
+_podman_container_port() {
+     _podman_port
+}
+
+_podman_container_restart() {
+     _podman_restart
+}
+
+_podman_container_rm() {
+     _podman_rm
+}
+
+_podman_container_run() {
+     _podman_run
+}
+
+_podman_container_start() {
+     _podman_start
+}
+
+_podman_container_stats() {
+     _podman_stats
+}
+
+_podman_container_stop() {
+     _podman_stop
+}
+
+_podman_container_top() {
+     _podman_top
+}
+
+_podman_container_umount() {
+     _podman_umount
+}
+
+_podman_container_unmount() {
+     _podman_unmount
+}
+
+_podman_container_unpause() {
+     _podman_unpause
+}
+
+_podman_container_wait() {
+     _podman_wait
+}
+
+_podman_container() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	 attach
+	 commit
+	 create
+	 diff
+	 exec
+	 export
+	 inspect
+	 kill
+	 ls
+	 logs
+	 mount
+	 pause
+	 port
+	 restart
+	 rm
+	 run
+	 start
+	 stats
+	 stop
+	 top
+	 umount
+	 unmount
+	 unpause
+	 wait
+     "
+     local aliases="
+	 list
+	ps
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
+
 _podman_commit() {
     local options_with_args="
 	--author
@@ -898,6 +1041,87 @@ _podman_info() {
             __podman_list_images
             ;;
     esac
+}
+
+_podman_image_build() {
+     _podman_build
+}
+
+_podman_image_history() {
+     _podman_history
+}
+
+_podman_image_import() {
+     _podman_import
+}
+
+_podman_image_inspect() {
+     _podman_inspect
+}
+
+_podman_image_load() {
+     _podman_load
+}
+
+_podman_image_list() {
+     _podman_images
+}
+
+_podman_image_ls() {
+     _podman_images
+}
+
+_podman_image_pull() {
+     _podman_pull
+}
+
+_podman_image_push() {
+     _podman_push
+}
+
+_podman_image_rm() {
+     _podman_rmi
+}
+
+_podman_image_save() {
+     _podman_save
+}
+
+_podman_image_tag() {
+     _podman_tag
+}
+
+_podman_image() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	 build
+	 history
+	 import
+	 inspect
+	 load
+	 ls
+	 pull
+	 push
+	 rm
+	 save
+	 tag
+     "
+     local aliases="
+	 list
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
 }
 
 _podman_images() {
@@ -1609,6 +1833,10 @@ _podman_port() {
     esac
 }
 
+_podman_ls() {
+	     _podman_ps
+}
+
 _podman_ps() {
      local options_with_args="
      --filter -f
@@ -1786,6 +2014,7 @@ _podman_podman() {
     attach
     build
     commit
+    container
     create
     diff
     exec

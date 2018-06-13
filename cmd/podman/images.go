@@ -93,6 +93,15 @@ var (
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
 	}
+	lsImagesCommand = cli.Command{
+		Name:                   "ls",
+		Usage:                  "list images in local storage",
+		Description:            imagesDescription,
+		Flags:                  imagesFlags,
+		Action:                 imagesCmd,
+		ArgsUsage:              "",
+		UseShortOptionHandling: true,
+	}
 )
 
 func imagesCmd(c *cli.Context) error {
