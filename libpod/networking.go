@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -184,8 +185,22 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		logrus.Errorf("Failed to tear down network namespace for container %s: %v", ctr.ID(), err)
 	}
 
+	nsPath := ctr.state.NetNS.Path()
+
 	if err := ctr.state.NetNS.Close(); err != nil {
 		return errors.Wrapf(err, "error closing network namespace for container %s", ctr.ID())
+	}
+
+	// We need to unconditionally try to unmount/remove the namespace
+	// because we may be in a separate process from the one that created the
+	// namespace, and Close() will only do that if it is the same process.
+	if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
+		if err != syscall.EINVAL && err != syscall.ENOENT {
+			return errors.Wrapf(err, "error unmounting network namespace %s for container %s", nsPath, ctr.ID())
+		}
+	}
+	if err := os.RemoveAll(nsPath); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing network namespace %s for container %s", nsPath, ctr.ID())
 	}
 
 	ctr.state.NetNS = nil
