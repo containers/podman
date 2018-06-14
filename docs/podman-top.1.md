@@ -15,9 +15,11 @@ Display the running process of the container. ps-OPTION can be any of the option
 ## OPTIONS
 
 **--help, -h**
+
   Print usage statement
 
 **--latest, -l**
+
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 

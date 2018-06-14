@@ -20,37 +20,48 @@ has the capability to debug pods/images created by crio.
 ## GLOBAL OPTIONS
 
 **--help, -h**
-  Print usage statement
+
+Print usage statement
 
 **--cgroup-manager**
-   CGroup manager to use for container cgroups. Supported values are cgroupfs (default) or systemd. Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
+
+CGroup manager to use for container cgroups. Supported values are cgroupfs (default) or systemd. Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
 
 **--config value, -c**=**"config.file"**
-   Path of a config file detailing container server configuration options
+
+Path of a config file detailing container server configuration options
 
 **--cpu-profile**
-   Path to where the cpu performance results should be written
+
+Path to where the cpu performance results should be written
 
 **--log-level**
-   log messages above specified level: debug, info, warn, error (default), fatal or panic
+
+log messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--root**=**value**
-   Path to the root directory in which data, including images, is stored
+
+Path to the root directory in which data, including images, is stored
 
 **--runroot**=**value**
-   Path to the 'run directory' where all state information is stored
+
+Path to the 'run directory' where all state information is stored
 
 **--runtime**=**value**
-    Path to the OCI compatible binary used to run containers
+
+Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
-   Select which storage driver is used to manage storage of images and containers (default is overlay)
+
+Select which storage driver is used to manage storage of images and containers (default is overlay)
 
 **--storage-opt**=**value**
-   Used to pass an option to the storage driver
+
+Used to pass an option to the storage driver
 
 **--version, -v**
-  Print the version
+
+Print the version
 
 ## COMMANDS
 
@@ -102,39 +113,39 @@ has the capability to debug pods/images created by crio.
 
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
-	libpod.conf is the configuration file for all tools using libpod to manage containers
+libpod.conf is the configuration file for all tools using libpod to manage containers
 
 **storage.conf** (`/etc/containers/storage.conf`)
 
-	storage.conf is the storage configuration file for all tools using containers/storage
+storage.conf is the storage configuration file for all tools using containers/storage
 
-	The storage configuration file specifies all of the available container storage options for tools using shared container storage.
+The storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
-	The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image if you do a `podman commit`.
+The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image if you do a `podman commit`.
 
-	Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
+Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
 
-	For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
+For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
 
-	The format of the mounts.conf is the volume format /SRC:/DEST, one mount per line. Users can create an `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container. Podman by default reads /usr/share/containers/mounts.conf and the /etc/containers/mounts.conf if it exists.
+The format of the mounts.conf is the volume format /SRC:/DEST, one mount per line. Users can create an `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container. Podman by default reads /usr/share/containers/mounts.conf and the /etc/containers/mounts.conf if it exists.
 
-	Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
+Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
 
 **hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
 
-  Each `*.json` file in `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
+Each `*.json` file in `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
 
-  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
-  For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
 
-  For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
 `oci-hooks(5)`, `registries.conf(5)`, `storage.conf(5)`, `crio(8)`
