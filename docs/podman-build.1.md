@@ -160,9 +160,9 @@ If a build context is not specified, and at least one Dockerfile is a
 local file, the directory in which it resides will be used as the build
 context.
 
-**--force-rm**
+**--force-rm** *bool-value*
 
-Always remove intermediate containers after a build. Podman does not currently support caching so this is a NOOP.
+Always remove intermediate containers after a build, even if the build is unsuccessful.
 
 **--format**
 
@@ -264,9 +264,9 @@ Suppress output messages which indicate which instruction is being processed,
 and of progress when pulling images from a registry, and when writing the
 output image.
 
-**--rm**
+**--rm** *bool-value*
 
-Remove intermediate containers after a successful build. Podman does not currently support caching so this is a NOOP.
+Remove intermediate containers after a successful build (default true).
 
 **--runtime** *path*
 
@@ -509,6 +509,10 @@ podman build --volume /home/test:/myvol:ro,Z -t imageName .
 podman build --layers -t imageName .
 
 podman build --no-cache -t imageName .
+
+podman build --layers --force-rm -t imageName .
+
+podman build --no-cache --rm=false -t imageName .
 
 ### Building an image using a URL, Git repo, or archive
 

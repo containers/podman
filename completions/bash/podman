@@ -840,6 +840,7 @@ _podman_commit() {
 
 _podman_build() {
      local boolean_options="
+     --force-rm
      --help
      -h
      --layers
@@ -848,6 +849,7 @@ _podman_build() {
      --pull-always
      --quiet
      -q
+     --rm
      --squash
      --tls-verify
   "

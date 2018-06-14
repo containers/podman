@@ -41,8 +41,6 @@ import (
 const (
 	// DefaultWorkingDir is used if none was specified.
 	DefaultWorkingDir = "/"
-	// DefaultRuntime is the default command to use to run the container.
-	DefaultRuntime = "runc"
 	// runUsingRuntimeCommand is a command we use as a key for reexec
 	runUsingRuntimeCommand = Package + "-runtime"
 )
@@ -1007,7 +1005,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Decide which runtime to use.
 	runtime := options.Runtime
 	if runtime == "" {
-		runtime = DefaultRuntime
+		runtime = util.Runtime()
 	}
 
 	// Default to not specifying a console socket location.
@@ -1405,41 +1403,63 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 	reading := 0
 	// Map describing where data on an incoming descriptor should go.
 	relayMap := make(map[int]int)
-	// Map describing incoming descriptors.
-	relayDesc := make(map[int]string)
+	// Map describing incoming and outgoing descriptors.
+	readDesc := make(map[int]string)
+	writeDesc := make(map[int]string)
 	// Buffers.
 	relayBuffer := make(map[int]*bytes.Buffer)
 	if copyConsole {
 		// Input from our stdin, output from the terminal descriptor.
 		relayMap[unix.Stdin] = terminalFD
-		relayDesc[unix.Stdin] = "stdin"
-		relayBuffer[unix.Stdin] = new(bytes.Buffer)
-		relayMap[terminalFD] = unix.Stdout
-		relayDesc[terminalFD] = "container terminal output"
+		readDesc[unix.Stdin] = "stdin"
 		relayBuffer[terminalFD] = new(bytes.Buffer)
+		writeDesc[terminalFD] = "container terminal input"
+		relayMap[terminalFD] = unix.Stdout
+		readDesc[terminalFD] = "container terminal output"
+		relayBuffer[unix.Stdout] = new(bytes.Buffer)
+		writeDesc[unix.Stdout] = "output"
 		reading = 2
 	}
 	if copyStdio {
 		// Input from our stdin, output from the stdout and stderr pipes.
 		relayMap[unix.Stdin] = stdioPipe[unix.Stdin][1]
-		relayDesc[unix.Stdin] = "stdin"
-		relayBuffer[unix.Stdin] = new(bytes.Buffer)
+		readDesc[unix.Stdin] = "stdin"
+		relayBuffer[stdioPipe[unix.Stdin][1]] = new(bytes.Buffer)
+		writeDesc[stdioPipe[unix.Stdin][1]] = "container stdin"
 		relayMap[stdioPipe[unix.Stdout][0]] = unix.Stdout
-		relayDesc[stdioPipe[unix.Stdout][0]] = "container stdout"
-		relayBuffer[stdioPipe[unix.Stdout][0]] = new(bytes.Buffer)
+		readDesc[stdioPipe[unix.Stdout][0]] = "container stdout"
+		relayBuffer[unix.Stdout] = new(bytes.Buffer)
+		writeDesc[unix.Stdout] = "stdout"
 		relayMap[stdioPipe[unix.Stderr][0]] = unix.Stderr
-		relayDesc[stdioPipe[unix.Stderr][0]] = "container stderr"
-		relayBuffer[stdioPipe[unix.Stderr][0]] = new(bytes.Buffer)
+		readDesc[stdioPipe[unix.Stderr][0]] = "container stderr"
+		relayBuffer[unix.Stderr] = new(bytes.Buffer)
+		writeDesc[unix.Stderr] = "stderr"
 		reading = 3
 	}
 	// Set our reading descriptors to non-blocking.
 	for fd := range relayMap {
 		if err := unix.SetNonblock(fd, true); err != nil {
-			logrus.Errorf("error setting %s to nonblocking: %v", relayDesc[fd], err)
+			logrus.Errorf("error setting %s to nonblocking: %v", readDesc[fd], err)
 			return
 		}
 	}
+	// A helper that returns false if err is an error that would cause us
+	// to give up.
+	logIfNotRetryable := func(err error, what string) (retry bool) {
+		if err == nil {
+			return true
+		}
+		if errno, isErrno := err.(syscall.Errno); isErrno {
+			switch errno {
+			case syscall.EINTR, syscall.EAGAIN:
+				return true
+			}
+		}
+		logrus.Error(what)
+		return false
+	}
 	// Pass data back and forth.
+	pollTimeout := -1
 	for {
 		// Start building the list of descriptors to poll.
 		pollFds := make([]unix.PollFd, 0, reading+1)
@@ -1451,23 +1471,8 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 		}
 		buf := make([]byte, 8192)
 		// Wait for new data from any input descriptor, or a notification that we're done.
-		nevents, err := unix.Poll(pollFds, -1)
-		if err != nil {
-			if errno, isErrno := err.(syscall.Errno); isErrno {
-				switch errno {
-				case syscall.EINTR:
-					continue
-				default:
-					logrus.Errorf("unable to wait for stdio/terminal data to relay: %v", err)
-					return
-				}
-			} else {
-				logrus.Errorf("unable to wait for stdio/terminal data to relay: %v", err)
-				return
-			}
-		}
-		if nevents == 0 {
-			logrus.Errorf("unexpected no data, no error waiting for terminal data to relay")
+		_, err := unix.Poll(pollFds, pollTimeout)
+		if !logIfNotRetryable(err, fmt.Sprintf("error waiting for stdio/terminal data to relay: %v", err)) {
 			return
 		}
 		var removes []int
@@ -1487,22 +1492,13 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 				}
 				continue
 			}
-			// Copy whatever we read to wherever it needs to be sent.
+			// Read whatever there is to be read.
 			readFD := int(pollFd.Fd)
 			writeFD, needToRelay := relayMap[readFD]
 			if needToRelay {
 				n, err := unix.Read(readFD, buf)
-				if err != nil {
-					if errno, isErrno := err.(syscall.Errno); isErrno {
-						switch errno {
-						default:
-							logrus.Errorf("unable to read %s: %v", relayDesc[readFD], err)
-						case syscall.EINTR, syscall.EAGAIN:
-						}
-					} else {
-						logrus.Errorf("unable to wait for %s data to relay: %v", relayDesc[readFD], err)
-					}
-					continue
+				if !logIfNotRetryable(err, fmt.Sprintf("unable to read %s data: %v", readDesc[readFD], err)) {
+					return
 				}
 				// If it's zero-length on our stdin and we're
 				// using pipes, it's an EOF, so close the stdin
@@ -1512,16 +1508,26 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 					stdioPipe[unix.Stdin][1] = -1
 				}
 				if n > 0 {
-					// Buffer the data in case we're blocked on where they need to go.
-					relayBuffer[readFD].Write(buf[:n])
-					// Try to drain the buffer.
-					n, err = unix.Write(writeFD, relayBuffer[readFD].Bytes())
-					if err != nil {
-						logrus.Errorf("unable to write %s: %v", relayDesc[readFD], err)
-						return
-					}
-					relayBuffer[readFD].Next(n)
+					// Buffer the data in case we get blocked on where they need to go.
+					relayBuffer[writeFD].Write(buf[:n])
 				}
+			}
+		}
+		// Try to drain the output buffers.  Set the default timeout
+		// for the next poll() to 100ms if we still have data to write.
+		pollTimeout = -1
+		for writeFD := range relayBuffer {
+			if relayBuffer[writeFD].Len() > 0 {
+				n, err := unix.Write(writeFD, relayBuffer[writeFD].Bytes())
+				if !logIfNotRetryable(err, fmt.Sprintf("unable to write %s data: %v", writeDesc[writeFD], err)) {
+					return
+				}
+				if n > 0 {
+					relayBuffer[writeFD].Next(n)
+				}
+			}
+			if relayBuffer[writeFD].Len() > 0 {
+				pollTimeout = 100
 			}
 		}
 		// Remove any descriptors which we don't need to poll any more from the poll descriptor list.
