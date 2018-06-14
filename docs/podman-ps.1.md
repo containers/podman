@@ -63,6 +63,11 @@ Valid placeholders for the Go template are listed below:
 | .Labels         | All the labels assigned to the container         |
 | .Mounts         | Volumes mounted in the container                 |
 
+**--sort**
+
+Sort by command, created, id, image, names, runningfor, size, or status",
+Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
+Default: created
 
 **--size, -s**
 
@@ -128,6 +133,12 @@ CONTAINER ID    NAMES                                                           
 a31ebbee9cee7   k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0   29717   4026531835   4026532585   4026532587   4026532508   4026532589   4026531837   4026532588
 ```
 
+```
+sudo podman ps -a --size --sort names
+CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS                    PORTS     NAMES
+69ed779d8ef9f  redis:alpine  "redis-server"  25 hours ago  Created                   6379/tcp  k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1
+02f65160e14ca  redis:alpine  "redis-server"  19 hours ago  Exited (-1) 19 hours ago  6379/tcp  k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0
+```
 ## ps
 Print a list of containers
 

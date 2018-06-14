@@ -53,9 +53,9 @@ type imagesSorted []imagesTemplateParams
 func (a imagesSorted) Len() int      { return len(a) }
 func (a imagesSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
-type imagesSortedTime struct{ imagesSorted }
+type imagesSortedCreated struct{ imagesSorted }
 
-func (a imagesSortedTime) Less(i, j int) bool {
+func (a imagesSortedCreated) Less(i, j int) bool {
 	return a.imagesSorted[i].CreatedTime.After(a.imagesSorted[j].CreatedTime)
 }
 
@@ -113,8 +113,8 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "sort",
-			Usage: "Sort by size, time, id, repository or tag",
-			Value: "time",
+			Usage: "Sort by created, id, repository, size, or tag",
+			Value: "created",
 		},
 	}
 
@@ -252,8 +252,8 @@ func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
 	case "repository":
 		sort.Sort(imagesSortedRepository{imagesOutput})
 	default:
-		// default is time
-		sort.Sort(imagesSortedTime{imagesOutput})
+		// default is created time
+		sort.Sort(imagesSortedCreated{imagesOutput})
 	}
 	return imagesOutput
 }

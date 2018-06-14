@@ -1846,6 +1846,7 @@ _podman_ps() {
      --filter -f
      --format
      --last -n
+     --sort
      "
      local boolean_options="
      --all -a
