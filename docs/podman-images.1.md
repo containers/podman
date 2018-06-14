@@ -13,7 +13,7 @@ Displays locally stored images, their names, and their IDs.
 
 **--all, -a**
 
-Show all images (by default filter out the intermediate image layers). The default is false. (This is a NOOP until podman build supports caching.)
+Show all images (by default filter out the intermediate image layers). The default is false.
 
 **--digests**
 
@@ -131,6 +131,20 @@ docker.io/library/alpine                    latest   3fd9065eaf02   5 months ago
 localhost/myapp                             latest   b2e0ad03474a   About a minute ago   4.41MB
 registry.access.redhat.com/rhel7            latest   7a840db7f020   2 weeks ago          211MB
 registry.fedoraproject.org/fedora           27       801894bc0e43   6 weeks ago          246MB
+```
+
+```
+# podman images
+REPOSITORY                 TAG      IMAGE ID       CREATED         SIZE
+localhost/test             latest   18f0c080cd72   4 seconds ago   4.42MB
+docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41MB
+# podman images -a
+REPOSITORY                 TAG      IMAGE ID       CREATED         SIZE
+localhost/test             latest   18f0c080cd72   6 seconds ago   4.42MB
+<none>                     <none>   270e70dc54c0   7 seconds ago   4.42MB
+<none>                     <none>   4ed6fbe43414   8 seconds ago   4.41MB
+<none>                     <none>   6b0df8e71508   8 seconds ago   4.41MB
+docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41MB
 ```
 
 ## SEE ALSO

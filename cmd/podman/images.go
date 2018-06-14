@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type imagesOptions struct {
 	format       string
 	outputformat string
 	sort         string
+	all          bool
 }
 
 // Type declaration and functions for sorting the images output
@@ -178,6 +180,7 @@ func imagesCmd(c *cli.Context) error {
 		digests:   c.Bool("digests"),
 		format:    c.String("format"),
 		sort:      c.String("sort"),
+		all:       c.Bool("all"),
 	}
 
 	opts.outputformat = opts.setOutputFormat()
@@ -256,8 +259,14 @@ func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput imagesSorted) {
+func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions, storageLayers []storage.Layer) (imagesOutput imagesSorted) {
 	for _, img := range images {
+		// If all is false and the image doesn't have a name, check to see if the top layer of the image is a parent
+		// to another image's top layer. If it is, then it is an intermediate image so don't print out if the --all flag
+		// is not set.
+		if !opts.all && len(img.Names()) == 0 && !layerIsLeaf(storageLayers, img.TopLayer()) {
+			continue
+		}
 		createdTime := img.Created()
 
 		imageID := "sha256:" + img.ID()
@@ -316,13 +325,17 @@ func generateImagesOutput(ctx context.Context, runtime *libpod.Runtime, images [
 		return nil
 	}
 	var out formats.Writer
+	storageLayers, err := runtime.GetLayers()
+	if err != nil {
+		return errors.Wrap(err, "error getting layers from store")
+	}
 
 	switch opts.format {
 	case formats.JSONString:
 		imagesOutput := getImagesJSONOutput(ctx, runtime, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
-		imagesOutput := getImagesTemplateOutput(ctx, runtime, images, opts)
+		imagesOutput := getImagesTemplateOutput(ctx, runtime, images, opts, storageLayers)
 		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: imagesOutput[0].HeaderMap()}
 	}
 	return formats.Writer(out).Out()
@@ -377,4 +390,15 @@ func CreateFilterFuncs(ctx context.Context, r *libpod.Runtime, c *cli.Context, i
 		filterFuncs = append(filterFuncs, image.OutputImageFilter(img))
 	}
 	return filterFuncs, nil
+}
+
+// layerIsLeaf goes through the layers in the store and checks if "layer" is
+// the parent of any other layer in store.
+func layerIsLeaf(storageLayers []storage.Layer, layer string) bool {
+	for _, storeLayer := range storageLayers {
+		if storeLayer.Parent == layer {
+			return false
+		}
+	}
+	return true
 }
