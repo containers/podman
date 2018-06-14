@@ -89,6 +89,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps last flag", func() {
+		Skip("--last flag nonfunctional and disabled")
+
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
