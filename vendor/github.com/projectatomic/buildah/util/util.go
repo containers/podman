@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 
@@ -232,4 +233,13 @@ func WriteError(w io.Writer, err error, lastError error) error {
 		fmt.Fprintln(w, lastError)
 	}
 	return err
+}
+
+// Runtime is the default command to use to run the container.
+func Runtime() string {
+	runtime := os.Getenv("BUILDAH_RUNTIME")
+	if runtime != "" {
+		return runtime
+	}
+	return DefaultRuntime
 }

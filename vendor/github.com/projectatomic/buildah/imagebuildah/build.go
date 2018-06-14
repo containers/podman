@@ -34,7 +34,6 @@ const (
 	PullIfMissing       = buildah.PullIfMissing
 	PullAlways          = buildah.PullAlways
 	PullNever           = buildah.PullNever
-	DefaultRuntime      = buildah.DefaultRuntime
 	OCIv1ImageFormat    = buildah.OCIv1ImageManifest
 	Dockerv2ImageFormat = buildah.Dockerv2ImageManifest
 
@@ -148,6 +147,12 @@ type BuildOptions struct {
 	// NoCache tells the builder to build the image from scratch without checking for a cache.
 	// It creates a new set of cached images for the build.
 	NoCache bool
+	// RemoveIntermediateCtrs tells the builder whether to remove intermediate containers used
+	// during the build process. Default is true.
+	RemoveIntermediateCtrs bool
+	// ForceRmIntermediateCtrs tells the builder to remove all intermediate containers even if
+	// the build was unsuccessful.
+	ForceRmIntermediateCtrs bool
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -197,6 +202,8 @@ type Executor struct {
 	layers                         bool
 	topLayers                      []string
 	noCache                        bool
+	removeIntermediateCtrs         bool
+	forceRmIntermediateCtrs        bool
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -522,35 +529,37 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		registry:                       options.Registry,
 		transport:                      options.Transport,
 		ignoreUnrecognizedInstructions: options.IgnoreUnrecognizedInstructions,
-		quiet:                 options.Quiet,
-		runtime:               options.Runtime,
-		runtimeArgs:           options.RuntimeArgs,
-		transientMounts:       options.TransientMounts,
-		compression:           options.Compression,
-		output:                options.Output,
-		outputFormat:          options.OutputFormat,
-		additionalTags:        options.AdditionalTags,
-		signaturePolicyPath:   options.SignaturePolicyPath,
-		systemContext:         options.SystemContext,
-		volumeCache:           make(map[string]string),
-		volumeCacheInfo:       make(map[string]os.FileInfo),
-		log:                   options.Log,
-		out:                   options.Out,
-		err:                   options.Err,
-		reportWriter:          options.ReportWriter,
-		namespaceOptions:      options.NamespaceOptions,
-		configureNetwork:      options.ConfigureNetwork,
-		cniPluginPath:         options.CNIPluginPath,
-		cniConfigDir:          options.CNIConfigDir,
-		idmappingOptions:      options.IDMappingOptions,
-		commonBuildOptions:    options.CommonBuildOpts,
-		defaultMountsFilePath: options.DefaultMountsFilePath,
-		iidfile:               options.IIDFile,
-		squash:                options.Squash,
-		labels:                append([]string{}, options.Labels...),
-		annotations:           append([]string{}, options.Annotations...),
-		layers:                options.Layers,
-		noCache:               options.NoCache,
+		quiet:                   options.Quiet,
+		runtime:                 options.Runtime,
+		runtimeArgs:             options.RuntimeArgs,
+		transientMounts:         options.TransientMounts,
+		compression:             options.Compression,
+		output:                  options.Output,
+		outputFormat:            options.OutputFormat,
+		additionalTags:          options.AdditionalTags,
+		signaturePolicyPath:     options.SignaturePolicyPath,
+		systemContext:           options.SystemContext,
+		volumeCache:             make(map[string]string),
+		volumeCacheInfo:         make(map[string]os.FileInfo),
+		log:                     options.Log,
+		out:                     options.Out,
+		err:                     options.Err,
+		reportWriter:            options.ReportWriter,
+		namespaceOptions:        options.NamespaceOptions,
+		configureNetwork:        options.ConfigureNetwork,
+		cniPluginPath:           options.CNIPluginPath,
+		cniConfigDir:            options.CNIConfigDir,
+		idmappingOptions:        options.IDMappingOptions,
+		commonBuildOptions:      options.CommonBuildOpts,
+		defaultMountsFilePath:   options.DefaultMountsFilePath,
+		iidfile:                 options.IIDFile,
+		squash:                  options.Squash,
+		labels:                  append([]string{}, options.Labels...),
+		annotations:             append([]string{}, options.Annotations...),
+		layers:                  options.Layers,
+		noCache:                 options.NoCache,
+		removeIntermediateCtrs:  options.RemoveIntermediateCtrs,
+		forceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -679,6 +688,7 @@ func (b *Executor) Delete() (err error) {
 func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *parser.Node) error {
 	checkForLayers := true
 	children := node.Children
+	commitName := b.output
 	for i, node := range node.Children {
 		step := ib.Step()
 		if err := step.Resolve(node); err != nil {
@@ -699,6 +709,12 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 				return errors.Wrapf(err, "error building at step %+v", *step)
 			}
 			continue
+		}
+
+		if i < len(children)-1 {
+			b.output = ""
+		} else {
+			b.output = commitName
 		}
 
 		var (
@@ -740,9 +756,11 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 			// it is used to create the container for the next step.
 			imgID = cacheID
 		}
-		// Delete the intermediate container.
-		if err := b.Delete(); err != nil {
-			return errors.Wrap(err, "error deleting intermediate container")
+		// Delete the intermediate container if b.removeIntermediateCtrs is true.
+		if b.removeIntermediateCtrs {
+			if err := b.Delete(); err != nil {
+				return errors.Wrap(err, "error deleting intermediate container")
+			}
 		}
 		// Prepare for the next step with imgID as the new base image.
 		if i != len(children)-1 {
@@ -1048,7 +1066,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 		if err := stageExecutor.Prepare(ctx, stage.Builder, stage.Node, ""); err != nil {
 			return err
 		}
-		defer stageExecutor.Delete()
+		// Always remove the intermediate/build containers, even if the build was unsuccessful.
+		// If building with layers, remove all intermediate/build containers if b.forceRmIntermediateCtrs
+		// is true.
+		if b.forceRmIntermediateCtrs || (!b.layers && !b.noCache) {
+			defer stageExecutor.Delete()
+		}
 		if err := stageExecutor.Execute(ctx, stage.Builder, stage.Node); err != nil {
 			return err
 		}
@@ -1057,7 +1080,21 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 		return nil
 	}
 	_, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
-	return err
+	if err != nil {
+		return err
+	}
+	// If building with layers and b.removeIntermediateCtrs is true
+	// only remove intermediate container for each step if an error
+	// during the build process doesn't occur.
+	// If the build is unsuccessful, the container created at the step
+	// the failure happened will persist in the container store.
+	// This if condition will be false if not building with layers and
+	// the removal of intermediate/build containers will be handled by the
+	// defer statement above.
+	if b.removeIntermediateCtrs && (b.layers || b.noCache) {
+		return stageExecutor.Delete()
+	}
+	return nil
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
