@@ -620,7 +620,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			return err
 		}
 
-		err = allCtrsBucket.ForEach(func(id, name []byte) error {
+		return allCtrsBucket.ForEach(func(id, name []byte) error {
 			// If performance becomes an issue, this check can be
 			// removed. But the error messages that come back will
 			// be much less helpful.
@@ -637,7 +637,6 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 
 			return s.getContainerFromDB(id, ctr, ctrBucket)
 		})
-		return err
 	})
 	if err != nil {
 		return nil, err
