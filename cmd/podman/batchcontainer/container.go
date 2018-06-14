@@ -27,6 +27,7 @@ type PsOptions struct {
 	NoTrunc   bool
 	Quiet     bool
 	Size      bool
+	Sort      string
 	Label     string
 	Namespace bool
 }

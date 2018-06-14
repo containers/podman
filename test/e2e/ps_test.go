@@ -1,10 +1,12 @@
 package integration
 
 import (
-	"os"
-
 	"fmt"
+	"os"
+	"regexp"
+	"sort"
 
+	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -185,5 +187,61 @@ var _ = Describe("Podman ps", func() {
 		session = podmanTest.Podman([]string{"ps", "-a", "--ns", "-s"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman --sort by size", func() {
+		// these images chosen because their size would be sorted differently alphabetically vs
+		// by the size of their virtual fs
+		session := podmanTest.Podman([]string{"run", "docker.io/mattdm/fedora-small", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		podmanTest.RestoreArtifact(nginx)
+		session = podmanTest.Podman([]string{"run", "-dt", "-P", "docker.io/library/nginx:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--sort=size", "--format", "{{.Size}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		sortedArr := session.OutputToStringArray()
+
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool {
+			r := regexp.MustCompile(`^\S+\s+\(virtual (\S+)\)`)
+			matches1 := r.FindStringSubmatch(sortedArr[i])
+			matches2 := r.FindStringSubmatch(sortedArr[j])
+
+			// sanity check in case an oddly formatted size appears
+			if len(matches1) < 2 || len(matches2) < 2 {
+				return sortedArr[i] < sortedArr[j]
+			} else {
+				size1, _ := units.FromHumanSize(matches1[1])
+				size2, _ := units.FromHumanSize(matches2[1])
+				return size1 < size2
+			}
+		})).To(BeTrue())
+
+	})
+
+	It("podman --sort by command", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		podmanTest.RestoreArtifact(nginx)
+		session = podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "pwd"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--sort=command", "--format", "{{.Command}}"})
+
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		sortedArr := session.OutputToStringArray()
+
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+
 	})
 })

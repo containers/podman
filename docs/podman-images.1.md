@@ -42,7 +42,7 @@ Lists only the image IDs.
 
 **--sort**
 
-Sort by id, repository, size, tag or time (default: time)
+Sort by created, id, repository, size or tag (default: created)
 
 ## EXAMPLE
 
