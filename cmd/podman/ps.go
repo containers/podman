@@ -199,20 +199,30 @@ func psCmd(c *cli.Context) error {
 		}
 	}
 
-	containers, err := runtime.GetContainers(filterFuncs...)
-	if err != nil {
-		return err
-	}
-
-	// TODO: Latest and Last are broken right now due to lack of container
-	// ordering
 	var outputContainers []*libpod.Container
-	if opts.Latest && len(containers) > 0 {
-		outputContainers = append(outputContainers, containers[0])
-	} else if opts.Last > 0 && opts.Last <= len(containers) {
-		outputContainers = append(outputContainers, containers[:opts.Last]...)
+
+	if !opts.Latest {
+		// Get all containers
+		containers, err := runtime.GetContainers(filterFuncs...)
+		if err != nil {
+			return err
+		}
+
+		// We only want the last few containers
+		if opts.Last > 0 && opts.Last <= len(containers) {
+			return errors.Errorf("--last not yet supported")
+		} else {
+			outputContainers = containers
+		}
 	} else {
-		outputContainers = containers
+		// Get just the latest container
+		// Ignore filters
+		latestCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return err
+		}
+
+		outputContainers = []*libpod.Container{latestCtr}
 	}
 
 	return generatePsOutput(outputContainers, opts)
