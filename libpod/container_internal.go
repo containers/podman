@@ -655,7 +655,7 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
-	return c.cleanupStorage()
+	return c.cleanup()
 }
 
 // mountStorage sets up the container's root filesystem
