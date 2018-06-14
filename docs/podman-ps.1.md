@@ -32,16 +32,20 @@ all the containers information.  By default it lists:
 ## OPTIONS
 
 **--all, -a**
-    Show all the containers, default is only running containers
+
+Show all the containers, default is only running containers
 
 **--no-trunc**
-    Display the extended information
+
+Display the extended information
 
 **--quiet, -q**
-    Print the numeric IDs of the containers only
+
+Print the numeric IDs of the containers only
 
 **--format**
-    Pretty-print containers to JSON or using a Go template
+
+Pretty-print containers to JSON or using a Go template
 
 Valid placeholders for the Go template are listed below:
 
@@ -61,19 +65,24 @@ Valid placeholders for the Go template are listed below:
 
 
 **--size, -s**
-    Display the total file size
+
+Display the total file size
 
 **--last, -n**
-    Print the n last created containers (all states)
+
+Print the n last created containers (all states)
 
 **--latest, -l**
-    show the latest container created (all states)
+
+Show the latest container created (all states)
 
 **--namespace, --ns**
-    Display namespace information
+
+Display namespace information
 
 **--filter, -f**
-    Filter output based on conditions given
+
+Filter output based on conditions given
 
 Valid filters are listed below:
 

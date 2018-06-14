@@ -25,9 +25,11 @@ Note: `:` is a restricted character and cannot be part of the file name.
 ## OPTIONS
 
 **--input, -i**
+
 Read from archive file, default is STDIN
 
 **--quiet, -q**
+
 Suppress the output
 
 **--signature-policy="PATHNAME"**

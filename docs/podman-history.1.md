@@ -40,16 +40,20 @@ Valid placeholders for the Go template are listed below:
 ## OPTIONS
 
 **--human, -H**
-    Display sizes and dates in human readable format
+
+Display sizes and dates in human readable format
 
 **--no-trunc**
-    Do not truncate the output
+
+Do not truncate the output
 
 **--quiet, -q**
-    Print the numeric IDs only
+
+Print the numeric IDs only
 
 **--format**
-    Alter the output for a format like 'json' or a Go template.
+
+Alter the output for a format like 'json' or a Go template.
 
 
 ## EXAMPLES

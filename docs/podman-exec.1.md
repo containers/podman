@@ -13,24 +13,30 @@ podman\-exec - Execute a command in a running container
 **podman exec** executes a command in a running container.
 
 ## OPTIONS
-**--env, e**
+**--env, -e**
+
 You may specify arbitrary environment variables that are available for the
 command to be executed.
 
 **--interactive, -i**
+
 Not supported.  All exec commands are interactive by default.
 
 **--latest, -l**
+
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started  container could be from either of those methods.
 
 **--privileged**
+
 Give the process extended Linux capabilities when running the command in container.
 
 **--tty, -t**
+
 Allocate a pseudo-TTY.
 
 **--user, -u**
+
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]

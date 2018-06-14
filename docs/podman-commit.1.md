@@ -20,16 +20,18 @@ If *imageName* does not begin with a registry name component, *localhost* will b
 ## OPTIONS
 
 **--author, -a**
+
 Set the author for the committed image
 
 **--change, -c**
+
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **ONBUILD** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
-
 
 Can be set multiple times
 
 **--format, -f**
+
 Set the format of the image manifest and metadata.  The currently supported formats are _oci_ and _docker_.  If
 not specifically set, the default format used is _oci_.
 
@@ -38,12 +40,15 @@ not specifically set, the default format used is _oci_.
 Write the image ID to the file.
 
 **--message, -m**
+
 Set commit message for committed image.  The message field is not supported in _oci_ format.
 
 **--pause, -p**
+
 Pause the container when creating an image
 
 **--quiet, -q**
+
 Suppress output
 
 ## EXAMPLES

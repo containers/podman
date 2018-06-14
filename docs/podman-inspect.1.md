@@ -23,6 +23,7 @@ Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
 **--latest, -l**
+
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 

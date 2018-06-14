@@ -20,7 +20,9 @@ with systemd.  See _Configuration_ below.
   Print usage statement
 
 ## OPTIONS
-**--timeout, -t** The time until the varlink session expires in _milliseconds_. The default is 1
+**--timeout, -t**
+
+The time until the varlink session expires in _milliseconds_. The default is 1
 second. A value of `0` means no timeout and the session will not expire.
 
 ## EXAMPLES
