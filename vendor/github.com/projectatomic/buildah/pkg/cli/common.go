@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/util"
 	"github.com/urfave/cli"
 )
 
 var (
+	runtime     = util.Runtime()
 	usernsFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "userns",
@@ -109,7 +109,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "force-rm",
-			Usage: "Always remove intermediate containers after a build. The build process does not currently support caching so this is a NOOP.",
+			Usage: "Always remove intermediate containers after a build, even if the build is unsuccessful.",
 		},
 		cli.StringFlag{
 			Name:  "format",
@@ -147,14 +147,14 @@ var (
 			Name:  "quiet, q",
 			Usage: "refrain from announcing build instructions and image read/write progress",
 		},
-		cli.BoolFlag{
+		cli.BoolTFlag{
 			Name:  "rm",
-			Usage: "Remove intermediate containers after a successful build. The build process does not currently support caching so this is a NOOP.",
+			Usage: "Remove intermediate containers after a successful build (default true)",
 		},
 		cli.StringFlag{
 			Name:  "runtime",
 			Usage: "`path` to an alternate runtime",
-			Value: buildah.DefaultRuntime,
+			Value: runtime,
 		},
 		cli.StringSliceFlag{
 			Name:  "runtime-flag",
