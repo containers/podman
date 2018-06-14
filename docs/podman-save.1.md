@@ -32,9 +32,11 @@ Compress tarball image layers when pushing to a directory using the 'dir' transp
 Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format-docker-dir
 
 **--output, -o**
+
 Write to a file, default is STDOUT
 
 **--format**
+
 Save image to **oci-archive**, **oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type)
 ```
 --format oci-archive
@@ -43,6 +45,7 @@ Save image to **oci-archive**, **oci-dir** (directory with oci manifest type), o
 ```
 
 **--quiet, -q**
+
 Suppress the output
 
 ## EXAMPLES

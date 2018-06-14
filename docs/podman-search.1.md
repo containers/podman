@@ -30,14 +30,17 @@ using the **--filter** flag.
 ## OPTIONS
 
 **--filter, -f**
+
 Filter output based on conditions provided (default [])
 
 Supported filters are:
-- stars (int - number of stars the image has)
-- is-automated (boolean - true | false) - is the image automated or not
-- is-official (boolean - true | false) - is the image official or not
+
+* stars (int - number of stars the image has)
+* is-automated (boolean - true | false) - is the image automated or not
+* is-official (boolean - true | false) - is the image official or not
 
 **--format**
+
 Change the output format to a Go template
 
 Valid placeholders for the Go template are listed below:
@@ -52,6 +55,7 @@ Valid placeholders for the Go template are listed below:
 | .Automated      | "[OK]" if image is automated |
 
 **--limit**
+
 Limit the number of results
 Note: The results from each registry will be limited to this value.
 Example if limit is 10 and two registries are being searched, the total
@@ -59,9 +63,11 @@ number of results will be 20, 10 from each (if there are at least 10 matches in 
 The order of the search results is the order in which the API endpoint returns the results.
 
 **--no-trunc**
+
 Do not truncate the output
 
 **--registry**
+
 Specific registry to search (only the given registry will be searched, not the default registries)
 
 ## EXAMPLES

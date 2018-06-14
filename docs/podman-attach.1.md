@@ -15,17 +15,21 @@ sequence is CTRL-p CTRL-q. You configure the key sequence using the --detach-key
 
 ## OPTIONS
 **--detach-keys**
+
 Override the key sequence for detaching a container. Format is a single character [a-Z] or
-ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _.
+ctrl-[value] where [value] is one of: a-z, @, ^, [, , or _.
 
 **--latest, -l**
+
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 **--no-stdin**
+
 Do not attach STDIN. The default is false.
 
 **--sig-proxy**=*true*|*false*
+
 Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
 
 ## EXAMPLES ##

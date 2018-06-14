@@ -27,14 +27,17 @@ Note: `:` is a restricted character and cannot be part of the file name.
 ## OPTIONS
 
 **--change, -c**
+
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 Can be set multiple times
 
 **--message, -m**
+
 Set commit message for imported image
 
 **--quiet, -q**
+
 Shows progress on the import
 
 ## EXAMPLES
