@@ -74,6 +74,11 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	// RESOURCES - MEMORY
 	if config.Resources.Memory != 0 {
 		g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
+		// If a swap limit is not explicitly set, also set a swap limit
+		// Default to double the memory limit
+		if config.Resources.MemorySwap == 0 {
+			g.SetLinuxResourcesMemorySwap(2 * config.Resources.Memory)
+		}
 	}
 	if config.Resources.MemoryReservation != 0 {
 		g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
