@@ -200,6 +200,12 @@ func psCmd(c *cli.Context) error {
 	}
 
 	containers, err := runtime.GetContainers(filterFuncs...)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Latest and Last are broken right now due to lack of container
+	// ordering
 	var outputContainers []*libpod.Container
 	if opts.Latest && len(containers) > 0 {
 		outputContainers = append(outputContainers, containers[0])
