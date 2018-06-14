@@ -100,7 +100,7 @@ var _ = Describe("Podman images", func() {
 	It("podman images filter before image", func() {
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -114,7 +114,7 @@ var _ = Describe("Podman images", func() {
 
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "after=docker.io/library/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -124,8 +124,8 @@ var _ = Describe("Podman images", func() {
 	It("podman images filter dangling", func() {
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest")
-		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -164,5 +164,23 @@ var _ = Describe("Podman images", func() {
 			size2, _ := units.FromHumanSize(sortedArr[j])
 			return size1 < size2
 		})).To(BeTrue())
+	})
+
+	It("podman images --all flag", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest
+RUN mkdir hello
+RUN touch test.txt
+ENV foo=bar
+`
+		podmanTest.BuildImage(dockerfile, "test", "true")
+		session := podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(4))
+
+		session2 := podmanTest.Podman([]string{"images", "--all"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+		Expect(len(session2.OutputToStringArray())).To(Equal(6))
 	})
 })
