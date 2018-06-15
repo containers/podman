@@ -1,3 +1,38 @@
+- Changelog for v0.6.3 (2018-06-15)
+  * spec: remove dead code
+  * test: add test for running a rootless container
+  * container: specify path to error message
+  * podman: use a different store for the rootless case
+  * container: do not set any mapping when using a rootfs
+  * podman: do not use Chown in rootless mode
+  * network: do not attempt to create a network in rootless mode
+  * oci: do not set resources in rootless mode
+  * oci: do not use hooks in rootless mode
+  * oci: do not set the cgroup path in Rootless mode
+  * spec: change mount options for /dev/pts in rootless mode
+  * container: do not add shm in rootless mode
+  * oci: pass XDG_RUNTIME_DIR down to the OCI runtime
+  * podman: allow to override Tmpdir
+  * podman: provide a default UID mapping when non root
+  * podman: accept option --rootfs to use exploded images
+  * When setting a memory limit, also set a swap limit
+  * Fix cleaning up network namespaces on detached ctrs
+  * Vendor in latest projectatomic/buildah
+  * Temporarily turn of ps --last test until fixed
+  * Implement --latest for ps
+  * Correctly report errors retrieving containers in ps
+  * Doc changes to fix alignment on most of the docs
+  * Added --sort flag to podman image
+  * add podman container and image command
+  * Vendor in latest buildah code
+  * rmi: remove image if all tags are specified
+  * Aliases do not work with IsSet
+  * Touchups for registries.conf across a few man pages
+  * Remove container from state before cleaning up.
+  * hack/release.sh: Add a guard against -dev suffixes for argv[2]
+  * Bump gitvalidation epoch
+  * Bump to v0.6.3-dev
+
 - Changelog for v0.6.2 (2018-06-08)
   * Test to make sure we are getting proper exit codes on podman run
   * Propegate exit code on Exec calls and integrated test
