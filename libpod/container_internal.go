@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -520,7 +519,7 @@ func (c *Container) init(ctx context.Context) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c); err != nil {
 		return err
 	}
 
@@ -736,34 +735,42 @@ func (c *Container) prepare() (err error) {
 		}
 	}
 
+	// Create the container's cgroup, if necessary
+	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		cgroupPath, err := c.CgroupBasePath()
+		if err != nil {
+			return err
+		}
+
+		if err := createSystemdCgroup(cgroupPath); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 // cleanupCgroup cleans up residual CGroups after container execution
 // This is a no-op for the systemd cgroup driver
 func (c *Container) cleanupCgroups() error {
-	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
-		return nil
-	}
-
-	// Remove the base path of the container's cgroups
-	path := filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()))
-
-	logrus.Debugf("Removing CGroup %s", path)
-
-	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	cgroupPath, err := c.CgroupBasePath()
 	if err != nil {
-		// It's fine for the cgroup to not exist
-		// We want it gone, it's gone
-		if err == cgroups.ErrCgroupDeleted {
-			return nil
-		}
-
 		return err
 	}
 
-	if err := cgroup.Delete(); err != nil {
-		return err
+	logrus.Debugf("Removing CGroup %s", cgroupPath)
+
+	switch c.runtime.config.CgroupManager {
+	case SystemdCgroupsManager:
+		if err := deleteSystemdCgroup(cgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing container %s cgroup", c.ID())
+		}
+	case CgroupfsCgroupsManager:
+		if err := deleteCgroupfsCgroup(cgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing container %s cgroup", c.ID())
+		}
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", c.runtime.config.CgroupManager)
 	}
 
 	return nil
@@ -1118,7 +1125,6 @@ func (c *Container) generateHosts() (string, error) {
 }
 
 // Generate spec for a container
-// Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g := generate.NewFromSpec(c.config.Spec)
 
@@ -1262,11 +1268,17 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
-		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
+		// Our slice is the cgroup base path
+		basePath, err := c.CgroupBasePath()
+		if err != nil {
+			return nil, err
+		}
+
+		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(basePath), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		g.SetLinuxCgroupsPath(systemdCgroups)
 	} else {
-		cgroupPath, err := c.CGroupPath()
+		cgroupPath, err := c.CgroupPath()
 		if err != nil {
 			return nil, err
 		}

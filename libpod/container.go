@@ -856,13 +856,51 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, ns.String()), nil
 }
 
-// CGroupPath returns a cgroups "path" for a given container.
-func (c *Container) CGroupPath() (string, error) {
+// CgroupBasePath returns the base CGroup path for a container
+// This CGroup contains both the container and conmon, each in separate child
+// cgroups
+func (c *Container) CgroupBasePath() (string, error) {
 	switch c.runtime.config.CgroupManager {
 	case CgroupfsCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()), "ctr"), nil
+		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
 	case SystemdCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
+		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s.slice", c.ID())), nil
+	default:
+		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+	}
+}
+
+// CgroupConmonPath returns the path for the container's Conmon cgroup
+// The conmon cgroup is guaranteed to be a child of CgroupBasePath
+func (c *Container) CgroupConmonPath() (string, error) {
+	baseCgroup, err := c.CgroupBasePath()
+	if err != nil {
+		return "", err
+	}
+
+	switch c.runtime.config.CgroupManager {
+	case CgroupfsCgroupsManager:
+		return filepath.Join(baseCgroup, "conmon"), nil
+	case SystemdCgroupsManager:
+		return filepath.Join(baseCgroup, "conmon.scope"), nil
+	default:
+		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+	}
+}
+
+// CgroupPath returns the path to the container's cgroup
+// The container cgroup is guaranteed to be a child of CgroupBasePath
+func (c *Container) CgroupPath() (string, error) {
+	baseCgroup, err := c.CgroupBasePath()
+	if err != nil {
+		return "", err
+	}
+
+	switch c.runtime.config.CgroupManager {
+	case CgroupfsCgroupsManager:
+		return filepath.Join(baseCgroup, "ctr"), nil
+	case SystemdCgroupsManager:
+		return filepath.Join(baseCgroup, fmt.Sprintf("libpod-%s.scope", c.ID())), nil
 	default:
 		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
 	}

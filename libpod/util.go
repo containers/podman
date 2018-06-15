@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -120,4 +121,58 @@ func WaitForFile(path string, timeout time.Duration) error {
 		close(chControl)
 		return errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
+}
+
+// Create a systemd cgroup at the given path
+// Will not error if the path already exists
+func createSystemdCgroup(path string) error {
+	systemdController, err := cgroups.NewSystemd("/")
+	if err != nil {
+		return err
+	}
+
+	if err := systemdController.Create(path, &spec.LinuxResources{}); err != nil {
+		// This is gross, but systemd doesn't hand back full Go
+		// errors, so it's all we have
+		if strings.Contains(err.Error(), "already exists") {
+			return nil
+		}
+
+		return errors.Wrapf(err, "error creating cgroup %s", path)
+	}
+
+	return nil
+}
+
+// Remove a systemd cgroup at the given path
+// Will not error if the path does not exist (has already been removed)
+func deleteSystemdCgroup(path string) error {
+	systemdController, err := cgroups.NewSystemd("/")
+	if err != nil {
+		return err
+	}
+
+	// This seems to not error if the given cgroup doesn't exist
+	// All the better for us, since we don't really want to error in
+	// that case
+	if err := systemdController.Delete(path); err != nil {
+		return errors.Wrapf(err, "error deleting cgroup %s", path)
+	}
+
+	return nil
+}
+
+// Remove a cgroupfs cgroup at the given path
+// Will not error if the path does not exist (has already been removed)
+func deleteCgroupfsCgroup(path string) error {
+	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(path))
+	if err != nil && err != cgroups.ErrCgroupDeleted {
+		return err
+	}
+
+	if err := cgroup.Delete(); err != nil {
+		return errors.Wrapf(err, "error deleting cgroup %s", path)
+	}
+
+	return nil
 }

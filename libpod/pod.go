@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -134,23 +135,54 @@ func (p *Pod) refresh() error {
 		return ErrPodRemoved
 	}
 
-	// We need to recreate the pod's cgroup
 	if p.config.UsePodCgroup {
-		switch p.runtime.config.CgroupManager {
-		case SystemdCgroupsManager:
-			// NOOP for now, until proper systemd cgroup management
-			// is implemented
-		case CgroupfsCgroupsManager:
-			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
-
-			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
-		default:
-			return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+		if err := p.makePodCgroup(); err != nil {
+			return err
 		}
 	}
 
-	// Save changes
 	return p.save()
+}
+
+// Make a pod's cgroup
+func (p *Pod) makePodCgroup() error {
+	switch p.runtime.config.CgroupManager {
+	case SystemdCgroupsManager:
+		p.state.CgroupPath = filepath.Join(p.config.CgroupParent, fmt.Sprintf("libpod-%s", p.ID()))
+		if err := createSystemdCgroup(p.state.CgroupPath); err != nil {
+			return err
+		}
+	case CgroupfsCgroupsManager:
+		p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+	}
+
+	logrus.Debugf("Setting pod cgroup to %s", p.state.CgroupPath)
+
+	return nil
+}
+
+// Remove a pod's cgroup
+func (p *Pod) removePodCgroup() error {
+	logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
+
+	switch p.runtime.config.CgroupManager {
+	case SystemdCgroupsManager:
+		if err := deleteSystemdCgroup(p.state.CgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+		}
+	case CgroupfsCgroupsManager:
+		if err := deleteCgroupfsCgroup(p.state.CgroupPath); err != nil {
+			return errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+		}
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+	}
+
+	p.state.CgroupPath = ""
+
+	return nil
 }
 
 // Start starts all containers within a pod

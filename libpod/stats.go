@@ -43,7 +43,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		return stats, nil
 	}
 
-	cgroupPath, err := c.CGroupPath()
+	cgroupPath, err := c.CgroupPath()
 	if err != nil {
 		return nil, err
 	}

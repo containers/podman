@@ -120,11 +120,6 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-// Create systemd unit name for cgroup scopes
-func createUnitName(prefix string, name string) string {
-	return fmt.Sprintf("%s-%s.scope", prefix, name)
-}
-
 // Wait for a container which has been sent a signal to stop
 func waitContainerStop(ctr *Container, timeout time.Duration) error {
 	done := make(chan struct{})
@@ -191,10 +186,10 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container) (err error) {
 	if ctr.state.UserNSRoot == "" {
 		// no need of an intermediate mount ns
-		return r.createOCIContainer(ctr, cgroupParent)
+		return r.createOCIContainer(ctr)
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -231,14 +226,14 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 		if err != nil {
 			return
 		}
-		err = r.createOCIContainer(ctr, cgroupParent)
+		err = r.createOCIContainer(ctr)
 	}()
 	wg.Wait()
 
 	return err
 }
 
-func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (err error) {
+func (r *OCIRuntime) createOCIContainer(ctr *Container) (err error) {
 	var stderrBuf bytes.Buffer
 
 	parentPipe, childPipe, err := newPipe()
@@ -349,22 +344,29 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 
 	// Move conmon to specified cgroup
 	if r.cgroupManager == SystemdCgroupsManager {
-		unitName := createUnitName("libpod-conmon", ctr.ID())
-
-		logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, unitName)
-		if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, unitName); err != nil {
-			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+		unitName := "conmon.scope"
+		baseCgroup, err := ctr.CgroupBasePath()
+		if err != nil {
+			logrus.Errorf("Error retrieving base CGroup for container %s: %v", ctr.ID(), err)
+		} else {
+			logrus.Infof("Running conmon under slice %s and unitName %s", baseCgroup, unitName)
+			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, baseCgroup, unitName); err != nil {
+				logrus.Warnf("Failed to add conmon to systemd cgroup: %v", err)
+			}
 		}
 	} else {
-		cgroupPath := filepath.Join(ctr.config.CgroupParent, fmt.Sprintf("libpod-%s", ctr.ID()), "conmon")
-		control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
+		cgroupPath, err := ctr.CgroupConmonPath()
 		if err != nil {
-			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			logrus.Warnf("Error retrieving conmon CGroup for container %s: %v", ctr.ID(), err)
 		} else {
-			// we need to remove this defer and delete the cgroup once conmon exits
-			// maybe need a conmon monitor?
-			if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			logrus.Infof("Running conmon in CGroup %s", cgroupPath)
+			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
+			if err != nil {
+				logrus.Warnf("Failed to retrieve conmon cgroup for container %s: %v", ctr.ID(), err)
+			} else {
+				if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				}
 			}
 		}
 	}
