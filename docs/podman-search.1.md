@@ -73,8 +73,9 @@ Specific registry to search (only the given registry will be searched, not the d
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then tls verification will be used, If set to false then tls verification will not be used. If not specified
-both insecured and default registries will be searched through, and tls will be used when possible.
+then tls verification will be used. If set to false then tls verification will not be used if needed. If not specified
+default registries will be searched through (in /etc/containers/registries.conf), and tls will be skipped if a default
+registry is listed in the insecure registries.
 
 ## EXAMPLES
 
