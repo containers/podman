@@ -61,7 +61,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 	// https://github.com/containernetworking/plugins/pull/75
 	if resultStruct.IPs != nil {
 		for _, ip := range resultStruct.IPs {
-			iptablesDNS("-I", ip.Address.IP.String())
+			if ip.Address.IP.To4() != nil {
+				iptablesDNS("-I", ip.Address.IP.String())
+			}
 		}
 	}
 	return nil
@@ -173,7 +175,9 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	// on cleanup. Remove when https://github.com/containernetworking/plugins/pull/75
 	// is merged.
 	for _, ip := range ctr.state.IPs {
-		iptablesDNS("-D", ip.Address.IP.String())
+		if ip.Address.IP.To4() != nil {
+			iptablesDNS("-D", ip.Address.IP.String())
+		}
 	}
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
