@@ -152,6 +152,10 @@ type containerState struct {
 	// Only populated if we created a network namespace for the container,
 	// and the network namespace is currently active
 	IPs []*cnitypes.IPConfig `json:"ipAddresses,omitempty"`
+	// Interfaces contains interface information about the container
+	// Only populated if we created a network namespace for the container,
+	// and the network namespace is currently active
+	Interfaces []*cnitypes.Interface `json:"interfaces,omitempty"`
 	// Routes contains network routes present in the container
 	// Only populated if we created a network namespace for the container,
 	// and the network namespace is currently active

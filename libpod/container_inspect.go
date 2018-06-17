@@ -128,6 +128,13 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 
 		// Set network namespace path
 		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
+
+		// Set MAC address of interface linked with network namespace path
+		for _, i := range c.state.Interfaces {
+			if i.Sandbox == data.NetworkSettings.SandboxKey {
+				data.NetworkSettings.MacAddress = i.Mac
+			}
+		}
 	}
 
 	if size {

@@ -179,6 +179,7 @@ func (s *BoltState) Refresh() error {
 			state.State = ContainerStateConfigured
 			state.ExecSessions = make(map[string]*ExecSession)
 			state.IPs = nil
+			state.Interfaces = nil
 			state.Routes = nil
 			state.BindMounts = make(map[string]string)
 
