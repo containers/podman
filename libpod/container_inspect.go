@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -97,11 +98,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			SecondaryIPv6Addresses: nil,                    // TODO - do we support this?
 			EndpointID:             "",                     // TODO - is this even relevant?
 			Gateway:                "",                     // TODO
-			GlobalIPv6Addresses:    []string{},             // TODO - do we even support IPv6?
-			GlobalIPv6PrefixLen:    0,                      // TODO - do we even support IPv6?
-			IPAddress:              nil,
-			IPPrefixLen:            0,  // TODO
-			IPv6Gateway:            "", // TODO - do we even support IPv6?
+			GlobalIPv6Address:      "",
+			GlobalIPv6PrefixLen:    0,
+			IPAddress:              "",
+			IPPrefixLen:            0,
+			IPv6Gateway:            "",
 			MacAddress:             "", // TODO
 		},
 	}
@@ -114,17 +115,20 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	// Get information on the container's network namespace (if present)
 	if runtimeInfo.NetNS != nil {
 		// Go through our IP addresses
-		ctrIPs := []string{}
-
 		for _, ctrIP := range c.state.IPs {
+			ipWithMask := ctrIP.Address.String()
+			splitIP := strings.Split(ipWithMask, "/")
+			mask, _ := strconv.Atoi(splitIP[1])
 			if ctrIP.Version == "4" {
-				ipWithMask := ctrIP.Address.String()
-				splitIP := strings.Split(ipWithMask, "/")
-				ctrIPs = append(ctrIPs, splitIP[0])
+				data.NetworkSettings.IPAddress = splitIP[0]
+				data.NetworkSettings.IPPrefixLen = mask
+				data.NetworkSettings.Gateway = ctrIP.Gateway.String()
+			} else {
+				data.NetworkSettings.GlobalIPv6Address = splitIP[0]
+				data.NetworkSettings.GlobalIPv6PrefixLen = mask
+				data.NetworkSettings.IPv6Gateway = ctrIP.Gateway.String()
 			}
 		}
-
-		data.NetworkSettings.IPAddress = ctrIPs
 
 		// Set network namespace path
 		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
