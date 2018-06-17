@@ -55,6 +55,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 	ctr.state.NetNS = ctrNS
 	ctr.state.IPs = resultStruct.IPs
 	ctr.state.Routes = resultStruct.Routes
+	ctr.state.Interfaces = resultStruct.Interfaces
 
 	// We need to temporarily use iptables to allow the container
 	// to resolve DNS until this issue is fixed upstream.
