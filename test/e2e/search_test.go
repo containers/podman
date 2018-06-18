@@ -29,6 +29,13 @@ var _ = Describe("Podman search", func() {
     # empty
 	[registries.insecure]
 	registries = []`
+
+	const regFileContents2 = `
+	[registries.search]
+	registries = ['localhost:5000', 'localhost:6000']
+
+	[registries.insecure]
+	registries = ['localhost:5000']`
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
@@ -230,6 +237,44 @@ var _ = Describe("Podman search", func() {
 		ioutil.WriteFile(outfile, regFileBytes, 0644)
 
 		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "my-alpine"})
+		search.WaitWithDefaultTimeout()
+
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(search.OutputToString()).Should(BeEmpty())
+		match, _ := search.ErrorGrepString("error")
+		Expect(match).Should(BeTrue())
+
+		// cleanup
+		os.Setenv("REGISTRIES_CONFIG_PATH", "")
+	})
+
+	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry7", "registry:2"})
+		registry.WaitWithDefaultTimeout()
+		Expect(registry.ExitCode()).To(Equal(0))
+
+		if !WaitContainerReady(&podmanTest, "registry7", "listening on", 20, 1) {
+			Skip("Can not start docker registry.")
+		}
+
+		registry = podmanTest.Podman([]string{"run", "-d", "-p", "6000:5000", "--name", "registry8", "registry:2"})
+		registry.WaitWithDefaultTimeout()
+		Expect(registry.ExitCode()).To(Equal(0))
+
+		if !WaitContainerReady(&podmanTest, "registry8", "listening on", 20, 1) {
+			Skip("Can not start docker registry.")
+		}
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
+		push.WaitWithDefaultTimeout()
+		Expect(push.ExitCode()).To(Equal(0))
+
+		// registries.conf set up
+		regFileBytes := []byte(regFileContents2)
+		outfile := filepath.Join(podmanTest.TempDir, "registries.conf")
+		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
+		ioutil.WriteFile(outfile, regFileBytes, 0644)
+
+		search := podmanTest.Podman([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
