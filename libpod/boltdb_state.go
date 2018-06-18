@@ -7,6 +7,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // BoltState is a state implementation backed by a Bolt DB
@@ -455,7 +456,7 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		} else {
 			// Tear down the existing namespace
 			if err := s.runtime.teardownNetNS(ctr); err != nil {
-				return err
+				logrus.Warnf(err.Error())
 			}
 
 			// Open the new network namespace
@@ -469,7 +470,7 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		// The container no longer has a network namespace
 		// Tear down the old one
 		if err := s.runtime.teardownNetNS(ctr); err != nil {
-			return err
+			logrus.Warnf(err.Error())
 		}
 	}
 
