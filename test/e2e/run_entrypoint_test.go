@@ -33,7 +33,7 @@ var _ = Describe("Podman run entrypoint", func() {
 ENTRYPOINT []
 CMD []
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
@@ -43,7 +43,7 @@ CMD []
 		dockerfile := `FROM docker.io/library/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -55,7 +55,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -67,7 +67,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 CMD [ "-v"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -78,7 +78,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		dockerfile := `FROM docker.io/library/alpine:latest
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -90,7 +90,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "--entrypoint=uname", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -102,7 +102,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 CMD ["-i"]
 ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 `
-		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest")
+		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "--entrypoint=uname", "foobar.com/entrypoint:latest", "-r"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
