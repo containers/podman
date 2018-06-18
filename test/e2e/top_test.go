@@ -59,7 +59,14 @@ var _ = Describe("Podman top", func() {
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
 	})
 
+	//      XXX(ps-issue): for the time being, podman-top and the libpod API
+	//      GetContainerPidInformation(...) will ignore any arguments passed to ps,
+	//      so we have to disable the tests below.  Please refer to
+	//      https://github.com/projectatomic/libpod/pull/939 for more background
+	//      information.
+
 	It("podman top with options", func() {
+		Skip("podman-top with options: options are temporarily ignored")
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -71,6 +78,7 @@ var _ = Describe("Podman top", func() {
 	})
 
 	It("podman top on container invalid options", func() {
+		Skip("podman-top with invalid options: options are temporarily ignored")
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
 		Expect(top.ExitCode()).To(Equal(0))
