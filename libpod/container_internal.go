@@ -913,7 +913,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 				return err
 			}
 			for i, hook := range extensionHooks {
-				logrus.Debugf("container %s: invoke poststop hook %d", c.ID(), i)
+				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
 				if err != nil {
