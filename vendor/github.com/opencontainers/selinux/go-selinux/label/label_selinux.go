@@ -87,9 +87,6 @@ func FormatMountLabel(src, mountLabel string) string {
 // SetProcessLabel takes a process label and tells the kernel to assign the
 // label to the next program executed by the current process.
 func SetProcessLabel(processLabel string) error {
-	if processLabel == "" {
-		return nil
-	}
 	return selinux.SetExecLabel(processLabel)
 }
 
