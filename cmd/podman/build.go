@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -211,8 +212,8 @@ func buildCmd(c *cli.Context) error {
 		ForceRmIntermediateCtrs: c.Bool("force-rm"),
 	}
 
-	if !c.Bool("quiet") {
-		options.ReportWriter = os.Stderr
+	if c.Bool("quiet") {
+		options.ReportWriter = ioutil.Discard
 	}
 
 	return runtime.Build(getContext(), options, dockerfiles...)
