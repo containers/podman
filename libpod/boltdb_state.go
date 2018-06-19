@@ -461,10 +461,12 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 
 			// Open the new network namespace
 			ns, err := joinNetNS(netNSPath)
-			if err != nil {
-				return errors.Wrapf(err, "error joining network namespace for container %s", ctr.ID())
+			if err == nil {
+				newState.NetNS = ns
+			} else {
+				logrus.Errorf("error joining network namespace for container %s", ctr.ID())
+				ctr.valid = false
 			}
-			newState.NetNS = ns
 		}
 	} else {
 		// The container no longer has a network namespace
