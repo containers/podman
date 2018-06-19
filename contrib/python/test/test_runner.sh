@@ -13,13 +13,18 @@ if [[ ! -x ../../bin/podman ]]; then
 fi
 export PATH=../../bin:$PATH
 
+function usage {
+  echo 1>&2 $0 [-v] [-h] [test.TestCase|test.TestCase.step]
+}
+
 while getopts "vh" arg; do
   case $arg in
     v ) VERBOSE='-v' ;;
-    h ) echo >2 $0 [-v] [-h] [test.TestCase|test.TestCase.step] ; exit 2 ;;
+    h ) usage ; exit 0;;
+    \? ) usage ; exit 2;;
   esac
 done
-shift $((OPTIND-1))
+shift $((OPTIND -1))
 
 function cleanup {
   # aggressive cleanup as tests may crash leaving crap around
@@ -49,7 +54,7 @@ EOT
 }
 
 # Need locations to store stuff
-mkdir -p ${TMPDIR}/{podman,crio,crio-run,cni/net.d,ctnr}
+mkdir -p ${TMPDIR}/{podman,crio,crio-run,cni/net.d,ctnr,tunnel}
 
 # Cannot be done in python unittest fixtures.  EnvVar not picked up.
 export REGISTRIES_CONFIG_PATH=${TMPDIR}/registry.conf
@@ -102,11 +107,14 @@ ENTRYPOINT ["/tmp/hello.sh"]
 EOT
 
 export PODMAN_HOST="unix:${TMPDIR}/podman/io.projectatomic.podman"
-PODMAN_ARGS="--storage-driver=vfs\
-  --root=${TMPDIR}/crio\
-  --runroot=${TMPDIR}/crio-run\
-  --cni-config-dir=$CNI_CONFIG_PATH\
+PODMAN_ARGS="--storage-driver=vfs \
+  --root=${TMPDIR}/crio \
+  --runroot=${TMPDIR}/crio-run \
+  --cni-config-dir=$CNI_CONFIG_PATH \
   "
+if [[ -n $VERBOSE ]]; then
+  PODMAN_ARGS="$PODMAN_ARGS --log-level=debug"
+fi
 PODMAN="podman $PODMAN_ARGS"
 
 # document what we're about to do...
