@@ -14,6 +14,9 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+type RawTtyFormatter struct {
+}
+
 // Attach to a container
 func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
 	resize := make(chan remotecommand.TerminalSize)
@@ -37,9 +40,10 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 			return errors.Wrapf(err, "unable to save terminal state")
 		}
 
+		logrus.SetFormatter(&RawTtyFormatter{})
 		term.SetRawTerminal(os.Stdin.Fd())
 
-		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
+		defer restoreTerminal(oldTermState)
 	}
 
 	streams := new(libpod.AttachStreams)
@@ -93,9 +97,10 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 			return errors.Wrapf(err, "unable to save terminal state")
 		}
 
+		logrus.SetFormatter(&RawTtyFormatter{})
 		term.SetRawTerminal(os.Stdin.Fd())
 
-		defer term.RestoreTerminal(os.Stdin.Fd(), oldTermState)
+		defer restoreTerminal(oldTermState)
 	}
 
 	streams := new(libpod.AttachStreams)
@@ -170,4 +175,20 @@ func resizeTty(resize chan remotecommand.TerminalSize, resizeTerminate chan inte
 			}
 		}
 	}()
+}
+
+func restoreTerminal(state *term.State) error {
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	return term.RestoreTerminal(os.Stdin.Fd(), state)
+}
+
+func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	textFormatter := logrus.TextFormatter{}
+	bytes, err := textFormatter.Format(entry)
+
+	if err == nil {
+		bytes = append(bytes, '\r')
+	}
+
+	return bytes, err
 }
