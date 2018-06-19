@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,9 +19,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/docker/docker/profiles/seccomp"
 	units "github.com/docker/go-units"
@@ -31,6 +28,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah/bind"
 	"github.com/projectatomic/buildah/util"
 	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
@@ -148,13 +146,23 @@ type RunOptions struct {
 	// decision can be overridden by specifying either WithTerminal or
 	// WithoutTerminal.
 	Terminal TerminalPolicy
+	// TerminalSize provides a way to set the number of rows and columns in
+	// a pseudo-terminal, if we create one, and Stdin/Stdout/Stderr aren't
+	// connected to a terminal.
+	TerminalSize *specs.Box
 	// The stdin/stdout/stderr descriptors to use.  If set to nil, the
 	// corresponding files in the "os" package are used as defaults.
-	Stdin  io.ReadCloser  `json:"-"`
-	Stdout io.WriteCloser `json:"-"`
-	Stderr io.WriteCloser `json:"-"`
+	Stdin  io.Reader `json:"-"`
+	Stdout io.Writer `json:"-"`
+	Stderr io.Writer `json:"-"`
 	// Quiet tells the run to turn off output to stdout.
 	Quiet bool
+	// AddCapabilities is a list of capabilities to add to the default set.
+	AddCapabilities []string
+	// DropCapabilities is a list of capabilities to remove from the default set,
+	// after processing the AddCapabilities set.  If a capability appears in both
+	// lists, it will be dropped.
+	DropCapabilities []string
 }
 
 // DefaultNamespaceOptions returns the default namespace settings from the
@@ -229,7 +237,17 @@ func addRlimits(ulimit []string, g *generate.Generator) error {
 func addHosts(hosts []string, w io.Writer) error {
 	buf := bufio.NewWriter(w)
 	for _, host := range hosts {
-		fmt.Fprintln(buf, host)
+		values := strings.SplitN(host, ":", 2)
+		if len(values) != 2 {
+			return errors.Errorf("unable to parse host entry %q: incorrect format", host)
+		}
+		if values[0] == "" {
+			return errors.Errorf("hostname in host entry %q is empty", host)
+		}
+		if values[1] == "" {
+			return errors.Errorf("IP address in host entry %q is empty", host)
+		}
+		fmt.Fprintf(buf, "%s\t%s\n", values[1], values[0])
 	}
 	return buf.Flush()
 }
@@ -286,7 +304,7 @@ func addCommonOptsToSpec(commonOpts *CommonBuildOptions, g *generate.Generator) 
 	return nil
 }
 
-func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts []specs.Mount, bindFiles map[string]string, builtinVolumes, volumeMounts []string, shmSize string, namespaceOptions NamespaceOptions) error {
+func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath string, optionMounts []specs.Mount, bindFiles map[string]string, builtinVolumes, volumeMounts []string, shmSize string, namespaceOptions NamespaceOptions) error {
 	// Start building a new list of mounts.
 	var mounts []specs.Mount
 	haveMount := func(destination string) bool {
@@ -316,7 +334,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 					Source:      "/dev/shm",
 					Type:        "bind",
 					Destination: "/dev/shm",
-					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev"},
+					Options:     []string{bind.NoBindOption, "rbind", "nosuid", "noexec", "nodev"},
 				}
 			}
 		}
@@ -331,7 +349,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 					Source:      "/dev/mqueue",
 					Type:        "bind",
 					Destination: "/dev/mqueue",
-					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev"},
+					Options:     []string{bind.NoBindOption, "rbind", "nosuid", "noexec", "nodev"},
 				}
 			}
 		}
@@ -347,7 +365,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 					Source:      "/sys",
 					Type:        "bind",
 					Destination: "/sys",
-					Options:     []string{"nobuildahbind", "rbind", "nosuid", "noexec", "nodev", "ro"},
+					Options:     []string{bind.NoBindOption, "rbind", "nosuid", "noexec", "nodev", "ro"},
 				}
 			}
 		}
@@ -363,12 +381,12 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nobuildahbind", "nosuid", "noexec", "nodev", "relatime", "ro"},
+			Options:     []string{bind.NoBindOption, "nosuid", "noexec", "nodev", "relatime", "ro"},
 		}}
 	}
 
 	// Get the list of files we need to bind into the container.
-	bindFileMounts, err := runSetupBoundFiles(bindFiles)
+	bindFileMounts, err := runSetupBoundFiles(bundlePath, bindFiles)
 	if err != nil {
 		return err
 	}
@@ -381,7 +399,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 
 	// Figure out which UID and GID to tell the secrets package to use
 	// for files that it creates.
-	rootUID, rootGID, err := getHostRootIDs(spec)
+	rootUID, rootGID, err := util.GetHostRootIDs(spec)
 	if err != nil {
 		return err
 	}
@@ -418,13 +436,17 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, optionMounts 
 	return nil
 }
 
-func runSetupBoundFiles(bindFiles map[string]string) (mounts []specs.Mount, err error) {
+func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts []specs.Mount, err error) {
 	for dest, src := range bindFiles {
+		options := []string{"rbind"}
+		if strings.HasPrefix(src, bundlePath) {
+			options = append(options, bind.NoBindOption)
+		}
 		mounts = append(mounts, specs.Mount{
 			Source:      src,
 			Destination: dest,
 			Type:        "bind",
-			Options:     []string{"rbind"},
+			Options:     options,
 		})
 	}
 	return mounts, nil
@@ -574,25 +596,88 @@ func setupReadOnlyPaths(g *generate.Generator) {
 	}
 }
 
-func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
-	if seccompProfilePath != "unconfined" {
-		if seccompProfilePath != "" {
-			seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
-			if err != nil {
-				return errors.Wrapf(err, "opening seccomp profile (%s) failed", seccompProfilePath)
-			}
-			seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
-			if err != nil {
-				return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
-			}
-			spec.Linux.Seccomp = seccompConfig
-		} else {
-			seccompConfig, err := seccomp.GetDefaultProfile(spec)
-			if err != nil {
-				return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
-			}
-			spec.Linux.Seccomp = seccompConfig
+func setupCapAdd(g *generate.Generator, caps ...string) error {
+	for _, cap := range caps {
+		if err := g.AddProcessCapabilityBounding(cap); err != nil {
+			return errors.Wrapf(err, "error adding %q to the bounding capability set", cap)
 		}
+		if err := g.AddProcessCapabilityEffective(cap); err != nil {
+			return errors.Wrapf(err, "error adding %q to the effective capability set", cap)
+		}
+		if err := g.AddProcessCapabilityInheritable(cap); err != nil {
+			return errors.Wrapf(err, "error adding %q to the inheritable capability set", cap)
+		}
+		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
+			return errors.Wrapf(err, "error adding %q to the permitted capability set", cap)
+		}
+		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
+			return errors.Wrapf(err, "error adding %q to the ambient capability set", cap)
+		}
+	}
+	return nil
+}
+
+func setupCapDrop(g *generate.Generator, caps ...string) error {
+	for _, cap := range caps {
+		if err := g.DropProcessCapabilityBounding(cap); err != nil {
+			return errors.Wrapf(err, "error removing %q from the bounding capability set", cap)
+		}
+		if err := g.DropProcessCapabilityEffective(cap); err != nil {
+			return errors.Wrapf(err, "error removing %q from the effective capability set", cap)
+		}
+		if err := g.DropProcessCapabilityInheritable(cap); err != nil {
+			return errors.Wrapf(err, "error removing %q from the inheritable capability set", cap)
+		}
+		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
+			return errors.Wrapf(err, "error removing %q from the permitted capability set", cap)
+		}
+		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
+			return errors.Wrapf(err, "error removing %q from the ambient capability set", cap)
+		}
+	}
+	return nil
+}
+
+func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds, secondDrops []string) error {
+	g.ClearProcessCapabilities()
+	if err := setupCapAdd(g, util.DefaultCapabilities...); err != nil {
+		return err
+	}
+	if err := setupCapAdd(g, firstAdds...); err != nil {
+		return err
+	}
+	if err := setupCapDrop(g, firstDrops...); err != nil {
+		return err
+	}
+	if err := setupCapAdd(g, secondAdds...); err != nil {
+		return err
+	}
+	if err := setupCapDrop(g, secondDrops...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
+	switch seccompProfilePath {
+	case "unconfined":
+		spec.Linux.Seccomp = nil
+	case "":
+		seccompConfig, err := seccomp.GetDefaultProfile(spec)
+		if err != nil {
+			return errors.Wrapf(err, "loading default seccomp profile failed")
+		}
+		spec.Linux.Seccomp = seccompConfig
+	default:
+		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
+		if err != nil {
+			return errors.Wrapf(err, "opening seccomp profile (%s) failed", seccompProfilePath)
+		}
+		seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
+		if err != nil {
+			return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
+		}
+		spec.Linux.Seccomp = seccompConfig
 	}
 	return nil
 }
@@ -602,14 +687,23 @@ func setupApparmor(spec *specs.Spec, apparmorProfile string) error {
 	return nil
 }
 
-func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy) {
+func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy, terminalSize *specs.Box) {
 	switch terminalPolicy {
 	case DefaultTerminal:
-		g.SetProcessTerminal(terminal.IsTerminal(int(os.Stdout.Fd())))
+		onTerminal := terminal.IsTerminal(unix.Stdin) && terminal.IsTerminal(unix.Stdout) && terminal.IsTerminal(unix.Stderr)
+		if onTerminal {
+			logrus.Debugf("stdio is a terminal, defaulting to using a terminal")
+		} else {
+			logrus.Debugf("stdio is not a terminal, defaulting to not using a terminal")
+		}
+		g.SetProcessTerminal(onTerminal)
 	case WithTerminal:
 		g.SetProcessTerminal(true)
 	case WithoutTerminal:
 		g.SetProcessTerminal(false)
+	}
+	if terminalSize != nil {
+		g.SetProcessConsoleSize(terminalSize.Width, terminalSize.Height)
 	}
 }
 
@@ -662,15 +756,15 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 		if err := g.AddOrReplaceLinuxNamespace(specs.UserNamespace, ""); err != nil {
 			return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.UserNamespace))
 		}
+		hostUidmap, hostGidmap, err := util.GetHostIDMappings("")
+		if err != nil {
+			return false, nil, false, err
+		}
 		for _, m := range idmapOptions.UIDMap {
 			g.AddLinuxUIDMapping(m.HostID, m.ContainerID, m.Size)
 		}
 		if len(idmapOptions.UIDMap) == 0 {
-			mappings, err := getProcIDMappings("/proc/self/uid_map")
-			if err != nil {
-				return false, nil, false, err
-			}
-			for _, m := range mappings {
+			for _, m := range hostUidmap {
 				g.AddLinuxUIDMapping(m.ContainerID, m.ContainerID, m.Size)
 			}
 		}
@@ -678,11 +772,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			g.AddLinuxGIDMapping(m.HostID, m.ContainerID, m.Size)
 		}
 		if len(idmapOptions.GIDMap) == 0 {
-			mappings, err := getProcIDMappings("/proc/self/gid_map")
-			if err != nil {
-				return false, nil, false, err
-			}
-			for _, m := range mappings {
+			for _, m := range hostGidmap {
 				g.AddLinuxGIDMapping(m.ContainerID, m.ContainerID, m.Size)
 			}
 		}
@@ -769,7 +859,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	g.SetRootPath(mountPoint)
 
-	setupTerminal(g, options.Terminal)
+	setupTerminal(g, options.Terminal, options.TerminalSize)
 
 	namespaceOptions := DefaultNamespaceOptions()
 	namespaceOptions.AddOrReplace(b.NamespaceOptions...)
@@ -795,7 +885,11 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		g.SetHostname("")
 	}
 
+	// Set the user UID/GID/supplemental group list/capabilities lists.
 	if user, err = b.user(mountPoint, options.User); err != nil {
+		return err
+	}
+	if err = setupCapabilities(g, b.AddCapabilities, b.DropCapabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
 		return err
 	}
 	g.SetProcessUID(user.UID)
@@ -807,8 +901,9 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	// Now grab the spec from the generator.  Set the generator to nil so that future contributors
 	// will quickly be able to tell that they're supposed to be modifying the spec directly from here.
 	spec := g.Spec()
+	g = nil
 
-	//Remove capabilities if not running as root
+	// Remove capabilities if not running as root
 	if user.UID != 0 {
 		var caplist []string
 		spec.Process.Capabilities.Permitted = caplist
@@ -816,7 +911,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		spec.Process.Capabilities.Effective = caplist
 		spec.Process.Capabilities.Ambient = caplist
 	}
-	g = nil
+
+	// Set the working directory, creating it if we must.
 	if spec.Process.Cwd == "" {
 		spec.Process.Cwd = DefaultWorkingDir
 	}
@@ -829,7 +925,9 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	// Set the seccomp configuration using the specified profile name.
+	// Set the seccomp configuration using the specified profile name.  Some syscalls are
+	// allowed if certain capabilities are to be granted (example: CAP_SYS_CHROOT and chroot),
+	// so we sorted out the capabilities lists first.
 	if err = setupSeccomp(spec, b.CommonBuildOpts.SeccompProfilePath); err != nil {
 		return err
 	}
@@ -851,7 +949,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		"/etc/hosts":       hostFile,
 		"/etc/resolv.conf": resolvFile,
 	}
-	err = b.setupMounts(mountPoint, spec, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, append(b.NamespaceOptions, options.NamespaceOptions...))
+	err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, append(b.NamespaceOptions, options.NamespaceOptions...))
 	if err != nil {
 		return errors.Wrapf(err, "error resolving mountpoints for container")
 	}
@@ -977,9 +1075,11 @@ func runUsingRuntimeMain() {
 }
 
 func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetworks []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
-	// Set up bind mounts for things that a namespaced user might not be able to get to directly.
+	// Lock the caller to a single OS-level thread.
 	runtime.LockOSThread()
-	unmountAll, err := runSetupIntermediateMountNamespace(spec, bundlePath)
+
+	// Set up bind mounts for things that a namespaced user might not be able to get to directly.
+	unmountAll, err := bind.SetupIntermediateMountNamespace(spec, bundlePath)
 	if unmountAll != nil {
 		defer func() {
 			if err := unmountAll(); err != nil {
@@ -1009,7 +1109,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	}
 
 	// Default to not specifying a console socket location.
-	moreCreateArgs := func() []string { return nil }
+	var moreCreateArgs []string
 	// Default to just passing down our stdio.
 	getCreateStdio := func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
 		return os.Stdin, os.Stdout, os.Stderr
@@ -1021,7 +1121,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	var errorFds []int
 	stdioPipe := make([][]int, 3)
 	copyConsole := false
-	copyStdio := false
+	copyPipes := false
 	finishCopy := make([]int, 2)
 	if err = unix.Pipe(finishCopy); err != nil {
 		return 1, errors.Wrapf(err, "error creating pipe for notifying to stop stdio")
@@ -1037,11 +1137,11 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 				return 1, errors.Wrapf(err, "error creating socket to receive terminal descriptor")
 			}
 			// Add console socket arguments.
-			moreCreateArgs = func() []string { return []string{"--console-socket", socketPath} }
+			moreCreateArgs = append(moreCreateArgs, "--console-socket", socketPath)
 		} else {
-			copyStdio = true
+			copyPipes = true
 			// Figure out who should own the pipes.
-			uid, gid, err := getHostRootIDs(spec)
+			uid, gid, err := util.GetHostRootIDs(spec)
 			if err != nil {
 				return 1, err
 			}
@@ -1069,7 +1169,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 
 	// Build the commands that we'll execute.
 	pidFile := filepath.Join(bundlePath, "pid")
-	args := append(append(append(options.Args, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs()...), containerName)
+	args := append(append(append(options.Args, "create", "--bundle", bundlePath, "--pid-file", pidFile), moreCreateArgs...), containerName)
 	create := exec.Command(runtime, args...)
 	create.Dir = bundlePath
 	stdin, stdout, stderr := getCreateStdio()
@@ -1077,25 +1177,21 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	if create.SysProcAttr == nil {
 		create.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	runSetDeathSig(create)
 
 	args = append(options.Args, "start", containerName)
 	start := exec.Command(runtime, args...)
 	start.Dir = bundlePath
 	start.Stderr = os.Stderr
-	runSetDeathSig(start)
 
 	args = append(options.Args, "kill", containerName)
 	kill := exec.Command(runtime, args...)
 	kill.Dir = bundlePath
 	kill.Stderr = os.Stderr
-	runSetDeathSig(kill)
 
 	args = append(options.Args, "delete", containerName)
 	del := exec.Command(runtime, args...)
 	del.Dir = bundlePath
 	del.Stderr = os.Stderr
-	runSetDeathSig(del)
 
 	// Actually create the container.
 	err = create.Run()
@@ -1144,7 +1240,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 		}
 	}
 
-	if copyStdio {
+	if copyPipes {
 		// We don't need the ends of the pipes that belong to the container.
 		stdin.Close()
 		if stdout != nil {
@@ -1155,7 +1251,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 
 	// Handle stdio for the container in the background.
 	stdio.Add(1)
-	go runCopyStdio(&stdio, copyStdio, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy)
+	go runCopyStdio(&stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec)
 
 	// Start the container.
 	err = start.Run()
@@ -1284,7 +1380,7 @@ func runConfigureNetwork(options RunOptions, configureNetwork bool, configureNet
 		if err != nil {
 			return nil, errors.Wrapf(err, "error loading networking configuration from file %q for %v", file, command)
 		}
-		if len(configureNetworks) > 0 && nc.Network != nil && (nc.Network.Name == "" || !stringInSlice(nc.Network.Name, configureNetworks)) {
+		if len(configureNetworks) > 0 && nc.Network != nil && (nc.Network.Name == "" || !util.StringInSlice(nc.Network.Name, configureNetworks)) {
 			if nc.Network.Name == "" {
 				logrus.Debugf("configuration in %q has no name, skipping it", file)
 			} else {
@@ -1304,7 +1400,7 @@ func runConfigureNetwork(options RunOptions, configureNetwork bool, configureNet
 		if err != nil {
 			return nil, errors.Wrapf(err, "error loading networking configuration list from file %q for %v", list, command)
 		}
-		if len(configureNetworks) > 0 && (cl.Name == "" || !stringInSlice(cl.Name, configureNetworks)) {
+		if len(configureNetworks) > 0 && (cl.Name == "" || !util.StringInSlice(cl.Name, configureNetworks)) {
 			if cl.Name == "" {
 				logrus.Debugf("configuration list in %q has no name, skipping it", list)
 			} else {
@@ -1359,10 +1455,10 @@ func runConfigureNetwork(options RunOptions, configureNetwork bool, configureNet
 	return teardown, nil
 }
 
-func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}) {
+func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}, spec *specs.Spec) {
 	defer func() {
 		unix.Close(finishCopy[0])
-		if copyStdio {
+		if copyPipes {
 			unix.Close(stdioPipe[unix.Stdin][1])
 			unix.Close(stdioPipe[unix.Stdout][0])
 			unix.Close(stdioPipe[unix.Stderr][0])
@@ -1370,37 +1466,6 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 		stdio.Done()
 		finishedCopy <- struct{}{}
 	}()
-	// If we're not doing I/O handling, we're done.
-	if !copyConsole && !copyStdio {
-		return
-	}
-	terminalFD := -1
-	if copyConsole {
-		// Accept a connection over our listening socket.
-		fd, err := runAcceptTerminal(consoleListener)
-		if err != nil {
-			logrus.Errorf("%v", err)
-			return
-		}
-		terminalFD = fd
-		// Set our terminal's mode to raw, to pass handling of special
-		// terminal input to the terminal in the container.
-		state, err := terminal.MakeRaw(unix.Stdin)
-		if err != nil {
-			logrus.Warnf("error setting terminal state: %v", err)
-		} else {
-			defer func() {
-				if err = terminal.Restore(unix.Stdin, state); err != nil {
-					logrus.Errorf("unable to restore terminal state: %v", err)
-				}
-			}()
-			// FIXME - if we're connected to a terminal, we should be
-			// passing the updated terminal size down when we receive a
-			// SIGWINCH.
-		}
-	}
-	// Track how many descriptors we're expecting data from.
-	reading := 0
 	// Map describing where data on an incoming descriptor should go.
 	relayMap := make(map[int]int)
 	// Map describing incoming and outgoing descriptors.
@@ -1408,7 +1473,15 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 	writeDesc := make(map[int]string)
 	// Buffers.
 	relayBuffer := make(map[int]*bytes.Buffer)
+	// Set up the terminal descriptor or pipes for polling.
 	if copyConsole {
+		// Accept a connection over our listening socket.
+		fd, err := runAcceptTerminal(consoleListener, spec.Process.ConsoleSize)
+		if err != nil {
+			logrus.Errorf("%v", err)
+			return
+		}
+		terminalFD := fd
 		// Input from our stdin, output from the terminal descriptor.
 		relayMap[unix.Stdin] = terminalFD
 		readDesc[unix.Stdin] = "stdin"
@@ -1418,9 +1491,21 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 		readDesc[terminalFD] = "container terminal output"
 		relayBuffer[unix.Stdout] = new(bytes.Buffer)
 		writeDesc[unix.Stdout] = "output"
-		reading = 2
+		// Set our terminal's mode to raw, to pass handling of special
+		// terminal input to the terminal in the container.
+		if terminal.IsTerminal(unix.Stdin) {
+			if state, err := terminal.MakeRaw(unix.Stdin); err != nil {
+				logrus.Warnf("error setting terminal state: %v", err)
+			} else {
+				defer func() {
+					if err = terminal.Restore(unix.Stdin, state); err != nil {
+						logrus.Errorf("unable to restore terminal state: %v", err)
+					}
+				}()
+			}
+		}
 	}
-	if copyStdio {
+	if copyPipes {
 		// Input from our stdin, output from the stdout and stderr pipes.
 		relayMap[unix.Stdin] = stdioPipe[unix.Stdin][1]
 		readDesc[unix.Stdin] = "stdin"
@@ -1434,7 +1519,6 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 		readDesc[stdioPipe[unix.Stderr][0]] = "container stderr"
 		relayBuffer[unix.Stderr] = new(bytes.Buffer)
 		writeDesc[unix.Stderr] = "stderr"
-		reading = 3
 	}
 	// Set our reading descriptors to non-blocking.
 	for fd := range relayMap {
@@ -1460,9 +1544,9 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 	}
 	// Pass data back and forth.
 	pollTimeout := -1
-	for {
+	for len(relayMap) > 0 {
 		// Start building the list of descriptors to poll.
-		pollFds := make([]unix.PollFd, 0, reading+1)
+		pollFds := make([]unix.PollFd, 0, len(relayMap)+1)
 		// Poll for a notification that we should stop handling stdio.
 		pollFds = append(pollFds, unix.PollFd{Fd: int32(finishCopy[0]), Events: unix.POLLIN | unix.POLLHUP})
 		// Poll on our reading descriptors.
@@ -1475,18 +1559,23 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 		if !logIfNotRetryable(err, fmt.Sprintf("error waiting for stdio/terminal data to relay: %v", err)) {
 			return
 		}
-		var removes []int
+		removes := make(map[int]struct{})
 		for _, pollFd := range pollFds {
 			// If this descriptor's just been closed from the other end, mark it for
 			// removal from the set that we're checking for.
 			if pollFd.Revents&unix.POLLHUP == unix.POLLHUP {
-				removes = append(removes, int(pollFd.Fd))
+				removes[int(pollFd.Fd)] = struct{}{}
+			}
+			// If the descriptor was closed elsewhere, remove it from our list.
+			if pollFd.Revents&unix.POLLNVAL != 0 {
+				logrus.Debugf("error polling descriptor %d: closed?", pollFd.Fd)
+				removes[int(pollFd.Fd)] = struct{}{}
 			}
 			// If the POLLIN flag isn't set, then there's no data to be read from this descriptor.
 			if pollFd.Revents&unix.POLLIN == 0 {
 				// If we're using pipes and it's our stdin and it's closed, close the writing
 				// end of the corresponding pipe.
-				if copyStdio && int(pollFd.Fd) == unix.Stdin && pollFd.Revents&unix.POLLHUP != 0 {
+				if copyPipes && int(pollFd.Fd) == unix.Stdin && pollFd.Revents&unix.POLLHUP != 0 {
 					unix.Close(stdioPipe[unix.Stdin][1])
 					stdioPipe[unix.Stdin][1] = -1
 				}
@@ -1503,7 +1592,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 				// If it's zero-length on our stdin and we're
 				// using pipes, it's an EOF, so close the stdin
 				// pipe's writing end.
-				if n == 0 && copyStdio && int(pollFd.Fd) == unix.Stdin {
+				if n == 0 && copyPipes && int(pollFd.Fd) == unix.Stdin {
 					unix.Close(stdioPipe[unix.Stdin][1])
 					stdioPipe[unix.Stdin][1] = -1
 				}
@@ -1531,13 +1620,8 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 			}
 		}
 		// Remove any descriptors which we don't need to poll any more from the poll descriptor list.
-		for _, remove := range removes {
+		for remove := range removes {
 			delete(relayMap, remove)
-			reading--
-		}
-		if reading == 0 {
-			// We have no more open descriptors to read, so we can stop now.
-			return
 		}
 		// If the we-can-return pipe had anything for us, we're done.
 		for _, pollFd := range pollFds {
@@ -1549,7 +1633,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyStdio bool, stdioPipe [][]int, copy
 	}
 }
 
-func runAcceptTerminal(consoleListener *net.UnixListener) (int, error) {
+func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Box) (int, error) {
 	defer consoleListener.Close()
 	c, err := consoleListener.AcceptUnix()
 	if err != nil {
@@ -1592,26 +1676,31 @@ func runAcceptTerminal(consoleListener *net.UnixListener) (int, error) {
 	if terminalFD == -1 {
 		return -1, errors.Errorf("unable to read terminal descriptor")
 	}
-	// Set the pseudoterminal's size to match our own.
-	winsize, err := unix.IoctlGetWinsize(unix.Stdin, unix.TIOCGWINSZ)
-	if err != nil {
-		logrus.Warnf("error reading size of controlling terminal: %v", err)
-		return terminalFD, nil
+	// Set the pseudoterminal's size to the configured size, or our own.
+	winsize := &unix.Winsize{}
+	if terminalSize != nil {
+		// Use configured sizes.
+		winsize.Row = uint16(terminalSize.Height)
+		winsize.Col = uint16(terminalSize.Width)
+	} else {
+		if terminal.IsTerminal(unix.Stdin) {
+			// Use the size of our terminal.
+			if winsize, err = unix.IoctlGetWinsize(unix.Stdin, unix.TIOCGWINSZ); err != nil {
+				logrus.Warnf("error reading size of controlling terminal: %v", err)
+				winsize.Row = 0
+				winsize.Col = 0
+			}
+		}
 	}
-	err = unix.IoctlSetWinsize(terminalFD, unix.TIOCSWINSZ, winsize)
-	if err != nil {
-		logrus.Warnf("error setting size of container pseudoterminal: %v", err)
+	if winsize.Row != 0 && winsize.Col != 0 {
+		if err = unix.IoctlSetWinsize(terminalFD, unix.TIOCSWINSZ, winsize); err != nil {
+			logrus.Warnf("error setting size of container pseudoterminal: %v", err)
+		}
+		// FIXME - if we're connected to a terminal, we should
+		// be passing the updated terminal size down when we
+		// receive a SIGWINCH.
 	}
 	return terminalFD, nil
-}
-
-func runSetDeathSig(cmd *exec.Cmd) {
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{}
-	}
-	if cmd.SysProcAttr.Pdeathsig == 0 {
-		cmd.SysProcAttr.Pdeathsig = syscall.SIGTERM
-	}
 }
 
 // Create pipes to use for relaying stdio.
@@ -1633,189 +1722,4 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 		return nil, errors.Wrapf(err, "error setting owner of stderr pipe descriptor")
 	}
 	return stdioPipe, nil
-}
-
-// Create and bind mount all bind-mount sources into a subdirectory of
-// bundlePath that can only be reached by the root user of the container's user
-// namespace.
-func runSetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmountAll func() error, err error) {
-	defer func() {
-		// Strip "nobuildahbind" options out of the spec, at least. */
-		for i := range spec.Mounts {
-			if stringInSlice("nobuildahbind", spec.Mounts[i].Options) {
-				prunedOptions := make([]string, 0, len(spec.Mounts[i].Options))
-				for _, option := range spec.Mounts[i].Options {
-					if option != "nobuildahbind" {
-						prunedOptions = append(prunedOptions, option)
-					}
-				}
-				spec.Mounts[i].Options = prunedOptions
-			}
-		}
-	}()
-
-	// Create a new mount namespace in which to do the things we're doing.
-	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
-		return nil, errors.Wrapf(err, "error creating new mount namespace for %v", spec.Process.Args)
-	}
-
-	// Make all of our mounts private to our namespace.
-	if err := mount.MakePrivate("/"); err != nil {
-		return nil, errors.Wrapf(err, "error making mounts private to mount namespace for %v", spec.Process.Args)
-	}
-
-	// We expect a root directory to be defined.
-	if spec.Root == nil {
-		return nil, errors.Errorf("configuration has no root filesystem?")
-	}
-	rootPath := spec.Root.Path
-
-	// Make sure the bundle directory is searchable.  We created it with
-	// TempDir(), so it should have started with permissions set to 0700.
-	info, err := os.Stat(bundlePath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error checking permissions on %q", bundlePath)
-	}
-	if err = os.Chmod(bundlePath, info.Mode()|0111); err != nil {
-		return nil, errors.Wrapf(err, "error loosening permissions on %q", bundlePath)
-	}
-
-	// Figure out who needs to be able to reach these bind mounts in order
-	// for the container to be started.
-	rootUID, rootGID, err := getHostRootIDs(spec)
-	if err != nil {
-		return nil, err
-	}
-
-	// Hand back a callback that the caller can use to clean up everything
-	// we're doing here.
-	unmount := []string{}
-	unmountAll = func() (err error) {
-		for _, mountpoint := range unmount {
-			subdirs := []string{mountpoint}
-			var infos []*mount.Info
-			infos, err = mount.GetMounts()
-			// Gather up mountpoints below this one, since we did
-			// some recursive mounting.
-			if err == nil {
-				for _, info := range infos {
-					if strings.HasPrefix(info.Mountpoint, mountpoint) {
-						subdirs = append(subdirs, info.Mountpoint)
-					}
-				}
-			}
-			// Unmount all of the lower mountpoints, then the
-			// mountpoint itself.
-			sort.Strings(subdirs)
-			for i := range subdirs {
-				var err2 error
-				subdir := subdirs[len(subdirs)-i-1]
-				for err2 == nil {
-					err2 = unix.Unmount(subdir, 0)
-				}
-				if errno, ok := err2.(syscall.Errno); !ok || errno != unix.EINVAL {
-					logrus.Warnf("error unmounting %q: %v", mountpoint, err2)
-					if err == nil {
-						err = err2
-					}
-				}
-			}
-			// Remove just the mountpoint.
-			if err2 := os.Remove(mountpoint); err2 != nil {
-				logrus.Warnf("error removing %q: %v", mountpoint, err2)
-				if err == nil {
-					err = err2
-				}
-			}
-		}
-		return err
-	}
-
-	// Create a top-level directory that the "root" user will be able to
-	// access, that "root" from containers which use different mappings, or
-	// other unprivileged users outside of containers, shouldn't be able to
-	// access.
-	mnt := filepath.Join(bundlePath, "mnt")
-	if err = idtools.MkdirAndChown(mnt, 0100, idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}); err != nil {
-		return unmountAll, errors.Wrapf(err, "error creating %q owned by the container's root user", mnt)
-	}
-
-	// Make that directory private, and add it to the list of locations we
-	// unmount at cleanup time.
-	if err = mount.MakeRPrivate(mnt); err != nil {
-		return unmountAll, errors.Wrapf(err, "error marking filesystem at %q as private", mnt)
-	}
-	unmount = append([]string{mnt}, unmount...)
-
-	// Create a bind mount for the root filesystem and add it to the list.
-	rootfs := filepath.Join(mnt, "rootfs")
-	if err = os.Mkdir(rootfs, 0000); err != nil {
-		return unmountAll, errors.Wrapf(err, "error creating directory %q", rootfs)
-	}
-	if err = unix.Mount(rootPath, rootfs, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
-		return unmountAll, errors.Wrapf(err, "error bind mounting root filesystem from %q to %q", rootPath, rootfs)
-	}
-	unmount = append([]string{rootfs}, unmount...)
-	spec.Root.Path = rootfs
-
-	// Do the same for everything we're binding in.
-	mounts := make([]specs.Mount, 0, len(spec.Mounts))
-	for i := range spec.Mounts {
-		// If we're not using an intermediate, leave it in the list.
-		if runLeaveBindMountAlone(spec.Mounts[i]) {
-			mounts = append(mounts, spec.Mounts[i])
-			continue
-		}
-		// Check if the source is a directory or something else.
-		info, err := os.Stat(spec.Mounts[i].Source)
-		if err != nil {
-			if os.IsNotExist(err) {
-				logrus.Warnf("couldn't find %q on host to bind mount into container", spec.Mounts[i].Source)
-				continue
-			}
-			return unmountAll, errors.Wrapf(err, "error checking if %q is a directory", spec.Mounts[i].Source)
-		}
-		stage := filepath.Join(mnt, fmt.Sprintf("buildah-bind-target-%d", i))
-		if info.IsDir() {
-			// If the source is a directory, make one to use as the
-			// mount target.
-			if err = os.Mkdir(stage, 0000); err != nil {
-				return unmountAll, errors.Wrapf(err, "error creating directory %q", stage)
-			}
-		} else {
-			// If the source is not a directory, create an empty
-			// file to use as the mount target.
-			file, err := os.OpenFile(stage, os.O_WRONLY|os.O_CREATE, 0000)
-			if err != nil {
-				return unmountAll, errors.Wrapf(err, "error creating file %q", stage)
-			}
-			file.Close()
-		}
-		// Bind mount the source from wherever it is to a place where
-		// we know the runtime helper will be able to get to it...
-		if err = unix.Mount(spec.Mounts[i].Source, stage, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
-			return unmountAll, errors.Wrapf(err, "error bind mounting bind object from %q to %q", spec.Mounts[i].Source, stage)
-		}
-		spec.Mounts[i].Source = stage
-		// ... and update the source location that we'll pass to the
-		// runtime to our intermediate location.
-		mounts = append(mounts, spec.Mounts[i])
-		unmount = append([]string{stage}, unmount...)
-	}
-	spec.Mounts = mounts
-
-	return unmountAll, nil
-}
-
-// Decide if the mount should not be redirected to an intermediate location first.
-func runLeaveBindMountAlone(mount specs.Mount) bool {
-	// If we know we shouldn't do a redirection for this mount, skip it.
-	if stringInSlice("nobuildahbind", mount.Options) {
-		return true
-	}
-	// If we're not bind mounting it in, we don't need to do anything for it.
-	if mount.Type != "bind" && !stringInSlice("bind", mount.Options) && !stringInSlice("rbind", mount.Options) {
-		return true
-	}
-	return false
 }

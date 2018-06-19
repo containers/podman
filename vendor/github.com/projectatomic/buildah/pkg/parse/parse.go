@@ -332,7 +332,7 @@ func getDockerAuth(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
-//  IDMappingOptions parses the build options from user namespace
+// IDMappingOptions parses the build options related to user namespaces and ID mapping.
 func IDMappingOptions(c *cli.Context) (usernsOptions buildah.NamespaceOptions, idmapOptions *buildah.IDMappingOptions, err error) {
 	user := c.String("userns-uid-map-user")
 	group := c.String("userns-gid-map-group")
@@ -367,7 +367,14 @@ func IDMappingOptions(c *cli.Context) (usernsOptions buildah.NamespaceOptions, i
 		}
 		// Parse the flag's value as one or more triples (if it's even
 		// been set), and append them.
-		idmap, err := parseIDMap(c.StringSlice(option))
+		var spec []string
+		if c.GlobalIsSet(option) {
+			spec = c.GlobalStringSlice(option)
+		}
+		if c.IsSet(option) {
+			spec = c.StringSlice(option)
+		}
+		idmap, err := parseIDMap(spec)
 		if err != nil {
 			return nil, err
 		}
@@ -466,7 +473,7 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 	return m, nil
 }
 
-//  NamesapceOptions parses the build options from all namespaces except user namespace
+// NamespaceOptions parses the build options for all namespaces except for user namespace.
 func NamespaceOptions(c *cli.Context) (namespaceOptions buildah.NamespaceOptions, networkPolicy buildah.NetworkConfigurationPolicy, err error) {
 	options := make(buildah.NamespaceOptions, 0, 7)
 	policy := buildah.NetworkDefault

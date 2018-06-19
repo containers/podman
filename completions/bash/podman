@@ -859,7 +859,8 @@ _podman_build() {
      --annotation
      --authfile
      --build-arg
-     --cert-dir
+     --cap-add
+     --cap-drop
      --cgroup-parent
      --cni-config-dir
      --cni-plugin-path
