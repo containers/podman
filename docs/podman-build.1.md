@@ -47,6 +47,26 @@ resulting image's configuration.
 
 Images to utilize as potential cache sources. Podman does not currently support caching so this is a NOOP.
 
+**--cap-add**=*CAP\_xxx*
+
+When executing RUN instructions, run the command specified in the instruction
+with the specified capability added to its capability set.
+Certain capabilities are granted by default; this option can be used to add
+more.
+
+**--cap-drop**=*CAP\_xxx*
+
+When executing RUN instructions, run the command specified in the instruction
+with the specified capability removed from its capability set.
+The CAP\_AUDIT\_WRITE, CAP\_CHOWN, CAP\_DAC\_OVERRIDE, CAP\_FOWNER,
+CAP\_FSETID, CAP\_KILL, CAP\_MKNOD, CAP\_NET\_BIND\_SERVICE, CAP\_SETFCAP,
+CAP\_SETGID, CAP\_SETPCAP, CAP\_SETUID, and CAP\_SYS\_CHROOT capabilities are
+granted by default; this option can be used to remove them.
+
+If a capability is specified to both the **--cap-add** and **--cap-drop**
+options, it will be dropped, regardless of the order in which the options were
+given.
+
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
