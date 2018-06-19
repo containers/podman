@@ -17,7 +17,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
@@ -128,6 +127,13 @@ type BuildOptions struct {
 	// ID mapping options to use if we're setting up our own user namespace
 	// when handling RUN instructions.
 	IDMappingOptions *buildah.IDMappingOptions
+	// AddCapabilities is a list of capabilities to add to the default set when
+	// handling RUN instructions.
+	AddCapabilities []string
+	// DropCapabilities is a list of capabilities to remove from the default set
+	// when handling RUN instructions. If a capability appears in both lists, it
+	// will be dropped.
+	DropCapabilities []string
 	CommonBuildOpts  *buildah.CommonBuildOptions
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
@@ -472,8 +478,8 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 		Entrypoint: config.Entrypoint,
 		Cmd:        config.Cmd,
 		Stdin:      devNull,
-		Stdout:     ioutils.NopWriteCloser(b.out),
-		Stderr:     ioutils.NopWriteCloser(b.err),
+		Stdout:     b.out,
+		Stderr:     b.err,
 		Quiet:      b.quiet,
 	}
 	if config.NetworkDisabled {

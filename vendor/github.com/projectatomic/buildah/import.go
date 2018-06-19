@@ -13,40 +13,33 @@ import (
 )
 
 func importBuilderDataFromImage(ctx context.Context, store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
-	manifest := []byte{}
-	config := []byte{}
-	imageName := ""
+	if imageID == "" {
+		return nil, errors.Errorf("Internal error: imageID is empty in importBuilderDataFromImage")
+	}
+
 	uidmap, gidmap := convertStorageIDMaps(storage.DefaultStoreOptions.UIDMap, storage.DefaultStoreOptions.GIDMap)
 
-	if imageID != "" {
-		ref, err := is.Transport.ParseStoreReference(store, imageID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "no such image %q", imageID)
+	ref, err := is.Transport.ParseStoreReference(store, imageID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "no such image %q", imageID)
+	}
+	src, err2 := ref.NewImage(ctx, systemContext)
+	if err2 != nil {
+		return nil, errors.Wrapf(err2, "error instantiating image")
+	}
+	defer src.Close()
+
+	imageName := ""
+	if img, err3 := store.Image(imageID); err3 == nil {
+		if len(img.Names) > 0 {
+			imageName = img.Names[0]
 		}
-		src, err2 := ref.NewImage(ctx, systemContext)
-		if err2 != nil {
-			return nil, errors.Wrapf(err2, "error instantiating image")
-		}
-		defer src.Close()
-		config, err = src.ConfigBlob(ctx)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image configuration")
-		}
-		manifest, _, err = src.Manifest(ctx)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading image manifest")
-		}
-		if img, err3 := store.Image(imageID); err3 == nil {
-			if len(img.Names) > 0 {
-				imageName = img.Names[0]
+		if img.TopLayer != "" {
+			layer, err4 := store.Layer(img.TopLayer)
+			if err4 != nil {
+				return nil, errors.Wrapf(err4, "error reading information about image's top layer")
 			}
-			if img.TopLayer != "" {
-				layer, err4 := store.Layer(img.TopLayer)
-				if err4 != nil {
-					return nil, errors.Wrapf(err4, "error reading information about image's top layer")
-				}
-				uidmap, gidmap = convertStorageIDMaps(layer.UIDMap, layer.GIDMap)
-			}
+			uidmap, gidmap = convertStorageIDMaps(layer.UIDMap, layer.GIDMap)
 		}
 	}
 
@@ -55,8 +48,6 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		Type:             containerType,
 		FromImage:        imageName,
 		FromImageID:      imageID,
-		Config:           config,
-		Manifest:         manifest,
 		Container:        containerName,
 		ContainerID:      containerID,
 		ImageAnnotations: map[string]string{},
@@ -70,7 +61,9 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		},
 	}
 
-	builder.initConfig()
+	if err := builder.initConfig(ctx, src); err != nil {
+		return nil, errors.Wrapf(err, "error preparing image configuration")
+	}
 
 	return builder, nil
 }

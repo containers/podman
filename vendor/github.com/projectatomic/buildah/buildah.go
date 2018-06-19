@@ -163,6 +163,13 @@ type Builder struct {
 	CNIConfigDir string
 	// ID mapping options to use when running processes in the container with non-host user namespaces.
 	IDMappingOptions IDMappingOptions
+	// AddCapabilities is a list of capabilities to add to the default set when running
+	// commands in the container.
+	AddCapabilities []string
+	// DropCapabilities is a list of capabilities to remove from the default set,
+	// after processing the AddCapabilities set, when running commands in the container.
+	// If a capability appears in both lists, it will be dropped.
+	DropCapabilities []string
 
 	CommonBuildOpts *CommonBuildOptions
 	// TopLayer is the top layer of the image
@@ -221,7 +228,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 
 // CommonBuildOptions are resources that can be defined by flags for both buildah from and build-using-dockerfile
 type CommonBuildOptions struct {
-	// AddHost is the list of hostnames to add to the resolv.conf
+	// AddHost is the list of hostnames to add to the build container's /etc/hosts.
 	AddHost []string
 	// CgroupParent is the path to cgroups under which the cgroup for the container will be created.
 	CgroupParent string
@@ -327,6 +334,13 @@ type BuilderOptions struct {
 	CNIConfigDir string
 	// ID mapping options to use if we're setting up our own user namespace.
 	IDMappingOptions *IDMappingOptions
+	// AddCapabilities is a list of capabilities to add to the default set when
+	// running commands in the container.
+	AddCapabilities []string
+	// DropCapabilities is a list of capabilities to remove from the default set,
+	// after processing the AddCapabilities set, when running commands in the
+	// container.  If a capability appears in both lists, it will be dropped.
+	DropCapabilities []string
 
 	CommonBuildOpts *CommonBuildOptions
 }
