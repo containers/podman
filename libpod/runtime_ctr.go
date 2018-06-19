@@ -165,9 +165,11 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool)
 // Locks the container, but does not lock the runtime
 func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool) error {
 	if !c.valid {
-		// Container probably already removed
-		// Or was never in the runtime to begin with
-		return nil
+		if ok, _ := r.HasContainer(c.ID()); !ok {
+			// Container probably already removed
+			// Or was never in the runtime to begin with
+			return nil
+		}
 	}
 
 	// We need to lock the pod before we lock the container
