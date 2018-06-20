@@ -413,6 +413,27 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	}
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
+
+	useImageVolumes := c.ImageVolumeType == "bind"
+	// Gather up the options for NewContainer which consist of With... funcs
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
+	options = append(options, libpod.WithSELinuxLabels(c.ProcessLabel, c.MountLabel))
+	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
+	options = append(options, libpod.WithLabels(c.Labels))
+	options = append(options, libpod.WithUser(c.User))
+	options = append(options, libpod.WithShmDir(c.ShmDir))
+	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))
+	options = append(options, libpod.WithGroups(c.GroupAdd))
+	options = append(options, libpod.WithIDMappings(*c.IDMappings))
+	if c.Rootfs != "" {
+		options = append(options, libpod.WithRootFS(c.Rootfs))
+	}
+	// Default used if not overridden on command line
+
+	if c.CgroupParent != "" {
+		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
+	}
+
 	return options, nil
 }
 

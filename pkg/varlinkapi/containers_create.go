@@ -41,7 +41,6 @@ func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, conf
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
@@ -52,16 +51,7 @@ func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, conf
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, useImageVolumes))
-	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
-	options = append(options, libpod.WithConmonPidFile(createConfig.ConmonPidFile))
-	options = append(options, libpod.WithLabels(createConfig.Labels))
-	options = append(options, libpod.WithUser(createConfig.User))
-	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
-	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
-	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
-	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
+
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
