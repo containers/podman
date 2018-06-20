@@ -15,11 +15,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/coreos/go-systemd/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	selinux "github.com/opencontainers/selinux/go-selinux"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -317,7 +316,6 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 		fds := activation.Files(false)
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
 	}
-
 	if selinux.GetEnabled() {
 		// Set the label of the conmon process to be level :s0
 		// This will allow the container processes to talk to fifo-files
@@ -355,27 +353,8 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	childStartPipe.Close()
 
 	// Move conmon to specified cgroup
-	if os.Getuid() == 0 {
-		if r.cgroupManager == SystemdCgroupsManager {
-			unitName := createUnitName("libpod-conmon", ctr.ID())
-
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, unitName)
-			if err = utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, unitName); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-			}
-		} else {
-			cgroupPath := filepath.Join(ctr.config.CgroupParent, fmt.Sprintf("libpod-%s", ctr.ID()), "conmon")
-			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
-			if err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else {
-				// we need to remove this defer and delete the cgroup once conmon exits
-				// maybe need a conmon monitor?
-				if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
-					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-				}
-			}
-		}
+	if err := r.moveConmonToCgroup(ctr, cgroupParent, cmd); err != nil {
+		return err
 	}
 
 	/* We set the cgroup, now the child can start creating children */

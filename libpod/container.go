@@ -8,7 +8,6 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -141,10 +140,6 @@ type containerState struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
-	// NetNSPath is the path of the container's network namespace
-	// Will only be set if config.CreateNetNS is true, or the container was
-	// told to join another container's network namespace
-	NetNS ns.NetNS `json:"-"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
@@ -177,6 +172,13 @@ type containerState struct {
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
+
+	// Special container state attributes for Linux
+	containerStateLinux
+	// Special container state attributes for Windows
+	containerStateWindows
+	// Special container state attributes for Darwin
+	containerStateDarwin
 }
 
 // ExecSession contains information on an active exec session

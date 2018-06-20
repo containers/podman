@@ -10,9 +10,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -466,21 +464,6 @@ func (c *CreateConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
 		}
 	}
 	return portBindings, nil
-}
-
-// AddPrivilegedDevices iterates through host devices and adds all
-// host devices to the spec
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
-	hostDevices, err := devices.HostDevices()
-	if err != nil {
-		return err
-	}
-	g.ClearLinuxDevices()
-	for _, d := range hostDevices {
-		g.AddDevice(Device(d))
-	}
-	g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
-	return nil
 }
 
 func getStatFromPath(path string) (unix.Stat_t, error) {

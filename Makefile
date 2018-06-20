@@ -100,6 +100,9 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
+darwin:
+	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/darwin$@ $(PROJECT)/cmd/podman
+
 python-podman:
 ifdef HAS_PYTHON3
 	$(MAKE) -C contrib/python python-podman
