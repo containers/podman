@@ -18,19 +18,20 @@ import (
 )
 
 // Get an OCICNI network config
-func getPodNetwork(id, name, nsPath string, ports []ocicni.PortMapping) ocicni.PodNetwork {
+func getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping) ocicni.PodNetwork {
 	return ocicni.PodNetwork{
 		Name:         name,
 		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:           id,
 		NetNS:        nsPath,
 		PortMappings: ports,
+		Networks:     networks,
 	}
 }
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -164,7 +165,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.PortMappings)
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {

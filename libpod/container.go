@@ -263,6 +263,8 @@ type ContainerConfig struct {
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
+	// Network names to add container to. Empty to use default network.
+	Networks []string `json:"networks,omitempty"`
 
 	// Image Config
 

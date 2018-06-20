@@ -360,9 +360,20 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	// does not have one
 	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
 
+	networks := make([]string, 0)
+	userNetworks := c.NetMode.UserDefined()
+	if userNetworks != "" {
+		for _, netName := range strings.Split(userNetworks, ",") {
+			if netName == "" {
+				return nil, errors.Wrapf(err, "container networks %q invalid", networks)
+			}
+			networks = append(networks, netName)
+		}
+	}
+
 	if os.Getuid() != 0 {
 		if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-			options = append(options, libpod.WithNetNS(portBindings, true))
+			options = append(options, libpod.WithNetNS(portBindings, true, networks))
 		}
 	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
@@ -372,8 +383,7 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		postConfigureNetNS := (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
-		options = append(options, libpod.WithNetNS([]ocicni.PortMapping{}, postConfigureNetNS))
-		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS))
+		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, networks))
 	}
 
 	if c.PidMode.IsContainer() {
