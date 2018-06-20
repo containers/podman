@@ -1,4 +1,4 @@
-// +build linux freebsd solaris
+// +build linux darwin freebsd solaris
 
 package directory
 
