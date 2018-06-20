@@ -131,6 +131,9 @@ type RuntimeConfig struct {
 	// CNIPluginDir sets a number of directories where the CNI network
 	// plugins can be located
 	CNIPluginDir []string `toml:"cni_plugin_dir"`
+	// CNIDefaultNetwork is the network name of the default CNI network
+	// to attach pods to
+	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
 	// HooksDir Path to the directory containing hooks configuration files
 	HooksDir string `toml:"hooks_dir"`
 	// HooksDirNotExistFatal switches between fatal errors and non-fatal warnings if the configured HooksDir does not exist.
@@ -426,7 +429,7 @@ func makeRuntime(runtime *Runtime) error {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI("", runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
+	netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
 	if err != nil {
 		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}
