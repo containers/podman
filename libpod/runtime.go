@@ -177,10 +177,8 @@ var (
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir() string {
-	hasNoEnv := false
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtimeDir == "" {
-		hasNoEnv = true
 		tmpDir := filepath.Join(os.TempDir(), "user", fmt.Sprintf("%d", os.Getuid()))
 		os.MkdirAll(tmpDir, 0700)
 		st, err := os.Stat(tmpDir)
@@ -190,9 +188,6 @@ func GetRootlessRuntimeDir() string {
 	}
 	if runtimeDir == "" {
 		runtimeDir = filepath.Join(os.Getenv("HOME"), "rundir")
-	}
-	if hasNoEnv {
-		os.Setenv("XDG_RUNTIME_DIR", runtimeDir)
 	}
 	return runtimeDir
 }

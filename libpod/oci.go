@@ -302,7 +302,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", os.Getenv("XDG_RUNTIME_DIR")))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
