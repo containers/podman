@@ -3,7 +3,6 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,7 +32,7 @@ func getPodNetwork(id, name, nsPath string, ports []ocicni.PortMapping) ocicni.P
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.PortMappings)
 
-	result, err := r.netPlugin.SetUpPod(podNetwork)
+	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
 		return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
 	}
@@ -45,28 +44,29 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 		}
 	}()
 
-	logrus.Debugf("Response from CNI plugins: %v", result.String())
+	ctr.state.NetNS = ctrNS
+	ctr.state.NetworkResults = make([]*cnitypes.Result, 0)
+	for idx, r := range results {
+		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
 
-	resultStruct, err := cnitypes.GetResult(result)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing result from CNI plugins")
+		resultCurrent, err := cnitypes.GetResult(r)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
+		}
+		ctr.state.NetworkResults = append(ctr.state.NetworkResults, resultCurrent)
 	}
 
-	ctr.state.NetNS = ctrNS
-	ctr.state.IPs = resultStruct.IPs
-	ctr.state.Routes = resultStruct.Routes
-	ctr.state.Interfaces = resultStruct.Interfaces
-
-	// We need to temporarily use iptables to allow the container
-	// to resolve DNS until this issue is fixed upstream.
-	// https://github.com/containernetworking/plugins/pull/75
-	if resultStruct.IPs != nil {
-		for _, ip := range resultStruct.IPs {
+	for _, r := range ctr.state.NetworkResults {
+		// We need to temporarily use iptables to allow the container
+		// to resolve DNS until this issue is fixed upstream.
+		// https://github.com/containernetworking/plugins/pull/75
+		for _, ip := range r.IPs {
 			if ip.Address.IP.To4() != nil {
 				iptablesDNS("-I", ip.Address.IP.String())
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -143,27 +143,6 @@ func joinNetNS(path string) (ns.NetNS, error) {
 	return ns, nil
 }
 
-// Get a container's IP address
-func (r *Runtime) getContainerIP(ctr *Container) (net.IP, error) {
-	if ctr.state.NetNS == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s has no network namespace, cannot get IP", ctr.ID())
-	}
-
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.PortMappings)
-
-	ipStr, err := r.netPlugin.GetPodNetworkStatus(podNetwork)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving network status of container %s", ctr.ID())
-	}
-
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return nil, errors.Wrapf(ErrInternal, "error parsing IP address %s for container %s", ipStr, ctr.ID())
-	}
-
-	return ip, nil
-}
-
 // Tear down a network namespace
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {
@@ -175,9 +154,11 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	// on per IP address, we also need to try to remove the iptables rule
 	// on cleanup. Remove when https://github.com/containernetworking/plugins/pull/75
 	// is merged.
-	for _, ip := range ctr.state.IPs {
-		if ip.Address.IP.To4() != nil {
-			iptablesDNS("-D", ip.Address.IP.String())
+	for _, r := range ctr.state.NetworkResults {
+		for _, ip := range r.IPs {
+			if ip.Address.IP.To4() != nil {
+				iptablesDNS("-D", ip.Address.IP.String())
+			}
 		}
 	}
 

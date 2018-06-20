@@ -426,7 +426,7 @@ func makeRuntime(runtime *Runtime) error {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI(runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
+	netPlugin, err := ocicni.InitCNI("", runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
 	if err != nil {
 		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}

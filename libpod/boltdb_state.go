@@ -179,9 +179,7 @@ func (s *BoltState) Refresh() error {
 			state.Mounted = false
 			state.State = ContainerStateConfigured
 			state.ExecSessions = make(map[string]*ExecSession)
-			state.IPs = nil
-			state.Interfaces = nil
-			state.Routes = nil
+			state.NetworkResults = nil
 			state.BindMounts = make(map[string]string)
 
 			newStateBytes, err := json.Marshal(state)

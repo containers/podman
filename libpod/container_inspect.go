@@ -113,9 +113,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	}
 
 	// Get information on the container's network namespace (if present)
-	if runtimeInfo.NetNS != nil {
+	if runtimeInfo.NetNS != nil && len(c.state.NetworkResults) > 0 {
+		// Report network settings from the first pod network
+		result := c.state.NetworkResults[0]
 		// Go through our IP addresses
-		for _, ctrIP := range c.state.IPs {
+		for _, ctrIP := range result.IPs {
 			ipWithMask := ctrIP.Address.String()
 			splitIP := strings.Split(ipWithMask, "/")
 			mask, _ := strconv.Atoi(splitIP[1])
@@ -134,7 +136,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
 
 		// Set MAC address of interface linked with network namespace path
-		for _, i := range c.state.Interfaces {
+		for _, i := range result.Interfaces {
 			if i.Sandbox == data.NetworkSettings.SandboxKey {
 				data.NetworkSettings.MacAddress = i.Mac
 			}
