@@ -1,14 +1,15 @@
 import os
 import unittest
-
-import varlink
+from urllib.parse import urlparse
 
 import podman
+import varlink
 
 
 class TestSystem(unittest.TestCase):
     def setUp(self):
         self.host = os.environ['PODMAN_HOST']
+        self.tmpdir = os.environ['TMPDIR']
 
     def tearDown(self):
         pass
@@ -21,6 +22,18 @@ class TestSystem(unittest.TestCase):
     def test_ping(self):
         with podman.Client(self.host) as pclient:
             self.assertTrue(pclient.system.ping())
+
+    def test_remote_ping(self):
+        host = urlparse(self.host)
+        remote_uri = 'ssh://root@localhost/{}'.format(host.path)
+
+        local_uri = 'unix:{}/tunnel/podman.sock'.format(self.tmpdir)
+        with podman.Client(
+                uri=local_uri,
+                remote_uri=remote_uri,
+                identity_file=os.path.expanduser('~/.ssh/id_rsa'),
+        ) as pclient:
+            pclient.system.ping()
 
     def test_versions(self):
         with podman.Client(self.host) as pclient:
