@@ -24,9 +24,9 @@ import (
 	"github.com/containernetworking/cni/pkg/types/020"
 )
 
-const ImplementedSpecVersion string = "0.3.1"
+const ImplementedSpecVersion string = "0.4.0"
 
-var SupportedVersions = []string{"0.3.0", ImplementedSpecVersion}
+var SupportedVersions = []string{"0.3.0", "0.3.1", ImplementedSpecVersion}
 
 func NewResult(data []byte) (types.Result, error) {
 	result := &Result{}
@@ -196,7 +196,7 @@ func (r *Result) Version() string {
 
 func (r *Result) GetAsVersion(version string) (types.Result, error) {
 	switch version {
-	case "0.3.0", ImplementedSpecVersion:
+	case "0.3.0", "0.3.1", ImplementedSpecVersion:
 		r.CNIVersion = version
 		return r, nil
 	case types020.SupportedVersions[0], types020.SupportedVersions[1], types020.SupportedVersions[2]:

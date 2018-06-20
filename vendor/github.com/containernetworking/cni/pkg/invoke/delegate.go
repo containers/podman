@@ -22,32 +22,54 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 )
 
-func DelegateAdd(delegatePlugin string, netconf []byte) (types.Result, error) {
-	if os.Getenv("CNI_COMMAND") != "ADD" {
-		return nil, fmt.Errorf("CNI_COMMAND is not ADD")
+func delegateAddOrGet(command, delegatePlugin string, netconf []byte, exec Exec) (types.Result, error) {
+	if exec == nil {
+		exec = defaultExec
 	}
 
 	paths := filepath.SplitList(os.Getenv("CNI_PATH"))
-
-	pluginPath, err := FindInPath(delegatePlugin, paths)
+	pluginPath, err := exec.FindInPath(delegatePlugin, paths)
 	if err != nil {
 		return nil, err
 	}
 
-	return ExecPluginWithResult(pluginPath, netconf, ArgsFromEnv())
+	return ExecPluginWithResult(pluginPath, netconf, ArgsFromEnv(), exec)
 }
 
-func DelegateDel(delegatePlugin string, netconf []byte) error {
+// DelegateAdd calls the given delegate plugin with the CNI ADD action and
+// JSON configuration
+func DelegateAdd(delegatePlugin string, netconf []byte, exec Exec) (types.Result, error) {
+	if os.Getenv("CNI_COMMAND") != "ADD" {
+		return nil, fmt.Errorf("CNI_COMMAND is not ADD")
+	}
+	return delegateAddOrGet("ADD", delegatePlugin, netconf, exec)
+}
+
+// DelegateGet calls the given delegate plugin with the CNI GET action and
+// JSON configuration
+func DelegateGet(delegatePlugin string, netconf []byte, exec Exec) (types.Result, error) {
+	if os.Getenv("CNI_COMMAND") != "GET" {
+		return nil, fmt.Errorf("CNI_COMMAND is not GET")
+	}
+	return delegateAddOrGet("GET", delegatePlugin, netconf, exec)
+}
+
+// DelegateDel calls the given delegate plugin with the CNI DEL action and
+// JSON configuration
+func DelegateDel(delegatePlugin string, netconf []byte, exec Exec) error {
+	if exec == nil {
+		exec = defaultExec
+	}
+
 	if os.Getenv("CNI_COMMAND") != "DEL" {
 		return fmt.Errorf("CNI_COMMAND is not DEL")
 	}
 
 	paths := filepath.SplitList(os.Getenv("CNI_PATH"))
-
-	pluginPath, err := FindInPath(delegatePlugin, paths)
+	pluginPath, err := exec.FindInPath(delegatePlugin, paths)
 	if err != nil {
 		return err
 	}
 
-	return ExecPluginWithoutResult(pluginPath, netconf, ArgsFromEnv())
+	return ExecPluginWithoutResult(pluginPath, netconf, ArgsFromEnv(), exec)
 }
