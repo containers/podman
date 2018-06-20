@@ -44,7 +44,7 @@ type AttachStreams struct {
 
 // Attach to the given container
 // Does not check if state is appropriate
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -61,12 +61,12 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 
 	logrus.Debugf("Attaching to container %s", c.ID())
 
-	return c.attachContainerSocket(resize, detachKeys, streams)
+	return c.attachContainerSocket(resize, detachKeys, streams, startContainer)
 }
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO
 // TODO add a channel to allow interrupting
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams) error {
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams, startContainer bool) error {
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		controlPath := filepath.Join(c.bundlePath(), "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
@@ -88,6 +88,12 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", c.AttachSocketPath())
 	}
 	defer conn.Close()
+
+	if startContainer {
+		if err := c.start(); err != nil {
+			return err
+		}
+	}
 
 	receiveStdoutError := make(chan error)
 	if streams.AttachOutput || streams.AttachError {
