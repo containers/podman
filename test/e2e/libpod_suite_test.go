@@ -175,7 +175,11 @@ func (p *PodmanTest) PodmanAsUser(args []string, uid, gid uint32, env []string) 
 	}
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+	if env == nil {
+		fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+	} else {
+		fmt.Printf("Running: (env: %v) %s %s\n", env, p.PodmanBinary, strings.Join(podmanOptions, " "))
+	}
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 
 	if uid != 0 || gid != 0 {
