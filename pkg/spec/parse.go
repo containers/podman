@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/docker/go-units"
-	"github.com/opencontainers/runc/libcontainer/configs"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // weightDevice is a structure that holds device:weight pair
@@ -112,17 +110,4 @@ func getLoggingPath(opts []string) string {
 		}
 	}
 	return ""
-}
-
-// Device transforms a libcontainer configs.Device to a specs.LinuxDevice object.
-func Device(d *configs.Device) spec.LinuxDevice {
-	return spec.LinuxDevice{
-		Type:     string(d.Type),
-		Path:     d.Path,
-		Major:    d.Major,
-		Minor:    d.Minor,
-		FileMode: fmPtr(int64(d.FileMode)),
-		UID:      u32Ptr(int64(d.Uid)),
-		GID:      u32Ptr(int64(d.Gid)),
-	}
 }

@@ -1,3 +1,5 @@
+// +build linux
+
 package libpod
 
 import (
@@ -15,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
 
@@ -211,4 +214,17 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	ctr.state.NetNS = nil
 
 	return nil
+}
+
+func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
+	var netStats *netlink.LinkStatistics
+	err := ns.WithNetNSPath(ctr.state.NetNS.Path(), func(_ ns.NetNS) error {
+		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
+		if err != nil {
+			return err
+		}
+		netStats = link.Attrs().Statistics
+		return nil
+	})
+	return netStats, err
 }
