@@ -805,6 +805,8 @@ func (c *Container) Refresh(ctx context.Context) error {
 		return err
 	}
 
+	logrus.Debugf("Resetting state of container %s", c.ID())
+
 	// We've finished unwinding the container back to its initial state
 	// Now safe to refresh container state
 	if err := resetState(c.state); err != nil {

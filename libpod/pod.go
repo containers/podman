@@ -127,9 +127,6 @@ func (p *Pod) save() error {
 
 // Refresh a pod's state after restart
 func (p *Pod) refresh() error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	if !p.valid {
 		return ErrPodRemoved
 	}

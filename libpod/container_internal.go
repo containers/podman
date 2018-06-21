@@ -329,15 +329,13 @@ func resetState(state *containerState) error {
 	state.Interfaces = nil
 	state.Routes = nil
 	state.BindMounts = make(map[string]string)
+	state.CgroupCreated = false
 
 	return nil
 }
 
 // Refresh refreshes the container's state after a restart
 func (c *Container) refresh() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
 	}
@@ -567,6 +565,7 @@ func (c *Container) init(ctx context.Context) error {
 	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
 	c.state.State = ContainerStateCreated
+	c.state.CgroupCreated = true
 
 	if err := c.save(); err != nil {
 		return err
@@ -812,6 +811,11 @@ func (c *Container) prepare() (err error) {
 // cleanupCgroup cleans up residual CGroups after container execution
 // This is a no-op for the systemd cgroup driver
 func (c *Container) cleanupCgroups() error {
+	if !c.state.CgroupCreated {
+		logrus.Debugf("Cgroups are not present, ignoring...")
+		return nil
+	}
+
 	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		return nil
 	}
@@ -836,11 +840,22 @@ func (c *Container) cleanupCgroups() error {
 		return err
 	}
 
+	c.state.CgroupCreated = false
+
+	if c.valid {
+		return c.save()
+	}
+
 	return nil
 }
 
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
+	if c.state.NetNS == nil {
+		logrus.Debugf("Network is already cleaned up, skipping...")
+		return nil
+	}
+
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
 		logrus.Errorf("unable to cleanup network for container %s: %q", c.ID(), err)
@@ -850,13 +865,19 @@ func (c *Container) cleanupNetwork() error {
 	c.state.IPs = nil
 	c.state.Interfaces = nil
 	c.state.Routes = nil
-	return c.save()
+
+	if c.valid {
+		return c.save()
+	}
+
+	return nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
 		// Already unmounted, do nothing
+		logrus.Debugf("Storage is already unmounted, skipping...")
 		return nil
 	}
 

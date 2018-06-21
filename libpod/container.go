@@ -167,6 +167,9 @@ type containerState struct {
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
 
+	// CgroupCreated indicates that the container has created a cgroup
+	CgroupCreated bool `json:"cgroupCreated,omitempty"`
+
 	// UserNSRoot is the directory used as root for the container when using
 	// user namespaces.
 	UserNSRoot string `json:"userNSRoot,omitempty"`
