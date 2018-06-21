@@ -133,7 +133,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		Expect(killSession.ExitCode()).To(Equal(0))
 
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.ExitCode()).To(Equal(137))
 		ok, _ = session.GrepString(fmt.Sprintf("Received %d", signal))
 		Expect(ok).To(BeFalse())
 	})

@@ -14,4 +14,4 @@ fi
 ${CONTAINER_RUNTIME} build -t ${IMAGE} -f Dockerfile.${DIST} . 2>build.log
 
 # Run the tests
-${CONTAINER_RUNTIME} run --rm --privileged --net=host -v $PWD:/go/src/github.com/projectatomic/libpod --workdir /go/src/github.com/projectatomic/libpod -e PYTHON=$PYTHON -e STORAGE_OPTIONS="--storage-driver=vfs" -e CRIO_ROOT="/go/src/github.com/projectatomic/libpod" -e PODMAN_BINARY="/usr/bin/podman" -e CONMON_BINARY="/usr/libexec/crio/conmon" -e DIST=$DIST $IMAGE sh .papr.sh
+${CONTAINER_RUNTIME} run --rm --privileged --net=host -v $PWD:/go/src/github.com/projectatomic/libpod --workdir /go/src/github.com/projectatomic/libpod -e PYTHON=$PYTHON -e STORAGE_OPTIONS="--storage-driver=vfs" -e CRIO_ROOT="/go/src/github.com/projectatomic/libpod" -e PODMAN_BINARY="/usr/bin/podman" -e CONMON_BINARY="/usr/libexec/podman/conmon" -e DIST=$DIST $IMAGE sh .papr.sh
