@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/types"
 	units "github.com/docker/go-units"
-	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
+	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -24,18 +23,6 @@ type historyTemplateParams struct {
 	CreatedBy string
 	Size      string
 	Comment   string
-}
-
-// historyJSONParams is only used when the JSON format is specified,
-// and is better for data processing from JSON.
-// historyJSONParams will be populated by data from v1.History and types.BlobInfo,
-// the members of the struct are the sama data types as their sources.
-type historyJSONParams struct {
-	ID        string     `json:"id"`
-	Created   *time.Time `json:"created"`
-	CreatedBy string     `json:"createdBy"`
-	Size      int64      `json:"size"`
-	Comment   string     `json:"comment"`
 }
 
 // historyOptions stores cli flag values
@@ -111,12 +98,12 @@ func historyCmd(c *cli.Context) error {
 		format:  format,
 	}
 
-	history, layers, err := image.History(getContext())
+	history, err := image.History(getContext())
 	if err != nil {
 		return errors.Wrapf(err, "error getting history of image %q", image.InputName)
 	}
 
-	return generateHistoryOutput(history, layers, image.ID(), opts)
+	return generateHistoryOutput(history, opts)
 }
 
 func genHistoryFormat(format string, quiet bool) string {
@@ -132,7 +119,7 @@ func genHistoryFormat(format string, quiet bool) string {
 }
 
 // historyToGeneric makes an empty array of interfaces for output
-func historyToGeneric(templParams []historyTemplateParams, JSONParams []historyJSONParams) (genericParams []interface{}) {
+func historyToGeneric(templParams []historyTemplateParams, JSONParams []*image.History) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
@@ -158,36 +145,27 @@ func (h *historyTemplateParams) headerMap() map[string]string {
 }
 
 // getHistorytemplateOutput gets the modified history information to be printed in human readable format
-func getHistoryTemplateOutput(history []v1.History, layers []types.BlobInfo, imageID string, opts historyOptions) (historyOutput []historyTemplateParams) {
+func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (historyOutput []historyTemplateParams) {
 	var (
 		outputSize  string
 		createdTime string
 		createdBy   string
-		count       = 1
 	)
-	for i := len(history) - 1; i >= 0; i-- {
-		if i != len(history)-1 {
-			imageID = "<missing>"
-		}
-		if !opts.noTrunc && i == len(history)-1 {
+	for _, hist := range history {
+		imageID := hist.ID
+		if !opts.noTrunc && imageID != "<missing>" {
 			imageID = shortID(imageID)
 		}
 
-		var size int64
-		if !history[i].EmptyLayer {
-			size = layers[len(layers)-count].Size
-			count++
-		}
-
 		if opts.human {
-			createdTime = units.HumanDuration(time.Since((*history[i].Created))) + " ago"
-			outputSize = units.HumanSize(float64(size))
+			createdTime = units.HumanDuration(time.Since((*hist.Created))) + " ago"
+			outputSize = units.HumanSize(float64(hist.Size))
 		} else {
-			createdTime = (history[i].Created).Format(time.RFC3339)
-			outputSize = strconv.FormatInt(size, 10)
+			createdTime = (hist.Created).Format(time.RFC3339)
+			outputSize = strconv.FormatInt(hist.Size, 10)
 		}
 
-		createdBy = strings.Join(strings.Fields(history[i].CreatedBy), " ")
+		createdBy = strings.Join(strings.Fields(hist.CreatedBy), " ")
 		if !opts.noTrunc && len(createdBy) > createdByTruncLength {
 			createdBy = createdBy[:createdByTruncLength-3] + "..."
 		}
@@ -197,29 +175,7 @@ func getHistoryTemplateOutput(history []v1.History, layers []types.BlobInfo, ima
 			Created:   createdTime,
 			CreatedBy: createdBy,
 			Size:      outputSize,
-			Comment:   history[i].Comment,
-		}
-		historyOutput = append(historyOutput, params)
-	}
-	return
-}
-
-// getHistoryJSONOutput returns the history information in its raw form
-func getHistoryJSONOutput(history []v1.History, layers []types.BlobInfo, imageID string) (historyOutput []historyJSONParams) {
-	count := 1
-	for i := len(history) - 1; i >= 0; i-- {
-		var size int64
-		if !history[i].EmptyLayer {
-			size = layers[len(layers)-count].Size
-			count++
-		}
-
-		params := historyJSONParams{
-			ID:        imageID,
-			Created:   history[i].Created,
-			CreatedBy: history[i].CreatedBy,
-			Size:      size,
-			Comment:   history[i].Comment,
+			Comment:   hist.Comment,
 		}
 		historyOutput = append(historyOutput, params)
 	}
@@ -227,7 +183,7 @@ func getHistoryJSONOutput(history []v1.History, layers []types.BlobInfo, imageID
 }
 
 // generateHistoryOutput generates the history based on the format given
-func generateHistoryOutput(history []v1.History, layers []types.BlobInfo, imageID string, opts historyOptions) error {
+func generateHistoryOutput(history []*image.History, opts historyOptions) error {
 	if len(history) == 0 {
 		return nil
 	}
@@ -236,11 +192,10 @@ func generateHistoryOutput(history []v1.History, layers []types.BlobInfo, imageI
 
 	switch opts.format {
 	case formats.JSONString:
-		historyOutput := getHistoryJSONOutput(history, layers, imageID)
-		out = formats.JSONStructArray{Output: historyToGeneric([]historyTemplateParams{}, historyOutput)}
+		out = formats.JSONStructArray{Output: historyToGeneric([]historyTemplateParams{}, history)}
 	default:
-		historyOutput := getHistoryTemplateOutput(history, layers, imageID, opts)
-		out = formats.StdoutTemplateArray{Output: historyToGeneric(historyOutput, []historyJSONParams{}), Template: opts.format, Fields: historyOutput[0].headerMap()}
+		historyOutput := getHistoryTemplateOutput(history, opts)
+		out = formats.StdoutTemplateArray{Output: historyToGeneric(historyOutput, []*image.History{}), Template: opts.format, Fields: historyOutput[0].headerMap()}
 	}
 
 	return formats.Writer(out).Out()

@@ -608,17 +608,87 @@ func (i *Image) Layer() (*storage.Layer, error) {
 	return i.imageruntime.store.Layer(i.image.TopLayer)
 }
 
+// History contains the history information of an image
+type History struct {
+	ID        string     `json:"id"`
+	Created   *time.Time `json:"created"`
+	CreatedBy string     `json:"createdBy"`
+	Size      int64      `json:"size"`
+	Comment   string     `json:"comment"`
+}
+
 // History gets the history of an image and information about its layers
-func (i *Image) History(ctx context.Context) ([]ociv1.History, []types.BlobInfo, error) {
+func (i *Image) History(ctx context.Context) ([]*History, error) {
 	img, err := i.toImageRef(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	oci, err := img.OCIConfig(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return oci.History, img.LayerInfos(), nil
+
+	// Get the IDs of the images making up the history layers
+	// if the images exist locally in the store
+	images, err := i.imageruntime.GetImages()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting images from store")
+	}
+	imageIDs := []string{i.ID()}
+	if err := i.historyLayerIDs(i.TopLayer(), images, &imageIDs); err != nil {
+		return nil, errors.Wrap(err, "error getting image IDs for layers in history")
+	}
+
+	var (
+		imageID    string
+		imgIDCount = 0
+		size       int64
+		sizeCount  = 1
+		allHistory []*History
+	)
+
+	for i := len(oci.History) - 1; i >= 0; i-- {
+		if imgIDCount < len(imageIDs) {
+			imageID = imageIDs[imgIDCount]
+			imgIDCount++
+		} else {
+			imageID = "<missing>"
+		}
+		if !oci.History[i].EmptyLayer {
+			size = img.LayerInfos()[len(img.LayerInfos())-sizeCount].Size
+			sizeCount++
+		}
+		allHistory = append(allHistory, &History{
+			ID:        imageID,
+			Created:   oci.History[i].Created,
+			CreatedBy: oci.History[i].CreatedBy,
+			Size:      size,
+			Comment:   oci.History[i].Comment,
+		})
+	}
+
+	return allHistory, nil
+}
+
+// historyLayerIDs goes through the images in store and checks if the top layer of an image
+// is the same as the parent of topLayerID
+func (i *Image) historyLayerIDs(topLayerID string, images []*Image, IDs *[]string) error {
+	for _, image := range images {
+		// Get the layer info of topLayerID
+		layer, err := i.imageruntime.store.Layer(topLayerID)
+		if err != nil {
+			return errors.Wrapf(err, "error getting layer info %q", topLayerID)
+		}
+		// Check if the parent of layer is equal to the image's top layer
+		// If so add the image ID to the list of IDs and find the parent of
+		// the top layer of the image ID added to the list
+		// Since we are checking for parent, each top layer can only have one parent
+		if layer.Parent == image.TopLayer() {
+			*IDs = append(*IDs, image.ID())
+			return i.historyLayerIDs(image.TopLayer(), images, IDs)
+		}
+	}
+	return nil
 }
 
 // Dangling returns a bool if the image is "dangling"
