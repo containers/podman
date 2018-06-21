@@ -316,6 +316,23 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
+// Reset resets state fields to default values
+// It is performed before a refresh and clears the state after a reboot
+// It does not save the results - assumes the database will do that for us
+func resetState(state *containerState) error {
+	state.PID = 0
+	state.Mountpoint = ""
+	state.Mounted = false
+	state.State = ContainerStateConfigured
+	state.ExecSessions = make(map[string]*ExecSession)
+	state.IPs = nil
+	state.Interfaces = nil
+	state.Routes = nil
+	state.BindMounts = make(map[string]string)
+
+	return nil
+}
+
 // Refresh refreshes the container's state after a restart
 func (c *Container) refresh() error {
 	c.lock.Lock()
@@ -679,6 +696,32 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	return c.cleanup()
+}
+
+// Internal, non-locking function to pause a container
+func (c *Container) pause() error {
+	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Paused container %s", c.ID())
+
+	c.state.State = ContainerStatePaused
+
+	return c.save()
+}
+
+// Internal, non-locking function to unpause a container
+func (c *Container) unpause() error {
+	if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Unpaused container %s", c.ID())
+
+	c.state.State = ContainerStateRunning
+
+	return c.save()
 }
 
 // mountStorage sets up the container's root filesystem
