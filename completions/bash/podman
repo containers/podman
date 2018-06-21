@@ -718,6 +718,14 @@ _podman_container_port() {
      _podman_port
 }
 
+_podman_container_refresh() {
+     local options_with_args="
+     "
+     local boolean_options="
+     "
+     _complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_container_restart() {
      _podman_restart
 }
@@ -781,6 +789,7 @@ _podman_container() {
 	 mount
 	 pause
 	 port
+	 refresh
 	 restart
 	 rm
 	 run
