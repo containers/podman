@@ -62,6 +62,7 @@ func main() {
 		portCommand,
 		pullCommand,
 		pushCommand,
+		refreshCommand,
 		restartCommand,
 		rmCommand,
 		rmiCommand,
