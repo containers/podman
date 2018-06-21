@@ -1,4 +1,4 @@
-FROM golang:1.8
+FROM golang:1.10
 
 RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
 
@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y \
     socat \
     python3-pip \
     python3-dateutil \
+    python3-setuptools \
     --no-install-recommends \
     && apt-get clean
 
@@ -44,16 +45,8 @@ ADD . /go/src/github.com/projectatomic/libpod
 
 RUN set -x && cd /go/src/github.com/projectatomic/libpod && make install.libseccomp.sudo
 
-# install criu
-ENV CRIU_VERSION 1.7
-RUN mkdir -p /usr/src/criu \
-    && curl -sSL https://github.com/xemul/criu/archive/v${CRIU_VERSION}.tar.gz | tar -v -C /usr/src/criu/ -xz --strip-components=1 \
-    && cd /usr/src/criu \
-    && make install-criu \
-    && rm -rf /usr/src/criu
-
 # Install runc
-ENV RUNC_COMMIT 0cbfd8392fff2462701507296081e835b3b0b99a
+ENV RUNC_COMMIT ad0f5255060d36872be04de22f8731f38ef2d7b1
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
@@ -65,16 +58,15 @@ RUN set -x \
 	&& rm -rf "$GOPATH"
 
 # Install conmon
-ENV CRIO_COMMIT 814c6ab0913d827543696b366048056a31d9529c
+ENV CRIO_COMMIT 66788a10e57f42faf741c2f149d0ee6635063014
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
 	&& cd "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
 	&& git fetch origin --tags \
 	&& git checkout -q "$CRIO_COMMIT" \
-	&& mkdir bin \
-	&& make conmon \
-	&& install -D -m 755 bin/conmon /usr/libexec/crio/conmon \
+	&& make \
+	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 
 # Install CNI plugins

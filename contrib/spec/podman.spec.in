@@ -80,7 +80,7 @@ BuildRequires:  runc
 BuildRequires:  skopeo-containers
 Requires:       runc
 Requires:       skopeo-containers
-Requires:       conmon
+Requires:       conmon >= 1.10.1
 Requires:       iptables
 Requires:       containernetworking-cni
 Requires:       atomic-registries

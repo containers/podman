@@ -28,7 +28,7 @@ import (
 	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
-// - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/crio/conmon PAPR=1 sh .papr.sh
+// - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/podman/conmon PAPR=1 sh .papr.sh
 // PODMAN_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
 
 //TODO do the image caching
@@ -131,7 +131,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 	if os.Getenv("PODMAN_BINARY") != "" {
 		podmanBinary = os.Getenv("PODMAN_BINARY")
 	}
-	conmonBinary := filepath.Join("/usr/libexec/crio/conmon")
+	conmonBinary := filepath.Join("/usr/libexec/podman/conmon")
 	altConmonBinary := "/usr/libexec/podman/conmon"
 	if _, err := os.Stat(altConmonBinary); err == nil {
 		conmonBinary = altConmonBinary
