@@ -41,6 +41,7 @@ yum install -y \
   libgpg-error-devel \
   libseccomp-devel \
   libselinux-devel \
+  make \
   ostree-devel \
   pkgconfig \
   runc \
