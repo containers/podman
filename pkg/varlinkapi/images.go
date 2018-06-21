@@ -1,6 +1,7 @@
 package varlinkapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"bytes"
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
 	"github.com/docker/go-units"
@@ -307,27 +307,19 @@ func (i *LibpodAPI) HistoryImage(call ioprojectatomicpodman.VarlinkCall, name st
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
-	history, layerInfos, err := newImage.History(getContext())
+	history, err := newImage.History(getContext())
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	var (
-		histories []ioprojectatomicpodman.ImageHistory
-		count     = 1
-	)
-	for i := len(history) - 1; i >= 0; i-- {
-		var size int64
-		if !history[i].EmptyLayer {
-			size = layerInfos[len(layerInfos)-count].Size
-			count++
-		}
+	var histories []ioprojectatomicpodman.ImageHistory
+	for _, hist := range history {
 		imageHistory := ioprojectatomicpodman.ImageHistory{
-			Id:        newImage.ID(),
-			Created:   history[i].Created.String(),
-			CreatedBy: history[i].CreatedBy,
+			Id:        hist.ID,
+			Created:   hist.Created.String(),
+			CreatedBy: hist.CreatedBy,
 			Tags:      newImage.Names(),
-			Size:      size,
-			Comment:   history[i].Comment,
+			Size:      hist.Size,
+			Comment:   hist.Comment,
 		}
 		histories = append(histories, imageHistory)
 	}
