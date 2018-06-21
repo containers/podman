@@ -477,15 +477,8 @@ func (c *Container) Pause() error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, can't pause", c.state.State)
 	}
-	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
-		return err
-	}
 
-	logrus.Debugf("Paused container %s", c.ID())
-
-	c.state.State = ContainerStatePaused
-
-	return c.save()
+	return c.pause()
 }
 
 // Unpause unpauses a container
@@ -502,15 +495,8 @@ func (c *Container) Unpause() error {
 	if c.state.State != ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not paused, can't unpause", c.ID())
 	}
-	if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
-		return err
-	}
 
-	logrus.Debugf("Unpaused container %s", c.ID())
-
-	c.state.State = ContainerStateRunning
-
-	return c.save()
+	return c.unpause()
 }
 
 // Export exports a container's root filesystem as a tar archive
@@ -752,4 +738,107 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err e
 	}
 
 	return c.start()
+}
+
+// Refresh refreshes a container's state in the database, restarting the
+// container if it is running
+func (c *Container) Refresh(ctx context.Context) error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	wasCreated := false
+	if c.state.State == ContainerStateCreated {
+		wasCreated = true
+	}
+	wasRunning := false
+	if c.state.State == ContainerStateRunning {
+		wasRunning = true
+	}
+	wasPaused := false
+	if c.state.State == ContainerStatePaused {
+		wasPaused = true
+	}
+
+	// First, unpause the container if it's paused
+	if c.state.State == ContainerStatePaused {
+		if err := c.unpause(); err != nil {
+			return err
+		}
+	}
+
+	// Next, if the container is running, stop it
+	if c.state.State == ContainerStateRunning {
+		if err := c.stop(c.config.StopTimeout); err != nil {
+			return err
+		}
+	}
+
+	// If there are active exec sessions, we need to kill them
+	if len(c.state.ExecSessions) > 0 {
+		logrus.Infof("Killing %d exec sessions in container %s. They will not be restored after refresh.",
+			len(c.state.ExecSessions), c.ID())
+		if err := c.runtime.ociRuntime.execStopContainer(c, c.config.StopTimeout); err != nil {
+			return err
+		}
+	}
+
+	// If the container is in ContainerStateStopped, we need to delete it
+	// from the runtime and clear conmon state
+	if c.state.State == ContainerStateStopped {
+		if err := c.delete(ctx); err != nil {
+			return err
+		}
+		if err := c.removeConmonFiles(); err != nil {
+			return err
+		}
+	}
+
+	// Fire cleanup code one more time unconditionally to ensure we are good
+	// to refresh
+	if err := c.cleanup(); err != nil {
+		return err
+	}
+
+	// We've finished unwinding the container back to its initial state
+	// Now safe to refresh container state
+	if err := resetState(c.state); err != nil {
+		return errors.Wrapf(err, "error resetting state of container %s", c.ID())
+	}
+	if err := c.refresh(); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Successfully refresh container %s state")
+
+	// Initialize the container if it was created in runc
+	if wasCreated || wasRunning || wasPaused {
+		if err := c.prepare(); err != nil {
+			return err
+		}
+		if err := c.init(ctx); err != nil {
+			return err
+		}
+	}
+
+	// If the container was running before, start it
+	if wasRunning || wasPaused {
+		if err := c.start(); err != nil {
+			return err
+		}
+	}
+
+	// If the container was paused before, re-pause it
+	if wasPaused {
+		if err := c.pause(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
