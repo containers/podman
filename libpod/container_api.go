@@ -178,17 +178,11 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize); err != nil {
+		if err := c.attach(streams, keys, resize, true); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
 	}()
-
-	// Start the container
-	if err := c.start(); err != nil {
-		// TODO: interrupt the attach here if we error
-		return nil, err
-	}
 
 	return attachChan, nil
 }
@@ -421,7 +415,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	return c.attach(streams, keys, resize)
+	return c.attach(streams, keys, resize, false)
 }
 
 // Mount mounts a container's filesystem on the host
