@@ -8,6 +8,7 @@ RUN dnf -y install btrfs-progs-devel \
               findutils \
               git \
               glib2-devel \
+              glibc-static \
               gnupg \
               golang \
               golang-github-cpuguy83-go-md2man \
@@ -58,16 +59,16 @@ RUN set -x \
        && go get github.com/onsi/gomega/...
 
 # Install conmon
-ENV CRIO_COMMIT 814c6ab0913d827543696b366048056a31d9529c
+ENV CRIO_COMMIT 66788a10e57f42faf741c2f149d0ee6635063014
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
 	&& cd "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
 	&& git fetch origin --tags \
 	&& git checkout -q "$CRIO_COMMIT" \
-	&& mkdir bin \
-	&& make conmon \
-	&& install -D -m 755 bin/conmon /usr/libexec/crio/conmon \
+	&& make \
+	&& make bin/conmon \
+	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 
 # Install cni config

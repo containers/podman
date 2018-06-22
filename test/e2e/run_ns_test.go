@@ -46,16 +46,17 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns test", func() {
-		setup := podmanTest.SystemExec("mktemp", []string{"/dev/shm/podmantest.XXXX)"})
+		testFile := "/dev/shm/podmantest"
+		setup := podmanTest.SystemExec("touch", []string{testFile})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", "--ipc=host", fedoraMinimal, "ls", setup.OutputToString()})
+		session := podmanTest.Podman([]string{"run", "--ipc=host", fedoraMinimal, "ls", testFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring(setup.OutputToString()))
+		Expect(session.OutputToString()).To(ContainSubstring(testFile))
 
-		err := os.Remove(setup.OutputToString())
+		err := os.Remove(testFile)
 		Expect(err).To(BeNil())
 	})
 

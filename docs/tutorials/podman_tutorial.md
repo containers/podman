@@ -54,7 +54,7 @@ $ sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang lib
 # cd ~/src/github.com/kubernetes-incubator/cri-o
 # mkdir bin
 # make conmon
-$ sudo install -D -m 755 bin/conmon /usr/libexec/crio/conmon
+$ sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 ```
 #### Adding required configuration files
 ```
