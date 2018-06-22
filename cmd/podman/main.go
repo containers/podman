@@ -79,8 +79,9 @@ func main() {
 		waitCommand,
 	}
 
-	// Add in commands based on buildtags
-	app.Commands = append(app.Commands, getOptionalCommands()...)
+	if varlinkCommand != nil {
+		app.Commands = append(app.Commands, *varlinkCommand)
+	}
 
 	app.Before = func(c *cli.Context) error {
 		logLevel := c.GlobalString("log-level")
