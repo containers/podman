@@ -114,26 +114,6 @@ func imageNamePrefix(imageName string) string {
 	return prefix
 }
 
-func imageManifestAndConfig(ctx context.Context, ref types.ImageReference, systemContext *types.SystemContext) (manifest, config []byte, err error) {
-	if ref != nil {
-		src, err := ref.NewImage(ctx, systemContext)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error instantiating image for %q", transports.ImageName(ref))
-		}
-		defer src.Close()
-		config, err := src.ConfigBlob(ctx)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading image configuration for %q", transports.ImageName(ref))
-		}
-		manifest, _, err := src.Manifest(ctx)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "error reading image manifest for %q", transports.ImageName(ref))
-		}
-		return manifest, config, nil
-	}
-	return nil, nil, nil
-}
-
 func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMappingOptions {
 	var options storage.IDMappingOptions
 	if idmapOptions != nil {
@@ -229,8 +209,6 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	var ref types.ImageReference
 	var img *storage.Image
 	var err error
-	var manifest []byte
-	var config []byte
 
 	if options.FromImage == BaseImageFakeName {
 		options.FromImage = ""
@@ -261,8 +239,13 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		imageID = img.ID
 		topLayer = img.TopLayer
 	}
-	if manifest, config, err = imageManifestAndConfig(ctx, ref, systemContext); err != nil {
-		return nil, errors.Wrapf(err, "error reading data from image %q", transports.ImageName(ref))
+	var src types.ImageCloser
+	if ref != nil {
+		src, err = ref.NewImage(ctx, systemContext)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error instantiating image for %q", transports.ImageName(ref))
+		}
+		defer src.Close()
 	}
 
 	name := "working-container"
@@ -317,8 +300,6 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Type:                  containerType,
 		FromImage:             image,
 		FromImageID:           imageID,
-		Config:                config,
-		Manifest:              manifest,
 		Container:             name,
 		ContainerID:           container.ID,
 		ImageAnnotations:      map[string]string{},
@@ -336,8 +317,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			UIDMap:         uidmap,
 			GIDMap:         gidmap,
 		},
-		CommonBuildOpts: options.CommonBuildOpts,
-		TopLayer:        topLayer,
+		AddCapabilities:  copyStringSlice(options.AddCapabilities),
+		DropCapabilities: copyStringSlice(options.DropCapabilities),
+		CommonBuildOpts:  options.CommonBuildOpts,
+		TopLayer:         topLayer,
 	}
 
 	if options.Mount {
@@ -347,7 +330,9 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		}
 	}
 
-	builder.initConfig()
+	if err := builder.initConfig(ctx, src); err != nil {
+		return nil, errors.Wrapf(err, "error preparing image configuration")
+	}
 	err = builder.Save()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error saving builder state")

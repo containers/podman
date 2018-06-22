@@ -1,218 +1,89 @@
 package buildah
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	digest "github.com/opencontainers/go-digest"
+	"github.com/containers/image/manifest"
+	"github.com/containers/image/transports"
+	"github.com/containers/image/types"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah/docker"
 )
 
-// makeOCIv1Image builds the best OCIv1 image structure we can from the
-// contents of the docker image structure.
-func makeOCIv1Image(dimage *docker.V2Image) (ociv1.Image, error) {
-	config := dimage.Config
-	if config == nil {
-		config = &dimage.ContainerConfig
-	}
-	dcreated := dimage.Created.UTC()
-	image := ociv1.Image{
-		Created:      &dcreated,
-		Author:       dimage.Author,
-		Architecture: dimage.Architecture,
-		OS:           dimage.OS,
-		Config: ociv1.ImageConfig{
-			User:         config.User,
-			ExposedPorts: map[string]struct{}{},
-			Env:          config.Env,
-			Entrypoint:   config.Entrypoint,
-			Cmd:          config.Cmd,
-			Volumes:      config.Volumes,
-			WorkingDir:   config.WorkingDir,
-			Labels:       config.Labels,
-			StopSignal:   config.StopSignal,
-		},
-		RootFS: ociv1.RootFS{
-			Type:    "",
-			DiffIDs: []digest.Digest{},
-		},
-		History: []ociv1.History{},
-	}
-	for port, what := range config.ExposedPorts {
-		image.Config.ExposedPorts[string(port)] = what
-	}
-	RootFS := docker.V2S2RootFS{}
-	if dimage.RootFS != nil {
-		RootFS = *dimage.RootFS
-	}
-	if RootFS.Type == docker.TypeLayers {
-		image.RootFS.Type = docker.TypeLayers
-		image.RootFS.DiffIDs = append(image.RootFS.DiffIDs, RootFS.DiffIDs...)
-	}
-	for _, history := range dimage.History {
-		hcreated := history.Created.UTC()
-		ohistory := ociv1.History{
-			Created:    &hcreated,
-			CreatedBy:  history.CreatedBy,
-			Author:     history.Author,
-			Comment:    history.Comment,
-			EmptyLayer: history.EmptyLayer,
-		}
-		image.History = append(image.History, ohistory)
-	}
-	return image, nil
-}
-
-// makeDockerV2S2Image builds the best docker image structure we can from the
-// contents of the OCI image structure.
-func makeDockerV2S2Image(oimage *ociv1.Image) (docker.V2Image, error) {
-	image := docker.V2Image{
-		V1Image: docker.V1Image{Created: oimage.Created.UTC(),
-			Author:       oimage.Author,
-			Architecture: oimage.Architecture,
-			OS:           oimage.OS,
-			ContainerConfig: docker.Config{
-				User:         oimage.Config.User,
-				ExposedPorts: docker.PortSet{},
-				Env:          oimage.Config.Env,
-				Entrypoint:   oimage.Config.Entrypoint,
-				Cmd:          oimage.Config.Cmd,
-				Volumes:      oimage.Config.Volumes,
-				WorkingDir:   oimage.Config.WorkingDir,
-				Labels:       oimage.Config.Labels,
-				StopSignal:   oimage.Config.StopSignal,
-			},
-		},
-		RootFS: &docker.V2S2RootFS{
-			Type:    "",
-			DiffIDs: []digest.Digest{},
-		},
-		History: []docker.V2S2History{},
-	}
-	for port, what := range oimage.Config.ExposedPorts {
-		image.ContainerConfig.ExposedPorts[docker.Port(port)] = what
-	}
-	if oimage.RootFS.Type == docker.TypeLayers {
-		image.RootFS.Type = docker.TypeLayers
-		image.RootFS.DiffIDs = append(image.RootFS.DiffIDs, oimage.RootFS.DiffIDs...)
-	}
-	for _, history := range oimage.History {
-		dhistory := docker.V2S2History{
-			Created:    history.Created.UTC(),
-			CreatedBy:  history.CreatedBy,
-			Author:     history.Author,
-			Comment:    history.Comment,
-			EmptyLayer: history.EmptyLayer,
-		}
-		image.History = append(image.History, dhistory)
-	}
-	image.Config = &image.ContainerConfig
-	return image, nil
-}
-
-// makeDockerV2S1Image builds the best docker image structure we can from the
-// contents of the V2S1 image structure.
-func makeDockerV2S1Image(manifest docker.V2S1Manifest) (docker.V2Image, error) {
-	// Treat the most recent (first) item in the history as a description of the image.
-	if len(manifest.History) == 0 {
-		return docker.V2Image{}, errors.Errorf("error parsing image configuration from manifest")
-	}
-	dimage := docker.V2Image{}
-	err := json.Unmarshal([]byte(manifest.History[0].V1Compatibility), &dimage)
+// unmarshalConvertedConfig obtains the config blob of img valid for the wantedManifestMIMEType format
+// (either as it exists, or converting the image if necessary), and unmarshals it into dest.
+// NOTE: The MIME type is of the _manifest_, not of the _config_ that is returned.
+func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.Image, wantedManifestMIMEType string) error {
+	_, actualManifestMIMEType, err := img.Manifest(ctx)
 	if err != nil {
-		return docker.V2Image{}, err
+		return errors.Wrapf(err, "error getting manifest MIME type for %q", transports.ImageName(img.Reference()))
 	}
-	if dimage.DockerVersion == "" {
-		return docker.V2Image{}, errors.Errorf("error parsing image configuration from history")
+	if wantedManifestMIMEType != actualManifestMIMEType {
+		img, err = img.UpdatedImage(ctx, types.ManifestUpdateOptions{
+			ManifestMIMEType: wantedManifestMIMEType,
+			InformationOnly: types.ManifestUpdateInformation{ // Strictly speaking, every value in here is invalid. But…
+				Destination:  nil, // Destination is technically required, but actually necessary only for conversion _to_ v2s1.  Leave it nil, we will crash if that ever changes.
+				LayerInfos:   nil, // LayerInfos is necessary for size information in v2s2/OCI manifests, but the code can work with nil, and we are not reading the converted manifest at all.
+				LayerDiffIDs: nil, // LayerDiffIDs are actually embedded in the converted manifest, but the code can work with nil, and the values are not needed until pushing the finished image, at which time containerImageRef.NewImageSource builds the values from scratch.
+			},
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error converting image %q to %s", transports.ImageName(img.Reference()), wantedManifestMIMEType)
+		}
 	}
-	// The DiffID list is intended to contain the sums of _uncompressed_ blobs, and these are most
-	// likely compressed, so leave the list empty to avoid potential confusion later on.  We can
-	// construct a list with the correct values when we prep layers for pushing, so we don't lose.
-	// information by leaving this part undone.
-	rootFS := &docker.V2S2RootFS{
-		Type:    docker.TypeLayers,
-		DiffIDs: []digest.Digest{},
+	config, err := img.ConfigBlob(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "error reading %s config from %q", wantedManifestMIMEType, transports.ImageName(img.Reference()))
 	}
-	// Build a filesystem history.
-	history := []docker.V2S2History{}
-	lastID := ""
-	for i := range manifest.History {
-		// Decode the compatibility field.
-		dcompat := docker.V1Compatibility{}
-		if err = json.Unmarshal([]byte(manifest.History[i].V1Compatibility), &dcompat); err != nil {
-			return docker.V2Image{}, errors.Errorf("error parsing image compatibility data (%q) from history", manifest.History[i].V1Compatibility)
-		}
-		// Skip this history item if it shares the ID of the last one
-		// that we saw, since the image library will do the same.
-		if i > 0 && dcompat.ID == lastID {
-			continue
-		}
-		lastID = dcompat.ID
-		// Construct a new history item using the recovered information.
-		createdBy := ""
-		if len(dcompat.ContainerConfig.Cmd) > 0 {
-			createdBy = strings.Join(dcompat.ContainerConfig.Cmd, " ")
-		}
-		h := docker.V2S2History{
-			Created:    dcompat.Created.UTC(),
-			Author:     dcompat.Author,
-			CreatedBy:  createdBy,
-			Comment:    dcompat.Comment,
-			EmptyLayer: dcompat.ThrowAway,
-		}
-		// Prepend this layer to the list, because a v2s1 format manifest's list is in reverse order
-		// compared to v2s2, which lists earlier layers before later ones.
-		history = append([]docker.V2S2History{h}, history...)
+	if err := json.Unmarshal(config, dest); err != nil {
+		return errors.Wrapf(err, "error parsing %s configuration from %q", wantedManifestMIMEType, transports.ImageName(img.Reference()))
 	}
-	dimage.RootFS = rootFS
-	dimage.History = history
-	return dimage, nil
+	return nil
 }
 
-func (b *Builder) initConfig() {
-	image := ociv1.Image{}
-	dimage := docker.V2Image{}
-	if len(b.Config) > 0 {
-		// Try to parse the image configuration. If we fail start over from scratch.
-		if err := json.Unmarshal(b.Config, &dimage); err == nil && dimage.DockerVersion != "" {
-			if image, err = makeOCIv1Image(&dimage); err != nil {
-				image = ociv1.Image{}
-			}
-		} else {
-			if err := json.Unmarshal(b.Config, &image); err != nil {
-				if dimage, err = makeDockerV2S2Image(&image); err != nil {
-					dimage = docker.V2Image{}
-				}
-			}
+func (b *Builder) initConfig(ctx context.Context, img types.Image) error {
+	if img != nil { // A pre-existing image, as opposed to a "FROM scratch" new one.
+		rawManifest, manifestMIMEType, err := img.Manifest(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "error reading image manifest for %q", transports.ImageName(img.Reference()))
 		}
-		b.OCIv1 = image
-		b.Docker = dimage
-	} else {
-		// Try to dig out the image configuration from the manifest.
-		manifest := docker.V2S1Manifest{}
-		if err := json.Unmarshal(b.Manifest, &manifest); err == nil && manifest.SchemaVersion == 1 {
-			if dimage, err = makeDockerV2S1Image(manifest); err == nil {
-				if image, err = makeOCIv1Image(&dimage); err != nil {
-					image = ociv1.Image{}
-				}
-			}
+		rawConfig, err := img.ConfigBlob(ctx)
+		if err != nil {
+			return errors.Wrapf(err, "error reading image configuration for %q", transports.ImageName(img.Reference()))
 		}
-		b.OCIv1 = image
+		b.Manifest = rawManifest
+		b.Config = rawConfig
+
+		dimage := docker.V2Image{}
+		if err := unmarshalConvertedConfig(ctx, &dimage, img, manifest.DockerV2Schema2MediaType); err != nil {
+			return err
+		}
 		b.Docker = dimage
-	}
-	if len(b.Manifest) > 0 {
-		// Attempt to recover format-specific data from the manifest.
-		v1Manifest := ociv1.Manifest{}
-		if json.Unmarshal(b.Manifest, &v1Manifest) == nil {
+
+		oimage := ociv1.Image{}
+		if err := unmarshalConvertedConfig(ctx, &oimage, img, ociv1.MediaTypeImageManifest); err != nil {
+			return err
+		}
+		b.OCIv1 = oimage
+
+		if manifestMIMEType == ociv1.MediaTypeImageManifest {
+			// Attempt to recover format-specific data from the manifest.
+			v1Manifest := ociv1.Manifest{}
+			if err := json.Unmarshal(b.Manifest, &v1Manifest); err != nil {
+				return errors.Wrapf(err, "error parsing OCI manifest")
+			}
 			b.ImageAnnotations = v1Manifest.Annotations
 		}
 	}
+
 	b.fixupConfig()
+	return nil
 }
 
 func (b *Builder) fixupConfig() {

@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah/util"
 	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/sirupsen/logrus"
 )
@@ -98,7 +99,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		return err
 	}
 	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
-	hostUID, hostGID, err := getHostIDs(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap, user.UID, user.GID)
+	hostUID, hostGID, err := util.GetHostIDs(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap, user.UID, user.GID)
 	if err != nil {
 		return err
 	}
