@@ -523,7 +523,7 @@ If you omit the unit, the system uses bytes. If you omit the size entirely, the 
 
 **--sig-proxy**=*true*|*false*
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
+Proxy signals sent to the `podman run` command to the container process. SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
 
 **--stop-signal**=*SIGTERM*
 
