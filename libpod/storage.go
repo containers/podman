@@ -59,7 +59,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
-func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string, options *storage.ContainerOptions) (ContainerInfo, error) {
+func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string, options *storage.ContainerOptions) (cinfo ContainerInfo, err error) {
 	var imageConfig *v1.Image
 	if imageName != "" {
 		var ref types.ImageReference

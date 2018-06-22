@@ -707,7 +707,7 @@ func (c *Container) Sync() error {
 }
 
 // RestartWithTimeout restarts a running container and takes a given timeout in uint
-func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error {
+func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
