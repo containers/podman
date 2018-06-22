@@ -75,10 +75,14 @@ func main() {
 		topCommand,
 		umountCommand,
 		unpauseCommand,
-		varlinkCommand,
 		versionCommand,
 		waitCommand,
 	}
+
+	if varlinkCommand != nil {
+		app.Commands = append(app.Commands, *varlinkCommand)
+	}
+
 	app.Before = func(c *cli.Context) error {
 		logLevel := c.GlobalString("log-level")
 		if logLevel != "" {
