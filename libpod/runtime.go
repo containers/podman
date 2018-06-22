@@ -294,7 +294,7 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
-func makeRuntime(runtime *Runtime) error {
+func makeRuntime(runtime *Runtime) (err error) {
 	// Find a working OCI runtime binary
 	foundRuntime := false
 	for _, path := range runtime.config.RuntimePath {
