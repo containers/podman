@@ -1,3 +1,5 @@
+// +build varlink
+
 package main
 
 import (
@@ -25,7 +27,7 @@ var (
 			Value: 1000,
 		},
 	}
-	varlinkCommand = cli.Command{
+	varlinkCommand = &cli.Command{
 		Name:        "varlink",
 		Usage:       "Run varlink interface",
 		Description: varlinkDescription,
