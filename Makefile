@@ -20,9 +20,7 @@ SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) varlink
 
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
-	WANTVARLINK=true
-else
-	WANTVARLINK=false
+	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/ioprojectatomicpodman.go
 endif
 
 PYTHON ?= /usr/bin/python3
@@ -99,7 +97,7 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
-podman: .gopathok API.md cmd/podman/varlink/ioprojectatomicpodman.go
+podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 python-podman:
@@ -278,14 +276,10 @@ install.libseccomp.sudo:
 
 
 cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
-ifeq ($(WANTVARLINK), true)
 	$(GO) generate ./cmd/podman/varlink/...
-endif
 
 API.md: cmd/podman/varlink/io.projectatomic.podman.varlink
-ifeq ($(WANTVARLINK), true)
 	$(GO) generate ./docs/...
-endif
 
 validate: gofmt .gitvalidation
 
