@@ -1,4 +1,5 @@
 """A client for communicating with a Podman varlink service."""
+import errno
 import os
 from urllib.parse import urlparse
 
@@ -32,33 +33,47 @@ class BaseClient(object):
         if interface is None:
             raise ValueError('interface is required and cannot be None')
 
+        unsupported = set(kwargs.keys()).difference(
+            ('uri', 'interface', 'remote_uri', 'identity_file'))
+        if unsupported:
+            raise ValueError('Unknown keyword arguments: {}'.format(
+                ', '.join(unsupported)))
+
         local_path = urlparse(uri).path
         if local_path == '':
-            raise ValueError('path is required for uri, format'
-                             ' "unix://path_to_socket"')
+            raise ValueError('path is required for uri,'
+                             ' expected format "unix://path_to_socket"')
 
         if kwargs.get('remote_uri') or kwargs.get('identity_file'):
             # Remote access requires the full tuple of information
             if kwargs.get('remote_uri') is None:
-                raise ValueError('remote is required, format'
-                                 ' "ssh://user@hostname/path_to_socket".')
+                raise ValueError(
+                    'remote is required,'
+                    ' expected format "ssh://user@hostname/path_to_socket".')
             remote = urlparse(kwargs['remote_uri'])
             if remote.username is None:
-                raise ValueError('username is required for remote_uri, format'
-                                 ' "ssh://user@hostname/path_to_socket".')
+                raise ValueError(
+                    'username is required for remote_uri,'
+                    ' expected format "ssh://user@hostname/path_to_socket".')
             if remote.path == '':
-                raise ValueError('path is required for remote_uri, format'
-                                 ' "ssh://user@hostname/path_to_socket".')
+                raise ValueError(
+                    'path is required for remote_uri,'
+                    ' expected format "ssh://user@hostname/path_to_socket".')
             if remote.hostname is None:
-                raise ValueError('hostname is required for remote_uri, format'
-                                 ' "ssh://user@hostname/path_to_socket".')
+                raise ValueError(
+                    'hostname is required for remote_uri,'
+                    ' expected format "ssh://user@hostname/path_to_socket".')
 
             if kwargs.get('identity_file') is None:
                 raise ValueError('identity_file is required.')
 
             if not os.path.isfile(kwargs['identity_file']):
-                raise ValueError('identity_file "{}" not found.'.format(
-                    kwargs['identity_file']))
+                raise FileNotFoundError(
+                    errno.ENOENT,
+                    os.strerror(errno.ENOENT),
+                    kwargs['identity_file'],
+                )
+
             return RemoteClient(
                 Context(uri, interface, local_path, remote.path,
                         remote.username, remote.hostname,
@@ -111,7 +126,7 @@ class RemoteClient(BaseClient):
             self._iface = self._client.open(self._context.interface)
             return self._iface
         except Exception:
-            self._close_tunnel(self._context.uri)
+            tunnel.close(self._context.uri)
             raise
 
     def __exit__(self, e_type, e, e_traceback):
@@ -154,15 +169,18 @@ class Client(object):
         """
         self._client = BaseClient.factory(uri, interface, **kwargs)
 
+        address = "{}-{}".format(uri, interface)
         # Quick validation of connection data provided
         try:
             if not System(self._client).ping():
-                raise ValueError('Failed varlink connection "{}/{}"'.format(
-                    uri, interface))
+                raise ConnectionRefusedError(
+                    errno.ECONNREFUSED,
+                    'Failed varlink connection "{}"'.format(address), address)
         except FileNotFoundError:
-            raise ValueError('Failed varlink connection "{}/{}".'
-                             ' Is podman service running?'.format(
-                                 uri, interface))
+            raise ConnectionError(
+                errno.ECONNREFUSED,
+                ('Failed varlink connection "{}".'
+                 ' Is podman service running?').format(address), address)
 
     def __enter__(self):
         """Return `self` upon entering the runtime context."""

@@ -26,6 +26,7 @@ class Portal(collections.MutableMapping):
         self.sweap = sweap
         self.ttl = sweap * 2
         self.lock = threading.RLock()
+        self._schedule_reaper()
 
     def __getitem__(self, key):
         """Given uri return tunnel and update TTL."""
@@ -73,11 +74,12 @@ class Portal(collections.MutableMapping):
 
     def reap(self):
         """Remove tunnels who's TTL has expired."""
+        now = time.time()
         with self.lock:
-            now = time.time()
-            for entry, timeout in self.data:
-                if timeout < now:
-                    self.__delitem__(entry)
+            reaped_data = self.data.copy()
+            for entry in reaped_data.items():
+                if entry[1][1] < now:
+                    del self.data[entry[0]]
                 else:
                     # StopIteration as soon as possible
                     break
@@ -121,7 +123,6 @@ class Tunnel(object):
 
     def close(self, id):
         """Close SSH tunnel."""
-        print('Tunnel collapsed!')
         if self._tunnel is None:
             return
 

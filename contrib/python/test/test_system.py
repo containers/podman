@@ -32,8 +32,8 @@ class TestSystem(unittest.TestCase):
                 uri=local_uri,
                 remote_uri=remote_uri,
                 identity_file=os.path.expanduser('~/.ssh/id_rsa'),
-        ) as pclient:
-            pclient.system.ping()
+        ) as remote_client:
+            remote_client.system.ping()
 
     def test_versions(self):
         with podman.Client(self.host) as pclient:
