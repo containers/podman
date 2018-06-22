@@ -116,7 +116,7 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 
-	options, err := createConfig.GetContainerCreateOptions()
+	options, err := createConfig.GetContainerCreateOptions(runtime)
 	if err != nil {
 		return err
 	}

@@ -314,6 +314,10 @@ type ContainerConfig struct {
 	// TODO log options for log drivers
 
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
+
+	// ExitCommand is the container's exit command.
+	// This Command will be executed when the container exits
+	ExitCommand []string `json:"exitCommand,omitempty"`
 }
 
 // ContainerStatus returns a string representation for users

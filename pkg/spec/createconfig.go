@@ -316,8 +316,25 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
+func createExitCommand(runtime *libpod.Runtime) []string {
+	config := runtime.GetConfig()
+
+	cmd, _ := os.Executable()
+	command := []string{cmd,
+		"--root", config.StorageConfig.GraphRoot,
+		"--runroot", config.StorageConfig.RunRoot,
+		"--log-level", logrus.GetLevel().String(),
+		"--cgroup-manager", config.CgroupManager,
+		"--tmpdir", config.TmpDir,
+	}
+	if config.StorageConfig.GraphDriverName != "" {
+		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
+	}
+	return append(command, []string{"container", "cleanup"}...)
+}
+
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
-func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, error) {
+func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -433,6 +450,9 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 
 	if c.CgroupParent != "" {
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
+	}
+	if c.Detach {
+		options = append(options, libpod.WithExitCommand(createExitCommand(runtime)))
 	}
 
 	return options, nil

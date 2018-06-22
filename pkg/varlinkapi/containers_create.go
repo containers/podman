@@ -47,7 +47,7 @@ func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, conf
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
-	options, err := createConfig.GetContainerCreateOptions()
+	options, err := createConfig.GetContainerCreateOptions(runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

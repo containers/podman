@@ -7,6 +7,7 @@ import (
 var (
 	subCommands = []cli.Command{
 		attachCommand,
+		cleanupCommand,
 		commitCommand,
 		createCommand,
 		diffCommand,
