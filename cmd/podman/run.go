@@ -104,7 +104,6 @@ func runCmd(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	useImageVolumes := createConfig.ImageVolumeType == "bind"
 
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
@@ -113,27 +112,7 @@ func runCmd(c *cli.Context) error {
 
 	options, err := createConfig.GetContainerCreateOptions()
 	if err != nil {
-		return errors.Wrapf(err, "unable to parse new container options")
-	}
-
-	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(createConfig.ImageID, createConfig.Image, useImageVolumes))
-	options = append(options, libpod.WithSELinuxLabels(createConfig.ProcessLabel, createConfig.MountLabel))
-	options = append(options, libpod.WithConmonPidFile(createConfig.ConmonPidFile))
-	options = append(options, libpod.WithLabels(createConfig.Labels))
-	options = append(options, libpod.WithUser(createConfig.User))
-	options = append(options, libpod.WithShmDir(createConfig.ShmDir))
-	options = append(options, libpod.WithShmSize(createConfig.Resources.ShmSize))
-	options = append(options, libpod.WithGroups(createConfig.GroupAdd))
-	options = append(options, libpod.WithIDMappings(*createConfig.IDMappings))
-	if createConfig.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(createConfig.Rootfs))
-	}
-
-	// Default used if not overridden on command line
-
-	if createConfig.CgroupParent != "" {
-		options = append(options, libpod.WithCgroupParent(createConfig.CgroupParent))
+		return err
 	}
 
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
