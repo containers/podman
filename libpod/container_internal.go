@@ -1361,19 +1361,57 @@ func (c *Container) addImageVolumes(ctx context.Context, g *generate.Generator) 
 			continue
 		}
 		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+		srcPath := filepath.Join(mountPoint, k)
+
+		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+			logrus.Infof("Volume image mount point %s does not exist in root FS, need to create it", k)
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
 				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
 			}
+
+			if c.config.User != "" {
+				if !c.state.Mounted {
+					return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
+				}
+				uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
+				if err != nil {
+					return err
+				}
+
+				if err = os.Chown(volumePath, int(uid), int(gid)); err != nil {
+					return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID)
+				}
+			}
+		}
+
+		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+
 			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
 				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)
 			}
-			srcPath := filepath.Join(mountPoint, k)
 			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
 				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID, srcPath)
 			}
-			mount.Source = volumePath
+
+			// Set the volume path with the same owner and permission of source path
+			sstat, _ := os.Stat(srcPath)
+			st, ok := sstat.Sys().(*syscall.Stat_t)
+			if !ok {
+				return fmt.Errorf("could not convert to syscall.Stat_t")
+			}
+			uid := int(st.Uid)
+			gid := int(st.Gid)
+
+			if err := os.Lchown(volumePath, uid, gid); err != nil {
+				return err
+			}
+			if os.Chmod(volumePath, sstat.Mode()); err != nil {
+				return err
+			}
+
 		}
+
+		mount.Source = volumePath
 		g.AddMount(mount)
 	}
 	return nil
