@@ -155,3 +155,99 @@ make BUILDTAGS='seccomp apparmor'
 | seccomp   | syscall filtering                  | libseccomp  |
 | selinux   | selinux process and mount labeling | libselinux  |
 | apparmor  | apparmor profile support           | libapparmor |
+
+## Configuration files
+
+### [registries.conf](https://src.fedoraproject.org/rpms/skopeo/blob/master/f/registries.conf)
+
+#### Man Page: [registries.conf.5](https://github.com/containers/image/blob/master/docs/registries.conf.5.md)
+
+`/etc/containers/registries.conf`
+
+registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+
+#### Example from the Fedora `containers-common` package
+
+```
+cat /etc/containers/registries.conf
+# This is a system-wide configuration file used to
+# keep track of registries for various container backends.
+# It adheres to TOML format and does not support recursive
+# lists of registries.
+
+# The default location for this configuration file is /etc/containers/registries.conf.
+
+# The only valid categories are: 'registries.search', 'registries.insecure',
+# and 'registries.block'.
+
+[registries.search]
+registries = ['docker.io', 'registry.fedoraproject.org', 'quay.io', 'registry.access.redhat.com', 'registry.centos.org']
+
+# If you need to access insecure registries, add the registry's fully-qualified name.
+# An insecure registry is one that does not have a valid SSL certificate or only does HTTP.
+[registries.insecure]
+registries = []
+
+
+# If you need to block pull access from a registry, uncomment the section below
+# and add the registries fully-qualified name.
+#
+# Docker only
+[registries.block]
+registries = []
+```
+
+### [mounts.conf](https://src.fedoraproject.org/rpms/skopeo/blob/master/f/mounts.conf)
+
+`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`
+
+The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman build` commands.  Container process can then use this content.  The volume mount content does not get committed to the final image.
+
+Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
+
+For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
+
+Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
+
+#### Example from the Fedora `containers-common` package:
+
+```
+cat /usr/share/containers/mounts.conf
+/usr/share/rhel/secrets:/run/secrets
+```
+
+### [seccomp.json](https://src.fedoraproject.org/rpms/skopeo/blob/master/f/seccomp.json)
+
+`/usr/share/containers/seccomp.json`
+
+seccomp.json contains the whitelist of seccomp rules to be allowed inside of
+containers.  This file is usually provided by the containers-common package.
+
+The link above takes you to the seccomp.json
+
+### [policy.json](https://github.com/projectatomic/skopeo/blob/master/default-policy.json)
+
+`/etc/containers/policy.json`
+
+#### Man Page: [policy.json.5](https://github.com/containers/image/blob/master/docs/policy.json.md)
+
+
+#### Example from the Fedora `containers-common` package:
+
+```
+cat /etc/containers/policy.json
+{
+    "default": [
+	{
+	    "type": "insecureAcceptAnything"
+	}
+    ],
+    "transports":
+	{
+	    "docker-daemon":
+		{
+		    "": [{"type":"insecureAcceptAnything"}]
+		}
+	}
+}
+```
