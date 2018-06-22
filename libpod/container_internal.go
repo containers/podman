@@ -804,9 +804,7 @@ func (c *Container) cleanupNetwork() error {
 	}
 
 	c.state.NetNS = nil
-	c.state.IPs = nil
-	c.state.Interfaces = nil
-	c.state.Routes = nil
+	c.state.NetworkResults = nil
 	return c.save()
 }
 

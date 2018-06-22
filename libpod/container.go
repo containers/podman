@@ -148,18 +148,11 @@ type containerState struct {
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
-	// IPs contains IP addresses assigned to the container
-	// Only populated if we created a network namespace for the container,
-	// and the network namespace is currently active
-	IPs []*cnitypes.IPConfig `json:"ipAddresses,omitempty"`
-	// Interfaces contains interface information about the container
-	// Only populated if we created a network namespace for the container,
-	// and the network namespace is currently active
-	Interfaces []*cnitypes.Interface `json:"interfaces,omitempty"`
-	// Routes contains network routes present in the container
-	// Only populated if we created a network namespace for the container,
-	// and the network namespace is currently active
-	Routes []*types.Route `json:"routes,omitempty"`
+	// NetworkResults contains the configuration results for all networks
+	// the pod is attached to. Only populated if we created a network
+	// namespace for the container, and the network namespace is currently
+	// active
+	NetworkResults []*cnitypes.Result `json:"networkResults,omitempty"`
 	// BindMounts contains files that will be bind-mounted into the
 	// container when it is mounted.
 	// These include /etc/hosts and /etc/resolv.conf
@@ -270,6 +263,8 @@ type ContainerConfig struct {
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`
+	// Network names to add container to. Empty to use default network.
+	Networks []string `json:"networks,omitempty"`
 
 	// Image Config
 
@@ -768,10 +763,12 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
 	}
 
-	ips := make([]net.IPNet, 0, len(c.state.IPs))
+	ips := make([]net.IPNet, 0)
 
-	for _, ip := range c.state.IPs {
-		ips = append(ips, ip.Address)
+	for _, r := range c.state.NetworkResults {
+		for _, ip := range r.IPs {
+			ips = append(ips, ip.Address)
+		}
 	}
 
 	return ips, nil
@@ -794,15 +791,17 @@ func (c *Container) Routes() ([]types.Route, error) {
 		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
 	}
 
-	routes := make([]types.Route, 0, len(c.state.Routes))
+	routes := make([]types.Route, 0)
 
-	for _, route := range c.state.Routes {
-		newRoute := types.Route{
-			Dst: route.Dst,
-			GW:  route.GW,
+	for _, r := range c.state.NetworkResults {
+		for _, route := range r.Routes {
+			newRoute := types.Route{
+				Dst: route.Dst,
+				GW:  route.GW,
+			}
+
+			routes = append(routes, newRoute)
 		}
-
-		routes = append(routes, newRoute)
 	}
 
 	return routes, nil
