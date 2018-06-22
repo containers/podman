@@ -485,6 +485,18 @@ func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	}
 }
 
+// WithExitCommand sets the ExitCommand for the container, appending on the ctr.ID() to the end
+func WithExitCommand(exitCommand []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.ExitCommand = append(exitCommand, ctr.ID())
+		return nil
+	}
+}
+
 // WithIPCNSFrom indicates the the container should join the IPC namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of

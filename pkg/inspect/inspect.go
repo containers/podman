@@ -167,6 +167,7 @@ type ContainerInspectData struct {
 	Mounts          []specs.Mount          `json:"Mounts"`
 	Dependencies    []string               `json:"Dependencies"`
 	NetworkSettings *NetworkSettings       `json:"NetworkSettings"` //TODO
+	ExitCommand     []string               `json:"ExitCommand"`
 }
 
 // ContainerInspectState represents the state of a container.
