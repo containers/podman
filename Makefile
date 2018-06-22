@@ -17,7 +17,14 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
-BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh)
+BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) varlink
+
+ifneq (,$(findstring varlink,$(BUILDTAGS)))
+	WANTVARLINK=true
+else
+	WANTVARLINK=false
+endif
+
 PYTHON ?= /usr/bin/python3
 HAS_PYTHON3 := $(shell command -v python3 2>/dev/null)
 
@@ -271,10 +278,14 @@ install.libseccomp.sudo:
 
 
 cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
+ifeq ($(WANTVARLINK), true)
 	$(GO) generate ./cmd/podman/varlink/...
+endif
 
 API.md: cmd/podman/varlink/io.projectatomic.podman.varlink
+ifeq ($(WANTVARLINK), true)
 	$(GO) generate ./docs/...
+endif
 
 validate: gofmt .gitvalidation
 
