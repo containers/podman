@@ -98,7 +98,7 @@ class Tunnel(object):
         """Create SSH tunnel from given context."""
         cmd = [
             'ssh',
-            '-nNT',
+            '-nNTq',
             '-L',
             '{}:{}'.format(self.context.local_socket,
                            self.context.remote_socket),
