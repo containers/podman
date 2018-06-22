@@ -316,11 +316,26 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
+// Reset resets state fields to default values
+// It is performed before a refresh and clears the state after a reboot
+// It does not save the results - assumes the database will do that for us
+func resetState(state *containerState) error {
+	state.PID = 0
+	state.Mountpoint = ""
+	state.Mounted = false
+	state.State = ContainerStateConfigured
+	state.ExecSessions = make(map[string]*ExecSession)
+	state.IPs = nil
+	state.Interfaces = nil
+	state.Routes = nil
+	state.BindMounts = make(map[string]string)
+	state.CgroupCreated = false
+
+	return nil
+}
+
 // Refresh refreshes the container's state after a restart
 func (c *Container) refresh() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
 	}
@@ -550,6 +565,7 @@ func (c *Container) init(ctx context.Context) error {
 	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
 	c.state.State = ContainerStateCreated
+	c.state.CgroupCreated = true
 
 	if err := c.save(); err != nil {
 		return err
@@ -681,6 +697,32 @@ func (c *Container) stop(timeout uint) error {
 	return c.cleanup()
 }
 
+// Internal, non-locking function to pause a container
+func (c *Container) pause() error {
+	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Paused container %s", c.ID())
+
+	c.state.State = ContainerStatePaused
+
+	return c.save()
+}
+
+// Internal, non-locking function to unpause a container
+func (c *Container) unpause() error {
+	if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Unpaused container %s", c.ID())
+
+	c.state.State = ContainerStateRunning
+
+	return c.save()
+}
+
 // mountStorage sets up the container's root filesystem
 // It mounts the image and any other requested mounts
 // TODO: Add ability to override mount label so we can use this for Mount() too
@@ -769,6 +811,11 @@ func (c *Container) prepare() (err error) {
 // cleanupCgroup cleans up residual CGroups after container execution
 // This is a no-op for the systemd cgroup driver
 func (c *Container) cleanupCgroups() error {
+	if !c.state.CgroupCreated {
+		logrus.Debugf("Cgroups are not present, ignoring...")
+		return nil
+	}
+
 	if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		return nil
 	}
@@ -793,11 +840,22 @@ func (c *Container) cleanupCgroups() error {
 		return err
 	}
 
+	c.state.CgroupCreated = false
+
+	if c.valid {
+		return c.save()
+	}
+
 	return nil
 }
 
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
+	if c.state.NetNS == nil {
+		logrus.Debugf("Network is already cleaned up, skipping...")
+		return nil
+	}
+
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
 		logrus.Errorf("unable to cleanup network for container %s: %q", c.ID(), err)
@@ -807,13 +865,19 @@ func (c *Container) cleanupNetwork() error {
 	c.state.IPs = nil
 	c.state.Interfaces = nil
 	c.state.Routes = nil
-	return c.save()
+
+	if c.valid {
+		return c.save()
+	}
+
+	return nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
 		// Already unmounted, do nothing
+		logrus.Debugf("Storage is already unmounted, skipping...")
 		return nil
 	}
 

@@ -20,6 +20,7 @@ var (
 		pauseCommand,
 		portCommand,
 		//		pruneCommand,
+		refreshCommand,
 		restartCommand,
 		rmCommand,
 		runCommand,

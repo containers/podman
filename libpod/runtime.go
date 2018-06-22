@@ -570,14 +570,20 @@ func (r *Runtime) refresh(alivePath string) error {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
 	for _, ctr := range ctrs {
+		ctr.lock.Lock()
 		if err := ctr.refresh(); err != nil {
+			ctr.lock.Unlock()
 			return err
 		}
+		ctr.lock.Unlock()
 	}
 	for _, pod := range pods {
+		pod.lock.Lock()
 		if err := pod.refresh(); err != nil {
+			pod.lock.Unlock()
 			return err
 		}
+		pod.lock.Unlock()
 	}
 
 	// Create a file indicating the runtime is alive and ready

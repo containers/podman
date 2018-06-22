@@ -174,15 +174,9 @@ func (s *BoltState) Refresh() error {
 				return errors.Wrapf(err, "error unmarshalling state for container %s", string(id))
 			}
 
-			state.PID = 0
-			state.Mountpoint = ""
-			state.Mounted = false
-			state.State = ContainerStateConfigured
-			state.ExecSessions = make(map[string]*ExecSession)
-			state.IPs = nil
-			state.Interfaces = nil
-			state.Routes = nil
-			state.BindMounts = make(map[string]string)
+			if err := resetState(state); err != nil {
+				return errors.Wrapf(err, "error resetting state for container %s", string(id))
+			}
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {
