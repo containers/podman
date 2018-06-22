@@ -1,3 +1,44 @@
+- Changelog for v0.6.4 (2018-06-22)
+  * Add tests for podman refresh
+  * Point podman-refresh at the right manpage
+  * Add bash completions for podman refresh
+  * Add manpages for podman refresh
+  * Move podman refresh under the container subcommand
+  * Make CGroups cleanup optional on whether they exist
+  * Add podman refresh command
+  * Add Refresh() to ctrs to refresh state after db change
+  * Add information about the configuration files to the install docs
+  * Add unittests and fix bugs
+  * Fix docs on --sig-proxy to match current behaviour
+  * Podman history now prints out intermediate image IDs
+  * Add cap-add and cap-drop to build man page
+  * Option handling has become large and should be a shared function
+  * Fix image volumes access and mount problems on restart
+  * We are using err in defer function, needs to be defined name
+  * Update the version of conmon used in test
+  * install: need to install make on Fedora-like distros
+  * Vendor containers/storage for better error reporting on dups
+  * libpod: fix race with attach/start
+  * Implement SSH tunnels between client and podman server
+  * Add carriage return to log message when using --tty flag
+  * Errors from closing a netns on removal from DB are nonfatal
+  * Vendor in latest go-selinux
+  * Added --sort to ps
+  * Fix podman build -q
+  * Add extra debug so we can tell apart postdelete hooks
+  * hack/ostree_tag.sh: Fill in OSTree dependencies
+  * TLS verify is skipped per registry.
+  * Add missing functionality for podman build layers
+  * Add --all,-a flag to podman images
+  * Add MacAddress to inspect
+  * Update gitvalidation epoch
+  * top: make output tabular
+  * Add more network info ipv4/ipv6 and be more compatible with docker
+  * Do not run iptablesDNS workaround on IPv6 addresses
+  * Added --tls-verify functionality to podman search, with tests
+  * Bump gitvalidation epoch
+  * Bump to v0.6.4-dev
+
 - Changelog for v0.6.3 (2018-06-15)
   * spec: remove dead code
   * test: add test for running a rootless container
