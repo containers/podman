@@ -185,6 +185,8 @@ type ContainerConfig struct {
 	Name string     `json:"name"`
 	// Full ID of the pood the container belongs to
 	Pod string `json:"pod,omitempty"`
+	// Namespace the container is in
+	Namespace string `json:"namespace,omitempty"`
 
 	// TODO consider breaking these subsections up into smaller structs
 
@@ -370,6 +372,12 @@ func (c *Container) Name() string {
 // does not belong to a pod
 func (c *Container) PodID() string {
 	return c.config.Pod
+}
+
+// Namespace returns the libpod namespace the container is in.
+// Namespaces are used to logically separate containers and pods in the state.
+func (c *Container) Namespace() string {
+	return c.config.Namespace
 }
 
 // Image returns the ID and name of the image used as the container's rootfs

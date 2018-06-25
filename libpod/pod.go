@@ -27,6 +27,8 @@ type Pod struct {
 type PodConfig struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+	// Namespace the pod is in
+	Namespace string `json:"namespace,omitempty"`
 
 	// Labels contains labels applied to the pod
 	Labels map[string]string `json:"labels"`
@@ -56,6 +58,12 @@ func (p *Pod) ID() string {
 // Name retrieves the pod's name
 func (p *Pod) Name() string {
 	return p.config.Name
+}
+
+// Namespace returns the pod's libpod namespace.
+// Namespaces are used to logically separate containers and pods in the state.
+func (p *Pod) Namespace() string {
+	return p.config.Namespace
 }
 
 // Labels returns the pod's labels
