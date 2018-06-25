@@ -142,6 +142,9 @@ func (plugin *cniNetworkPlugin) monitorNetDir() {
 				logrus.Errorf("CNI setting failed, continue monitoring: %v", err)
 
 			case err := <-watcher.Errors:
+				if err == nil {
+					continue
+				}
 				logrus.Errorf("CNI monitoring error %v", err)
 				close(plugin.monitorNetDirChan)
 				return
