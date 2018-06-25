@@ -197,6 +197,7 @@ install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(MANDIR)/man1
 
 install.config:
 	install ${SELINUXOPT} -D -m 644 libpod.conf ${SHAREDIR_CONTAINERS}/libpod.conf
