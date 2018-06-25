@@ -964,6 +964,11 @@ func (s *BoltState) AddPod(pod *Pod) error {
 	podID := []byte(pod.ID())
 	podName := []byte(pod.Name())
 
+	var podNamespace []byte
+	if pod.config.Namespace != "" {
+		podNamespace = []byte(pod.config.Namespace)
+	}
+
 	podConfigJSON, err := json.Marshal(pod.config)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling pod %s config to JSON", pod.ID())
@@ -1029,6 +1034,12 @@ func (s *BoltState) AddPod(pod *Pod) error {
 
 		if err := newPod.Put(stateKey, podStateJSON); err != nil {
 			return errors.Wrapf(err, "error storing pod %s state JSON in DB", pod.ID())
+		}
+
+		if podNamespace != nil {
+			if err := newPod.Put(namespaceKey, podNamespace); err != nil {
+				return errors.Wrapf(err, "error storing pod %s namespace in DB", pod.ID())
+			}
 		}
 
 		// Add us to the ID and names buckets

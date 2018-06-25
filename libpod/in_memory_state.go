@@ -494,6 +494,11 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "container %s is not in pod %s", ctr.ID(), pod.ID())
 	}
 
+	if ctr.config.Namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
+			ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
+	}
+
 	// Retrieve pod containers list
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {

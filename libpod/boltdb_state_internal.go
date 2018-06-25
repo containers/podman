@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bytes"
 	"encoding/json"
 	"path/filepath"
 	"runtime"
@@ -27,6 +28,7 @@ const (
 	netNSName        = "netns"
 	containersName   = "containers"
 	podIDName        = "pod-id"
+	namespaceName    = "namespace"
 )
 
 var (
@@ -44,6 +46,7 @@ var (
 	netNSKey        = []byte(netNSName)
 	containersBkt   = []byte(containersName)
 	podIDKey        = []byte(podIDName)
+	namespaceKey    = []byte(namespaceName)
 )
 
 // Check if the configuration of the database is compatible with the
@@ -262,6 +265,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	ctrID := []byte(ctr.ID())
 	ctrName := []byte(ctr.Name())
 
+	var ctrNamespace []byte
+	if ctr.config.Namespace != "" {
+		ctrNamespace = []byte(ctr.config.Namespace)
+	}
+
 	db, err := s.getDBCon()
 	if err != nil {
 		return err
@@ -309,6 +317,12 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			if podCtrs == nil {
 				return errors.Wrapf(ErrInternal, "pod %s does not have a containers bucket", pod.ID())
 			}
+
+			podNS := podDB.Get(namespaceKey)
+			if !bytes.Equal(podNS, ctrNamespace) {
+				return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
+					ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
+			}
 		}
 
 		// Check if we already have a container with the given ID and name
@@ -343,6 +357,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		if err := newCtrBkt.Put(stateKey, stateJSON); err != nil {
 			return errors.Wrapf(err, "error adding container %s state to DB", ctr.ID())
+		}
+		if ctrNamespace != nil {
+			if err := newCtrBkt.Put(namespaceKey, ctrNamespace); err != nil {
+				return errors.Wrapf(err, "error adding container %s namespace to DB", ctr.ID())
+			}
 		}
 		if pod != nil {
 			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
