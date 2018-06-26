@@ -213,7 +213,10 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	configPath := ConfigPath
 	foundConfig := true
 	if rootless.IsRootless() {
-		foundConfig = false
+		configPath = filepath.Join(os.Getenv("HOME"), ".config/containers/libpod.conf")
+		if _, err := os.Stat(configPath); err != nil {
+			foundConfig = false
+		}
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath
