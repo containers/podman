@@ -15,11 +15,11 @@ podman\-search - Search a registry for an image
 
 ## DESCRIPTION
 **podman search** searches a registry or a list of registries for a matching image.
-The user can specify which registry to search by setting the **--registry** flag, default
-is the default registries set in the config file - **/etc/containers/registries.conf**.
-The number of results can be limited using the **--limit** flag. If more than one registry
-is being searched, the limit will be applied to each registry. The output can be filtered
-using the **--filter** flag.
+By default, **podman search** will search all the registries in the config file
+**/etc/containers/registries.conf**. The user can specify which registry to search by
+setting the **--registry** flag. The number of results can be limited using the **--limit**
+flag. If more than one registry is being searched, the limit will be applied to each
+registry. The output can be filtered using the **--filter** flag.
 
 **podman [GLOBAL OPTIONS]**
 

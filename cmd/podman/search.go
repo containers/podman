@@ -49,8 +49,9 @@ var (
 		},
 	}
 	searchDescription = `
-	Search registries for a given image. Can search all the default registries or a specific registry.
-	Can limit the number of results, and filter the output based on certain conditions.`
+	Search registries for a given image. Will search all the default registries in /etc/containers/registries.conf.
+	To search only a specific registry use the --registry flag. Can limit the number of results, and filter the output
+	based on certain conditions.`
 	searchCommand = cli.Command{
 		Name:        "search",
 		Usage:       "search registry for image",
