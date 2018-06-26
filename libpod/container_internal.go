@@ -923,7 +923,7 @@ func (c *Container) cleanup() error {
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = nil
+		lastError = err
 	}
 
 	if err := c.cleanupCgroups(); err != nil {
