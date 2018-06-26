@@ -23,8 +23,14 @@ func init() {
 	transports.Register(Transport)
 }
 
-// Transport is an ImageTransport for OCI directories.
-var Transport = ociTransport{}
+var (
+	// Transport is an ImageTransport for OCI directories.
+	Transport = ociTransport{}
+
+	// ErrMoreThanOneImage is an error returned when the manifest includes
+	// more than one image and the user should choose which one to use.
+	ErrMoreThanOneImage = errors.New("more than one image in oci, choose an image")
+)
 
 type ociTransport struct{}
 
@@ -184,7 +190,7 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
 			d = &index.Manifests[0]
 		} else {
 			// ask user to choose image when more than one image in the oci directory
-			return imgspecv1.Descriptor{}, errors.Wrapf(err, "more than one image in oci, choose an image")
+			return imgspecv1.Descriptor{}, ErrMoreThanOneImage
 		}
 	} else {
 		// if image specified, look through all manifests for a match

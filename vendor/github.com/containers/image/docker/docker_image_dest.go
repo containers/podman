@@ -95,6 +95,13 @@ func (d *dockerImageDestination) MustMatchRuntimeOS() bool {
 	return false
 }
 
+// IgnoresEmbeddedDockerReference returns true iff the destination does not care about Image.EmbeddedDockerReferenceConflicts(),
+// and would prefer to receive an unmodified manifest instead of one modified for the destination.
+// Does not make a difference if Reference().DockerReference() is nil.
+func (d *dockerImageDestination) IgnoresEmbeddedDockerReference() bool {
+	return false // We do want the manifest updated; older registry versions refuse manifests if the embedded reference does not match.
+}
+
 // sizeCounter is an io.Writer which only counts the total size of its input.
 type sizeCounter struct{ size int64 }
 
