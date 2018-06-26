@@ -16,6 +16,7 @@ import (
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/util"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -564,6 +565,10 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 	for _, ctr := range containers {
 		batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
 		if err != nil {
+			if errors.Cause(err) == libpod.ErrNoSuchCtr {
+				logrus.Warn(err)
+				continue
+			}
 			return nil, err
 		}
 
