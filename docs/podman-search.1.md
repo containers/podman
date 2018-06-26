@@ -29,6 +29,10 @@ using the **--filter** flag.
 
 ## OPTIONS
 
+**--authfile**
+
+Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
+
 **--filter, -f**
 
 Filter output based on conditions provided (default [])

@@ -1289,6 +1289,7 @@ _podman_pull() {
 
 _podman_search() {
 	local options_with_args="
+	--authfile
 	--filter -f
 	--format
 	--limit
