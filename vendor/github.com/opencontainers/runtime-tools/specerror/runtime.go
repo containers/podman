@@ -68,10 +68,10 @@ const (
 	PropApplyFailNotCreate
 	// StartWithoutIDGenError represents "`start` operation MUST generate an error if it is not provided the container ID."
 	StartWithoutIDGenError
-	// StartNonCreateHaveNoEffect represents "Attempting to `start` a container that is not `created` MUST have no effect on the container."
-	StartNonCreateHaveNoEffect
-	// StartNonCreateGenError represents "Attempting to `start` a container that is not `created` MUST generate an error."
-	StartNonCreateGenError
+	// StartNotCreatedHaveNoEffect represents "Attempting to `start` a container that is not `created` MUST have no effect on the container."
+	StartNotCreatedHaveNoEffect
+	// StartNotCreatedGenError represents "Attempting to `start` a container that is not `created` MUST generate an error."
+	StartNotCreatedGenError
 	// StartProcImplement represents "`start` operation MUST run the user-specified program as specified by `process`."
 	StartProcImplement
 	// StartWithProcUnsetGenError represents "`start` operation MUST generate an error if `process` was not set."
@@ -163,8 +163,8 @@ func init() {
 	register(PropApplyFailGenError, rfc2119.Must, createRef)
 	register(PropApplyFailNotCreate, rfc2119.Must, createRef)
 	register(StartWithoutIDGenError, rfc2119.Must, startRef)
-	register(StartNonCreateHaveNoEffect, rfc2119.Must, startRef)
-	register(StartNonCreateGenError, rfc2119.Must, startRef)
+	register(StartNotCreatedHaveNoEffect, rfc2119.Must, startRef)
+	register(StartNotCreatedGenError, rfc2119.Must, startRef)
 	register(StartProcImplement, rfc2119.Must, startRef)
 	register(StartWithProcUnsetGenError, rfc2119.Must, startRef)
 	register(KillWithoutIDGenError, rfc2119.Must, killRef)
