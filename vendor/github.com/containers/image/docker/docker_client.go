@@ -280,13 +280,19 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	v2Res := &V2Results{}
 	v1Res := &V1Results{}
 
+	// Get credentials from authfile for the underlying hostname
+	username, password, err := config.GetAuthentication(sys, registry)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting username and password")
+	}
+
 	// The /v2/_catalog endpoint has been disabled for docker.io therefore the call made to that endpoint will fail
 	// So using the v1 hostname for docker.io for simplicity of implementation and the fact that it returns search results
 	if registry == dockerHostname {
 		registry = dockerV1Hostname
 	}
 
-	client, err := newDockerClientWithDetails(sys, registry, "", "", "", nil, "")
+	client, err := newDockerClientWithDetails(sys, registry, username, password, "", nil, "")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating new docker client")
 	}
