@@ -37,41 +37,28 @@ If your distribution does not package node-tap, you can install [npm][] (for exa
 $ npm install tap
 ```
 
+Build the validation executables:
+
 ```console
 $ make runtimetest validation-executables
-RUNTIME=runc tap validation/linux_rootfs_propagation_shared.t validation/create.t validation/default.t validation/linux_readonly_paths.t validation/linux_masked_paths.t validation/mounts.t validation/process.t validation/root_readonly_false.t validation/linux_sysctl.t validation/linux_devices.t validation/linux_gid_mappings.t validation/process_oom_score_adj.t validation/process_capabilities.t validation/process_rlimits.t validation/root_readonly_true.t validation/linux_rootfs_propagation_unbindable.t validation/hostname.t validation/linux_uid_mappings.t
-validation/linux_rootfs_propagation_shared.t ........ 18/19
-  not ok rootfs propagation
+```
 
-validation/create.t ................................... 4/4
-validation/default.t ................................ 19/19
-validation/linux_readonly_paths.t ................... 19/19
-validation/linux_masked_paths.t ..................... 18/19
-  not ok masked paths
+Runtime validation currently [only supports](docs/runtime-compliance-testing.md) the [OCI Runtime Command Line Interface](docs/command-line-interface.md).
+If we add support for alternative APIs in the future, runtime validation will gain an option to select the desired runtime API.
+For the command line interface, the `RUNTIME` option selects the runtime command (`funC` in the [OCI Runtime Command Line Interface](docs/command-line-interface.md)).
 
-validation/mounts.t ................................... 0/1
-  Skipped: 1
-     TODO: mounts generation options have not been implemented
-
-validation/process.t ................................ 19/19
-validation/root_readonly_false.t .................... 19/19
-validation/linux_sysctl.t ........................... 19/19
-validation/linux_devices.t .......................... 19/19
-validation/linux_gid_mappings.t ..................... 18/19
-  not ok gid mappings
-
-validation/process_oom_score_adj.t .................. 19/19
-validation/process_capabilities.t ................... 19/19
-validation/process_rlimits.t ........................ 19/19
-validation/root_readonly_true.t ...................failed to create the container
-rootfsPropagation=unbindable is not supported
+```
+$ sudo make RUNTIME=runc localvalidation
+RUNTIME=runc tap validation/pidfile.t validation/linux_cgroups_hugetlb.t validation/linux_cgroups_memory.t validation/linux_rootfs_propagation_shared.t validation/kill.t validation/create.t validation/poststart.t validation/linux_cgroups_network.t validation/poststop_fail.t validation/linux_readonly_paths.t validation/prestart_fail.t validation/hooks_stdin.t validation/default.t validation/linux_masked_paths.t validation/poststop.t validation/misc_props.t validation/prestart.t validation/poststart_fail.t validation/mounts.t validation/linux_cgroups_relative_pids.t validation/process_user.t validation/process.t validation/hooks.t validation/process_capabilities_fail.t validation/process_rlimits_fail.t validation/linux_cgroups_relative_cpus.t validation/process_rlimits.t validation/linux_cgroups_relative_blkio.t validation/linux_sysctl.t validation/linux_seccomp.t validation/linux_devices.t validation/start.t validation/linux_cgroups_pids.t validation/process_capabilities.t validation/process_oom_score_adj.t validation/linux_cgroups_relative_hugetlb.t validation/linux_cgroups_cpus.t validation/linux_cgroups_relative_memory.t validation/state.t validation/root_readonly_true.t validation/linux_cgroups_blkio.t validation/linux_rootfs_propagation_unbindable.t validation/delete.t validation/linux_cgroups_relative_network.t validation/hostname.t validation/killsig.t validation/linux_uid_mappings.t
+validation/pidfile.t .failed to create the container
+container_linux.go:348: starting container process caused "process_linux.go:402: container init caused \"process_linux.go:367: setting cgroup config for procHooks process caused \\\"failed to write 56892210544640 to hugetlb.1GB.limit_in_bytes: open /sys/fs/cgroup/hugetlb/cgrouptest/hugetlb.1GB.limit_in_bytes: permission denied\\\"\""
 exit status 1
-validation/root_readonly_true.t ..................... 19/19
-validation/linux_rootfs_propagation_unbindable.t ...... 0/1
-  not ok validation/linux_rootfs_propagation_unbindable.t
+validation/pidfile.t .................................. 1/1 315ms
+validation/linux_cgroups_hugetlb.t .................... 0/1
+  not ok validation/linux_cgroups_hugetlb.t
     timeout: 30000
-    file: validation/linux_rootfs_propagation_unbindable.t
-    command: validation/linux_rootfs_propagation_unbindable.t
+    file: validation/linux_cgroups_hugetlb.t
+    command: validation/linux_cgroups_hugetlb.t
     args: []
     stdio:
       - 0
@@ -80,31 +67,21 @@ validation/linux_rootfs_propagation_unbindable.t ...... 0/1
     cwd: /…/go/src/github.com/opencontainers/runtime-tools
     exitCode: 1
 
-validation/hostname.t ...................failed to create the container
-User namespace mappings specified, but USER namespace isn't enabled in the config
-exit status 1
-validation/hostname.t ............................... 19/19
-validation/linux_uid_mappings.t ....................... 0/1
-  not ok validation/linux_uid_mappings.t
-    timeout: 30000
-    file: validation/linux_uid_mappings.t
-    command: validation/linux_uid_mappings.t
-    args: []
-    stdio:
-      - 0
-      - pipe
-      - 2
-    cwd: /…/go/src/github.com/opencontainers/runtime-tools
-    exitCode: 1
+validation/linux_cgroups_memory.t ..................... 9/9
+validation/linux_rootfs_propagation_shared.t ...... 252/282
+  not ok shared root propogation exposes "/target348456609/mount892511628/example376408222"
 
-total ............................................. 267/273
+  Skipped: 29
+     /dev/null (default device) has unconfigured permissions
+…
+total ........................................... 4381/4962
 
 
-  267 passing (31s)
-  1 pending
-  5 failing
+  4381 passing (1m)
+  567 pending
+  14 failing
 
-make: *** [Makefile:43: localvalidation] Error 1
+make: *** [Makefile:44: localvalidation] Error 1
 ```
 
 You can also run an individual test executable directly:
@@ -112,58 +89,27 @@ You can also run an individual test executable directly:
 ```console
 $ RUNTIME=runc validation/default.t
 TAP version 13
-ok 1 - root filesystem
-ok 2 - hostname
-ok 3 - process
-ok 4 - mounts
-ok 5 - user
-ok 6 - rlimits
-ok 7 - capabilities
-ok 8 - default symlinks
-ok 9 - default file system
-ok 10 - default devices
-ok 11 - linux devices
-ok 12 - linux process
-ok 13 - masked paths
-ok 14 - oom score adj
-ok 15 - read only paths
-ok 16 - rootfs propagation
-ok 17 - sysctls
-ok 18 - uid mappings
-ok 19 - gid mappings
-1..19
+ok 1 - has expected hostname
+  ---
+  {
+    "actual": "mrsdalloway",
+    "expected": "mrsdalloway"
+  }
+  ...
+…
+ok 287 # SKIP linux.gidMappings not set
+1..287
 ```
 
 If you cannot install node-tap, you can probably run the test suite with another [TAP consumer][tap-consumers].
 For example, with [`prove`][prove]:
 
 ```console
-$ sudo make TAP='prove -Q -j9' RUNTIME=runc localvalidation
-RUNTIME=runc prove -Q -j9 validation/linux_rootfs_propagation_shared.t validation/create.t validation/default.t validation/linux_readonly_paths.t validation/linux_masked_paths.t validation/mounts.t validation/process.t validation/root_readonly_false.t validation/linux_sysctl.t validation/linux_devices.t validation/linux_gid_mappings.t validation/process_oom_score_adj.t validation/process_capabilities.t validation/process_rlimits.t validation/root_readonly_true.t validation/linux_rootfs_propagation_unbindable.t validation/hostname.t validation/linux_uid_mappings.t
-failed to create the container
-rootfsPropagation=unbindable is not supported
-exit status 1
-failed to create the container
-User namespace mappings specified, but USER namespace isn't enabled in the config
-exit status 1
-
-Test Summary Report
--------------------
-validation/linux_rootfs_propagation_shared.t    (Wstat: 0 Tests: 19 Failed: 1)
-  Failed test:  16
-validation/linux_masked_paths.t                 (Wstat: 0 Tests: 19 Failed: 1)
-  Failed test:  13
-validation/linux_rootfs_propagation_unbindable.t (Wstat: 256 Tests: 0 Failed: 0)
-  Non-zero exit status: 1
-  Parse errors: No plan found in TAP output
-validation/linux_uid_mappings.t                 (Wstat: 256 Tests: 0 Failed: 0)
-  Non-zero exit status: 1
-  Parse errors: No plan found in TAP output
-validation/linux_gid_mappings.t                 (Wstat: 0 Tests: 19 Failed: 1)
-  Failed test:  19
-Files=18, Tests=271,  6 wallclock secs ( 0.06 usr  0.01 sys +  0.59 cusr  0.24 csys =  0.90 CPU)
-Result: FAIL
-make: *** [Makefile:43: localvalidation] Error 1
+$ sudo make TAP='prove -Q -j9' RUNTIME=runc VALIDATION_TESTS=validation/pidfile.t localvalidation
+RUNTIME=runc prove -Q -j9 validation/pidfile.t
+All tests successful.
+Files=1, Tests=1,  0 wallclock secs ( 0.01 usr  0.01 sys +  0.03 cusr  0.03 csys =  0.08 CPU)
+Result: PASS
 ```
 
 [bundle]: https://github.com/opencontainers/runtime-spec/blob/master/bundle.md

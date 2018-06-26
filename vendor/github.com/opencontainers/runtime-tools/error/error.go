@@ -86,6 +86,36 @@ func ParseLevel(level string) (Level, error) {
 	return l, fmt.Errorf("%q is not a valid compliance level", level)
 }
 
+// String takes a RFC 2119 compliance level constant and returns a string representation.
+func (level Level) String() string {
+	switch level {
+	case May:
+		return "MAY"
+	case Optional:
+		return "OPTIONAL"
+	case Should:
+		return "SHOULD"
+	case ShouldNot:
+		return "SHOULD NOT"
+	case Recommended:
+		return "RECOMMENDED"
+	case NotRecommended:
+		return "NOT RECOMMENDED"
+	case Must:
+		return "MUST"
+	case MustNot:
+		return "MUST NOT"
+	case Shall:
+		return "SHALL"
+	case ShallNot:
+		return "SHALL NOT"
+	case Required:
+		return "REQUIRED"
+	}
+
+	panic(fmt.Sprintf("%d is not a valid compliance level", level))
+}
+
 // Error returns the error message with specification reference.
 func (err *Error) Error() string {
 	return fmt.Sprintf("%s\nRefer to: %s", err.Err.Error(), err.Reference)

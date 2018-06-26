@@ -2,7 +2,6 @@ package seccomp
 
 import (
 	"runtime"
-	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -513,7 +512,7 @@ func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
 				Args: []rspec.LinuxSeccompArg{
 					{
 						Index:    sysCloneFlagsIndex,
-						Value:    syscall.CLONE_NEWNS | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWUSER | syscall.CLONE_NEWPID | syscall.CLONE_NEWNET,
+						Value:    CloneNewNS | CloneNewUTS | CloneNewIPC | CloneNewUser | CloneNewPID | CloneNewNet,
 						ValueTwo: 0,
 						Op:       rspec.OpMaskedEqual,
 					},

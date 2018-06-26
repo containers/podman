@@ -61,6 +61,34 @@ func (err *Error) Error() string {
 	return err.Err.Error()
 }
 
+// NewRFCError creates an rfc2119.Error referencing a spec violation.
+//
+// A version string (for the version of the spec that was violated)
+// must be set to get a working URL.
+func NewRFCError(code Code, err error, version string) (*rfc2119.Error, error) {
+	template := ociErrors[code]
+	reference, err2 := template.Reference(version)
+	if err2 != nil {
+		return nil, err2
+	}
+	return &rfc2119.Error{
+		Level:     template.Level,
+		Reference: reference,
+		Err:       err,
+	}, nil
+}
+
+// NewRFCErrorOrPanic creates an rfc2119.Error referencing a spec
+// violation and panics on failure.  This is handy for situations
+// where you can't be bothered to check NewRFCError for failure.
+func NewRFCErrorOrPanic(code Code, err error, version string) *rfc2119.Error {
+	rfcError, err2 := NewRFCError(code, err, version)
+	if err2 != nil {
+		panic(err2.Error())
+	}
+	return rfcError
+}
+
 // NewError creates an Error referencing a spec violation.  The error
 // can be cast to an *Error for extracting structured information
 // about the level of the violation and a reference to the violated
@@ -69,17 +97,12 @@ func (err *Error) Error() string {
 // A version string (for the version of the spec that was violated)
 // must be set to get a working URL.
 func NewError(code Code, err error, version string) error {
-	template := ociErrors[code]
-	reference, err2 := template.Reference(version)
+	rfcError, err2 := NewRFCError(code, err, version)
 	if err2 != nil {
 		return err2
 	}
 	return &Error{
-		Err: rfc2119.Error{
-			Level:     template.Level,
-			Reference: reference,
-			Err:       err,
-		},
+		Err:  *rfcError,
 		Code: code,
 	}
 }

@@ -14,8 +14,8 @@ const (
 	RootOnWindowsRequired
 	// RootOnHyperVNotSet represents "For Hyper-V Containers, this field MUST NOT be set."
 	RootOnHyperVNotSet
-	// RootOnNonHyperVRequired represents "On all other platforms, this field is REQUIRED."
-	RootOnNonHyperVRequired
+	// RootOnNonWindowsRequired represents "On all other platforms, this field is REQUIRED."
+	RootOnNonWindowsRequired
 	// RootPathOnWindowsGUID represents "On Windows, `path` MUST be a volume GUID path."
 	RootPathOnWindowsGUID
 	// RootPathOnPosixConvention represents "The value SHOULD be the conventional `rootfs`."
@@ -145,7 +145,7 @@ func init() {
 	register(SpecVersionInSemVer, rfc2119.Must, specificationVersionRef)
 	register(RootOnWindowsRequired, rfc2119.Required, rootRef)
 	register(RootOnHyperVNotSet, rfc2119.Must, rootRef)
-	register(RootOnNonHyperVRequired, rfc2119.Required, rootRef)
+	register(RootOnNonWindowsRequired, rfc2119.Required, rootRef)
 	register(RootPathOnWindowsGUID, rfc2119.Must, rootRef)
 	register(RootPathOnPosixConvention, rfc2119.Should, rootRef)
 	register(RootPathExist, rfc2119.Must, rootRef)
