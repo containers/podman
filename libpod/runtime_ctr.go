@@ -258,6 +258,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 	}
 
+	// Set container as invalid so it can no longer be used
+	c.valid = false
+
 	// Clean up network namespace, cgroups, mounts
 	if err := c.cleanup(); err != nil {
 		if cleanupErr == nil {
@@ -288,9 +291,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 			}
 		}
 	}
-
-	// Set container as invalid so it can no longer be used
-	c.valid = false
 
 	return cleanupErr
 }
