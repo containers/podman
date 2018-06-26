@@ -70,6 +70,13 @@ func (d *ociArchiveImageDestination) MustMatchRuntimeOS() bool {
 	return d.unpackedDest.MustMatchRuntimeOS()
 }
 
+// IgnoresEmbeddedDockerReference returns true iff the destination does not care about Image.EmbeddedDockerReferenceConflicts(),
+// and would prefer to receive an unmodified manifest instead of one modified for the destination.
+// Does not make a difference if Reference().DockerReference() is nil.
+func (d *ociArchiveImageDestination) IgnoresEmbeddedDockerReference() bool {
+	return d.unpackedDest.IgnoresEmbeddedDockerReference()
+}
+
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.

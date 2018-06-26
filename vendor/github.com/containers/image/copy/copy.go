@@ -347,6 +347,9 @@ func checkImageDestinationForCurrentRuntimeOS(ctx context.Context, sys *types.Sy
 
 // updateEmbeddedDockerReference handles the Docker reference embedded in Docker schema1 manifests.
 func (ic *imageCopier) updateEmbeddedDockerReference() error {
+	if ic.c.dest.IgnoresEmbeddedDockerReference() {
+		return nil // Destination would prefer us not to update the embedded reference.
+	}
 	destRef := ic.c.dest.Reference().DockerReference()
 	if destRef == nil {
 		return nil // Destination does not care about Docker references
