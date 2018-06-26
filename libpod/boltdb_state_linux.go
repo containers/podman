@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"bytes"
 	"encoding/json"
 	"path/filepath"
 
@@ -17,6 +18,13 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
 		return errors.Wrapf(ErrNoSuchCtr, "container %s not found in DB", string(id))
+	}
+
+	if s.namespaceBytes != nil {
+		ctrNamespaceBytes := ctrBkt.Get(namespaceKey)
+		if !bytes.Equal(s.namespaceBytes, ctrNamespaceBytes) {
+			return errors.Wrapf(ErrNSMismatch, "cannot retrieve container %s as it is part of namespace %q and we are in namespace %q", string(id), string(ctrNamespaceBytes), s.namespace)
+		}
 	}
 
 	configBytes := ctrBkt.Get(configKey)

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"strings"
@@ -11,10 +12,12 @@ import (
 
 // BoltState is a state implementation backed by a Bolt DB
 type BoltState struct {
-	valid   bool
-	dbPath  string
-	lockDir string
-	runtime *Runtime
+	valid          bool
+	dbPath         string
+	namespace      string
+	namespaceBytes []byte
+	lockDir        string
+	runtime        *Runtime
 }
 
 // NewBoltState creates a new bolt-backed state database
@@ -23,6 +26,8 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 	state.dbPath = path
 	state.lockDir = lockDir
 	state.runtime = runtime
+	state.namespace = ""
+	state.namespaceBytes = nil
 
 	// Make the directory that will hold container lockfiles
 	if err := os.MkdirAll(lockDir, 0750); err != nil {
@@ -46,6 +51,9 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 		}
 		if _, err := tx.CreateBucketIfNotExists(nameRegistryBkt); err != nil {
 			return errors.Wrapf(err, "error creating name-registry bucket")
+		}
+		if _, err := tx.CreateBucketIfNotExists(nsRegistryBkt); err != nil {
+			return errors.Wrapf(err, "error creating ns-registry bucket")
 		}
 		if _, err := tx.CreateBucketIfNotExists(ctrBkt); err != nil {
 			return errors.Wrapf(err, "error creating containers bucket")
@@ -193,6 +201,20 @@ func (s *BoltState) Refresh() error {
 	return err
 }
 
+// SetNamespace sets the namespace that will be used for container and pod
+// retrieval
+func (s *BoltState) SetNamespace(ns string) error {
+	s.namespace = ns
+
+	if ns != "" {
+		s.namespaceBytes = []byte(ns)
+	} else {
+		s.namespaceBytes = nil
+	}
+
+	return nil
+}
+
 // Container retrieves a single container from the state by its full ID
 func (s *BoltState) Container(id string) (*Container, error) {
 	if id == "" {
@@ -262,6 +284,11 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
+		nsBucket, err := getNSBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// First, check if the ID given was the actual container ID
 		var id []byte
 		ctrExists := ctrBucket.Bucket([]byte(idOrName))
@@ -274,6 +301,14 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			// Use else-if in case the name is set to a partial ID
 			exists := false
 			err = idBucket.ForEach(func(checkID, checkName []byte) error {
+				// If the container isn't in our namespace, we
+				// can't match it
+				if s.namespaceBytes != nil {
+					ns := nsBucket.Get(checkID)
+					if !bytes.Equal(ns, s.namespaceBytes) {
+						return nil
+					}
+				}
 				if string(checkName) == idOrName {
 					if exists {
 						return errors.Wrapf(ErrCtrExists, "more than one result for ID or name %s", idOrName)
@@ -334,7 +369,14 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 
 		ctrExists := ctrBucket.Bucket(ctrID)
 		if ctrExists != nil {
-			exists = true
+			if s.namespaceBytes != nil {
+				nsBytes := ctrBucket.Get(namespaceKey)
+				if bytes.Equal(nsBytes, nsBytes) {
+					exists = true
+				}
+			} else {
+				exists = true
+			}
 		}
 
 		return nil
@@ -383,7 +425,7 @@ func (s *BoltState) RemoveContainer(ctr *Container) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		return removeContainer(ctr, nil, tx)
+		return removeContainer(ctr, nil, tx, s.namespace)
 	})
 	return err
 }
@@ -396,6 +438,12 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 
 	if !ctr.valid {
 		return ErrCtrRemoved
+	}
+
+	if s.namespace != "" {
+		if s.namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+		}
 	}
 
 	newState := new(containerState)
@@ -460,6 +508,12 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 		return ErrCtrRemoved
 	}
 
+	if s.namespace != "" {
+		if s.namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+		}
+	}
+
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s state to JSON", ctr.ID())
@@ -517,6 +571,12 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 
 	if !ctr.valid {
 		return nil, ErrCtrRemoved
+	}
+
+	if s.namespace != "" {
+		if s.namespace != ctr.config.Namespace {
+			return nil, errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+		}
 	}
 
 	depCtrs := []string{}
@@ -602,9 +662,20 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			ctr.config = new(ContainerConfig)
 			ctr.state = new(containerState)
 
-			ctrs = append(ctrs, ctr)
+			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
+				// If the error is a namespace mismatch, we can
+				// ignore it safely.
+				// We just won't include the container in the
+				// results.
+				if errors.Cause(err) != ErrNSMismatch {
+					return err
+				}
+			} else {
+				ctrs = append(ctrs, ctr)
+			}
 
-			return s.getContainerFromDB(id, ctr, ctrBucket)
+			return nil
+
 		})
 	})
 	if err != nil {
@@ -682,6 +753,11 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 			return err
 		}
 
+		nsBkt, err := getNSBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// First, check if the ID given was the actual pod ID
 		var id []byte
 		podExists := podBkt.Bucket([]byte(idOrName))
@@ -694,6 +770,14 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 			// Use else-if in case the name is set to a partial ID
 			exists := false
 			err = idBucket.ForEach(func(checkID, checkName []byte) error {
+				// If the pod isn't in our namespace, we
+				// can't match it
+				if s.namespaceBytes != nil {
+					ns := nsBkt.Get(checkID)
+					if !bytes.Equal(ns, s.namespaceBytes) {
+						return nil
+					}
+				}
 				if string(checkName) == idOrName {
 					if exists {
 						return errors.Wrapf(ErrPodExists, "more than one result for ID or name %s", idOrName)
@@ -719,7 +803,6 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 
 		// We might have found a container ID, but it's OK
 		// We'll just fail in getPodFromDB with ErrNoSuchPod
-
 		return s.getPodFromDB(id, pod, podBkt)
 	})
 	if err != nil {
@@ -757,7 +840,14 @@ func (s *BoltState) HasPod(id string) (bool, error) {
 
 		podDB := podBkt.Bucket(podID)
 		if podDB != nil {
-			exists = true
+			if s.namespaceBytes != nil {
+				podNS := podDB.Get(namespaceKey)
+				if bytes.Equal(s.namespaceBytes, podNS) {
+					exists = true
+				}
+			} else {
+				exists = true
+			}
 		}
 
 		return nil
@@ -1318,7 +1408,7 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		return removeContainer(ctr, pod, tx)
+		return removeContainer(ctr, pod, tx, s.namespace)
 	})
 	return err
 }

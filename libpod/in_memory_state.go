@@ -20,6 +20,7 @@ type InMemoryState struct {
 	podContainers map[string]map[string]*Container
 	nameIndex     *registrar.Registrar
 	idIndex       *truncindex.TruncIndex
+	namespace     string
 }
 
 // NewInMemoryState initializes a new, empty in-memory state
@@ -36,6 +37,8 @@ func NewInMemoryState() (State, error) {
 	state.nameIndex = registrar.NewRegistrar()
 	state.idIndex = truncindex.NewTruncIndex([]string{})
 
+	state.namespace = ""
+
 	return state, nil
 }
 
@@ -48,6 +51,13 @@ func (s *InMemoryState) Close() error {
 // Refresh clears container and pod stats after a reboot
 // In-memory state won't survive a reboot so this is a no-op
 func (s *InMemoryState) Refresh() error {
+	return nil
+}
+
+// SetNamespace sets the namespace for container and pod retrieval.
+func (s *InMemoryState) SetNamespace(ns string) error {
+	s.namespace = ns
+
 	return nil
 }
 
@@ -132,6 +142,9 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depID)
 		} else if depCtr.config.Pod != "" {
 			return errors.Wrapf(ErrInvalidArg, "cannot depend on container in a pod if not part of same pod")
+		}
+		if depCtr.config.Namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depID, depCtr.config.Namespace)
 		}
 	}
 
@@ -519,8 +532,12 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		if _, ok = s.containers[depCtr]; !ok {
 			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
 		}
-		if _, ok = podCtrs[depCtr]; !ok {
+		depCtrStruct, ok := podCtrs[depCtr]
+		if !ok {
 			return errors.Wrapf(ErrInvalidArg, "cannot depend on container %s as it is not in pod %s", depCtr, pod.ID())
+		}
+		if depCtrStruct.config.Namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depCtr, depCtrStruct.config.Namespace)
 		}
 	}
 

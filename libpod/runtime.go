@@ -136,10 +136,22 @@ type RuntimeConfig struct {
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
-	// HooksDirNotExistFatal switches between fatal errors and non-fatal warnings if the configured HooksDir does not exist.
+	// HooksDirNotExistFatal switches between fatal errors and non-fatal
+	// warnings if the configured HooksDir does not exist.
 	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
-	// DefaultMountsFile is the path to the default mounts file for testing purposes only
+	// DefaultMountsFile is the path to the default mounts file for testing
+	// purposes only
 	DefaultMountsFile string `toml:"-"`
+	// Namespace is the libpod namespace to use.
+	// Namespaces are used to create scopes to separate containers and pods
+	// in the state.
+	// When namespace is set, libpod will only view containers and pods in
+	// the same namespace. All containers and pods created will default to
+	// the namespace set here.
+	// A namespace of "", the empty string, is equivalent to no namespace,
+	// and all containers and pods will be visible.
+	// The default namespace is "".
+	Namespace string `toml:"namespace,omitempty"`
 }
 
 var (

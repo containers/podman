@@ -284,6 +284,27 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 	}
 }
 
+// WithNamespace sets the namespace for libpod.
+// Namespace is the libpod namespace to use.
+// Namespaces are used to create scopes to separate containers and pods
+// in the state.
+// When namespace is set, libpod will only view containers and pods in
+// the same namespace. All containers and pods created will default to
+// the namespace set here.
+// A namespace of "", the empty string, is equivalent to no namespace,
+// and all containers and pods will be visible.
+func WithNamespace(ns string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.Namespace = ns
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
@@ -963,11 +984,11 @@ func WithRootFS(rootfs string) CtrCreateOption {
 	}
 }
 
-// WithNamespace sets the namespace the container will be created in.
+// WithCtrNamespace sets the namespace the container will be created in.
 // Namespaces are used to create separate views of Podman's state - runtimes can
 // join a specific namespace and see only containers and pods in that namespace.
 // Empty string namespaces are allowed, and correspond to a lack of namespace.
-func WithNamespace(ns string) CtrCreateOption {
+func WithCtrNamespace(ns string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized

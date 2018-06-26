@@ -9,6 +9,10 @@ type State interface {
 	// Refresh clears container and pod states after a reboot
 	Refresh() error
 
+	// SetNamespace() sets the namespace for the store, and will determine
+	// what containers are retrieved with container and pod retrieval calls
+	SetNamespace(ns string) error
+
 	// Return a container from the database from its full ID
 	Container(id string) (*Container, error)
 	// Return a container from the database by full or partial ID or full

@@ -281,6 +281,56 @@ func TestAddCtrDepInPodFails(t *testing.T) {
 	})
 }
 
+func TestAddCtrDepInSameNamespaceSucceeds(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+		testCtr1.config.Namespace = "test1"
+		testCtr2.config.Namespace = "test1"
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.NoError(t, err)
+
+		ctrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(ctrs))
+	})
+}
+
+func TestAddCtrDepInDifferentNamespaceFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr1, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		testCtr2, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+
+		testCtr2.config.UserNsCtr = testCtr1.config.ID
+
+		testCtr1.config.Namespace = "test1"
+		testCtr2.config.Namespace = "test2"
+
+		err = state.AddContainer(testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr2)
+		assert.Error(t, err)
+
+		ctrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ctrs))
+
+		testContainersEqual(t, testCtr1, ctrs[0])
+	})
+}
+
 func TestGetNonexistentContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		_, err := state.Container("does not exist")
@@ -2213,6 +2263,79 @@ func TestAddContainerToPodDependencyOutsidePodFails(t *testing.T) {
 		ctrs, err := state.PodContainers(testPod)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(ctrs))
+
+		allCtrs, err := state.AllContainers()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(allCtrs))
+
+		deps, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(deps))
+	})
+}
+
+func TestAddContainerToPodDependencyInSameNamespaceSucceeds(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+		testPod.config.Namespace = "test1"
+
+		testCtr1, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+		testCtr1.config.Pod = testPod.ID()
+		testCtr1.config.Namespace = "test1"
+
+		testCtr2, err := getTestCtrN("3", lockPath)
+		assert.NoError(t, err)
+		testCtr2.config.Pod = testPod.ID()
+		testCtr2.config.IPCNsCtr = testCtr1.ID()
+		testCtr2.config.Namespace = "test1"
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr2)
+		assert.NoError(t, err)
+
+		deps, err := state.ContainerInUse(testCtr1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(deps))
+		assert.Equal(t, testCtr2.ID(), deps[0])
+	})
+}
+
+func TestAddContainerToPodDependencyInSeparateNamespaceFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+		testPod.config.Namespace = "test1"
+
+		testCtr1, err := getTestCtr2(lockPath)
+		assert.NoError(t, err)
+		testCtr1.config.Pod = testPod.ID()
+		testCtr1.config.Namespace = "test1"
+
+		testCtr2, err := getTestCtrN("3", lockPath)
+		assert.NoError(t, err)
+		testCtr2.config.Pod = testPod.ID()
+		testCtr2.config.IPCNsCtr = testCtr1.ID()
+		testCtr2.config.Namespace = "test2"
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr1)
+		assert.NoError(t, err)
+
+		err = state.AddContainerToPod(testPod, testCtr2)
+		assert.Error(t, err)
+
+		ctrs, err := state.PodContainers(testPod)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(ctrs))
 
 		allCtrs, err := state.AllContainers()
 		assert.NoError(t, err)
