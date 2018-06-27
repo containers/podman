@@ -194,3 +194,51 @@ podman run whale-says
 podman rm --all
 podman rmi --all
 rm ./Dockerfile
+
+########
+# Set up xfs mount for overlay quota
+########
+
+# 1.004608 MB is 1,004,608 bytes. The container overhead is 4608 bytes (or 9 512 byte pages), so this allocates 1 MB of usable storage
+PODMANBASE="-s overlay --storage-opt overlay.size=1.004608M --root /tmp/podman_test/crio"
+TMPDIR=/tmp/podman_test
+mkdir  $TMPDIR
+dd if=/dev/zero of=$TMPDIR/virtfs bs=1024 count=30720
+device=$(losetup -f | tr -d '[:space:]')
+losetup $device $TMPDIR/virtfs
+mkfs.xfs $device
+mount -t xfs -o prjquota $device $TMPDIR
+
+
+########
+# Expected to succeed
+########
+podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048576 bs=1'
+rc=$?
+if [ $rc == 0 ];
+then
+    echo "Overlay test within limits passed"
+else
+    echo "Overlay test within limits failed"
+fi
+
+########
+# Expected to fail
+########
+podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
+rc=$?
+if [ $rc != 0 ];
+then
+    echo "Overlay test outside limits passed"
+else
+    echo "Overlay test outside limits failed"
+fi
+
+########
+# Clean up Podman and /tmp
+########
+podman rm --all
+podman rmi --all
+umount $TMPDIR -l
+losetup -d $device
+rm -rf /tmp/podman_test
