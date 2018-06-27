@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/hooks"
 	_ "github.com/projectatomic/libpod/pkg/hooks/0.1.0"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -25,6 +26,15 @@ var (
 func main() {
 	debug := false
 	cpuProfile := false
+
+	became, err := rootless.BecomeRootInUserNS()
+	if err != nil {
+		logrus.Errorf(err.Error())
+		os.Exit(1)
+	}
+	if became {
+		os.Exit(0)
+	}
 
 	if reexec.Init() {
 		return

@@ -16,6 +16,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -360,7 +361,7 @@ func (c *CreateConfig) GetContainerCreateOptions() ([]libpod.CtrCreateOption, er
 	// does not have one
 	options = append(options, libpod.WithEntrypoint(c.Entrypoint))
 
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 			options = append(options, libpod.WithNetNS(portBindings, true))
 		}

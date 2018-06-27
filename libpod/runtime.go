@@ -19,6 +19,7 @@ import (
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/hooks"
 	sysreg "github.com/projectatomic/libpod/pkg/registries"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
 )
@@ -176,10 +177,8 @@ var (
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir() string {
-	hasNoEnv := false
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 	if runtimeDir == "" {
-		hasNoEnv = true
 		tmpDir := filepath.Join(os.TempDir(), "user", fmt.Sprintf("%d", os.Getuid()))
 		os.MkdirAll(tmpDir, 0700)
 		st, err := os.Stat(tmpDir)
@@ -190,14 +189,11 @@ func GetRootlessRuntimeDir() string {
 	if runtimeDir == "" {
 		runtimeDir = filepath.Join(os.Getenv("HOME"), "rundir")
 	}
-	if hasNoEnv {
-		os.Setenv("XDG_RUNTIME_DIR", runtimeDir)
-	}
 	return runtimeDir
 }
 
 func getDefaultTmpDir() string {
-	if os.Getuid() == 0 {
+	if !rootless.IsRootless() {
 		return "/var/run/libpod"
 	}
 
@@ -216,8 +212,11 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	configPath := ConfigPath
 	foundConfig := true
-	if os.Getuid() != 0 {
-		foundConfig = false
+	if rootless.IsRootless() {
+		configPath = filepath.Join(os.Getenv("HOME"), ".config/containers/libpod.conf")
+		if _, err := os.Stat(configPath); err != nil {
+			foundConfig = false
+		}
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath

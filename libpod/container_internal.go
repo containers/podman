@@ -29,6 +29,7 @@ import (
 	"github.com/projectatomic/libpod/pkg/chrootuser"
 	"github.com/projectatomic/libpod/pkg/hooks"
 	"github.com/projectatomic/libpod/pkg/hooks/exec"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -235,7 +236,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(err, "error creating container storage")
 	}
 
-	if os.Getuid() == 0 && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
+	if !rootless.IsRootless() && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
 		info, err := os.Stat(c.runtime.config.TmpDir)
 		if err != nil {
 			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
@@ -531,7 +532,7 @@ func (c *Container) completeNetworkSetup() error {
 	if !c.config.PostConfigureNetNS {
 		return nil
 	}
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		return nil
 	}
 	if err := c.syncContainer(); err != nil {
@@ -734,7 +735,7 @@ func (c *Container) mountStorage() (err error) {
 		return nil
 	}
 
-	if os.Getuid() == 0 {
+	if !rootless.IsRootless() {
 		// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
 		mounted, err := mount.Mounted(c.config.ShmDir)
 		if err != nil {
@@ -1004,10 +1005,8 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
-	if os.Getuid() == 0 {
-		if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
-			return errors.Wrapf(err, "cannot chown run directory %s", c.state.RunDir)
-		}
+	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "cannot chown run directory %s", c.state.RunDir)
 	}
 
 	if c.state.BindMounts == nil {
@@ -1084,10 +1083,8 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 		return "", errors.Wrapf(err, "unable to create %s", destFileName)
 	}
 	defer f.Close()
-	if os.Getuid() == 0 {
-		if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
-			return "", err
-		}
+	if err := f.Chown(c.RootUID(), c.RootGID()); err != nil {
+		return "", err
 	}
 
 	if _, err := f.WriteString(output); err != nil {
@@ -1249,7 +1246,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	var err error
-	if os.Getuid() == 0 {
+	if !rootless.IsRootless() {
 		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, &g); err != nil {
 			return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 		}
@@ -1289,7 +1286,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
-	if !strings.Contains(c.config.User, ":") {
+	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
 		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Spec().Process.User.UID))
 		if err != nil && errors.Cause(err) != chrootuser.ErrNoSuchUser {
 			return nil, err
@@ -1361,7 +1358,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		g.SetLinuxCgroupsPath("")
 	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it

@@ -113,7 +113,7 @@ Print the version
 
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
-libpod.conf is the configuration file for all tools using libpod to manage containers
+libpod.conf is the configuration file for all tools using libpod to manage containers.  This file is ignored when running in rootless mode.
 
 **storage.conf** (`/etc/containers/storage.conf`)
 
@@ -143,9 +143,21 @@ For the annotation conditions, libpod uses any annotations set in the generated 
 
 For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
 
+Hooks are not used when running in rootless mode.
+
 **registries.conf** (`/etc/containers/registries.conf`)
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+
+## Rootless mode
+Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.
+
+Containers created by a non-root user are not visible to other users and are not seen or managed by podman running as root.
+
+Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
+
+Currently it is not possible to create a network device, so rootless containers need to run in the host network namespace.  If a rootless container creates a network namespace,
+then only the loopback device will be available.
 
 ## SEE ALSO
 `oci-hooks(5)`, `registries.conf(5)`, `storage.conf(5)`, `crio(8)`

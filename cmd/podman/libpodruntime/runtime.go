@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/projectatomic/libpod/libpod"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/urfave/cli"
 )
 
@@ -24,23 +25,22 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 
 	opts.RunRoot = filepath.Join(libpod.GetRootlessRuntimeDir(), "run")
 
-	dataDir := os.Getenv("XDG_DATA_DIR")
-	if dataDir != "" {
-		opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	} else {
+	dataDir := os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
 		home := os.Getenv("HOME")
 		if home == "" {
-			return opts, fmt.Errorf("HOME not specified")
+			return opts, fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
 		}
-		opts.GraphRoot = filepath.Join(home, ".containers", "storage")
+		dataDir = filepath.Join(home, ".local", "share")
 	}
+	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	opts.GraphDriverName = "vfs"
 	return opts, nil
 }
 
 func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 	storageOpts := storage.DefaultStoreOptions
-	if os.Getuid() != 0 {
+	if rootless.IsRootless() {
 		var err error
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
