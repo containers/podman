@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	buildDescription = "podman build launches the Buildah command to build an OCI Image. Buildah must be installed for this command to work."
-	buildCommand     = cli.Command{
+	buildDescription = "Builds an OCI or Docker image using instructions from one\n" +
+		"or more Dockerfiles and a specified build context directory."
+	buildCommand = cli.Command{
 		Name:           "build",
-		Usage:          "Build an image using instructions in a Dockerfile",
+		Usage:          "build an image using instructions from Dockerfiles",
 		Description:    buildDescription,
 		Flags:          append(buildahcli.BudFlags, buildahcli.FromAndBudFlags...),
 		Action:         buildCmd,
