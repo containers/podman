@@ -1303,7 +1303,6 @@ _podman_search() {
 	--filter -f
 	--format
 	--limit
-	--registry
 	"
 	local boolean_options="
 	--no-trunc

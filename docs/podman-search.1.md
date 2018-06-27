@@ -15,8 +15,9 @@ podman\-search - Search a registry for an image
 
 ## DESCRIPTION
 **podman search** searches a registry or a list of registries for a matching image.
-The user can specify which registry to search by setting the **--registry** flag, default
-is the default registries set in the config file - **/etc/containers/registries.conf**.
+The user can specify which registry to search by prefixing the registry in the search term
+(example **registry.fedoraproject.org/fedora**), default is the registries in the
+**registires.search** table in the config file - **/etc/containers/registries.conf**.
 The number of results can be limited using the **--limit** flag. If more than one registry
 is being searched, the limit will be applied to each registry. The output can be filtered
 using the **--filter** flag.
@@ -70,10 +71,6 @@ The order of the search results is the order in which the API endpoint returns t
 
 Do not truncate the output
 
-**--registry**
-
-Specific registry to search (only the given registry will be searched, not the default registries)
-
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
@@ -104,7 +101,7 @@ docker.io   docker.io/tenstartups/alpine                     Alpine linux base d
 ```
 
 ```
-# podman search --registry registry.fedoraproject.org fedora
+# podman search registry.fedoraproject.org/fedora
 INDEX               NAME                               DESCRIPTION   STARS   OFFICIAL   AUTOMATED
 fedoraproject.org   fedoraproject.org/fedora                         0
 fedoraproject.org   fedoraproject.org/fedora-minimal                 0
@@ -117,7 +114,7 @@ docker.io   docker.io/library/alpine   A minimal Docker image based on Alpine Li
 ```
 
 ```
-# podman search --registry registry.fedoraproject.org --format "table {{.Index}} {{.Name}}" fedora
+# podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora
 INDEX               NAME
 fedoraproject.org   fedoraproject.org/fedora
 fedoraproject.org   fedoraproject.org/fedora-minimal
