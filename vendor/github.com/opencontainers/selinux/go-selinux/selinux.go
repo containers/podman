@@ -53,7 +53,7 @@ FSCreateLabel returns the default label the kernel which the kernel is using
 for file system objects created by this task. "" indicates default.
 */
 func FSCreateLabel() (string, error) {
-	return nil
+	return "", nil
 }
 
 // CurrentLabel returns the SELinux label of the current process thread, or an error.
