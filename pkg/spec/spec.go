@@ -223,7 +223,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	if err := addIpcNS(config, &g); err != nil {
 		return nil, err
 	}
-	configSpec := g.Spec()
+	configSpec := g.Config
 
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
