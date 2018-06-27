@@ -23,6 +23,10 @@ const (
 
 var (
 	searchFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "authfile",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+		},
 		cli.StringSliceFlag{
 			Name:  "filter, f",
 			Usage: "filter output based on conditions provided (default [])",
@@ -71,10 +75,11 @@ type searchParams struct {
 }
 
 type searchOpts struct {
-	filter  []string
-	limit   int
-	noTrunc bool
-	format  string
+	filter   []string
+	limit    int
+	noTrunc  bool
+	format   string
+	authfile string
 }
 
 type searchFilterParams struct {
@@ -105,10 +110,11 @@ func searchCmd(c *cli.Context) error {
 
 	format := genSearchFormat(c.String("format"))
 	opts := searchOpts{
-		format:  format,
-		noTrunc: c.Bool("no-trunc"),
-		limit:   c.Int("limit"),
-		filter:  c.StringSlice("filter"),
+		format:   format,
+		noTrunc:  c.Bool("no-trunc"),
+		limit:    c.Int("limit"),
+		filter:   c.StringSlice("filter"),
+		authfile: c.String("authfile"),
 	}
 	regAndSkipTLS, err := getRegistriesAndSkipTLS(c)
 	if err != nil {
@@ -206,7 +212,7 @@ func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts
 		limit = opts.limit
 	}
 
-	sc := common.GetSystemContext("", "", false)
+	sc := common.GetSystemContext("", opts.authfile, false)
 	var paramsArr []searchParams
 	for reg, skipTLS := range regAndSkipTLS {
 		// set the SkipTLSVerify bool depending on the registry being searched through

@@ -174,6 +174,11 @@ type ImageDestination interface {
 	AcceptsForeignLayerURLs() bool
 	// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
 	MustMatchRuntimeOS() bool
+	// IgnoresEmbeddedDockerReference() returns true iff the destination does not care about Image.EmbeddedDockerReferenceConflicts(),
+	// and would prefer to receive an unmodified manifest instead of one modified for the destination.
+	// Does not make a difference if Reference().DockerReference() is nil.
+	IgnoresEmbeddedDockerReference() bool
+
 	// PutBlob writes contents of stream and returns data representing the result.
 	// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 	// inputInfo.Size is the expected length of stream, if known.
