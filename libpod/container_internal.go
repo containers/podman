@@ -1247,7 +1247,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	var err error
 	if !rootless.IsRootless() {
-		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, &g); err != nil {
+		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
 			return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 		}
 	}
@@ -1287,7 +1287,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
 	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
-		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Spec().Process.User.UID))
+		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Config.Process.User.UID))
 		if err != nil && errors.Cause(err) != chrootuser.ErrNoSuchUser {
 			return nil, err
 		}
@@ -1344,11 +1344,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
 	g.SetHostname(c.Hostname())
-	g.AddProcessEnv("HOSTNAME", g.Spec().Hostname)
+	g.AddProcessEnv("HOSTNAME", g.Config.Hostname)
 
 	// Only add container environment variable if not already present
 	foundContainerEnv := false
-	for _, env := range g.Spec().Process.Env {
+	for _, env := range g.Config.Process.Env {
 		if strings.HasPrefix(env, "container=") {
 			foundContainerEnv = true
 			break
@@ -1376,7 +1376,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.SetLinuxCgroupsPath(cgroupPath)
 	}
 
-	return g.Spec(), nil
+	return g.Config, nil
 }
 
 // Add an existing container's namespace to the spec
@@ -1511,7 +1511,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) (extensionStageHooks map[string][]spec.Hook, err error) {
+func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
 	if c.runtime.config.HooksDir == "" {
 		return nil, nil
 	}
@@ -1552,5 +1552,5 @@ func (c *Container) setupOCIHooks(ctx context.Context, g *generate.Generator) (e
 		return nil, nil
 	}
 
-	return manager.Hooks(g.Spec(), c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+	return manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
 }
