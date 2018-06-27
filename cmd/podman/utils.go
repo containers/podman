@@ -46,6 +46,19 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 		defer restoreTerminal(oldTermState)
 	}
 
+	// There may be on the other size of the resize channel a goroutine trying to send.
+	// So consume all data inside the channel before exiting to avoid a deadlock.
+	defer func() {
+		for {
+			select {
+			case <-resize:
+				logrus.Debugf("Consumed resize command from channel")
+			default:
+				return
+			}
+		}
+	}()
+
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = stdout
 	streams.ErrorStream = stderr
@@ -102,6 +115,19 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 
 		defer restoreTerminal(oldTermState)
 	}
+
+	// There may be on the other size of the resize channel a goroutine trying to send.
+	// So consume all data inside the channel before exiting to avoid a deadlock.
+	defer func() {
+		for {
+			select {
+			case <-resize:
+				logrus.Debugf("Consumed resize command from channel")
+			default:
+				return
+			}
+		}
+	}()
 
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = stdout
