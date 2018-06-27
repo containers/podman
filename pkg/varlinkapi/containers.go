@@ -323,7 +323,7 @@ func (i *LibpodAPI) RestartContainer(call ioprojectatomicpodman.VarlinkCall, nam
 // KillContainer kills a running container.  If you want to use the default SIGTERM signal, just send a -1
 // for the signal arg.
 func (i *LibpodAPI) KillContainer(call ioprojectatomicpodman.VarlinkCall, name string, signal int64) error {
-	var killSignal uint = uint(syscall.SIGTERM)
+	killSignal := uint(syscall.SIGTERM)
 	if signal != -1 {
 		killSignal = uint(signal)
 	}
