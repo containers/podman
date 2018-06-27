@@ -75,7 +75,10 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 		valid: true,
 	}
 
-	g := generate.New()
+	g, err := generate.New("linux")
+	if err != nil {
+		return nil, err
+	}
 	ctr.config.Spec = g.Spec()
 
 	ctr.config.Labels["test"] = "testing"
