@@ -1316,6 +1316,8 @@ _podman_unmount() {
 
 _podman_umount() {
     local boolean_options="
+    --all
+    -a
     --help
     -h
  "

@@ -61,4 +61,52 @@ var _ = Describe("Podman mount", func() {
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	})
+
+	It("podman umount many", func() {
+		setup1 := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup1.WaitWithDefaultTimeout()
+		Expect(setup1.ExitCode()).To(Equal(0))
+		cid1 := setup1.OutputToString()
+
+		setup2 := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup2.WaitWithDefaultTimeout()
+		Expect(setup2.ExitCode()).To(Equal(0))
+		cid2 := setup2.OutputToString()
+
+		mount1 := podmanTest.Podman([]string{"mount", cid1})
+		mount1.WaitWithDefaultTimeout()
+		Expect(mount1.ExitCode()).To(Equal(0))
+
+		mount2 := podmanTest.Podman([]string{"mount", cid2})
+		mount2.WaitWithDefaultTimeout()
+		Expect(mount2.ExitCode()).To(Equal(0))
+
+		umount := podmanTest.Podman([]string{"umount", cid1, cid2})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
+
+	It("podman umount all", func() {
+		setup1 := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup1.WaitWithDefaultTimeout()
+		Expect(setup1.ExitCode()).To(Equal(0))
+		cid1 := setup1.OutputToString()
+
+		setup2 := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup2.WaitWithDefaultTimeout()
+		Expect(setup2.ExitCode()).To(Equal(0))
+		cid2 := setup2.OutputToString()
+
+		mount1 := podmanTest.Podman([]string{"mount", cid1})
+		mount1.WaitWithDefaultTimeout()
+		Expect(mount1.ExitCode()).To(Equal(0))
+
+		mount2 := podmanTest.Podman([]string{"mount", cid2})
+		mount2.WaitWithDefaultTimeout()
+		Expect(mount2.ExitCode()).To(Equal(0))
+
+		umount := podmanTest.Podman([]string{"umount", "--all"})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
 })
