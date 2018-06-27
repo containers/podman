@@ -105,10 +105,17 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			logrus.Debugf("error destroying signature policy context: %v", err2)
 		}
 	}()
-	// Check if we're keeping everything in local storage.  If so, we can take certain shortcuts.
-	_, destIsStorage := dest.Transport().(is.StoreTransport)
-	exporting := !destIsStorage
-	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exporting, options.Squash, options.Compression, options.HistoryTimestamp)
+	// Check if the base image is already in the destination and it's some kind of local
+	// storage.  If so, we can skip recompressing any layers that come from the base image.
+	exportBaseLayers := true
+	if transport, destIsStorage := dest.Transport().(is.StoreTransport); destIsStorage && b.FromImageID != "" {
+		if baseref, err := transport.ParseReference(b.FromImageID); baseref != nil && err == nil {
+			if img, err := transport.GetImage(baseref); img != nil && err == nil {
+				exportBaseLayers = false
+			}
+		}
+	}
+	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.Compression, options.HistoryTimestamp)
 	if err != nil {
 		return imgID, errors.Wrapf(err, "error computing layer digests and building metadata")
 	}

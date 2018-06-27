@@ -294,6 +294,7 @@ func SystemContextFromOptions(c *cli.Context) (*types.SystemContext, error) {
 	if c.GlobalIsSet("registries-conf-dir") {
 		ctx.RegistriesDirPath = c.GlobalString("registries-conf-dir")
 	}
+	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", buildah.Version)
 	return ctx, nil
 }
 
@@ -528,4 +529,24 @@ func NamespaceOptions(c *cli.Context) (namespaceOptions buildah.NamespaceOptions
 		}
 	}
 	return options, policy, nil
+}
+
+func defaultIsolation() buildah.Isolation {
+	isolation := os.Getenv("BUILDAH_ISOLATION")
+	if strings.HasPrefix(strings.ToLower(isolation), "oci") {
+		return buildah.IsolationOCI
+	}
+	return buildah.IsolationDefault
+}
+
+// IsolationOption parses the --isolation flag.
+func IsolationOption(c *cli.Context) (buildah.Isolation, error) {
+	if c.String("isolation") != "" {
+		if strings.HasPrefix(strings.ToLower(c.String("isolation")), "oci") {
+			return buildah.IsolationOCI, nil
+		} else {
+			return buildah.IsolationDefault, errors.Errorf("unrecognized isolation type %q", c.String("isolation"))
+		}
+	}
+	return defaultIsolation(), nil
 }
