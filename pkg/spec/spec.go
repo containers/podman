@@ -21,7 +21,10 @@ const cpuPeriod = 100000
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
 func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	cgroupPerm := "ro"
-	g := generate.New()
+	g, err := generate.New("linux")
+	if err != nil {
+		return nil, err
+	}
 	g.HostSpecific = true
 	addCgroup := true
 	if config.Privileged {
