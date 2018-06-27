@@ -21,7 +21,6 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/docker/docker/profiles/seccomp"
 	units "github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -103,10 +102,34 @@ type IDMappingOptions struct {
 	GIDMap         []specs.LinuxIDMapping
 }
 
+// Isolation provides a way to specify whether we're supposed to use a proper
+// OCI runtime, or some other method for running commands.
+type Isolation int
+
+const (
+	// IsolationDefault is whatever we think will work best.
+	IsolationDefault Isolation = iota
+	// IsolationOCI is a proper OCI runtime.
+	IsolationOCI
+)
+
+// String converts a Isolation into a string.
+func (i Isolation) String() string {
+	switch i {
+	case IsolationDefault:
+		return "IsolationDefault"
+	case IsolationOCI:
+		return "IsolationOCI"
+	}
+	return fmt.Sprintf("unrecognized isolation type %d", i)
+}
+
 // RunOptions can be used to alter how a command is run in the container.
 type RunOptions struct {
 	// Hostname is the hostname we set for the running container.
 	Hostname string
+	// Isolation is either IsolationDefault or IsolationOCI.
+	Isolation Isolation
 	// Runtime is the name of the command to run.  It should accept the same arguments
 	// that runc does, and produce similar output.
 	Runtime string
@@ -167,7 +190,7 @@ type RunOptions struct {
 
 // DefaultNamespaceOptions returns the default namespace settings from the
 // runtime-tools generator library.
-func DefaultNamespaceOptions() NamespaceOptions {
+func DefaultNamespaceOptions() (NamespaceOptions, error) {
 	options := NamespaceOptions{
 		{Name: string(specs.CgroupNamespace), Host: true},
 		{Name: string(specs.IPCNamespace), Host: true},
@@ -177,8 +200,11 @@ func DefaultNamespaceOptions() NamespaceOptions {
 		{Name: string(specs.UserNamespace), Host: true},
 		{Name: string(specs.UTSNamespace), Host: true},
 	}
-	g := generate.New()
-	spec := g.Spec()
+	g, err := generate.New("linux")
+	if err != nil {
+		return options, err
+	}
+	spec := g.Config
 	if spec.Linux != nil {
 		for _, ns := range spec.Linux.Namespaces {
 			options.AddOrReplace(NamespaceOption{
@@ -187,7 +213,7 @@ func DefaultNamespaceOptions() NamespaceOptions {
 			})
 		}
 	}
-	return options
+	return options, nil
 }
 
 // Find the configuration for the namespace of the given type.  If there are
@@ -658,30 +684,6 @@ func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds,
 	return nil
 }
 
-func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
-	switch seccompProfilePath {
-	case "unconfined":
-		spec.Linux.Seccomp = nil
-	case "":
-		seccompConfig, err := seccomp.GetDefaultProfile(spec)
-		if err != nil {
-			return errors.Wrapf(err, "loading default seccomp profile failed")
-		}
-		spec.Linux.Seccomp = seccompConfig
-	default:
-		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
-		if err != nil {
-			return errors.Wrapf(err, "opening seccomp profile (%s) failed", seccompProfilePath)
-		}
-		seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
-		if err != nil {
-			return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
-		}
-		spec.Linux.Seccomp = seccompConfig
-	}
-	return nil
-}
-
 func setupApparmor(spec *specs.Spec, apparmorProfile string) error {
 	spec.Process.ApparmorProfile = apparmorProfile
 	return nil
@@ -795,6 +797,53 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 	return configureNetwork, configureNetworks, configureUTS, nil
 }
 
+// Search for a command that isn't given as an absolute path using the $PATH
+// under the rootfs.  We can't resolve absolute symbolic links without
+// chroot()ing, which we may not be able to do, so just accept a link as a
+// valid resolution.
+func runLookupPath(g *generate.Generator, command []string) []string {
+	// Look for the configured $PATH.
+	spec := g.Spec()
+	envPath := ""
+	for i := range spec.Process.Env {
+		if strings.HasPrefix(spec.Process.Env[i], "PATH=") {
+			envPath = spec.Process.Env[i]
+		}
+	}
+	// If there is no configured $PATH, supply one.
+	if envPath == "" {
+		defaultPath := "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+		envPath = "PATH=" + defaultPath
+		g.AddProcessEnv("PATH", defaultPath)
+	}
+	// No command, nothing to do.
+	if len(command) == 0 {
+		return command
+	}
+	// Command is already an absolute path, use it as-is.
+	if filepath.IsAbs(command[0]) {
+		return command
+	}
+	// For each element in the PATH,
+	for _, pathEntry := range filepath.SplitList(envPath[5:]) {
+		// if it's the empty string, it's ".", which is the Cwd,
+		if pathEntry == "" {
+			pathEntry = spec.Process.Cwd
+		}
+		// build the absolute path which it might be,
+		candidate := filepath.Join(pathEntry, command[0])
+		// check if it's there,
+		if fi, err := os.Lstat(filepath.Join(spec.Root.Path, candidate)); fi != nil && err == nil {
+			// and if it's not a directory, and either a symlink or executable,
+			if !fi.IsDir() && ((fi.Mode()&os.ModeSymlink != 0) || (fi.Mode()&0111 != 0)) {
+				// use that.
+				return append([]string{candidate}, command[1:]...)
+			}
+		}
+	}
+	return command
+}
+
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
 	var user specs.User
@@ -814,14 +863,23 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			logrus.Errorf("error removing %q: %v", path, err2)
 		}
 	}()
-	gp := generate.New()
+	gp, err := generate.New("linux")
+	if err != nil {
+		return err
+	}
+
 	g := &gp
 
+	g.ClearProcessEnv()
 	for _, envSpec := range append(b.Env(), options.Env...) {
 		env := strings.SplitN(envSpec, "=", 2)
 		if len(env) > 1 {
 			g.AddProcessEnv(env[0], env[1])
 		}
+	}
+
+	for src, dest := range b.Args {
+		g.AddProcessEnv(src, dest)
 	}
 
 	if b.CommonBuildOpts == nil {
@@ -832,11 +890,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	if len(command) > 0 {
-		g.SetProcessArgs(command)
-	} else {
-		g.SetProcessArgs(nil)
-	}
 	if options.WorkingDir != "" {
 		g.SetProcessCwd(options.WorkingDir)
 	} else if b.WorkDir() != "" {
@@ -853,15 +906,25 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			logrus.Errorf("error unmounting container: %v", err2)
 		}
 	}()
+	g.SetRootPath(mountPoint)
+	if len(command) > 0 {
+		command = runLookupPath(g, command)
+		g.SetProcessArgs(command)
+	} else {
+		g.SetProcessArgs(nil)
+	}
 
 	setupMaskedPaths(g)
 	setupReadOnlyPaths(g)
 
-	g.SetRootPath(mountPoint)
-
 	setupTerminal(g, options.Terminal, options.TerminalSize)
 
-	namespaceOptions := DefaultNamespaceOptions()
+	defaultNamespaceOptions, err := DefaultNamespaceOptions()
+	if err != nil {
+		return err
+	}
+
+	namespaceOptions := defaultNamespaceOptions
 	namespaceOptions.AddOrReplace(b.NamespaceOptions...)
 	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
 
@@ -967,7 +1030,20 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 	}
 
-	return b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+	isolation := options.Isolation
+	if isolation == IsolationDefault {
+		isolation = b.Isolation
+		if isolation == IsolationDefault {
+			isolation = IsolationOCI
+		}
+	}
+	switch isolation {
+	case IsolationOCI:
+		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+	default:
+		err = errors.Errorf("don't know how to run this command")
+	}
+	return err
 }
 
 type runUsingRuntimeSubprocOptions struct {

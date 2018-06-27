@@ -67,8 +67,11 @@ type BuildOptions struct {
 	IgnoreUnrecognizedInstructions bool
 	// Quiet tells us whether or not to announce steps as we go through them.
 	Quiet bool
-	// Runtime is the name of the command to run for RUN instructions.  It
-	// should accept the same arguments and flags that runc does.
+	// Isolation controls how Run() runs things.
+	Isolation buildah.Isolation
+	// Runtime is the name of the command to run for RUN instructions when
+	// Isolation is either IsolationDefault or IsolationOCI.  It should
+	// accept the same arguments and flags that runc does.
 	Runtime string
 	// RuntimeArgs adds global arguments for the runtime.
 	RuntimeArgs []string
@@ -193,6 +196,7 @@ type Executor struct {
 	volumeCache                    map[string]string
 	volumeCacheInfo                map[string]os.FileInfo
 	reportWriter                   io.Writer
+	isolation                      buildah.Isolation
 	namespaceOptions               []buildah.NamespaceOption
 	configureNetwork               buildah.NetworkConfigurationPolicy
 	cniPluginPath                  string
@@ -551,6 +555,7 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		out:                     options.Out,
 		err:                     options.Err,
 		reportWriter:            options.ReportWriter,
+		isolation:               options.Isolation,
 		namespaceOptions:        options.NamespaceOptions,
 		configureNetwork:        options.ConfigureNetwork,
 		cniPluginPath:           options.CNIPluginPath,
@@ -601,6 +606,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 		b.log("FROM %s", from)
 	}
 	builderOptions := buildah.BuilderOptions{
+		Args:                  ib.Args,
 		FromImage:             from,
 		PullPolicy:            b.pullPolicy,
 		Registry:              b.registry,
@@ -608,6 +614,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 		SignaturePolicyPath:   b.signaturePolicyPath,
 		ReportWriter:          b.reportWriter,
 		SystemContext:         b.systemContext,
+		Isolation:             b.isolation,
 		NamespaceOptions:      b.namespaceOptions,
 		ConfigureNetwork:      b.configureNetwork,
 		CNIPluginPath:         b.cniPluginPath,
@@ -673,7 +680,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 	}
 	b.mountPoint = mountPoint
 	b.builder = builder
-	// Add the top  layer of this image to b.topLayers so we can keep track of them
+	// Add the top layer of this image to b.topLayers so we can keep track of them
 	// when building with cached images.
 	b.topLayers = append(b.topLayers, builder.TopLayer)
 	return nil

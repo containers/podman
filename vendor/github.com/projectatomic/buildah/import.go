@@ -43,6 +43,11 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		}
 	}
 
+	defaultNamespaceOptions, err := DefaultNamespaceOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	builder := &Builder{
 		store:            store,
 		Type:             containerType,
@@ -52,7 +57,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		ContainerID:      containerID,
 		ImageAnnotations: map[string]string{},
 		ImageCreatedBy:   "",
-		NamespaceOptions: DefaultNamespaceOptions(),
+		NamespaceOptions: defaultNamespaceOptions,
 		IDMappingOptions: IDMappingOptions{
 			HostUIDMapping: len(uidmap) == 0,
 			HostGIDMapping: len(uidmap) == 0,

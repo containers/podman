@@ -119,6 +119,10 @@ var (
 			Name:  "iidfile",
 			Usage: "`file` to write the image ID to",
 		},
+		cli.StringFlag{
+			Name:  "isolation",
+			Usage: "`type` of process isolation to use",
+		},
 		cli.StringSliceFlag{
 			Name:  "label",
 			Usage: "Set metadata for an image (default [])",

@@ -15,6 +15,7 @@ import (
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah/docker"
+	"github.com/projectatomic/buildah/util"
 )
 
 const (
@@ -105,6 +106,8 @@ func (p NetworkConfigurationPolicy) String() string {
 type Builder struct {
 	store storage.Store
 
+	// Args define variables that users can pass at build-time to the builder
+	Args map[string]string
 	// Type is used to help identify a build container's metadata.  It
 	// should not be modified.
 	Type string `json:"type"`
@@ -147,6 +150,8 @@ type Builder struct {
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format.
 	DefaultMountsFilePath string `json:"defaultMountsFilePath,omitempty"`
 
+	// Isolation controls how we handle "RUN" statements and the Run() method.
+	Isolation Isolation
 	// NamespaceOptions controls how we set up the namespaces for processes that we run in the container.
 	NamespaceOptions NamespaceOptions
 	// ConfigureNetwork controls whether or not network interfaces and
@@ -193,11 +198,15 @@ type BuilderInfo struct {
 	OCIv1                 v1.Image
 	Docker                docker.V2Image
 	DefaultMountsFilePath string
+	Isolation             string
 	NamespaceOptions      NamespaceOptions
 	ConfigureNetwork      string
 	CNIPluginPath         string
 	CNIConfigDir          string
 	IDMappingOptions      IDMappingOptions
+	DefaultCapabilities   []string
+	AddCapabilities       []string
+	DropCapabilities      []string
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -218,11 +227,15 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		OCIv1:                 b.OCIv1,
 		Docker:                b.Docker,
 		DefaultMountsFilePath: b.DefaultMountsFilePath,
+		Isolation:             b.Isolation.String(),
 		NamespaceOptions:      b.NamespaceOptions,
 		ConfigureNetwork:      fmt.Sprintf("%v", b.ConfigureNetwork),
 		CNIPluginPath:         b.CNIPluginPath,
 		CNIConfigDir:          b.CNIConfigDir,
 		IDMappingOptions:      b.IDMappingOptions,
+		DefaultCapabilities:   append([]string{}, util.DefaultCapabilities...),
+		AddCapabilities:       append([]string{}, b.AddCapabilities...),
+		DropCapabilities:      append([]string{}, b.DropCapabilities...),
 	}
 }
 
@@ -279,6 +292,9 @@ type CommonBuildOptions struct {
 
 // BuilderOptions are used to initialize a new Builder.
 type BuilderOptions struct {
+
+	// Args define variables that users can pass at build-time to the builder
+	Args map[string]string
 	// FromImage is the name of the image which should be used as the
 	// starting point for the container.  It can be set to an empty value
 	// or "scratch" to indicate that the container should not be based on
@@ -317,6 +333,9 @@ type BuilderOptions struct {
 	// DefaultMountsFilePath is the file path holding the mounts to be
 	// mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
+	// Isolation controls how we handle "RUN" statements and the Run()
+	// method.
+	Isolation Isolation
 	// NamespaceOptions controls how we set up namespaces for processes that
 	// we might need to run using the container's root filesystem.
 	NamespaceOptions NamespaceOptions
