@@ -75,7 +75,7 @@ func attachCmd(c *cli.Context) error {
 		inputStream = nil
 	}
 
-	if err := attachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy")); err != nil {
+	if err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"), false); err != nil {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 
