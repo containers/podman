@@ -5,14 +5,21 @@ from varlink import VarlinkError
 class VarlinkErrorProxy(VarlinkError):
     """Class to Proxy VarlinkError methods."""
 
-    def __init__(self, obj):
+    def __init__(self, message, namespaced=False):
         """Construct proxy from Exception."""
-        self._obj = obj
+        super().__init__(message.as_dict(), namespaced)
+        self._message = message
         self.__module__ = 'libpod'
 
-    def __getattr__(self, item):
-        """Return item from proxied Exception."""
-        return getattr(self._obj, item)
+    def __getattr__(self, method):
+        """Return attribute from proxied Exception."""
+        if hasattr(self._message, method):
+            return getattr(self._message, method)
+
+        try:
+            return self._message.parameters()[method]
+        except KeyError:
+            raise AttributeError('No such attribute: {}'.format(method))
 
 
 class ContainerNotFound(VarlinkErrorProxy):

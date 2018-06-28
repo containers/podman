@@ -1,5 +1,6 @@
 """Cache for SSH tunnels."""
 import collections
+import logging
 import os
 import subprocess
 import threading
@@ -96,9 +97,15 @@ class Tunnel(object):
 
     def bore(self, id):
         """Create SSH tunnel from given context."""
+        ssh_opts = '-nNT'
+        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+            ssh_opts += 'v'
+        else:
+            ssh_opts += 'q'
+
         cmd = [
             'ssh',
-            '-nNTq',
+            ssh_opts,
             '-L',
             '{}:{}'.format(self.context.local_socket,
                            self.context.remote_socket),
@@ -106,15 +113,14 @@ class Tunnel(object):
             self.context.identity_file,
             'ssh://{}@{}'.format(self.context.username, self.context.hostname),
         ]
-
-        if os.environ.get('PODMAN_DEBUG'):
-            cmd.append('-vvv')
+        logging.debug('Tunnel cmd "{}"'.format(' '.join(cmd)))
 
         self._tunnel = subprocess.Popen(cmd, close_fds=True)
-        for i in range(5):
+        for i in range(10):
+            # TODO: Make timeout configurable
             if os.path.exists(self.context.local_socket):
                 break
-            time.sleep(1)
+            time.sleep(0.5)
         else:
             raise TimeoutError('Failed to create tunnel using: {}'.format(
                 ' '.join(cmd)))
