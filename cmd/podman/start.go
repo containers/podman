@@ -129,7 +129,7 @@ func startCmd(c *cli.Context) error {
 			lastError = errors.Wrapf(err, "unable to start container %q", container)
 			continue
 		}
-		fmt.Println(ctr.ID())
+		fmt.Println(container)
 	}
 
 	return lastError
