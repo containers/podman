@@ -29,19 +29,19 @@ jobs:
       script:
         - make gofmt
         - make lint
-      go: 1.9.x
+      go: 1.10.x
     - script:
         - make testunit
-      go: 1.8.x
+      go: 1.9.x
     - stage: Build and Verify
       script:
         - make testunit
-      go: 1.9.x
+      go: 1.10.x
     - stage: Integration Test
       script:
         - make all
         - make integration
-      go: 1.8.x
+      go: 1.9.x
 
 notifications:
   irc: "chat.freenode.net#podman"
