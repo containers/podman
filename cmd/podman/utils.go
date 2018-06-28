@@ -182,6 +182,7 @@ func resizeTty(ctx context.Context, resize chan remotecommand.TerminalSize) {
 				case <-sigchan:
 					resizeEvent = getResize()
 				case resize <- *resizeEvent:
+					resizeEvent = nil
 				}
 			}
 		}
