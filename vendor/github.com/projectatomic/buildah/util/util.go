@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/types"
@@ -330,7 +332,8 @@ func getHostIDMappings(path string) ([]specs.LinuxIDMapping, error) {
 	return mappings, nil
 }
 
-// GetHostIDMappings reads mappings for the current process from the kernel.
+// GetHostIDMappings reads mappings for the specified process (or the current
+// process if pid is "self" or an empty string) from the kernel.
 func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
 	if pid == "" {
 		pid = "self"
@@ -427,4 +430,52 @@ func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap,
 		return nil, nil, err
 	}
 	return uid, gid, nil
+}
+
+// UnsharedRootPath returns a location under ($XDG_DATA_HOME/containers/storage,
+// or $HOME/.local/share/containers/storage, or
+// (the user's home directory)/.local/share/containers/storage, or an error.
+func UnsharedRootPath(homedir string) (string, error) {
+	// If $XDG_DATA_HOME is defined...
+	if envDataHome, haveDataHome := os.LookupEnv("XDG_DATA_HOME"); haveDataHome {
+		return filepath.Join(envDataHome, "containers", "storage"), nil
+	}
+	// If $XDG_DATA_HOME is not defined, but $HOME is defined...
+	if envHomedir, haveHomedir := os.LookupEnv("HOME"); haveHomedir {
+		// Default to the user's $HOME/.local/share/containers/storage subdirectory.
+		return filepath.Join(envHomedir, ".local", "share", "containers", "storage"), nil
+	}
+	// If we know where our home directory is...
+	if homedir != "" {
+		// Default to the user's homedir/.local/share/containers/storage subdirectory.
+		return filepath.Join(homedir, ".local", "share", "containers", "storage"), nil
+	}
+	return "", errors.New("unable to determine a --root location: neither $XDG_DATA_HOME nor $HOME is set")
+}
+
+// UnsharedRunrootPath returns $XDG_RUNTIME_DIR/run, /var/run/user/(the user's UID)/run, or an error.
+func UnsharedRunrootPath(uid string) (string, error) {
+	// If $XDG_RUNTIME_DIR is defined...
+	if envRuntimeDir, haveRuntimeDir := os.LookupEnv("XDG_RUNTIME_DIR"); haveRuntimeDir {
+		return filepath.Join(envRuntimeDir, "run"), nil
+	}
+	// If $XDG_RUNTIME_DIR is not defined, but we know our UID...
+	if uid != "" {
+		return filepath.Join("/var/run/user", uid, "run"), nil
+	}
+	return "", errors.New("unable to determine a --runroot location: $XDG_RUNTIME_DIR is not set, and we don't know our UID")
+}
+
+// GetPolicyContext sets up, initializes and returns a new context for the specified policy
+func GetPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error) {
+	policy, err := signature.DefaultPolicy(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return nil, err
+	}
+	return policyContext, nil
 }

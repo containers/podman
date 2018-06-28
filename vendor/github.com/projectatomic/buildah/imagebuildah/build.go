@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	cp "github.com/containers/image/copy"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -697,6 +698,33 @@ func (b *Executor) Delete() (err error) {
 	return err
 }
 
+// resolveNameToImageRef creates a types.ImageReference from b.output
+func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
+	var (
+		imageRef types.ImageReference
+		err      error
+	)
+	if b.output != "" {
+		imageRef, err = alltransports.ParseImageName(b.output)
+		if err != nil {
+			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
+			if len(candidates) == 0 {
+				return imageRef, errors.Errorf("error parsing target image name %q", b.output)
+			}
+			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
+			if err2 != nil {
+				return imageRef, errors.Wrapf(err, "error parsing target image name %q", b.output)
+			}
+			return imageRef2, nil
+		}
+	}
+	imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
+	if err != nil {
+		return imageRef, errors.Wrapf(err, "error parsing reference for image to be written")
+	}
+	return imageRef, nil
+}
+
 // Execute runs each of the steps in the parsed tree, in turn.
 func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *parser.Node) error {
 	checkForLayers := true
@@ -745,18 +773,31 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 				return errors.Wrap(err, "error checking if cached image exists from a previous build")
 			}
 		}
+
+		if cacheID != "" {
+			fmt.Fprintf(b.out, "--> Using cache %s\n", cacheID)
+		}
+
+		// If a cache is found for the last step, that means nothing in the
+		// Dockerfile changed. Just create a copy of the existing image and
+		// save it with the new name passed in by the user.
+		if cacheID != "" && i == len(children)-1 {
+			if err := b.copyExistingImage(ctx, cacheID); err != nil {
+				return err
+			}
+			break
+		}
+
 		if cacheID == "" || !checkForLayers {
 			checkForLayers = false
 			err := ib.Run(step, b, requiresStart)
 			if err != nil {
 				return errors.Wrapf(err, "error building at step %+v", *step)
 			}
-		} else {
-			b.log("Using cache %s", cacheID)
 		}
-		// Commit if at the last step of the Dockerfile and a cached image is found.
-		// Also commit steps if no cache is found.
-		if (cacheID != "" && i == len(children)-1) || cacheID == "" {
+
+		// Commit if no cache is found
+		if cacheID == "" {
 			imgID, err = b.Commit(ctx, ib, getCreatedBy(node))
 			if err != nil {
 				return errors.Wrapf(err, "error committing container for step %+v", *step)
@@ -782,6 +823,32 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 			}
 		}
 	}
+	return nil
+}
+
+// copyExistingImage creates a copy of an image already in store
+func (b *Executor) copyExistingImage(ctx context.Context, cacheID string) error {
+	// Get the destination Image Reference
+	dest, err := b.resolveNameToImageRef()
+	if err != nil {
+		return err
+	}
+
+	policyContext, err := util.GetPolicyContext(b.systemContext)
+	if err != nil {
+		return err
+	}
+	defer policyContext.Destroy()
+
+	// Look up the source image, expecting it to be in local storage
+	src, err := is.Transport.ParseStoreReference(b.store, cacheID)
+	if err != nil {
+		return errors.Wrapf(err, "error getting source imageReference for %q", cacheID)
+	}
+	if err := cp.Image(ctx, policyContext, dest, src, nil); err != nil {
+		return errors.Wrapf(err, "error copying image %q", cacheID)
+	}
+	b.log("COMMIT %s", b.output)
 	return nil
 }
 
@@ -958,30 +1025,11 @@ func urlContentModified(url string, historyTime *time.Time) (bool, error) {
 // Commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
 func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, createdBy string) (string, error) {
-	var (
-		imageRef types.ImageReference
-		err      error
-	)
-
-	if b.output != "" {
-		imageRef, err = alltransports.ParseImageName(b.output)
-		if err != nil {
-			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
-			if len(candidates) == 0 {
-				return "", errors.Errorf("error parsing target image name %q", b.output)
-			}
-			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
-			if err2 != nil {
-				return "", errors.Wrapf(err, "error parsing target image name %q", b.output)
-			}
-			imageRef = imageRef2
-		}
-	} else {
-		imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
-		if err != nil {
-			return "", errors.Wrapf(err, "error parsing reference for image to be written")
-		}
+	imageRef, err := b.resolveNameToImageRef()
+	if err != nil {
+		return "", err
 	}
+
 	if ib.Author != "" {
 		b.builder.SetMaintainer(ib.Author)
 	}
@@ -1062,7 +1110,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, created
 		return "", err
 	}
 	if options.IIDFile == "" && imgID != "" {
-		fmt.Fprintf(b.out, "%s\n", imgID)
+		fmt.Fprintf(b.out, "--> %s\n", imgID)
 	}
 	return imgID, nil
 }
@@ -1089,12 +1137,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 			return err
 		}
 	}
-	if b.layers || b.noCache {
-		return nil
-	}
-	_, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
-	if err != nil {
-		return err
+
+	if !b.layers && !b.noCache {
+		_, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
+		if err != nil {
+			return err
+		}
 	}
 	// If building with layers and b.removeIntermediateCtrs is true
 	// only remove intermediate container for each step if an error
