@@ -5,13 +5,13 @@ import (
 
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/profiles/seccomp"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/rootless"
+	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 )

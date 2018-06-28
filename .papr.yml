@@ -61,6 +61,8 @@ packages:
     - podman
     - buildah
 tests:
+    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+    - yum -y reinstall container-selinux
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 required: false
 context: "Fedora fedora/28/cloud Podman"
