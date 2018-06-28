@@ -148,8 +148,6 @@ func Unlink(path string) error {
 
 //sys	Unlinkat(dirfd int, path string, flags int) (err error)
 
-//sys	utimes(path string, times *[2]Timeval) (err error)
-
 func Utimes(path string, tv []Timeval) error {
 	if tv == nil {
 		err := utimensat(AT_FDCWD, path, nil, 0)
@@ -207,20 +205,14 @@ func UtimesNanoAt(dirfd int, path string, ts []Timespec, flags int) error {
 	return utimensat(dirfd, path, (*[2]Timespec)(unsafe.Pointer(&ts[0])), flags)
 }
 
-//sys	futimesat(dirfd int, path *byte, times *[2]Timeval) (err error)
-
 func Futimesat(dirfd int, path string, tv []Timeval) error {
-	pathp, err := BytePtrFromString(path)
-	if err != nil {
-		return err
-	}
 	if tv == nil {
-		return futimesat(dirfd, pathp, nil)
+		return futimesat(dirfd, path, nil)
 	}
 	if len(tv) != 2 {
 		return EINVAL
 	}
-	return futimesat(dirfd, pathp, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
+	return futimesat(dirfd, path, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
 }
 
 func Futimes(fd int, tv []Timeval) (err error) {
@@ -255,7 +247,7 @@ func Getgroups() (gids []int, err error) {
 		return nil, nil
 	}
 
-	// Sanity check group count.  Max is 1<<16 on Linux.
+	// Sanity check group count. Max is 1<<16 on Linux.
 	if n < 0 || n > 1<<20 {
 		return nil, EINVAL
 	}
@@ -290,8 +282,8 @@ type WaitStatus uint32
 // 0x7F (stopped), or a signal number that caused an exit.
 // The 0x80 bit is whether there was a core dump.
 // An extra number (exit code, signal causing a stop)
-// is in the high bits.  At least that's the idea.
-// There are various irregularities.  For example, the
+// is in the high bits. At least that's the idea.
+// There are various irregularities. For example, the
 // "continued" status is 0xFFFF, distinguishing itself
 // from stopped via the core dump bit.
 
@@ -413,6 +405,7 @@ func (sa *SockaddrUnix) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), sl, nil
 }
 
+// SockaddrLinklayer implements the Sockaddr interface for AF_PACKET type sockets.
 type SockaddrLinklayer struct {
 	Protocol uint16
 	Ifindex  int
@@ -439,6 +432,7 @@ func (sa *SockaddrLinklayer) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrLinklayer, nil
 }
 
+// SockaddrNetlink implements the Sockaddr interface for AF_NETLINK type sockets.
 type SockaddrNetlink struct {
 	Family uint16
 	Pad    uint16
@@ -455,6 +449,8 @@ func (sa *SockaddrNetlink) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrNetlink, nil
 }
 
+// SockaddrHCI implements the Sockaddr interface for AF_BLUETOOTH type sockets
+// using the HCI protocol.
 type SockaddrHCI struct {
 	Dev     uint16
 	Channel uint16
@@ -466,6 +462,31 @@ func (sa *SockaddrHCI) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	sa.raw.Dev = sa.Dev
 	sa.raw.Channel = sa.Channel
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrHCI, nil
+}
+
+// SockaddrL2 implements the Sockaddr interface for AF_BLUETOOTH type sockets
+// using the L2CAP protocol.
+type SockaddrL2 struct {
+	PSM      uint16
+	CID      uint16
+	Addr     [6]uint8
+	AddrType uint8
+	raw      RawSockaddrL2
+}
+
+func (sa *SockaddrL2) sockaddr() (unsafe.Pointer, _Socklen, error) {
+	sa.raw.Family = AF_BLUETOOTH
+	psm := (*[2]byte)(unsafe.Pointer(&sa.raw.Psm))
+	psm[0] = byte(sa.PSM)
+	psm[1] = byte(sa.PSM >> 8)
+	for i := 0; i < len(sa.Addr); i++ {
+		sa.raw.Bdaddr[i] = sa.Addr[len(sa.Addr)-1-i]
+	}
+	cid := (*[2]byte)(unsafe.Pointer(&sa.raw.Cid))
+	cid[0] = byte(sa.CID)
+	cid[1] = byte(sa.CID >> 8)
+	sa.raw.Bdaddr_type = sa.AddrType
+	return unsafe.Pointer(&sa.raw), SizeofSockaddrL2, nil
 }
 
 // SockaddrCAN implements the Sockaddr interface for AF_CAN type sockets.
@@ -753,43 +774,9 @@ func Getsockname(fd int) (sa Sockaddr, err error) {
 	return anyToSockaddr(&rsa)
 }
 
-func GetsockoptInet4Addr(fd, level, opt int) (value [4]byte, err error) {
-	vallen := _Socklen(4)
-	err = getsockopt(fd, level, opt, unsafe.Pointer(&value[0]), &vallen)
-	return value, err
-}
-
-func GetsockoptIPMreq(fd, level, opt int) (*IPMreq, error) {
-	var value IPMreq
-	vallen := _Socklen(SizeofIPMreq)
-	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
-	return &value, err
-}
-
 func GetsockoptIPMreqn(fd, level, opt int) (*IPMreqn, error) {
 	var value IPMreqn
 	vallen := _Socklen(SizeofIPMreqn)
-	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
-	return &value, err
-}
-
-func GetsockoptIPv6Mreq(fd, level, opt int) (*IPv6Mreq, error) {
-	var value IPv6Mreq
-	vallen := _Socklen(SizeofIPv6Mreq)
-	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
-	return &value, err
-}
-
-func GetsockoptIPv6MTUInfo(fd, level, opt int) (*IPv6MTUInfo, error) {
-	var value IPv6MTUInfo
-	vallen := _Socklen(SizeofIPv6MTUInfo)
-	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
-	return &value, err
-}
-
-func GetsockoptICMPv6Filter(fd, level, opt int) (*ICMPv6Filter, error) {
-	var value ICMPv6Filter
-	vallen := _Socklen(SizeofICMPv6Filter)
 	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
 	return &value, err
 }
@@ -806,6 +793,24 @@ func GetsockoptTCPInfo(fd, level, opt int) (*TCPInfo, error) {
 	vallen := _Socklen(SizeofTCPInfo)
 	err := getsockopt(fd, level, opt, unsafe.Pointer(&value), &vallen)
 	return &value, err
+}
+
+// GetsockoptString returns the string value of the socket option opt for the
+// socket associated with fd at the given socket level.
+func GetsockoptString(fd, level, opt int) (string, error) {
+	buf := make([]byte, 256)
+	vallen := _Socklen(len(buf))
+	err := getsockopt(fd, level, opt, unsafe.Pointer(&buf[0]), &vallen)
+	if err != nil {
+		if err == ERANGE {
+			buf = make([]byte, vallen)
+			err = getsockopt(fd, level, opt, unsafe.Pointer(&buf[0]), &vallen)
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return string(buf[:vallen-1]), nil
 }
 
 func SetsockoptIPMreqn(fd, level, opt int, mreq *IPMreqn) (err error) {
@@ -926,22 +931,24 @@ func Recvmsg(fd int, p, oob []byte, flags int) (n, oobn int, recvflags int, from
 	msg.Namelen = uint32(SizeofSockaddrAny)
 	var iov Iovec
 	if len(p) > 0 {
-		iov.Base = (*byte)(unsafe.Pointer(&p[0]))
+		iov.Base = &p[0]
 		iov.SetLen(len(p))
 	}
 	var dummy byte
 	if len(oob) > 0 {
-		var sockType int
-		sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
-		if err != nil {
-			return
+		if len(p) == 0 {
+			var sockType int
+			sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
+			if err != nil {
+				return
+			}
+			// receive at least one normal byte
+			if sockType != SOCK_DGRAM {
+				iov.Base = &dummy
+				iov.SetLen(1)
+			}
 		}
-		// receive at least one normal byte
-		if sockType != SOCK_DGRAM && len(p) == 0 {
-			iov.Base = &dummy
-			iov.SetLen(1)
-		}
-		msg.Control = (*byte)(unsafe.Pointer(&oob[0]))
+		msg.Control = &oob[0]
 		msg.SetControllen(len(oob))
 	}
 	msg.Iov = &iov
@@ -974,26 +981,28 @@ func SendmsgN(fd int, p, oob []byte, to Sockaddr, flags int) (n int, err error) 
 		}
 	}
 	var msg Msghdr
-	msg.Name = (*byte)(unsafe.Pointer(ptr))
+	msg.Name = (*byte)(ptr)
 	msg.Namelen = uint32(salen)
 	var iov Iovec
 	if len(p) > 0 {
-		iov.Base = (*byte)(unsafe.Pointer(&p[0]))
+		iov.Base = &p[0]
 		iov.SetLen(len(p))
 	}
 	var dummy byte
 	if len(oob) > 0 {
-		var sockType int
-		sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
-		if err != nil {
-			return 0, err
+		if len(p) == 0 {
+			var sockType int
+			sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
+			if err != nil {
+				return 0, err
+			}
+			// send at least one normal byte
+			if sockType != SOCK_DGRAM {
+				iov.Base = &dummy
+				iov.SetLen(1)
+			}
 		}
-		// send at least one normal byte
-		if sockType != SOCK_DGRAM && len(p) == 0 {
-			iov.Base = &dummy
-			iov.SetLen(1)
-		}
-		msg.Control = (*byte)(unsafe.Pointer(&oob[0]))
+		msg.Control = &oob[0]
 		msg.SetControllen(len(oob))
 	}
 	msg.Iov = &iov
@@ -1023,7 +1032,7 @@ func ptracePeek(req int, pid int, addr uintptr, out []byte) (count int, err erro
 
 	var buf [sizeofPtr]byte
 
-	// Leading edge.  PEEKTEXT/PEEKDATA don't require aligned
+	// Leading edge. PEEKTEXT/PEEKDATA don't require aligned
 	// access (PEEKUSER warns that it might), but if we don't
 	// align our reads, we might straddle an unmapped page
 	// boundary and not get the bytes leading up to the page
@@ -1125,6 +1134,10 @@ func PtracePokeData(pid int, addr uintptr, data []byte) (count int, err error) {
 	return ptracePoke(PTRACE_POKEDATA, PTRACE_PEEKDATA, pid, addr, data)
 }
 
+func PtracePokeUser(pid int, addr uintptr, data []byte) (count int, err error) {
+	return ptracePoke(PTRACE_POKEUSR, PTRACE_PEEKUSR, pid, addr, data)
+}
+
 func PtraceGetRegs(pid int, regsout *PtraceRegs) (err error) {
 	return ptrace(PTRACE_GETREGS, pid, 0, uintptr(unsafe.Pointer(regsout)))
 }
@@ -1168,22 +1181,6 @@ func ReadDirent(fd int, buf []byte) (n int, err error) {
 	return Getdents(fd, buf)
 }
 
-func direntIno(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Ino), unsafe.Sizeof(Dirent{}.Ino))
-}
-
-func direntReclen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
-}
-
-func direntNamlen(buf []byte) (uint64, bool) {
-	reclen, ok := direntReclen(buf)
-	if !ok {
-		return 0, false
-	}
-	return reclen - uint64(unsafe.Offsetof(Dirent{}.Name)), true
-}
-
 //sys	mount(source string, target string, fstype string, flags uintptr, data *byte) (err error)
 
 func Mount(source string, target string, fstype string, flags uintptr, data string) (err error) {
@@ -1216,12 +1213,10 @@ func Mount(source string, target string, fstype string, flags uintptr, data stri
 //sys	CopyFileRange(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int, err error)
 //sys	Dup(oldfd int) (fd int, err error)
 //sys	Dup3(oldfd int, newfd int, flags int) (err error)
-//sysnb	EpollCreate(size int) (fd int, err error)
 //sysnb	EpollCreate1(flag int) (fd int, err error)
 //sysnb	EpollCtl(epfd int, op int, fd int, event *EpollEvent) (err error)
 //sys	Eventfd(initval uint, flags int) (fd int, err error) = SYS_EVENTFD2
 //sys	Exit(code int) = SYS_EXIT_GROUP
-//sys	Faccessat(dirfd int, path string, mode uint32, flags int) (err error)
 //sys	Fallocate(fd int, mode uint32, off int64, len int64) (err error)
 //sys	Fchdir(fd int) (err error)
 //sys	Fchmod(fd int, mode uint32) (err error)
@@ -1259,9 +1254,11 @@ func Getpgrp() (pid int) {
 //sys	Mkdirat(dirfd int, path string, mode uint32) (err error)
 //sys	Mknodat(dirfd int, path string, mode uint32, dev int) (err error)
 //sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
+//sys	PerfEventOpen(attr *PerfEventAttr, pid int, cpu int, groupFd int, flags int) (fd int, err error)
 //sys	PivotRoot(newroot string, putold string) (err error) = SYS_PIVOT_ROOT
 //sysnb prlimit(pid int, resource int, newlimit *Rlimit, old *Rlimit) (err error) = SYS_PRLIMIT64
 //sys   Prctl(option int, arg2 uintptr, arg3 uintptr, arg4 uintptr, arg5 uintptr) (err error)
+//sys	Pselect(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timespec, sigmask *Sigset_t) (n int, err error) = SYS_PSELECT6
 //sys	read(fd int, p []byte) (n int, err error)
 //sys	Removexattr(path string, attr string) (err error)
 //sys	Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error)
@@ -1288,6 +1285,7 @@ func Setgid(uid int) (err error) {
 
 //sys	Setpriority(which int, who int, prio int) (err error)
 //sys	Setxattr(path string, attr string, data []byte, flags int) (err error)
+//sys	Statx(dirfd int, path string, flags int, mask int, stat *Statx_t) (err error)
 //sys	Sync()
 //sys	Syncfs(fd int) (err error)
 //sysnb	Sysinfo(info *Sysinfo_t) (err error)
@@ -1298,7 +1296,6 @@ func Setgid(uid int) (err error) {
 //sysnb	Uname(buf *Utsname) (err error)
 //sys	Unmount(target string, flags int) (err error) = SYS_UMOUNT2
 //sys	Unshare(flags int) (err error)
-//sys	Ustat(dev int, ubuf *Ustat_t) (err error)
 //sys	write(fd int, p []byte) (n int, err error)
 //sys	exitThread(code int) (err error) = SYS_EXIT
 //sys	readlen(fd int, p *byte, np int) (n int, err error) = SYS_READ
@@ -1346,6 +1343,17 @@ func Vmsplice(fd int, iovs []Iovec, flags int) (int, error) {
 	}
 
 	return int(n), nil
+}
+
+//sys	faccessat(dirfd int, path string, mode uint32) (err error)
+
+func Faccessat(dirfd int, path string, mode uint32, flags int) (err error) {
+	if flags & ^(AT_SYMLINK_NOFOLLOW|AT_EACCESS) != 0 {
+		return EINVAL
+	} else if flags&(AT_SYMLINK_NOFOLLOW|AT_EACCESS) != 0 {
+		return EOPNOTSUPP
+	}
+	return faccessat(dirfd, path, mode)
 }
 
 /*
@@ -1405,7 +1413,6 @@ func Vmsplice(fd int, iovs []Iovec, flags int) (int, error) {
 // Msgget
 // Msgrcv
 // Msgsnd
-// Newfstatat
 // Nfsservctl
 // Personality
 // Pselect6
@@ -1426,11 +1433,9 @@ func Vmsplice(fd int, iovs []Iovec, flags int) (int, error) {
 // RtSigtimedwait
 // SchedGetPriorityMax
 // SchedGetPriorityMin
-// SchedGetaffinity
 // SchedGetparam
 // SchedGetscheduler
 // SchedRrGetInterval
-// SchedSetaffinity
 // SchedSetparam
 // SchedYield
 // Security
