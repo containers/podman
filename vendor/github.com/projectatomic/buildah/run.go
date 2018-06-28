@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	units "github.com/docker/go-units"
@@ -579,8 +580,8 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 }
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
-func (b *Builder) addNetworkConfig(rdir, hostPath string) (string, error) {
-	copyFileWithTar := b.copyFileWithTar(nil, nil)
+func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair) (string, error) {
+	copyFileWithTar := b.copyFileWithTar(chownOpts, nil)
 
 	cfile := filepath.Join(rdir, filepath.Base(hostPath))
 
@@ -681,11 +682,6 @@ func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds,
 	if err := setupCapDrop(g, secondDrops...); err != nil {
 		return err
 	}
-	return nil
-}
-
-func setupApparmor(spec *specs.Spec, apparmorProfile string) error {
-	spec.Process.ApparmorProfile = apparmorProfile
 	return nil
 }
 
@@ -844,9 +840,77 @@ func runLookupPath(g *generate.Generator, command []string) []string {
 	return command
 }
 
+func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, options RunOptions) error {
+	// Set the user UID/GID/supplemental group list/capabilities lists.
+	user, err := b.user(mountPoint, options.User)
+	if err != nil {
+		return err
+	}
+	if err := setupCapabilities(g, b.AddCapabilities, b.DropCapabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
+		return err
+	}
+	g.SetProcessUID(user.UID)
+	g.SetProcessGID(user.GID)
+	for _, gid := range user.AdditionalGids {
+		g.AddProcessAdditionalGid(gid)
+	}
+
+	// Remove capabilities if not running as root
+	if user.UID != 0 {
+		g.ClearProcessCapabilities()
+	}
+
+	return nil
+}
+
+func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions) {
+	g.ClearProcessEnv()
+	for _, envSpec := range append(b.Env(), options.Env...) {
+		env := strings.SplitN(envSpec, "=", 2)
+		if len(env) > 1 {
+			g.AddProcessEnv(env[0], env[1])
+		}
+	}
+
+	for src, dest := range b.Args {
+		g.AddProcessEnv(src, dest)
+	}
+}
+
+func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions) (bool, []string, error) {
+	defaultNamespaceOptions, err := DefaultNamespaceOptions()
+	if err != nil {
+		return false, nil, err
+	}
+
+	namespaceOptions := defaultNamespaceOptions
+	namespaceOptions.AddOrReplace(b.NamespaceOptions...)
+	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
+
+	networkPolicy := options.ConfigureNetwork
+	if networkPolicy == NetworkDefault {
+		networkPolicy = b.ConfigureNetwork
+	}
+
+	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(g, namespaceOptions, b.IDMappingOptions, networkPolicy)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if configureUTS {
+		if options.Hostname != "" {
+			g.SetHostname(options.Hostname)
+		} else if b.Hostname() != "" {
+			g.SetHostname(b.Hostname())
+		}
+	} else {
+		g.SetHostname("")
+	}
+	return configureNetwork, configureNetworks, nil
+}
+
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	var user specs.User
 	p, err := ioutil.TempDir("", Package)
 	if err != nil {
 		return err
@@ -870,17 +934,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	g := &gp
 
-	g.ClearProcessEnv()
-	for _, envSpec := range append(b.Env(), options.Env...) {
-		env := strings.SplitN(envSpec, "=", 2)
-		if len(env) > 1 {
-			g.AddProcessEnv(env[0], env[1])
-		}
-	}
-
-	for src, dest := range b.Args {
-		g.AddProcessEnv(src, dest)
-	}
+	b.configureEnvironment(g, options)
 
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")
@@ -919,61 +973,21 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	setupTerminal(g, options.Terminal, options.TerminalSize)
 
-	defaultNamespaceOptions, err := DefaultNamespaceOptions()
+	configureNetwork, configureNetworks, err := b.configureNamespaces(g, options)
 	if err != nil {
 		return err
 	}
 
-	namespaceOptions := defaultNamespaceOptions
-	namespaceOptions.AddOrReplace(b.NamespaceOptions...)
-	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
-
-	networkPolicy := options.ConfigureNetwork
-	if networkPolicy == NetworkDefault {
-		networkPolicy = b.ConfigureNetwork
-	}
-
-	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(g, namespaceOptions, b.IDMappingOptions, networkPolicy)
-	if err != nil {
+	if err := b.configureUIDGID(g, mountPoint, options); err != nil {
 		return err
 	}
 
-	if configureUTS {
-		if options.Hostname != "" {
-			g.SetHostname(options.Hostname)
-		} else if b.Hostname() != "" {
-			g.SetHostname(b.Hostname())
-		}
-	} else {
-		g.SetHostname("")
-	}
-
-	// Set the user UID/GID/supplemental group list/capabilities lists.
-	if user, err = b.user(mountPoint, options.User); err != nil {
-		return err
-	}
-	if err = setupCapabilities(g, b.AddCapabilities, b.DropCapabilities, options.AddCapabilities, options.DropCapabilities); err != nil {
-		return err
-	}
-	g.SetProcessUID(user.UID)
-	g.SetProcessGID(user.GID)
-	for _, gid := range user.AdditionalGids {
-		g.AddProcessAdditionalGid(gid)
-	}
+	g.SetProcessApparmorProfile(b.CommonBuildOpts.ApparmorProfile)
 
 	// Now grab the spec from the generator.  Set the generator to nil so that future contributors
 	// will quickly be able to tell that they're supposed to be modifying the spec directly from here.
 	spec := g.Spec()
 	g = nil
-
-	// Remove capabilities if not running as root
-	if user.UID != 0 {
-		var caplist []string
-		spec.Process.Capabilities.Permitted = caplist
-		spec.Process.Capabilities.Inheritable = caplist
-		spec.Process.Capabilities.Effective = caplist
-		spec.Process.Capabilities.Ambient = caplist
-	}
 
 	// Set the working directory, creating it if we must.
 	if spec.Process.Cwd == "" {
@@ -983,11 +997,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return errors.Wrapf(err, "error ensuring working directory %q exists", spec.Process.Cwd)
 	}
 
-	// Set the apparmor profile name.
-	if err = setupApparmor(spec, b.CommonBuildOpts.ApparmorProfile); err != nil {
-		return err
-	}
-
 	// Set the seccomp configuration using the specified profile name.  Some syscalls are
 	// allowed if certain capabilities are to be granted (example: CAP_SYS_CHROOT and chroot),
 	// so we sorted out the capabilities lists first.
@@ -995,11 +1004,18 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
-	hostFile, err := b.addNetworkConfig(path, "/etc/hosts")
+	// Figure out who owns files that will appear to be owned by UID/GID 0 in the container.
+	rootUID, rootGID, err := util.GetHostRootIDs(spec)
 	if err != nil {
 		return err
 	}
-	resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf")
+	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
+
+	hostFile, err := b.addNetworkConfig(path, "/etc/hosts", rootIDPair)
+	if err != nil {
+		return err
+	}
+	resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair)
 	if err != nil {
 		return err
 	}
