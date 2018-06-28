@@ -194,7 +194,7 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy")); err != nil {
+	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"), true); err != nil {
 		// This means the command did not exist
 		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {
