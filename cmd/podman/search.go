@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker"
+	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -42,10 +43,6 @@ var (
 		cli.BoolFlag{
 			Name:  "no-trunc",
 			Usage: "do not truncate the output",
-		},
-		cli.StringSliceFlag{
-			Name:  "registry",
-			Usage: "specific registry to search",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
@@ -98,6 +95,15 @@ func searchCmd(c *cli.Context) error {
 	}
 	term := args[0]
 
+	// Check if search term has a registry in it
+	registry, err := getRegistry(term)
+	if err != nil {
+		return errors.Wrapf(err, "error getting registry from %q", term)
+	}
+	if registry != "" {
+		term = term[len(registry)+1:]
+	}
+
 	if err := validateFlags(c, searchFlags); err != nil {
 		return err
 	}
@@ -116,7 +122,7 @@ func searchCmd(c *cli.Context) error {
 		filter:   c.StringSlice("filter"),
 		authfile: c.String("authfile"),
 	}
-	regAndSkipTLS, err := getRegistriesAndSkipTLS(c)
+	regAndSkipTLS, err := getRegistriesAndSkipTLS(c, registry)
 	if err != nil {
 		return err
 	}
@@ -158,7 +164,7 @@ func (s *searchParams) headerMap() map[string]string {
 }
 
 // A function for finding which registries can skip TLS
-func getRegistriesAndSkipTLS(c *cli.Context) (map[string]bool, error) {
+func getRegistriesAndSkipTLS(c *cli.Context, registry string) (map[string]bool, error) {
 	// Variables for setting up Registry and TLSVerify
 	tlsVerify := c.BoolT("tls-verify")
 	forceSecure := false
@@ -168,8 +174,8 @@ func getRegistriesAndSkipTLS(c *cli.Context) (map[string]bool, error) {
 	}
 
 	var registries []string
-	if len(c.StringSlice("registry")) > 0 {
-		registries = c.StringSlice("registry")
+	if registry != "" {
+		registries = append(registries, registry)
 	} else {
 		var err error
 		registries, err = sysreg.GetRegistries()
@@ -342,4 +348,12 @@ func matchesOfficialFilter(filter searchFilterParams, result docker.SearchResult
 		return result.IsOfficial == *filter.isOfficial
 	}
 	return true
+}
+
+func getRegistry(image string) (string, error) {
+	imgRef, err := reference.Parse(image)
+	if err != nil {
+		return "", err
+	}
+	return reference.Domain(imgRef.(reference.Named)), nil
 }

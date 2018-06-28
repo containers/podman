@@ -58,8 +58,8 @@ var _ = Describe("Podman search", func() {
 		Expect(search.LineInOutputContains("docker.io/library/alpine")).To(BeTrue())
 	})
 
-	It("podman search registry flag", func() {
-		search := podmanTest.Podman([]string{"search", "--registry", "registry.fedoraproject.org", "fedora-minimal"})
+	It("podman search single registry flag", func() {
+		search := podmanTest.Podman([]string{"search", "registry.fedoraproject.org/fedora-minimal"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(search.LineInOutputContains("fedoraproject.org/fedora-minimal")).To(BeTrue())
@@ -128,7 +128,7 @@ var _ = Describe("Podman search", func() {
 			Skip("Can not start docker registry.")
 		}
 
-		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "fake/image:andtag", "--tls-verify=false"})
+		search := podmanTest.Podman([]string{"search", "localhost:5000/fake/image:andtag", "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
 		// if this test succeeded, there will be no output (there is no entry named fake/image:andtag in an empty registry)
@@ -150,7 +150,7 @@ var _ = Describe("Podman search", func() {
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
-		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "my-alpine", "--tls-verify=false"})
+		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine", "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -176,7 +176,7 @@ var _ = Describe("Podman search", func() {
 		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
 		ioutil.WriteFile(outfile, regFileBytes, 0644)
 
-		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "my-alpine"})
+		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -206,7 +206,7 @@ var _ = Describe("Podman search", func() {
 		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
 		ioutil.WriteFile(outfile, regFileBytes, 0644)
 
-		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "my-alpine", "--tls-verify=true"})
+		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine", "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -236,7 +236,7 @@ var _ = Describe("Podman search", func() {
 		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
 		ioutil.WriteFile(outfile, regFileBytes, 0644)
 
-		search := podmanTest.Podman([]string{"search", "--registry", "localhost:5000", "my-alpine"})
+		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
