@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	gosignal "os/signal"
@@ -19,6 +20,7 @@ type RawTtyFormatter struct {
 
 // Attach to a container
 func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
+	ctx := context.Background()
 	resize := make(chan remotecommand.TerminalSize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
@@ -28,12 +30,10 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 	if haveTerminal && ctr.Spec().Process.Terminal {
 		logrus.Debugf("Handling terminal attach")
 
-		resizeTerminate := make(chan interface{})
-		defer func() {
-			resizeTerminate <- true
-			close(resizeTerminate)
-		}()
-		resizeTty(resize, resizeTerminate)
+		subCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		resizeTty(subCtx, resize)
 
 		oldTermState, err := term.SaveState(os.Stdin.Fd())
 		if err != nil {
@@ -45,19 +45,6 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 
 		defer restoreTerminal(oldTermState)
 	}
-
-	// There may be on the other size of the resize channel a goroutine trying to send.
-	// So consume all data inside the channel before exiting to avoid a deadlock.
-	defer func() {
-		for {
-			select {
-			case <-resize:
-				logrus.Debugf("Consumed resize command from channel")
-			default:
-				return
-			}
-		}
-	}()
 
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = stdout
@@ -89,6 +76,7 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 
 // Start and attach to a container
 func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
+	ctx := context.Background()
 	resize := make(chan remotecommand.TerminalSize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
@@ -98,12 +86,10 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 	if haveTerminal && ctr.Spec().Process.Terminal {
 		logrus.Debugf("Handling terminal attach")
 
-		resizeTerminate := make(chan interface{})
-		defer func() {
-			resizeTerminate <- true
-			close(resizeTerminate)
-		}()
-		resizeTty(resize, resizeTerminate)
+		subCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		resizeTty(subCtx, resize)
 
 		oldTermState, err := term.SaveState(os.Stdin.Fd())
 		if err != nil {
@@ -115,19 +101,6 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 
 		defer restoreTerminal(oldTermState)
 	}
-
-	// There may be on the other size of the resize channel a goroutine trying to send.
-	// So consume all data inside the channel before exiting to avoid a deadlock.
-	defer func() {
-		for {
-			select {
-			case <-resize:
-				logrus.Debugf("Consumed resize command from channel")
-			default:
-				return
-			}
-		}
-	}()
 
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = stdout
@@ -171,33 +144,45 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 	return nil
 }
 
+// getResize returns a TerminalSize command matching stdin's current
+// size on success, and nil on errors.
+func getResize() *remotecommand.TerminalSize {
+	winsize, err := term.GetWinsize(os.Stdin.Fd())
+	if err != nil {
+		logrus.Warnf("Could not get terminal size %v", err)
+		return nil
+	}
+	return &remotecommand.TerminalSize{
+		Width:  winsize.Width,
+		Height: winsize.Height,
+	}
+}
+
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
-func resizeTty(resize chan remotecommand.TerminalSize, resizeTerminate chan interface{}) {
+func resizeTty(ctx context.Context, resize chan remotecommand.TerminalSize) {
 	sigchan := make(chan os.Signal, 1)
 	gosignal.Notify(sigchan, signal.SIGWINCH)
-	sendUpdate := func() {
-		winsize, err := term.GetWinsize(os.Stdin.Fd())
-		if err != nil {
-			logrus.Warnf("Could not get terminal size %v", err)
-			return
-		}
-		resize <- remotecommand.TerminalSize{
-			Width:  winsize.Width,
-			Height: winsize.Height,
-		}
-	}
 	go func() {
 		defer close(resize)
 		// Update the terminal size immediately without waiting
 		// for a SIGWINCH to get the correct initial size.
-		sendUpdate()
+		resizeEvent := getResize()
 		for {
-			select {
-			case <-resizeTerminate:
-				return
-
-			case <-sigchan:
-				sendUpdate()
+			if resizeEvent == nil {
+				select {
+				case <-ctx.Done():
+					return
+				case <-sigchan:
+					resizeEvent = getResize()
+				}
+			} else {
+				select {
+				case <-ctx.Done():
+					return
+				case <-sigchan:
+					resizeEvent = getResize()
+				case resize <- *resizeEvent:
+				}
 			}
 		}
 	}()
