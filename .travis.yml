@@ -7,10 +7,10 @@ services:
   - docker
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev
-  - sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext python3-setuptools python3-dateutil
-  - sudo make install.libseccomp.sudo
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext python3-setuptools python3-dateutil; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo make install.libseccomp.sudo; fi
 
 install:
   - make install.tools
@@ -37,11 +37,21 @@ jobs:
       script:
         - make testunit
       go: 1.10.x
+    - script:
+        - make --keep-going local-cross
+      go: 1.10.x
+    - script:
+        - make --keep-going local-cross
+      go: 1.10.x
+      os: osx
+      env: ALLOWED_TO_FAIL=true
     - stage: Integration Test
       script:
         - make all
         - make integration
       go: 1.9.x
+  allow_failures:
+    - env: ALLOWED_TO_FAIL=true
 
 notifications:
   irc: "chat.freenode.net#podman"

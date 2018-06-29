@@ -18,7 +18,7 @@ ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) varlink
-BUILDTAGS_DARWIN ?= containers_image_ostree_stub containers_image_openpgp
+BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/ioprojectatomicpodman.go
 endif
@@ -56,6 +56,10 @@ endif
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
 BOX="fedora_atomic"
+
+CROSS_BUILD_TARGETS := \
+	bin/podman.cross.darwin.amd64 \
+	bin/podman.cross.linux.amd64
 
 all: binaries docs
 
@@ -98,8 +102,13 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
-darwin:
-	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS_DARWIN)" -o bin/podman.$@ $(PROJECT)/cmd/podman
+local-cross: $(CROSS_BUILD_TARGETS)
+
+bin/podman.cross.%: .gopathok
+	TARGET="$*"; \
+	GOOS="$${TARGET%%.*}" \
+	GOARCH="$${TARGET##*.}" \
+	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
 python-podman:
 ifdef HAS_PYTHON3
@@ -110,7 +119,7 @@ clean:
 	rm -rf \
 		.gopathok \
 		_output \
-		bin/podman \
+		bin \
 		build \
 		test/bin2img/bin2img \
 		test/checkseccomp/checkseccomp \
