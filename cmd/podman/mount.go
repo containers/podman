@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	of "github.com/projectatomic/libpod/cmd/podman/formats"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -34,7 +35,7 @@ var (
 		Usage:       "Mount a working container's root filesystem",
 		Description: mountDescription,
 		Action:      mountCmd,
-		ArgsUsage:   "[CONTAINER-NAME-OR-ID]",
+		ArgsUsage:   "[CONTAINER-NAME-OR-ID [...]]",
 		Flags:       mountFlags,
 	}
 )
@@ -68,23 +69,35 @@ func mountCmd(c *cli.Context) error {
 		return errors.Errorf("%q is not a supported format", c.String("format"))
 	}
 
-	if len(args) > 1 {
-		return errors.Errorf("too many arguments specified")
-	}
-
-	if len(args) == 1 {
-		if json {
-			return errors.Wrapf(err, "json option can not be used with a container id")
+	var lastError error
+	if len(args) > 0 {
+		for _, name := range args {
+			if json {
+				if lastError != nil {
+					logrus.Error(lastError)
+				}
+				lastError = errors.Wrapf(err, "json option cannot be used with a container id")
+				continue
+			}
+			ctr, err := runtime.LookupContainer(name)
+			if err != nil {
+				if lastError != nil {
+					logrus.Error(lastError)
+				}
+				lastError = errors.Wrapf(err, "error looking up container %q", name)
+				continue
+			}
+			mountPoint, err := ctr.Mount()
+			if err != nil {
+				if lastError != nil {
+					logrus.Error(lastError)
+				}
+				lastError = errors.Wrapf(err, "error mounting container %q", ctr.ID())
+				continue
+			}
+			fmt.Printf("%s\n", mountPoint)
 		}
-		ctr, err := runtime.LookupContainer(args[0])
-		if err != nil {
-			return errors.Wrapf(err, "error looking up container %q", args[0])
-		}
-		mountPoint, err := ctr.Mount()
-		if err != nil {
-			return errors.Wrapf(err, "error mounting container %q", ctr.ID())
-		}
-		fmt.Printf("%s\n", mountPoint)
+		return lastError
 	} else {
 		jsonMountPoints := []jsonMountPoint{}
 		containers, err2 := runtime.GetContainers()
