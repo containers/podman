@@ -4,7 +4,7 @@
 podman - Simple management tool for containers and images
 
 ## SYNOPSIS
-**podman** [*options*] COMMAND
+**podman** [*options*] *command*
 
 # DESCRIPTION
 podman is a simple client only tool to help with debugging issues when daemons

@@ -4,12 +4,7 @@
 podman\-save - Save an image to docker-archive or oci-archive
 
 ## SYNOPSIS
-**podman save**
-**NAME[:TAG]**
-[**--quiet**|**-q**]
-[**--format**]
-[**--output**|**-o**]
-[**--help**|**-h**]
+**podman save** [*options*] *name*[:*tag*]
 
 ## DESCRIPTION
 **podman save** saves an image to either **docker-archive**, **oci-archive**, **oci-dir** (directory
@@ -47,6 +42,10 @@ Save image to **oci-archive**, **oci-dir** (directory with oci manifest type), o
 **--quiet, -q**
 
 Suppress the output
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

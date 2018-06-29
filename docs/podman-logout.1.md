@@ -4,11 +4,7 @@
 podman\-logout - Logout of a container registry
 
 ## SYNOPSIS
-**podman logout**
-[**--help**|**-h**]
-[**--authfile**]
-[**--all**|**-a**]
-**REGISTRY**
+**podman logout** [*options*] *registry*
 
 ## DESCRIPTION
 **podman logout** logs out of a specified registry server by deleting the cached credentials
@@ -31,6 +27,10 @@ Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth
 **--all, -a**
 
 Remove the cached credentials for all registries in the auth file
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

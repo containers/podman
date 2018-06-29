@@ -4,7 +4,7 @@
 podman\-restart - Restart a container
 
 ## SYNOPSIS
-**podman attach [OPTIONS] CONTAINER [CONTAINER...]**
+**podman attach** [*options*] *container* ...
 
 ## DESCRIPTION
 The restart command allows containers to be restarted using their ID or name.

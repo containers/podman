@@ -4,7 +4,7 @@
 podman\-build - Build a container image using a Dockerfile.
 
 ## SYNOPSIS
-**podman** **build** [*options* [...]] **context**
+**podman build** [*options*] *context*
 
 ## DESCRIPTION
 **podman build** Builds an image using instructions from one or more Dockerfiles and a specified build context directory.

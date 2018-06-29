@@ -5,7 +5,7 @@ podman\-info - Display system information
 
 
 ## SYNOPSIS
-**podman** **info** [*options* [...]]
+**podman info** [*options*]
 
 
 ## DESCRIPTION

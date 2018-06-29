@@ -4,14 +4,19 @@
 podman\-tag - Add an additional name to a local image
 
 ## SYNOPSIS
-**podman [GLOBAL OPTIONS] tag IMAGE[:TAG] TARGET_NAME[:TAG]**
+**podman tag** *image*[:*tag*] *target-name*[:*tag*]
 [**--help**|**-h**]
 
 ## DESCRIPTION
 Assigns a new alias to an image.  An alias refers to the entire image name, including the optional
-**TAG** after the ':' If you do not provide a :TAG, podman will assume a :TAG of "latest" for both
-the IMAGE and the TARGET_NAME.
+*tag* after the `:`.  If you do not provide *tag*, podman will default to `latest` for both
+the *image* and the *target-name*.
 
+## OPTIONS
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

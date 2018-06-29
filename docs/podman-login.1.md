@@ -4,12 +4,7 @@
 podman\-login - Login to a container registry
 
 ## SYNOPSIS
-**podman login**
-[**--help**|**-h**]
-[**--authfile**]
-[**--user**|**-u**]
-[**--password**|**-p**]
-**REGISTRY**
+**podman login** [*options*] *registry*
 
 ## DESCRIPTION
 **podman login** logs into a specified registry server with the correct username
@@ -46,6 +41,10 @@ Default certificates directory is _/etc/containers/certs.d_.
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true)
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

@@ -4,13 +4,7 @@
 podman\-history - Shows the history of an image
 
 ## SYNOPSIS
-**podman history**
-**IMAGE[:TAG|DIGEST]**
-[**--human**|**-H**]
-[**--no-trunc**]
-[**--quiet**|**-q**]
-[**--format**]
-[**--help**|**-h**]
+**podman history** [*options*] *image*[:*tag*|@*digest*]
 
 ## DESCRIPTION
 **podman history** displays the history of an image by printing out information
@@ -31,12 +25,6 @@ Valid placeholders for the Go template are listed below:
 | .Size           | Size of layer on disk                                                         |
 | .Comment        | Comment for the layer                                                         |
 
-**podman [GLOBAL OPTIONS]**
-
-**podman history [GLOBAL OPTIONS]**
-
-**podman history [OPTIONS] IMAGE[:TAG|DIGEST]**
-
 ## OPTIONS
 
 **--human, -H**
@@ -55,6 +43,9 @@ Print the numeric IDs only
 
 Alter the output for a format like 'json' or a Go template.
 
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

@@ -4,7 +4,7 @@
 podman\-container\-cleanup - Cleanup Container storage and networks
 
 ## SYNOPSIS
-**podman container cleanup [OPTIONS] CONTAINER**
+**podman container cleanup** [*options*] *container*
 
 ## DESCRIPTION
 `podman container cleanup` cleans up exited containers by removing all mountpoints and network configuration from the host.  The container name or ID can be used.  The cleanup command does not remove the containers.  Running containers will not be cleaned up.

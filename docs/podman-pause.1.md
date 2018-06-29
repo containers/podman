@@ -4,7 +4,7 @@
 podman\-pause - Pause one or more containers
 
 ## SYNOPSIS
-**podman pause [OPTIONS] CONTAINER [...]**
+**podman pause** [*options*] *container* ...
 
 ## DESCRIPTION
 Pauses all the processes in one or more containers.  You may use container IDs or names as input.

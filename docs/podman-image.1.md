@@ -4,7 +4,7 @@
 podman\-image - Manage images
 
 ## SYNOPSIS
-**podman image SUBCOMMAND [OPTIONS]
+**podman image** *subcommand*
 
 ## DESCRIPTION
 The image command allows you to manage images

@@ -4,7 +4,7 @@
 podman\-push - Push an image from local storage to elsewhere
 
 ## SYNOPSIS
-**podman** **push** [*options* [...]] **imageID** [**destination**]
+**podman push** [*options*] **image** [**destination**]
 
 ## DESCRIPTION
 Pushes an image from local storage to a specified destination.

@@ -4,7 +4,7 @@
 podman\-container - Manage containers
 
 ## SYNOPSIS
-**podman container SUBCOMMAND [OPTIONS]
+**podman container** *subcommand*
 
 ## DESCRIPTION
 The container command allows you to manage containers

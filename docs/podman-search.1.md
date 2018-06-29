@@ -4,14 +4,7 @@
 podman\-search - Search a registry for an image
 
 ## SYNOPSIS
-**podman search**
-**TERM**
-[**--filter**|**-f**]
-[**--format**]
-[**--limit**]
-[**--no-trunc**]
-[**--registry**]
-[**--help**|**-h**]
+**podman search** [*options*] *term*
 
 ## DESCRIPTION
 **podman search** searches a registry or a list of registries for a matching image.
@@ -77,6 +70,10 @@ Require HTTPS and verify certificates when contacting registries (default: true)
 then tls verification will be used. If set to false then tls verification will not be used if needed. If not specified
 default registries will be searched through (in /etc/containers/registries.conf), and tls will be skipped if a default
 registry is listed in the insecure registries.
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

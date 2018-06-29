@@ -4,7 +4,7 @@
 podman\-attach - Attach to a running container
 
 ## SYNOPSIS
-**podman attach [OPTIONS] CONTAINER**
+**podman attach** [*options*] *container*
 
 ## DESCRIPTION
 The attach command allows you to attach to a running container using the container's ID
