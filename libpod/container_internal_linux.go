@@ -26,7 +26,7 @@ import (
 
 // cleanupCgroup cleans up residual CGroups after container execution
 // This is a no-op for the systemd cgroup driver
-func (c *Container) cleanupCgroups() error {
+func (c *Container) cleanupResourceLimits() error {
 	if !c.state.CgroupCreated {
 		logrus.Debugf("Cgroups are not present, ignoring...")
 		return nil
@@ -53,7 +53,10 @@ func (c *Container) cleanupCgroups() error {
 	}
 
 	if err := cgroup.Delete(); err != nil {
-		return err
+		// For now we are going to only warn on failures to clean up cgroups
+		// We have a conflict with running podman containers cleanup in same cgroup as container
+		logrus.Warnf("Ignoring Error cleaning up container %s CGroups: %v", c.ID(), err)
+		return nil
 	}
 
 	c.state.CgroupCreated = false

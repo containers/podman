@@ -832,18 +832,12 @@ func (c *Container) cleanup() error {
 		lastError = err
 	}
 
-	if err := c.cleanupCgroups(); err != nil {
-		/*
-			if lastError != nil {
-				logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
-			} else {
-				lastError = err
-			}
-		*/
-		// For now we are going to only warn on failures to clean up cgroups
-		// We have a conflict with running podman containers cleanup in same cgroup as container
-		logrus.Warnf("Ignoring Error cleaning up container %s CGroups: %v", c.ID(), err)
-
+	if err := c.cleanupResourceLimits(); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error cleaning up container %s resource limits: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
 	}
 
 	// Unmount storage
