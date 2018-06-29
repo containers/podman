@@ -1431,28 +1431,39 @@ func (c *Container) addImageVolumes(ctx context.Context, g *generate.Generator) 
 		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
 		srcPath := filepath.Join(mountPoint, k)
 
+		var (
+			uid uint32
+			gid uint32
+		)
+		if c.config.User != "" {
+			if !c.state.Mounted {
+				return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
+			}
+			uid, gid, err = chrootuser.GetUser(c.state.Mountpoint, c.config.User)
+			if err != nil {
+				return err
+			}
+		}
+
 		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 			logrus.Infof("Volume image mount point %s does not exist in root FS, need to create it", k)
-			if err = os.MkdirAll(volumePath, 0755); err != nil {
+			if err = os.MkdirAll(srcPath, 0755); err != nil {
 				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
 			}
 
-			if c.config.User != "" {
-				if !c.state.Mounted {
-					return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
-				}
-				uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
-				if err != nil {
-					return err
-				}
-
-				if err = os.Chown(volumePath, int(uid), int(gid)); err != nil {
-					return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID)
-				}
+			if err = os.Chown(srcPath, int(uid), int(gid)); err != nil {
+				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", srcPath, k, c.ID)
 			}
 		}
 
 		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+			if err = os.MkdirAll(volumePath, 0755); err != nil {
+				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
+
+			if err = os.Chown(volumePath, int(uid), int(gid)); err != nil {
+				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID)
+			}
 
 			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
 				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)

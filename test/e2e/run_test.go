@@ -476,4 +476,23 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(100))
 	})
+
+	It("podman run with built-in volume image", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "docker.io/library/redis:alpine", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rmi", "docker.io/library/redis:alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "-e", "MYSQL_USER=zmuser", "-e", "MYSQL_PASSWORD=zmpass", "-e", "MYSQL_DATABASE=zm", "-e", "MYSQL_ROOT_PASSWORD=mysqlpassword", "docker.io/centos/mariadb-101-centos7", "ls", "-al", "/var/lib/mysql/data"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("mysql root"))
+
+		session = podmanTest.Podman([]string{"rmi", "docker.io/centos/mariadb-101-centos7"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
