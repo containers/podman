@@ -268,6 +268,12 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
 	}
+	if len(ctr.config.ExitCommand) > 0 {
+		args = append(args, "--exit-command", ctr.config.ExitCommand[0])
+		for _, arg := range ctr.config.ExitCommand[1:] {
+			args = append(args, []string{"--exit-command-arg", arg}...)
+		}
+	}
 	args = append(args, "--socket-dir-path", r.socketsDir)
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")

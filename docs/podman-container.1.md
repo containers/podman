@@ -14,6 +14,7 @@ The container command allows you to manage containers
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | attach   | [podman-attach(1)](podman-attach.1.md)              | Attach to a running container.                                               |
+| cleanup  | [podman-container-cleanup(1)](podman-container-cleanup.1.md)    | Cleanup containers network and mountpoints.                               |
 | commit   | [podman-commit(1)](podman-commit.1.md)              | Create new image based on the changed container.                             |
 | create   | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |
 | diff     | [podman-diff(1)](podman-diff.1.md)                  | Inspect changes on a container or image's filesystem.                        |

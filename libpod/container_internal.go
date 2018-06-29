@@ -695,7 +695,8 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
-	return c.cleanup()
+	// Container should clean itself up
+	return nil
 }
 
 // Internal, non-locking function to pause a container
@@ -928,11 +929,17 @@ func (c *Container) cleanup() error {
 	}
 
 	if err := c.cleanupCgroups(); err != nil {
-		if lastError != nil {
-			logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
-		} else {
-			lastError = err
-		}
+		/*
+			if lastError != nil {
+				logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
+			} else {
+				lastError = err
+			}
+		*/
+		// For now we are going to only warn on failures to clean up cgroups
+		// We have a conflict with running podman containers cleanup in same cgroup as container
+		logrus.Warnf("Ignoring Error cleaning up container %s CGroups: %v", c.ID(), err)
+
 	}
 
 	// Unmount storage
