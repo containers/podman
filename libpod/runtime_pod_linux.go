@@ -74,7 +74,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
 
-	return nil, ErrNotImplemented
+	return pod, nil
 }
 
 func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
