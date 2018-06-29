@@ -77,6 +77,9 @@ func statsCmd(c *cli.Context) error {
 
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
+	} else if ctr == 0 {
+		// If user didn't specify, imply --all
+		all = true
 	}
 
 	runtime, err := libpodruntime.GetRuntime(c)
@@ -169,13 +172,17 @@ func outputStats(stats []*libpod.ContainerStats, format string) error {
 	for _, s := range stats {
 		outputStats = append(outputStats, getStatsOutputParams(s))
 	}
-	if len(outputStats) == 0 {
-		return nil
-	}
 	if strings.ToLower(format) == formats.JSONString {
 		out = formats.JSONStructArray{Output: statsToGeneric(outputStats, []statsOutputParams{})}
 	} else {
-		out = formats.StdoutTemplateArray{Output: statsToGeneric(outputStats, []statsOutputParams{}), Template: format, Fields: outputStats[0].headerMap()}
+		var mapOfHeaders map[string]string
+		if len(outputStats) == 0 {
+			params := getStatsOutputParamsEmpty()
+			mapOfHeaders = params.headerMap()
+		} else {
+			mapOfHeaders = outputStats[0].headerMap()
+		}
+		out = formats.StdoutTemplateArray{Output: statsToGeneric(outputStats, []statsOutputParams{}), Template: format, Fields: mapOfHeaders}
 	}
 	return formats.Writer(out).Out()
 }
@@ -258,5 +265,18 @@ func getStatsOutputParams(stats *libpod.ContainerStats) statsOutputParams {
 		NetIO:    combineHumanValues(stats.NetInput, stats.NetOutput),
 		BlockIO:  combineHumanValues(stats.BlockInput, stats.BlockOutput),
 		PIDS:     pidsToString(stats.PIDs),
+	}
+}
+
+func getStatsOutputParamsEmpty() statsOutputParams {
+	return statsOutputParams{
+		Name:     "",
+		ID:       "",
+		CPUPerc:  "",
+		MemUsage: "",
+		MemPerc:  "",
+		NetIO:    "",
+		BlockIO:  "",
+		PIDS:     "",
 	}
 }
