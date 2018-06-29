@@ -3,6 +3,7 @@ package libpod
 import (
 	"encoding/json"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -48,13 +49,14 @@ var (
 // Check if the configuration of the database is compatible with the
 // configuration of the runtime opening it
 // If there is no runtime configuration loaded, load our own
-func checkRuntimeConfig(db *bolt.DB, runtime *Runtime) error {
+func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 	var (
 		staticDir       = []byte("static-dir")
 		tmpDir          = []byte("tmp-dir")
 		runRoot         = []byte("run-root")
 		graphRoot       = []byte("graph-root")
 		graphDriverName = []byte("graph-driver-name")
+		osKey           = []byte("os")
 	)
 
 	err := db.Update(func(tx *bolt.Tx) error {
@@ -63,30 +65,34 @@ func checkRuntimeConfig(db *bolt.DB, runtime *Runtime) error {
 			return err
 		}
 
+		if err := validateDBAgainstConfig(configBkt, "OS", runtime.GOOS, osKey, runtime.GOOS); err != nil {
+			return err
+		}
+
 		if err := validateDBAgainstConfig(configBkt, "static dir",
-			runtime.config.StaticDir, staticDir, ""); err != nil {
+			rt.config.StaticDir, staticDir, ""); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "tmp dir",
-			runtime.config.TmpDir, tmpDir, ""); err != nil {
+			rt.config.TmpDir, tmpDir, ""); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "run root",
-			runtime.config.StorageConfig.RunRoot, runRoot,
+			rt.config.StorageConfig.RunRoot, runRoot,
 			storage.DefaultStoreOptions.RunRoot); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "graph root",
-			runtime.config.StorageConfig.GraphRoot, graphRoot,
+			rt.config.StorageConfig.GraphRoot, graphRoot,
 			storage.DefaultStoreOptions.GraphRoot); err != nil {
 			return err
 		}
 
 		return validateDBAgainstConfig(configBkt, "graph driver name",
-			runtime.config.StorageConfig.GraphDriverName,
+			rt.config.StorageConfig.GraphDriverName,
 			graphDriverName,
 			storage.DefaultStoreOptions.GraphDriverName)
 	})

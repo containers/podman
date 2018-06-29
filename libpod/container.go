@@ -173,12 +173,8 @@ type containerState struct {
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
 
-	// Special container state attributes for Linux
-	containerStateLinux
-	// Special container state attributes for Windows
-	containerStateWindows
-	// Special container state attributes for Darwin
-	containerStateDarwin
+	// containerPlatformState holds platform-specific container state.
+	containerPlatformState
 }
 
 // ExecSession contains information on an active exec session
