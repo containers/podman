@@ -1,3 +1,5 @@
+// +build linux
+
 package libpod
 
 import (
@@ -6,28 +8,8 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
-	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
-	"github.com/vishvananda/netlink"
 )
-
-// ContainerStats contains the statistics information for a running container
-type ContainerStats struct {
-	ContainerID string
-	Name        string
-	CPU         float64
-	CPUNano     uint64
-	SystemNano  uint64
-	MemUsage    uint64
-	MemLimit    uint64
-	MemPerc     float64
-	NetInput    uint64
-	NetOutput   uint64
-	BlockInput  uint64
-	BlockOutput uint64
-	PIDs        uint64
-}
 
 // GetContainerStats gets the running stats for a given container
 func (c *Container) GetContainerStats(previousStats *ContainerStats) (*ContainerStats, error) {
@@ -101,19 +83,6 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 		return physicalLimit
 	}
 	return cgroupLimit
-}
-
-func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
-	var netStats *netlink.LinkStatistics
-	err := ns.WithNetNSPath(ctr.state.NetNS.Path(), func(_ ns.NetNS) error {
-		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
-		if err != nil {
-			return err
-		}
-		netStats = link.Attrs().Statistics
-		return nil
-	})
-	return netStats, err
 }
 
 func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uint64) float64 {

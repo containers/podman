@@ -6,14 +6,11 @@ import (
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/go-units"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/rootless"
-	seccomp "github.com/seccomp/containers-golang"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 const cpuPeriod = 100000
@@ -236,24 +233,13 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 
 	// HANDLE SECCOMP
+
 	if config.SeccompProfilePath != "unconfined" {
-		if config.SeccompProfilePath != "" {
-			seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
-			if err != nil {
-				return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
-			}
-			seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), configSpec)
-			if err != nil {
-				return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
-			}
-			configSpec.Linux.Seccomp = seccompConfig
-		} else {
-			seccompConfig, err := seccomp.GetDefaultProfile(configSpec)
-			if err != nil {
-				return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
-			}
-			configSpec.Linux.Seccomp = seccompConfig
+		seccompConfig, err := getSeccompConfig(config, configSpec)
+		if err != nil {
+			return nil, err
 		}
+		configSpec.Linux.Seccomp = seccompConfig
 	}
 
 	// Clear default Seccomp profile from Generator for privileged containers
@@ -427,24 +413,5 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 		}
 	}
 	configSpec.Process.Capabilities.Bounding = caplist
-	return nil
-}
-
-func addDevice(g *generate.Generator, device string) error {
-	dev, err := devices.DeviceFromPath(device, "rwm")
-	if err != nil {
-		return errors.Wrapf(err, "%s is not a valid device", device)
-	}
-	linuxdev := spec.LinuxDevice{
-		Path:     dev.Path,
-		Type:     string(dev.Type),
-		Major:    dev.Major,
-		Minor:    dev.Minor,
-		FileMode: &dev.FileMode,
-		UID:      &dev.Uid,
-		GID:      &dev.Gid,
-	}
-	g.AddDevice(linuxdev)
-	g.AddLinuxResourcesDevice(true, string(dev.Type), &dev.Major, &dev.Minor, dev.Permissions)
 	return nil
 }

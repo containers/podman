@@ -66,4 +66,8 @@ var (
 	// ErrNotImplemented indicates that the requested functionality is not
 	// yet present
 	ErrNotImplemented = errors.New("not yet implemented")
+
+	// ErrOSNotSupported indicates the function is not available on the particular
+	// OS.
+	ErrOSNotSupported = errors.New("No support for this OS yet")
 )
