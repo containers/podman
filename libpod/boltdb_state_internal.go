@@ -200,6 +200,7 @@ func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 }
 
 func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+	valid := true
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
 		return errors.Wrapf(ErrNoSuchCtr, "container %s not found in DB", string(id))
@@ -230,10 +231,12 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	if netNSBytes != nil {
 		nsPath := string(netNSBytes)
 		netNS, err := joinNetNS(nsPath)
-		if err != nil {
-			return errors.Wrapf(err, "error joining network namespace for container %s", string(id))
+		if err == nil {
+			ctr.state.NetNS = netNS
+		} else {
+			logrus.Errorf("error joining network namespace for container %s", ctr.ID())
+			valid = false
 		}
-		ctr.state.NetNS = netNS
 	}
 
 	// Get the lock
@@ -245,7 +248,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	ctr.lock = lock
 
 	ctr.runtime = s.runtime
-	ctr.valid = true
+	ctr.valid = valid
 
 	return nil
 }
