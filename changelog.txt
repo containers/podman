@@ -1,3 +1,47 @@
+- Changelog for v0.6.5 (2018-06-29)
+  * Fix built-in volume issue with podman run/create
+  * Add `podman container cleanup` to CLI
+  * Allow multiple containers and all for umount
+  * Returning joining namespace error should not be fatal
+  * Start using github.com/seccomp/containers-golang
+  * Test to verify overlay quotas work, show container overhead on quota
+  * conmon no longer writes to syslog
+  * Fix broken f28/cloud instance
+  * Vendor latest projectatomic/buildah
+  * vendor in latest golang/x/sys
+  * vendor in latest docker package
+  * Remove the --registry flag from podman search
+  * utils: fix endless write of resize event
+  * Start prints UUID or container name that user inputs on success
+  * cmd/podman/utils.go: Cancel-able resize writes
+  * Fix podman hangs when detecting startup error in container attached mode
+  * travis: bump go to 1.9.x and 1.10.x
+  * podman-build --help: update description
+  * *: Replace Generator.Spec() with Generator.Config
+  * generator.New() requires an OS string input variable
+  * Vendor in latest buildah
+  * Vendor in latest runtime-tools
+  * docs: add documentation for rootless containers
+  * runtime: change rootless data storage default path
+  * rootless: use $HOME/.config/containers/libpod.conf
+  * test: add env variables to the debug output
+  * rootless: do not configure additional groups
+  * oci: set XDG_RUNTIME_DIR to the runtime from GetRootlessRuntimeDir()
+  * rootless: add management for the userNS
+  * container_internal: don't ignore error from cleanupNetwork()
+  * Mark containers invalid earlier during removal
+  * Add --authfile to podman search
+  * Vendor in latest containers/image
+  * add podman remote client
+  * Vendor in go-selinux again
+  * Update the vendoring of github.com/opencontainers/selinux
+  * Containers can dissappear
+  * Add podman-image and podman-container man page links
+  * Update ocicni vendor to pick up bugfixes
+  * make varlink optional for podman
+  * Bump gitvalidation epoch
+  * Bump to v0.6.5-dev
+
 - Changelog for v0.6.4 (2018-06-22)
   * Add tests for podman refresh
   * Point podman-refresh at the right manpage
