@@ -4,7 +4,7 @@
 podman\-run - Run a command in a new container
 
 ## SYNOPSIS
-**podman run** [*options* [...]] IMAGE [COMMAND] [ARG...]
+**podman run** [*options*] *image* [*command* [*arg* ...]]
 
 ## DESCRIPTION
 

@@ -4,7 +4,7 @@
 podman\-rmi - Removes one or more images
 
 ## SYNOPSIS
-**podman** **rmi** **imageID [...]**
+**podman rmi** *image* ...
 
 ## DESCRIPTION
 Removes one or more locally stored images.

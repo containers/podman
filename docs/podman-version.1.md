@@ -4,16 +4,17 @@
 podman\-version - Display the PODMAN Version Information
 
 ## SYNOPSIS
-**podman version**
-[**--help**|**-h**]
+**podman version** [*options*]
 
 ## DESCRIPTION
 Shows the the following information: Version, Go Version, Git Commit, Build Time,
 OS, and Architecture.
 
-**podman [GLOBAL OPTIONS]**
+## OPTIONS
 
-**podman version**
+**--help**, **-h**
+
+Print usage statement
 
 ## SEE ALSO
 podman(1), crio(8)

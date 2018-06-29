@@ -4,9 +4,7 @@
 podman\-pull - Pull an image from a registry
 
 ## SYNOPSIS
-**podman pull**
-**NAME[:TAG|@DIGEST]**
-[**--help**|**-h**]
+**podman pull** [*options*] *name*[:*tag*|@*digest*]
 
 ## DESCRIPTION
 Copies an image from a registry onto the local machine. **podman pull** pulls an
@@ -14,7 +12,7 @@ image from Docker Hub if a registry is not specified in the command line argumen
 If an image tag is not specified, **podman pull** defaults to the image with the
 **latest** tag (if it exists) and pulls it. After the image is pulled, podman will
 print the full image ID.  **podman pull** can also pull an image
-using its digest **podman pull [image]@[digest]**. **podman pull** can be used to pull
+using its digest **podman pull** *image*@*digest*. **podman pull** can be used to pull
 images from archives and local storage using different transports.
 
 ## imageID
@@ -44,12 +42,6 @@ Image stored in local container/storage
 
   **ostree:**_image_[**@**_/absolute/repo/path_]
   An image in local OSTree repository.  _/absolute/repo/path_ defaults to _/ostree/repo_.
-
-**podman [GLOBAL OPTIONS]**
-
-**podman pull [GLOBAL OPTIONS]**
-
-**podman pull NAME[:TAG|@DIGEST]**
 
 ## OPTIONS
 
@@ -84,6 +76,10 @@ option be used, as the default behavior of using the system-wide default policy
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then tls verification will be used, If set to false then tls verification will not be used. If not specified
 tls verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

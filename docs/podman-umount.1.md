@@ -4,7 +4,7 @@
 podman\-umount - Unmount the specified working containers' root file system.
 
 ## SYNOPSIS
-**podman** **umount** **containerID [...]**
+**podman umount** *container* ...
 
 ## DESCRIPTION
 Unmounts the specified containers' root file system.

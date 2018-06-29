@@ -4,15 +4,11 @@
 podman\-varlink - Runs the varlink backend interface
 
 ## SYNOPSIS
-**podman varlink** [OPTIONS]
-[**--help**|**-h**]
-VARLINK_URI
+**podman varlink** [*options*] *uri*
 
 ## DESCRIPTION
-Starts the varlink service that allows varlink clients to interact with podman.  This should generally be done
+Starts the varlink service listening on *uri* that allows varlink clients to interact with podman.  This should generally be done
 with systemd.  See _Configuration_ below.
-
-**podman [GLOBAL OPTIONS] [OPTIONS] varlink VARLINK_URI**
 
 ## GLOBAL OPTIONS
 

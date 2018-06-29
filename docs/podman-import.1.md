@@ -4,12 +4,7 @@
 podman\-import - Import a tarball and save it as a filesystem image
 
 ## SYNOPSIS
-**podman import**
-**TARBALL**
-[**--change**|**-c**]
-[**--message**|**-m**]
-[**--help**|**-h**]
-[**-verbose**]
+**podman import** [*options*] *path*
 
 ## DESCRIPTION
 **podman import** imports a tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz)
@@ -17,12 +12,6 @@ and saves it as a filesystem image. Remote tarballs can be specified using a URL
 Various image instructions can be configured with the **--change** flag and
 a commit message can be set using the **--message** flag.
 Note: `:` is a restricted character and cannot be part of the file name.
-
-**podman [GLOBAL OPTIONS]**
-
-**podman import [GLOBAL OPTIONS]**
-
-**podman import [OPTIONS] CONTAINER**
 
 ## OPTIONS
 
@@ -39,6 +28,14 @@ Set commit message for imported image
 **--quiet, -q**
 
 Shows progress on the import
+
+**-verbose**
+
+Print additional debugging information
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

@@ -4,11 +4,7 @@
 podman\-load - Load an image from docker archive
 
 ## SYNOPSIS
-**podman load**
-**NAME[:TAG|@DIGEST]**
-[**--input**|**-i**]
-[**--quiet**|**-q**]
-[**--help**|**-h**]
+**podman load** *name*[:*tag*|@*digest*]
 
 ## DESCRIPTION
 **podman load** copies an image from either **docker-archive** or **oci-archive** stored
@@ -37,6 +33,10 @@ Suppress the output
 Pathname of a signature policy file to use.  It is not recommended that this
 option be used, as the default behavior of using the system-wide default policy
 (frequently */etc/containers/policy.json*) is most often preferred
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

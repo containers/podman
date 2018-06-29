@@ -4,10 +4,7 @@
 podman\-exec - Execute a command in a running container
 
 ## SYNOPSIS
-**podman exec**
-**CONTAINER**
-[COMMAND] [ARG...]
-[**--help**|**-h**]
+**podman exec** *container* [*options*] [*command* [*arg* ...]]
 
 ## DESCRIPTION
 **podman exec** executes a command in a running container.

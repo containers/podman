@@ -4,7 +4,7 @@
 podman\-stats - Display a live stream of 1 or more containers' resource usage statistics
 
 ## SYNOPSIS
-**podman** **stats** [*options* [...]] [container]
+**podman stats** [*options*] [*container*]
 
 ## DESCRIPTION
 Display a live stream of one or more containers' resource usage statistics

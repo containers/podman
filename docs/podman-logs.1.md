@@ -4,7 +4,7 @@
 podman\-logs - Fetch the logs of a container
 
 ## SYNOPSIS
-**podman** **logs** [*options* [...]] container
+**podman** **logs** [*options*] *container*
 
 ## DESCRIPTION
 The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.

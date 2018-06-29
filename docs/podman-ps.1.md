@@ -4,12 +4,7 @@
 podman\-ps - Prints out information about containers
 
 ## SYNOPSIS
-**podman ps**
-[**--all**|**-a**]
-[**--no-trunc**]
-[**--quiet**|**-q**]
-[**--format**]
-[**--help**|**-h**]
+**podman ps** [*options*]
 
 ## DESCRIPTION
 **podman ps** lists the running containers on the system. Use the **--all** flag to view
@@ -22,12 +17,6 @@ all the containers information.  By default it lists:
  * the status of the container
  * port mappings the container is using
  * alternative names for the container
-
-**podman [GLOBAL OPTIONS]**
-
-**podman ps [GLOBAL OPTIONS]**
-
-**podman ps [OPTIONS]**
 
 ## OPTIONS
 
@@ -102,6 +91,10 @@ Valid filters are listed below:
 | before          | [ID] or [Name] Containers created before this container             |
 | since           | [ID] or [Name] Containers created since this container              |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container |
+
+**--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 

@@ -4,7 +4,7 @@
 podman\-inspect - Display a container or image's configuration
 
 ## SYNOPSIS
-**podman** **inspect** [*options* [...]] name [...]
+**podman inspect** [*options*] *name* ...
 
 ## DESCRIPTION
 This displays the low-level information on containers and images identified by name or ID. By default, this will render

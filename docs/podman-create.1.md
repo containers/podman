@@ -4,14 +4,14 @@
 podman\-create - Create a new container
 
 ## SYNOPSIS
-**podman create** [*options* [...]] IMAGE [COMMAND] [ARG...]
+**podman create** [*options*] *image* [*command* [*arg* ...]]
 
 ## DESCRIPTION
 
 Creates a writable container layer over the specified image and prepares it for
 running the specified command. The container ID is then printed to STDOUT. This
 is similar to **podman run -d** except the container is never started. You can
-then use the **podman start <container_id>** command to start the container at
+then use the **podman start** *container* command to start the container at
 any point.
 
 The initial status of the container created with **podman create** is 'created'.

@@ -4,13 +4,10 @@
 podman\-top - Display the running processes of a container
 
 ## SYNOPSIS
-**podman top**
-[**--help**|**-h**]
+**podman top** [*options*] *container* [*ps-options*]
 
 ## DESCRIPTION
-Display the running process of the container. ps-OPTION can be any of the options you would pass to a Linux ps command
-
-**podman [GLOBAL OPTIONS] top [OPTIONS]**
+Display the running process of the container. *ps-options* can be any of the options you would pass to `ps(1)`.
 
 ## OPTIONS
 
