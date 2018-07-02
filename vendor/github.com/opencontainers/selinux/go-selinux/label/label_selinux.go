@@ -130,7 +130,7 @@ func Relabel(path string, fileLabel string, shared bool) error {
 		return nil
 	}
 
-	exclude_paths := map[string]bool{"/": true, "/usr": true, "/etc": true}
+	exclude_paths := map[string]bool{"/": true, "/usr": true, "/etc": true, "/tmp": true, "/home": true, "/run": true, "/var": true, "/root": true}
 	if exclude_paths[path] {
 		return fmt.Errorf("SELinux relabeling of %s is not allowed", path)
 	}
