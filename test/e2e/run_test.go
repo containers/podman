@@ -478,6 +478,11 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with built-in volume image", func() {
+		travisRun, exists := os.LookupEnv("TRAVIS")
+		if exists && travisRun == "1" {
+			Skip("Built-in volume test causes timeouts on Travis - replace mariadb-101-centos7 image to resolve")
+		}
+
 		session := podmanTest.Podman([]string{"run", "--rm", "docker.io/library/redis:alpine", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
