@@ -83,10 +83,8 @@ lint: .gopathok varlink_generate
 	@./.tool/lint
 
 gofmt:
-	@./hack/verify-gofmt.sh
-
-fix_gofmt:
-	@./hack/verify-gofmt.sh -f
+	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
+	git diff --exit-code
 
 test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
