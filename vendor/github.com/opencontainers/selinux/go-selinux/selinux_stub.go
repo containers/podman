@@ -1,4 +1,4 @@
-// +build !linux
+// +build !selinux
 
 package selinux
 
@@ -28,6 +28,11 @@ type Context map[string]string
 // SetDisabled disables selinux support for the package
 func SetDisabled() {
 	return
+}
+
+// GetEnabled returns whether selinux is currently enabled.
+func GetEnabled() bool {
+	return false
 }
 
 // SetFileLabel sets the SELinux label for this path or returns an error.
