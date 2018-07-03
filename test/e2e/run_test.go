@@ -478,11 +478,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with built-in volume image", func() {
-		travisRun, exists := os.LookupEnv("TRAVIS")
-		if exists && travisRun == "1" {
-			Skip("Built-in volume test causes timeouts on Travis - replace mariadb-101-centos7 image to resolve")
-		}
-
 		session := podmanTest.Podman([]string{"run", "--rm", "docker.io/library/redis:alpine", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -491,12 +486,18 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "-e", "MYSQL_USER=zmuser", "-e", "MYSQL_PASSWORD=zmpass", "-e", "MYSQL_DATABASE=zm", "-e", "MYSQL_ROOT_PASSWORD=mysqlpassword", "docker.io/centos/mariadb-101-centos7", "ls", "-al", "/var/lib/mysql/data"})
+		dockerfile := `FROM busybox
+RUN mkdir -p /myvol/data && chown -R mail.0 /myvol
+VOLUME ["/myvol/data"]
+USER mail`
+
+		podmanTest.BuildImage(dockerfile, "test", "false")
+		session = podmanTest.Podman([]string{"run", "--rm", "test", "ls", "-al", "/myvol/data"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("mysql root"))
+		Expect(session.OutputToString()).To(ContainSubstring("mail root"))
 
-		session = podmanTest.Podman([]string{"rmi", "docker.io/centos/mariadb-101-centos7"})
+		session = podmanTest.Podman([]string{"rmi", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
