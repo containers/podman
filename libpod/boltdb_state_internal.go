@@ -459,7 +459,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 // Remove a container from the DB
 // If pod is not nil, the container is treated as belonging to a pod, and
 // will be removed from the pod as well
-func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx, namespace string) error {
+func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 	ctrID := []byte(ctr.ID())
 	ctrName := []byte(ctr.Name())
 
@@ -514,9 +514,12 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx, namespace string) er
 
 	// Compare namespace
 	// We can't remove containers not in our namespace
-	if namespace != "" {
-		if namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, namespace)
+	if s.namespace != "" {
+		if s.namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+		}
+		if pod != nil && s.namespace != pod.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q, does not match out namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 		}
 	}
 
