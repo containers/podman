@@ -16,3 +16,8 @@ func IsRootless() bool {
 func BecomeRootInUserNS() (bool, error) {
 	return false, errors.New("this function is not supported on this os")
 }
+
+// GetRootlessUID returns the UID of the user in the parent userNS
+func GetRootlessUID() int {
+	return -1
+}
