@@ -45,6 +45,15 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run a container based on local image with short options and args", func() {
+		// regression test for #714
+		session := podmanTest.Podman([]string{"run", ALPINE, "find", "/", "-name", "etc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("/etc")
+		Expect(match).Should(BeTrue())
+	})
+
 	It("podman run a container based on remote image", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
 		session.WaitWithDefaultTimeout()

@@ -158,8 +158,14 @@ func DefaultAppComplete(c *Context) {
 		if command.Hidden {
 			continue
 		}
-		for _, name := range command.Names() {
-			fmt.Fprintln(c.App.Writer, name)
+		if os.Getenv("_CLI_ZSH_AUTOCOMPLETE_HACK") == "1" {
+			for _, name := range command.Names() {
+				fmt.Fprintf(c.App.Writer, "%s:%s\n", name, command.Usage)
+			}
+		} else {
+			for _, name := range command.Names() {
+				fmt.Fprintf(c.App.Writer, "%s\n", name)
+			}
 		}
 	}
 }

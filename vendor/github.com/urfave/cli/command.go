@@ -178,19 +178,47 @@ func (c *Command) parseFlags(args Args) (*flag.FlagSet, error) {
 	set.SetOutput(ioutil.Discard)
 
 	if c.SkipFlagParsing {
-		return set, set.Parse(append([]string{c.Name, "--"}, args...))
-	}
-
-	if c.UseShortOptionHandling {
-		args = translateShortOptions(args)
+		return set, set.Parse(append([]string{"--"}, args...))
 	}
 
 	if !c.SkipArgReorder {
 		args = reorderArgs(args)
 	}
 
+PARSE:
 	err = set.Parse(args)
 	if err != nil {
+		if c.UseShortOptionHandling {
+			// To enable short-option handling (e.g., "-it" vs "-i -t")
+			// we have to iteratively catch parsing errors.  This way
+			// we achieve LR parsing without transforming any arguments.
+			// Otherwise, there is no way we can discriminate combined
+			// short options from common arguments that should be left
+			// untouched.
+			errStr := err.Error()
+			trimmed := strings.TrimPrefix(errStr, "flag provided but not defined: ")
+			if errStr == trimmed {
+				return nil, err
+			}
+			// regenerate the initial args with the split short opts
+			newArgs := Args{}
+			for i, arg := range args {
+				if arg != trimmed {
+					newArgs = append(newArgs, trimmed)
+					continue
+				}
+				shortOpts := translateShortOptions(set, Args{trimmed})
+				if len(shortOpts) == 1 {
+					return nil, err
+				}
+				// add each short option and all remaining arguments
+				newArgs = append(newArgs, shortOpts...)
+				newArgs = append(newArgs, args[i+1:]...)
+				args = newArgs
+				// now parse again
+				goto PARSE
+			}
+		}
 		return nil, err
 	}
 
@@ -213,11 +241,12 @@ func reorderArgs(args []string) []string {
 			break
 		}
 
-		if readFlagValue {
+		if readFlagValue && !strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") {
 			readFlagValue = false
 			flags = append(flags, arg)
 			continue
 		}
+		readFlagValue = false
 
 		if arg != "-" && strings.HasPrefix(arg, "-") {
 			flags = append(flags, arg)
@@ -231,11 +260,25 @@ func reorderArgs(args []string) []string {
 	return append(flags, nonflags...)
 }
 
-func translateShortOptions(flagArgs Args) []string {
+func translateShortOptions(set *flag.FlagSet, flagArgs Args) []string {
+	allCharsFlags := func (s string) bool {
+		for i := range s {
+			f := set.Lookup(string(s[i]))
+			if f == nil {
+				return false
+			}
+		}
+		return true
+	}
+
 	// separate combined flags
 	var flagArgsSeparated []string
 	for _, flagArg := range flagArgs {
 		if strings.HasPrefix(flagArg, "-") && strings.HasPrefix(flagArg, "--") == false && len(flagArg) > 2 {
+			if !allCharsFlags(flagArg[1:]) {
+				flagArgsSeparated = append(flagArgsSeparated, flagArg)
+				continue
+			}
 			for _, flagChar := range flagArg[1:] {
 				flagArgsSeparated = append(flagArgsSeparated, "-"+string(flagChar))
 			}
