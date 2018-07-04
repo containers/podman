@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -227,4 +229,35 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 		return nil
 	})
 	return netStats, err
+}
+
+func (c *Container) getContainerNetworkInfo(data *inspect.ContainerInspectData) *inspect.ContainerInspectData {
+	if c.state.NetNS != nil {
+		// Go through our IP addresses
+		for _, ctrIP := range c.state.IPs {
+			ipWithMask := ctrIP.Address.String()
+			splitIP := strings.Split(ipWithMask, "/")
+			mask, _ := strconv.Atoi(splitIP[1])
+			if ctrIP.Version == "4" {
+				data.NetworkSettings.IPAddress = splitIP[0]
+				data.NetworkSettings.IPPrefixLen = mask
+				data.NetworkSettings.Gateway = ctrIP.Gateway.String()
+			} else {
+				data.NetworkSettings.GlobalIPv6Address = splitIP[0]
+				data.NetworkSettings.GlobalIPv6PrefixLen = mask
+				data.NetworkSettings.IPv6Gateway = ctrIP.Gateway.String()
+			}
+		}
+
+		// Set network namespace path
+		data.NetworkSettings.SandboxKey = c.state.NetNS.Path()
+
+		// Set MAC address of interface linked with network namespace path
+		for _, i := range c.state.Interfaces {
+			if i.Sandbox == data.NetworkSettings.SandboxKey {
+				data.NetworkSettings.MacAddress = i.Mac
+			}
+		}
+	}
+	return data
 }
