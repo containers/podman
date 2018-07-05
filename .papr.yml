@@ -66,3 +66,40 @@ tests:
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 required: false
 context: "Fedora fedora/28/cloud Podman"
+
+---
+
+container:
+    image: registry.fedoraproject.org/fedora:28
+
+packages:
+    - btrfs-progs-devel
+    - bzip2
+    - device-mapper-devel
+    - findutils
+    - git
+    - glib2-devel
+    - gnupg
+    - golang
+    - libassuan-devel
+    - make
+    - ostree-devel
+    - skopeo-containers
+    - golang-github-cpuguy83-go-md2man
+
+required: true
+pulls: true
+
+env:
+    GOPATH: /go
+    GOSRC: /go/src/github.com/projectatomic
+
+tests:
+    - mkdir -p $GOSRC && ln -s /var/tmp/checkout $GOSRC/libpod
+    - cd $GOSRC/libpod && make darwin
+    - cd $GOSRC/libpod && make install.tools && GOOS=darwin GOPATH=/go make validate
+
+artifacts:
+    - test-suite.log
+
+context: "darwin CI"
