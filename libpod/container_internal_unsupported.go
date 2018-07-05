@@ -8,10 +8,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-func (c *Container) cleanupCgroups() error {
-	return ErrOSNotSupported
-}
-
 func (c *Container) mountSHM(shmOptions string) error {
 	return ErrNotImplemented
 }
