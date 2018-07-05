@@ -425,7 +425,10 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	// Store old state so we know if we were already stopped
 	oldState := ctr.state.State
 
-	out, err := exec.Command(r.path, "state", ctr.ID()).CombinedOutput()
+	cmd := exec.Command(r.path, "state", ctr.ID())
+	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
+
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(out), "does not exist") {
 			ctr.removeConmonFiles()
@@ -654,7 +657,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
-
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
 	return execCmd, nil
 }
 
