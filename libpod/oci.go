@@ -19,6 +19,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/ctime"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -422,7 +423,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 			return nil
 		}
 
-		ctr.state.FinishedTime = getFinishedTime(fi)
+		ctr.state.FinishedTime = ctime.Created(fi)
 		statusCodeStr, err := ioutil.ReadFile(exitFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read exit file for container %s", ctr.ID())
