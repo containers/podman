@@ -15,11 +15,11 @@ func addDevice(g *generate.Generator, device string) error {
 	return errors.New("function not implemented")
 }
 
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
+func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
 	return errors.New("function not implemented")
 }
 
-func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
+func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 	return nil, errors.New("function not implemented")
 }
 

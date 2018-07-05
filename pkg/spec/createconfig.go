@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
@@ -134,6 +135,11 @@ type CreateConfig struct {
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
 func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
+
+// CreateBlockIO returns a LinuxBlockIO struct from a CreateConfig
+func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
+	return c.createBlockIO()
+}
 
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
@@ -400,6 +406,12 @@ func (c *CreateConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
 		}
 	}
 	return portBindings, nil
+}
+
+// AddPrivilegedDevices iterates through host devices and adds all
+// host devices to the spec
+func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
+	return c.addPrivilegedDevices(g)
 }
 
 func getStatFromPath(path string) (unix.Stat_t, error) {
