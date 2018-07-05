@@ -1,6 +1,6 @@
 // +build !arm,!386,linux
 
-package libpod
+package ctime
 
 import (
 	"os"
@@ -8,9 +8,7 @@ import (
 	"time"
 )
 
-// Get the created time of a file
-// Only works on 64-bit OSes
-func getFinishedTime(fi os.FileInfo) time.Time {
+func created(fi os.FileInfo) time.Time {
 	st := fi.Sys().(*syscall.Stat_t)
 	return time.Unix(st.Ctim.Sec, st.Ctim.Nsec)
 }
