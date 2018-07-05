@@ -28,7 +28,7 @@ func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		} else {
-			cgroupPath := filepath.Join(ctr.config.CgroupParent, fmt.Sprintf("libpod-%s", ctr.ID()), "conmon")
+			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
 			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
