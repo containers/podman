@@ -46,9 +46,7 @@ func addDevice(g *generate.Generator, device string) error {
 	return nil
 }
 
-// AddPrivilegedDevices iterates through host devices and adds all
-// host devices to the spec
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
+func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
 	hostDevices, err := devices.HostDevices()
 	if err != nil {
 		return err
@@ -84,8 +82,7 @@ func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxS
 	return seccompConfig, nil
 }
 
-// CreateBlockIO returns a LinuxBlockIO struct from a CreateConfig
-func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
+func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 	bio := &spec.LinuxBlockIO{}
 	bio.Weight = &c.Resources.BlkioWeight
 	if len(c.Resources.BlkioWeightDevice) > 0 {
