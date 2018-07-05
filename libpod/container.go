@@ -162,9 +162,6 @@ type containerState struct {
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
 
-	// CgroupCreated indicates that the container has created a cgroup
-	CgroupCreated bool `json:"cgroupCreated,omitempty"`
-
 	// UserNSRoot is the directory used as root for the container when using
 	// user namespaces.
 	UserNSRoot string `json:"userNSRoot,omitempty"`
@@ -871,7 +868,7 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 func (c *Container) CGroupPath() (string, error) {
 	switch c.runtime.config.CgroupManager {
 	case CgroupfsCgroupsManager:
-		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID()), "ctr"), nil
+		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
 	case SystemdCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
