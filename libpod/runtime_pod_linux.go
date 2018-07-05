@@ -77,13 +77,7 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	return nil, ErrNotImplemented
 }
 
-// RemovePod removes a pod
-// If removeCtrs is specified, containers will be removed
-// Otherwise, a pod that is not empty will return an error and not be removed
-// If force is specified with removeCtrs, all containers will be stopped before
-// being removed
-// Otherwise, the pod will not be removed if any containers are running
-func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 

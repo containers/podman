@@ -11,6 +11,6 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	return nil, ErrOSNotSupported
 }
 
-func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
 	return ErrOSNotSupported
 }
