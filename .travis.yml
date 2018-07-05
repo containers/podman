@@ -31,6 +31,11 @@ jobs:
         - make lint
       go: 1.10.x
     - script:
+        - make gofmt
+        - make lint
+      go: 1.10.x
+      os: osx
+    - script:
         - make testunit
       go: 1.9.x
     - stage: Build and Verify
