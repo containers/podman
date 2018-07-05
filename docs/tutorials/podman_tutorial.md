@@ -7,7 +7,7 @@ commands with Podman.
 
 ## Install Podman on Fedora from RPM Repositories
 Fedora 27 and later provide Podman via the package manager.
-```
+```console
 $ sudo dnf install -y podman
 ```
 
@@ -17,17 +17,23 @@ In this section, we will help you install all the runtime and build dependencies
 acquire the source, and build it.
 
 ### Installing build and runtime dependencies
-```
+```console
 $ sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
                                     gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
                                     atomic-registries iptables skopeo-containers containernetworking-cni \
                                     conmon
 ```
 ### Building and installing podman
-```
-# git clone https://github.com/projectatomic/libpod/ ~/src/github.com/projectatomic/libpod
-# cd !$
-# make
+
+First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
+and make libpod.
+
+```console
+$ export GOPATH=~/go
+$ mkdir -p $GOPATH
+$ git clone https://github.com/projectatomic/libpod/ $GOPATH/src/github.com/projectatomic/libpod
+$ cd $GOPATH/src/github.com/projectatomic/libpod
+$ make
 $ sudo make install PREFIX=/usr
 ```
 
@@ -43,46 +49,51 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 ### Installing build and runtime dependencies
 
 #### Installing base packages
-```
+```console
 $ sudo apt-get update
 $ sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
-                        go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev
+                        go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev python3-setuptools
 ```
 #### Building and installing conmon
-```
-# git clone https://github.com/kubernetes-incubator/cri-o ~/src/github.com/kubernetes-incubator/cri-o
-# cd ~/src/github.com/kubernetes-incubator/cri-o
-# mkdir bin
-# make conmon
+First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
+and make libpod.
+
+```console
+$ export GOPATH=~/go
+$ mkdir -p $GOPATH
+$ git clone https://github.com/kubernetes-incubator/cri-o $GOPATH/src/github.com/kubernetes-incubator/cri-o
+$ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+$ mkdir bin
+$ make bin/conmon
 $ sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 ```
 #### Adding required configuration files
-```
+```console
 $ sudo mkdir -p /etc/containers
 $ sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
 $ sudo curl https://raw.githubusercontent.com/projectatomic/skopeo/master/default-policy.json -o /etc/containers/policy.json
 ```
 #### Installing CNI plugins
-```
-# git clone https://github.com/containernetworking/plugins.git ~/src/github.com/containernetworking/plugins
-# cd ~/src/github.com/containernetworking/plugins
-# ./build.sh
+```console
+$ git clone https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
+$ cd $GOPATH/src/github.com/containernetworking/plugins
+$ ./build.sh
 $ sudo mkdir -p /usr/libexec/cni
 $ sudo cp bin/* /usr/libexec/cni
 ```
 #### Installing runc
-```
-# git clone https://github.com/opencontainers/runc.git ~/src/github.com/opencontainers/runc
-# cd ~/src/github.com/opencontainers/runc
-# GOPATH=~/ make static BUILDTAGS="seccomp selinux"
+```console
+$ git clone https://github.com/opencontainers/runc.git $GOPATH/src/github.com/opencontainers/runc
+$ cd $GOPATH/src/github.com/opencontainers/runc
+$ make static BUILDTAGS="seccomp selinux"
 $ sudo cp runc /usr/bin/runc
 ```
 
 ### Building and installing Podman
-```
-# git clone https://github.com/projectatomic/libpod/ ~/src/github.com/projectatomic/libpod
-# cd ~/src/github.com/projectatomic/libpod
-# make
+```console
+$ git clone https://github.com/projectatomic/libpod/ $GOPATH/src/github.com/projectatomic/libpod
+$ cd $GOPATH/src/github.com/projectatomic/libpod
+$ make
 $ sudo make install PREFIX=/usr
 ```
 
@@ -91,18 +102,18 @@ $ sudo make install PREFIX=/usr
 ### Running a sample container
 This sample container will run a very basic httpd server that serves only its index
 page.
-```
+```console
 $ sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                     -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                     -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
-                    registry.fedoraproject.org/f26/httpd /usr/bin/run-httpd
+                    registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
 ```
 Because the container is being run in detached mode, represented by the *-d* in the podman run command, podman
 will print the container ID after it has run.
 
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
-```
+```console
 $ sudo podman ps
 ```
 
@@ -110,7 +121,7 @@ Note: If you add *-a* to the *ps* command, Podman will show all containers.
 ### Inspecting a running container
 You can "inspect" a running container for metadata and details about itself.  We can even use
 the inspect subcommand to see what IP address was assigned to the container.
-```
+```console
 $ sudo podman inspect -l | grep IPAddress\":
         "IPAddress": "10.88.6.140",
 ```
@@ -122,13 +133,13 @@ of -l.
 Now that we have the IP address of the container, we can test the network communication between the host
 operating system and the container using curl. The following command should display the index page of our
 containerized httpd server.
-```
+```console
 # curl http://<IP_address>:8080
 ```
 
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
-```
+```console
 $ sudo podman logs --latest
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -139,7 +150,7 @@ $ sudo podman logs --latest
 
 ### Viewing the container's pids
 And you can observe the httpd pid in the container with *top*.
-```
+```console
 $ sudo podman top <container_id>
   UID   PID  PPID  C STIME TTY          TIME CMD
     0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
@@ -148,18 +159,18 @@ $ sudo podman top <container_id>
 
 ### Stopping the container
 To stop the httpd container:
-```
+```console
 $ sudo podman stop --latest
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
-```
+```console
 $ sudo podman ps -a
 ```
 
 ### Removing the container
 To remove the httpd container:
-```
+```console
 $ sudo podman rm --latest
 ```
 You can verify the deletion of the container by running *podman ps -a*.
