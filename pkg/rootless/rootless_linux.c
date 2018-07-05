@@ -88,6 +88,9 @@ reexec_in_user_namespace(int ready)
   char b;
   pid_t ppid = getpid ();
   char **argv;
+  char uid[16];
+
+  sprintf (uid, "%d", geteuid ());
 
   pid = syscall_clone (CLONE_NEWUSER|SIGCHLD, NULL);
   if (pid)
@@ -96,6 +99,7 @@ reexec_in_user_namespace(int ready)
   argv = get_cmd_line_args (ppid);
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
+  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
 
   do
     ret = read (ready, &b, 1) < 0;
@@ -103,6 +107,10 @@ reexec_in_user_namespace(int ready)
   if (ret < 0)
     _exit (1);
   close (ready);
+
+  if (setresgid (0, 0, 0) < 0 ||
+      setresuid (0, 0, 0) < 0)
+    _exit (1);
 
   execv (argv[0], argv);
 

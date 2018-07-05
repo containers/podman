@@ -178,8 +178,17 @@ var (
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir() string {
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
 	if runtimeDir == "" {
-		tmpDir := filepath.Join(os.TempDir(), "user", fmt.Sprintf("%d", os.Getuid()))
+		tmpDir := filepath.Join("/run", "user", uid)
+		os.MkdirAll(tmpDir, 0700)
+		st, err := os.Stat(tmpDir)
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+			runtimeDir = tmpDir
+		}
+	}
+	if runtimeDir == "" {
+		tmpDir := filepath.Join(os.TempDir(), "user", uid)
 		os.MkdirAll(tmpDir, 0700)
 		st, err := os.Stat(tmpDir)
 		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
@@ -217,6 +226,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if _, err := os.Stat(configPath); err != nil {
 			foundConfig = false
 		}
+
+		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
+		// So make sure the env variable is set.
+		err = os.Setenv("XDG_RUNTIME_DIR", GetRootlessRuntimeDir())
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		}
+
 	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
 		configPath = OverrideConfigPath
