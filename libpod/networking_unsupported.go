@@ -6,10 +6,6 @@ import (
 	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
-func JoinNetworkNameSpace(netNSBytes []byte) (*Container, bool, error) {
-	return nil, false, ErrNotImplemented
-}
-
 func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 	return ErrNotImplemented
 }
