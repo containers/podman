@@ -1,9 +1,6 @@
 package libpod
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
@@ -114,33 +111,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 	}
 
 	// Get information on the container's network namespace (if present)
-	if runtimeInfo.NetNS != nil {
-		// Go through our IP addresses
-		for _, ctrIP := range c.state.IPs {
-			ipWithMask := ctrIP.Address.String()
-			splitIP := strings.Split(ipWithMask, "/")
-			mask, _ := strconv.Atoi(splitIP[1])
-			if ctrIP.Version == "4" {
-				data.NetworkSettings.IPAddress = splitIP[0]
-				data.NetworkSettings.IPPrefixLen = mask
-				data.NetworkSettings.Gateway = ctrIP.Gateway.String()
-			} else {
-				data.NetworkSettings.GlobalIPv6Address = splitIP[0]
-				data.NetworkSettings.GlobalIPv6PrefixLen = mask
-				data.NetworkSettings.IPv6Gateway = ctrIP.Gateway.String()
-			}
-		}
-
-		// Set network namespace path
-		data.NetworkSettings.SandboxKey = runtimeInfo.NetNS.Path()
-
-		// Set MAC address of interface linked with network namespace path
-		for _, i := range c.state.Interfaces {
-			if i.Sandbox == data.NetworkSettings.SandboxKey {
-				data.NetworkSettings.MacAddress = i.Mac
-			}
-		}
-	}
+	data = c.getContainerNetworkInfo(data)
 
 	if size {
 		rootFsSize, err := c.rootFsSize()

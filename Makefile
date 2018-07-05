@@ -18,7 +18,7 @@ ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) varlink
-
+BUILDTAGS_DARWIN ?= containers_image_ostree_stub containers_image_openpgp
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/ioprojectatomicpodman.go
 endif
@@ -99,7 +99,7 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
 darwin:
-	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/darwin$@ $(PROJECT)/cmd/podman
+	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS_DARWIN)" -o bin/podman.$@ $(PROJECT)/cmd/podman
 
 python-podman:
 ifdef HAS_PYTHON3

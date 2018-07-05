@@ -7,7 +7,6 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // BoltState is a state implementation backed by a Bolt DB
@@ -443,32 +442,7 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 
 	// Do we need to replace the container's netns?
-	if netNSPath != "" {
-		// Check if the container's old state has a good netns
-		if ctr.state.NetNS != nil && netNSPath == ctr.state.NetNS.Path() {
-			newState.NetNS = ctr.state.NetNS
-		} else {
-			// Tear down the existing namespace
-			if err := s.runtime.teardownNetNS(ctr); err != nil {
-				logrus.Warnf(err.Error())
-			}
-
-			// Open the new network namespace
-			ns, err := joinNetNS(netNSPath)
-			if err == nil {
-				newState.NetNS = ns
-			} else {
-				logrus.Errorf("error joining network namespace for container %s", ctr.ID())
-				ctr.valid = false
-			}
-		}
-	} else {
-		// The container no longer has a network namespace
-		// Tear down the old one
-		if err := s.runtime.teardownNetNS(ctr); err != nil {
-			logrus.Warnf(err.Error())
-		}
-	}
+	ctr.setNamespace(netNSPath, newState)
 
 	// New state compiled successfully, swap it into the current state
 	ctr.state = newState
@@ -490,10 +464,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s state to JSON", ctr.ID())
 	}
-	netNSPath := ""
-	if ctr.state.NetNS != nil {
-		netNSPath = ctr.state.NetNS.Path()
-	}
+	netNSPath := ctr.setNamespaceStatePath()
 
 	ctrID := []byte(ctr.ID())
 
