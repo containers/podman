@@ -1,5 +1,9 @@
 package libpod
 
+import (
+	"context"
+)
+
 // Contains the public Runtime API for pods
 
 // A PodCreateOption is a functional option which alters the Pod created by
@@ -10,6 +14,16 @@ type PodCreateOption func(*Pod) error
 // output. Pods to be outputted are tested using the function. A true return
 // will include the pod, a false return will exclude it.
 type PodFilter func(*Pod) bool
+
+// RemovePod removes a pod
+// If removeCtrs is specified, containers will be removed
+// Otherwise, a pod that is not empty will return an error and not be removed
+// If force is specified with removeCtrs, all containers will be stopped before
+// being removed
+// Otherwise, the pod will not be removed if any containers are running
+func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+	return r.removePod(ctx, p, removeCtrs, force)
+}
 
 // GetPod retrieves a pod by its ID
 func (r *Runtime) GetPod(id string) (*Pod, error) {
