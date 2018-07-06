@@ -1,6 +1,7 @@
 import itertools
 import os
 import unittest
+from collections import Counter
 from datetime import datetime, timezone
 from test.podman_testcase import PodmanTestCase
 
@@ -81,9 +82,15 @@ class TestImages(PodmanTestCase):
         self.assertEqual(actual, self.alpine_image)
 
     def test_history(self):
-        for count, record in enumerate(self.alpine_image.history()):
-            self.assertEqual(record.id, self.alpine_image.id)
-        self.assertGreater(count, 0)
+        records = []
+        bucket = Counter()
+        for record in self.alpine_image.history():
+            self.assertIn(record.id, (self.alpine_image.id, '<missing>'))
+            bucket[record.id] += 1
+            records.append(record)
+
+        self.assertGreater(bucket[self.alpine_image.id], 0)
+        self.assertEqual(sum(bucket.values()), len(records))
 
     def test_inspect(self):
         actual = self.alpine_image.inspect()
