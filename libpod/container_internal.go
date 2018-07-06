@@ -325,7 +325,6 @@ func resetState(state *containerState) error {
 	state.Interfaces = nil
 	state.Routes = nil
 	state.BindMounts = make(map[string]string)
-	state.CgroupCreated = false
 
 	return nil
 }
@@ -561,7 +560,6 @@ func (c *Container) init(ctx context.Context) error {
 	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
 	c.state.State = ContainerStateCreated
-	c.state.CgroupCreated = true
 
 	if err := c.save(); err != nil {
 		return err
@@ -830,20 +828,6 @@ func (c *Container) cleanup() error {
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
 		lastError = err
-	}
-
-	if err := c.cleanupCgroups(); err != nil {
-		/*
-			if lastError != nil {
-				logrus.Errorf("Error cleaning up container %s CGroups: %v", c.ID(), err)
-			} else {
-				lastError = err
-			}
-		*/
-		// For now we are going to only warn on failures to clean up cgroups
-		// We have a conflict with running podman containers cleanup in same cgroup as container
-		logrus.Warnf("Ignoring Error cleaning up container %s CGroups: %v", c.ID(), err)
-
 	}
 
 	// Unmount storage
