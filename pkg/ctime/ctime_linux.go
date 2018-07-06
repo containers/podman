@@ -1,4 +1,4 @@
-// +build arm,linux 386,linux
+// +build linux
 
 package ctime
 
