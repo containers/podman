@@ -1,3 +1,36 @@
+- Changelog for v0.7.1 (2018-07-06)
+  * pkg/ctime: Factor libpod/finished* into a separate package
+  * Block use of /proc/acpi from inside containers
+  * remove buildah requirement for the libpod image library
+  * contrib/python/test/test_tunnel: Fix -nNT -> -nNTq
+  * Refactor podman/utils with a single container start and attach function
+  * Remove now-unneeded cleanupCgroup() for unsupported OS
+  * Remove per-container CGroup parents
+  * Fix nits and GOPATH in tutorial
+  * spec: Make addPrivilegedDevices and createBlockIO per-platform
+  * libpod/runtime_pod: Make removePod per-platform
+  * libpod/networking_unsupported: Remove JoinNetworkNameSpace
+  * .travis: Run gofmt and lint on OS X
+  * rootless: Merge rootless.go back into rootless_linux.go
+  * Makefile: Use a pattern rule for cross-compilation
+  * more changes to compile darwin
+  * Fix timeout issue with built-in volume test
+  * rootless: add /run/user/$UID to the lookup paths
+  * rootless: add function to retrieve the original UID
+  * rootless: always set XDG_RUNTIME_DIR
+  * rootless: set XDG_RUNTIME_DIR also for state and exec
+  * libpod/container: Replace containerState* with containerPlatformState
+  * urfave/cli: fix parsing of short opts
+  * docs: Follow man-pages(7) suggestions for SYNOPSIS
+  * Allow multiple mounts
+  * Makefile: Use 'git diff' to show gofmt changes
+  * Skip a test in Travis that has timeout issues
+  * vendor in selinux and buildah for darwin compilation
+  * add image user to inspect data
+  * changes to allow for darwin compilation
+  * Bump gitvalidation epoch
+  * Bump to v0.7.1-dev
+
 - Changelog for v0.6.5 (2018-06-29)
   * Fix built-in volume issue with podman run/create
   * Add `podman container cleanup` to CLI
