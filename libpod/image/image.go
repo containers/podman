@@ -22,7 +22,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"
@@ -940,7 +939,7 @@ func (i *Image) Containers() ([]string, error) {
 
 // Comment returns the Comment for an image depending on its ManifestType
 func (i *Image) Comment(ctx context.Context, manifestType string) (string, error) {
-	if manifestType == buildah.Dockerv2ImageManifest {
+	if manifestType == manifest.DockerV2Schema2MediaType {
 		imgRef, err := i.toImageRef(ctx)
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to create image reference from image")
