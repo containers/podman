@@ -8,7 +8,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-func (c *Container) cleanupCgroups() error {
+func (c *Container) cleanupResourceLimits() error {
 	return ErrOSNotSupported
 }
 
