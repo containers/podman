@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/manifest"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -83,7 +84,7 @@ func commitCmd(c *cli.Context) error {
 			return errors.Errorf("messages are only compatible with the docker image format (-f docker)")
 		}
 	case "docker":
-		mimeType = buildah.Dockerv2ImageManifest
+		mimeType = manifest.DockerV2Schema2MediaType
 	default:
 		return errors.Errorf("unrecognized image format %q", c.String("format"))
 	}
