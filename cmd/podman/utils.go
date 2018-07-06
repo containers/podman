@@ -18,8 +18,8 @@ import (
 type RawTtyFormatter struct {
 }
 
-// Attach to a container
-func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
+// Start (if required) and attach to a container
+func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool) error {
 	ctx := context.Background()
 	resize := make(chan remotecommand.TerminalSize)
 
@@ -67,60 +67,12 @@ func attachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys
 		streams.AttachInput = false
 	}
 
-	if sigProxy {
-		ProxySignals(ctr)
-	}
-
-	return ctr.Attach(streams, detachKeys, resize)
-}
-
-// Start and attach to a container
-func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool) error {
-	ctx := context.Background()
-	resize := make(chan remotecommand.TerminalSize)
-
-	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
-
-	// Check if we are attached to a terminal. If we are, generate resize
-	// events, and set the terminal to raw mode
-	if haveTerminal && ctr.Spec().Process.Terminal {
-		logrus.Debugf("Handling terminal attach")
-
-		subCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		resizeTty(subCtx, resize)
-
-		oldTermState, err := term.SaveState(os.Stdin.Fd())
-		if err != nil {
-			return errors.Wrapf(err, "unable to save terminal state")
+	if !startContainer {
+		if sigProxy {
+			ProxySignals(ctr)
 		}
 
-		logrus.SetFormatter(&RawTtyFormatter{})
-		term.SetRawTerminal(os.Stdin.Fd())
-
-		defer restoreTerminal(oldTermState)
-	}
-
-	streams := new(libpod.AttachStreams)
-	streams.OutputStream = stdout
-	streams.ErrorStream = stderr
-	streams.InputStream = stdin
-	streams.AttachOutput = true
-	streams.AttachError = true
-	streams.AttachInput = true
-
-	if stdout == nil {
-		logrus.Debugf("Not attaching to stdout")
-		streams.AttachOutput = false
-	}
-	if stderr == nil {
-		logrus.Debugf("Not attaching to stderr")
-		streams.AttachError = false
-	}
-	if stdin == nil {
-		logrus.Debugf("Not attaching to stdin")
-		streams.AttachInput = false
+		return ctr.Attach(streams, detachKeys, resize)
 	}
 
 	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize)
