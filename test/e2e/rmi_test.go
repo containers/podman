@@ -103,4 +103,100 @@ var _ = Describe("Podman rmi", func() {
 		resultForce.WaitWithDefaultTimeout()
 		Expect(resultForce.ExitCode()).To(Equal(0))
 	})
+
+	It("podman rmi image that is a parent of another image", func() {
+		session := podmanTest.Podman([]string{"rmi", "-fa"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "c_test", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rm", "c_test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rmi", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"images", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		untaggedImg := session.OutputToStringArray()[1]
+
+		session = podmanTest.Podman([]string{"rmi", "-f", untaggedImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman rmi with cached images", func() {
+		session := podmanTest.Podman([]string{"rmi", "-fa"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		dockerfile := `FROM docker.io/library/alpine:latest
+		RUN mkdir hello
+		RUN touch test.txt
+		ENV foo=bar
+		`
+		podmanTest.BuildImage(dockerfile, "test", "true")
+
+		dockerfile = `FROM docker.io/library/alpine:latest
+		RUN mkdir hello
+		RUN touch test.txt
+		RUN mkdir blah
+		ENV foo=bar
+		`
+		podmanTest.BuildImage(dockerfile, "test2", "true")
+
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		numOfImages := len(session.OutputToStringArray())
+
+		session = podmanTest.Podman([]string{"rmi", "test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(numOfImages - len(session.OutputToStringArray())).To(Equal(2))
+
+		session = podmanTest.Podman([]string{"rmi", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
+
+		podmanTest.BuildImage(dockerfile, "test3", "true")
+
+		session = podmanTest.Podman([]string{"rmi", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rmi", "test3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"images", "-q", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToString())).To(Equal(0))
+	})
 })
