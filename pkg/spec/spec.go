@@ -287,6 +287,7 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 		for _, mp := range []string{
 			"/proc/acpi",
 			"/proc/kcore",
+			"/proc/keys",
 			"/proc/latency_stats",
 			"/proc/timer_list",
 			"/proc/timer_stats",
