@@ -55,6 +55,9 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 			}
 			d.ostreeRepo = option[13:]
 		}
+		if strings.HasPrefix(option, "vfs.mountopt=") {
+			return nil, fmt.Errorf("vfs driver does not support mount options")
+		}
 	}
 	if d.ostreeRepo != "" {
 		rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)

@@ -60,11 +60,7 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if m.src == nil {
 			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestOCI1")
 		}
-		stream, _, err := m.src.GetBlob(ctx, types.BlobInfo{
-			Digest: m.m.Config.Digest,
-			Size:   m.m.Config.Size,
-			URLs:   m.m.Config.URLs,
-		})
+		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromOCI1Descriptor(m.m.Config))
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +97,7 @@ func (m *manifestOCI1) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) 
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
 func (m *manifestOCI1) LayerInfos() []types.BlobInfo {
-	return m.m.LayerInfos()
+	return manifestLayerInfosToBlobInfos(m.m.LayerInfos())
 }
 
 // EmbeddedDockerReferenceConflicts whether a Docker reference embedded in the manifest, if any, conflicts with destination ref.

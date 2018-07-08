@@ -62,3 +62,12 @@ func manifestInstanceFromBlob(ctx context.Context, sys *types.SystemContext, src
 		return nil, fmt.Errorf("Unimplemented manifest MIME type %s", mt)
 	}
 }
+
+// manifestLayerInfosToBlobInfos extracts a []types.BlobInfo from a []manifest.LayerInfo.
+func manifestLayerInfosToBlobInfos(layers []manifest.LayerInfo) []types.BlobInfo {
+	blobs := make([]types.BlobInfo, len(layers))
+	for i, layer := range layers {
+		blobs[i] = layer.BlobInfo
+	}
+	return blobs
+}

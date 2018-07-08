@@ -42,6 +42,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	mountpk "github.com/containers/storage/pkg/mount"
+	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -77,6 +78,7 @@ type Driver struct {
 	pathCache     map[string]string
 	naiveDiff     graphdriver.DiffDriver
 	locker        *locker.Locker
+	mountOptions  string
 }
 
 // Init returns a new AUFS driver.
@@ -103,6 +105,20 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "AUFS is not supported over %q", backingFs)
 	}
 
+	var mountOptions string
+	for _, option := range options {
+		key, val, err := parsers.ParseKeyValueOpt(option)
+		if err != nil {
+			return nil, err
+		}
+		key = strings.ToLower(key)
+		switch key {
+		case "aufs.mountopt":
+			mountOptions = val
+		default:
+			return nil, fmt.Errorf("option %s not supported", option)
+		}
+	}
 	paths := []string{
 		"mnt",
 		"diff",
@@ -110,12 +126,13 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	}
 
 	a := &Driver{
-		root:      root,
-		uidMaps:   uidMaps,
-		gidMaps:   gidMaps,
-		pathCache: make(map[string]string),
-		ctr:       graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicAufs)),
-		locker:    locker.New(),
+		root:         root,
+		uidMaps:      uidMaps,
+		gidMaps:      gidMaps,
+		pathCache:    make(map[string]string),
+		ctr:          graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicAufs)),
+		locker:       locker.New(),
+		mountOptions: mountOptions,
 	}
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
@@ -653,6 +670,10 @@ func (a *Driver) aufsMount(ro []string, rw, target, mountLabel string) (err erro
 	}
 
 	opts := "dio,xino=/dev/shm/aufs.xino"
+	if a.mountOptions != "" {
+		opts += fmt.Sprintf(",%s", a.mountOptions)
+	}
+
 	if useDirperm() {
 		opts += ",dirperm1"
 	}

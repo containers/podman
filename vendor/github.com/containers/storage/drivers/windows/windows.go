@@ -86,6 +86,14 @@ type Driver struct {
 func InitFilter(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
 	logrus.Debugf("WindowsGraphDriver InitFilter at %s", home)
 
+	for _, option := range options {
+		if strings.HasPrefix(option, "windows.mountopt=") {
+			return nil, fmt.Errorf("windows driver does not support mount options")
+		} else {
+			return nil, fmt.Errorf("option %s not supported", option)
+		}
+	}
+
 	fsType, err := getFileSystemType(string(home[0]))
 	if err != nil {
 		return nil, err

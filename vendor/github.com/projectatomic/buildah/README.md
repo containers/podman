@@ -13,6 +13,7 @@ The Buildah package provides a command line tool that can be used to
 * unmount a working container's root filesystem
 * use the updated contents of a container's root filesystem as a filesystem layer to create a new image
 * delete a working container or an image
+* rename a local container
 
 **[Buildah Demos](demos)**
 
@@ -71,12 +72,14 @@ $ sudo ./lighttpd.sh
 | [buildah-inspect(1)](/docs/buildah-inspect.md)       | Inspects the configuration of a container or image.                                                  |
 | [buildah-mount(1)](/docs/buildah-mount.md)           | Mount the working container's root filesystem.                                                       |
 | [buildah-push(1)](/docs/buildah-push.md)             | Push an image from local storage to elsewhere.                                                       |
+| [buildah-rename(1)](/docs/buildah-rename.md)         | Rename a local container.                                                                            |
 | [buildah-rm(1)](/docs/buildah-rm.md)                 | Removes one or more working containers.                                                              |
 | [buildah-rmi(1)](/docs/buildah-rmi.md)               | Removes one or more images.                                                                          |
 | [buildah-run(1)](/docs/buildah-run.md)               | Run a command inside of the container.                                                               |
 | [buildah-tag(1)](/docs/buildah-tag.md)               | Add an additional name to a local image.                                                             |
 | [buildah-umount(1)](/docs/buildah-umount.md)         | Unmount a working container's root file system.                                                      |
-| [buildah-version(1)](/docs/buildah-version.md)       | Display the Buildah Version Information             |
+| [buildah-unshare(1)](/docs/buildah-unshare.md)       | Launch a command in a user namespace with modified ID mappings.                                      |
+| [buildah-version(1)](/docs/buildah-version.md)       | Display the Buildah Version Information                                                              |
 
 **Future goals include:**
 * more CI tests
