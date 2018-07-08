@@ -50,10 +50,10 @@ var DefaultRequestedManifestMIMETypes = []string{
 type Manifest interface {
 	// ConfigInfo returns a complete BlobInfo for the separate config object, or a BlobInfo{Digest:""} if there isn't a separate object.
 	ConfigInfo() types.BlobInfo
-	// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
+	// LayerInfos returns a list of LayerInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
 	// The Digest field is guaranteed to be provided; Size may be -1.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
-	LayerInfos() []types.BlobInfo
+	LayerInfos() []LayerInfo
 	// UpdateLayerInfos replaces the original layers with the specified BlobInfos (size+digest+urls), in order (the root layer first, and then successive layered layers)
 	UpdateLayerInfos(layerInfos []types.BlobInfo) error
 
@@ -71,6 +71,12 @@ type Manifest interface {
 	// Serialize returns the manifest in a blob format.
 	// NOTE: Serialize() does not in general reproduce the original blob if this object was loaded from one, even if no modifications were made!
 	Serialize() ([]byte, error)
+}
+
+// LayerInfo is an extended version of types.BlobInfo for low-level users of Manifest.LayerInfos.
+type LayerInfo struct {
+	types.BlobInfo
+	EmptyLayer bool // The layer is an “empty”/“throwaway” one, and may or may not be physically represented in various transport / storage systems.  false if the manifest type does not have the concept.
 }
 
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
@@ -227,9 +233,9 @@ func FromBlob(manblob []byte, mt string) (Manifest, error) {
 	}
 }
 
-// LayerInfosToStrings converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
+// layerInfosToStrings converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
 // method call, into a format suitable for inclusion in a types.ImageInspectInfo structure.
-func LayerInfosToStrings(infos []types.BlobInfo) []string {
+func layerInfosToStrings(infos []LayerInfo) []string {
 	layers := make([]string, len(infos))
 	for i, info := range infos {
 		layers[i] = info.Digest.String()

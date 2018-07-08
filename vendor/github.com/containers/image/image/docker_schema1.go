@@ -2,7 +2,6 @@ package image
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
@@ -25,8 +24,12 @@ func manifestSchema1FromManifest(manifestBlob []byte) (genericManifest, error) {
 }
 
 // manifestSchema1FromComponents builds a new manifestSchema1 from the supplied data.
-func manifestSchema1FromComponents(ref reference.Named, fsLayers []manifest.Schema1FSLayers, history []manifest.Schema1History, architecture string) genericManifest {
-	return &manifestSchema1{m: manifest.Schema1FromComponents(ref, fsLayers, history, architecture)}
+func manifestSchema1FromComponents(ref reference.Named, fsLayers []manifest.Schema1FSLayers, history []manifest.Schema1History, architecture string) (genericManifest, error) {
+	m, err := manifest.Schema1FromComponents(ref, fsLayers, history, architecture)
+	if err != nil {
+		return nil, err
+	}
+	return &manifestSchema1{m: m}, nil
 }
 
 func (m *manifestSchema1) serialize() ([]byte, error) {
@@ -64,7 +67,7 @@ func (m *manifestSchema1) OCIConfig(ctx context.Context) (*imgspecv1.Image, erro
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
 func (m *manifestSchema1) LayerInfos() []types.BlobInfo {
-	return m.m.LayerInfos()
+	return manifestLayerInfosToBlobInfos(m.m.LayerInfos())
 }
 
 // EmbeddedDockerReferenceConflicts whether a Docker reference embedded in the manifest, if any, conflicts with destination ref.
@@ -148,12 +151,12 @@ func (m *manifestSchema1) UpdatedImage(ctx context.Context, options types.Manife
 
 // Based on github.com/docker/docker/distribution/pull_v2.go
 func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.BlobInfo, layerDiffIDs []digest.Digest) (genericManifest, error) {
-	if len(m.m.History) == 0 {
-		// What would this even mean?! Anyhow, the rest of the code depends on fsLayers[0] and history[0] existing.
+	if len(m.m.ExtractedV1Compatibility) == 0 {
+		// What would this even mean?! Anyhow, the rest of the code depends on FSLayers[0] and ExtractedV1Compatibility[0] existing.
 		return nil, errors.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
 	}
-	if len(m.m.History) != len(m.m.FSLayers) {
-		return nil, errors.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.m.History), len(m.m.FSLayers))
+	if len(m.m.ExtractedV1Compatibility) != len(m.m.FSLayers) {
+		return nil, errors.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.m.ExtractedV1Compatibility), len(m.m.FSLayers))
 	}
 	if uploadedLayerInfos != nil && len(uploadedLayerInfos) != len(m.m.FSLayers) {
 		return nil, errors.Errorf("Internal error: uploaded %d blobs, but schema1 manifest has %d fsLayers", len(uploadedLayerInfos), len(m.m.FSLayers))
@@ -165,14 +168,10 @@ func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.Bl
 	// Build a list of the diffIDs for the non-empty layers.
 	diffIDs := []digest.Digest{}
 	var layers []manifest.Schema2Descriptor
-	for v1Index := len(m.m.History) - 1; v1Index >= 0; v1Index-- {
-		v2Index := (len(m.m.History) - 1) - v1Index
+	for v1Index := len(m.m.ExtractedV1Compatibility) - 1; v1Index >= 0; v1Index-- {
+		v2Index := (len(m.m.ExtractedV1Compatibility) - 1) - v1Index
 
-		var v1compat manifest.Schema1V1Compatibility
-		if err := json.Unmarshal([]byte(m.m.History[v1Index].V1Compatibility), &v1compat); err != nil {
-			return nil, errors.Wrapf(err, "Error decoding history entry %d", v1Index)
-		}
-		if !v1compat.ThrowAway {
+		if !m.m.ExtractedV1Compatibility[v1Index].ThrowAway {
 			var size int64
 			if uploadedLayerInfos != nil {
 				size = uploadedLayerInfos[v2Index].Size

@@ -25,25 +25,28 @@ type Schema1History struct {
 
 // Schema1 is a manifest in docker/distribution schema 1.
 type Schema1 struct {
-	Name          string            `json:"name"`
-	Tag           string            `json:"tag"`
-	Architecture  string            `json:"architecture"`
-	FSLayers      []Schema1FSLayers `json:"fsLayers"`
-	History       []Schema1History  `json:"history"`
-	SchemaVersion int               `json:"schemaVersion"`
+	Name                     string                   `json:"name"`
+	Tag                      string                   `json:"tag"`
+	Architecture             string                   `json:"architecture"`
+	FSLayers                 []Schema1FSLayers        `json:"fsLayers"`
+	History                  []Schema1History         `json:"history"` // Keep this in sync with ExtractedV1Compatibility!
+	ExtractedV1Compatibility []Schema1V1Compatibility `json:"-"`       // Keep this in sync with History! Does not contain the full config (Schema2V1Image)
+	SchemaVersion            int                      `json:"schemaVersion"`
+}
+
+type schema1V1CompatibilityContainerConfig struct {
+	Cmd []string
 }
 
 // Schema1V1Compatibility is a v1Compatibility in docker/distribution schema 1.
 type Schema1V1Compatibility struct {
-	ID              string    `json:"id"`
-	Parent          string    `json:"parent,omitempty"`
-	Comment         string    `json:"comment,omitempty"`
-	Created         time.Time `json:"created"`
-	ContainerConfig struct {
-		Cmd []string
-	} `json:"container_config,omitempty"`
-	Author    string `json:"author,omitempty"`
-	ThrowAway bool   `json:"throwaway,omitempty"`
+	ID              string                                `json:"id"`
+	Parent          string                                `json:"parent,omitempty"`
+	Comment         string                                `json:"comment,omitempty"`
+	Created         time.Time                             `json:"created"`
+	ContainerConfig schema1V1CompatibilityContainerConfig `json:"container_config,omitempty"`
+	Author          string                                `json:"author,omitempty"`
+	ThrowAway       bool                                  `json:"throwaway,omitempty"`
 }
 
 // Schema1FromManifest creates a Schema1 manifest instance from a manifest blob.
@@ -57,11 +60,8 @@ func Schema1FromManifest(manifest []byte) (*Schema1, error) {
 	if s1.SchemaVersion != 1 {
 		return nil, errors.Errorf("unsupported schema version %d", s1.SchemaVersion)
 	}
-	if len(s1.FSLayers) != len(s1.History) {
-		return nil, errors.New("length of history not equal to number of layers")
-	}
-	if len(s1.FSLayers) == 0 {
-		return nil, errors.New("no FSLayers in manifest")
+	if err := s1.initialize(); err != nil {
+		return nil, err
 	}
 	if err := s1.fixManifestLayers(); err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func Schema1FromManifest(manifest []byte) (*Schema1, error) {
 }
 
 // Schema1FromComponents creates an Schema1 manifest instance from the supplied data.
-func Schema1FromComponents(ref reference.Named, fsLayers []Schema1FSLayers, history []Schema1History, architecture string) *Schema1 {
+func Schema1FromComponents(ref reference.Named, fsLayers []Schema1FSLayers, history []Schema1History, architecture string) (*Schema1, error) {
 	var name, tag string
 	if ref != nil { // Well, what to do if it _is_ nil? Most consumers actually don't use these fields nowadays, so we might as well try not supplying them.
 		name = reference.Path(ref)
@@ -78,7 +78,7 @@ func Schema1FromComponents(ref reference.Named, fsLayers []Schema1FSLayers, hist
 			tag = tagged.Tag()
 		}
 	}
-	return &Schema1{
+	s1 := Schema1{
 		Name:          name,
 		Tag:           tag,
 		Architecture:  architecture,
@@ -86,6 +86,10 @@ func Schema1FromComponents(ref reference.Named, fsLayers []Schema1FSLayers, hist
 		History:       history,
 		SchemaVersion: 1,
 	}
+	if err := s1.initialize(); err != nil {
+		return nil, err
+	}
+	return &s1, nil
 }
 
 // Schema1Clone creates a copy of the supplied Schema1 manifest.
@@ -94,31 +98,51 @@ func Schema1Clone(src *Schema1) *Schema1 {
 	return &copy
 }
 
+// initialize initializes ExtractedV1Compatibility and verifies invariants, so that the rest of this code can assume a minimally healthy manifest.
+func (m *Schema1) initialize() error {
+	if len(m.FSLayers) != len(m.History) {
+		return errors.New("length of history not equal to number of layers")
+	}
+	if len(m.FSLayers) == 0 {
+		return errors.New("no FSLayers in manifest")
+	}
+	m.ExtractedV1Compatibility = make([]Schema1V1Compatibility, len(m.History))
+	for i, h := range m.History {
+		if err := json.Unmarshal([]byte(h.V1Compatibility), &m.ExtractedV1Compatibility[i]); err != nil {
+			return errors.Wrapf(err, "Error parsing v2s1 history entry %d", i)
+		}
+	}
+	return nil
+}
+
 // ConfigInfo returns a complete BlobInfo for the separate config object, or a BlobInfo{Digest:""} if there isn't a separate object.
 func (m *Schema1) ConfigInfo() types.BlobInfo {
 	return types.BlobInfo{}
 }
 
-// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
+// LayerInfos returns a list of LayerInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
-func (m *Schema1) LayerInfos() []types.BlobInfo {
-	layers := make([]types.BlobInfo, len(m.FSLayers))
+func (m *Schema1) LayerInfos() []LayerInfo {
+	layers := make([]LayerInfo, len(m.FSLayers))
 	for i, layer := range m.FSLayers { // NOTE: This includes empty layers (where m.History.V1Compatibility->ThrowAway)
-		layers[(len(m.FSLayers)-1)-i] = types.BlobInfo{Digest: layer.BlobSum, Size: -1}
+		layers[(len(m.FSLayers)-1)-i] = LayerInfo{
+			BlobInfo:   types.BlobInfo{Digest: layer.BlobSum, Size: -1},
+			EmptyLayer: m.ExtractedV1Compatibility[i].ThrowAway,
+		}
 	}
 	return layers
 }
 
 // UpdateLayerInfos replaces the original layers with the specified BlobInfos (size+digest+urls), in order (the root layer first, and then successive layered layers)
 func (m *Schema1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
-	// Our LayerInfos includes empty layers (where m.History.V1Compatibility->ThrowAway), so expect them to be included here as well.
+	// Our LayerInfos includes empty layers (where m.ExtractedV1Compatibility[].ThrowAway), so expect them to be included here as well.
 	if len(m.FSLayers) != len(layerInfos) {
 		return errors.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(m.FSLayers), len(layerInfos))
 	}
 	m.FSLayers = make([]Schema1FSLayers, len(layerInfos))
 	for i, info := range layerInfos {
-		// (docker push) sets up m.History.V1Compatibility->{Id,Parent} based on values of info.Digest,
+		// (docker push) sets up m.ExtractedV1Compatibility[].{Id,Parent} based on values of info.Digest,
 		// but (docker pull) ignores them in favor of computing DiffIDs from uncompressed data, except verifying the child->parent links and uniqueness.
 		// So, we don't bother recomputing the IDs in m.History.V1Compatibility.
 		m.FSLayers[(len(layerInfos)-1)-i].BlobSum = info.Digest
@@ -144,31 +168,19 @@ func (m *Schema1) Serialize() ([]byte, error) {
 // Note that even after this succeeds, m.FSLayers may contain duplicate entries
 // (for Dockerfile operations which change the configuration but not the filesystem).
 func (m *Schema1) fixManifestLayers() error {
-	type imageV1 struct {
-		ID     string
-		Parent string
-	}
-	// Per the specification, we can assume that len(m.FSLayers) == len(m.History)
-	imgs := make([]*imageV1, len(m.FSLayers))
-	for i := range m.FSLayers {
-		img := &imageV1{}
-
-		if err := json.Unmarshal([]byte(m.History[i].V1Compatibility), img); err != nil {
-			return err
-		}
-
-		imgs[i] = img
-		if err := validateV1ID(img.ID); err != nil {
+	// m.initialize() has verified that len(m.FSLayers) == len(m.History)
+	for _, compat := range m.ExtractedV1Compatibility {
+		if err := validateV1ID(compat.ID); err != nil {
 			return err
 		}
 	}
-	if imgs[len(imgs)-1].Parent != "" {
+	if m.ExtractedV1Compatibility[len(m.ExtractedV1Compatibility)-1].Parent != "" {
 		return errors.New("Invalid parent ID in the base layer of the image")
 	}
 	// check general duplicates to error instead of a deadlock
 	idmap := make(map[string]struct{})
 	var lastID string
-	for _, img := range imgs {
+	for _, img := range m.ExtractedV1Compatibility {
 		// skip IDs that appear after each other, we handle those later
 		if _, exists := idmap[img.ID]; img.ID != lastID && exists {
 			return errors.Errorf("ID %+v appears multiple times in manifest", img.ID)
@@ -177,12 +189,13 @@ func (m *Schema1) fixManifestLayers() error {
 		idmap[lastID] = struct{}{}
 	}
 	// backwards loop so that we keep the remaining indexes after removing items
-	for i := len(imgs) - 2; i >= 0; i-- {
-		if imgs[i].ID == imgs[i+1].ID { // repeated ID. remove and continue
+	for i := len(m.ExtractedV1Compatibility) - 2; i >= 0; i-- {
+		if m.ExtractedV1Compatibility[i].ID == m.ExtractedV1Compatibility[i+1].ID { // repeated ID. remove and continue
 			m.FSLayers = append(m.FSLayers[:i], m.FSLayers[i+1:]...)
 			m.History = append(m.History[:i], m.History[i+1:]...)
-		} else if imgs[i].Parent != imgs[i+1].ID {
-			return errors.Errorf("Invalid parent ID. Expected %v, got %v", imgs[i+1].ID, imgs[i].Parent)
+			m.ExtractedV1Compatibility = append(m.ExtractedV1Compatibility[:i], m.ExtractedV1Compatibility[i+1:]...)
+		} else if m.ExtractedV1Compatibility[i].Parent != m.ExtractedV1Compatibility[i+1].ID {
+			return errors.Errorf("Invalid parent ID. Expected %v, got %v", m.ExtractedV1Compatibility[i+1].ID, m.ExtractedV1Compatibility[i].Parent)
 		}
 	}
 	return nil
@@ -209,7 +222,7 @@ func (m *Schema1) Inspect(_ func(types.BlobInfo) ([]byte, error)) (*types.ImageI
 		DockerVersion: s1.DockerVersion,
 		Architecture:  s1.Architecture,
 		Os:            s1.OS,
-		Layers:        LayerInfosToStrings(m.LayerInfos()),
+		Layers:        layerInfosToStrings(m.LayerInfos()),
 	}
 	if s1.Config != nil {
 		i.Labels = s1.Config.Labels
@@ -240,11 +253,7 @@ func (m *Schema1) ToSchema2Config(diffIDs []digest.Digest) ([]byte, error) {
 	}
 	// Build the history.
 	convertedHistory := []Schema2History{}
-	for _, h := range m.History {
-		compat := Schema1V1Compatibility{}
-		if err := json.Unmarshal([]byte(h.V1Compatibility), &compat); err != nil {
-			return nil, errors.Wrapf(err, "error decoding history information")
-		}
+	for _, compat := range m.ExtractedV1Compatibility {
 		hitem := Schema2History{
 			Created:    compat.Created,
 			CreatedBy:  strings.Join(compat.ContainerConfig.Cmd, " "),

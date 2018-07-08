@@ -709,18 +709,19 @@ func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
 		if err != nil {
 			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
 			if len(candidates) == 0 {
-				return imageRef, errors.Errorf("error parsing target image name %q", b.output)
+				return nil, errors.Errorf("error parsing target image name %q", b.output)
 			}
 			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
 			if err2 != nil {
-				return imageRef, errors.Wrapf(err, "error parsing target image name %q", b.output)
+				return nil, errors.Wrapf(err, "error parsing target image name %q", b.output)
 			}
 			return imageRef2, nil
 		}
+		return imageRef, nil
 	}
 	imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
 	if err != nil {
-		return imageRef, errors.Wrapf(err, "error parsing reference for image to be written")
+		return nil, errors.Wrapf(err, "error parsing reference for image to be written")
 	}
 	return imageRef, nil
 }

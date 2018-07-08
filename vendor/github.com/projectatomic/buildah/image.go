@@ -143,7 +143,7 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 		if err != nil {
 			err = errors.Wrapf(err, "error closing tar archive of container %q", i.containerID)
 		}
-		if err2 := i.store.Unmount(i.containerID); err == nil {
+		if _, err2 := i.store.Unmount(i.containerID, false); err == nil {
 			if err2 != nil {
 				err2 = errors.Wrapf(err2, "error unmounting container %q", i.containerID)
 			}

@@ -231,21 +231,21 @@ func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 	return mountPoint, nil
 }
 
-func (r *storageService) UnmountContainerImage(idOrName string) error {
+func (r *storageService) UnmountContainerImage(idOrName string) (bool, error) {
 	if idOrName == "" {
-		return ErrEmptyID
+		return false, ErrEmptyID
 	}
 	container, err := r.store.Container(idOrName)
 	if err != nil {
-		return err
+		return false, err
 	}
-	err = r.store.Unmount(container.ID)
+	mounted, err := r.store.Unmount(container.ID, false)
 	if err != nil {
 		logrus.Debugf("failed to unmount container %q: %v", container.ID, err)
-		return err
+		return false, err
 	}
 	logrus.Debugf("unmounted container %q", container.ID)
-	return nil
+	return mounted, nil
 }
 
 func (r *storageService) GetWorkDir(id string) (string, error) {

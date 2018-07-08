@@ -18,6 +18,16 @@ type Schema2Descriptor struct {
 	URLs      []string      `json:"urls,omitempty"`
 }
 
+// BlobInfoFromSchema2Descriptor returns a types.BlobInfo based on the input schema 2 descriptor.
+func BlobInfoFromSchema2Descriptor(desc Schema2Descriptor) types.BlobInfo {
+	return types.BlobInfo{
+		Digest:    desc.Digest,
+		Size:      desc.Size,
+		URLs:      desc.URLs,
+		MediaType: desc.MediaType,
+	}
+}
+
 // Schema2 is a manifest in docker/distribution schema 2.
 type Schema2 struct {
 	SchemaVersion     int                 `json:"schemaVersion"`
@@ -171,19 +181,18 @@ func Schema2Clone(src *Schema2) *Schema2 {
 
 // ConfigInfo returns a complete BlobInfo for the separate config object, or a BlobInfo{Digest:""} if there isn't a separate object.
 func (m *Schema2) ConfigInfo() types.BlobInfo {
-	return types.BlobInfo{Digest: m.ConfigDescriptor.Digest, Size: m.ConfigDescriptor.Size}
+	return BlobInfoFromSchema2Descriptor(m.ConfigDescriptor)
 }
 
-// LayerInfos returns a list of BlobInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
+// LayerInfos returns a list of LayerInfos of layers referenced by this image, in order (the root layer first, and then successive layered layers).
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
-func (m *Schema2) LayerInfos() []types.BlobInfo {
-	blobs := []types.BlobInfo{}
+func (m *Schema2) LayerInfos() []LayerInfo {
+	blobs := []LayerInfo{}
 	for _, layer := range m.LayersDescriptors {
-		blobs = append(blobs, types.BlobInfo{
-			Digest: layer.Digest,
-			Size:   layer.Size,
-			URLs:   layer.URLs,
+		blobs = append(blobs, LayerInfo{
+			BlobInfo:   BlobInfoFromSchema2Descriptor(layer),
+			EmptyLayer: false,
 		})
 	}
 	return blobs
@@ -227,7 +236,7 @@ func (m *Schema2) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*t
 		DockerVersion: s2.DockerVersion,
 		Architecture:  s2.Architecture,
 		Os:            s2.OS,
-		Layers:        LayerInfosToStrings(m.LayerInfos()),
+		Layers:        layerInfosToStrings(m.LayerInfos()),
 	}
 	if s2.Config != nil {
 		i.Labels = s2.Config.Labels

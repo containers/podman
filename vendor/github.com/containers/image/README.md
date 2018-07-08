@@ -65,7 +65,9 @@ the primary downside is that creating new signatures with the Golang-only implem
 - `containers_image_ostree_stub`: Instead of importing `ostree:` transport in `github.com/containers/image/transports/alltransports`, use a stub which reports that the transport is not supported. This allows building the library without requiring the `libostree` development libraries. The `github.com/containers/image/ostree` package is completely disabled
 and impossible to import when this build tag is in use.
 
-## Contributing
+## [Contributing](CONTRIBUTING.md)**
+
+Information about contributing to this project.
 
 When developing this library, please use `make` (or `make … BUILDTAGS=…`) to take advantage of the tests and validation.
 

@@ -5,28 +5,34 @@ import (
 	"compress/bzip2"
 	"compress/gzip"
 	"io"
+	"io/ioutil"
 
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
+	"github.com/ulikunitz/xz"
 )
 
 // DecompressorFunc returns the decompressed stream, given a compressed stream.
-type DecompressorFunc func(io.Reader) (io.Reader, error)
+// The caller must call Close() on the decompressed stream (even if the compressed input stream does not need closing!).
+type DecompressorFunc func(io.Reader) (io.ReadCloser, error)
 
 // GzipDecompressor is a DecompressorFunc for the gzip compression algorithm.
-func GzipDecompressor(r io.Reader) (io.Reader, error) {
+func GzipDecompressor(r io.Reader) (io.ReadCloser, error) {
 	return gzip.NewReader(r)
 }
 
 // Bzip2Decompressor is a DecompressorFunc for the bzip2 compression algorithm.
-func Bzip2Decompressor(r io.Reader) (io.Reader, error) {
-	return bzip2.NewReader(r), nil
+func Bzip2Decompressor(r io.Reader) (io.ReadCloser, error) {
+	return ioutil.NopCloser(bzip2.NewReader(r)), nil
 }
 
 // XzDecompressor is a DecompressorFunc for the xz compression algorithm.
-func XzDecompressor(r io.Reader) (io.Reader, error) {
-	return nil, errors.New("Decompressing xz streams is not supported")
+func XzDecompressor(r io.Reader) (io.ReadCloser, error) {
+	r, err := xz.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.NopCloser(r), nil
 }
 
 // compressionAlgos is an internal implementation detail of DetectCompression
@@ -64,4 +70,25 @@ func DetectCompression(input io.Reader) (DecompressorFunc, io.Reader, error) {
 	}
 
 	return decompressor, io.MultiReader(bytes.NewReader(buffer[:n]), input), nil
+}
+
+// AutoDecompress takes a stream and returns an uncompressed version of the
+// same stream.
+// The caller must call Close() on the returned stream (even if the input does not need,
+// or does not even support, closing!).
+func AutoDecompress(stream io.Reader) (io.ReadCloser, bool, error) {
+	decompressor, stream, err := DetectCompression(stream)
+	if err != nil {
+		return nil, false, errors.Wrapf(err, "Error detecting compression")
+	}
+	var res io.ReadCloser
+	if decompressor != nil {
+		res, err = decompressor(stream)
+		if err != nil {
+			return nil, false, errors.Wrapf(err, "Error initializing decompression")
+		}
+	} else {
+		res = ioutil.NopCloser(stream)
+	}
+	return res, decompressor != nil, nil
 }

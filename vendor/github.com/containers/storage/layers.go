@@ -211,7 +211,10 @@ type LayerStore interface {
 	Mount(id, mountLabel string) (string, error)
 
 	// Unmount unmounts a layer when it is no longer in use.
-	Unmount(id string) error
+	Unmount(id string, force bool) (bool, error)
+
+	// Mounted returns number of times the layer has been mounted.
+	Mounted(id string) (int, error)
 
 	// ParentOwners returns the UIDs and GIDs of parents of the layer's mountpoint
 	// for which the layer's UID and GID maps don't contain corresponding entries.
@@ -624,6 +627,14 @@ func (r *layerStore) Create(id string, parent *Layer, names []string, mountLabel
 	return r.CreateWithFlags(id, parent, names, mountLabel, options, moreOptions, writeable, nil)
 }
 
+func (r *layerStore) Mounted(id string) (int, error) {
+	layer, ok := r.lookup(id)
+	if !ok {
+		return 0, ErrLayerUnknown
+	}
+	return layer.MountCount, nil
+}
+
 func (r *layerStore) Mount(id, mountLabel string) (string, error) {
 	if !r.IsReadWrite() {
 		return "", errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
@@ -652,21 +663,24 @@ func (r *layerStore) Mount(id, mountLabel string) (string, error) {
 	return mountpoint, err
 }
 
-func (r *layerStore) Unmount(id string) error {
+func (r *layerStore) Unmount(id string, force bool) (bool, error) {
 	if !r.IsReadWrite() {
-		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
+		return false, errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
 		layerByMount, ok := r.bymount[filepath.Clean(id)]
 		if !ok {
-			return ErrLayerUnknown
+			return false, ErrLayerUnknown
 		}
 		layer = layerByMount
 	}
+	if force {
+		layer.MountCount = 1
+	}
 	if layer.MountCount > 1 {
 		layer.MountCount--
-		return r.Save()
+		return true, r.Save()
 	}
 	err := r.driver.Put(id)
 	if err == nil || os.IsNotExist(err) {
@@ -675,9 +689,9 @@ func (r *layerStore) Unmount(id string) error {
 		}
 		layer.MountCount--
 		layer.MountPoint = ""
-		err = r.Save()
+		return false, r.Save()
 	}
-	return err
+	return true, err
 }
 
 func (r *layerStore) ParentOwners(id string) (uids, gids []int, err error) {
@@ -797,10 +811,8 @@ func (r *layerStore) Delete(id string) error {
 		return ErrLayerUnknown
 	}
 	id = layer.ID
-	for layer.MountCount > 0 {
-		if err := r.Unmount(id); err != nil {
-			return err
-		}
+	if _, err := r.Unmount(id, true); err != nil {
+		return err
 	}
 	err := r.driver.Remove(id)
 	if err == nil {
@@ -917,7 +929,8 @@ func (s *simpleGetCloser) Get(path string) (io.ReadCloser, error) {
 }
 
 func (s *simpleGetCloser) Close() error {
-	return s.r.Unmount(s.id)
+	_, err := s.r.Unmount(s.id, false)
+	return err
 }
 
 func (r *layerStore) newFileGetter(id string) (drivers.FileGetCloser, error) {

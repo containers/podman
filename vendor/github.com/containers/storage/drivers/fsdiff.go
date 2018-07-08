@@ -163,6 +163,7 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id string, applyMappings *idtools.IDMappin
 	start := time.Now().UTC()
 	logrus.Debug("Start untar layer")
 	if size, err = ApplyUncompressedLayer(layerFs, diff, options); err != nil {
+		logrus.Errorf("Error while applying layer: %s", err)
 		return
 	}
 	logrus.Debugf("Untar time: %vs", time.Now().UTC().Sub(start).Seconds())

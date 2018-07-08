@@ -415,7 +415,7 @@ func (c *Container) export(path string) error {
 		}
 		mountPoint = mount
 		defer func() {
-			if err := c.runtime.store.Unmount(c.ID()); err != nil {
+			if _, err := c.runtime.store.Unmount(c.ID(), false); err != nil {
 				logrus.Errorf("error unmounting container %q: %v", c.ID(), err)
 			}
 		}()
@@ -797,7 +797,7 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	// Also unmount storage
-	if err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
+	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
 		// If the container has already been removed, warn but don't
 		// error
 		// We still want to be able to kick the container out of the

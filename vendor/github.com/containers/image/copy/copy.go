@@ -604,6 +604,7 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 		if err != nil {
 			return "", err
 		}
+		defer s.Close()
 		stream = s
 	}
 
@@ -673,10 +674,12 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		inputInfo.Size = -1
 	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Decompress && isCompressed {
 		logrus.Debugf("Blob will be decompressed")
-		destStream, err = decompressor(destStream)
+		s, err := decompressor(destStream)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
+		defer s.Close()
+		destStream = s
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
 	} else {

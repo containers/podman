@@ -110,6 +110,8 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 			}
 			userDiskQuota = true
 			options.minSpace = uint64(minSpace)
+		case "btrfs.mountopt":
+			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
 			return options, userDiskQuota, fmt.Errorf("Unknown option %s", key)
 		}

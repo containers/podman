@@ -2690,7 +2690,7 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 			devices.filesystem = val
 		case "dm.mkfsarg":
 			devices.mkfsArgs = append(devices.mkfsArgs, val)
-		case "dm.mountopt":
+		case "dm.mountopt", "devicemapper.mountopt":
 			devices.mountOptions = joinMountOptions(devices.mountOptions, val)
 		case "dm.metadatadev":
 			devices.metadataDevice = val
