@@ -5,8 +5,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/projectatomic/buildah)](https://goreportcard.com/report/github.com/projectatomic/buildah)
 [![Travis](https://travis-ci.org/projectatomic/buildah.svg?branch=master)](https://travis-ci.org/projectatomic/buildah)
 
-Note: this package is in alpha, but is close to being feature-complete.
-
 The Buildah package provides a command line tool that can be used to
 * create a working container, either from scratch or using an image as a starting point
 * create an image, either from a working container or via the instructions in a Dockerfile
@@ -16,13 +14,19 @@ The Buildah package provides a command line tool that can be used to
 * use the updated contents of a container's root filesystem as a filesystem layer to create a new image
 * delete a working container or an image
 
+**[Buildah Demos](demos)**
+
 **[Changelog](CHANGELOG.md)**
+
+**[Contributing](CONTRIBUTING.md)**
+
+**[Development Plan](developmentplan.md)**
 
 **[Installation notes](install.md)**
 
 **[Troubleshooting Guide](troubleshooting.md)**
 
-**[Tutorials](docs/tutorials/README.md)**
+**[Tutorials](docs/tutorials)**
 
 ## Example
 

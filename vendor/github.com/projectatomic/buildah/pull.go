@@ -167,14 +167,14 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	}()
 
 	logrus.Debugf("copying %q to %q", spec, destName)
-	err = cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, options.SystemContext, nil, ""))
+	err = cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, sc, nil, ""))
 	if err == nil {
 		return destRef, nil
 	}
 
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
-	registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
-	searchRegistries, err := getRegistries()
+	registryPath := sysregistries.RegistriesConfPath(sc)
+	searchRegistries, err := getRegistries(sc)
 	if err != nil {
 		return nil, err
 	}

@@ -139,6 +139,10 @@ var (
 			Name:  "logfile",
 			Usage: "log to `file` instead of stdout/stderr",
 		},
+		cli.IntFlag{
+			Name:  "loglevel",
+			Usage: "adjust logging level (range from -2 to 3)",
+		},
 		cli.BoolTFlag{
 			Name:  "pull",
 			Usage: "pull the image if not present",
