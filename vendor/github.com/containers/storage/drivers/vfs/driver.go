@@ -9,6 +9,7 @@ import (
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
@@ -42,6 +43,27 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 			d.homes = append(d.homes, strings.Split(option[12:], ",")...)
 			continue
 		}
+		if strings.HasPrefix(option, "vfs.ostree_repo=") {
+			if !ostree.OstreeSupport() {
+				return nil, fmt.Errorf("vfs: ostree_repo specified but support for ostree is missing")
+			}
+			d.ostreeRepo = option[16:]
+		}
+		if strings.HasPrefix(option, ".ostree_repo=") {
+			if !ostree.OstreeSupport() {
+				return nil, fmt.Errorf("vfs: ostree_repo specified but support for ostree is missing")
+			}
+			d.ostreeRepo = option[13:]
+		}
+	}
+	if d.ostreeRepo != "" {
+		rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
+		if err != nil {
+			return nil, err
+		}
+		if err := ostree.CreateOSTreeRepository(d.ostreeRepo, rootUID, rootGID); err != nil {
+			return nil, err
+		}
 	}
 	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
 }
@@ -53,6 +75,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 type Driver struct {
 	homes      []string
 	idMappings *idtools.IDMappings
+	ostreeRepo string
 }
 
 func (d *Driver) String() string {
@@ -77,11 +100,15 @@ func (d *Driver) Cleanup() error {
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
-	return d.Create(id, parent, opts)
+	return d.create(id, parent, opts, false)
 }
 
 // Create prepares the filesystem for the VFS driver and copies the directory for the given id under the parent.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+	return d.create(id, parent, opts, true)
+}
+
+func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool) error {
 	if opts != nil && len(opts.StorageOpt) != 0 {
 		return fmt.Errorf("--storage-opt is not supported for vfs")
 	}
@@ -106,14 +133,23 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	if _, mountLabel, err := label.InitLabels(labelOpts); err == nil {
 		label.SetFileLabel(dir, mountLabel)
 	}
-	if parent == "" {
-		return nil
+	if parent != "" {
+		parentDir, err := d.Get(parent, "")
+		if err != nil {
+			return fmt.Errorf("%s: %s", parent, err)
+		}
+		if err := CopyWithTar(parentDir, dir); err != nil {
+			return err
+		}
 	}
-	parentDir, err := d.Get(parent, "")
-	if err != nil {
-		return fmt.Errorf("%s: %s", parent, err)
+
+	if ro && d.ostreeRepo != "" {
+		if err := ostree.ConvertToOSTree(d.ostreeRepo, dir, id); err != nil {
+			return err
+		}
 	}
-	return CopyWithTar(parentDir, dir)
+	return nil
+
 }
 
 func (d *Driver) dir(id string) string {
@@ -132,6 +168,10 @@ func (d *Driver) dir(id string) string {
 
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
+	if d.ostreeRepo != "" {
+		// Ignore errors, we don't want to fail if the ostree branch doesn't exist,
+		ostree.DeleteOSTree(d.ostreeRepo, id)
+	}
 	return system.EnsureRemoveAll(d.dir(id))
 }
 
