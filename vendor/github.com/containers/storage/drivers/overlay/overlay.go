@@ -24,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	units "github.com/docker/go-units"
@@ -84,6 +85,9 @@ type overlayOptions struct {
 	overrideKernelCheck bool
 	imageStores         []string
 	quota               quota.Quota
+	fuseProgram         string
+	ostreeRepo          string
+	skipMountHome       bool
 }
 
 // Driver contains information about the home directory and the list of active mounts that are created using this driver.
@@ -98,6 +102,7 @@ type Driver struct {
 	naiveDiff     graphdriver.DiffDriver
 	supportsDType bool
 	locker        *locker.Locker
+	convert       map[string]bool
 }
 
 var (
@@ -147,15 +152,28 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, err
 	}
 
-	supportsDType, err := supportsOverlay(home, fsMagic, rootUID, rootGID)
-	if err != nil {
-		os.Remove(filepath.Join(home, linkDir))
-		os.Remove(home)
-		return nil, errors.Wrap(err, "kernel does not support overlay fs")
+	var supportsDType bool
+	if opts.fuseProgram != "" {
+		supportsDType = true
+	} else {
+		supportsDType, err = supportsOverlay(home, fsMagic, rootUID, rootGID)
+		if err != nil {
+			os.Remove(filepath.Join(home, linkDir))
+			os.Remove(home)
+			return nil, errors.Wrap(err, "kernel does not support overlay fs")
+		}
 	}
 
-	if err := mount.MakePrivate(home); err != nil {
-		return nil, err
+	if !opts.skipMountHome {
+		if err := mount.MakePrivate(home); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.ostreeRepo != "" {
+		if err := ostree.CreateOSTreeRepository(opts.ostreeRepo, rootUID, rootGID); err != nil {
+			return nil, err
+		}
 	}
 
 	d := &Driver{
@@ -167,6 +185,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		supportsDType: supportsDType,
 		locker:        locker.New(),
 		options:       *opts,
+		convert:       make(map[string]bool),
 	}
 
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, d)
@@ -227,6 +246,25 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				}
 				o.imageStores = append(o.imageStores, store)
 			}
+		case ".fuse_program", "overlay.fuse_program", "overlay2.fuse_program":
+			logrus.Debugf("overlay: fuse_program=%s", val)
+			_, err := os.Stat(val)
+			if err != nil {
+				return nil, fmt.Errorf("overlay: can't stat FUSE program %s: %v", val, err)
+			}
+			o.fuseProgram = val
+		case "overlay2.ostree_repo", "overlay.ostree_repo", ".ostree_repo":
+			logrus.Debugf("overlay: ostree_repo=%s", val)
+			if !ostree.OstreeSupport() {
+				return nil, fmt.Errorf("overlay: ostree_repo specified but support for ostree is missing")
+			}
+			o.ostreeRepo = val
+		case "overlay2.skip_mount_home", "overlay.skip_mount_home", ".skip_mount_home":
+			logrus.Debugf("overlay: skip_mount_home=%s", val)
+			o.skipMountHome, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("overlay: Unknown option %s", key)
 		}
@@ -236,6 +274,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 
 func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGID int) (supportsDType bool, err error) {
 	// We can try to modprobe overlay first
+
 	exec.Command("modprobe", "overlay").Run()
 
 	layerDir, err := ioutil.TempDir(home, "compat")
@@ -380,6 +419,11 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 			return fmt.Errorf("--storage-opt size is only supported for ReadWrite Layers")
 		}
 	}
+
+	if d.options.ostreeRepo != "" {
+		d.convert[id] = true
+	}
+
 	return d.create(id, parent, opts)
 }
 
@@ -547,6 +591,12 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 func (d *Driver) Remove(id string) error {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
+
+	// Ignore errors, we don't want to fail if the ostree branch doesn't exist,
+	if d.options.ostreeRepo != "" {
+		ostree.DeleteOSTree(d.options.ostreeRepo, id)
+	}
+
 	dir := d.dir(id)
 	lid, err := ioutil.ReadFile(path.Join(dir, "link"))
 	if err == nil {
@@ -663,7 +713,7 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 	// the page size. The mount syscall fails if the mount data cannot
 	// fit within a page and relative links make the mount data much
 	// smaller at the expense of requiring a fork exec to chroot.
-	if len(mountData) > pageSize {
+	if len(mountData) > pageSize || d.options.fuseProgram != "" {
 		//FIXME: We need to figure out to get this to work with additional stores
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
 		mountData = label.FormatMountLabel(opts, mountLabel)
@@ -671,8 +721,16 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
 		}
 
-		mount = func(source string, target string, mType string, flags uintptr, label string) error {
-			return mountFrom(d.home, source, target, mType, flags, label)
+		if d.options.fuseProgram != "" {
+			mount = func(source string, target string, mType string, flags uintptr, label string) error {
+				cmdRootless := exec.Command(d.options.fuseProgram, "-o", label, target)
+				cmdRootless.Dir = d.home
+				return cmdRootless.Run()
+			}
+		} else {
+			mount = func(source string, target string, mType string, flags uintptr, label string) error {
+				return mountFrom(d.home, source, target, mType, flags, label)
+			}
 		}
 		mountTarget = path.Join(id, "merged")
 	}
@@ -762,6 +820,13 @@ func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent str
 		WhiteoutFormat: archive.OverlayWhiteoutFormat,
 	}); err != nil {
 		return 0, err
+	}
+
+	_, convert := d.convert[id]
+	if convert {
+		if err := ostree.ConvertToOSTree(d.options.ostreeRepo, applyDir, id); err != nil {
+			return 0, err
+		}
 	}
 
 	return directory.Size(applyDir)
