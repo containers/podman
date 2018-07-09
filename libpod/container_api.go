@@ -29,7 +29,8 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		}
 	}
 
-	if c.state.State != ContainerStateConfigured {
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateStopped) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
@@ -53,6 +54,12 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		}
 	}()
 
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container
+		return c.reinit(ctx)
+	}
+
+	// Initialize the container for the first time
 	return c.init(ctx)
 }
 
