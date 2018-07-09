@@ -17,7 +17,7 @@ ETCDIR ?= ${DESTDIR}/etc
 ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
-BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) varlink
+BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh) varlink
 BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/ioprojectatomicpodman.go
@@ -38,6 +38,8 @@ BUILD_INFO ?= $(shell date +%s)
 LDFLAGS_PODMAN ?= $(LDFLAGS) -X main.gitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO)
 ISODATE ?= $(shell date --iso-8601)
 LIBSECCOMP_COMMIT := release-2.3
+# Wrapper to setup mounts required by AppArmor
+ENTRYPOINT := ./hack/dind
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -137,13 +139,13 @@ libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
 
 dbuild: libpodimage
-	docker run --name=${LIBPOD_INSTANCE} --privileged ${LIBPOD_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm make binaries
+	docker run --name=${LIBPOD_INSTANCE} --privileged ${LIBPOD_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm ${ENTRYPOINT} make binaries
 
 test: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localunit localintegration
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localunit localintegration
 
 integration: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localintegration
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localintegration
 
 integration.fedora:
 	DIST=Fedora sh .papr_prepare.sh
@@ -152,10 +154,10 @@ integration.centos:
 	DIST=CentOS sh .papr_prepare.sh
 
 shell: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} sh
+	docker run --tmpfs -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} sh
 
 testunit: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make localunit
 
 localunit: varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)

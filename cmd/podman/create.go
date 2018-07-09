@@ -19,9 +19,11 @@ import (
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	ann "github.com/projectatomic/libpod/pkg/annotations"
+	"github.com/projectatomic/libpod/pkg/apparmor"
 	"github.com/projectatomic/libpod/pkg/inspect"
 	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/projectatomic/libpod/pkg/util"
+	libpodVersion "github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -191,6 +193,56 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			default:
 				return fmt.Errorf("Invalid --security-opt 2: %q", opt)
 			}
+		}
+	}
+
+	if config.ApparmorProfile == "" {
+		// Unless specified otherwise, make sure that the default AppArmor
+		// profile is installed.  To avoid redundantly loading the profile
+		// on each invocation, check if it's loaded before installing it.
+		// Suffix the profile with the current libpod version to allow
+		// loading the new, potentially updated profile after an update.
+		profile := fmt.Sprintf("%s-%s", apparmor.DefaultLibpodProfile, libpodVersion.Version)
+
+		loadProfile := func() error {
+			isLoaded, err := apparmor.IsLoaded(profile)
+			if err != nil {
+				return err
+			}
+			if !isLoaded {
+				err = apparmor.InstallDefault(profile)
+				if err != nil {
+					return err
+				}
+
+			}
+			return nil
+		}
+
+		if err := loadProfile(); err != nil {
+			switch err {
+			case apparmor.ErrApparmorUnsupported:
+				// do not set the profile when AppArmor isn't supported
+				logrus.Debugf("AppArmor is not supported: setting empty profile")
+			default:
+				return err
+			}
+		} else {
+			logrus.Infof("Sucessfully loaded AppAmor profile '%s'", profile)
+			config.ApparmorProfile = profile
+		}
+	} else {
+		isLoaded, err := apparmor.IsLoaded(config.ApparmorProfile)
+		if err != nil {
+			switch err {
+			case apparmor.ErrApparmorUnsupported:
+				return fmt.Errorf("profile specified but AppArmor is not supported")
+			default:
+				return fmt.Errorf("error checking if AppArmor profile is loaded: %v", err)
+			}
+		}
+		if !isLoaded {
+			return fmt.Errorf("specified AppArmor profile '%s' is not loaded", config.ApparmorProfile)
 		}
 	}
 
