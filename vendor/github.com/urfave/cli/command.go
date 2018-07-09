@@ -204,7 +204,7 @@ PARSE:
 			newArgs := Args{}
 			for i, arg := range args {
 				if arg != trimmed {
-					newArgs = append(newArgs, trimmed)
+					newArgs = append(newArgs, arg)
 					continue
 				}
 				shortOpts := translateShortOptions(set, Args{trimmed})
@@ -215,7 +215,12 @@ PARSE:
 				newArgs = append(newArgs, shortOpts...)
 				newArgs = append(newArgs, args[i+1:]...)
 				args = newArgs
-				// now parse again
+				// now reset the flagset parse again
+				set, err = flagSet(c.Name, c.Flags)
+				if err != nil {
+					return nil, err
+				}
+				set.SetOutput(ioutil.Discard)
 				goto PARSE
 			}
 		}
