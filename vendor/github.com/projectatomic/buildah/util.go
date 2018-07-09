@@ -167,13 +167,8 @@ func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 }
 
 // getRegistries obtains the list of registries defined in the global registries file.
-func getRegistries() ([]string, error) {
-	registryConfigPath := ""
-	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
-	if len(envOverride) > 0 {
-		registryConfigPath = envOverride
-	}
-	searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+func getRegistries(sc *types.SystemContext) ([]string, error) {
+	searchRegistries, err := sysregistries.GetRegistries(sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
 	}
