@@ -52,6 +52,51 @@ func (r *Runtime) HasPod(id string) (bool, error) {
 	return r.state.HasPod(id)
 }
 
+// ContainerIDsInPod returns the IDs of containers in the pod
+func (r *Runtime) ContainerIDsInPod(pod *Pod) ([]string, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
+
+	return r.state.PodContainersByID(pod)
+}
+
+// ContainersInPod returns the containers in the pod
+func (r *Runtime) ContainersInPod(pod *Pod) ([]*Container, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
+
+	return r.state.PodContainers(pod)
+}
+
+// ContainerNamesInPod returns the names of containers in the pod
+func (r *Runtime) ContainerNamesInPod(pod *Pod) ([]string, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
+
+	var ctrNames []string
+	ctrs, err := r.ContainersInPod(pod)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		ctrNames = append(ctrNames, ctr.Name())
+	}
+
+	return ctrNames, nil
+}
+
 // LookupPod retrieves a pod by its name or a partial ID
 // If a partial ID is not unique, an error will be returned
 func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
