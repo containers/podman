@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# This script is called by packer on the subject fedora VM, to setup the podman
+# build/test environment.  It's not intended to be used outside of this context.
+
+set -e
+
+# Load in library (copied by packer, before this script was run)
+source /tmp/libpod/$SCRIPT_BASE/lib.sh
+
+req_env_var "
+SCRIPT_BASE $SCRIPT_BASE
+CNI_COMMIT $CNI_COMMIT
+CRIO_COMMIT $CRIO_COMMIT
+RUNC_COMMIT $RUNC_COMMIT
+"
+
+install_ooe
+
+export GOPATH="$(mktemp -d)"
+trap "sudo rm -rf $GOPATH" EXIT
+
+# breaks networking on f28/29 in GCE
+# ooe.sh sudo dnf update -y
+
+ooe.sh sudo dnf install -y \
+    atomic-registries \
+    btrfs-progs-devel \
+    bzip2 \
+    conmon \
+    device-mapper-devel \
+    findutils \
+    git \
+    glib2-devel \
+    glibc-static \
+    gnupg \
+    golang \
+    golang-github-cpuguy83-go-md2man \
+    golang-github-cpuguy83-go-md2man \
+    gpgme-devel \
+    iptables \
+    libassuan-devel \
+    libseccomp-devel \
+    libselinux-devel \
+    lsof \
+    make \
+    nmap-ncat \
+    ostree-devel \
+    procps-ng \
+    python \
+    python3-dateutil \
+    python3-psutil \
+    python3-pytoml \
+    runc \
+    skopeo-containers \
+    slirp4netns \
+    which\
+    xz
+
+install_varlink
+
+install_cni_plugins
+
+install_buildah
+
+install_conmon
+
+install_packer_copied_files
+
+rh_finalize # N/B: Halts system!
+
+echo "SUCCESS!"

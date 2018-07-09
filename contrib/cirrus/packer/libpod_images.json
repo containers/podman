@@ -1,0 +1,124 @@
+{
+  "variables": {
+    "CNI_COMMIT": "{{env `CNI_COMMIT`}}",
+    "CRIO_COMMIT": "{{env `CRIO_COMMIT`}}",
+    "RUNC_COMMIT": "{{env `RUNC_COMMIT`}}",
+
+    "CENTOS_BASE_IMAGE": "{{env `CENTOS_BASE_IMAGE`}}" ,
+    "UBUNTU_BASE_IMAGE": "{{env `UBUNTU_BASE_IMAGE`}}",
+    "FEDORA_BASE_IMAGE": "{{env `FEDORA_BASE_IMAGE`}}",
+    "RHEL_BASE_IMAGE": "{{env `RHEL_BASE_IMAGE`}}",
+
+    "GOSRC": "{{env `GOSRC`}}",
+    "PACKER_BASE": "{{env `PACKER_BASE`}}",
+    "SCRIPT_BASE": "{{env `SCRIPT_BASE`}}",
+
+    "SERVICE_ACCOUNT": "{{env `SERVICE_ACCOUNT`}}",
+    "GCP_PROJECT_ID": "{{env `GCP_PROJECT_ID`}}",
+    "CIRRUS_BUILD_ID": "{{env `CIRRUS_BUILD_ID`}}",
+    "GCE_SSH_USERNAME": "{{env `GCE_SSH_USERNAME`}}",
+    "RHSM_COMMAND": "{{env `RHSM_COMMAND`}}"
+  },
+  "sensitive-variables": [
+    "GCP_PROJECT_ID", "SERVICE_ACCOUNT", "GCE_SSH_USERNAME", "RHSM_COMMAND"
+  ],
+  "builders": [
+    {
+      "name": "rhel-7",
+      "type": "googlecompute",
+      "project_id": "{{user `GCP_PROJECT_ID`}}",
+      "zone": "us-central1-a",
+      "source_image": "{{user `RHEL_BASE_IMAGE`}}",
+      "image_name": "{{user `RHEL_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}",
+      "image_family": "{{user `RHEL_BASE_IMAGE`}}-libpod",
+      "service_account_email": "{{user `SERVICE_ACCOUNT`}}",
+      "communicator": "ssh",
+      "ssh_username": "ec2-user",
+      "ssh_pty": "true"
+    },{
+      "name": "centos-7",
+      "type": "googlecompute",
+      "project_id": "{{user `GCP_PROJECT_ID`}}",
+      "zone": "us-central1-a",
+      "source_image": "{{user `CENTOS_BASE_IMAGE`}}",
+      "image_name": "{{user `CENTOS_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}",
+      "image_family": "{{user `CENTOS_BASE_IMAGE`}}-libpod",
+      "service_account_email": "{{user `SERVICE_ACCOUNT`}}",
+      "communicator": "ssh",
+      "ssh_username": "{{user `GCE_SSH_USERNAME`}}",
+      "ssh_pty": "true"
+    },{
+      "name": "fedora-28",
+      "type": "googlecompute",
+      "project_id": "{{user `GCP_PROJECT_ID`}}",
+      "zone": "us-central1-a",
+      "source_image": "{{user `FEDORA_BASE_IMAGE`}}",
+      "image_name": "{{user `FEDORA_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}",
+      "image_family": "{{user `FEDORA_BASE_IMAGE`}}-libpod",
+      "service_account_email": "{{user `SERVICE_ACCOUNT`}}",
+      "communicator": "ssh",
+      "ssh_username": "fedora",
+      "ssh_pty": "true"
+    },{
+      "name": "ubuntu-18",
+      "type": "googlecompute",
+      "project_id": "{{user `GCP_PROJECT_ID`}}",
+      "zone": "us-central1-a",
+      "source_image": "{{user `UBUNTU_BASE_IMAGE`}}",
+      "image_name": "{{user `UBUNTU_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}",
+      "image_family": "{{user `UBUNTU_BASE_IMAGE`}}-libpod",
+      "service_account_email": "{{user `SERVICE_ACCOUNT`}}",
+      "communicator": "ssh",
+      "ssh_username": "{{user `GCE_SSH_USERNAME`}}",
+      "ssh_pty": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "{{user `GOSRC`}}",
+      "destination": "/tmp/libpod"
+    },{
+      "type": "shell",
+      "only": ["rhel-7"],
+      "script": "{{user `GOSRC`}}/{{user `PACKER_BASE`}}/rhel_setup.sh",
+      "environment_vars": [
+        "SCRIPT_BASE={{user `SCRIPT_BASE`}}",
+        "CNI_COMMIT={{user `CNI_COMMIT`}}",
+        "CRIO_COMMIT={{user `CRIO_COMMIT`}}",
+        "RUNC_COMMIT={{user `RUNC_COMMIT`}}",
+        "RHSM_COMMAND={{user `RHSM_COMMAND`}}"
+      ]
+    },{
+      "type": "shell",
+      "only": ["centos-7"],
+      "script": "{{user `GOSRC`}}/{{user `PACKER_BASE`}}/centos_setup.sh",
+      "environment_vars": [
+        "SCRIPT_BASE={{user `SCRIPT_BASE`}}",
+        "CNI_COMMIT={{user `CNI_COMMIT`}}",
+        "CRIO_COMMIT={{user `CRIO_COMMIT`}}",
+        "RUNC_COMMIT={{user `RUNC_COMMIT`}}"
+      ]
+    },{
+      "type": "shell",
+      "only": ["fedora-28"],
+      "script": "{{user `GOSRC`}}/{{user `PACKER_BASE`}}/fedora_setup.sh",
+      "environment_vars": [
+        "SCRIPT_BASE={{user `SCRIPT_BASE`}}",
+        "CNI_COMMIT={{user `CNI_COMMIT`}}",
+        "CRIO_COMMIT={{user `CRIO_COMMIT`}}",
+        "RUNC_COMMIT={{user `RUNC_COMMIT`}}"
+      ]
+    },{
+      "type": "shell",
+      "only": ["ubuntu-18"],
+      "script": "{{user `GOSRC`}}/{{user `PACKER_BASE`}}/ubuntu_setup.sh",
+      "environment_vars": [
+        "SCRIPT_BASE={{user `SCRIPT_BASE`}}",
+        "CNI_COMMIT={{user `CNI_COMMIT`}}",
+        "CRIO_COMMIT={{user `CRIO_COMMIT`}}",
+        "RUNC_COMMIT={{user `RUNC_COMMIT`}}"
+      ]
+    }
+  ]
+}

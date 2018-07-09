@@ -1,0 +1,117 @@
+---
+
+# Only github users with write-access can define or use encrypted variables
+# This credential represents a service account with access to manage both VMs
+# and storage.
+gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830c56e86bbb2debcc3c18f942d0d46ab36b63521061d4]
+
+# Default VM to use for testing, unless values overriden by specific tasks (below)
+gce_instance:
+    image_project: "libpod-218412"
+    zone: "us-central1-a"  # Required by Cirrus for the time being
+    cpu: 4
+    memory: "8Gb"
+    disk: 40
+
+# Main collection of env. varss to set for all scripts. All others
+# are cooked in by $SCRIPT_BASE/setup_environment.sh
+env:
+    CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
+    CRIO_COMMIT: "662dbb31b5d4f5ed54511a47cde7190c61c28677"
+    RUNC_COMMIT: "ad0f5255060d36872be04de22f8731f38ef2d7b1"
+    # File to update in home-dir with task-specific env. var values
+    ENVLIB: ".bash_profile"
+    # Overrides default location (/tmp/cirrus) for repo clone
+    CIRRUS_WORKING_DIR: "/go/src/github.com/containers/libpod"
+    # Required so $ENVLIB gets loaded
+    CIRRUS_SHELL: "/bin/bash"
+    # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
+    SCRIPT_BASE: "./contrib/cirrus"
+    PACKER_BASE: "./contrib/cirrus/packer"
+
+# Every *_task runs in parallel in separate VMs. The name prefix only for reference
+# in WebUI, and will be followed by matrix details.  This task does all the
+# per-pr unit/integration testing.
+full_vm_testing_task:
+
+    gce_instance:
+        # Generate multiple 'test' tasks, covering all possible
+        # 'matrix' combinations.  All run in parallel.
+        matrix:
+            # Images are generated separetly, from build_images_task (below)
+            image_name: "ubuntu-1804-bionic-v20180911-libpod-5763563410948096"
+            # TODO: Make these work (also build_images_task below)
+            #image_name: "rhel-server-ec2-7-5-165-1-libpod-5358668723781632"
+            #image_name: "centos-7-v20180911-libpod-5358668723781632"
+            #image_name: "fedora-cloud-base-28-1-1-7-libpod-5358668723781632"
+
+    timeout_in: 120m
+
+    # Every *_script runs in sequence, for each task. The name prefix is for
+    # WebUI reference.  The values may be strings...
+    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
+
+    # ...or lists of strings
+    unit_test_script:
+        - whoami  # root!
+        - $SCRIPT_BASE/unit_test.sh
+
+    integration_test_script: $SCRIPT_BASE/integration_test.sh
+
+
+# This task build new images for future PR testing, but only after a PR merge.
+# These images save needing to install/setup the same environment to test every
+# PR.  The 'active' image for testing is selected by the 'image_name' items in
+# task above.  Currently this requires manually updating them, but this could
+# be automated (see comment at end).
+
+build_vm_images_task:
+    # Only produce new images after a PR merge
+    only_if: $CIRRUS_BRANCH == 'master'
+
+    # Require tests to pass first.
+    depends_on:
+        - test  # i.e. 'test_task'
+
+    env:
+        # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
+        PACKER_BUILDS: "ubuntu-18"
+        # TODO: Make these work (also full_vm_testing_task above)
+        # PACKER_BUILDS: "rhel-7,centos-7,fedora-28,ubuntu-18"
+        # Command to register a RHEL VM
+        RHSM_COMMAND: ENCRYPTED[fec01433222af1ed0b8e40e89e7d18f6ee2fa9f49a1e721dc72f7eed3c740661215d1bd05cb54ac66a1a62116b92bdce]
+        # Additional environment variables needed to build GCE images, within a GCE VM
+        SERVICE_ACCOUNT: ENCRYPTED[02e03838b1156eb9516c7cc1e888e287910759842275f3c7bc2b4d56075cc6740e29ffa0ab71ebdbbd079673361dd8c9]
+        GCE_SSH_USERNAME: ENCRYPTED[a19a4ec62423e3e0fe4e7d1a5c9f11eda8fde321b9047ab5ed5590c2b1d7a2d12091c2be1531f949eae927059c2ae531]
+        GCP_PROJECT_ID: ENCRYPTED[77cb2d392bbc8d17412547d7d91f8d190089bf6e6b96eab9927994bbff6ab2c691ba0329ac7a650ba6182fbbab9fb68d]
+        # Existing base values to use, output images get epoc stamped names
+        PACKER_VER: "1.3.1"
+        # low-level base VM image name inputs to packer
+        CENTOS_BASE_IMAGE: "centos-7-v20180911"
+        RHEL_BASE_IMAGE: "rhel-server-ec2-7-5-165-1"
+        FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-7"
+        UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20180911"
+
+    gce_instance:
+        image_name: "image-builder-image"  # Simply CentOS 7 + packer dependencies
+        # Additional permissions for building GCE images, within a GCE VM
+        scopes:
+            - compute
+            - devstorage.full_control
+        # Doesn't need many local resources to run
+        cpu: 2
+        memory: "2Gb"
+        disk: 20
+    environment_script: $SCRIPT_BASE/setup_environment.sh
+    build_vm_images_script: $SCRIPT_BASE/build_vm_images.sh
+
+    # TODO,Continuous Delivery: Automaticly open a libpod PR after using 'sed' to replace
+    #                           the image_names with the new (just build) images.  That will
+    #                           cause a new round of testing to happen (via the PR) using
+    #                           the new images.  When all is good, the PR may be manually
+    #                           merged so all PR testing uses the new images.  The script
+    #                           names (below) describe their purpose in this workflow.
+    # deploy_images_script:
+    #   - clone_podman_release_branch.sh
+    #   - modify_cirrus_yaml_image_names.sh
+    #   - commit_and_create_upstream_pr.sh
