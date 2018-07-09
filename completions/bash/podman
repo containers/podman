@@ -2055,11 +2055,9 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
-
 _podman_pod_create() {
   local options_with_args="
       --cgroup-parent
-      --cgroup-to-ctr
       --podidfile
       --label-file
       --label
@@ -2072,14 +2070,6 @@ _podman_pod_create() {
   _complete_ "$options_with_args" "$boolean_options"
 }
 
-# _podman_pod_inspect() {
-#   _podman_container_run
-# }
-#
-# _podman_pod_kill() {
-#   _podman_container_run
-# }
-
 __podman_pod_ps() {
   local options_with_args="
    -f
@@ -2089,11 +2079,16 @@ __podman_pod_ps() {
   "
 
   local boolean_options="
-   --no-trunc
+   --cgroup
+   --ctr-ids
+   --ctr-names
+   --ctr-status
    -q
    --quiet
-   --cgroup
+   --no-trunc
    --labels
+   -l
+   --latest
   "
   _complete_ "$options_with_args" "$boolean_options"
 }
@@ -2110,14 +2105,6 @@ _podman_pod_ps() {
   __podman_pod_ps
 }
 
-# _podman_pod_pause() {
-#   _podman_container_run
-# }
-#
-# _podman_pod_restart() {
-#   _podman_container_run
-# }
-
 _podman_pod_rm() {
   local options_with_args="
   "
@@ -2127,7 +2114,8 @@ _podman_pod_rm() {
 	--all
     -f
 	--force
-	-rmctr
+    --latest
+    -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -2139,44 +2127,6 @@ _podman_pod_rm() {
             ;;
     esac
 }
-
-_podman_pod_start() {
-  local options_with_args="
-  "
-
-  local boolean_options="
-  "
-  _complete_ "$options_with_args" "$boolean_options"
-    case "$cur" in
-        -*)
-            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
-            ;;
-        *)
-            __podman_complete_pod_names
-            ;;
-    esac
-}
-
-# _podman_pod_stats() {
-#   _podman_container_run
-# }
-
-# _podman_pod_stop() {
-#   _podman_container_run
-# }
-
-# _podman_pod_top() {
-#   _podman_container_run
-# }
-
-# _podman_pod_unpause() {
-#   _podman_container_run
-# }
-#
-# _podman_pod_wait() {
-#   _podman_container_run
-# }
-
 
 _podman_pod() {
     local boolean_options="
@@ -2185,22 +2135,12 @@ _podman_pod() {
     "
     subcommands="
      create
-     inspect
-     kill
-     ls
-     pause
-     restart
+     ps
      rm
-     start
-     stats
-     stop
-     top
-     unpause
-     wait
     "
     local aliases="
      list
-     ps
+     ls
     "
      __podman_subcommands "$subcommands $aliases" && return
 
@@ -2213,9 +2153,6 @@ _podman_pod() {
         ;;
      esac
 }
-
-
-
 
 _podman_podman() {
      local options_with_args="
@@ -2253,8 +2190,8 @@ _podman_podman() {
     logs
     mount
     pause
-    port
     pod
+    port
     ps
     pull
     push

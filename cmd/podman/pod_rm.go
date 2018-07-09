@@ -20,17 +20,18 @@ var (
 			Name:  "all, a",
 			Usage: "Remove all pods",
 		},
+		LatestFlag,
 	}
 	podRmDescription = "Remove one or more pods"
 	podRmCommand     = cli.Command{
 		Name: "rm",
 		Usage: fmt.Sprintf(`podman rm will remove one or more pods from the host. The pod name or ID can be used.
-                            A pod with running or attached containrs will not be removed.
-                            If --force, -f is specified, all containers will be stopped, then removed.`),
+                            A pod with containers will not be removed without --force.
+                            If --force is specified, all containers will be stopped, then removed.`),
 		Description:            podRmDescription,
 		Flags:                  podRmFlags,
 		Action:                 podRmCmd,
-		ArgsUsage:              "",
+		ArgsUsage:              "[POD ...]",
 		UseShortOptionHandling: true,
 	}
 )
@@ -42,6 +43,10 @@ func podRmCmd(c *cli.Context) error {
 		return err
 	}
 
+	if c.Bool("latest") && c.Bool("all") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -50,22 +55,31 @@ func podRmCmd(c *cli.Context) error {
 
 	args := c.Args()
 
-	if len(args) == 0 && !c.Bool("all") {
+	if len(args) == 0 && !c.Bool("all") && !c.Bool("latest") {
 		return errors.Errorf("specify one or more pods to remove")
 	}
 
 	var delPods []*libpod.Pod
 	var lastError error
-	if c.Bool("all") || c.Bool("a") {
-		delPods, err = runtime.Pods()
+	if c.IsSet("all") {
+		delPods, err = runtime.GetAllPods()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get pod list")
 		}
+	} else if c.IsSet("latest") {
+		delPod, err := runtime.GetLatestPod()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest pod")
+		}
+		delPods = append(delPods, delPod)
 	} else {
 		for _, i := range args {
 			pod, err := runtime.LookupPod(i)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
 				lastError = errors.Wrapf(err, "unable to find pods %s", i)
 				continue
 			}

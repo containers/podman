@@ -4,20 +4,24 @@
 podman\-pod\-rm - Remove one or more pods
 
 ## SYNOPSIS
-**podman rm** [*options*] *container*
+**podman pod rm** [*options*] *pod*
 
 ## DESCRIPTION
-**podman pod rm** will remove one or more pods from the host.  The pod name or ID can be used. The -f option stops all containers then removes them before removing the pod. Without the -f option, a pod cannot be removed if it has attached containers.
+**podman pod rm** will remove one or more pods from the host.  The pod name or ID can be used. The \-f option stops all containers and then removes them before removing the pod. Without the \-f option, a pod cannot be removed if it has associated containers.
 
 ## OPTIONS
+
+**--all, a**
+
+Remove all pods.  Can be used in conjunction with \-f as well.
+
+**--latest, -l**
+
+Instead of providing the pod name or ID, use the last created pod.
 
 **--force, f**
 
 Stop running containers and delete all stopped containers before removal of pod.
-
-**--all, a**
-
-Remove all pods.  Can be used in conjunction with -f and -r as well.
 
 ## EXAMPLE
 
@@ -35,5 +39,4 @@ podman pod rm -fa
 podman-pod(1)
 
 ## HISTORY
-August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>
-July 2018, Adapted from podman rm man page by Peter Hunt <pehunt@redhat.com>
+July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

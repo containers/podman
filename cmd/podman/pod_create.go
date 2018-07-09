@@ -17,13 +17,9 @@ var podCreateDescription = "Creates a new empty pod. The pod ID is then" +
 	" initial state 'created'."
 
 var podCreateFlags = []cli.Flag{
-	cli.BoolTFlag{
-		Name:  "cgroup-to-ctr",
-		Usage: "Tells containers in this pod to use the cgroup created for the pod",
-	},
 	cli.StringFlag{
 		Name:  "cgroup-parent",
-		Usage: "Optional parent cgroup for the pod",
+		Usage: "Set parent cgroup for the pod",
 	},
 	cli.StringSliceFlag{
 		Name:  "label-file",
@@ -45,7 +41,7 @@ var podCreateFlags = []cli.Flag{
 
 var podCreateCommand = cli.Command{
 	Name:                   "create",
-	Usage:                  "create but do not start a pod",
+	Usage:                  "create a new empty pod",
 	Description:            podCreateDescription,
 	Flags:                  podCreateFlags,
 	Action:                 podCreateCmd,
@@ -75,18 +71,11 @@ func podCreateCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "unable to write pod id file %s", c.String("pod-id-file"))
 		}
 	}
-	// BEGIN GetPodCreateOptions
 
-	// TODO make sure this is correct usage
 	if c.IsSet("cgroup-parent") {
 		options = append(options, libpod.WithPodCgroupParent(c.String("cgroup-parent")))
 	}
 
-	if c.Bool("cgroup-to-ctr") {
-		options = append(options, libpod.WithPodCgroups())
-	}
-	// LABEL VARIABLES
-	// TODO make sure this works as expected
 	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("label"))
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
@@ -98,6 +87,9 @@ func podCreateCmd(c *cli.Context) error {
 	if c.IsSet("name") {
 		options = append(options, libpod.WithPodName(c.String("name")))
 	}
+
+	// always have containers use pod cgroups
+	options = append(options, libpod.WithPodCgroups())
 
 	pod, err := runtime.NewPod(options...)
 	if err != nil {

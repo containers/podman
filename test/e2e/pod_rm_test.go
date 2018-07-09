@@ -31,24 +31,44 @@ var _ = Describe("Podman pod rm", func() {
 	It("podman pod rm empty pod", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
-		cid := session.OutputToString()
+		podid := session.OutputToString()
 
-		result := podmanTest.Podman([]string{"pod", "rm", cid})
+		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+	})
+
+	It("podman pod rm latest pod", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		podid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		podid2 := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"pod", "rm", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring(podid))
+		Expect(result.OutputToString()).To(Not(ContainSubstring(podid2)))
 	})
 
 	It("podman pod rm doesn't remove a pod with a container", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		cid := session.OutputToString()
+		podid := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"create", "--pod", cid, ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"create", "--pod", podid, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "rm", cid})
+		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))
 
@@ -61,13 +81,13 @@ var _ = Describe("Podman pod rm", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		cid := session.OutputToString()
+		podid := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", cid, ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "rm", "-f", cid})
+		result := podmanTest.Podman([]string{"pod", "rm", "-f", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
@@ -80,12 +100,12 @@ var _ = Describe("Podman pod rm", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		cid1 := session.OutputToString()
+		podid1 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", cid1, ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid1, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -107,29 +127,29 @@ var _ = Describe("Podman pod rm", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		cid1 := session.OutputToString()
+		podid1 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		cid2 := session.OutputToString()
+		podid2 := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", cid1, ALPINE, "top"})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid1, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "-d", "--pod", cid1, ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"create", "-d", "--pod", podid1, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", cid2, ALPINE, "ls"})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid2, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", cid2, nginx})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid2, nginx})
 		session.WaitWithDefaultTimeout()
 
 		result := podmanTest.Podman([]string{"pod", "rm", "-fa"})

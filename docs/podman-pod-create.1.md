@@ -15,13 +15,6 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 ## OPTIONS
 
-**-a**, **--attach**=[]
-
-Not yet implemented.
-
-**--cgroup-to-ctr**=""
-Tells containers in this pod to use the cgroup created for the pod
-
 **--cgroup-parent**=*true*|*false*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
@@ -52,8 +45,8 @@ UUID short identifier (“f78375b1c487”)
 Name (“jonah”)
 
 podman generates a UUID for each pod, and if a name is not assigned
-to the container with **--name** then the daemon will also generate a random
-string name. The name is useful any place you need to identify a pod.
+to the container with **--name** then a random string name will be generated
+for it. The name is useful any place you need to identify a pod.
 
 ## EXAMPLES
 
@@ -64,8 +57,4 @@ string name. The name is useful any place you need to identify a pod.
 podman-pod(1)
 
 ## HISTORY
-August 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
-September 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
-November 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
-October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
-July 2018, adapted from create man page by Peter Hunt <pehunt@redhat.com>
+July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

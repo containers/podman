@@ -8,7 +8,8 @@ var (
 	podDescription = `
    podman pod
 
-   manage pods
+   Manage container pods.
+   Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.
 `
 	podCommand = cli.Command{
 		Name:                   "pod",
