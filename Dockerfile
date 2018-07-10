@@ -115,3 +115,7 @@ COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
 WORKDIR /go/src/github.com/projectatomic/libpod
+
+# Wrap all commands in the "docker-in-docker" script to allow nested containers,
+# and allow testing of apparmor.
+ENTRYPOINT ["./hack/dind"]
