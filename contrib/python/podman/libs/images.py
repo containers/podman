@@ -3,6 +3,7 @@ import collections
 import copy
 import functools
 import json
+import logging
 
 from . import Config
 from .containers import Container
@@ -37,11 +38,8 @@ class Image(collections.UserDict):
 
         Pulls defaults from image.inspect()
         """
-        with self._client() as podman:
-            details = self.inspect()
+        details = self.inspect()
 
-        # TODO: remove network settings once defaults implemented in service
-        # Inialize config from parameters, then add image information
         config = Config(image_id=self.id, **kwargs)
         config['command'] = details.containerconfig['cmd']
         config['env'] = self._split_token(details.containerconfig['env'])
@@ -49,8 +47,8 @@ class Image(collections.UserDict):
         config['labels'] = copy.deepcopy(details.labels)
         config['net_mode'] = 'bridge'
         config['network'] = 'bridge'
-        config['work_dir'] = '/tmp'
 
+        logging.debug('Image {}: create config: {}'.format(self.id, config))
         with self._client() as podman:
             id = podman.CreateContainer(config)['container']
             cntr = podman.GetContainer(id)
