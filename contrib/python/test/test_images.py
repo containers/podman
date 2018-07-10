@@ -62,6 +62,7 @@ class TestImages(PodmanTestCase):
         actual = self.alpine_image.container()
         self.assertIsNotNone(actual)
         self.assertEqual(actual.status, 'configured')
+
         ctnr = actual.start()
         self.assertIn(ctnr.status, ['running', 'exited'])
 
