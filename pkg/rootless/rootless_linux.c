@@ -112,7 +112,7 @@ reexec_in_user_namespace(int ready)
       setresuid (0, 0, 0) < 0)
     _exit (1);
 
-  execv (argv[0], argv);
+  execvp (argv[0], argv);
 
   _exit (1);
 }
