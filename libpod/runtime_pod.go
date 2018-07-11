@@ -2,6 +2,9 @@ package libpod
 
 import (
 	"context"
+	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Contains the public Runtime API for pods
@@ -92,4 +95,37 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 	}
 
 	return podsFiltered, nil
+}
+
+// GetAllPods retrieves all pods
+func (r *Runtime) GetAllPods() ([]*Pod, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
+
+	return r.state.AllPods()
+}
+
+// GetLatestPod returns a pod object of the latest created pod.
+func (r *Runtime) GetLatestPod() (*Pod, error) {
+	lastCreatedIndex := -1
+	var lastCreatedTime time.Time
+	pods, err := r.GetAllPods()
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get all pods")
+	}
+	if len(pods) == 0 {
+		return nil, ErrNoSuchPod
+	}
+	for podIndex, pod := range pods {
+		createdTime := pod.config.CreatedTime
+		if createdTime.After(lastCreatedTime) {
+			lastCreatedTime = createdTime
+			lastCreatedIndex = podIndex
+		}
+	}
+	return pods[lastCreatedIndex], nil
 }
