@@ -462,6 +462,20 @@ func (i *LibpodAPI) GetAttachSockets(call ioprojectatomicpodman.VarlinkCall, nam
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
+
+	status, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	// If the container hasn't been run, we need to run init
+	// so the conmon sockets get created.
+	if status == libpod.ContainerStateConfigured || status == libpod.ContainerStateStopped {
+		if err := ctr.Init(getContext()); err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+	}
+
 	s := ioprojectatomicpodman.Sockets{
 		Container_id:   ctr.ID(),
 		Io_socket:      ctr.AttachSocketPath(),
