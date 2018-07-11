@@ -27,13 +27,13 @@ func main() {
 	debug := false
 	cpuProfile := false
 
-	became, err := rootless.BecomeRootInUserNS()
+	became, ret, err := rootless.BecomeRootInUserNS()
 	if err != nil {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
 	if became {
-		os.Exit(0)
+		os.Exit(ret)
 	}
 
 	if reexec.Init() {

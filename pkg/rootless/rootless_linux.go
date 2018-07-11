@@ -67,14 +67,16 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	return cmd.Run()
 }
 
-// BecomeRootInUserNS re-exec podman in a new userNS
-func BecomeRootInUserNS() (bool, error) {
-
+// BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
+// into a new user namespace and the return code from the re-executed podman process.
+// If podman was re-executed the caller needs to propagate the error code returned by the child
+// process.
+func BecomeRootInUserNS() (bool, int, error) {
 	if os.Getuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
-			return false, runInUser()
+			return false, 0, runInUser()
 		}
-		return false, nil
+		return false, 0, nil
 	}
 
 	runtime.LockOSThread()
@@ -82,7 +84,7 @@ func BecomeRootInUserNS() (bool, error) {
 
 	r, w, err := os.Pipe()
 	if err != nil {
-		return false, err
+		return false, -1, err
 	}
 	defer r.Close()
 	defer w.Close()
@@ -90,13 +92,13 @@ func BecomeRootInUserNS() (bool, error) {
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
 	pid := int(pidC)
 	if pid < 0 {
-		return false, errors.Errorf("cannot re-exec process")
+		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
 	setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
 	err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
 	if err != nil {
-		return false, errors.Wrapf(err, "cannot write setgroups file")
+		return false, -1, errors.Wrapf(err, "cannot write setgroups file")
 	}
 
 	var uids, gids []idtools.IDMap
@@ -115,7 +117,7 @@ func BecomeRootInUserNS() (bool, error) {
 		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
 		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getuid())), 0666)
 		if err != nil {
-			return false, errors.Wrapf(err, "cannot write uid_map")
+			return false, -1, errors.Wrapf(err, "cannot write uid_map")
 		}
 	}
 
@@ -127,13 +129,13 @@ func BecomeRootInUserNS() (bool, error) {
 		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
 		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getgid())), 0666)
 		if err != nil {
-			return false, errors.Wrapf(err, "cannot write gid_map")
+			return false, -1, errors.Wrapf(err, "cannot write gid_map")
 		}
 	}
 
 	_, err = w.Write([]byte("1"))
 	if err != nil {
-		return false, errors.Wrapf(err, "write to sync pipe")
+		return false, -1, errors.Wrapf(err, "write to sync pipe")
 	}
 
 	c := make(chan os.Signal, 1)
@@ -150,9 +152,10 @@ func BecomeRootInUserNS() (bool, error) {
 		}
 	}()
 
-	if C.reexec_in_user_namespace_wait(pidC) < 0 {
-		return false, errors.Wrapf(err, "error waiting for the re-exec process")
+	ret := C.reexec_in_user_namespace_wait(pidC)
+	if ret < 0 {
+		return false, -1, errors.Wrapf(err, "error waiting for the re-exec process")
 	}
 
-	return true, nil
+	return true, int(ret), nil
 }

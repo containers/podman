@@ -13,8 +13,8 @@ func IsRootless() bool {
 
 // BecomeRootInUserNS is a stub function that always returns false and an
 // error on unsupported OS's
-func BecomeRootInUserNS() (bool, error) {
-	return false, errors.New("this function is not supported on this os")
+func BecomeRootInUserNS() (bool, int, error) {
+	return false, -1, errors.New("this function is not supported on this os")
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS

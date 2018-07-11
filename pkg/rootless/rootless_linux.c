@@ -105,16 +105,16 @@ reexec_in_user_namespace(int ready)
     ret = read (ready, &b, 1) < 0;
   while (ret < 0 && errno == EINTR);
   if (ret < 0)
-    _exit (1);
+    _exit (EXIT_FAILURE);
   close (ready);
 
   if (setresgid (0, 0, 0) < 0 ||
       setresuid (0, 0, 0) < 0)
-    _exit (1);
+    _exit (EXIT_FAILURE);
 
   execvp (argv[0], argv);
 
-  _exit (1);
+  _exit (EXIT_FAILURE);
 }
 
 int
