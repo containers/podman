@@ -72,13 +72,17 @@ class TestContainers(PodmanTestCase):
             mock_in.write('echo H"ello, World"; exit\n')
             mock_in.seek(0, 0)
 
-            self.alpine_ctnr.attach(
-                stdin=mock_in.fileno(), stdout=mock_out.fileno())
+            ctnr = self.pclient.images.get(self.alpine_ctnr.image).container(
+                detach=True, tty=True)
+            ctnr.attach(stdin=mock_in.fileno(), stdout=mock_out.fileno())
+            ctnr.start()
 
             mock_out.flush()
             mock_out.seek(0, 0)
             output = mock_out.read()
             self.assertIn('Hello', output)
+
+            ctnr.remove(force=True)
 
     def test_processes(self):
         actual = list(self.alpine_ctnr.processes())
@@ -133,8 +137,7 @@ class TestContainers(PodmanTestCase):
     def test_commit(self):
         # TODO: Test for STOPSIGNAL when supported by OCI
         # TODO: Test for message when supported by OCI
-        details = self.pclient.images.get(
-            self.alpine_ctnr.inspect().image).inspect()
+        details = self.pclient.images.get(self.alpine_ctnr.image).inspect()
         changes = ['ENV=' + i for i in details.containerconfig['env']]
         changes.append('CMD=/usr/bin/zsh')
         changes.append('ENTRYPOINT=/bin/sh date')

@@ -7,9 +7,10 @@ import signal
 import time
 
 from ._containers_attach import Mixin as AttachMixin
+from ._containers_start import Mixin as StartMixin
 
 
-class Container(collections.UserDict, AttachMixin):
+class Container(AttachMixin, StartMixin, collections.UserDict):
     """Model for a container."""
 
     def __init__(self, client, id, data):
@@ -142,12 +143,6 @@ class Container(collections.UserDict, AttachMixin):
             results = podman.Commit(self.id, image_name, changes, author,
                                     message, pause)
         return results['image']
-
-    def start(self):
-        """Start container, return container on success."""
-        with self._client() as podman:
-            podman.StartContainer(self.id)
-            return self._refresh(podman)
 
     def stop(self, timeout=25):
         """Stop container, return id on success."""
