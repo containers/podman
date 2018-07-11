@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -691,18 +690,6 @@ func (r *Runtime) generateName() (string, error) {
 		return name, nil
 	}
 	// The code should never reach here.
-}
-
-// SaveDefaultConfig saves a copy of the default config at the given path
-func SaveDefaultConfig(path string) error {
-	var w bytes.Buffer
-	e := toml.NewEncoder(&w)
-
-	if err := e.Encode(&defaultRuntimeConfig); err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(path, w.Bytes(), 0644)
 }
 
 // ImageRuntime returns the imageruntime for image resolution
