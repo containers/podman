@@ -915,7 +915,7 @@ _podman_build() {
          --runtime)
              COMPREPLY=($(compgen -W 'runc runv' -- "$cur"))
              ;;
-         $(__buildah_to_extglob "$options_with_args"))
+         $(__podman_to_extglob "$options_with_args"))
  return
  ;;
  esac
