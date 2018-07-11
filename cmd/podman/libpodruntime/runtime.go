@@ -24,7 +24,11 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	var opts storage.StoreOptions
 
-	opts.RunRoot = filepath.Join(libpod.GetRootlessRuntimeDir(), "run")
+	rootlessRuntime, err := libpod.GetRootlessRuntimeDir()
+	if err != nil {
+		return opts, err
+	}
+	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
 
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {

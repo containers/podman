@@ -167,7 +167,7 @@ var (
 		CgroupManager: CgroupfsCgroupsManager,
 		HooksDir:      hooks.DefaultDir,
 		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
-		TmpDir:        getDefaultTmpDir(),
+		TmpDir:        "",
 		MaxLogSize:    -1,
 		NoPivotRoot:   false,
 		CNIConfigDir:  "/etc/cni/net.d/",
@@ -176,7 +176,7 @@ var (
 )
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() string {
+func GetRootlessRuntimeDir() (string, error) {
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
 	if runtimeDir == "" {
@@ -196,18 +196,29 @@ func GetRootlessRuntimeDir() string {
 		}
 	}
 	if runtimeDir == "" {
-		runtimeDir = filepath.Join(os.Getenv("HOME"), "rundir")
+		home := os.Getenv("HOME")
+		if home == "" {
+			return "", fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+		}
+		resolvedHome, err := filepath.EvalSymlinks(home)
+		if err != nil {
+			return "", errors.Wrapf(err, "cannot resolve %s", home)
+		}
+		runtimeDir = filepath.Join(resolvedHome, "rundir")
 	}
-	return runtimeDir
+	return runtimeDir, nil
 }
 
-func getDefaultTmpDir() string {
+func getDefaultTmpDir() (string, error) {
 	if !rootless.IsRootless() {
-		return "/var/run/libpod"
+		return "/var/run/libpod", nil
 	}
 
-	rootlessRuntimeDir := GetRootlessRuntimeDir()
-	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp")
+	rootlessRuntimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp"), nil
 }
 
 // NewRuntime creates a new container runtime
@@ -217,7 +228,12 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime.config = new(RuntimeConfig)
 
 	// Copy the default configuration
+	tmpDir, err := getDefaultTmpDir()
+	if err != nil {
+		return nil, err
+	}
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
+	runtime.config.TmpDir = tmpDir
 
 	configPath := ConfigPath
 	foundConfig := true
@@ -227,9 +243,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			foundConfig = false
 		}
 
+		runtimeDir, err := GetRootlessRuntimeDir()
+		if err != nil {
+			return nil, err
+		}
+
 		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
 		// So make sure the env variable is set.
-		err = os.Setenv("XDG_RUNTIME_DIR", GetRootlessRuntimeDir())
+		err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 		}
