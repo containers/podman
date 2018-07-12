@@ -45,6 +45,9 @@ func ConfFromBytes(bytes []byte) (*NetworkConfig, error) {
 	if err := json.Unmarshal(bytes, &conf.Network); err != nil {
 		return nil, fmt.Errorf("error parsing configuration: %s", err)
 	}
+	if conf.Network.Type == "" {
+		return nil, fmt.Errorf("error parsing configuration: missing 'type'")
+	}
 	return conf, nil
 }
 
