@@ -2026,6 +2026,7 @@ _podman_podman() {
      local boolean_options="
            --help -h
            --version -v
+           --syslog
      "
      commands="
     attach
