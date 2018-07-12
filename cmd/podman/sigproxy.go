@@ -25,6 +25,8 @@ func ProxySignals(ctr *libpod.Container) {
 
 			if err := ctr.Kill(uint(s.(syscall.Signal))); err != nil {
 				logrus.Errorf("Error forwarding signal %d to container %s: %v", s, ctr.ID(), err)
+				signal.StopCatch(sigBuffer)
+				syscall.Kill(syscall.Getpid(), s.(syscall.Signal))
 			}
 		}
 	}()
