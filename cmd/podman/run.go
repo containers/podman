@@ -172,6 +172,10 @@ func runCmd(c *cli.Context) error {
 	if c.IsSet("attach") || c.IsSet("a") {
 		outputStream = nil
 		errorStream = nil
+		if !c.Bool("interactive") {
+			inputStream = nil
+		}
+
 		inputStream = nil
 
 		attachTo := c.StringSlice("attach")
@@ -187,13 +191,7 @@ func runCmd(c *cli.Context) error {
 				return errors.Wrapf(libpod.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
 			}
 		}
-
-		// If --interactive is set, restore stdin
-		if c.Bool("interactive") {
-			inputStream = os.Stdin
-		}
 	}
-
 	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"), true); err != nil {
 		// This means the command did not exist
 		exitCode = 127
@@ -203,7 +201,7 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	if ecode, err := ctr.ExitCode(); err != nil {
+	if ecode, err := ctr.Wait(); err != nil {
 		if errors.Cause(err) == libpod.ErrNoSuchCtr {
 			// The container may have been removed
 			// Go looking for an exit file
@@ -213,8 +211,6 @@ func runCmd(c *cli.Context) error {
 			} else {
 				exitCode = ctrExitCode
 			}
-		} else {
-			logrus.Errorf("Unable to get exit code of container %s: %q", ctr.ID(), err)
 		}
 	} else {
 		exitCode = int(ecode)
