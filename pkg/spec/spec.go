@@ -345,10 +345,11 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 		return nil
 	} else if netMode.IsContainer() {
 		logrus.Debug("Using container netmode")
-	} else {
-		return errors.Errorf("unknown network mode")
+	} else if netMode.IsUserDefined() {
+		logrus.Debug("Using user defined netmode")
+		return nil
 	}
-	return nil
+	return errors.Errorf("unknown network mode")
 }
 
 func addUTSNS(config *CreateConfig, g *generate.Generator) error {

@@ -3,10 +3,8 @@
 package ocicni
 
 const (
-	// DefaultNetDir is the place to look for CNI Network
-	DefaultNetDir = "/etc/cni/net.d"
-	// DefaultCNIDir is the place to look for cni config files
-	DefaultCNIDir = "/opt/cni/bin"
-	// VendorCNIDirTemplate is the template for looking up vendor specific cni config/executable files
-	VendorCNIDirTemplate = "%s/opt/%s/bin"
+	// DefaultConfDir is the default place to look for CNI Network
+	DefaultConfDir = "/etc/cni/net.d"
+	// DefaultBinDir is the default place to look for CNI config files
+	DefaultBinDir = "/opt/cni/bin"
 )
