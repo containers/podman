@@ -59,6 +59,10 @@ Select which storage driver is used to manage storage of images and containers (
 
 Used to pass an option to the storage driver
 
+**--syslog**
+
+output logging information to syslog as well as the console
+
 **--version, -v**
 
 Print the version

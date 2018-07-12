@@ -14,7 +14,9 @@ import (
 	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
+	lsyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"github.com/urfave/cli"
+	"log/syslog"
 )
 
 // This is populated by the Makefile from the VERSION file
@@ -94,6 +96,12 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
+		if c.GlobalBool("syslog") {
+			hook, err := lsyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
+			if err == nil {
+				logrus.AddHook(hook)
+			}
+		}
 		logLevel := c.GlobalString("log-level")
 		if logLevel != "" {
 			level, err := logrus.ParseLevel(logLevel)
@@ -186,6 +194,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "storage-opt",
 			Usage: "used to pass an option to the storage driver",
+		},
+		cli.BoolFlag{
+			Name:  "syslog",
+			Usage: "output logging information to syslog as well as the console",
 		},
 	}
 	if _, err := os.Stat("/etc/containers/registries.conf"); err != nil {
