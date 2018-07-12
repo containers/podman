@@ -519,7 +519,7 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 		case libpod.ContainerStateCreated.String(), libpod.ContainerStateConfigured.String():
 			status = "Created"
 		default:
-			status = "Dead"
+			status = "Error"
 		}
 
 		if !opts.NoTrunc {
