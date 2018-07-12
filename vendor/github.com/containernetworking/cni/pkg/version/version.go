@@ -24,7 +24,7 @@ import (
 
 // Current reports the version of the CNI spec implemented by this library
 func Current() string {
-	return "0.3.1"
+	return "0.4.0"
 }
 
 // Legacy PluginInfo describes a plugin that is backwards compatible with the
@@ -35,7 +35,7 @@ func Current() string {
 // Any future CNI spec versions which meet this definition should be added to
 // this list.
 var Legacy = PluginSupports("0.1.0", "0.2.0")
-var All = PluginSupports("0.1.0", "0.2.0", "0.3.0", "0.3.1")
+var All = PluginSupports("0.1.0", "0.2.0", "0.3.0", "0.3.1", "0.4.0")
 
 var resultFactories = []struct {
 	supportedVersions []string

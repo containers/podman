@@ -321,9 +321,7 @@ func resetState(state *containerState) error {
 	state.Mounted = false
 	state.State = ContainerStateConfigured
 	state.ExecSessions = make(map[string]*ExecSession)
-	state.IPs = nil
-	state.Interfaces = nil
-	state.Routes = nil
+	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
 
 	return nil
