@@ -59,6 +59,9 @@ type Runtime struct {
 	SignaturePolicyPath string
 }
 
+// ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
+var ErrRepoTagNotFound = errors.New("unable to match user input to any specific repotag")
+
 // NewImageRuntimeFromStore creates an ImageRuntime based on a provided store
 func NewImageRuntimeFromStore(store storage.Store) *Runtime {
 	return &Runtime{
@@ -333,9 +336,39 @@ func (i *Image) TopLayer() string {
 
 // Remove an image; container removal for the image must be done
 // outside the context of images
+// TODO: the force param does nothing as of now. Need to move container
+// handling logic here eventually.
 func (i *Image) Remove(force bool) error {
-	_, err := i.imageruntime.store.DeleteImage(i.ID(), true)
-	return err
+	parent, err := i.GetParent()
+	if err != nil {
+		return err
+	}
+	if _, err := i.imageruntime.store.DeleteImage(i.ID(), true); err != nil {
+		return err
+	}
+	for parent != nil {
+		nextParent, err := parent.GetParent()
+		if err != nil {
+			return err
+		}
+		children, err := parent.GetChildren()
+		if err != nil {
+			return err
+		}
+		// Do not remove if image is a base image and is not untagged, or if
+		// the image has more children.
+		if (nextParent == nil && len(parent.Names()) > 0) || len(children) > 0 {
+			return nil
+		}
+		id := parent.ID()
+		if _, err := i.imageruntime.store.DeleteImage(id, true); err != nil {
+			logrus.Debugf("unable to remove intermediate image %q: %v", id, err)
+		} else {
+			fmt.Println(id)
+		}
+		parent = nextParent
+	}
+	return nil
 }
 
 // Decompose an Image
@@ -902,7 +935,7 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 		}
 	}
 	if maxCount == 0 {
-		return "", errors.Errorf("unable to match user input to any specific repotag")
+		return "", ErrRepoTagNotFound
 	}
 	if len(results[maxCount]) > 1 {
 		return "", errors.Errorf("user input matched multiple repotags for the image")
@@ -914,6 +947,68 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 func splitString(input string) string {
 	split := strings.Split(input, "/")
 	return split[len(split)-1]
+}
+
+// IsParent goes through the layers in the store and checks if i.TopLayer is
+// the parent of any other layer in store. Double check that image with that
+// layer exists as well.
+func (i *Image) IsParent() (bool, error) {
+	children, err := i.GetChildren()
+	if err != nil {
+		return false, err
+	}
+	return len(children) > 0, nil
+}
+
+// GetParent returns the image ID of the parent. Return nil if a parent is not found.
+func (i *Image) GetParent() (*Image, error) {
+	images, err := i.imageruntime.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	layer, err := i.imageruntime.store.Layer(i.TopLayer())
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range images {
+		if img.TopLayer() == layer.Parent {
+			return img, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetChildren returns a list of the imageIDs that depend on the image
+func (i *Image) GetChildren() ([]string, error) {
+	var children []string
+	images, err := i.imageruntime.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	layers, err := i.imageruntime.store.Layers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, layer := range layers {
+		if layer.Parent == i.TopLayer() {
+			if imageID := getImageOfTopLayer(images, layer.ID); len(imageID) > 0 {
+				children = append(children, imageID...)
+			}
+		}
+	}
+	return children, nil
+}
+
+// getImageOfTopLayer returns the image ID where layer is the top layer of the image
+func getImageOfTopLayer(images []*Image, layer string) []string {
+	var matches []string
+	for _, img := range images {
+		if img.TopLayer() == layer {
+			matches = append(matches, img.ID())
+		}
+	}
+	return matches
 }
 
 // InputIsID returns a bool if the user input for an image
