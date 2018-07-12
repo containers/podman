@@ -14,13 +14,19 @@ import (
 
 // An InMemoryState is a purely in-memory state store
 type InMemoryState struct {
-	pods          map[string]*Pod
-	containers    map[string]*Container
-	ctrDepends    map[string][]string
-	podContainers map[string]map[string]*Container
-	nameIndex     *registrar.Registrar
-	idIndex       *truncindex.TruncIndex
-	namespace     string
+	pods             map[string]*Pod
+	containers       map[string]*Container
+	ctrDepends       map[string][]string
+	podContainers    map[string]map[string]*Container
+	nameIndex        *registrar.Registrar
+	idIndex          *truncindex.TruncIndex
+	namespace        string
+	namespaceIndexes map[string]*namespaceIndex
+}
+
+type namespaceIndex struct {
+	nameIndex *registrar.Registrar
+	idIndex   *truncindex.TruncIndex
 }
 
 // NewInMemoryState initializes a new, empty in-memory state
@@ -38,6 +44,8 @@ func NewInMemoryState() (State, error) {
 	state.idIndex = truncindex.NewTruncIndex([]string{})
 
 	state.namespace = ""
+
+	state.namespaceIndexes = make(map[string]*namespaceIndex)
 
 	return state, nil
 }
@@ -72,20 +80,43 @@ func (s *InMemoryState) Container(id string) (*Container, error) {
 		return nil, errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found", id)
 	}
 
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return nil, err
+	}
+
 	return ctr, nil
 }
 
 // LookupContainer retrieves a container by full ID, unique partial ID, or name
 func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+	var (
+		nameIndex *registrar.Registrar
+		idIndex   *truncindex.TruncIndex
+	)
+
 	if idOrName == "" {
 		return nil, ErrEmptyID
 	}
 
-	fullID, err := s.nameIndex.Get(idOrName)
+	if s.namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[s.namespace]
+		if !ok {
+			// We have no containers in the namespace
+			// Return false
+			return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+		}
+		nameIndex = nsIndex.nameIndex
+		idIndex = nsIndex.idIndex
+	} else {
+		nameIndex = s.nameIndex
+		idIndex = s.idIndex
+	}
+
+	fullID, err := nameIndex.Get(idOrName)
 	if err != nil {
 		if err == registrar.ErrNameNotReserved {
 			// What was passed is not a name, assume it's an ID
-			fullID, err = s.idIndex.Get(idOrName)
+			fullID, err = idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
 					return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
@@ -112,9 +143,18 @@ func (s *InMemoryState) HasContainer(id string) (bool, error) {
 		return false, ErrEmptyID
 	}
 
-	_, ok := s.containers[id]
+	ctr, ok := s.containers[id]
+	if ok {
+		if s.namespace != "" {
+			if s.namespace != ctr.config.Namespace {
+				return false, nil
+			}
+			return true, nil
+		}
+		return true, nil
+	}
 
-	return ok, nil
+	return false, nil
 }
 
 // AddContainer adds a container to the state
@@ -159,6 +199,25 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 
 	s.containers[ctr.ID()] = ctr
 
+	// If we're in a namespace, add us to that namespace's indexes
+	if ctr.config.Namespace != "" {
+		var nsIndex *namespaceIndex
+		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
+		if !ok {
+			nsIndex = new(namespaceIndex)
+			nsIndex.nameIndex = registrar.NewRegistrar()
+			nsIndex.idIndex = truncindex.NewTruncIndex([]string{})
+			s.namespaceIndexes[ctr.config.Namespace] = nsIndex
+		}
+		// Should be no errors here, the previous index adds should have caught that
+		if err := nsIndex.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container name %s", ctr.Name())
+		}
+		if err := nsIndex.idIndex.Add(ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container ID %s", ctr.ID())
+		}
+	}
+
 	// Add containers this container depends on
 	for _, depCtr := range depCtrs {
 		s.addCtrToDependsMap(ctr.ID(), depCtr)
@@ -172,6 +231,10 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	// Almost no validity checks are performed, to ensure we can kick
 	// misbehaving containers out of the state
+
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
+	}
 
 	// Ensure we don't remove a container which other containers depend on
 	deps, ok := s.ctrDepends[ctr.ID()]
@@ -192,6 +255,17 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	s.nameIndex.Release(ctr.Name())
 
 	delete(s.ctrDepends, ctr.ID())
+
+	if ctr.config.Namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
+		if !ok {
+			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
+		}
+		if err := nsIndex.idIndex.Delete(ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error removing container %s from namespace ID index", ctr.ID())
+		}
+		nsIndex.nameIndex.Release(ctr.Name())
+	}
 
 	// Remove us from container dependencies
 	depCtrs := ctr.Dependencies()
@@ -217,6 +291,10 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -236,6 +314,10 @@ func (s *InMemoryState) SaveContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -243,6 +325,16 @@ func (s *InMemoryState) SaveContainer(ctr *Container) error {
 func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
 	if !ctr.valid {
 		return nil, ErrCtrRemoved
+	}
+
+	// If the container does not exist, return error
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return nil, errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return nil, err
 	}
 
 	arr, ok := s.ctrDepends[ctr.ID()]
@@ -257,7 +349,13 @@ func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
 func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	ctrs := make([]*Container, 0, len(s.containers))
 	for _, ctr := range s.containers {
-		ctrs = append(ctrs, ctr)
+		if s.namespace != "" {
+			if ctr.config.Namespace == s.namespace {
+				ctrs = append(ctrs, ctr)
+			}
+		} else {
+			ctrs = append(ctrs, ctr)
+		}
 	}
 
 	return ctrs, nil
@@ -274,21 +372,44 @@ func (s *InMemoryState) Pod(id string) (*Pod, error) {
 		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with id %s found", id)
 	}
 
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return nil, err
+	}
+
 	return pod, nil
 }
 
 // LookupPod retrieves a pod from the state from a full or unique partial ID or
 // a full name
 func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
+	var (
+		nameIndex *registrar.Registrar
+		idIndex   *truncindex.TruncIndex
+	)
+
 	if idOrName == "" {
 		return nil, ErrEmptyID
 	}
 
-	fullID, err := s.nameIndex.Get(idOrName)
+	if s.namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[s.namespace]
+		if !ok {
+			// We have no containers in the namespace
+			// Return false
+			return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+		}
+		nameIndex = nsIndex.nameIndex
+		idIndex = nsIndex.idIndex
+	} else {
+		nameIndex = s.nameIndex
+		idIndex = s.idIndex
+	}
+
+	fullID, err := nameIndex.Get(idOrName)
 	if err != nil {
 		if err == registrar.ErrNameNotReserved {
 			// What was passed is not a name, assume it's an ID
-			fullID, err = s.idIndex.Get(idOrName)
+			fullID, err = idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
 					return nil, errors.Wrapf(ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
@@ -315,9 +436,18 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 		return false, ErrEmptyID
 	}
 
-	_, ok := s.pods[id]
+	pod, ok := s.pods[id]
+	if ok {
+		if s.namespace != "" {
+			if s.namespace != pod.config.Namespace {
+				return false, nil
+			}
+			return true, nil
+		}
+		return true, nil
+	}
 
-	return ok, nil
+	return false, nil
 }
 
 // PodHasContainer checks if the given pod has a container with the given ID
@@ -328,6 +458,10 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 
 	if ctrID == "" {
 		return false, ErrEmptyID
+	}
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return false, err
 	}
 
 	podCtrs, ok := s.podContainers[pod.ID()]
@@ -344,6 +478,10 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 	if !pod.valid {
 		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+	}
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return nil, err
 	}
 
 	podCtrs, ok := s.podContainers[pod.ID()]
@@ -369,6 +507,10 @@ func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 func (s *InMemoryState) PodContainers(pod *Pod) ([]*Container, error) {
 	if !pod.valid {
 		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+	}
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return nil, err
 	}
 
 	podCtrs, ok := s.podContainers[pod.ID()]
@@ -417,6 +559,25 @@ func (s *InMemoryState) AddPod(pod *Pod) error {
 
 	s.podContainers[pod.ID()] = make(map[string]*Container)
 
+	// If we're in a namespace, add us to that namespace's indexes
+	if pod.config.Namespace != "" {
+		var nsIndex *namespaceIndex
+		nsIndex, ok := s.namespaceIndexes[pod.config.Namespace]
+		if !ok {
+			nsIndex = new(namespaceIndex)
+			nsIndex.nameIndex = registrar.NewRegistrar()
+			nsIndex.idIndex = truncindex.NewTruncIndex([]string{})
+			s.namespaceIndexes[pod.config.Namespace] = nsIndex
+		}
+		// Should be no errors here, the previous index adds should have caught that
+		if err := nsIndex.nameIndex.Reserve(pod.Name(), pod.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container name %s", pod.Name())
+		}
+		if err := nsIndex.idIndex.Add(pod.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container ID %s", pod.ID())
+		}
+	}
+
 	return nil
 }
 
@@ -425,6 +586,10 @@ func (s *InMemoryState) AddPod(pod *Pod) error {
 func (s *InMemoryState) RemovePod(pod *Pod) error {
 	// Don't make many validity checks to ensure we can kick badly formed
 	// pods out of the state
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return err
+	}
 
 	if _, ok := s.pods[pod.ID()]; !ok {
 		pod.valid = false
@@ -446,6 +611,17 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 	delete(s.podContainers, pod.ID())
 	s.nameIndex.Release(pod.Name())
 
+	if pod.config.Namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[pod.config.Namespace]
+		if !ok {
+			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", pod.config.Namespace)
+		}
+		if err := nsIndex.idIndex.Delete(pod.ID()); err != nil {
+			return errors.Wrapf(err, "error removing container %s from namespace ID index", pod.ID())
+		}
+		nsIndex.nameIndex.Release(pod.Name())
+	}
+
 	return nil
 }
 
@@ -456,6 +632,10 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 	if !pod.valid {
 		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+	}
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return err
 	}
 
 	// Get pod containers
@@ -560,6 +740,25 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	// Add container to pod containers
 	podCtrs[ctr.ID()] = ctr
 
+	// If we're in a namespace, add us to that namespace's indexes
+	if ctr.config.Namespace != "" {
+		var nsIndex *namespaceIndex
+		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
+		if !ok {
+			nsIndex = new(namespaceIndex)
+			nsIndex.nameIndex = registrar.NewRegistrar()
+			nsIndex.idIndex = truncindex.NewTruncIndex([]string{})
+			s.namespaceIndexes[ctr.config.Namespace] = nsIndex
+		}
+		// Should be no errors here, the previous index adds should have caught that
+		if err := nsIndex.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container name %s", ctr.Name())
+		}
+		if err := nsIndex.idIndex.Add(ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error registering container ID %s", ctr.ID())
+		}
+	}
+
 	// Add containers this container depends on
 	for _, depCtr := range depCtrs {
 		s.addCtrToDependsMap(ctr.ID(), depCtr)
@@ -576,6 +775,10 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	}
 	if !ctr.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
+	}
+
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
 	}
 
 	// Ensure we don't remove a container which other containers depend on
@@ -617,6 +820,17 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	// Remove the container from the pod
 	delete(podCtrs, ctr.ID())
 
+	if ctr.config.Namespace != "" {
+		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
+		if !ok {
+			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
+		}
+		if err := nsIndex.idIndex.Delete(ctr.ID()); err != nil {
+			return errors.Wrapf(err, "error removing container %s from namespace ID index", ctr.ID())
+		}
+		nsIndex.nameIndex.Release(ctr.Name())
+	}
+
 	// Remove us from container dependencies
 	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
@@ -631,6 +845,10 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 func (s *InMemoryState) UpdatePod(pod *Pod) error {
 	if !pod.valid {
 		return ErrPodRemoved
+	}
+
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return err
 	}
 
 	if _, ok := s.pods[pod.ID()]; !ok {
@@ -648,6 +866,10 @@ func (s *InMemoryState) SavePod(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return err
+	}
+
 	if _, ok := s.pods[pod.ID()]; !ok {
 		pod.valid = false
 		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
@@ -660,7 +882,13 @@ func (s *InMemoryState) SavePod(pod *Pod) error {
 func (s *InMemoryState) AllPods() ([]*Pod, error) {
 	pods := make([]*Pod, 0, len(s.pods))
 	for _, pod := range s.pods {
-		pods = append(pods, pod)
+		if s.namespace != "" {
+			if s.namespace == pod.config.Namespace {
+				pods = append(pods, pod)
+			}
+		} else {
+			pods = append(pods, pod)
+		}
 	}
 
 	return pods, nil
@@ -704,4 +932,14 @@ func (s *InMemoryState) removeCtrFromDependsMap(ctrID, dependsID string) {
 
 		s.ctrDepends[dependsID] = newArr
 	}
+}
+
+// Check if we can access a pod or container, or if that is blocked by
+// namespaces.
+func (s *InMemoryState) checkNSMatch(id, ns string) error {
+	if s.namespace != "" && s.namespace != ns {
+		return errors.Wrapf(ErrNSMismatch, "cannot access %s as it is in namespace %q and we are in namespace %q",
+			id, ns, s.namespace)
+	}
+	return nil
 }

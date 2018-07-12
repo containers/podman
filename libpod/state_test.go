@@ -634,6 +634,15 @@ func TestContainerInUseInvalidContainer(t *testing.T) {
 	})
 }
 
+func TestContainerInUseCtrNotInState(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testCtr, err := getTestCtr1(lockPath)
+		assert.NoError(t, err)
+		_, err := state.ContainerInUse(testCtr)
+		assert.Error(t, err)
+	})
+}
+
 func TestContainerInUseOneContainer(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		testCtr1, err := getTestCtr1(lockPath)
