@@ -2,6 +2,7 @@ package image
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/containers/image/docker/reference"
 )
@@ -33,6 +34,9 @@ func decompose(input string) (imageParts, error) {
 	}
 	if !isTagged {
 		tag = "latest"
+		if strings.Contains(input, "@sha256:") {
+			tag = "none"
+		}
 	} else {
 		tag = ntag.Tag()
 	}
