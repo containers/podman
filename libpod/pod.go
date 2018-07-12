@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/stringid"
@@ -36,6 +37,9 @@ type PodConfig struct {
 	// If true, all containers joined to the pod will use the pod cgroup as
 	// their cgroup parent, and cannot set a different cgroup parent
 	UsePodCgroup bool
+
+	// Time pod was created
+	CreatedTime time.Time `json:"created"`
 }
 
 // podState represents a pod's state
@@ -62,6 +66,11 @@ func (p *Pod) Labels() map[string]string {
 	}
 
 	return labels
+}
+
+// CreatedTime gets the time when the pod was created
+func (p *Pod) CreatedTime() time.Time {
+	return p.config.CreatedTime
 }
 
 // CgroupParent returns the pod's CGroup parent
@@ -92,6 +101,7 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
 	pod.config.Labels = make(map[string]string)
+	pod.config.CreatedTime = time.Now()
 	pod.state = new(podState)
 	pod.runtime = runtime
 
