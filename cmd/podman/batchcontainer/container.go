@@ -75,7 +75,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 			return errors.Wrapf(err, "unable to obtain container state")
 		}
 
-		exitCode, err = c.ExitCode()
+		exitCode, _, err = c.ExitCode()
 		if err != nil {
 			return errors.Wrapf(err, "unable to obtain container exit code")
 		}

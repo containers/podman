@@ -586,6 +586,8 @@ func (c *Container) reinit(ctx context.Context) error {
 	// Set and save now to make sure that, if the init() below fails
 	// we still have a valid state
 	c.state.State = ContainerStateConfigured
+	c.state.ExitCode = 0
+	c.state.Exited = false
 	if err := c.save(); err != nil {
 		return err
 	}
