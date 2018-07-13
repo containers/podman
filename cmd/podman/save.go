@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -118,14 +119,26 @@ func saveCmd(c *cli.Context) error {
 			return err
 		}
 	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(args[0])
+	source := args[0]
+	newImage, err := runtime.ImageRuntime().NewFromLocal(source)
 	if err != nil {
 		return err
 	}
 	dest := dst
 	// need dest to be in the format transport:path:reference for the following transports
-	if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), args[0]) {
-		dest = dst + ":" + args[0]
+	if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), source) {
+		prepend := ""
+		if !strings.Contains(source, libpodImage.DefaultLocalRepo) {
+			// we need to check if localhost was added to the image name in NewFromLocal
+			for _, name := range newImage.Names() {
+				// if the user searched for the image whose tag was prepended with localhost, we'll need to prepend localhost to successfully search
+				if strings.Contains(name, libpodImage.DefaultLocalRepo) && strings.Contains(name, source) {
+					prepend = fmt.Sprintf("%s/", libpodImage.DefaultLocalRepo)
+					break
+				}
+			}
+		}
+		dest = fmt.Sprintf("%s:%s%s", dst, prepend, source)
 	}
 	if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
 		if err2 := os.Remove(output); err2 != nil {

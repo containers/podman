@@ -260,6 +260,12 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if hasReg {
 		return nil, errors.Errorf("%s", imageError)
 	}
+	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
+	// We don't need to strip the sha because we have already determined it is not an ID
+	img, err = i.imageruntime.getImage(DefaultLocalRepo + "/" + i.InputName)
+	if err == nil {
+		return img.image, err
+	}
 
 	// grab all the local images
 	images, err := i.imageruntime.GetImages()
@@ -461,6 +467,10 @@ func (i *Image) TagImage(tag string) error {
 	// If the input does not have a tag, we need to add one (latest)
 	if !decomposedTag.isTagged {
 		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
+	}
+	// If the input doesn't specify a registry, set the registry to localhost
+	if !decomposedTag.hasRegistry {
+		tag = fmt.Sprintf("%s/%s", DefaultLocalRepo, tag)
 	}
 	tags := i.Names()
 	if util.StringInSlice(tag, tags) {

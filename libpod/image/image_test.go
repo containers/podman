@@ -170,12 +170,12 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	// foo should resolve to foo:latest
 	repoTag, err := newImage.MatchRepoTag("foo")
 	assert.NoError(t, err)
-	assert.Equal(t, "foo:latest", repoTag)
+	assert.Equal(t, "localhost/foo:latest", repoTag)
 
 	// foo:bar should resolve to foo:bar
 	repoTag, err = newImage.MatchRepoTag("foo:bar")
 	assert.NoError(t, err)
-	assert.Equal(t, "foo:bar", repoTag)
+	assert.Equal(t, "localhost/foo:bar", repoTag)
 	// Shutdown the runtime and remove the temporary storage
 	cleanup(workdir, ir)
 }
