@@ -224,6 +224,17 @@ func (p *PodmanTest) Cleanup() {
 	}
 }
 
+// CleanupPod cleans up the temporary store
+func (p *PodmanTest) CleanupPod() {
+	// Remove all containers
+	session := p.Podman([]string{"pod", "rm", "-fa"})
+	session.Wait(90)
+	// Nuke tempdir
+	if err := os.RemoveAll(p.TempDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
 // GrepString takes session output and behaves like grep. it returns a bool
 // if successful and an array of strings on positive matches
 func (s *PodmanSession) GrepString(term string) (bool, []string) {
@@ -459,10 +470,30 @@ func (p *PodmanTest) RunTopContainer(name string) *PodmanSession {
 	return p.Podman(podmanArgs)
 }
 
+func (p *PodmanTest) RunTopContainerInPod(name, pod string) *PodmanSession {
+	var podmanArgs = []string{"run", "--pod", pod}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
+	return p.Podman(podmanArgs)
+}
+
 //RunLsContainer runs a simple container in the background that
 // simply runs ls. If the name passed != "", it will have a name
 func (p *PodmanTest) RunLsContainer(name string) (*PodmanSession, int, string) {
 	var podmanArgs = []string{"run"}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
+}
+
+func (p *PodmanTest) RunLsContainerInPod(name, pod string) (*PodmanSession, int, string) {
+	var podmanArgs = []string{"run", "--pod", pod}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -500,6 +531,21 @@ func (p *PodmanTest) NumberOfContainers() int {
 		}
 	}
 	return len(containers)
+}
+
+// NumberOfPods returns an int of how many
+// pods are currently defined.
+func (p *PodmanTest) NumberOfPods() int {
+	var pods []string
+	ps := p.Podman([]string{"pod", "ps", "-q"})
+	ps.WaitWithDefaultTimeout()
+	Expect(ps.ExitCode()).To(Equal(0))
+	for _, i := range ps.OutputToStringArray() {
+		if i != "" {
+			pods = append(pods, i)
+		}
+	}
+	return len(pods)
 }
 
 // NumberOfRunningContainers returns an int of how many containers are currently

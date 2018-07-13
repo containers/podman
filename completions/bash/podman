@@ -31,6 +31,29 @@ __podman_containers() {
 	__podman_q ps --format "$format" "$@"
 }
 
+
+# __podman_pods returns a list of pods. Additional options to
+# `podman pod ps` may be specified in order to filter the list, e.g.
+# `__podman_containers --filter status=running`
+# By default, only names are returned.
+# Set PODMAN_COMPLETION_SHOW_CONTAINER_IDS=yes to also complete IDs.
+# An optional first option `--id|--name` may be used to limit the
+# output to the IDs or names of matching items. This setting takes
+# precedence over the environment setting.
+__podman_pods() {
+	local format
+	if [ "$1" = "--id" ] ; then
+		format='{{.ID}}'
+		shift
+	elif [ "$1" = "--name" ] ; then
+		format='{{.Names}}'
+		shift
+	else
+		format='{{.Names}}'
+	fi
+	__podman_q pod ps --format "$format" "$@"
+}
+
 # __podman_complete_containers applies completion of containers based on the current
 # value of `$cur` or the value of the optional first option `--cur`, if given.
 # Additional filters may be appended, see `__podman_containers`.
@@ -41,6 +64,23 @@ __podman_complete_containers() {
 		shift 2
 	fi
 	COMPREPLY=( $(compgen -W "$(__podman_containers "$@")" -- "$current") )
+}
+
+# __podman_complete_pods applies completion of pods based on the current
+# value of `$cur` or the value of the optional first option `--cur`, if given.
+# Additional filters may be appended, see `__podman_pods`.
+__podman_complete_pods() {
+	local current="$cur"
+	if [ "$1" = "--cur" ] ; then
+		current="$2"
+		shift 2
+	fi
+	COMPREPLY=( $(compgen -W "$(__podman_pods "$@")" -- "$current") )
+}
+
+__podman_complete_pod_names() {
+	local names=( $(__podman_q pod ps --format={{.Name}}) )
+	COMPREPLY=( $(compgen -W "${names[*]}" -- "$cur") )
 }
 
 __podman_complete_containers_all() {
@@ -1662,9 +1702,11 @@ _podman_container_run() {
 	esac
 }
 
+
 _podman_create() {
 	_podman_container_run
 }
+
 
 _podman_run() {
 	_podman_container_run
@@ -2013,6 +2055,168 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+
+_podman_pod_create() {
+  local options_with_args="
+      --cgroup-parent
+      --cgroup-to-ctr
+      --podidfile
+      --label-file
+      --label
+      -l
+      --name
+  "
+
+  local boolean_options="
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+}
+
+# _podman_pod_inspect() {
+#   _podman_container_run
+# }
+#
+# _podman_pod_kill() {
+#   _podman_container_run
+# }
+
+__podman_pod_ps() {
+  local options_with_args="
+   -f
+   --filter
+   --format
+   --sort
+  "
+
+  local boolean_options="
+   --no-trunc
+   -q
+   --quiet
+   --cgroup
+   --labels
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+}
+
+_podman_pod_ls() {
+  __podman_pod_ps
+}
+
+_podman_pod_list() {
+  __podman_pod_ps
+}
+
+_podman_pod_ps() {
+  __podman_pod_ps
+}
+
+# _podman_pod_pause() {
+#   _podman_container_run
+# }
+#
+# _podman_pod_restart() {
+#   _podman_container_run
+# }
+
+_podman_pod_rm() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    -a
+	--all
+    -f
+	--force
+	-rmctr
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
+_podman_pod_start() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
+# _podman_pod_stats() {
+#   _podman_container_run
+# }
+
+# _podman_pod_stop() {
+#   _podman_container_run
+# }
+
+# _podman_pod_top() {
+#   _podman_container_run
+# }
+
+# _podman_pod_unpause() {
+#   _podman_container_run
+# }
+#
+# _podman_pod_wait() {
+#   _podman_container_run
+# }
+
+
+_podman_pod() {
+    local boolean_options="
+    --help
+    -h
+    "
+    subcommands="
+     create
+     inspect
+     kill
+     ls
+     pause
+     restart
+     rm
+     start
+     stats
+     stop
+     top
+     unpause
+     wait
+    "
+    local aliases="
+     list
+     ps
+    "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+    -*)
+        COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+        ;;
+    *)
+        COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+        ;;
+     esac
+}
+
+
+
+
 _podman_podman() {
      local options_with_args="
            --config -c
@@ -2050,6 +2254,7 @@ _podman_podman() {
     mount
     pause
     port
+    pod
     ps
     pull
     push
