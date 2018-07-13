@@ -183,6 +183,8 @@ func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
 	ctr.state = new(containerState)
+	// Exit Code 125 indicates exit code was never set.
+	ctr.state.ExitCode = 125
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 
