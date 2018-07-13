@@ -52,24 +52,23 @@ type psTemplateParams struct {
 // psJSONParams will be populated by data from libpod.Container,
 // the members of the struct are the sama data types as their sources.
 type psJSONParams struct {
-	ID               string                    `json:"id"`
-	Image            string                    `json:"image"`
-	ImageID          string                    `json:"image_id"`
-	Command          []string                  `json:"command"`
-	CreatedAt        time.Time                 `json:"createdAt"`
-	ExitCode         int32                     `json:"exitCode"`
-	Exited           bool                      `json:"exited"`
-	RunningFor       time.Duration             `json:"runningFor"`
-	Status           string                    `json:"status"`
-	PID              int                       `json:"PID"`
-	Ports            []ocicni.PortMapping      `json:"ports"`
-	RootFsSize       int64                     `json:"rootFsSize,omitempty"`
-	RWSize           int64                     `json:"rwSize,omitempty"`
-	Names            string                    `json:"names"`
-	Labels           fields.Set                `json:"labels"`
-	Mounts           []string                  `json:"mounts"`
-	ContainerRunning bool                      `json:"ctrRunning"`
-	Namespaces       *batchcontainer.Namespace `json:"namespace,omitempty"`
+	ID               string                        `json:"id"`
+	Image            string                        `json:"image"`
+	ImageID          string                        `json:"image_id"`
+	Command          []string                      `json:"command"`
+	CreatedAt        time.Time                     `json:"createdAt"`
+	ExitCode         int32                         `json:"exitCode"`
+	Exited           bool                          `json:"exited"`
+	RunningFor       time.Duration                 `json:"runningFor"`
+	Status           string                        `json:"status"`
+	PID              int                           `json:"PID"`
+	Ports            []ocicni.PortMapping          `json:"ports"`
+	Size             *batchcontainer.ContainerSize `json:"size,omitempty"`
+	Names            string                        `json:"names"`
+	Labels           fields.Set                    `json:"labels"`
+	Mounts           []string                      `json:"mounts"`
+	ContainerRunning bool                          `json:"ctrRunning"`
+	Namespaces       *batchcontainer.Namespace     `json:"namespace,omitempty"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -115,7 +114,10 @@ func (a psSortedStatus) Less(i, j int) bool { return a.psSorted[i].Status < a.ps
 type psSortedSize struct{ psSorted }
 
 func (a psSortedSize) Less(i, j int) bool {
-	return a.psSorted[i].RootFsSize < a.psSorted[j].RootFsSize
+	if a.psSorted[i].Size == nil || a.psSorted[j].Size == nil {
+		return false
+	}
+	return a.psSorted[i].Size.RootFsSize < a.psSorted[j].Size.RootFsSize
 }
 
 var (
@@ -497,7 +499,10 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 			ns = psParam.Namespaces
 		}
 		if opts.Size {
-			size = units.HumanSizeWithPrecision(float64(psParam.RWSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.RootFsSize), 3) + ")"
+			if psParam.Size == nil {
+				return nil, errors.Errorf("Container %s does not have a size struct", psParam.ID)
+			}
+			size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
 		}
 		runningFor := units.HumanDuration(psParam.RunningFor)
 
@@ -587,8 +592,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			Status:           batchInfo.ConState.String(),
 			PID:              batchInfo.Pid,
 			Ports:            batchInfo.ConConfig.PortMappings,
-			RootFsSize:       batchInfo.RootFsSize,
-			RWSize:           batchInfo.RwSize,
+			Size:             batchInfo.Size,
 			Names:            batchInfo.ConConfig.Name,
 			Labels:           batchInfo.ConConfig.Labels,
 			Mounts:           batchInfo.ConConfig.UserVolumes,
