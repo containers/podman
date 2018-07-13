@@ -1,3 +1,46 @@
+- Changelog for v0.7.2 (2018-07-13)
+  * Change logic for detecting conflicting flags in ps
+  * Update python directories to better support setup.py
+  * Fix ps --sort=size test
+  * remote python client for podman
+  * Only print container size JSON if --size was requested
+  * Don't print rootfs and rw sizes if they're empty
+  * Major fixes to podman ps --format=json output
+  * Ignore running containers in ps exit-code filters
+  * Record whether the container has exited
+  * rootless: correctly propagate the exit status from the container
+  * rootless: unshare mount namespace
+  * Need to wait for container to exit before completing run/start completes
+  * If proxy fails then then signal should be sent to the main process
+  * fix pull image that includes a sha
+  * Added full podman pod ps, with tests and man page
+  * Podman pod create/rm commands with man page and tests.
+  * Added created time to pod state
+  * Support multiple networks
+  * Log all output of logrus to syslog as well as stdout/stderr
+  * podman rmi should only untag image if parent of another
+  * Changed container status of Unknown from being printed as Dead to Error in Ps
+  * Fix podman build completions
+  * Refactor attach()/start() after podman changes
+  * create conmon sockets when getting their paths
+  * build: enable ostree in containers/storage when available
+  * podman/libpod: add default AppArmor profile
+  * runtime: delete unused function
+  * rootless: propagate errors from GetRootlessRuntimeDir()
+  * rootless: resolve the user home directory
+  * rootless: fix when argv[0] is not an absolute path
+  * Allow Init() on stopped containers
+  * urfave/cli: fix regression in short-opts parsing
+  * Add --volumes-from flag to podman run and create
+  * Vendor in latest buildah to add masks for /proc/keys and /proc/acpi
+  * Vendor in latest containers/storage
+  * Mask /proc/keys to protect information leak about keys on host
+  * ctime: Drop 32-/64-bit distinction on Linux
+  * Podman stats with no containers listed is the same as podman stats --all
+  * Refactor unittest for change in history API
+  * Bump gitvalidation epoch
+  * Bump to v0.7.2-dev
+
 - Changelog for v0.7.1 (2018-07-06)
   * pkg/ctime: Factor libpod/finished* into a separate package
   * Block use of /proc/acpi from inside containers
