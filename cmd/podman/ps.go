@@ -58,6 +58,7 @@ type psJSONParams struct {
 	Command          []string                  `json:"command"`
 	CreatedAt        time.Time                 `json:"createdAt"`
 	ExitCode         int32                     `json:"exitCode"`
+	Exited           bool                      `json:"exited"`
 	RunningFor       time.Duration             `json:"runningFor"`
 	Status           string                    `json:"status"`
 	PID              int                       `json:"PID"`
@@ -576,22 +577,26 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			ns = batchcontainer.GetNamespaces(batchInfo.Pid)
 		}
 		params := psJSONParams{
-			ID:         ctr.ID(),
-			Image:      batchInfo.ConConfig.RootfsImageName,
-			ImageID:    batchInfo.ConConfig.RootfsImageID,
-			Command:    batchInfo.ConConfig.Spec.Process.Args,
-			CreatedAt:  batchInfo.ConConfig.CreatedTime,
-			Status:     batchInfo.ConState.String(),
-			Ports:      batchInfo.ConConfig.PortMappings,
-			RootFsSize: batchInfo.RootFsSize,
-			RWSize:     batchInfo.RwSize,
-			Names:      batchInfo.ConConfig.Name,
-			Labels:     batchInfo.ConConfig.Labels,
-			Mounts:     batchInfo.ConConfig.UserVolumes,
-			Namespaces: ns,
+			ID:               ctr.ID(),
+			Image:            batchInfo.ConConfig.RootfsImageName,
+			ImageID:          batchInfo.ConConfig.RootfsImageID,
+			Command:          batchInfo.ConConfig.Spec.Process.Args,
+			CreatedAt:        batchInfo.ConConfig.CreatedTime,
+			ExitCode:         batchInfo.ExitCode,
+			Exited:           batchInfo.Exited,
+			Status:           batchInfo.ConState.String(),
+			PID:              batchInfo.Pid,
+			Ports:            batchInfo.ConConfig.PortMappings,
+			RootFsSize:       batchInfo.RootFsSize,
+			RWSize:           batchInfo.RwSize,
+			Names:            batchInfo.ConConfig.Name,
+			Labels:           batchInfo.ConConfig.Labels,
+			Mounts:           batchInfo.ConConfig.UserVolumes,
+			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
+			Namespaces:       ns,
 		}
 
-		if !batchInfo.StartedTime.IsZero() {
+		if !batchInfo.StartedTime.IsZero() && batchInfo.ConState == libpod.ContainerStateRunning {
 			params.RunningFor = time.Since(batchInfo.StartedTime)
 		}
 

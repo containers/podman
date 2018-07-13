@@ -38,6 +38,7 @@ type BatchContainerStruct struct {
 	ConConfig          *libpod.ContainerConfig
 	ConState           libpod.ContainerStatus
 	ExitCode           int32
+	Exited             bool
 	Pid                int
 	RootFsSize, RwSize int64
 	StartedTime        time.Time
@@ -63,6 +64,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		conState           libpod.ContainerStatus
 		err                error
 		exitCode           int32
+		exited             bool
 		pid                int
 		rootFsSize, rwSize int64
 		startedTime        time.Time
@@ -75,7 +77,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 			return errors.Wrapf(err, "unable to obtain container state")
 		}
 
-		exitCode, _, err = c.ExitCode()
+		exitCode, exited, err = c.ExitCode()
 		if err != nil {
 			return errors.Wrapf(err, "unable to obtain container exit code")
 		}
@@ -115,6 +117,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		ConConfig:   conConfig,
 		ConState:    conState,
 		ExitCode:    exitCode,
+		Exited:      exited,
 		Pid:         pid,
 		RootFsSize:  rootFsSize,
 		RwSize:      rwSize,
