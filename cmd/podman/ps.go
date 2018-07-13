@@ -282,22 +282,16 @@ func checkFlagsPassed(c *cli.Context) error {
 	if c.Int("last") >= 0 && c.Bool("latest") {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// quiet, size, namespace, and format with Go template are mutually exclusive
-	flags := 0
+	// Quiet conflicts with size, namespace, and format with a Go template
 	if c.Bool("quiet") {
-		flags++
+		if c.Bool("size") || c.Bool("namespace") || (c.IsSet("format") &&
+			c.String("format") != formats.JSONString) {
+			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
+		}
 	}
-	if c.Bool("size") {
-		flags++
-	}
-	if c.Bool("namespace") {
-		flags++
-	}
-	if c.IsSet("format") && c.String("format") != formats.JSONString {
-		flags++
-	}
-	if flags > 1 {
-		return errors.Errorf("quiet, size, namespace, and format with Go template are mutually exclusive")
+	// Size and namespace conflict with each other
+	if c.Bool("size") && c.Bool("namespace") {
+		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
 }
