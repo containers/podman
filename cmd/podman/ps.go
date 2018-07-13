@@ -63,8 +63,8 @@ type psJSONParams struct {
 	Status           string                    `json:"status"`
 	PID              int                       `json:"PID"`
 	Ports            []ocicni.PortMapping      `json:"ports"`
-	RootFsSize       int64                     `json:"rootFsSize"`
-	RWSize           int64                     `json:"rwSize"`
+	RootFsSize       int64                     `json:"rootFsSize,omitempty"`
+	RWSize           int64                     `json:"rwSize,omitempty"`
 	Names            string                    `json:"names"`
 	Labels           fields.Set                `json:"labels"`
 	Mounts           []string                  `json:"mounts"`
