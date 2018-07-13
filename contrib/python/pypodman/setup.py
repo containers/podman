@@ -10,8 +10,6 @@ with open(os.path.join(root, 'README.md')) as me:
 with open(os.path.join(root, 'requirements.txt')) as r:
     requirements = r.read().splitlines()
 
-print(find_packages(where='pypodman', exclude=['test']))
-
 setup(
     name='pypodman',
     version=os.environ.get('PODMAN_VERSION', '0.0.0'),
