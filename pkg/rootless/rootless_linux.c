@@ -92,7 +92,7 @@ reexec_in_user_namespace(int ready)
 
   sprintf (uid, "%d", geteuid ());
 
-  pid = syscall_clone (CLONE_NEWUSER|SIGCHLD, NULL);
+  pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid)
     return pid;
 
