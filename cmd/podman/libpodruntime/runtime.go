@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/urfave/cli"
@@ -23,7 +24,11 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	var opts storage.StoreOptions
 
-	opts.RunRoot = filepath.Join(libpod.GetRootlessRuntimeDir(), "run")
+	rootlessRuntime, err := libpod.GetRootlessRuntimeDir()
+	if err != nil {
+		return opts, err
+	}
+	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
 
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
@@ -31,7 +36,13 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 		if home == "" {
 			return opts, fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
 		}
-		dataDir = filepath.Join(home, ".local", "share")
+		// runc doesn't like symlinks in the rootfs path, and at least
+		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
+		resolvedHome, err := filepath.EvalSymlinks(home)
+		if err != nil {
+			return opts, errors.Wrapf(err, "cannot resolve %s", home)
+		}
+		dataDir = filepath.Join(resolvedHome, ".local", "share")
 	}
 	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
 	opts.GraphDriverName = "vfs"

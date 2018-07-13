@@ -180,6 +180,11 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+
 	parentPipe, childPipe, err := newPipe()
 	if err != nil {
 		return errors.Wrapf(err, "error creating socket pair")
@@ -253,7 +258,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	// 0, 1 and 2 are stdin, stdout and stderr
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
@@ -362,11 +367,16 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	state := new(spec.State)
 
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+
 	// Store old state so we know if we were already stopped
 	oldState := ctr.state.State
 
 	cmd := exec.Command(r.path, "state", ctr.ID())
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -556,6 +566,11 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		return nil, errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
 	}
 
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+
 	args := []string{}
 
 	// TODO - should we maintain separate logpaths for exec sessions?
@@ -597,7 +612,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
-	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", GetRootlessRuntimeDir()))
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	return execCmd, nil
 }
 
