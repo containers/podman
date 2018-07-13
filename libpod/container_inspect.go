@@ -48,6 +48,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		hostnamePath = getPath
 	}
 
+	exitCode := int32(0)
+	if runtimeInfo.State == ContainerStateStopped {
+		exitCode = runtimeInfo.ExitCode
+	}
+
 	data := &inspect.ContainerInspectData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
@@ -61,7 +66,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			OOMKilled:  runtimeInfo.OOMKilled,
 			Dead:       runtimeInfo.State.String() == "bad state",
 			Pid:        runtimeInfo.PID,
-			ExitCode:   runtimeInfo.ExitCode,
+			ExitCode:   exitCode,
 			Error:      "", // can't get yet
 			StartedAt:  runtimeInfo.StartedTime,
 			FinishedAt: runtimeInfo.FinishedTime,
