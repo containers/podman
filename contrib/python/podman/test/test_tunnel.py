@@ -66,7 +66,7 @@ class TestTunnel(unittest.TestCase):
 
         cmd = [
             'ssh',
-            '-nNTq',
+            '-fNTq',
             '-L',
             '{}:{}'.format(context.local_socket, context.remote_socket),
             '-i',

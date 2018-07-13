@@ -114,7 +114,12 @@ bin/podman.cross.%: .gopathok
 
 python-podman:
 ifdef HAS_PYTHON3
-	$(MAKE) -C contrib/python python-podman
+	$(MAKE) -C contrib/python/podman python-podman
+endif
+
+python-pypodman:
+ifdef HAS_PYTHON3
+	$(MAKE) -C contrib/python/pypodman python-pypodman
 endif
 
 clean:
@@ -128,9 +133,10 @@ clean:
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
 		cmd/podman/varlink/ioprojectatomicpodman.go \
-		$(MANPAGES)
+		$(MANPAGES) ||:
 ifdef HAS_PYTHON3
-		$(MAKE) -C contrib/python clean
+		$(MAKE) -C contrib/python/podman clean
+		$(MAKE) -C contrib/python/pypodman clean
 endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -169,12 +175,13 @@ localintegration: varlink_generate test-binaries clientintegration
 	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 clientintegration:
-	$(MAKE) -C contrib/python integration
+	$(MAKE) -C contrib/python/podman integration
+	$(MAKE) -C contrib/python/pypodman integration
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman python-podman
+binaries: varlink_generate podman python-podman python-pypodman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -313,4 +320,5 @@ validate: gofmt .gitvalidation
 	validate \
 	install.libseccomp.sudo \
 	python-podman \
+	python-pypodman \
 	clientintegration

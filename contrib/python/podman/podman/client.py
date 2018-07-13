@@ -44,11 +44,11 @@ class BaseClient(object):
             raise ValueError('path is required for uri,'
                              ' expected format "unix://path_to_socket"')
 
-        if kwargs.get('remote_uri') or kwargs.get('identity_file'):
+        if kwargs.get('remote_uri'):
             # Remote access requires the full tuple of information
             if kwargs.get('remote_uri') is None:
                 raise ValueError(
-                    'remote is required,'
+                    'remote_uri is required,'
                     ' expected format "ssh://user@hostname/path_to_socket".')
             remote = urlparse(kwargs['remote_uri'])
             if remote.username is None:
@@ -64,20 +64,16 @@ class BaseClient(object):
                     'hostname is required for remote_uri,'
                     ' expected format "ssh://user@hostname/path_to_socket".')
 
-            if kwargs.get('identity_file') is None:
-                raise ValueError('identity_file is required.')
-
-            if not os.path.isfile(kwargs['identity_file']):
-                raise FileNotFoundError(
-                    errno.ENOENT,
-                    os.strerror(errno.ENOENT),
-                    kwargs['identity_file'],
-                )
-
             return RemoteClient(
-                Context(uri, interface, local_path, remote.path,
-                        remote.username, remote.hostname,
-                        kwargs['identity_file']))
+                Context(
+                    uri,
+                    interface,
+                    local_path,
+                    remote.path,
+                    remote.username,
+                    remote.hostname,
+                    kwargs.get('identity_file'),
+                ))
         else:
             return LocalClient(
                 Context(uri, interface, None, None, None, None, None))
