@@ -324,8 +324,8 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return nil, errors.Wrapf(err, "exited code out of range %q", filterValue)
 		}
 		return func(c *libpod.Container) bool {
-			ec, _, err := c.ExitCode()
-			if ec == int32(exitCode) && err == nil {
+			ec, exited, err := c.ExitCode()
+			if ec == int32(exitCode) && err == nil && exited == true {
 				return true
 			}
 			return false
