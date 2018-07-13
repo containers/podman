@@ -135,6 +135,8 @@ type containerState struct {
 	FinishedTime time.Time `json:"finishedTime,omitempty"`
 	// ExitCode is the exit code returned when the container stopped
 	ExitCode int32 `json:"exitCode,omitempty"`
+	// Exited is whether the container has exited
+	Exited bool `json:"exited,omitempty"`
 	// OOMKilled indicates that the container was killed as it ran out of
 	// memory
 	OOMKilled bool `json:"oomKilled,omitempty"`
@@ -667,16 +669,18 @@ func (c *Container) FinishedTime() (time.Time, error) {
 }
 
 // ExitCode returns the exit code of the container as
-// an int32
-func (c *Container) ExitCode() (int32, error) {
+// an int32, and whether the container has exited.
+// If the container has not exited, exit code will always be 0.
+// If the container restarts, the exit code is reset to 0.
+func (c *Container) ExitCode() (int32, bool, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return 0, errors.Wrapf(err, "error updating container %s state", c.ID())
+			return 0, false, errors.Wrapf(err, "error updating container %s state", c.ID())
 		}
 	}
-	return c.state.ExitCode, nil
+	return c.state.ExitCode, c.state.Exited, nil
 }
 
 // OOMKilled returns whether the container was killed by an OOM condition

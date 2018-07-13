@@ -52,23 +52,23 @@ type psTemplateParams struct {
 // psJSONParams will be populated by data from libpod.Container,
 // the members of the struct are the sama data types as their sources.
 type psJSONParams struct {
-	ID               string                    `json:"id"`
-	Image            string                    `json:"image"`
-	ImageID          string                    `json:"image_id"`
-	Command          []string                  `json:"command"`
-	CreatedAt        time.Time                 `json:"createdAt"`
-	ExitCode         int32                     `json:"exitCode"`
-	RunningFor       time.Duration             `json:"runningFor"`
-	Status           string                    `json:"status"`
-	PID              int                       `json:"PID"`
-	Ports            []ocicni.PortMapping      `json:"ports"`
-	RootFsSize       int64                     `json:"rootFsSize"`
-	RWSize           int64                     `json:"rwSize"`
-	Names            string                    `json:"names"`
-	Labels           fields.Set                `json:"labels"`
-	Mounts           []string                  `json:"mounts"`
-	ContainerRunning bool                      `json:"ctrRunning"`
-	Namespaces       *batchcontainer.Namespace `json:"namespace,omitempty"`
+	ID               string                        `json:"id"`
+	Image            string                        `json:"image"`
+	ImageID          string                        `json:"image_id"`
+	Command          []string                      `json:"command"`
+	CreatedAt        time.Time                     `json:"createdAt"`
+	ExitCode         int32                         `json:"exitCode"`
+	Exited           bool                          `json:"exited"`
+	RunningFor       time.Duration                 `json:"runningFor"`
+	Status           string                        `json:"status"`
+	PID              int                           `json:"PID"`
+	Ports            []ocicni.PortMapping          `json:"ports"`
+	Size             *batchcontainer.ContainerSize `json:"size,omitempty"`
+	Names            string                        `json:"names"`
+	Labels           fields.Set                    `json:"labels"`
+	Mounts           []string                      `json:"mounts"`
+	ContainerRunning bool                          `json:"ctrRunning"`
+	Namespaces       *batchcontainer.Namespace     `json:"namespace,omitempty"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -114,7 +114,10 @@ func (a psSortedStatus) Less(i, j int) bool { return a.psSorted[i].Status < a.ps
 type psSortedSize struct{ psSorted }
 
 func (a psSortedSize) Less(i, j int) bool {
-	return a.psSorted[i].RootFsSize < a.psSorted[j].RootFsSize
+	if a.psSorted[i].Size == nil || a.psSorted[j].Size == nil {
+		return false
+	}
+	return a.psSorted[i].Size.RootFsSize < a.psSorted[j].Size.RootFsSize
 }
 
 var (
@@ -279,22 +282,16 @@ func checkFlagsPassed(c *cli.Context) error {
 	if c.Int("last") >= 0 && c.Bool("latest") {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// quiet, size, namespace, and format with Go template are mutually exclusive
-	flags := 0
+	// Quiet conflicts with size, namespace, and format with a Go template
 	if c.Bool("quiet") {
-		flags++
+		if c.Bool("size") || c.Bool("namespace") || (c.IsSet("format") &&
+			c.String("format") != formats.JSONString) {
+			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
+		}
 	}
-	if c.Bool("size") {
-		flags++
-	}
-	if c.Bool("namespace") {
-		flags++
-	}
-	if c.IsSet("format") && c.String("format") != formats.JSONString {
-		flags++
-	}
-	if flags > 1 {
-		return errors.Errorf("quiet, size, namespace, and format with Go template are mutually exclusive")
+	// Size and namespace conflict with each other
+	if c.Bool("size") && c.Bool("namespace") {
+		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
 }
@@ -324,8 +321,8 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return nil, errors.Wrapf(err, "exited code out of range %q", filterValue)
 		}
 		return func(c *libpod.Container) bool {
-			ec, err := c.ExitCode()
-			if ec == int32(exitCode) && err == nil {
+			ec, exited, err := c.ExitCode()
+			if ec == int32(exitCode) && err == nil && exited == true {
 				return true
 			}
 			return false
@@ -496,7 +493,10 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 			ns = psParam.Namespaces
 		}
 		if opts.Size {
-			size = units.HumanSizeWithPrecision(float64(psParam.RWSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.RootFsSize), 3) + ")"
+			if psParam.Size == nil {
+				return nil, errors.Errorf("Container %s does not have a size struct", psParam.ID)
+			}
+			size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
 		}
 		runningFor := units.HumanDuration(psParam.RunningFor)
 
@@ -576,22 +576,25 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			ns = batchcontainer.GetNamespaces(batchInfo.Pid)
 		}
 		params := psJSONParams{
-			ID:         ctr.ID(),
-			Image:      batchInfo.ConConfig.RootfsImageName,
-			ImageID:    batchInfo.ConConfig.RootfsImageID,
-			Command:    batchInfo.ConConfig.Spec.Process.Args,
-			CreatedAt:  batchInfo.ConConfig.CreatedTime,
-			Status:     batchInfo.ConState.String(),
-			Ports:      batchInfo.ConConfig.PortMappings,
-			RootFsSize: batchInfo.RootFsSize,
-			RWSize:     batchInfo.RwSize,
-			Names:      batchInfo.ConConfig.Name,
-			Labels:     batchInfo.ConConfig.Labels,
-			Mounts:     batchInfo.ConConfig.UserVolumes,
-			Namespaces: ns,
+			ID:               ctr.ID(),
+			Image:            batchInfo.ConConfig.RootfsImageName,
+			ImageID:          batchInfo.ConConfig.RootfsImageID,
+			Command:          batchInfo.ConConfig.Spec.Process.Args,
+			CreatedAt:        batchInfo.ConConfig.CreatedTime,
+			ExitCode:         batchInfo.ExitCode,
+			Exited:           batchInfo.Exited,
+			Status:           batchInfo.ConState.String(),
+			PID:              batchInfo.Pid,
+			Ports:            batchInfo.ConConfig.PortMappings,
+			Size:             batchInfo.Size,
+			Names:            batchInfo.ConConfig.Name,
+			Labels:           batchInfo.ConConfig.Labels,
+			Mounts:           batchInfo.ConConfig.UserVolumes,
+			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
+			Namespaces:       ns,
 		}
 
-		if !batchInfo.StartedTime.IsZero() {
+		if !batchInfo.StartedTime.IsZero() && batchInfo.ConState == libpod.ContainerStateRunning {
 			params.RunningFor = time.Since(batchInfo.StartedTime)
 		}
 

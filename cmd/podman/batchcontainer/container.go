@@ -35,12 +35,13 @@ type PsOptions struct {
 // BatchContainerStruct is the return obkect from BatchContainer and contains
 // container related information
 type BatchContainerStruct struct {
-	ConConfig          *libpod.ContainerConfig
-	ConState           libpod.ContainerStatus
-	ExitCode           int32
-	Pid                int
-	RootFsSize, RwSize int64
-	StartedTime        time.Time
+	ConConfig   *libpod.ContainerConfig
+	ConState    libpod.ContainerStatus
+	ExitCode    int32
+	Exited      bool
+	Pid         int
+	StartedTime time.Time
+	Size        *ContainerSize
 }
 
 // Namespace describes output for ps namespace
@@ -55,17 +56,25 @@ type Namespace struct {
 	UTS    string `json:"uts,omitempty"`
 }
 
+// ContainerSize holds the size of the container's root filesystem and top
+// read-write layer
+type ContainerSize struct {
+	RootFsSize int64 `json:"rootFsSize"`
+	RwSize     int64 `json:"rwSize"`
+}
+
 // BatchContainer is used in ps to reduce performance hits by "batching"
 // locks.
 func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStruct, error) {
 	var (
-		conConfig          *libpod.ContainerConfig
-		conState           libpod.ContainerStatus
-		err                error
-		exitCode           int32
-		pid                int
-		rootFsSize, rwSize int64
-		startedTime        time.Time
+		conConfig   *libpod.ContainerConfig
+		conState    libpod.ContainerStatus
+		err         error
+		exitCode    int32
+		exited      bool
+		pid         int
+		size        *ContainerSize
+		startedTime time.Time
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -75,7 +84,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 			return errors.Wrapf(err, "unable to obtain container state")
 		}
 
-		exitCode, err = c.ExitCode()
+		exitCode, exited, err = c.ExitCode()
 		if err != nil {
 			return errors.Wrapf(err, "unable to obtain container exit code")
 		}
@@ -95,16 +104,20 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 			}
 		}
 		if opts.Size {
-			rootFsSize, err = c.RootFsSize()
+			size = new(ContainerSize)
+
+			rootFsSize, err := c.RootFsSize()
 			if err != nil {
 				logrus.Errorf("error getting root fs size for %q: %v", c.ID(), err)
 			}
 
-			rwSize, err = c.RWSize()
+			rwSize, err := c.RWSize()
 			if err != nil {
 				logrus.Errorf("error getting rw size for %q: %v", c.ID(), err)
 			}
 
+			size.RootFsSize = rootFsSize
+			size.RwSize = rwSize
 		}
 		return nil
 	})
@@ -115,10 +128,10 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		ConConfig:   conConfig,
 		ConState:    conState,
 		ExitCode:    exitCode,
+		Exited:      exited,
 		Pid:         pid,
-		RootFsSize:  rootFsSize,
-		RwSize:      rwSize,
 		StartedTime: startedTime,
+		Size:        size,
 	}, nil
 }
 

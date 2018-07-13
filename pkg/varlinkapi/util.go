@@ -65,13 +65,15 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 		Runningfor:       time.Since(batchInfo.ConConfig.CreatedTime).String(),
 		Status:           batchInfo.ConState.String(),
 		Ports:            ports,
-		Rootfssize:       batchInfo.RootFsSize,
-		Rwsize:           batchInfo.RwSize,
 		Names:            batchInfo.ConConfig.Name,
 		Labels:           batchInfo.ConConfig.Labels,
 		Mounts:           mounts,
 		Containerrunning: batchInfo.ConState == libpod.ContainerStateRunning,
 		Namespaces:       namespace,
+	}
+	if batchInfo.Size != nil {
+		lc.Rootfssize = batchInfo.Size.RootFsSize
+		lc.Rwsize = batchInfo.Size.RwSize
 	}
 	return lc
 }

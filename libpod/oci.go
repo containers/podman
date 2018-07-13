@@ -450,6 +450,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 			ctr.state.OOMKilled = true
 		}
 
+		ctr.state.Exited = true
 	}
 
 	return nil
