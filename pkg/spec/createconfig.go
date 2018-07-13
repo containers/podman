@@ -318,6 +318,14 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		logrus.Debugf("appending name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
+	if c.Pod != "" {
+		logrus.Debugf("adding container to pod %s", c.Pod)
+		pod, err := runtime.LookupPod(c.Pod)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
+		}
+		options = append(options, runtime.WithPod(pod))
+	}
 
 	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()
