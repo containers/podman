@@ -201,12 +201,15 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"ps", "-a", "--sort=size", "--format", "{{.Size}}"})
+		session = podmanTest.Podman([]string{"ps", "-a", "-s", "--sort=size", "--format", "{{.Size}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		sortedArr := session.OutputToStringArray()
 
+		// TODO: This may be broken - the test was running without the
+		// ability to perform any sorting for months and succeeded
+		// without error.
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool {
 			r := regexp.MustCompile(`^\S+\s+\(virtual (\S+)\)`)
 			matches1 := r.FindStringSubmatch(sortedArr[i])
