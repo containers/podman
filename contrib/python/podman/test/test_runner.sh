@@ -7,11 +7,11 @@ if [[ $(id -u) != 0 ]]; then
 fi
 
 # setup path to find new binaries _NOT_ system binaries
-if [[ ! -x ../../bin/podman ]]; then
+if [[ ! -x ../../../bin/podman ]]; then
   echo 1>&2 Cannot find podman binary from libpod root directory. Run \"make binaries\"
   exit 1
 fi
-export PATH=../../bin:$PATH
+export PATH=../../../bin:$PATH
 
 function usage {
   echo 1>&2 $0 [-v] [-h] [test.TestCase|test.TestCase.step]

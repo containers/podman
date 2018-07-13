@@ -9,7 +9,7 @@ See [libpod](https://github.com/projectatomic/libpod)
 To build the podman egg:
 
 ```sh
-cd ~/libpod/contrib/pypodman
+cd ~/libpod/contrib/python
 python3 setup.py clean -a && python3 setup.py bdist
 ```
 

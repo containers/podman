@@ -1,4 +1,4 @@
-"""Remote client command for deleting images."""
+"""Remote client command for deleting containers."""
 import sys
 
 import podman
@@ -6,40 +6,41 @@ import podman
 from .. import AbstractActionBase
 
 
-class Rmi(AbstractActionBase):
-    """Clas for removing images from storage."""
+class Rm(AbstractActionBase):
+    """Class for removing containers from storage."""
 
     @classmethod
     def subparser(cls, parent):
-        """Add Rmi command to parent parser."""
-        parser = parent.add_parser('rmi', help='delete image(s)')
+        """Add Rm command to parent parser."""
+        parser = parent.add_parser('rm', help='delete container(s)')
         parser.add_argument(
             '-f',
             '--force',
             action='store_true',
-            help=('force delete of image(s) and associated containers.'
+            help=('force delete of running container(s).'
                   ' (default: %(default)s)'))
-        parser.add_argument('targets', nargs='*', help='image id(s) to delete')
-        parser.set_defaults(klass=cls, method='remove')
+        parser.add_argument(
+            'targets', nargs='*', help='container id(s) to delete')
+        parser.set_defaults(class_=cls, method='remove')
 
     def __init__(self, args):
-        """Construct Rmi class."""
+        """Construct Rm class."""
         super().__init__(args)
         if len(args.targets) < 1:
-            raise ValueError('You must supply at least one image id'
+            raise ValueError('You must supply at least one container id'
                              ' or name to be deleted.')
 
     def remove(self):
-        """Remove image(s)."""
+        """Remove container(s)."""
         for id in self._args.targets:
             try:
-                img = self.client.images.get(id)
-                img.remove(self._args.force)
+                ctnr = self.client.containers.get(id)
+                ctnr.remove(self._args.force)
                 print(id)
-            except podman.ImageNotFound as e:
+            except podman.ContainerNotFound as e:
                 sys.stdout.flush()
                 print(
-                    'Image {} not found.'.format(e.name),
+                    'Container {} not found.'.format(e.name),
                     file=sys.stderr,
                     flush=True)
             except podman.ErrorOccurred as e:

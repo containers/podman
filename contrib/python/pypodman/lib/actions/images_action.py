@@ -29,7 +29,7 @@ class Images(AbstractActionBase):
             '--digests',
             action='store_true',
             help='Include digests with images. (default: %(default)s)')
-        parser.set_defaults(klass=cls, method='list')
+        parser.set_defaults(class_=cls, method='list')
 
     def __init__(self, args):
         """Construct Images class."""

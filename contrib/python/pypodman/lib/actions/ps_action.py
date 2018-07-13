@@ -26,7 +26,7 @@ class Ps(AbstractActionBase):
             type=str.lower,
             help=('Change sort ordered of displayed containers.'
                   ' (default: %(default)s)'))
-        parser.set_defaults(klass=cls, method='list')
+        parser.set_defaults(class_=cls, method='list')
 
     def __init__(self, args):
         """Construct Ps class."""

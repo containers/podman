@@ -14,8 +14,8 @@ class AbstractActionBase(abc.ABC):
         """Define parser for this action.  Subclasses must implement.
 
         API:
-        Use set_defaults() to set attributes "klass" and "method". These will
-        be invoked as klass(parsed_args).method()
+        Use set_defaults() to set attributes "class_" and "method". These will
+        be invoked as class_(parsed_args).method()
         """
         parser.add_argument(
             '--all',
@@ -64,10 +64,14 @@ class AbstractActionBase(abc.ABC):
     @lru_cache(maxsize=1)
     def client(self):
         """Podman remote client for communicating."""
-        return podman.Client(
-            uri=self.local_uri,
-            remote_uri=self.remote_uri,
-            identity_file=self.identity_file)
+        if self._args.host is None:
+            return podman.Client(
+                uri=self.local_uri)
+        else:
+            return podman.Client(
+                uri=self.local_uri,
+                remote_uri=self.remote_uri,
+                identity_file=self.identity_file)
 
     def __repr__(self):
         """Compute the “official” string representation of object."""

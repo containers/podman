@@ -97,26 +97,27 @@ class Tunnel(object):
 
     def bore(self, id):
         """Create SSH tunnel from given context."""
-        ssh_opts = '-nNT'
+        cmd = ['ssh']
+
+        ssh_opts = '-fNT'
         if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
             ssh_opts += 'v'
         else:
             ssh_opts += 'q'
+        cmd.append(ssh_opts)
 
-        cmd = [
-            'ssh',
-            ssh_opts,
-            '-L',
-            '{}:{}'.format(self.context.local_socket,
-                           self.context.remote_socket),
-            '-i',
-            self.context.identity_file,
-            'ssh://{}@{}'.format(self.context.username, self.context.hostname),
-        ]
+        cmd.extend(('-L', '{}:{}'.format(self.context.local_socket,
+                                         self.context.remote_socket)))
+        if self.context.identity_file:
+            cmd.extend(('-i', self.context.identity_file))
+
+        cmd.append('ssh://{}@{}'.format(self.context.username,
+                                        self.context.hostname))
+
         logging.debug('Tunnel cmd "{}"'.format(' '.join(cmd)))
 
         self._tunnel = subprocess.Popen(cmd, close_fds=True)
-        for i in range(10):
+        for i in range(300):
             # TODO: Make timeout configurable
             if os.path.exists(self.context.local_socket):
                 break
