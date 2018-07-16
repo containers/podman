@@ -117,7 +117,7 @@ Print the version
 
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
-libpod.conf is the configuration file for all tools using libpod to manage containers.  This file is ignored when running in rootless mode.
+libpod.conf is the configuration file for all tools using libpod to manage containers.  When Podman runs in rootless mode, then the file `$HOME/.config/containers/libpod.conf` is used.
 
 **storage.conf** (`/etc/containers/storage.conf`)
 
