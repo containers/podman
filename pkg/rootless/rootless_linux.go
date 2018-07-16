@@ -104,6 +104,9 @@ func BecomeRootInUserNS() (bool, int, error) {
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	mappings, err := idtools.NewIDMappings(username, username)
+	if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+		return false, -1, err
+	}
 	if err == nil {
 		uids = mappings.UIDs()
 		gids = mappings.GIDs()

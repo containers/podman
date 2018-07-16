@@ -158,6 +158,8 @@ Podman can also be used as non-root user.  When podman runs in rootless mode, an
 
 Containers created by a non-root user are not visible to other users and are not seen or managed by podman running as root.
 
+It is required to have multiple uids/gids set for an user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
+
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
 Currently it is not possible to create a network device, so rootless containers need to run in the host network namespace.  If a rootless container creates a network namespace,

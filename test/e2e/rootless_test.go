@@ -82,6 +82,7 @@ var _ = Describe("Podman rootless", func() {
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
+			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
 			cmd := podmanTest.PodmanAsUser([]string{"run", "--rootfs", mountPath, "echo", "hello"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
