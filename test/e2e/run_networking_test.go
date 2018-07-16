@@ -65,6 +65,10 @@ var _ = Describe("Podman rmi", func() {
 		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
+
+		ncBusy := podmanTest.SystemExec("nc", []string{"-l", "-p", "80"})
+		ncBusy.Wait(10)
+		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
 	})
 
 	It("podman run network expose ports in image metadata", func() {

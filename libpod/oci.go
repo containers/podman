@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-systemd/activation"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -177,6 +179,51 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 	}
 }
 
+func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
+	var files []*os.File
+	for _, i := range ports {
+		switch i.Protocol {
+		case "udp":
+			addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot resolve the UDP address")
+			}
+
+			server, err := net.ListenUDP("udp", addr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot listen on the UDP port")
+			}
+			f, err := server.File()
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot get file for UDP socket")
+			}
+			files = append(files, f)
+			break
+
+		case "tcp":
+			addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot resolve the TCP address")
+			}
+
+			server, err := net.ListenTCP("tcp4", addr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot listen on the TCP port")
+			}
+			f, err := server.File()
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
+			}
+			files = append(files, f)
+			break
+		default:
+			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)
+
+		}
+	}
+	return files, nil
+}
+
 func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (err error) {
 	var stderrBuf bytes.Buffer
 
@@ -259,6 +306,17 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
+
+	ports, err := bindPorts(ctr.config.PortMappings)
+	if err != nil {
+		return err
+	}
+
+	// Leak the port we bound in the conmon process.  These fd's won't be used
+	// by the container and conmon will keep the ports busy so that another
+	// process cannot use them.
+	cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
