@@ -232,7 +232,7 @@ func psCmd(c *cli.Context) error {
 	if opts.Filter != "" {
 		filters := strings.Split(opts.Filter, ",")
 		for _, f := range filters {
-			filterSplit := strings.Split(f, "=")
+			filterSplit := strings.SplitN(f, "=", 2)
 			if len(filterSplit) < 2 {
 				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 			}
@@ -306,9 +306,16 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return strings.Contains(c.ID(), filterValue)
 		}, nil
 	case "label":
+		var filterArray []string = strings.Split(filterValue, "=")
+		var filterKey string = filterArray[0]
+		if len(filterArray) > 1 {
+			filterValue = filterArray[1]
+		} else {
+			filterValue = ""
+		}
 		return func(c *libpod.Container) bool {
-			for _, label := range c.Labels() {
-				if label == filterValue {
+			for labelKey, labelValue := range c.Labels() {
+				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
 					return true
 				}
 			}
