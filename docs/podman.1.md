@@ -139,6 +139,8 @@ The format of the mounts.conf is the volume format /SRC:/DEST, one mount per lin
 
 Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
 
+When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used.
+
 **hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
 
 Each `*.json` file in `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
