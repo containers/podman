@@ -155,6 +155,8 @@ Hooks are not used when running in rootless mode.
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
+When Podman runs in rootless mode, the file `$HOME/.config/containers/registries.conf` is used.
+
 ## Rootless mode
 Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.
 

@@ -2,15 +2,27 @@ package registries
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/rootless"
 )
+
+// userRegistriesFile is the path to the per user registry configuration file.
+var userRegistriesFile = filepath.Join(os.Getenv("HOME"), ".config/containers/registries.conf")
 
 // GetRegistries obtains the list of registries defined in the global registries file.
 func GetRegistries() ([]string, error) {
 	registryConfigPath := ""
+
+	if rootless.IsRootless() {
+		if _, err := os.Stat(userRegistriesFile); err == nil {
+			registryConfigPath = userRegistriesFile
+		}
+	}
+
 	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
 	if len(envOverride) > 0 {
 		registryConfigPath = envOverride
@@ -25,6 +37,11 @@ func GetRegistries() ([]string, error) {
 // GetInsecureRegistries obtains the list of insecure registries from the global registration file.
 func GetInsecureRegistries() ([]string, error) {
 	registryConfigPath := ""
+
+	if _, err := os.Stat(userRegistriesFile); err == nil {
+		registryConfigPath = userRegistriesFile
+	}
+
 	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
 	if len(envOverride) > 0 {
 		registryConfigPath = envOverride
