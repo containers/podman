@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -277,12 +276,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		pullNames = append(pullNames, &ps)
 
 	} else {
-		registryConfigPath := ""
-		envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
-		if len(envOverride) > 0 {
-			registryConfigPath = envOverride
-		}
-		searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: registryConfigPath})
+		searchRegistries, err := registries.GetRegistries()
 		if err != nil {
 			return nil, err
 		}
