@@ -125,6 +125,8 @@ storage.conf is the storage configuration file for all tools using containers/st
 
 The storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
+When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
+
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
 The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image if you do a `podman commit`.
