@@ -87,6 +87,9 @@ endif
 lint: .gopathok varlink_generate
 	@echo "checking lint"
 	@./.tool/lint
+	# Not ready
+	# @$(MAKE) -C contrib/python/podman lint
+	# @$(MAKE) -C contrib/python/pypodman lint
 
 gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
@@ -112,13 +115,9 @@ bin/podman.cross.%: .gopathok
 	GOARCH="$${TARGET##*.}" \
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
-python-podman:
+python:
 ifdef HAS_PYTHON3
 	$(MAKE) -C contrib/python/podman python-podman
-endif
-
-python-pypodman:
-ifdef HAS_PYTHON3
 	$(MAKE) -C contrib/python/pypodman python-pypodman
 endif
 
@@ -181,7 +180,7 @@ clientintegration:
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman python-podman python-pypodman
+binaries: varlink_generate podman python
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -206,7 +205,7 @@ changelog:
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
-install: .gopathok install.bin install.man install.cni install.systemd
+install: .gopathok install.bin install.man install.cni install.systemd install.python
 
 install.bin:
 	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
@@ -242,6 +241,10 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
+install.python:
+	$(MAKE) -C contrib/python/podman install
+	$(MAKE) -C contrib/python/pypodman install
+
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man1/$$(basename $${i}); \
@@ -249,6 +252,8 @@ uninstall:
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
+	$(MAKE) -C contrib/python/pypodman uninstall
+	$(MAKE) -C contrib/python/podman uninstall
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
@@ -319,6 +324,5 @@ validate: gofmt .gitvalidation
 	changelog \
 	validate \
 	install.libseccomp.sudo \
-	python-podman \
-	python-pypodman \
+	python \
 	clientintegration

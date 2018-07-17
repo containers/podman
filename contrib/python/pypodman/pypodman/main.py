@@ -1,14 +1,11 @@
-#!/usr/bin/env python3
 """Remote podman client."""
+from __future__ import absolute_import
 
 import logging
 import os
 import sys
 
-import lib.actions
-from lib import PodmanArgumentParser
-
-assert lib.actions  # silence pyflakes
+from .lib import PodmanArgumentParser
 
 
 def main():
