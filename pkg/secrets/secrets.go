@@ -147,11 +147,14 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 		mountFiles = append(mountFiles, mountFile)
 	}
 	for _, file := range mountFiles {
-		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
-		if err != nil {
-			logrus.Warnf("error mounting secrets, skipping: %v", err)
+		if _, err := os.Stat(file); err == nil {
+			mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
+			if err != nil {
+				logrus.Warnf("error mounting secrets, skipping: %v", err)
+			}
+			secretMounts = mounts
+			break
 		}
-		secretMounts = append(secretMounts, mounts...)
 	}
 
 	// Add FIPS mode secret if /etc/system-fips exists on the host
