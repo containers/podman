@@ -1,3 +1,3 @@
-varlink>=26.1.0
-setuptools>=39.2.0
-python-dateutil>=2.7.3
+python-dateutil
+setuptools>=39
+varlink

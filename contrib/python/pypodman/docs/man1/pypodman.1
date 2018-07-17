@@ -1,0 +1,96 @@
+.TH pypodman 1 2018-07-20 0.7.3
+.SH NAME
+pypodman \- CLI management tool for containers and images
+.SH SYNOPSIS
+\f[B]pypodman\f[] [\f[I]global options\f[]] \f[I]command\f[] [\f[I]options\f[]]
+.SH DESCRIPTION
+pypodman is a simple client only tool to help with debugging issues when daemons
+such as CRI runtime and the kubelet are not responding or failing.
+.P
+pypodman uses a VarLink API to commicate with a podman service running on either
+the local or remote machine. pypodman uses ssh to create secure tunnels when
+communicating with a remote service.
+.SH GLOBAL OPTIONS
+.PP
+\f[B]\[en]help, \-h\f[]
+.PP
+Print usage statement.
+.PP
+\f[B]\[en]version\f[]
+.PP
+Print program version number and exit.
+.PP
+\f[B]\[en]config\-home\f[]
+.PP
+Directory that will be namespaced with \f[C]pypodman\f[] to hold
+\f[C]pypodman.conf\f[].
+See FILES below for more details.
+.PP
+\f[B]\[en]log\-level\f[]
+.PP
+Log events above specified level: DEBUG, INFO, WARNING (default), ERROR,
+or CRITICAL.
+.PP
+\f[B]\[en]run\-dir\f[]
+.PP
+Directory that will be namespaced with \f[C]pypodman\f[] to hold local socket
+bindings. The default is `\f[C]$XDG_RUNTIME_DIR\\\f[].
+.PP
+\f[B]\[en]user\f[]
+.PP
+Authenicating user on remote host. \f[C]pypodman\f[] defaults to the logged in
+user.
+.PP
+\f[B]\[en]host\f[]
+.PP
+Name of remote host. There is no default, if not given \f[C]pypodman\f[]
+attempts to connect to \f[C]\-\-remote\-socket\-path\f[] on local host.
+.PP
+\f[B]\[en]remote\-socket\-path\f[]
+.PP
+Path on remote host for podman service's \f[C]AF_UNIX\f[] socket. The default is
+\f[C]/run/podman/io.projectatomic.podman\f[].
+.PP
+\f[B]\[en]identity\-file\f[]
+.PP
+The optional \f[C]ssh\f[] identity file to authenicate when tunnelling to remote
+host. Default is None and will allow \f[C]ssh\f[] to follow it's default methods
+for resolving the identity and private key using the logged in user.
+.SH COMMANDS
+.PP
+See podman(1) (podman.1.md)
+.SH FILES
+.PP
+\f[B]pypodman/pypodman.conf\f[]
+(\f[C]Any\ element\ of\ XDG_CONFIG_DIRS\f[] and/or
+\f[C]XDG_CONFIG_HOME\f[] and/or \f[B]\[en]config\-home\f[])
+.PP
+pypodman.conf is one or more configuration files for running the pypodman
+command. pypodman.conf is a TOML file with the stanza \f[C][default]\f[], with a
+map of \f[C]option: value\f[].
+.PP
+pypodman follows the XDG (freedesktop.org) conventions for resolving it's
+configuration. The list below are read from top to bottom with later items
+overwriting earlier. Any missing items are ignored.
+.IP \[bu] 2
+\f[C]pypodman/pypodman.conf\f[] from any path element in
+\f[C]XDG_CONFIG_DIRS\f[] or \f[C]\\etc\\xdg\f[]
+.IP \[bu] 2
+\f[C]XDG_CONFIG_HOME\f[] or $HOME/.config + \f[C]pypodman/pypodman.conf\f[]
+.IP \[bu] 2
+From \f[C]\-\-config\-home\f[] command line option + \f[C]pypodman/pypodman.conf\f[]
+.IP \[bu] 2
+From environment variable, for example: RUN_DIR
+.IP \[bu] 2
+From command line option, for example: \[en]run\-dir
+.PP
+This should provide Operators the ability to setup basic configurations
+and allow users to customize them.
+.PP
+\f[B]XDG_RUNTIME_DIR\f[] (\f[C]XDG_RUNTIME_DIR/io.projectatomic.podman\f[])
+.PP
+Directory where pypodman stores non\-essential runtime files and other file
+objects (such as sockets, named pipes, \&...).
+.SH SEE ALSO
+.PP
+\f[C]podman(1)\f[], \f[C]libpod(8)\f[]

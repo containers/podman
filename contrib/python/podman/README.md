@@ -6,11 +6,12 @@ See [libpod](https://github.com/projectatomic/libpod)
 
 ## Releases
 
-To build the podman egg:
+To build the podman egg and install as user:
 
 ```sh
-cd ~/libpod/contrib/python
-python3 setup.py clean -a && python3 setup.py bdist
+cd ~/libpod/contrib/python/podman
+python3 setup.py clean -a && python3 setup.py sdist bdist
+python3 setup.py install --user
 ```
 
 ## Code snippets/examples:

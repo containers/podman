@@ -2,7 +2,11 @@ PYTHON ?= /usr/bin/python3
 
 .PHONY: python-podman
 python-podman:
-	$(PYTHON) setup.py bdist
+	$(PYTHON) setup.py sdist bdist
+
+.PHONY: lint
+lint:
+	$(PYTHON) -m pylint podman
 
 .PHONY: integration
 integration:
@@ -10,12 +14,18 @@ integration:
 
 .PHONY: install
 install:
-	$(PYTHON) setup.py install --user
+	$(PYTHON) setup.py install
+
+.PHONY: clobber
+clobber: uninstall clean
+
+.PHONY: uninstall
+uninstall:
+	$(PYTHON) -m pip uninstall --yes podman ||:
 
 .PHONY: clean
 clean:
 	$(PYTHON) setup.py clean --all
-	pip3 uninstall podman ||:
 	rm -rf podman.egg-info dist
 	find . -depth -name __pycache__ -exec rm -rf {} \;
 	find . -depth -name \*.pyc -exec rm -f {} \;
