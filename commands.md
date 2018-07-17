@@ -9,6 +9,8 @@
 | [podman-build(1)](/docs/podman-build.1.md)               | Build an image using instructions from Dockerfiles                        ||
 | [podman-commit(1)](/docs/podman-commit.1.md)             | Create new image based on the changed container                           ||
 | [podman-container(1)](/docs/podman-container.1.md)       | Manage Containers                    ||
+| [podman-container-cleanup(1)](/docs/podman-container-cleanup.1.md)       | Cleanup Container storage and networks                    ||
+| [podman-container-refresh(1)](/docs/podman-container-refresh.1.md)       | Refresh all containers state in database                  ||
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
@@ -27,7 +29,11 @@
 | [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
 | [podman-mount(1)](/docs/podman-mount.1.md)               | Mount a working container's root filesystem                               |[![...](/docs/play.png)](https://asciinema.org/a/YSP6hNvZo0RGeMHDA97PhPAf3)|
 | [podman-pause(1)](/docs/podman-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
-| [podman-port(1)](/docs/podman-port.1.md)               | List port mappings for running containers |[![...](/docs/play.png)]()|
+| [podman-pod(1)](/docs/podman-pod.1.md)                   | Simple management tool for groups of containers, called pods              ||
+| [podman-pod-create(1)](/docs/podman-pod-create.1.md)     | Create a new pod                                                          ||
+| [podman-pod-ps(1)](/docs/podman-pod-ps.1.md)             | List the pods on the system                                               ||
+| [podman-pod-rm(1)](/docs/podman-pod-rm.1.md)             | Remove on or more pods                                                    ||
+| [podman-port(1)](/docs/podman-port.1.md)                 | List port mappings for running containers                                 |[![...](/docs/play.png)]()|
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
 | [podman-pull(1)](/docs/podman-pull.1.md)                 | Pull an image from a registry                                             |[![...](/docs/play.png)](https://asciinema.org/a/lr4zfoynHJOUNu1KaXa1dwG2X)|
 | [podman-push(1)](/docs/podman-push.1.md)                 | Push an image to a specified destination                                  |[![...](/docs/play.png)](https://asciinema.org/a/133276)|
