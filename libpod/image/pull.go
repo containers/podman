@@ -50,11 +50,11 @@ var (
 	DefaultLocalRepo = "localhost"
 )
 
+// pullStruct records a pair of prepared image references to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
 type pullStruct struct {
-	image       string
-	srcRef      types.ImageReference
-	dstRef      types.ImageReference
-	shaPullName string
+	image  string
+	srcRef types.ImageReference
+	dstRef types.ImageReference
 }
 
 func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (*pullStruct, error) {
@@ -257,11 +257,18 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	return images, nil
 }
 
+// nameToPull is a mapping between a resolved source and an expected store destination name (FIXME: clean up somehow?)
+type nameToPull struct {
+	image       string
+	srcRef      types.ImageReference
+	shaPullName string
+}
+
 // createNamesToPull looks at a decomposed image and determines the possible
 // images names to try pulling in combination with the registries.conf file as well
 func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 	var (
-		pullNames []*pullStruct
+		pullNames []*nameToPull
 		imageName string
 	)
 
@@ -279,7 +286,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 		}
-		ps := pullStruct{
+		ps := nameToPull{
 			image:  i.InputName,
 			srcRef: srcRef,
 		}
@@ -303,7 +310,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 			}
-			ps := pullStruct{
+			ps := nameToPull{
 				image:  decomposedImage.assemble(),
 				srcRef: srcRef,
 			}
@@ -311,8 +318,9 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		}
 	}
 
-	// Here we construct the destination reference
-	for _, pStruct := range pullNames {
+	// Here we construct the destination references
+	res := make([]*pullStruct, len(pullNames))
+	for j, pStruct := range pullNames {
 		dstName := pStruct.image
 		if pStruct.shaPullName != "" {
 			dstName = pStruct.shaPullName
@@ -321,8 +329,11 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing dest reference name")
 		}
-		pStruct.dstRef = destRef
+		res[j] = &pullStruct{
+			image:  pStruct.image,
+			srcRef: pStruct.srcRef,
+			dstRef: destRef,
+		}
 	}
-
-	return pullNames, nil
+	return res, nil
 }
