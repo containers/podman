@@ -28,10 +28,7 @@ func decompose(input string) (imageParts, error) {
 	if err != nil {
 		return parts, err
 	}
-	ntag, isTagged, err := getTags(input)
-	if err != nil {
-		return parts, err
-	}
+	ntag, isTagged := imgRef.(reference.NamedTagged)
 	if !isTagged {
 		tag = "latest"
 		if strings.Contains(input, "@sha256:") {
