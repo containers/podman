@@ -37,7 +37,7 @@ $ make
 $ sudo make install PREFIX=/usr
 ```
 
-You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](Familiarizing yourself with Podman)
+You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](#familiarizing-yourself-with-podman)
 to begin using Podman.
 
 ## Install podman on Ubuntu
