@@ -91,6 +91,7 @@ lint: .gopathok varlink_generate
 	# Not ready
 	# @$(MAKE) -C contrib/python/podman lint
 	# @$(MAKE) -C contrib/python/pypodman lint
+	# @$(MAKE) -C contrib/python/systemtest lint
 
 gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
@@ -141,6 +142,7 @@ clean:
 ifdef HAS_PYTHON3
 		$(MAKE) -C contrib/python/podman clean
 		$(MAKE) -C contrib/python/pypodman clean
+		$(MAKE) -C contrib/python/systemtest clean
 endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
@@ -169,7 +171,7 @@ shell: libpodimage
 testunit: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make localunit
 
-localunit: varlink_generate
+localunit: varlink_generate systemunit
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
@@ -181,6 +183,16 @@ localintegration: varlink_generate test-binaries clientintegration
 clientintegration:
 	$(MAKE) -C contrib/python/podman integration
 	$(MAKE) -C contrib/python/pypodman integration
+
+systemunit:
+ifdef HAS_PYTHON3
+	$(MAKE) -C contrib/python/systemtest unit
+endif
+
+systemtest:
+ifdef HAS_PYTHON3
+	$(MAKE) -C contrib/python/systemtest all
+endif
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
@@ -343,4 +355,6 @@ validate: gofmt .gitvalidation
 	validate \
 	install.libseccomp.sudo \
 	python \
+	systemtest \
+	systemunit \
 	clientintegration
