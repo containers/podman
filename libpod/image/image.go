@@ -1074,9 +1074,3 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 	}
 	return ociv1Img.History[0].Comment, nil
 }
-
-// HasShaInInputName returns a bool as to whether the user provide an image name that includes
-// a reference to a specific sha
-func (i *Image) HasShaInInputName() bool {
-	return strings.Contains(i.InputName, "@sha256:")
-}
