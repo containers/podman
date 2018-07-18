@@ -272,31 +272,31 @@ func hasShaInInputName(inputName string) bool {
 
 // refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image names to try pulling in combination with the registries.conf file as well
-func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
+func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, error) {
 	var (
 		pullNames []*pullRefName
 		imageName string
 	)
 
-	decomposedImage, err := decompose(i.InputName)
+	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		if hasShaInInputName(i.InputName) {
-			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, i.InputName)
+		if hasShaInInputName(inputName) {
+			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
 		} else {
 			imageName = decomposedImage.assembleWithTransport()
 		}
 		srcRef, err := alltransports.ParseImageName(imageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
+			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
 		ps := pullRefName{
-			image:  i.InputName,
+			image:  inputName,
 			srcRef: srcRef,
 		}
-		if hasShaInInputName(i.InputName) {
+		if hasShaInInputName(inputName) {
 			ps.dstName = decomposedImage.assemble()
 		} else {
 			ps.dstName = ps.image
@@ -311,12 +311,12 @@ func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 		for _, registry := range searchRegistries {
 			decomposedImage.registry = registry
 			imageName := decomposedImage.assembleWithTransport()
-			if hasShaInInputName(i.InputName) {
-				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, i.InputName)
+			if hasShaInInputName(inputName) {
+				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
 			}
 			srcRef, err := alltransports.ParseImageName(imageName)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
+				return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 			}
 			ps := pullRefName{
 				image:  decomposedImage.assemble(),
@@ -332,7 +332,7 @@ func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 // refPairsFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
 func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
-	refNames, err := i.refNamesFromPossiblyUnqualifiedName()
+	refNames, err := refNamesFromPossiblyUnqualifiedName(i.InputName)
 	if err != nil {
 		return nil, err
 	}
