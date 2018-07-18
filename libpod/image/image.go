@@ -457,12 +457,11 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + digest.Hex(), nil
 }
 
-// TagImage adds a tag to the given image
-func (i *Image) TagImage(tag string) error {
-	i.reloadImage()
+// normalizeTag returns the canonical version of tag for use in Image.Names()
+func normalizeTag(tag string) (string, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// If the input does not have a tag, we need to add one (latest)
 	if !decomposedTag.isTagged {
@@ -471,6 +470,16 @@ func (i *Image) TagImage(tag string) error {
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
 		tag = fmt.Sprintf("%s/%s", DefaultLocalRepo, tag)
+	}
+	return tag, nil
+}
+
+// TagImage adds a tag to the given image
+func (i *Image) TagImage(tag string) error {
+	i.reloadImage()
+	tag, err := normalizeTag(tag)
+	if err != nil {
+		return err
 	}
 	tags := i.Names()
 	if util.StringInSlice(tag, tags) {
