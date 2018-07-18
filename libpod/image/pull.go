@@ -57,6 +57,13 @@ type pullRefPair struct {
 	dstRef types.ImageReference
 }
 
+// pullRefName records a prepared source reference and a destination name to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
+type pullRefName struct {
+	image   string
+	srcRef  types.ImageReference
+	dstName string
+}
+
 func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) (*pullRefPair, error) {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
@@ -257,18 +264,11 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	return images, nil
 }
 
-// nameToPull is a mapping between a resolved source and an expected store destination name (FIXME: clean up somehow?)
-type nameToPull struct {
-	image   string
-	srcRef  types.ImageReference
-	dstName string
-}
-
 // createNamesToPull looks at a decomposed image and determines the possible
 // images names to try pulling in combination with the registries.conf file as well
 func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
 	var (
-		pullNames []*nameToPull
+		pullNames []*pullRefName
 		imageName string
 	)
 
@@ -286,7 +286,7 @@ func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 		}
-		ps := nameToPull{
+		ps := pullRefName{
 			image:  i.InputName,
 			srcRef: srcRef,
 		}
@@ -312,7 +312,7 @@ func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
 			}
-			ps := nameToPull{
+			ps := pullRefName{
 				image:  decomposedImage.assemble(),
 				srcRef: srcRef,
 			}
