@@ -324,17 +324,17 @@ func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
 }
 
 // pullRefPairsFromNames converts a []*pullRefName to []*pullRefPair
-func (ir *Runtime) pullRefPairsFromRefNames(pullNames []*pullRefName) ([]*pullRefPair, error) {
+func (ir *Runtime) pullRefPairsFromRefNames(refNames []*pullRefName) ([]*pullRefPair, error) {
 	// Here we construct the destination references
-	res := make([]*pullRefPair, len(pullNames))
-	for j, pStruct := range pullNames {
-		destRef, err := is.Transport.ParseStoreReference(ir.store, pStruct.dstName)
+	res := make([]*pullRefPair, len(refNames))
+	for i, rn := range refNames {
+		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing dest reference name")
 		}
-		res[j] = &pullRefPair{
-			image:  pStruct.image,
-			srcRef: pStruct.srcRef,
+		res[i] = &pullRefPair{
+			image:  rn.image,
+			srcRef: rn.srcRef,
 			dstRef: destRef,
 		}
 	}
