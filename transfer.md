@@ -58,7 +58,7 @@ There are other equivalents for these tools
 | `docker pull`    | [`podman pull`](./docs/podman-pull.1.md)        |
 | `docker push`    | [`podman push`](./docs/podman-push.1.md)        |
 | `docker port`    | [`podman port`](./docs/podman-port.1.md)        |
-| `docker restart` | [`podman restart`](./docs/podman-restart.1.md)] |
+| `docker restart` | [`podman restart`](./docs/podman-restart.1.md)  |
 | `docker rm`      | [`podman rm`](./docs/podman-rm.1.md)            |
 | `docker rmi`     | [`podman rmi`](./docs/podman-rmi.1.md)          |
 | `docker run`     | [`podman run`](./docs/podman-run.1.md)          |
