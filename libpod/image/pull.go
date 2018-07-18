@@ -195,7 +195,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	srcRef, err := alltransports.ParseImageName(i.InputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
-		pullRefPairs, err = i.createNamesToPull()
+		pullRefPairs, err = i.refPairsFromPossiblyUnqualifiedName()
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
@@ -264,9 +264,9 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	return images, nil
 }
 
-// createNamesToPull looks at a decomposed image and determines the possible
-// images names to try pulling in combination with the registries.conf file as well
-func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
+// refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// image names to try pulling in combination with the registries.conf file as well
+func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 	var (
 		pullNames []*pullRefName
 		imageName string
@@ -320,7 +320,17 @@ func (i *Image) createNamesToPull() ([]*pullRefPair, error) {
 			pullNames = append(pullNames, &ps)
 		}
 	}
-	return i.imageruntime.pullRefPairsFromRefNames(pullNames)
+	return pullNames, nil
+}
+
+// refPairsFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// image references to try pulling in combination with the registries.conf file as well
+func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
+	refNames, err := i.refNamesFromPossiblyUnqualifiedName()
+	if err != nil {
+		return nil, err
+	}
+	return i.imageruntime.pullRefPairsFromRefNames(refNames)
 }
 
 // pullRefPairsFromNames converts a []*pullRefName to []*pullRefPair
