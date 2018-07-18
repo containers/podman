@@ -198,3 +198,25 @@ func Test_stripSha256(t *testing.T) {
 	assert.Equal(t, stripSha256("sha256:"), "sha256:")
 	assert.Equal(t, stripSha256("sha256:a"), "a")
 }
+
+func TestNormalizeTag(t *testing.T) {
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct{ input, expected string }{
+		{"#", ""}, // Clearly invalid
+		{"example.com/busybox", "example.com/busybox:latest"},                                            // Qualified name-only
+		{"example.com/busybox:notlatest", "example.com/busybox:notlatest"},                               // Qualified name:tag
+		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix + ":none"},           // Qualified name@digest; FIXME: The result is not even syntactically valid!
+		{"example.com/busybox:notlatest" + digestSuffix, "example.com/busybox:notlatest" + digestSuffix}, // Qualified name:tag@digest
+		{"busybox:latest", "localhost/busybox:latest"},                                                   // Unqualified name-only
+		{"ns/busybox:latest", "ns/busybox:latest"},                                                       // Unqualified with a dot-less namespace FIXME: "ns" is treated as a registry
+	} {
+		res, err := normalizeTag(c.input)
+		if c.expected == "" {
+			assert.Error(t, err, c.input)
+		} else {
+			assert.NoError(t, err, c.input)
+			assert.Equal(t, c.expected, res)
+		}
+	}
+}
