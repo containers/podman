@@ -8,6 +8,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // BoltState is a state implementation backed by a Bolt DB
@@ -28,6 +29,8 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 	state.runtime = runtime
 	state.namespace = ""
 	state.namespaceBytes = nil
+
+	logrus.Debugf("Initializing boltdb state at %s", path)
 
 	// Make the directory that will hold container lockfiles
 	if err := os.MkdirAll(lockDir, 0750); err != nil {
@@ -367,10 +370,10 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 			return err
 		}
 
-		ctrExists := ctrBucket.Bucket(ctrID)
-		if ctrExists != nil {
+		ctrDB := ctrBucket.Bucket(ctrID)
+		if ctrDB != nil {
 			if s.namespaceBytes != nil {
-				nsBytes := ctrBucket.Get(namespaceKey)
+				nsBytes := ctrDB.Get(namespaceKey)
 				if bytes.Equal(nsBytes, s.namespaceBytes) {
 					exists = true
 				}
