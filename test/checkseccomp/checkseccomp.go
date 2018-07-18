@@ -1,3 +1,5 @@
+// +build seccomp
+
 package main
 
 import (
