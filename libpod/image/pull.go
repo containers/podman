@@ -326,13 +326,3 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 
 	return pullNames, nil
 }
-
-// isShortName returns a bool response if the input image name has a registry
-// name in it or not
-func (i *Image) isShortName() (bool, error) {
-	decomposedImage, err := decompose(i.InputName)
-	if err != nil {
-		return false, err
-	}
-	return decomposedImage.hasRegistry, nil
-}
