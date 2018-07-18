@@ -264,6 +264,12 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	return images, nil
 }
 
+// hasShaInInputName returns a bool as to whether the user provided an image name that includes
+// a reference to a specific sha
+func hasShaInInputName(inputName string) bool {
+	return strings.Contains(inputName, "@sha256:")
+}
+
 // refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image names to try pulling in combination with the registries.conf file as well
 func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
@@ -277,7 +283,7 @@ func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		if i.HasShaInInputName() {
+		if hasShaInInputName(i.InputName) {
 			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, i.InputName)
 		} else {
 			imageName = decomposedImage.assembleWithTransport()
@@ -290,7 +296,7 @@ func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 			image:  i.InputName,
 			srcRef: srcRef,
 		}
-		if i.HasShaInInputName() {
+		if hasShaInInputName(i.InputName) {
 			ps.dstName = decomposedImage.assemble()
 		} else {
 			ps.dstName = ps.image
@@ -305,7 +311,7 @@ func (i *Image) refNamesFromPossiblyUnqualifiedName() ([]*pullRefName, error) {
 		for _, registry := range searchRegistries {
 			decomposedImage.registry = registry
 			imageName := decomposedImage.assembleWithTransport()
-			if i.HasShaInInputName() {
+			if hasShaInInputName(i.InputName) {
 				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, i.InputName)
 			}
 			srcRef, err := alltransports.ParseImageName(imageName)
