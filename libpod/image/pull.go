@@ -259,9 +259,9 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 
 // nameToPull is a mapping between a resolved source and an expected store destination name (FIXME: clean up somehow?)
 type nameToPull struct {
-	image       string
-	srcRef      types.ImageReference
-	shaPullName string
+	image   string
+	srcRef  types.ImageReference
+	dstName string
 }
 
 // createNamesToPull looks at a decomposed image and determines the possible
@@ -291,7 +291,9 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 			srcRef: srcRef,
 		}
 		if i.HasShaInInputName() {
-			ps.shaPullName = decomposedImage.assemble()
+			ps.dstName = decomposedImage.assemble()
+		} else {
+			ps.dstName = ps.image
 		}
 		pullNames = append(pullNames, &ps)
 
@@ -314,6 +316,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 				image:  decomposedImage.assemble(),
 				srcRef: srcRef,
 			}
+			ps.dstName = ps.image
 			pullNames = append(pullNames, &ps)
 		}
 	}
@@ -321,11 +324,7 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 	// Here we construct the destination references
 	res := make([]*pullStruct, len(pullNames))
 	for j, pStruct := range pullNames {
-		dstName := pStruct.image
-		if pStruct.shaPullName != "" {
-			dstName = pStruct.shaPullName
-		}
-		destRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, dstName)
+		destRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, pStruct.dstName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing dest reference name")
 		}
