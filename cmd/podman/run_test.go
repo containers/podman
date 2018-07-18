@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"testing"
 
 	units "github.com/docker/go-units"
@@ -90,6 +91,12 @@ func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
 
 // TestPIDsLimit verifies the inputted pid-limit is correctly defined in the spec
 func TestPIDsLimit(t *testing.T) {
+	// The default configuration of podman enables seccomp, which is not available on non-Linux systems.
+	// Thus, any tests that use the default seccomp setting would fail.
+	// Skip the tests on non-Linux platforms rather than explicitly disable seccomp in the test and possibly affect the test result.
+	if runtime.GOOS != "linux" {
+		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
+	}
 	a := createCLI()
 	args := []string{"--pids-limit", "22"}
 	a.Run(append(cmd, args...))
@@ -102,6 +109,12 @@ func TestPIDsLimit(t *testing.T) {
 
 // TestBLKIOWeightDevice verifies the inputted blkio weigh device is correctly defined in the spec
 func TestBLKIOWeightDevice(t *testing.T) {
+	// The default configuration of podman enables seccomp, which is not available on non-Linux systems.
+	// Thus, any tests that use the default seccomp setting would fail.
+	// Skip the tests on non-Linux platforms rather than explicitly disable seccomp in the test and possibly affect the test result.
+	if runtime.GOOS != "linux" {
+		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
+	}
 	a := createCLI()
 	args := []string{"--blkio-weight-device", "/dev/zero:100"}
 	a.Run(append(cmd, args...))
@@ -114,6 +127,12 @@ func TestBLKIOWeightDevice(t *testing.T) {
 
 // TestMemorySwap verifies that the inputted memory swap is correctly defined in the spec
 func TestMemorySwap(t *testing.T) {
+	// The default configuration of podman enables seccomp, which is not available on non-Linux systems.
+	// Thus, any tests that use the default seccomp setting would fail.
+	// Skip the tests on non-Linux platforms rather than explicitly disable seccomp in the test and possibly affect the test result.
+	if runtime.GOOS != "linux" {
+		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
+	}
 	a := createCLI()
 	args := []string{"--memory-swap", "45m", "--memory", "40m"}
 	a.Run(append(cmd, args...))
