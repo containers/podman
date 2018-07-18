@@ -59,7 +59,7 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stateRegexp := "{\"ociVersion\":\"1\\.0\\.0\",\"id\":\"123abc\",\"status\":\"stopped\",\"bundle\":\"/tmp/libpod_test_[0-9]*\",\"annotations\":{\"a\":\"b\"}}"
+	stateRegexp := `{"ociVersion":"1\.0\.0","id":"123abc","status":"stopped","bundle":"/tmp/libpod_test_[0-9]*","annotations":{"a":"b"}}`
 	for _, path := range []string{statePath, copyPath} {
 		t.Run(path, func(t *testing.T) {
 			content, err := ioutil.ReadFile(path)
