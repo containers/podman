@@ -70,6 +70,10 @@ func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
 // TestImage_NewFromLocal tests finding the image locally by various names,
 // tags, and aliases
 func TestImage_NewFromLocal(t *testing.T) {
+	if os.Geteuid() != 0 { // containers/storage requires root access
+		t.Skipf("Test not running as root")
+	}
+
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
 	so := storage.StoreOptions{
@@ -108,6 +112,10 @@ func TestImage_NewFromLocal(t *testing.T) {
 // TestImage_New tests pulling the image by various names, tags, and from
 // different registries
 func TestImage_New(t *testing.T) {
+	if os.Geteuid() != 0 { // containers/storage requires root access
+		t.Skipf("Test not running as root")
+	}
+
 	var names []string
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
@@ -141,6 +149,10 @@ func TestImage_New(t *testing.T) {
 // TestImage_MatchRepoTag tests the various inputs we need to match
 // against an image's reponames
 func TestImage_MatchRepoTag(t *testing.T) {
+	if os.Geteuid() != 0 { // containers/storage requires root access
+		t.Skipf("Test not running as root")
+	}
+
 	//Set up
 	workdir, err := mkWorkDir()
 	assert.NoError(t, err)
