@@ -285,7 +285,6 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 }
 
 // WithNamespace sets the namespace for libpod.
-// Namespace is the libpod namespace to use.
 // Namespaces are used to create scopes to separate containers and pods
 // in the state.
 // When namespace is set, libpod will only view containers and pods in

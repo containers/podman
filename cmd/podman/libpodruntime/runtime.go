@@ -88,6 +88,10 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
+	if c.GlobalIsSet("namespace") {
+		options = append(options, libpod.WithNamespace(c.GlobalString("namespace")))
+	}
+
 	if c.GlobalIsSet("runtime") {
 		options = append(options, libpod.WithOCIRuntime(c.GlobalString("runtime")))
 	}
