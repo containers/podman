@@ -27,6 +27,12 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
 
+	// Set default namespace to runtime's namespace
+	// Do so before options run so they can override it
+	if r.config.Namespace != "" {
+		pod.config.Namespace = r.config.Namespace
+	}
+
 	for _, option := range options {
 		if err := option(pod); err != nil {
 			return nil, errors.Wrapf(err, "error running pod create option")

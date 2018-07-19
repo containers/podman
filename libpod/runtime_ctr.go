@@ -42,6 +42,12 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 	ctr.config.StopTimeout = CtrRemoveTimeout
 
+	// Set namespace based on current runtime namespace
+	// Do so before options run so they can override it
+	if r.config.Namespace != "" {
+		ctr.config.Namespace = r.config.Namespace
+	}
+
 	for _, option := range options {
 		if err := option(ctr); err != nil {
 			return nil, errors.Wrapf(err, "error running container create option")
