@@ -172,6 +172,10 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 		return errors.Wrapf(ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
 	}
 
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
+	}
+
 	// There are potential race conditions with this
 	// But in-memory state is intended purely for testing and not production
 	// use, so this should be fine.
@@ -690,6 +694,10 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if ctr.config.Namespace != pod.config.Namespace {
 		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
 			ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
+	}
+
+	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
+		return err
 	}
 
 	// Retrieve pod containers list

@@ -266,6 +266,11 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 // Add a container to the DB
 // If pod is not nil, the container is added to the pod as well
 func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "cannot add container %s as it is in namespace %q and we are in namespace %q",
+			ctr.ID(), s.namespace, ctr.config.Namespace)
+	}
+
 	// JSON container structs to insert into DB
 	// TODO use a higher-performance struct encoding than JSON
 	configJSON, err := json.Marshal(ctr.config)
