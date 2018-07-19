@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
@@ -14,11 +15,15 @@ import (
 var (
 	topFlags = []cli.Flag{
 		LatestFlag,
+		cli.BoolFlag{
+			Name:   "list-descriptors",
+			Hidden: true,
+		},
 	}
-	topDescription = `
-   podman top
-
-	Display the running processes of the container.
+	topDescription = `Display the running processes of the container.  Specify format descriptors
+to alter the output.  You may run "podman top -l pid pcpu seccomp" to print
+the process ID, the CPU percentage and the seccomp mode of each process of
+the latest container.
 `
 
 	topCommand = cli.Command{
@@ -27,7 +32,7 @@ var (
 		Description:    topDescription,
 		Flags:          topFlags,
 		Action:         topCmd,
-		ArgsUsage:      "CONTAINER-NAME",
+		ArgsUsage:      "CONTAINER-NAME [format descriptors]",
 		SkipArgReorder: true,
 	}
 )
@@ -36,6 +41,15 @@ func topCmd(c *cli.Context) error {
 	var container *libpod.Container
 	var err error
 	args := c.Args()
+
+	if c.Bool("list-descriptors") {
+		descriptors, err := libpod.GetContainerPidInformationDescriptors()
+		if err != nil {
+			return err
+		}
+		fmt.Println(strings.Join(descriptors, "\n"))
+		return nil
+	}
 
 	if len(args) < 1 && !c.Bool("latest") {
 		return errors.Errorf("you must provide the name or id of a running container")
@@ -50,9 +64,12 @@ func topCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
+	var descriptors []string
 	if c.Bool("latest") {
+		descriptors = args
 		container, err = runtime.GetLatestContainer()
 	} else {
+		descriptors = args[1:]
 		container, err = runtime.LookupContainer(args[0])
 	}
 
@@ -67,12 +84,12 @@ func topCmd(c *cli.Context) error {
 		return errors.Errorf("top can only be used on running containers")
 	}
 
-	psOutput, err := container.GetContainerPidInformation([]string{})
+	psOutput, err := container.GetContainerPidInformation(descriptors)
 	if err != nil {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 20, 1, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
 	for _, proc := range psOutput {
 		fmt.Fprintln(w, proc)
 	}
