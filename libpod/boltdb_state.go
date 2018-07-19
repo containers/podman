@@ -443,10 +443,8 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return ErrCtrRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
 	}
 
 	newState := new(containerState)
@@ -511,10 +509,8 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 		return ErrCtrRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
 	}
 
 	stateJSON, err := json.Marshal(ctr.state)
@@ -576,10 +572,8 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 		return nil, ErrCtrRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != ctr.config.Namespace {
-			return nil, errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return nil, errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
 	}
 
 	depCtrs := []string{}
@@ -876,10 +870,8 @@ func (s *BoltState) PodHasContainer(pod *Pod, id string) (bool, error) {
 		return false, ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return false, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return false, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	ctrID := []byte(id)
@@ -941,10 +933,8 @@ func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
 		return nil, ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return nil, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return nil, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	podID := []byte(pod.ID())
@@ -1005,10 +995,8 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		return nil, ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return nil, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return nil, errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	podID := []byte(pod.ID())
@@ -1077,10 +1065,8 @@ func (s *BoltState) AddPod(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	podID := []byte(pod.ID())
@@ -1203,10 +1189,8 @@ func (s *BoltState) RemovePod(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	podID := []byte(pod.ID())
@@ -1301,10 +1285,8 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	podID := []byte(pod.ID())
@@ -1492,10 +1474,8 @@ func (s *BoltState) UpdatePod(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	newState := new(podState)
@@ -1551,10 +1531,8 @@ func (s *BoltState) SavePod(pod *Pod) error {
 		return ErrPodRemoved
 	}
 
-	if s.namespace != "" {
-		if s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
-		}
+	if s.namespace != "" && s.namespace != pod.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q but we are in namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 	}
 
 	stateJSON, err := json.Marshal(pod.state)

@@ -144,17 +144,11 @@ func (s *InMemoryState) HasContainer(id string) (bool, error) {
 	}
 
 	ctr, ok := s.containers[id]
-	if ok {
-		if s.namespace != "" {
-			if s.namespace != ctr.config.Namespace {
-				return false, nil
-			}
-			return true, nil
-		}
-		return true, nil
+	if !ok || (s.namespace != "" && s.namespace != ctr.config.Namespace) {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // AddContainer adds a container to the state
@@ -295,11 +289,7 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
-	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
-		return err
-	}
-
-	return nil
+	return s.checkNSMatch(ctr.ID(), ctr.Namespace())
 }
 
 // SaveContainer saves a container's state
@@ -318,11 +308,7 @@ func (s *InMemoryState) SaveContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
-	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
-		return err
-	}
-
-	return nil
+	return s.checkNSMatch(ctr.ID(), ctr.Namespace())
 }
 
 // ContainerInUse checks if the given container is being used by other containers
@@ -441,17 +427,11 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 	}
 
 	pod, ok := s.pods[id]
-	if ok {
-		if s.namespace != "" {
-			if s.namespace != pod.config.Namespace {
-				return false, nil
-			}
-			return true, nil
-		}
-		return true, nil
+	if !ok || (s.namespace != "" && s.namespace != pod.config.Namespace) {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }
 
 // PodHasContainer checks if the given pod has a container with the given ID

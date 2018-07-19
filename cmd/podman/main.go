@@ -174,7 +174,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "namespace",
-			Usage: "set the libpod namespace, used create separate views of the containers and pods on the system",
+			Usage: "set the libpod namespace, used to create separate views of the containers and pods on the system",
 			Value: "",
 		},
 		cli.StringFlag{
