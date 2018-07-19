@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -155,4 +156,21 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	return bytes, err
+}
+
+func checkMutuallyExclusiveFlags(c *cli.Context) error {
+	argLen := len(c.Args())
+	if (c.Bool("all") || c.Bool("latest")) && argLen > 0 {
+		return errors.Errorf("no arguments are needed with --all or --latest")
+	}
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+	if argLen < 1 && !c.Bool("all") && !c.Bool("latest") {
+		return errors.Errorf("you must provide at least one pod name or id")
+	}
+	if err := validateFlags(c, startFlags); err != nil {
+		return err
+	}
+	return nil
 }
