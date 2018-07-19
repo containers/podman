@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getTestContainer(id, name, locksDir string) (*Container, error) {
@@ -148,8 +149,8 @@ func testContainersEqual(t *testing.T, a, b *Container) {
 	if a == nil && b == nil {
 		return
 	}
-	assert.NotNil(t, a)
-	assert.NotNil(t, b)
+	require.NotNil(t, a)
+	require.NotNil(t, b)
 
 	assert.NotNil(t, a.config)
 	assert.NotNil(t, b.config)
