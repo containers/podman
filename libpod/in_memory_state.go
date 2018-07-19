@@ -542,6 +542,10 @@ func (s *InMemoryState) AddPod(pod *Pod) error {
 		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added", pod.ID())
 	}
 
+	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
+		return err
+	}
+
 	if _, ok := s.pods[pod.ID()]; ok {
 		return errors.Wrapf(ErrPodExists, "pod with ID %s already exists in state", pod.ID())
 	}

@@ -1790,6 +1790,47 @@ func TestAddPodCtrNameConflictFails(t *testing.T) {
 	})
 }
 
+func TestAddPodSameNamespaceSucceeds(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		testPod.config.Namespace = "test1"
+
+		state.SetNamespace("test1")
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		allPods, err := state.AllPods()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(allPods))
+
+		testPodsEqual(t, testPod, allPods[0])
+		assert.Equal(t, testPod.valid, allPods[0].valid)
+	})
+}
+
+func TestAddPodDifferentNamespaceFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+		testPod, err := getTestPod1(lockPath)
+		assert.NoError(t, err)
+
+		testPod.config.Namespace = "test1"
+
+		state.SetNamespace("test2")
+
+		err = state.AddPod(testPod)
+		assert.Error(t, err)
+
+		state.SetNamespace("")
+
+		allPods, err := state.AllPods()
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(allPods))
+	})
+}
+
 func TestRemovePodInvalidPodErrors(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
 		err := state.RemovePod(&Pod{config: &PodConfig{}})
