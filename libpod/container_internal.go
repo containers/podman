@@ -753,9 +753,9 @@ func (c *Container) mountStorage() (err error) {
 
 	mountPoint := c.config.Rootfs
 	if mountPoint == "" {
-		mountPoint, err = c.runtime.storageService.MountContainerImage(c.ID())
+		mountPoint, err = c.mount()
 		if err != nil {
-			return errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+			return err
 		}
 	}
 	c.state.Mounted = true
@@ -796,8 +796,7 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
-	// Also unmount storage
-	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
+	if err := c.unmount(); err != nil {
 		// If the container has already been removed, warn but don't
 		// error
 		// We still want to be able to kick the container out of the
@@ -807,7 +806,7 @@ func (c *Container) cleanupStorage() error {
 			return nil
 		}
 
-		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+		return err
 	}
 
 	c.state.Mountpoint = ""
@@ -1284,4 +1283,23 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 	}
 
 	return manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+}
+
+// mount mounts the container's root filesystem
+func (c *Container) mount() (string, error) {
+	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
+	if err != nil {
+		return "", errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+	}
+	return mountPoint, nil
+}
+
+// unmount unmounts the container's root filesystem
+func (c *Container) unmount() error {
+	// Also unmount storage
+	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
+		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+	}
+
+	return nil
 }
