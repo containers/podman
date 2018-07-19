@@ -364,6 +364,8 @@ type SystemContext struct {
 	OCIInsecureSkipTLSVerify bool
 	// If not "", use a shared directory for storing blobs rather than within OCI layouts
 	OCISharedBlobDirPath string
+	// Allow UnCompress image layer for OCI image layer
+	OCIAcceptUncompressedLayers bool
 
 	// === docker.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),

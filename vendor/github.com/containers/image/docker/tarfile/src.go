@@ -3,7 +3,6 @@ package tarfile
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -43,8 +42,7 @@ type layerInfo struct {
 //       the source of an image.
 // 	To do for both the NewSourceFromFile and NewSourceFromStream functions
 
-// NewSourceFromFile returns a tarfile.Source for the specified path
-// NewSourceFromFile supports both conpressed and uncompressed input
+// NewSourceFromFile returns a tarfile.Source for the specified path.
 func NewSourceFromFile(path string) (*Source, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -52,19 +50,24 @@ func NewSourceFromFile(path string) (*Source, error) {
 	}
 	defer file.Close()
 
-	reader, err := gzip.NewReader(file)
+	// If the file is already not compressed we can just return the file itself
+	// as a source. Otherwise we pass the stream to NewSourceFromStream.
+	stream, isCompressed, err := compression.AutoDecompress(file)
 	if err != nil {
+		return nil, errors.Wrapf(err, "Error detecting compression for file %q", path)
+	}
+	defer stream.Close()
+	if !isCompressed {
 		return &Source{
 			tarPath: path,
 		}, nil
 	}
-	defer reader.Close()
-
-	return NewSourceFromStream(reader)
+	return NewSourceFromStream(stream)
 }
 
-// NewSourceFromStream returns a tarfile.Source for the specified inputStream, which must be uncompressed.
-// The caller can close the inputStream immediately after NewSourceFromFile returns.
+// NewSourceFromStream returns a tarfile.Source for the specified inputStream,
+// which can be either compressed or uncompressed. The caller can close the
+// inputStream immediately after NewSourceFromFile returns.
 func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
 	// FIXME: use SystemContext here.
 	// Save inputStream to a temporary file
@@ -81,8 +84,20 @@ func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
 		}
 	}()
 
-	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
-	if _, err := io.Copy(tarCopyFile, inputStream); err != nil {
+	// In order to be compatible with docker-load, we need to support
+	// auto-decompression (it's also a nice quality-of-life thing to avoid
+	// giving users really confusing "invalid tar header" errors).
+	uncompressedStream, _, err := compression.AutoDecompress(inputStream)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error auto-decompressing input")
+	}
+	defer uncompressedStream.Close()
+
+	// Copy the plain archive to the temporary file.
+	//
+	// TODO: This can take quite some time, and should ideally be cancellable
+	//       using a context.Context.
+	if _, err := io.Copy(tarCopyFile, uncompressedStream); err != nil {
 		return nil, errors.Wrapf(err, "error copying contents to temporary file %q", tarCopyFile.Name())
 	}
 	succeeded = true
@@ -292,7 +307,25 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			return nil, err
 		}
 		if li, ok := unknownLayerSizes[h.Name]; ok {
-			li.size = h.Size
+			// Since GetBlob will decompress layers that are compressed we need
+			// to do the decompression here as well, otherwise we will
+			// incorrectly report the size. Pretty critical, since tools like
+			// umoci always compress layer blobs. Obviously we only bother with
+			// the slower method of checking if it's compressed.
+			uncompressedStream, isCompressed, err := compression.AutoDecompress(t)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Error auto-decompressing %s to determine its size", h.Name)
+			}
+			defer uncompressedStream.Close()
+
+			uncompressedSize := h.Size
+			if isCompressed {
+				uncompressedSize, err = io.Copy(ioutil.Discard, uncompressedStream)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Error reading %s to find its size", h.Name)
+				}
+			}
+			li.size = uncompressedSize
 			delete(unknownLayerSizes, h.Name)
 		}
 	}
@@ -346,16 +379,22 @@ func (s *Source) GetManifest(ctx context.Context, instanceDigest *digest.Digest)
 	return s.generatedManifest, manifest.DockerV2Schema2MediaType, nil
 }
 
-type readCloseWrapper struct {
+// uncompressedReadCloser is an io.ReadCloser that closes both the uncompressed stream and the underlying input.
+type uncompressedReadCloser struct {
 	io.Reader
-	closeFunc func() error
+	underlyingCloser   func() error
+	uncompressedCloser func() error
 }
 
-func (r readCloseWrapper) Close() error {
-	if r.closeFunc != nil {
-		return r.closeFunc()
+func (r uncompressedReadCloser) Close() error {
+	var res error
+	if err := r.uncompressedCloser(); err != nil {
+		res = err
 	}
-	return nil
+	if err := r.underlyingCloser(); err != nil && res == nil {
+		res = err
+	}
+	return res
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -369,10 +408,16 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadClose
 	}
 
 	if li, ok := s.knownLayers[info.Digest]; ok { // diffID is a digest of the uncompressed tarball,
-		stream, err := s.openTarComponent(li.path)
+		underlyingStream, err := s.openTarComponent(li.path)
 		if err != nil {
 			return nil, 0, err
 		}
+		closeUnderlyingStream := true
+		defer func() {
+			if closeUnderlyingStream {
+				underlyingStream.Close()
+			}
+		}()
 
 		// In order to handle the fact that digests != diffIDs (and thus that a
 		// caller which is trying to verify the blob will run into problems),
@@ -386,22 +431,17 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadClose
 		// be verifing a "digest" which is not the actual layer's digest (but
 		// is instead the DiffID).
 
-		decompressFunc, reader, err := compression.DetectCompression(stream)
+		uncompressedStream, _, err := compression.AutoDecompress(underlyingStream)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "Detecting compression in blob %s", info.Digest)
+			return nil, 0, errors.Wrapf(err, "Error auto-decompressing blob %s", info.Digest)
 		}
 
-		if decompressFunc != nil {
-			reader, err = decompressFunc(reader)
-			if err != nil {
-				return nil, 0, errors.Wrapf(err, "Decompressing blob %s stream", info.Digest)
-			}
+		newStream := uncompressedReadCloser{
+			Reader:             uncompressedStream,
+			underlyingCloser:   underlyingStream.Close,
+			uncompressedCloser: uncompressedStream.Close,
 		}
-
-		newStream := readCloseWrapper{
-			Reader:    reader,
-			closeFunc: stream.Close,
-		}
+		closeUnderlyingStream = false
 
 		return newStream, li.size, nil
 	}

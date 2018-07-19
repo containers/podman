@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/containers/image/types"
@@ -27,16 +26,12 @@ type dockerConfigFile struct {
 	CredHelpers map[string]string           `json:"credHelpers,omitempty"`
 }
 
-const (
-	defaultPath       = "/run"
-	authCfg           = "containers"
-	authCfgFileName   = "auth.json"
-	dockerCfg         = ".docker"
-	dockerCfgFileName = "config.json"
-	dockerLegacyCfg   = ".dockercfg"
-)
-
 var (
+	defaultPerUIDPathFormat = filepath.FromSlash("/run/containers/%d/auth.json")
+	xdgRuntimeDirPath       = filepath.FromSlash("containers/auth.json")
+	dockerHomePath          = filepath.FromSlash(".docker/config.json")
+	dockerLegacyHomePath    = ".dockercfg"
+
 	// ErrNotLoggedIn is returned for users not logged into a registry
 	// that they are trying to logout of
 	ErrNotLoggedIn = errors.New("not logged in")
@@ -64,7 +59,7 @@ func GetAuthentication(sys *types.SystemContext, registry string) (string, strin
 		return sys.DockerAuthConfig.Username, sys.DockerAuthConfig.Password, nil
 	}
 
-	dockerLegacyPath := filepath.Join(homedir.Get(), dockerLegacyCfg)
+	dockerLegacyPath := filepath.Join(homedir.Get(), dockerLegacyHomePath)
 	var paths []string
 	pathToAuth, err := getPathToAuth(sys)
 	if err == nil {
@@ -75,7 +70,7 @@ func GetAuthentication(sys *types.SystemContext, registry string) (string, strin
 		// Logging the error as a warning instead and moving on to pulling the image
 		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
 	}
-	paths = append(paths, filepath.Join(homedir.Get(), dockerCfg, dockerCfgFileName), dockerLegacyPath)
+	paths = append(paths, filepath.Join(homedir.Get(), dockerHomePath), dockerLegacyPath)
 
 	for _, path := range paths {
 		legacyFormat := path == dockerLegacyPath
@@ -135,15 +130,15 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 
 // getPath gets the path of the auth.json file
 // The path can be overriden by the user if the overwrite-path flag is set
-// If the flag is not set and XDG_RUNTIME_DIR is ser, the auth.json file is saved in XDG_RUNTIME_DIR/containers
-// Otherwise, the auth.json file is stored in /run/user/UID/containers
+// If the flag is not set and XDG_RUNTIME_DIR is set, the auth.json file is saved in XDG_RUNTIME_DIR/containers
+// Otherwise, the auth.json file is stored in /run/containers/UID
 func getPathToAuth(sys *types.SystemContext) (string, error) {
 	if sys != nil {
 		if sys.AuthFilePath != "" {
 			return sys.AuthFilePath, nil
 		}
 		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, defaultPath, strconv.Itoa(os.Getuid()), authCfg, authCfgFileName), nil
+			return filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), nil
 		}
 	}
 
@@ -155,14 +150,12 @@ func getPathToAuth(sys *types.SystemContext) (string, error) {
 		if os.IsNotExist(err) {
 			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
 			// or made a typo while setting the environment variable,
-			// so return an error referring to $XDG_RUNTIME_DIR instead of …/authCfgFileName inside.
+			// so return an error referring to $XDG_RUNTIME_DIR instead of xdgRuntimeDirPath inside.
 			return "", errors.Wrapf(err, "%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.", runtimeDir)
-		} // else ignore err and let the caller fail accessing …/authCfgFileName.
-		runtimeDir = filepath.Join(runtimeDir, authCfg)
-	} else {
-		runtimeDir = filepath.Join(defaultPath, authCfg, strconv.Itoa(os.Getuid()))
+		} // else ignore err and let the caller fail accessing xdgRuntimeDirPath.
+		return filepath.Join(runtimeDir, xdgRuntimeDirPath), nil
 	}
-	return filepath.Join(runtimeDir, authCfgFileName), nil
+	return fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()), nil
 }
 
 // readJSONFile unmarshals the authentications stored in the auth.json file and returns it

@@ -85,9 +85,10 @@ type overlayOptions struct {
 	overrideKernelCheck bool
 	imageStores         []string
 	quota               quota.Quota
-	fuseProgram         string
+	mountProgram        string
 	ostreeRepo          string
 	skipMountHome       bool
+	mountOptions        string
 }
 
 // Driver contains information about the home directory and the list of active mounts that are created using this driver.
@@ -153,7 +154,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	}
 
 	var supportsDType bool
-	if opts.fuseProgram != "" {
+	if opts.mountProgram != "" {
 		supportsDType = true
 	} else {
 		supportsDType, err = supportsOverlay(home, fsMagic, rootUID, rootGID)
@@ -222,6 +223,8 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if err != nil {
 				return nil, err
 			}
+		case ".mountopt", "overlay.mountopt", "overlay2.mountopt":
+			o.mountOptions = val
 		case ".size", "overlay.size", "overlay2.size":
 			logrus.Debugf("overlay: size=%s", val)
 			size, err := units.RAMInBytes(val)
@@ -246,13 +249,13 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				}
 				o.imageStores = append(o.imageStores, store)
 			}
-		case ".fuse_program", "overlay.fuse_program", "overlay2.fuse_program":
-			logrus.Debugf("overlay: fuse_program=%s", val)
+		case ".mount_program", "overlay.mount_program", "overlay2.mount_program":
+			logrus.Debugf("overlay: mount_program=%s", val)
 			_, err := os.Stat(val)
 			if err != nil {
-				return nil, fmt.Errorf("overlay: can't stat FUSE program %s: %v", val, err)
+				return nil, fmt.Errorf("overlay: can't stat program %s: %v", val, err)
 			}
-			o.fuseProgram = val
+			o.mountProgram = val
 		case "overlay2.ostree_repo", "overlay.ostree_repo", ".ostree_repo":
 			logrus.Debugf("overlay: ostree_repo=%s", val)
 			if !ostree.OstreeSupport() {
@@ -713,19 +716,22 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 	// the page size. The mount syscall fails if the mount data cannot
 	// fit within a page and relative links make the mount data much
 	// smaller at the expense of requiring a fork exec to chroot.
-	if len(mountData) > pageSize || d.options.fuseProgram != "" {
+	if len(mountData) > pageSize || d.options.mountProgram != "" {
 		//FIXME: We need to figure out to get this to work with additional stores
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
+		if d.options.mountOptions != "" {
+			opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
+		}
 		mountData = label.FormatMountLabel(opts, mountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
 		}
 
-		if d.options.fuseProgram != "" {
+		if d.options.mountProgram != "" {
 			mount = func(source string, target string, mType string, flags uintptr, label string) error {
-				cmdRootless := exec.Command(d.options.fuseProgram, "-o", label, target)
-				cmdRootless.Dir = d.home
-				return cmdRootless.Run()
+				mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
+				mountProgram.Dir = d.home
+				return mountProgram.Run()
 			}
 		} else {
 			mount = func(source string, target string, mType string, flags uintptr, label string) error {
