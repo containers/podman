@@ -25,6 +25,7 @@ RUN dnf -y install btrfs-progs-devel \
               which\
               golang-github-cpuguy83-go-md2man \
               procps-ng \
+              nmap-ncat \
               iptables && dnf clean all
 
 # Install CNI plugins
