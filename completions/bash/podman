@@ -1809,6 +1809,14 @@ _podman_tag() {
     esac
 }
 
+__podman_top_descriptors() {
+        podman top --list-descriptors
+}
+
+__podman_complete_top_descriptors() {
+        COMPREPLY=($(compgen -W "$(__podman_top_descriptors)" -- "$cur"))
+}
+
 _podman_top() {
     local options_with_args="
     "
@@ -1818,6 +1826,14 @@ _podman_top() {
     --latest
     -l
     "
+
+    # podman-top works on only *one* container, which means that when we have
+    # three or more arguments, we can complete with top descriptors.
+    if [[ "${COMP_CWORD}" -ge 3 ]]; then
+            __podman_complete_top_descriptors
+            return
+    fi
+
     case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
