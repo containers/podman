@@ -20,6 +20,8 @@ var (
 			podCreateCommand,
 			podPsCommand,
 			podRmCommand,
+			podStartCommand,
+			podStopCommand,
 		},
 	}
 )

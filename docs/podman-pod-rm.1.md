@@ -17,7 +17,7 @@ Remove all pods.  Can be used in conjunction with \-f as well.
 
 **--latest, -l**
 
-Instead of providing the pod name or ID, use the last created pod.
+Instead of providing the pod name or ID, remove the last created pod.
 
 **--force, f**
 

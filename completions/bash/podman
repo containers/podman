@@ -2144,6 +2144,49 @@ _podman_pod_rm() {
     esac
 }
 
+_podman_pod_start() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    all
+    a
+    latest
+    l
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
+_podman_pod_stop() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    all
+    a
+    cleanup
+    latest
+    l
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
 _podman_pod() {
     local boolean_options="
     --help
@@ -2153,6 +2196,8 @@ _podman_pod() {
      create
      ps
      rm
+     start
+     stop
     "
     local aliases="
      list
