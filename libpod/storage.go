@@ -248,6 +248,21 @@ func (r *storageService) UnmountContainerImage(idOrName string) (bool, error) {
 	return mounted, nil
 }
 
+func (r *storageService) MountedContainerImage(idOrName string) (int, error) {
+	if idOrName == "" {
+		return 0, ErrEmptyID
+	}
+	container, err := r.store.Container(idOrName)
+	if err != nil {
+		return 0, err
+	}
+	mounted, err := r.store.Mounted(container.ID)
+	if err != nil {
+		return 0, err
+	}
+	return mounted, nil
+}
+
 func (r *storageService) GetWorkDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {

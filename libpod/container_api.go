@@ -437,11 +437,7 @@ func (c *Container) Mount() (string, error) {
 		}
 	}
 
-	if err := c.mountStorage(); err != nil {
-		return "", err
-	}
-
-	return c.state.Mountpoint, nil
+	return c.mount()
 }
 
 // Unmount unmounts a container's filesystem on the host
@@ -456,15 +452,24 @@ func (c *Container) Unmount() error {
 	}
 
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
 	}
 
 	// Check if we have active exec sessions
 	if len(c.state.ExecSessions) != 0 {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to unmount", c.ID())
 	}
 
-	return c.cleanupStorage()
+	if c.state.Mounted {
+		mounted, err := c.runtime.storageService.MountedContainerImage(c.ID())
+		if err != nil {
+			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
+		}
+		if mounted == 1 {
+			return errors.Wrapf(err, "can't unmount %s last mount, it is still in use", c.ID())
+		}
+	}
+	return c.unmount()
 }
 
 // Pause pauses a container

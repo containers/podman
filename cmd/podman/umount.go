@@ -58,7 +58,7 @@ func umountCmd(c *cli.Context) error {
 				continue
 			}
 
-			if err = unmountContainer(ctr); err != nil {
+			if err = ctr.Unmount(); err != nil {
 				if lastError != nil {
 					logrus.Error(lastError)
 				}
@@ -78,7 +78,7 @@ func umountCmd(c *cli.Context) error {
 				continue
 			}
 
-			if err = unmountContainer(ctr); err != nil {
+			if err = ctr.Unmount(); err != nil {
 				if lastError != nil {
 					logrus.Error(lastError)
 				}
@@ -89,13 +89,4 @@ func umountCmd(c *cli.Context) error {
 		}
 	}
 	return lastError
-}
-
-func unmountContainer(ctr *libpod.Container) error {
-	if mounted, err := ctr.Mounted(); mounted {
-		return ctr.Unmount()
-	} else {
-		return err
-	}
-	return errors.Errorf("container is not mounted")
 }
