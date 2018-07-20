@@ -383,6 +383,124 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 	return nil, nil
 }
 
+// Pause pauses all containers within a pod that are running.
+// Only running containers will be paused. Paused, stopped, or created
+// containers will be ignored.
+// All containers are paused independently. An error pausing one container
+// will not prevent other containers being paused.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were paused
+// If map is not nil, an error was encountered when pausing one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were paused without error
+func (p *Pod) Pause() (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrErrors := make(map[string]error)
+
+	// Pause to all containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		// Ignore containers that are not running
+		if ctr.state.State != ContainerStateRunning {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		if err := ctr.pause(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		ctr.lock.Unlock()
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error pausing some containers")
+	}
+
+	return nil, nil
+}
+
+// Unpause unpauses all containers within a pod that are running.
+// Only paused containers will be unpaused. Running, stopped, or created
+// containers will be ignored.
+// All containers are unpaused independently. An error unpausing one container
+// will not prevent other containers being unpaused.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were unpaused
+// If map is not nil, an error was encountered when unpausing one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were unpaused without error
+func (p *Pod) Unpause() (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrErrors := make(map[string]error)
+
+	// Pause to all containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		// Ignore containers that are not paused
+		if ctr.state.State != ContainerStatePaused {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		if err := ctr.unpause(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		ctr.lock.Unlock()
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error unpausing some containers")
+	}
+
+	return nil, nil
+}
+
 // Restart restarts all containers within a pod that are not paused or in an error state.
 // It combines the effects of Stop() and Start() on a container
 // Each container will use its own stop timeout.
@@ -403,6 +521,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	if !p.valid {
 		return nil, ErrPodRemoved
 	}
+
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return nil, err
