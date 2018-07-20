@@ -117,13 +117,15 @@ Print the version
 
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
-libpod.conf is the configuration file for all tools using libpod to manage containers.  This file is ignored when running in rootless mode.
+libpod.conf is the configuration file for all tools using libpod to manage containers.  When Podman runs in rootless mode, then the file `$HOME/.config/containers/libpod.conf` is used.
 
 **storage.conf** (`/etc/containers/storage.conf`)
 
 storage.conf is the storage configuration file for all tools using containers/storage
 
 The storage configuration file specifies all of the available container storage options for tools using shared container storage.
+
+When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
 
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
@@ -136,6 +138,8 @@ For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`
 The format of the mounts.conf is the volume format /SRC:/DEST, one mount per line. Users can create an `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container. Podman by default reads /usr/share/containers/mounts.conf and the /etc/containers/mounts.conf if it exists.
 
 Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
+
+When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used.
 
 **hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
 
@@ -152,6 +156,8 @@ Hooks are not used when running in rootless mode.
 **registries.conf** (`/etc/containers/registries.conf`)
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+
+When Podman runs in rootless mode, the file `$HOME/.config/containers/registries.conf` is used.
 
 ## Rootless mode
 Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.

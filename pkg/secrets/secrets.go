@@ -10,6 +10,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,6 +21,9 @@ var (
 	// OverrideMountsFile holds the default mount paths in the form
 	// "host_path:container_path" overridden by the user
 	OverrideMountsFile = "/etc/containers/mounts.conf"
+	// UserOverrideMountsFile holds the default mount paths in the form
+	// "host_path:container_path" overridden by the rootless user
+	UserOverrideMountsFile = filepath.Join(os.Getenv("HOME"), ".config/containers/mounts.conf")
 )
 
 // secretData stores the name of the file and the content read from it
@@ -143,15 +147,21 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Note for testing purposes only
 	if mountFile == "" {
 		mountFiles = append(mountFiles, []string{OverrideMountsFile, DefaultMountsFile}...)
+		if rootless.IsRootless() {
+			mountFiles = append([]string{UserOverrideMountsFile}, mountFiles...)
+		}
 	} else {
 		mountFiles = append(mountFiles, mountFile)
 	}
 	for _, file := range mountFiles {
-		mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
-		if err != nil {
-			logrus.Warnf("error mounting secrets, skipping: %v", err)
+		if _, err := os.Stat(file); err == nil {
+			mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
+			if err != nil {
+				logrus.Warnf("error mounting secrets, skipping: %v", err)
+			}
+			secretMounts = mounts
+			break
 		}
-		secretMounts = append(secretMounts, mounts...)
 	}
 
 	// Add FIPS mode secret if /etc/system-fips exists on the host

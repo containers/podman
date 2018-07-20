@@ -57,6 +57,11 @@ func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 		if err != nil {
 			return storageOpts, err
 		}
+
+		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+		if _, err := os.Stat(storageConf); err == nil {
+			storage.ReloadConfigurationFile(storageConf, &storageOpts)
+		}
 	}
 	return storageOpts, nil
 }
