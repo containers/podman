@@ -45,6 +45,9 @@ var (
 	AtomicTransport = "atomic"
 	// DefaultTransport is a prefix that we apply to an image name
 	DefaultTransport = DockerTransport
+	// DefaultLocalRepo is the default local repository for local image operations
+	// Remote pulls will still use defined registries
+	DefaultLocalRepo = "localhost"
 )
 
 type pullStruct struct {
@@ -55,6 +58,14 @@ type pullStruct struct {
 }
 
 func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (*pullStruct, error) {
+	imgPart, err := decompose(destName)
+	if err == nil && !imgPart.hasRegistry {
+		// If the image doesn't have a registry, set it as the default repo
+		imgPart.registry = DefaultLocalRepo
+		imgPart.hasRegistry = true
+		destName = imgPart.assemble()
+	}
+
 	reference := destName
 	if srcRef.DockerReference() != nil {
 		reference = srcRef.DockerReference().String()
@@ -148,7 +159,9 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 		image := splitArr[1]
 		// remove leading "/"
 		if image[:1] == "/" {
-			image = image[1:]
+			// Instead of removing the leading /, set localhost as the registry
+			// so docker.io isn't prepended, and the path becomes the repository
+			image = DefaultLocalRepo + image
 		}
 		pullInfo, err := ir.getPullStruct(srcRef, image)
 		if err != nil {

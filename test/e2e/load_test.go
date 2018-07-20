@@ -161,4 +161,60 @@ var _ = Describe("Podman load", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})
+
+	It("podman load localhost repo from scratch", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
+		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"rmi", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		load := podmanTest.Podman([]string{"load", "-i", outfile})
+		load.WaitWithDefaultTimeout()
+		Expect(load.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"images", "-f", "label", "hello:world"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+	})
+
+	It("podman load localhost repo from dir", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "load")
+		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-dir", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"rmi", "hello:world"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		load := podmanTest.Podman([]string{"load", "-i", outfile})
+		load.WaitWithDefaultTimeout()
+		Expect(load.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"images", "-f", "label", "load:latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+	})
 })

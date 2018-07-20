@@ -38,7 +38,7 @@ var _ = Describe("Podman tag", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
 		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
 	})
 
 	It("podman tag shortname", func() {
@@ -51,7 +51,7 @@ var _ = Describe("Podman tag", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
 		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("localhost/foobar:latest", inspectData[0].RepoTags)).To(BeTrue())
 	})
 
 	It("podman tag shortname:tag", func() {
@@ -64,7 +64,7 @@ var _ = Describe("Podman tag", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
 		Expect(StringInSlice("docker.io/library/alpine:latest", inspectData[0].RepoTags)).To(BeTrue())
-		Expect(StringInSlice("foobar:new", inspectData[0].RepoTags)).To(BeTrue())
+		Expect(StringInSlice("localhost/foobar:new", inspectData[0].RepoTags)).To(BeTrue())
 	})
 
 	It("podman tag shortname image no tag", func() {
