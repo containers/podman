@@ -1,3 +1,32 @@
+- Changelog for v0.7.3 (2018-07-20)
+  * Update psgo vendor
+  * Podman load/tag/save prepend localhost when no repository is present
+  * Pod ps now uses pod.Status()
+  * Added pod start and stop
+  * rootless: support a per-user mounts.conf
+  * secrets: parse only one mounts configuration file
+  * rootless: allow a per-user registries.conf file
+  * pull: get registries using the registries pkg
+  * rootless: allow a per-user storage.conf file
+  * rootless, docs: document the libpod.conf file used in rootless mode
+  * Let containers/storage keep track of mounts
+  * podman-top: use containers/psgo
+  * Vendor in latest code for storage,image, buildah
+  * Abort a test on nil containers, so that future tests don't panic
+  * Fix TestPostDeleteHooks on macOS
+  * Use `...` for a regexp constant to improve readability
+  * oci: keep exposed ports busy and leak the fd into conmon
+  * Dockerfile: install nmap-ncat
+  * Update podman_tutorial.md
+  * Update transfer.md
+  * Add missing podman commands
+  * Update gitvalidation epoch
+  * Fix ps filter with key=value labels
+  * rootless: require subids to be present
+  * Downgrade setup.py
+  * Bump gitvalidation epoch
+  * Bump to v0.7.3-dev
+
 - Changelog for v0.7.2 (2018-07-13)
   * Change logic for detecting conflicting flags in ps
   * Update python directories to better support setup.py
