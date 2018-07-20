@@ -31,6 +31,7 @@
 | [podman-pause(1)](/docs/podman-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-pod(1)](/docs/podman-pod.1.md)                   | Simple management tool for groups of containers, called pods              ||
 | [podman-pod-create(1)](/docs/podman-pod-create.1.md)     | Create a new pod                                                          ||
+| [podman-pod-kill(1)](podman-pod-kill.1.md)               | Kill the main process of each container in pod.                           ||
 | [podman-pod-ps(1)](/docs/podman-pod-ps.1.md)             | List the pods on the system                                               ||
 | [podman-pod-rm(1)](/docs/podman-pod-rm.1.md)             | Remove one or more pods                                                   ||
 | [podman-pod-start(1)](/docs/podman-pod-start.1.md)       | Start one or more pods                                                    ||
