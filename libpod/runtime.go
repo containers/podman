@@ -505,6 +505,11 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
+	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
+		return errors.Wrapf(err, "error setting libpod namespace in state")
+	}
+	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
+
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
 	// This check must be locked to prevent races
