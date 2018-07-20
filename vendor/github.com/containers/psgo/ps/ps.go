@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -405,17 +405,13 @@ func parseDescriptors(input string) ([]aixFormatDescriptor, error) {
 // lookupGID returns the textual group ID, if it can be optained, or the
 // decimal input representation otherwise.
 func lookupGID(gid string) (string, error) {
-	if gid == "0" {
-		return "root", nil
-	}
-	g, err := user.LookupGroupId(gid)
+	gidNum, err := strconv.Atoi(gid)
 	if err != nil {
-		switch err.(type) {
-		case user.UnknownGroupIdError:
-			return gid, nil
-		default:
-			return "", err
-		}
+		return "", errors.Wrap(err, "error parsing group ID")
+	}
+	g, err := user.LookupGid(gidNum)
+	if err != nil {
+		return gid, nil
 	}
 	return g.Name, nil
 }
@@ -442,19 +438,15 @@ func processPPID(p *process) (string, error) {
 // lookupUID return the textual user ID, if it can be optained, or the decimal
 // input representation otherwise.
 func lookupUID(uid string) (string, error) {
-	if uid == "0" {
-		return "root", nil
-	}
-	u, err := user.LookupId(uid)
+	uidNum, err := strconv.Atoi(uid)
 	if err != nil {
-		switch err.(type) {
-		case user.UnknownUserError:
-			return uid, nil
-		default:
-			return "", err
-		}
+		return "", errors.Wrap(err, "error parsing user ID")
 	}
-	return u.Username, nil
+	u, err := user.LookupUid(uidNum)
+	if err != nil {
+		return uid, nil
+	}
+	return u.Name, nil
 
 }
 
