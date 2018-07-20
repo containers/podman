@@ -296,17 +296,13 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			ctrs, err := p.AllContainers()
+			ctr_statuses, err := p.Status()
 			if err != nil {
 				return false
 			}
-			for _, ctr := range ctrs {
-				status, err := ctr.State()
-				if err != nil {
-					return false
-				}
-				state := status.String()
-				if status == libpod.ContainerStateConfigured {
+			for _, ctr_status := range ctr_statuses {
+				state := ctr_status.String()
+				if ctr_status == libpod.ContainerStateConfigured {
 					state = "created"
 				}
 				if state == filterValue {
@@ -328,11 +324,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			ctrs, err := p.AllContainers()
-			if err != nil {
-				return false
-			}
-			status, err := getPodStatus(ctrs)
+			status, err := getPodStatus(p)
 			if err != nil {
 				return false
 			}
@@ -468,8 +460,12 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 	return psOutput, nil
 }
 
-func getPodStatus(ctrs []*libpod.Container) (string, error) {
-	ctrNum := len(ctrs)
+func getPodStatus(pod *libpod.Pod) (string, error) {
+	ctr_statuses, err := pod.Status()
+	if err != nil {
+		return ERROR, err
+	}
+	ctrNum := len(ctr_statuses)
 	if ctrNum == 0 {
 		return CREATED, nil
 	}
@@ -480,12 +476,8 @@ func getPodStatus(ctrs []*libpod.Container) (string, error) {
 		CREATED: 0,
 		ERROR:   0,
 	}
-	for _, ctr := range ctrs {
-		state, err := ctr.State()
-		if err != nil {
-			return "", err
-		}
-		switch state {
+	for _, ctr_status := range ctr_statuses {
+		switch ctr_status {
 		case libpod.ContainerStateStopped:
 			statuses[STOPPED]++
 		case libpod.ContainerStateRunning:
@@ -527,7 +519,7 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 		ctrNum := len(ctrs)
-		status, err := getPodStatus(ctrs)
+		status, err := getPodStatus(pod)
 		if err != nil {
 			return nil, err
 		}
