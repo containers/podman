@@ -1,3 +1,5 @@
+- Changelog for v0.7.3 (2018-07-20)
+
 - Changelog for v0.7.1 (2018-07-06)
   * pkg/ctime: Factor libpod/finished* into a separate package
   * Block use of /proc/acpi from inside containers
