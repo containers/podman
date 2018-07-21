@@ -168,32 +168,10 @@ then
 fi
 
 ########
-# Build Dockerfile
-########
-FILE=./Dockerfile
-/bin/cat <<EOM >$FILE
-FROM docker/whalesay:latest
-RUN apt-get -y update && apt-get install -y fortunes
-CMD /usr/games/fortune -a | cowsay
-EOM
-chmod +x $FILE
-
-########
-# Build with the Dockerfile
-########
-podman build -f Dockerfile -t whale-says
-
-########
-# Run the container to see what the whale says
-########
-podman run whale-says
-
-########
 # Clean up Podman
 ########
 podman rm --all
 podman rmi --all
-rm ./Dockerfile
 
 ########
 # Set up xfs mount for overlay quota
@@ -208,7 +186,6 @@ device=$(losetup -f | tr -d '[:space:]')
 losetup $device $TMPDIR/virtfs
 mkfs.xfs $device
 mount -t xfs -o prjquota $device $TMPDIR
-
 
 ########
 # Expected to succeed
@@ -235,10 +212,156 @@ else
 fi
 
 ########
-# Clean up Podman and /tmp
+# Clean up Podman
 ########
 podman rm --all
 podman rmi --all
 umount $TMPDIR -l
 losetup -d $device
 rm -rf /tmp/podman_test
+
+########
+# Prep for UserNamespace testing
+# Thanks @marcov!
+########
+PODMAN_OPTS_VOLUMES="-v /tmp/voltest/vol-0:/mnt/vol-0 -v /tmp/voltest/vol-1000:/mnt/vol-1000 -v /tmp/voltest/vol-100000:/mnt/vol-100000 -v /tmp/voltest/vol-101000:/mnt/vol-101000"
+PODMAN_OPTS="$PODMAN_OPTS_VOLUMES --rm"
+PODMAN_ID_MAPS="--uidmap=0:100000:1000000 --gidmap=0:100000:1000000"
+
+########
+# Make directories for UserNamespace testing
+########
+mkdir -p /tmp/voltest/vol-0
+mkdir -p /tmp/voltest/vol-1000
+mkdir -p /tmp/voltest/vol-100000
+mkdir -p /tmp/voltest/vol-101000
+UIDGID=`/usr/bin/tr -cd "[:digit:]" <<< /tmp/voltest/vol-0`
+
+chown $UIDGID:$UIDGID /tmp/voltest/vol-0
+chown $UIDGID:$UIDGID /tmp/voltest/vol-1000
+chown $UIDGID:$UIDGID /tmp/voltest/vol-100000
+chown $UIDGID:$UIDGID /tmp/voltest/vol-101000
+
+########
+# Make run test script
+########
+FILE=./runtest.sh
+/bin/cat <<EOM >$FILE
+#!/usr/bin/env bash
+ls -n /mnt
+for i in $(find /mnt -mindepth 1 -type d); do
+    touch "$i/foobar" 2>/dev/null;
+    echo "create $i/foobar: $?";
+    /bin/rm "$i/foobar" 2>/dev/null;
+done;
+exit 0
+EOM
+chmod +x $FILE
+
+########
+# Make Dockerfile
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM debian
+ADD ./runtest.sh /runtest.sh
+EOM
+chmod +x $FILE
+
+########
+# Build container
+########
+podman build -t usernamespace -f ./Dockerfile .
+
+########
+# Run the tests for UserNamespaces
+########
+echo "Run as root with no user NS"
+podman run $PODMAN_OPTS usernamespace /bin/bash runtest.sh
+echo ""
+
+echo "Run as user 1000 with no user NS"
+podman run --user=1000 $PODMAN_OPTS usernamespace /bin/bash /runtest.sh
+echo ""
+
+echo "Run as root with user NS "
+podman run $PODMAN_ID_MAPS $PODMAN_OPTS usernamespace /bin/bash /runtest.sh
+echo ""
+
+echo "Run as user 1000 with user NS "
+podman run --user=1000 $PODMAN_ID_MAPS $PODMAN_OPTS usernamespace /bin/bash /runtest.sh
+echo ""
+
+########
+# Clean up Podman
+########
+podman rm --all
+podman rmi --all
+rm -f ./runtest.sh
+rm -rf /tmp/voltest
+rm -f ./Dockerfile
+
+########
+# Build Dockerfiles for OnBuild Test
+# (Thanks @clcollins!)
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM alpine
+RUN touch /foo
+ONBUILD RUN touch /bar
+EOM
+chmod +x $FILE
+
+FILE=./Dockerfile-2
+/bin/cat <<EOM >$FILE
+FROM onbuild-image
+RUN touch /baz
+EOM
+chmod +x $FILE
+
+########
+# Build with Dockerfiles
+########
+podman build -f ./Dockerfile --format=docker -t onbuild-image .
+podman build -f ./Dockerfile-2 --format=docker -t result-image .
+
+########
+# Check for /bar /baz and /foo files
+########
+podman run --network=host result-image ls -alF /bar /baz /foo
+
+########
+# Clean up Podman
+########
+podman rm --all
+podman rmi --all
+rm ./Dockerfile*
+
+########
+# Build Dockerfile for WhaleSays test
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM docker/whalesay:latest
+RUN apt-get -y update && apt-get install -y fortunes
+CMD /usr/games/fortune -a | cowsay
+EOM
+chmod +x $FILE
+
+########
+# Build with the Dockerfile
+########
+podman build -f Dockerfile -t whale-says
+
+########
+# Run the container to see what the whale says
+########
+podman run whale-says
+
+########
+# Clean up Podman and /tmp
+########
+podman rm --all
+podman rmi --all
+rm ./Dockerfile*
