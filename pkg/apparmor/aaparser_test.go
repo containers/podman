@@ -12,6 +12,9 @@ type versionExpected struct {
 }
 
 func TestParseVersion(t *testing.T) {
+	if !IsEnabled() {
+		t.Skip("AppArmor disabled: skipping tests")
+	}
 	versions := []versionExpected{
 		{
 			output: `AppArmor parser version 2.10

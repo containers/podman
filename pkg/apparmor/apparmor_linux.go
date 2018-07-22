@@ -10,7 +10,14 @@ import (
 	"path"
 	"strings"
 	"text/template"
+
+	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 )
+
+// IsEnabled returns true if AppArmor is enabled on the host.
+func IsEnabled() bool {
+	return runcaa.IsEnabled()
+}
 
 // profileData holds information about the given profile for generation.
 type profileData struct {
