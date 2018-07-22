@@ -196,7 +196,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		}
 	}
 
-	if config.ApparmorProfile == "" {
+	if config.ApparmorProfile == "" && apparmor.IsEnabled() {
 		// Unless specified otherwise, make sure that the default AppArmor
 		// profile is installed.  To avoid redundantly loading the profile
 		// on each invocation, check if it's loaded before installing it.
@@ -231,7 +231,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			logrus.Infof("Sucessfully loaded AppAmor profile '%s'", profile)
 			config.ApparmorProfile = profile
 		}
-	} else {
+	} else if config.ApparmorProfile != "" {
+		if !apparmor.IsEnabled() {
+			return fmt.Errorf("profile specified but AppArmor is disabled on the host")
+		}
+
 		isLoaded, err := apparmor.IsLoaded(config.ApparmorProfile)
 		if err != nil {
 			switch err {
