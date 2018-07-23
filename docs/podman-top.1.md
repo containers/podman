@@ -24,6 +24,8 @@ to run containers such as CRI-O, the last started container could be from either
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
 
+**pcpu, group, ppid, user, args, comm, rgroup, nice, pid, pgid, etime, ruser, time, tty, vsz**
+
 **capinh**
 
   Set of inheritable capabilities. See capabilities (7) for more information.
