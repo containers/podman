@@ -204,15 +204,15 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 
 	// Traverse the graph beginning at nodes with no dependencies
 	for _, node := range graph.noDepNodes {
-		startNode(ctx, node, false, ctrErrors, ctrsVisited)
+		startNode(ctx, node, false, ctrErrors, ctrsVisited, false)
 	}
 
 	return ctrErrors, nil
 }
 
 // Visit a node on a container graph and start the container, or set an error if
-// a dependency failed to start
-func startNode(ctx context.Context, node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool) {
+// a dependency failed to start. if restart is true, startNode will restart the node instead of starting it.
+func startNode(ctx context.Context, node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool, restart bool) {
 	// First, check if we have already visited the node
 	if ctrsVisited[node.id] {
 		return
@@ -227,7 +227,7 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 
 		// Hit anyone who depends on us, and set errors on them too
 		for _, successor := range node.dependedOn {
-			startNode(ctx, successor, true, ctrErrors, ctrsVisited)
+			startNode(ctx, successor, true, ctrErrors, ctrsVisited, restart)
 		}
 
 		return
@@ -279,10 +279,18 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	}
 
 	// Start the container (only if it is not running)
-	if !ctrErrored && node.container.state.State != ContainerStateRunning {
-		if err := node.container.initAndStart(ctx); err != nil {
-			ctrErrored = true
-			ctrErrors[node.id] = err
+	if !ctrErrored {
+		if !restart && node.container.state.State != ContainerStateRunning {
+			if err := node.container.initAndStart(ctx); err != nil {
+				ctrErrored = true
+				ctrErrors[node.id] = err
+			}
+		}
+		if restart && node.container.state.State != ContainerStatePaused && node.container.state.State != ContainerStateUnknown {
+			if err := node.container.restartWithTimeout(ctx, node.container.config.StopTimeout); err != nil {
+				ctrErrored = true
+				ctrErrors[node.id] = err
+			}
 		}
 	}
 
@@ -290,7 +298,7 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 
 	// Recurse to anyone who depends on us and start them
 	for _, successor := range node.dependedOn {
-		startNode(ctx, successor, ctrErrored, ctrErrors, ctrsVisited)
+		startNode(ctx, successor, ctrErrored, ctrErrors, ctrsVisited, restart)
 	}
 
 	return
@@ -362,6 +370,176 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
+	}
+
+	return nil, nil
+}
+
+// Restart restarts all containers within a pod that are not paused or in an error state.
+// It combines the effects of Stop() and Start() on a container
+// Each container will use its own stop timeout.
+// All containers are started independently, in order dictated by their
+// dependencies. An error restarting one container
+// will not prevent other containers being restarted.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were restarted
+// If map is not nil, an error was encountered when restarting one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were restarted without error
+func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a dependency graph of containers in the pod
+	graph, err := buildContainerGraph(allCtrs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
+	}
+
+	ctrErrors := make(map[string]error)
+	ctrsVisited := make(map[string]bool)
+
+	// If there are no containers without dependencies, we can't start
+	// Error out
+	if len(graph.noDepNodes) == 0 {
+		return nil, errors.Wrapf(ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
+	}
+
+	// Traverse the graph beginning at nodes with no dependencies
+	for _, node := range graph.noDepNodes {
+		startNode(ctx, node, false, ctrErrors, ctrsVisited, true)
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
+	}
+
+	return nil, nil
+}
+
+// Pause pauses all containers within a pod that are running.
+// Only running containers will be paused. Paused, stopped, or created
+// containers will be ignored.
+// All containers are paused independently. An error pausing one container
+// will not prevent other containers being paused.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were paused
+// If map is not nil, an error was encountered when pausing one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were paused without error
+func (p *Pod) Pause() (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrErrors := make(map[string]error)
+
+	// Pause to all containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		// Ignore containers that are not running
+		if ctr.state.State != ContainerStateRunning {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		if err := ctr.pause(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		ctr.lock.Unlock()
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error pausing some containers")
+	}
+
+	return nil, nil
+}
+
+// Unpause unpauses all containers within a pod that are running.
+// Only paused containers will be unpaused. Running, stopped, or created
+// containers will be ignored.
+// All containers are unpaused independently. An error unpausing one container
+// will not prevent other containers being unpaused.
+// An error and a map[string]error are returned
+// If the error is not nil and the map is nil, an error was encountered before
+// any containers were unpaused
+// If map is not nil, an error was encountered when unpausing one or more
+// containers. The container ID is mapped to the error encountered. The error is
+// set to ErrCtrExists
+// If both error and the map are nil, all containers were unpaused without error
+func (p *Pod) Unpause() (map[string]error, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if !p.valid {
+		return nil, ErrPodRemoved
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrErrors := make(map[string]error)
+
+	// Pause to all containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+
+		if err := ctr.syncContainer(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		// Ignore containers that are not paused
+		if ctr.state.State != ContainerStatePaused {
+			ctr.lock.Unlock()
+			continue
+		}
+
+		if err := ctr.unpause(); err != nil {
+			ctr.lock.Unlock()
+			ctrErrors[ctr.ID()] = err
+			continue
+		}
+
+		ctr.lock.Unlock()
+	}
+
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error unpausing some containers")
 	}
 
 	return nil, nil
