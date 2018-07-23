@@ -9,7 +9,7 @@ host:
      ram: 8192
      cpus: 4
 required: true
-timeout: 45m
+timeout: 90m
 
 tests:
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
