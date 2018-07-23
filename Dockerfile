@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dateutil \
     python3-setuptools \
+    xz-utils \
     --no-install-recommends \
     && apt-get clean
 
