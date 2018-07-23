@@ -718,6 +718,43 @@ func (c *Container) unpause() error {
 	return c.save()
 }
 
+// Internal, non-locking function to restart a container
+func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err error) {
+	if c.state.State == ContainerStateUnknown || c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
+	}
+
+	if c.state.State == ContainerStateRunning {
+		if err := c.stop(timeout); err != nil {
+			return err
+		}
+	}
+	if err := c.prepare(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
+		if err := c.reinit(ctx); err != nil {
+			return err
+		}
+	} else if c.state.State == ContainerStateConfigured {
+		// Initialize the container if it has never been initialized
+		if err := c.init(ctx); err != nil {
+			return err
+		}
+	}
+
+	return c.start()
+}
+
 // mountStorage sets up the container's root filesystem
 // It mounts the image and any other requested mounts
 // TODO: Add ability to override mount label so we can use this for Mount() too
