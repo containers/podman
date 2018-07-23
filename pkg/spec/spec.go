@@ -345,6 +345,7 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 		return nil
 	} else if netMode.IsContainer() {
 		logrus.Debug("Using container netmode")
+		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
 		return nil
