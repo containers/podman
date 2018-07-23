@@ -50,14 +50,21 @@ var (
 	DefaultLocalRepo = "localhost"
 )
 
-type pullStruct struct {
-	image       string
-	srcRef      types.ImageReference
-	dstRef      types.ImageReference
-	shaPullName string
+// pullRefPair records a pair of prepared image references to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
+type pullRefPair struct {
+	image  string
+	srcRef types.ImageReference
+	dstRef types.ImageReference
 }
 
-func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (*pullStruct, error) {
+// pullRefName records a prepared source reference and a destination name to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
+type pullRefName struct {
+	image   string
+	srcRef  types.ImageReference
+	dstName string
+}
+
+func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) (*pullRefPair, error) {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
@@ -74,16 +81,16 @@ func (ir *Runtime) getPullStruct(srcRef types.ImageReference, destName string) (
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing dest reference name")
 	}
-	return &pullStruct{
+	return &pullRefPair{
 		image:  destName,
 		srcRef: srcRef,
 		dstRef: destRef,
 	}, nil
 }
 
-// returns a list of pullStruct with the srcRef and DstRef based on the transport being used
-func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullStruct, error) {
-	var pullStructs []*pullStruct
+// returns a list of pullRefPair with the srcRef and DstRef based on the transport being used
+func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
+	var pullRefPairs []*pullRefPair
 	splitArr := strings.Split(imgName, ":")
 	archFile := splitArr[len(splitArr)-1]
 
@@ -105,11 +112,11 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 			if err != nil {
 				return nil, err
 			}
-			pullInfo, err := ir.getPullStruct(srcRef, reference)
+			pullInfo, err := ir.getPullRefPair(srcRef, reference)
 			if err != nil {
 				return nil, err
 			}
-			pullStructs = append(pullStructs, pullInfo)
+			pullRefPairs = append(pullRefPairs, pullInfo)
 		} else {
 			var dest []string
 			if len(manifest[0].RepoTags) > 0 {
@@ -124,11 +131,11 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 			}
 			// Need to load in all the repo tags from the manifest
 			for _, dst := range dest {
-				pullInfo, err := ir.getPullStruct(srcRef, dst)
+				pullInfo, err := ir.getPullRefPair(srcRef, dst)
 				if err != nil {
 					return nil, err
 				}
-				pullStructs = append(pullStructs, pullInfo)
+				pullRefPairs = append(pullRefPairs, pullInfo)
 			}
 		}
 	} else if srcRef.Transport().Name() == OCIArchive {
@@ -149,11 +156,11 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		pullInfo, err := ir.getPullStruct(srcRef, dest)
+		pullInfo, err := ir.getPullRefPair(srcRef, dest)
 		if err != nil {
 			return nil, err
 		}
-		pullStructs = append(pullStructs, pullInfo)
+		pullRefPairs = append(pullRefPairs, pullInfo)
 	} else if srcRef.Transport().Name() == DirTransport {
 		// supports pull from a directory
 		image := splitArr[1]
@@ -163,19 +170,19 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		pullInfo, err := ir.getPullStruct(srcRef, image)
+		pullInfo, err := ir.getPullRefPair(srcRef, image)
 		if err != nil {
 			return nil, err
 		}
-		pullStructs = append(pullStructs, pullInfo)
+		pullRefPairs = append(pullRefPairs, pullInfo)
 	} else {
-		pullInfo, err := ir.getPullStruct(srcRef, imgName)
+		pullInfo, err := ir.getPullRefPair(srcRef, imgName)
 		if err != nil {
 			return nil, err
 		}
-		pullStructs = append(pullStructs, pullInfo)
+		pullRefPairs = append(pullRefPairs, pullInfo)
 	}
-	return pullStructs, nil
+	return pullRefPairs, nil
 }
 
 // pullImage pulls an image from configured registries
@@ -183,19 +190,19 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 // pulled.
 func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	// pullImage copies the image from the source to the destination
-	var pullStructs []*pullStruct
+	var pullRefPairs []*pullRefPair
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(i.InputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
-		pullStructs, err = i.createNamesToPull()
+		pullRefPairs, err = i.refPairsFromPossiblyUnqualifiedName()
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		pullStructs, err = i.imageruntime.getPullListFromRef(ctx, srcRef, i.InputName, sc)
+		pullRefPairs, err = i.imageruntime.getPullListFromRef(ctx, srcRef, i.InputName, sc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting pullStruct info to pull image %q", i.InputName)
+			return nil, errors.Wrapf(err, "error getting pullRefPair info to pull image %q", i.InputName)
 		}
 	}
 	policyContext, err := getPolicyContext(sc)
@@ -209,7 +216,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 		return nil, err
 	}
 	var images []string
-	for _, imageInfo := range pullStructs {
+	for _, imageInfo := range pullRefPairs {
 		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
 		if strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) {
 			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
@@ -257,34 +264,42 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	return images, nil
 }
 
-// createNamesToPull looks at a decomposed image and determines the possible
-// images names to try pulling in combination with the registries.conf file as well
-func (i *Image) createNamesToPull() ([]*pullStruct, error) {
+// hasShaInInputName returns a bool as to whether the user provided an image name that includes
+// a reference to a specific sha
+func hasShaInInputName(inputName string) bool {
+	return strings.Contains(inputName, "@sha256:")
+}
+
+// refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// image names to try pulling in combination with the registries.conf file as well
+func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, error) {
 	var (
-		pullNames []*pullStruct
+		pullNames []*pullRefName
 		imageName string
 	)
 
-	decomposedImage, err := decompose(i.InputName)
+	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		if i.HasShaInInputName() {
-			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, i.InputName)
+		if hasShaInInputName(inputName) {
+			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
 		} else {
 			imageName = decomposedImage.assembleWithTransport()
 		}
 		srcRef, err := alltransports.ParseImageName(imageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
+			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		ps := pullStruct{
-			image:  i.InputName,
+		ps := pullRefName{
+			image:  inputName,
 			srcRef: srcRef,
 		}
-		if i.HasShaInInputName() {
-			ps.shaPullName = decomposedImage.assemble()
+		if hasShaInInputName(inputName) {
+			ps.dstName = decomposedImage.assemble()
+		} else {
+			ps.dstName = ps.image
 		}
 		pullNames = append(pullNames, &ps)
 
@@ -296,43 +311,48 @@ func (i *Image) createNamesToPull() ([]*pullStruct, error) {
 		for _, registry := range searchRegistries {
 			decomposedImage.registry = registry
 			imageName := decomposedImage.assembleWithTransport()
-			if i.HasShaInInputName() {
-				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, i.InputName)
+			if hasShaInInputName(inputName) {
+				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
 			}
 			srcRef, err := alltransports.ParseImageName(imageName)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to parse '%s'", i.InputName)
+				return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 			}
-			ps := pullStruct{
+			ps := pullRefName{
 				image:  decomposedImage.assemble(),
 				srcRef: srcRef,
 			}
+			ps.dstName = ps.image
 			pullNames = append(pullNames, &ps)
 		}
 	}
-
-	// Here we construct the destination reference
-	for _, pStruct := range pullNames {
-		dstName := pStruct.image
-		if pStruct.shaPullName != "" {
-			dstName = pStruct.shaPullName
-		}
-		destRef, err := is.Transport.ParseStoreReference(i.imageruntime.store, dstName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name")
-		}
-		pStruct.dstRef = destRef
-	}
-
 	return pullNames, nil
 }
 
-// isShortName returns a bool response if the input image name has a registry
-// name in it or not
-func (i *Image) isShortName() (bool, error) {
-	decomposedImage, err := decompose(i.InputName)
+// refPairsFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// image references to try pulling in combination with the registries.conf file as well
+func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
+	refNames, err := refNamesFromPossiblyUnqualifiedName(i.InputName)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return decomposedImage.hasRegistry, nil
+	return i.imageruntime.pullRefPairsFromRefNames(refNames)
+}
+
+// pullRefPairsFromNames converts a []*pullRefName to []*pullRefPair
+func (ir *Runtime) pullRefPairsFromRefNames(refNames []*pullRefName) ([]*pullRefPair, error) {
+	// Here we construct the destination references
+	res := make([]*pullRefPair, len(refNames))
+	for i, rn := range refNames {
+		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing dest reference name")
+		}
+		res[i] = &pullRefPair{
+			image:  rn.image,
+			srcRef: rn.srcRef,
+			dstRef: destRef,
+		}
+	}
+	return res, nil
 }

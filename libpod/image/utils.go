@@ -12,16 +12,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getTags(nameInput string) (reference.NamedTagged, bool, error) {
-	inputRef, err := reference.Parse(nameInput)
-	if err != nil {
-		return nil, false, errors.Wrapf(err, "unable to obtain tag from input name")
-	}
-	tagged, isTagged := inputRef.(reference.NamedTagged)
-
-	return tagged, isTagged, nil
-}
-
 // findImageInRepotags takes an imageParts struct and searches images' repotags for
 // a match on name:tag
 func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, error) {
