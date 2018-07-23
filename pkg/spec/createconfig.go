@@ -147,8 +147,13 @@ func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
 	var m []spec.Mount
-	var options []string
 	for _, i := range c.Volumes {
+		var (
+			options                          []string
+			foundrw, foundro, foundz, foundZ bool
+			rootProp                         string
+		)
+
 		// We need to handle SELinux options better here, specifically :Z
 		spliti := strings.Split(i, ":")
 		if len(spliti) > 2 {
@@ -158,8 +163,6 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			continue
 		}
 		options = append(options, "rbind")
-		var foundrw, foundro, foundz, foundZ bool
-		var rootProp string
 		for _, opt := range options {
 			switch opt {
 			case "rw":
