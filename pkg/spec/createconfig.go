@@ -379,7 +379,9 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
-		options = append(options, libpod.WithNetNSFrom(connectedCtr))
+		options = append(options, libpod.WithNetNSFrom("", connectedCtr))
+	} else if c.NetMode.IsNS() {
+		options = append(options, libpod.WithNetNSFrom(c.NetMode.NS(), nil))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		postConfigureNetNS := (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, networks))
