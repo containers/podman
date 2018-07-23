@@ -263,6 +263,22 @@ func (r *storageService) MountedContainerImage(idOrName string) (int, error) {
 	return mounted, nil
 }
 
+func (r *storageService) GetMountpoint(id string) (string, error) {
+	container, err := r.store.Container(id)
+	if err != nil {
+		if errors.Cause(err) == storage.ErrContainerUnknown {
+			return "", ErrNoSuchCtr
+		}
+		return "", err
+	}
+	layer, err := r.store.Layer(container.LayerID)
+	if err != nil {
+		return "", err
+	}
+
+	return layer.MountPoint, nil
+}
+
 func (r *storageService) GetWorkDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {

@@ -617,31 +617,37 @@ func (c *Container) State() (ContainerStatus, error) {
 	return c.state.State, nil
 }
 
-// Mounted returns a bool as to if the container's storage
-// is mounted
-func (c *Container) Mounted() (bool, error) {
+// Mounted returns whether the container is mounted and the path it is mounted
+// at (if it is mounted).
+// If the container is not mounted, no error is returned, and the mountpoint
+// will be set to "".
+func (c *Container) Mounted() (bool, string, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return false, errors.Wrapf(err, "error updating container %s state", c.ID())
+			return false, "", errors.Wrapf(err, "error updating container %s state", c.ID())
 		}
 	}
-	return c.state.Mounted, nil
-}
+	// We cannot directly return c.state.Mountpoint as it is not guaranteed
+	// to be set if the container is mounted, only if the container has been
+	// prepared with c.prepare().
+	// Instead, let's call into c/storage
+	mountedTimes, err := c.runtime.storageService.MountedContainerImage(c.ID())
+	if err != nil {
+		return false, "", err
+	}
 
-// Mountpoint returns the path to the container's mounted storage as a string
-// If the container is not mounted, no error is returned, but the mountpoint
-// will be ""
-func (c *Container) Mountpoint() (string, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-		if err := c.syncContainer(); err != nil {
-			return "", errors.Wrapf(err, "error updating container %s state", c.ID())
+	if mountedTimes > 0 {
+		mountPoint, err := c.runtime.storageService.GetMountpoint(c.ID())
+		if err != nil {
+			return false, "", err
 		}
+
+		return true, mountPoint, nil
 	}
-	return c.state.Mountpoint, nil
+
+	return false, "", nil
 }
 
 // StartedTime is the time the container was started

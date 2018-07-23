@@ -105,13 +105,15 @@ func mountCmd(c *cli.Context) error {
 			return errors.Wrapf(err2, "error reading list of all containers")
 		}
 		for _, container := range containers {
-			mountPoint, err := container.Mountpoint()
+			mounted, mountPoint, err := container.Mounted()
 			if err != nil {
 				return errors.Wrapf(err, "error getting mountpoint for %q", container.ID())
 			}
-			if mountPoint == "" {
+
+			if !mounted {
 				continue
 			}
+
 			if json {
 				jsonMountPoints = append(jsonMountPoints, jsonMountPoint{ID: container.ID(), Names: []string{container.Name()}, MountPoint: mountPoint})
 				continue
