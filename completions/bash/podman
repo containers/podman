@@ -2121,6 +2121,27 @@ _podman_pod_ps() {
   __podman_pod_ps
 }
 
+_podman_pod_restart() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    --all
+    -a
+    --latest
+    -l
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
 _podman_pod_rm() {
   local options_with_args="
   "
@@ -2195,6 +2216,7 @@ _podman_pod() {
     subcommands="
      create
      ps
+     restart
      rm
      start
      stop

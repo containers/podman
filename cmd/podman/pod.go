@@ -19,6 +19,7 @@ var (
 		Subcommands: []cli.Command{
 			podCreateCommand,
 			podPsCommand,
+			podRestartCommand,
 			podRmCommand,
 			podStartCommand,
 			podStopCommand,
