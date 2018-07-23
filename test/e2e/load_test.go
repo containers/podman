@@ -166,7 +166,7 @@ var _ = Describe("Podman load", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
-	It("podman load localhost repo from scratch", func() {
+	It("podman load localhost registry from scratch", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
 
 		setup := podmanTest.Podman([]string{"tag", ALPINE, "hello:world"})
@@ -191,7 +191,35 @@ var _ = Describe("Podman load", func() {
 		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
 	})
 
-	It("podman load localhost repo from dir", func() {
+	It("podman load localhost registry from scratch and :latest", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
+		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"save", "-o", outfile, "--format", "oci-archive", "hello"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.Podman([]string{"rmi", "hello"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		load := podmanTest.Podman([]string{"load", "-i", outfile})
+		load.WaitWithDefaultTimeout()
+		Expect(load.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"images", "-f", "label", "hello:latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
+		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
+	})
+
+	It("podman load localhost registry from dir", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load")
 
 		setup := podmanTest.Podman([]string{"tag", BB, "hello:world"})
