@@ -10,6 +10,7 @@ with open(os.path.join(root, 'README.md')) as me:
 with open(os.path.join(root, 'requirements.txt')) as r:
     requirements = r.read().splitlines()
 
+
 setup(
     name='pypodman',
     version=os.environ.get('PODMAN_VERSION', '0.0.0'),
@@ -19,15 +20,15 @@ setup(
     license='Apache Software License',
     long_description=readme,
     entry_points={'console_scripts': [
-        'pypodman = lib.pypodman:main',
+        'pypodman = pypodman.main:main',
     ]},
     include_package_data=True,
     install_requires=requirements,
-    keywords='varlink libpod podman pypodman',
     packages=find_packages(exclude=['test']),
     python_requires='>=3',
     zip_safe=True,
     url='http://github.com/projectatomic/libpod',
+    keywords='varlink libpod podman pypodman',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -36,7 +37,7 @@ setup(
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.4',
         'Topic :: System :: Systems Administration',
         'Topic :: Utilities',
     ])

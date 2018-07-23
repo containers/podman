@@ -205,26 +205,10 @@ Requires: python3-varlink
 Requires: python3-dateutil
 
 Provides: python3-%{name} = %{version}-%{release}
-Summary: Python 3 bindings for %{name}
+Summary: Python 3 bindings and client for %{name}
 
 %description -n python3-%{name}
-This package contains Python 3 bindings for %{name}.
-
-%package -n python3-py%{name}
-BuildArch: noarch
-BuildRequires: python3-devel
-BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
-
-Requires: python3-setuptools
-Requires: python3-varlink
-Requires: python3-dateutil
-
-Provides: python3-py%{name} = %{version}-%{release}
-Summary: Python 3 tool for %{name}
-
-%description -n python3-py%{name}
-This package contains Python 3 tool for %{name}.
+This package contains Python 3 bindings and client for %{name}.
 %endif # varlink
 
 %if 0%{?with_devel}
@@ -403,18 +387,6 @@ GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
 BUILDTAGS=$BUILDTAGS make binaries docs
 
-%if %{with varlink}
-#untar contents for python-podman
-pushd contrib/python/podman/dist
-tar zxf %{name}*.tar.gz
-popd
-
-#untar contents for python-pypodman
-pushd contrib/python/pypodman/dist
-tar zxf %{name}*.tar.gz
-popd
-%endif #varlink
-
 %install
 install -dp %{buildroot}%{_unitdir}
 %make_install PREFIX=%{buildroot}%{_prefix} install install.completions
@@ -502,6 +474,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
+%{_bindir}/py%{name}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*

@@ -1,3 +1,4 @@
+"""Parse configuration while building subcommands."""
 import argparse
 import curses
 import getpass
@@ -7,7 +8,6 @@ import os
 import sys
 
 import pkg_resources
-
 import pytoml
 
 # TODO: setup.py and obtain __version__ from rpm.spec
@@ -38,7 +38,6 @@ class PodmanArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):
         """Construct the parser."""
         kwargs['add_help'] = True
-        kwargs['allow_abbrev'] = True
         kwargs['description'] = __doc__
         kwargs['formatter_class'] = HelpFormatter
 
@@ -88,7 +87,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         # pull in plugin(s) code for each subcommand
         for name, obj in inspect.getmembers(
-                sys.modules['lib.actions'],
+                sys.modules['pypodman.lib.actions'],
                 lambda member: inspect.isclass(member)):
             if hasattr(obj, 'subparser'):
                 try:

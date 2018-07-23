@@ -43,7 +43,7 @@ class ErrorOccurred(VarlinkErrorProxy):
     pass
 
 
-class RuntimeError(VarlinkErrorProxy):
+class PodmanError(VarlinkErrorProxy):
     """Raised when Client fails to connect to runtime."""
 
     pass
@@ -53,7 +53,7 @@ error_map = {
     'io.projectatomic.podman.ContainerNotFound': ContainerNotFound,
     'io.projectatomic.podman.ErrorOccurred': ErrorOccurred,
     'io.projectatomic.podman.ImageNotFound': ImageNotFound,
-    'io.projectatomic.podman.RuntimeError': RuntimeError,
+    'io.projectatomic.podman.RuntimeError': PodmanError,
 }
 
 

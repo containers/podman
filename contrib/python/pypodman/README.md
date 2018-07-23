@@ -1,17 +1,19 @@
-# pypodman - CLI interface for podman written in python
+# pypodman - CLI for podman written in python
 
 ## Status: Active Development
 
-See [libpod](https://github.com/projectatomic/libpod/contrib/python/cmd)
+See [libpod](https://github.com/projectatomic/libpod/contrib/python/pypodman)
 
 ## Releases
 
-To build the pypodman egg:
+To build the pypodman egg and install as user:
 
 ```sh
-cd ~/libpod/contrib/python/cmd
-python3 setup.py clean -a && python3 setup.py bdist
+cd ~/libpod/contrib/python/pypodman
+python3 setup.py clean -a && python3 setup.py sdist bdist
+python3 setup.py install --user
 ```
+Add `~/.local/bin` to your `PATH`  to run pypodman command.
 
 ## Running command:
 
