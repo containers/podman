@@ -547,4 +547,17 @@ USER mail`
 		Expect(session.OutputToString()).To(ContainSubstring("data"))
 
 	})
+
+	It("podman run --volumes flag with multiple volumes", func() {
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).To(BeNil())
+		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
+		err = os.MkdirAll(vol2, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:ro", "--volume", vol2 + ":/myvol2", ALPINE, "touch", "/myvol2/foo.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
