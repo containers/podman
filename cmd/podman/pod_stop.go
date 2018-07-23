@@ -79,19 +79,20 @@ func podStopCmd(c *cli.Context) error {
 	for _, pod := range pods {
 		// set cleanup to true to clean mounts and namespaces
 		ctr_errs, err := pod.Stop(true)
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to stop pod %q", pod.ID())
-			continue
-		} else if ctr_errs != nil {
+		if ctr_errs != nil {
 			for ctr, err := range ctr_errs {
 				if lastError != nil {
 					logrus.Errorf("%q", lastError)
 				}
 				lastError = errors.Wrapf(err, "unable to stop container %q on pod %q", ctr, pod.ID())
 			}
+			continue
+		}
+		if err != nil {
+			if lastError != nil {
+				logrus.Errorf("%q", lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to stop pod %q", pod.ID())
 			continue
 		}
 		fmt.Println(pod.ID())
