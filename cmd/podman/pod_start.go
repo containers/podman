@@ -78,19 +78,20 @@ func podStartCmd(c *cli.Context) error {
 	ctx := getContext()
 	for _, pod := range pods {
 		ctr_errs, err := pod.Start(ctx)
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to start pod %q", pod.ID())
-			continue
-		} else if ctr_errs != nil {
+		if ctr_errs != nil {
 			for ctr, err := range ctr_errs {
 				if lastError != nil {
 					logrus.Errorf("%q", lastError)
 				}
 				lastError = errors.Wrapf(err, "unable to start container %q on pod %q", ctr, pod.ID())
 			}
+			continue
+		}
+		if err != nil {
+			if lastError != nil {
+				logrus.Errorf("%q", lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to start pod %q", pod.ID())
 			continue
 		}
 		fmt.Println(pod.ID())
