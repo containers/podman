@@ -38,7 +38,7 @@ The following descriptors are supported in addition to the AIX format descriptor
 
 **capbnd**
 
-  Set of effective capabilities. See capabilities (7) for more information.
+  Set of bounding capabilities. See capabilities (7) for more information.
 
 **seccomp**
 
@@ -73,6 +73,6 @@ PID   SECCOMP   COMMAND     %CPU
 podman(1), ps(1), seccomp(2), capabilities(7)
 
 ## HISTORY
-December 2017, Originally compiled by Brent Baude<bbaude@redhat.com>
+December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>
 
 July 2018, Introduce format descriptors by Valentin Rothberg <vrothberg@suse.com>
