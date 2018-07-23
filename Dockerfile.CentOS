@@ -24,6 +24,7 @@ RUN yum -y install btrfs-progs-devel \
               which\
               golang-github-cpuguy83-go-md2man \
               nmap-ncat \
+              xz \
               iptables && yum clean all
 
 # Install CNI plugins

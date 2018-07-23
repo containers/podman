@@ -217,4 +217,23 @@ var _ = Describe("Podman load", func() {
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
 		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
 	})
+
+	It("podman load xz compressed image", func() {
+		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
+
+		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
+		save.WaitWithDefaultTimeout()
+		Expect(save.ExitCode()).To(Equal(0))
+		session := podmanTest.SystemExec("xz", []string{outfile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"load", "-i", outfile + ".xz"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
 })
