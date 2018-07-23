@@ -12,6 +12,16 @@ import (
 	"github.com/urfave/cli"
 )
 
+func getDescriptorString() string {
+	descriptors, err := libpod.GetContainerPidInformationDescriptors()
+	if err == nil {
+		return fmt.Sprintf(`
+Format Descriptors:
+%s`, strings.Join(descriptors, ","))
+	}
+	return ""
+}
+
 var (
 	topFlags = []cli.Flag{
 		LatestFlag,
@@ -20,11 +30,12 @@ var (
 			Hidden: true,
 		},
 	}
-	topDescription = `Display the running processes of the container.  Specify format descriptors
+	topDescription = fmt.Sprintf(`Display the running processes of the container.  Specify format descriptors
 to alter the output.  You may run "podman top -l pid pcpu seccomp" to print
 the process ID, the CPU percentage and the seccomp mode of each process of
 the latest container.
-`
+%s
+`, getDescriptorString())
 
 	topCommand = cli.Command{
 		Name:           "top",
