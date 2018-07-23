@@ -370,17 +370,15 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		}
 	}
 
-	if rootless.IsRootless() {
-		if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-			options = append(options, libpod.WithNetNS(portBindings, true, networks))
-		}
+	if IsNS(string(c.NetMode)) {
+		// pass
 	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
-	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
+	} else if !rootless.IsRootless() && !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		postConfigureNetNS := (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, networks))
 	}
