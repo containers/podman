@@ -250,7 +250,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "mac-address",
-		Usage: "Container MAC address (e.g. 92:d0:c6:0a:29:33)",
+		Usage: "Container MAC address (e.g. 92:d0:c6:0a:29:33), not currently supported",
 	},
 	cli.StringFlag{
 		Name:  "memory, m",
