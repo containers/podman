@@ -346,6 +346,8 @@ Remember that the MAC address in an Ethernet network must be unique.
 The IPv6 link-local address will be based on the device's MAC address
 according to RFC4862.
 
+Not currently supported
+
 **-m**, **--memory**=""
 
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
