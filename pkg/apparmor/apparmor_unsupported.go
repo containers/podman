@@ -2,6 +2,11 @@
 
 package apparmor
 
+// IsEnabled returns true if AppArmor is enabled on the host.
+func IsEnabled() bool {
+	return false
+}
+
 // InstallDefault generates a default profile in a temp directory determined by
 // os.TempDir(), then loads the profile into the kernel using 'apparmor_parser'.
 func InstallDefault(name string) error {
