@@ -3,6 +3,7 @@ package createconfig
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
@@ -371,8 +372,20 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	}
 
 	if rootless.IsRootless() {
+		f, err := os.Create("/tmp/net")
+		if err != nil {
+			return nil, err
+		}
+		f.Close()
+
+		cmd := exec.Command("slirp-forwarder", "/tmp/net")
+		cmd.Env = append(cmd.Env, "LD_LIBRARY_PATH=/usr/local/lib")
+		cmd.Env = append(cmd.Env, "CONFIGURE_NETWORK=1")
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
 		if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-			options = append(options, libpod.WithNetNS(portBindings, true, networks))
+			options = append(options, libpod.WithNetNSFrom("/tmp/net", nil))
 		}
 	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.ConnectedContainer())
