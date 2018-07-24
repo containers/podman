@@ -369,6 +369,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 
 func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 	utsMode := config.UtsMode
+	if IsNS(string(utsMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), NS(string(utsMode)))
+	}
 	if utsMode.IsHost() {
 		return g.RemoveLinuxNamespace(spec.UTSNamespace)
 	}

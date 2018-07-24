@@ -381,7 +381,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	utsMode := container.UTSMode(c.String("uts"))
-	if !utsMode.Valid() {
+	if !cc.IsNS(string(utsMode)) && !utsMode.Valid() {
 		return nil, errors.Errorf("--uts %q is not valid", c.String("uts"))
 	}
 	ipcMode := container.IpcMode(c.String("ipc"))
