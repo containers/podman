@@ -14,16 +14,27 @@ import (
 
 // An InMemoryState is a purely in-memory state store
 type InMemoryState struct {
-	pods             map[string]*Pod
-	containers       map[string]*Container
-	ctrDepends       map[string][]string
-	podContainers    map[string]map[string]*Container
-	nameIndex        *registrar.Registrar
-	idIndex          *truncindex.TruncIndex
-	namespace        string
+	// Maps pod ID to pod struct.
+	pods map[string]*Pod
+	// Maps container ID to container struct.
+	containers map[string]*Container
+	// Maps container ID to a list of IDs of dependencies.
+	ctrDepends map[string][]string
+	// Maps pod ID to a map of container ID to container struct.
+	podContainers map[string]map[string]*Container
+	// Global name registry - ensures name uniqueness and performs lookups.
+	nameIndex *registrar.Registrar
+	// Global ID registry - ensures ID uniqueness and performs lookups.
+	idIndex *truncindex.TruncIndex
+	// Namespace the state is joined to.
+	namespace string
+	// Maps namespace name to local ID and name registries for looking up
+	// pods and containers in a specific namespace.
 	namespaceIndexes map[string]*namespaceIndex
 }
 
+// namespaceIndex contains name and ID registries for a specific namespace.
+// This is used for namespaces lookup operations.
 type namespaceIndex struct {
 	nameIndex *registrar.Registrar
 	idIndex   *truncindex.TruncIndex
@@ -339,11 +350,7 @@ func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
 func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	ctrs := make([]*Container, 0, len(s.containers))
 	for _, ctr := range s.containers {
-		if s.namespace != "" {
-			if ctr.config.Namespace == s.namespace {
-				ctrs = append(ctrs, ctr)
-			}
-		} else {
+		if s.namespace == "" || ctr.config.Namespace == s.namespace {
 			ctrs = append(ctrs, ctr)
 		}
 	}

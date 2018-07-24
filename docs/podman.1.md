@@ -37,11 +37,11 @@ Path to where the cpu performance results should be written
 
 **--log-level**
 
-log messages above specified level: debug, info, warn, error (default), fatal or panic
+Log messages above specified level: debug, info, warn, error (default), fatal or panic
 
 **--namespace**
 
-set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
+Set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
 When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
 
 **--root**=**value**

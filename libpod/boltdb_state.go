@@ -21,6 +21,34 @@ type BoltState struct {
 	runtime        *Runtime
 }
 
+// A brief description of the format of the BoltDB state:
+// At the top level, the following buckets are created:
+// - idRegistryBkt: Maps ID to Name for containers and pods.
+//   Used to ensure container and pod IDs are globally unique.
+// - nameRegistryBkt: Maps Name to ID for containers and pods.
+//   Used to ensure container and pod names are globally unique.
+// - nsRegistryBkt: Maps ID to namespace for all containers and pods.
+//   Used during lookup operations to determine if a given ID is in the same
+//   namespace as the state.
+// - ctrBkt: Contains a sub-bucket for each container in the state.
+//   Each sub-bucket has config and state keys holding the container's JSON
+//   encoded configuration and state (respectively), an optional netNS key
+//   containing the path to the container's network namespace, a dependencies
+//   bucket containing the container's dependencies, and an optional pod key
+//   containing the ID of the pod the container is joined to.
+// - allCtrsBkt: Map of ID to name containing only containers. Used for
+//   container lookup operations.
+// - podBkt: Contains a sub-bucket for each pod in the state.
+//   Each sub-bucket has config and state keys holding the pod's JSON encoded
+//   configuration and state, plus a containers sub bucket holding the IDs of
+//   containers in the pod.
+// - allPodsBkt: Map of ID to name containing only pods. Used for pod lookup
+//   operations.
+// - runtimeConfigBkt: Contains configuration of the libpod instance that
+//   initially created the database. This must match for any further instances
+//   that access the database, to ensure that state mismatches with
+//   containers/storage do not occur.
+
 // NewBoltState creates a new bolt-backed state database
 func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 	state := new(BoltState)
@@ -296,7 +324,9 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 		var id []byte
 		ctrExists := ctrBucket.Bucket([]byte(idOrName))
 		if ctrExists != nil {
-			// A full container ID was given
+			// A full container ID was given.
+			// It might not be in our namespace, but
+			// getContainerFromDB() will handle that case.
 			id = []byte(idOrName)
 		} else {
 			// They did not give us a full container ID.
@@ -759,7 +789,9 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 		var id []byte
 		podExists := podBkt.Bucket([]byte(idOrName))
 		if podExists != nil {
-			// A full pod ID was given
+			// A full pod ID was given.
+			// It might not be in our namespace, but getPodFromDB()
+			// will handle that case.
 			id = []byte(idOrName)
 		} else {
 			// They did not give us a full pod ID.
