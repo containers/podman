@@ -374,7 +374,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	usernsMode := container.UsernsMode(c.String("userns"))
-	if !usernsMode.Valid() {
+	if !cc.IsNS(string(usernsMode)) && !usernsMode.Valid() {
 		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
 	}
 
