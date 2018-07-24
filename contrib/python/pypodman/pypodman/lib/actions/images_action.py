@@ -3,9 +3,9 @@ import operator
 from collections import OrderedDict
 
 import humanize
-import podman
 
-from .. import AbstractActionBase, Report, ReportColumn
+import podman
+from pypodman.lib import AbstractActionBase, Report, ReportColumn
 
 
 class Images(AbstractActionBase):
@@ -55,8 +55,8 @@ class Images(AbstractActionBase):
         images = sorted(
             self.client.images.list(),
             key=operator.attrgetter(self._args.sort))
-        if len(images) == 0:
-            return 0
+        if not images:
+            return
 
         rows = list()
         for image in images:

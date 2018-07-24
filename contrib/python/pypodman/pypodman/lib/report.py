@@ -2,8 +2,6 @@
 import sys
 from collections import namedtuple
 
-from .future_abstract import AbstractContextManager
-
 
 class ReportColumn(namedtuple('ReportColumn', 'key display width default')):
     """Hold attributes of output column."""
@@ -16,7 +14,7 @@ class ReportColumn(namedtuple('ReportColumn', 'key display width default')):
                                                 default)
 
 
-class Report(AbstractContextManager):
+class Report():
     """Report Manager."""
 
     def __init__(self, columns, heading=True, epilog=None, file=sys.stdout):
@@ -41,6 +39,10 @@ class Report(AbstractContextManager):
         fields = {k: str(v) for k, v in fields.items()}
         print(self._format.format(**fields))
 
+    def __enter__(self):
+        """Return `self` upon entering the runtime context."""
+        return self
+
     def __exit__(self, exc_type, exc_value, traceback):
         """Leave Report context and print epilog if provided."""
         if self.epilog:
@@ -48,7 +50,7 @@ class Report(AbstractContextManager):
 
     def layout(self, iterable, keys, truncate=True):
         """Use data and headings build format for table to fit."""
-        format = []
+        fmt = []
 
         for key in keys:
             value = max(map(lambda x: len(str(x.get(key, ''))), iterable))
@@ -63,5 +65,5 @@ class Report(AbstractContextManager):
                 elif value > row.width:
                     value = row.width if row.width != 0 else value
 
-            format.append('{{{0}:{1}.{1}}}'.format(key, value))
-        self._format = ' '.join(format)
+            fmt.append('{{{0}:{1}.{1}}}'.format(key, value))
+        self._format = ' '.join(fmt)

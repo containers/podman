@@ -1,11 +1,9 @@
 """Remote podman client."""
-from __future__ import absolute_import
-
 import logging
 import os
 import sys
 
-from .lib import PodmanArgumentParser
+from pypodman.lib import PodmanArgumentParser
 
 
 def main():
@@ -24,8 +22,9 @@ def main():
     args = parser.parse_args()
 
     log.setLevel(args.log_level)
-    logging.debug('Logging initialized at level {}'.format(
-        logging.getLevelName(logging.getLogger().getEffectiveLevel())))
+    logging.debug(
+        'Logging initialized at level %s',
+        logging.getLevelName(logging.getLogger().getEffectiveLevel()))
 
     def want_tb():
         """Add traceback when logging events."""
@@ -42,18 +41,18 @@ def main():
     returncode = None
     try:
         obj = args.class_(args)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logging.critical(repr(e), exc_info=want_tb())
-        logging.warning('See subparser "{}" configuration.'.format(
-            args.subparser_name))
+        logging.warning('See subparser "%s" configuration.',
+                        args.subparser_name)
         sys.exit(5)
 
     try:
         returncode = getattr(obj, args.method)()
     except AttributeError as e:
         logging.critical(e, exc_info=want_tb())
-        logging.warning('See subparser "{}" configuration.'.format(
-            args.subparser_name))
+        logging.warning('See subparser "%s" configuration.',
+                        args.subparser_name)
         returncode = 3
     except KeyboardInterrupt:
         pass
