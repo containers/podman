@@ -1,3 +1,15 @@
+// Package ps is a ps (1) AIX-format compatible golang library extended with
+// various descriptors useful for displaying container-related data.
+//
+// The idea behind the library is to provide an easy to use way of extracting
+// process-related data, just as ps (1) does. The problem when using ps (1) is
+// that the ps format strings split columns with whitespaces, making the output
+// nearly impossible to parse. It also adds some jitter as we have to fork and
+// execute ps either in the container or filter the output afterwards, further
+// limiting applicability.
+//
+// Please visit https://github.com/containers/psgo for further details about
+// supported format descriptors and to see some usage examples.
 package ps
 
 import (
@@ -5,6 +17,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -318,6 +331,7 @@ func ListDescriptors() (list []string) {
 	for _, d := range descriptors {
 		list = append(list, d.normal)
 	}
+	sort.Strings(list)
 	return
 }
 
@@ -584,7 +598,8 @@ func parseCAP(cap string) (string, error) {
 	if len(caps) == 0 {
 		return "none", nil
 	}
-	return strings.Join(caps, ", "), nil
+	sort.Strings(caps)
+	return strings.Join(caps, ","), nil
 }
 
 // processCAPINH returns the set of inheritable capabilties associated with
