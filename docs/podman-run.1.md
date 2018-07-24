@@ -302,6 +302,7 @@ Default is to create a private IPC namespace (POSIX SysV IPC) for the container
 
 - `container:<name|id>`: reuses another container shared memory, semaphores and message queues
 - `host`: use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
+- `ns:<path>` path to an IPC namespace to join.
 
 **--kernel-memory**=""
 

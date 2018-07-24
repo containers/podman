@@ -380,6 +380,9 @@ func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 
 func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 	ipcMode := config.IpcMode
+	if IsNS(string(ipcMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), NS(string(ipcMode)))
+	}
 	if ipcMode.IsHost() {
 		return g.RemoveLinuxNamespace(spec.IPCNamespace)
 	}

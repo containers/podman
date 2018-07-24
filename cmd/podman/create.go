@@ -385,7 +385,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("--uts %q is not valid", c.String("uts"))
 	}
 	ipcMode := container.IpcMode(c.String("ipc"))
-	if !ipcMode.Valid() {
+	if !cc.IsNS(string(ipcMode)) && !ipcMode.Valid() {
 		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
 	}
 	shmDir := ""
