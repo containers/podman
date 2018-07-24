@@ -305,6 +305,10 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, err
 	}
 
+	if c.String("mac-address") != "" {
+		return nil, errors.Errorf("--mac-address option not currently supported")
+	}
+
 	imageID := ""
 
 	inputCommand = c.Args()[1:]
