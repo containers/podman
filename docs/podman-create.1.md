@@ -409,6 +409,7 @@ Set the PID mode for the container
 Default is to create a private PID namespace for the container
                 'container:<name|id>': join another container's PID namespace
                 'host': use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
+                 'ns': join the specified PID namespace
 
 **--pids-limit**=""
 

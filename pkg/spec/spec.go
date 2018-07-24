@@ -316,6 +316,9 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 
 func addPidNS(config *CreateConfig, g *generate.Generator) error {
 	pidMode := config.PidMode
+	if IsNS(string(pidMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), NS(string(pidMode)))
+	}
 	if pidMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 	}
