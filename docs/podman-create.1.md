@@ -580,6 +580,7 @@ Without this argument the command will be run as root in the container.
 Set the usernamespace mode for the container. The use of userns is disabled by default.
 
     **host**: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
+    **ns**: specify the usernamespace to use.
 
 **--uts**=*host*
 
