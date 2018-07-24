@@ -4,6 +4,11 @@ BUG REPORT INFORMATION
 ---------------------------------------------------
 Use the commands below to provide key information from your environment:
 You do NOT have to include this information if this is a FEATURE REQUEST
+
+If you are filing a bug against `podman build`, please instead file a bug
+against Buildah (https://github.com/projectatomic/buildah/issues). Podman build
+executes Buildah to perform container builds, and as such the Buildah
+maintainers are best equipped to handle these bugs.
 -->
 
 **Is this a BUG REPORT or FEATURE REQUEST?**:
