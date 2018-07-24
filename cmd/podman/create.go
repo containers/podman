@@ -369,12 +369,12 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	tty := c.Bool("tty")
 
 	pidMode := container.PidMode(c.String("pid"))
-	if !pidMode.Valid() {
+	if !cc.IsNS(string(pidMode)) && !pidMode.Valid() {
 		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
 	}
 
 	usernsMode := container.UsernsMode(c.String("userns"))
-	if !usernsMode.Valid() {
+	if !cc.IsNS(string(usernsMode)) && !usernsMode.Valid() {
 		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
 	}
 
@@ -389,11 +389,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	utsMode := container.UTSMode(c.String("uts"))
-	if !utsMode.Valid() {
+	if !cc.IsNS(string(utsMode)) && !utsMode.Valid() {
 		return nil, errors.Errorf("--uts %q is not valid", c.String("uts"))
 	}
 	ipcMode := container.IpcMode(c.String("ipc"))
-	if !ipcMode.Valid() {
+	if !cc.IsNS(string(ipcMode)) && !ipcMode.Valid() {
 		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
 	}
 	shmDir := ""

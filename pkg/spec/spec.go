@@ -316,6 +316,9 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 
 func addPidNS(config *CreateConfig, g *generate.Generator) error {
 	pidMode := config.PidMode
+	if IsNS(string(pidMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), NS(string(pidMode)))
+	}
 	if pidMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 	}
@@ -326,6 +329,14 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 }
 
 func addUserNS(config *CreateConfig, g *generate.Generator) error {
+	if IsNS(string(config.UsernsMode)) {
+		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, NS(string(config.UsernsMode)))
+
+		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+	}
+
 	if (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost() {
 		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
 	}
@@ -345,6 +356,10 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 		return nil
 	} else if netMode.IsContainer() {
 		logrus.Debug("Using container netmode")
+		return nil
+	} else if IsNS(string(netMode)) {
+		logrus.Debug("Using ns netmode")
+		return g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, NS(string(netMode)))
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
 		return nil
@@ -354,6 +369,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 
 func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 	utsMode := config.UtsMode
+	if IsNS(string(utsMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), NS(string(utsMode)))
+	}
 	if utsMode.IsHost() {
 		return g.RemoveLinuxNamespace(spec.UTSNamespace)
 	}
@@ -362,6 +380,9 @@ func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 
 func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 	ipcMode := config.IpcMode
+	if IsNS(string(ipcMode)) {
+		return g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), NS(string(ipcMode)))
+	}
 	if ipcMode.IsHost() {
 		return g.RemoveLinuxNamespace(spec.IPCNamespace)
 	}

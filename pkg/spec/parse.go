@@ -18,6 +18,21 @@ func (w *weightDevice) String() string {
 	return fmt.Sprintf("%s:%d", w.path, w.weight)
 }
 
+// IsNS returns if the specified string has a ns: prefix
+func IsNS(s string) bool {
+	parts := strings.SplitN(s, ":", 2)
+	return len(parts) > 1 && parts[0] == "ns"
+}
+
+// NS is the path to the namespace to join.
+func NS(s string) string {
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
 // validateweightDevice validates that the specified string has a valid device-weight format
 // for blkio-weight-device flag
 func validateweightDevice(val string) (*weightDevice, error) {

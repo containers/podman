@@ -302,6 +302,7 @@ Default is to create a private IPC namespace (POSIX SysV IPC) for the container
 
 - `container:<name|id>`: reuses another container shared memory, semaphores and message queues
 - `host`: use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
+- `ns:<path>` path to an IPC namespace to join.
 
 **--kernel-memory**=""
 
@@ -405,6 +406,7 @@ Set the Network mode for the container:
 - `container:<name|id>`: reuse another container's network stack
 - `host`: use the podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - `<network-name>|<network-id>`: connect to a user-defined network
+- `ns:<path>` path to a network namespace to join
 
 **--network-alias**=[]
 
@@ -426,6 +428,7 @@ Default is to create a private PID namespace for the container
 
 - `container:<name|id>`: join another container's PID namespace
 - `host`: use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
+- `ns`: join the specified PID namespace
 
 **--pids-limit**=""
 
@@ -611,12 +614,14 @@ Without this argument the command will be run as root in the container.
 Set the usernamespace mode for the container. The use of userns is disabled by default.
 
 `host`: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
+`ns`: specify the usernamespace to use.
 
 **--uts**=*host*
 
 Set the UTS mode for the container
 
 `host`: use the host's UTS namespace inside the container.
+`ns`: specify the usernamespace to use.
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
