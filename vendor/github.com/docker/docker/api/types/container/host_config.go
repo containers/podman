@@ -92,13 +92,28 @@ func (n NetworkMode) IsContainer() bool {
 	return len(parts) > 1 && parts[0] == "container"
 }
 
-// ConnectedContainer is the id of the container which network this container is connected to.
-func (n NetworkMode) ConnectedContainer() string {
+// IsNS indicates whether container uses a specific network namespace.
+func (n NetworkMode) IsNS() bool {
 	parts := strings.SplitN(string(n), ":", 2)
+	return len(parts) > 1 && parts[0] == "ns"
+}
+
+func getSecondPart(s string) string {
+	parts := strings.SplitN(s, ":", 2)
 	if len(parts) > 1 {
 		return parts[1]
 	}
 	return ""
+}
+
+// NS is the path to the namespace to join.
+func (n NetworkMode) NS() string {
+	return getSecondPart(string(n))
+}
+
+// ConnectedContainer is the id of the container which network this container is connected to.
+func (n NetworkMode) ConnectedContainer() string {
+	return getSecondPart(string(n))
 }
 
 //UserDefined indicates user-created network

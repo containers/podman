@@ -236,6 +236,7 @@ type ContainerConfig struct {
 	UserNsCtr   string `json:"userNsCtr,omitempty"`
 	UTSNsCtr    string `json:"utsNsCtr,omitempty"`
 	CgroupNsCtr string `json:"cgroupNsCtr,omitempty"`
+	NetNs       string `json:"netNs,omitempty"`
 
 	// IDs of dependency containers.
 	// These containers must be started before this container is started.

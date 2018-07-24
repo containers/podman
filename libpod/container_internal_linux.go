@@ -184,6 +184,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 	}
+	if c.config.NetNs != "" {
+		if err := c.addNamespacePath(&g, NetNS, c.config.NetNs, spec.NetworkNamespace); err != nil {
+			return nil, err
+		}
+	}
 	if c.config.PIDNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, string(spec.PIDNamespace)); err != nil {
 			return nil, err
@@ -264,6 +269,15 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 		return err
 	}
 
+	if err := g.AddOrReplaceLinuxNamespace(specNS, nsPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Add an existing namespace to the spec
+func (c *Container) addNamespacePath(g *generate.Generator, ns LinuxNS, nsPath string, specNS string) error {
 	if err := g.AddOrReplaceLinuxNamespace(specNS, nsPath); err != nil {
 		return err
 	}

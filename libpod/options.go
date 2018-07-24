@@ -557,10 +557,15 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
-func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
+func WithNetNSFrom(ns string, nsCtr *Container) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if ns != "" {
+			ctr.config.NetNs = ns
+			return nil
 		}
 
 		if !nsCtr.valid {
