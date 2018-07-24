@@ -24,7 +24,15 @@ to run containers such as CRI-O, the last started container could be from either
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
 
-**pcpu, group, ppid, user, args, comm, rgroup, nice, pid, pgid, etime, ruser, time, tty, vsz**
+**args,comm,etime,group,nice,pcpu,pgid,pid,ppid,rgroup,ruser,time,tty,user,vsz**
+
+**capbnd**
+
+  Set of bounding capabilities. See capabilities (7) for more information.
+
+**capeff**
+
+  Set of effective capabilities. See capabilities (7) for more information.
 
 **capinh**
 
@@ -33,14 +41,6 @@ The following descriptors are supported in addition to the AIX format descriptor
 **capprm**
 
   Set of permitted capabilities. See capabilities (7) for more information.
-
-**capeff**
-
-  Set of effective capabilities. See capabilities (7) for more information.
-
-**capbnd**
-
-  Set of bounding capabilities. See capabilities (7) for more information.
 
 **seccomp**
 
