@@ -589,6 +589,7 @@ Set the usernamespace mode for the container. The use of userns is disabled by d
 
 Set the UTS mode for the container
     **host**: use the host's UTS namespace inside the container.
+    **ns**: specify the usernamespace to use.
     Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
 **-v**|**--volume**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
