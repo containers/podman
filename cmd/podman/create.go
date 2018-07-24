@@ -369,7 +369,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	tty := c.Bool("tty")
 
 	pidMode := container.PidMode(c.String("pid"))
-	if !pidMode.Valid() {
+	if !cc.IsNS(string(pidMode)) && !pidMode.Valid() {
 		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
 	}
 
