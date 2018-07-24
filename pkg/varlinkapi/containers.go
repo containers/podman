@@ -110,7 +110,7 @@ func (i *LibpodAPI) ListContainerProcesses(call ioprojectatomicpodman.VarlinkCal
 		return call.ReplyErrorOccurred(fmt.Sprintf("container %s is not running", name))
 	}
 	var psArgs []string
-	psOpts := []string{"-o", "uid,pid,ppid,c,stime,tname,time,cmd"}
+	psOpts := []string{"user", "pid", "ppid", "pcpu", "etime", "tty", "time", "comm"}
 	if len(opts) > 1 {
 		psOpts = opts
 	}
