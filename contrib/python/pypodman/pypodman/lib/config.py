@@ -6,6 +6,7 @@ import inspect
 import logging
 import os
 import sys
+from contextlib import suppress
 
 import pkg_resources
 import pytoml
@@ -13,7 +14,7 @@ import pytoml
 # TODO: setup.py and obtain __version__ from rpm.spec
 try:
     __version__ = pkg_resources.get_distribution('pypodman').version
-except Exception:
+except Exception:  # pylint: disable=broad-except
     __version__ = '0.0.0'
 
 
@@ -25,7 +26,7 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         if 'width' not in kwargs:
             kwargs['width'] = 80
             try:
-                height, width = curses.initscr().getmaxyx()
+                _, width = curses.initscr().getmaxyx()
                 kwargs['width'] = width
             finally:
                 curses.endwin()
@@ -85,6 +86,10 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         actions_parser = self.add_subparsers(
             dest='subparser_name', help='actions')
 
+        # import buried here to prevent import loops
+        import pypodman.lib.actions  # pylint: disable=cyclic-import
+        assert pypodman.lib.actions
+
         # pull in plugin(s) code for each subcommand
         for name, obj in inspect.getmembers(
                 sys.modules['pypodman.lib.actions'],
@@ -95,8 +100,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
                 except NameError as e:
                     logging.critical(e)
                     logging.warning(
-                        'See subparser configuration for Class "{}"'.format(
-                            name))
+                        'See subparser configuration for Class "%s"', name)
                     sys.exit(3)
 
     def parse_args(self, args=None, namespace=None):
@@ -120,18 +124,17 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         for dir_ in dirs:
             if dir_ is None:
                 continue
-            try:
+            with suppress(OSError):
                 with open(os.path.join(dir_, 'pypodman/pypodman.conf'),
                           'r') as stream:
                     config.update(pytoml.load(stream))
-            except OSError:
-                pass
 
         def reqattr(name, value):
             if value:
                 setattr(args, name, value)
                 return value
-            self.error('Required argument "%s" is not configured.' % name)
+            return self.error(
+                'Required argument "{}" is not configured.'.format(name))
 
         reqattr(
             'run_dir',
@@ -205,7 +208,6 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
     def error(self, message):
         """Capture message and route to logger."""
-        logging.error('{}: {}'.format(self.prog, message))
-        logging.error("Try '{} --help' for more information.".format(
-            self.prog))
+        logging.error('%s: %s', self.prog, message)
+        logging.error("Try '%s --help' for more information.", self.prog)
         super().exit(2)

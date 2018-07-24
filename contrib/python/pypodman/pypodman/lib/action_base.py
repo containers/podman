@@ -67,11 +67,10 @@ class AbstractActionBase(abc.ABC):
         if self._args.host is None:
             return podman.Client(
                 uri=self.local_uri)
-        else:
-            return podman.Client(
-                uri=self.local_uri,
-                remote_uri=self.remote_uri,
-                identity_file=self.identity_file)
+        return podman.Client(
+            uri=self.local_uri,
+            remote_uri=self.remote_uri,
+            identity_file=self.identity_file)
 
     def __repr__(self):
         """Compute the “official” string representation of object."""

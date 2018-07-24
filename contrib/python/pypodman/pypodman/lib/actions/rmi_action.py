@@ -3,11 +3,11 @@ import sys
 
 import podman
 
-from .. import AbstractActionBase
+from pypodman.lib import AbstractActionBase
 
 
 class Rmi(AbstractActionBase):
-    """Clas for removing images from storage."""
+    """Class for removing images from storage."""
 
     @classmethod
     def subparser(cls, parent):
@@ -25,17 +25,17 @@ class Rmi(AbstractActionBase):
     def __init__(self, args):
         """Construct Rmi class."""
         super().__init__(args)
-        if len(args.targets) < 1:
+        if not args.targets:
             raise ValueError('You must supply at least one image id'
                              ' or name to be deleted.')
 
     def remove(self):
         """Remove image(s)."""
-        for id in self._args.targets:
+        for id_ in self._args.targets:
             try:
-                img = self.client.images.get(id)
+                img = self.client.images.get(id_)
                 img.remove(self._args.force)
-                print(id)
+                print(id_)
             except podman.ImageNotFound as e:
                 sys.stdout.flush()
                 print(

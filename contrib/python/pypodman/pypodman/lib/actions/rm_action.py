@@ -3,7 +3,7 @@ import sys
 
 import podman
 
-from .. import AbstractActionBase
+from pypodman.lib import AbstractActionBase
 
 
 class Rm(AbstractActionBase):
@@ -26,17 +26,17 @@ class Rm(AbstractActionBase):
     def __init__(self, args):
         """Construct Rm class."""
         super().__init__(args)
-        if len(args.targets) < 1:
+        if not args.targets:
             raise ValueError('You must supply at least one container id'
                              ' or name to be deleted.')
 
     def remove(self):
         """Remove container(s)."""
-        for id in self._args.targets:
+        for id_ in self._args.targets:
             try:
-                ctnr = self.client.containers.get(id)
+                ctnr = self.client.containers.get(id_)
                 ctnr.remove(self._args.force)
-                print(id)
+                print(id_)
             except podman.ContainerNotFound as e:
                 sys.stdout.flush()
                 print(

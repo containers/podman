@@ -5,7 +5,7 @@ from collections import OrderedDict
 import humanize
 import podman
 
-from .. import AbstractActionBase, Report, ReportColumn
+from pypodman.lib import AbstractActionBase, Report, ReportColumn
 
 
 class Ps(AbstractActionBase):
@@ -55,8 +55,8 @@ class Ps(AbstractActionBase):
         ctnrs = sorted(
             self.client.containers.list(),
             key=operator.attrgetter(self._args.sort))
-        if len(ctnrs) == 0:
-            return 0
+        if not ctnrs:
+            return
 
         rows = list()
         for ctnr in ctnrs:
