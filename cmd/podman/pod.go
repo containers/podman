@@ -18,6 +18,7 @@ var (
 		UseShortOptionHandling: true,
 		Subcommands: []cli.Command{
 			podCreateCommand,
+			podKillCommand,
 			podPsCommand,
 			podRestartCommand,
 			podRmCommand,
