@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,8 +14,4 @@ func parseNetNSBoltData(ctr *Container, netNSBytes []byte) bool {
 		return false
 	}
 	return true
-}
-
-func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
-	return ErrNotImplemented
 }
