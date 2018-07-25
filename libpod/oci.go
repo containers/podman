@@ -22,6 +22,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/ctime"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -316,6 +317,15 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	// by the container and conmon will keep the ports busy so that another
 	// process cannot use them.
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+
+	if rootless.IsRootless() {
+		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create rootless network sync pipe")
+		}
+		// Leak one end in conmon, the other one will be leaked into slirp4netns
+		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+	}
 
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))

@@ -6,9 +6,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -91,6 +93,42 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 	return r.configureNetNS(ctr, ctrNS)
+}
+
+// Configure the network namespace for a rootless container
+func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
+	defer ctr.rootlessSlirpSyncR.Close()
+	defer ctr.rootlessSlirpSyncW.Close()
+
+	path, err := exec.LookPath("slirp4netns")
+	if err != nil {
+		logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
+		return nil
+	}
+
+	syncR, syncW, err := os.Pipe()
+	if err != nil {
+		return errors.Wrapf(err, "failed to open pipe")
+	}
+	defer syncR.Close()
+	defer syncW.Close()
+
+	cmd := exec.Command(path, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
+
+	if err := cmd.Start(); err != nil {
+		return errors.Wrapf(err, "failed to start process")
+	}
+
+	b := make([]byte, 16)
+	if _, err := syncR.Read(b); err != nil {
+		return errors.Wrapf(err, "failed to read from sync pipe")
+	}
+	return nil
 }
 
 // Configure the network namespace using the container process

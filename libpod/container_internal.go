@@ -524,11 +524,11 @@ func (c *Container) completeNetworkSetup() error {
 	if !c.config.PostConfigureNetNS {
 		return nil
 	}
-	if rootless.IsRootless() {
-		return nil
-	}
 	if err := c.syncContainer(); err != nil {
 		return err
+	}
+	if rootless.IsRootless() {
+		return c.runtime.setupRootlessNetNS(c)
 	}
 	return c.runtime.setupNetNS(c)
 }
