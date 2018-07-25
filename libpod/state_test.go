@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Returns state, tmp directory containing all state files, locks directory
@@ -275,7 +276,7 @@ func TestAddCtrDepInPodFails(t *testing.T) {
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
+		require.Len(t, ctrs, 1)
 
 		testContainersEqual(t, testCtr1, ctrs[0])
 	})
@@ -688,7 +689,7 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 		assert.NoError(t, err)
 
 		retrievedCtr, err := state.Container(testCtr.ID())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		retrievedCtr.state.State = ContainerStateStopped
 		retrievedCtr.state.ExitCode = 127
@@ -880,7 +881,7 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
+		require.Len(t, ctrs, 1)
 
 		testContainersEqual(t, testCtr, ctrs[0])
 	})
@@ -2335,7 +2336,7 @@ func TestPodContainersOneContainer(t *testing.T) {
 
 		ctrs, err := state.PodContainers(testPod)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
+		require.Len(t, ctrs, 1)
 
 		testContainersEqual(t, testCtr, ctrs[0])
 	})
@@ -2637,11 +2638,11 @@ func TestAddContainerToPodSucceeds(t *testing.T) {
 
 		ctrs, err := state.PodContainers(testPod)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
+		require.Len(t, ctrs, 1)
 
 		allCtrs, err := state.AllContainers()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(allCtrs))
+		require.Len(t, allCtrs, 1)
 
 		testContainersEqual(t, testCtr, ctrs[0])
 		testContainersEqual(t, ctrs[0], allCtrs[0])
@@ -2703,7 +2704,7 @@ func TestAddContainerToPodWithAddContainer(t *testing.T) {
 
 		ctrs, err := state.PodContainers(testPod)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(ctrs))
+		require.Len(t, ctrs, 1)
 
 		allCtrs, err := state.AllContainers()
 		assert.NoError(t, err)
