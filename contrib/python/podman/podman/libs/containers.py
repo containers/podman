@@ -23,9 +23,9 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         with client() as podman:
             self._refresh(podman)
 
-        assert self._id == self.data['id'],\
+        assert self._id == data['id'],\
             'Requested container id({}) does not match store id({})'.format(
-                self._id, self.id
+                self._id, data['id']
             )
 
     def __getitem__(self, key):
@@ -52,13 +52,13 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
     def processes(self):
         """Show processes running in container."""
         with self._client() as podman:
-            results = podman.ListContainerProcesses(self.id)
+            results = podman.ListContainerProcesses(self._id)
         yield from results['container']
 
     def changes(self):
         """Retrieve container changes."""
         with self._client() as podman:
-            results = podman.ListContainerChanges(self.id)
+            results = podman.ListContainerChanges(self._id)
         return results['container']
 
     def kill(self, signal=signal.SIGTERM, wait=25):
@@ -68,7 +68,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         wait n of seconds, 0 waits forever.
         """
         with self._client() as podman:
-            podman.KillContainer(self.id, signal)
+            podman.KillContainer(self._id, signal)
             timeout = time.time() + wait
             while True:
                 self._refresh(podman)
@@ -84,15 +84,15 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         """Convert all keys to lowercase."""
 
         @functools.wraps(self._lower_hook)
-        def wrapped(input):
-            return {k.lower(): v for (k, v) in input.items()}
+        def wrapped(input_):
+            return {k.lower(): v for (k, v) in input_.items()}
 
         return wrapped
 
     def inspect(self):
         """Retrieve details about containers."""
         with self._client() as podman:
-            results = podman.InspectContainer(self.id)
+            results = podman.InspectContainer(self._id)
         obj = json.loads(results['container'], object_hook=self._lower_hook())
         return collections.namedtuple('ContainerInspect', obj.keys())(**obj)
 
@@ -102,7 +102,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         TODO: should there be a compress option, like images?
         """
         with self._client() as podman:
-            results = podman.ExportContainer(self.id, target)
+            results = podman.ExportContainer(self._id, target)
         return results['tarfile']
 
     def commit(self,
@@ -130,7 +130,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         # TODO: Clean up *args, **kwargs after Commit() is complete
         try:
             author = kwargs.get('author', getpass.getuser())
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             author = ''
 
         for c in changes:
@@ -140,14 +140,14 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
                     format(c))
 
         with self._client() as podman:
-            results = podman.Commit(self.id, image_name, changes, author,
+            results = podman.Commit(self._id, image_name, changes, author,
                                     message, pause)
         return results['image']
 
     def stop(self, timeout=25):
         """Stop container, return id on success."""
         with self._client() as podman:
-            podman.StopContainer(self.id, timeout)
+            podman.StopContainer(self._id, timeout)
             return self._refresh(podman)
 
     def remove(self, force=False):
@@ -156,13 +156,13 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         force=True, stop running container.
         """
         with self._client() as podman:
-            results = podman.RemoveContainer(self.id, force)
+            results = podman.RemoveContainer(self._id, force)
         return results['container']
 
     def restart(self, timeout=25):
         """Restart container with timeout, return id on success."""
         with self._client() as podman:
-            podman.RestartContainer(self.id, timeout)
+            podman.RestartContainer(self._id, timeout)
             return self._refresh(podman)
 
     def rename(self, target):
@@ -182,13 +182,13 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
     def pause(self):
         """Pause container, return id on success."""
         with self._client() as podman:
-            podman.PauseContainer(self.id)
+            podman.PauseContainer(self._id)
             return self._refresh(podman)
 
     def unpause(self):
         """Unpause container, return id on success."""
         with self._client() as podman:
-            podman.UnpauseContainer(self.id)
+            podman.UnpauseContainer(self._id)
             return self._refresh(podman)
 
     def update_container(self, *args, **kwargs):
@@ -200,24 +200,24 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
     def wait(self):
         """Wait for container to finish, return 'returncode'."""
         with self._client() as podman:
-            results = podman.WaitContainer(self.id)
+            results = podman.WaitContainer(self._id)
         return int(results['exitcode'])
 
     def stats(self):
         """Retrieve resource stats from the container."""
         with self._client() as podman:
-            results = podman.GetContainerStats(self.id)
+            results = podman.GetContainerStats(self._id)
         obj = results['container']
         return collections.namedtuple('StatDetail', obj.keys())(**obj)
 
     def logs(self, *args, **kwargs):
         """Retrieve container logs."""
         with self._client() as podman:
-            results = podman.GetContainerLogs(self.id)
+            results = podman.GetContainerLogs(self._id)
         yield from results
 
 
-class Containers(object):
+class Containers():
     """Model for Containers collection."""
 
     def __init__(self, client):
@@ -237,9 +237,9 @@ class Containers(object):
             results = podman.DeleteStoppedContainers()
         return results['containers']
 
-    def get(self, id):
+    def get(self, id_):
         """Retrieve container details from store."""
         with self._client() as podman:
-            cntr = podman.GetContainer(id)
+            cntr = podman.GetContainer(id_)
         return Container(self._client, cntr['container']['id'],
                          cntr['container'])

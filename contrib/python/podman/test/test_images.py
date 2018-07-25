@@ -109,7 +109,7 @@ class TestImages(PodmanTestCase):
         self.assertEqual(self.alpine_image.id,
                          self.alpine_image.tag('alpine:fubar'))
         self.loadCache()
-        self.assertIn('alpine:fubar', self.alpine_image.repoTags)
+        self.assertIn('localhost/alpine:fubar', self.alpine_image.repoTags)
 
     def test_remove(self):
         before = self.loadCache()

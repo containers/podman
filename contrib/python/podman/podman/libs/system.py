@@ -6,7 +6,7 @@ import pkg_resources
 from . import cached_property
 
 
-class System(object):
+class System():
     """Model for accessing system resources."""
 
     def __init__(self, client):
@@ -22,7 +22,7 @@ class System(object):
         client = '0.0.0'
         try:
             client = pkg_resources.get_distribution('podman').version
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
         vers['client_version'] = client
         return collections.namedtuple('Version', vers.keys())(**vers)
@@ -37,4 +37,4 @@ class System(object):
         """Return True if server awake."""
         with self._client() as podman:
             response = podman.Ping()
-        return 'OK' == response['ping']['message']
+        return response['ping']['message'] == 'OK'

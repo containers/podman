@@ -21,9 +21,9 @@ class Image(collections.UserDict):
         self._id = id
         self._client = client
 
-        assert self._id == self.id,\
+        assert self._id == data['id'],\
             'Requested image id({}) does not match store id({})'.format(
-                self._id, self.id
+                self._id, data['id']
             )
 
     def __getitem__(self, key):
@@ -40,7 +40,7 @@ class Image(collections.UserDict):
         """
         details = self.inspect()
 
-        config = Config(image_id=self.id, **kwargs)
+        config = Config(image_id=self._id, **kwargs)
         config['command'] = details.containerconfig['cmd']
         config['env'] = self._split_token(details.containerconfig['env'])
         config['image'] = copy.deepcopy(details.repotags[0])
@@ -48,45 +48,45 @@ class Image(collections.UserDict):
         config['net_mode'] = 'bridge'
         config['network'] = 'bridge'
 
-        logging.debug('Image {}: create config: {}'.format(self.id, config))
+        logging.debug('Image %s: create config: %s', self._id, config)
         with self._client() as podman:
-            id = podman.CreateContainer(config)['container']
-            cntr = podman.GetContainer(id)
-        return Container(self._client, id, cntr['container'])
+            id_ = podman.CreateContainer(config)['container']
+            cntr = podman.GetContainer(id_)
+        return Container(self._client, id_, cntr['container'])
 
     container = create
 
     def export(self, dest, compressed=False):
         """Write image to dest, return id on success."""
         with self._client() as podman:
-            results = podman.ExportImage(self.id, dest, compressed)
+            results = podman.ExportImage(self._id, dest, compressed)
         return results['image']
 
     def history(self):
         """Retrieve image history."""
         with self._client() as podman:
-            for r in podman.HistoryImage(self.id)['history']:
+            for r in podman.HistoryImage(self._id)['history']:
                 yield collections.namedtuple('HistoryDetail', r.keys())(**r)
 
     # Convert all keys to lowercase.
     def _lower_hook(self):
         @functools.wraps(self._lower_hook)
-        def wrapped(input):
-            return {k.lower(): v for (k, v) in input.items()}
+        def wrapped(input_):
+            return {k.lower(): v for (k, v) in input_.items()}
 
         return wrapped
 
     def inspect(self):
         """Retrieve details about image."""
         with self._client() as podman:
-            results = podman.InspectImage(self.id)
+            results = podman.InspectImage(self._id)
         obj = json.loads(results['image'], object_hook=self._lower_hook())
         return collections.namedtuple('ImageInspect', obj.keys())(**obj)
 
     def push(self, target, tlsverify=False):
         """Copy image to target, return id on success."""
         with self._client() as podman:
-            results = podman.PushImage(self.id, target, tlsverify)
+            results = podman.PushImage(self._id, target, tlsverify)
         return results['image']
 
     def remove(self, force=False):
@@ -95,17 +95,17 @@ class Image(collections.UserDict):
         force=True, stop any running containers using image.
         """
         with self._client() as podman:
-            results = podman.RemoveImage(self.id, force)
+            results = podman.RemoveImage(self._id, force)
         return results['image']
 
     def tag(self, tag):
         """Tag image."""
         with self._client() as podman:
-            results = podman.TagImage(self.id, tag)
+            results = podman.TagImage(self._id, tag)
         return results['image']
 
 
-class Images(object):
+class Images():
     """Model for Images collection."""
 
     def __init__(self, client):
@@ -158,15 +158,15 @@ class Images(object):
             results = podman.PullImage(source)
         return results['id']
 
-    def search(self, id, limit=25):
+    def search(self, id_, limit=25):
         """Search registries for id."""
         with self._client() as podman:
-            results = podman.SearchImage(id, limit)
+            results = podman.SearchImage(id_, limit)
         for img in results['images']:
             yield collections.namedtuple('ImageSearch', img.keys())(**img)
 
-    def get(self, id):
+    def get(self, id_):
         """Get Image from id."""
         with self._client() as podman:
-            result = podman.GetImage(id)
+            result = podman.GetImage(id_)
         return Image(self._client, result['image']['id'], result['image'])
