@@ -8,7 +8,7 @@ from .libs.errors import (ContainerNotFound, ErrorOccurred, ImageNotFound,
 
 try:
     __version__ = pkg_resources.get_distribution('podman').version
-except Exception:
+except Exception:  # pylint: disable=broad-except
     __version__ = '0.0.0'
 
 __all__ = [

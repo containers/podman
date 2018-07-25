@@ -47,8 +47,9 @@ def datetime_format(dt):
     """Format datetime in consistent style."""
     if isinstance(dt, str):
         return datetime_parse(dt).isoformat()
-    elif isinstance(dt, datetime.datetime):
+
+    if isinstance(dt, datetime.datetime):
         return dt.isoformat()
-    else:
-        raise ValueError('Unable to format {}. Type {} not supported.'.format(
-            dt, type(dt)))
+
+    raise ValueError('Unable to format {}. Type {} not supported.'.format(
+        dt, type(dt)))

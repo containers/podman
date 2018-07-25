@@ -14,8 +14,14 @@ from .libs.system import System
 from .libs.tunnel import Context, Portal, Tunnel
 
 
-class BaseClient(object):
+class BaseClient():
     """Context manager for API workers to access varlink."""
+
+    def __init__(self, context):
+        """Construct Client."""
+        self._client = None
+        self._iface = None
+        self._context = context
 
     def __call__(self):
         """Support being called for old API."""
@@ -74,17 +80,12 @@ class BaseClient(object):
                     remote.hostname,
                     kwargs.get('identity_file'),
                 ))
-        else:
-            return LocalClient(
-                Context(uri, interface, None, None, None, None, None))
+        return LocalClient(
+            Context(uri, interface, None, None, None, None, None))
 
 
 class LocalClient(BaseClient):
     """Context manager for API workers to access varlink."""
-
-    def __init__(self, context):
-        """Construct LocalClient."""
-        self._context = context
 
     def __enter__(self):
         """Enter context for LocalClient."""
@@ -107,7 +108,7 @@ class RemoteClient(BaseClient):
 
     def __init__(self, context):
         """Construct RemoteCLient."""
-        self._context = context
+        super().__init__(context)
         self._portal = Portal()
 
     def __enter__(self):
@@ -136,7 +137,7 @@ class RemoteClient(BaseClient):
             raise error_factory(e)
 
 
-class Client(object):
+class Client():
     """A client for communicating with a Podman varlink service.
 
     Example:
@@ -184,7 +185,7 @@ class Client(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Raise any exception triggered within the runtime context."""
-        return None
+        pass
 
     @cached_property
     def system(self):

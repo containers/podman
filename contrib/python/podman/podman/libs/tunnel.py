@@ -87,7 +87,7 @@ class Portal(collections.MutableMapping):
             self._schedule_reaper()
 
 
-class Tunnel(object):
+class Tunnel():
     """SSH tunnel."""
 
     def __init__(self, context):
@@ -95,7 +95,7 @@ class Tunnel(object):
         self.context = context
         self._tunnel = None
 
-    def bore(self, id):
+    def bore(self, ident):
         """Create SSH tunnel from given context."""
         cmd = ['ssh']
 
@@ -114,10 +114,10 @@ class Tunnel(object):
         cmd.append('ssh://{}@{}'.format(self.context.username,
                                         self.context.hostname))
 
-        logging.debug('Tunnel cmd "{}"'.format(' '.join(cmd)))
+        logging.debug('Tunnel cmd "%s"', ' '.join(cmd))
 
         self._tunnel = subprocess.Popen(cmd, close_fds=True)
-        for i in range(300):
+        for _ in range(300):
             # TODO: Make timeout configurable
             if os.path.exists(self.context.local_socket):
                 break
@@ -125,10 +125,10 @@ class Tunnel(object):
         else:
             raise TimeoutError('Failed to create tunnel using: {}'.format(
                 ' '.join(cmd)))
-        weakref.finalize(self, self.close, id)
+        weakref.finalize(self, self.close, ident)
         return self
 
-    def close(self, id):
+    def close(self, ident):
         """Close SSH tunnel."""
         if self._tunnel is None:
             return
