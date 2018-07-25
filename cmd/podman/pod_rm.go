@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -41,46 +40,22 @@ func podRmCmd(c *cli.Context) error {
 	if err := checkMutuallyExclusiveFlags(c); err != nil {
 		return err
 	}
+
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
 	ctx := getContext()
-	var delPods []*libpod.Pod
-	var lastError error
-	if c.Bool("all") {
-		delPods, err = runtime.GetAllPods()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get pod list")
-		}
-	}
-
-	if c.Bool("latest") {
-		delPod, err := runtime.GetLatestPod()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest pod")
-		}
-		delPods = append(delPods, delPod)
-	}
-
-	for _, i := range args {
-		pod, err := runtime.LookupPod(i)
-		if err != nil {
-			logrus.Errorf("%q", lastError)
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find pods %s", i)
-			continue
-		}
-		delPods = append(delPods, pod)
-	}
 	force := c.Bool("force")
 
-	for _, pod := range delPods {
+	// getPodsFromContext returns an error when a requested pod
+	// isn't found. The only fatal error scenerio is when there are no pods
+	// in which case the following loop will be skipped.
+	pods, lastError := getPodsFromContext(c, runtime)
+
+	for _, pod := range pods {
 		err = runtime.RemovePod(ctx, pod, force, force)
 		if err != nil {
 			if lastError != nil {

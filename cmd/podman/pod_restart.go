@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -42,36 +41,10 @@ func podRestartCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
-	var pods []*libpod.Pod
-	var lastError error
-
-	if c.Bool("all") {
-		pods, err = runtime.Pods()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get running pods")
-		}
-	}
-
-	if c.Bool("latest") {
-		pod, err := runtime.GetLatestPod()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest pod")
-		}
-		pods = append(pods, pod)
-	}
-
-	for _, i := range args {
-		pod, err := runtime.LookupPod(i)
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find pod %s", i)
-			continue
-		}
-		pods = append(pods, pod)
-	}
+	// getPodsFromContext returns an error when a requested pod
+	// isn't found. The only fatal error scenerio is when there are no pods
+	// in which case the following loop will be skipped.
+	pods, lastError := getPodsFromContext(c, runtime)
 
 	ctx := getContext()
 	for _, pod := range pods {
