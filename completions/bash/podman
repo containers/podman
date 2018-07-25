@@ -2224,6 +2224,7 @@ _podman_podman() {
            --storage-driver
            --storage-opt
            --log-level
+           --namespace
     "
      local boolean_options="
            --help -h

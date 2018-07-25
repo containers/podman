@@ -173,6 +173,11 @@ func main() {
 			Value: "error",
 		},
 		cli.StringFlag{
+			Name:  "namespace",
+			Usage: "set the libpod namespace, used to create separate views of the containers and pods on the system",
+			Value: "",
+		},
+		cli.StringFlag{
 			Name:  "root",
 			Usage: "path to the root directory in which data, including images, is stored",
 		},

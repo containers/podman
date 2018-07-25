@@ -63,6 +63,10 @@ var (
 	// was created by a libpod with a different config
 	ErrDBBadConfig = errors.New("database configuration mismatch")
 
+	// ErrNSMismatch indicates that the requested pod or container is in a
+	// different namespace and cannot be accessed or modified.
+	ErrNSMismatch = errors.New("target is in a different namespace")
+
 	// ErrNotImplemented indicates that the requested functionality is not
 	// yet present
 	ErrNotImplemented = errors.New("not yet implemented")

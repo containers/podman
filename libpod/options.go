@@ -284,6 +284,26 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 	}
 }
 
+// WithNamespace sets the namespace for libpod.
+// Namespaces are used to create scopes to separate containers and pods
+// in the state.
+// When namespace is set, libpod will only view containers and pods in
+// the same namespace. All containers and pods created will default to
+// the namespace set here.
+// A namespace of "", the empty string, is equivalent to no namespace,
+// and all containers and pods will be visible.
+func WithNamespace(ns string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.Namespace = ns
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
@@ -388,8 +408,9 @@ func WithStdin() CtrCreateOption {
 }
 
 // WithPod adds the container to a pod.
-// Containers which join a pod can only join the namespaces of other containers
-// in the same pod.
+// Containers which join a pod can only join the Linux namespaces of other
+// containers in the same pod.
+// Containers can only join pods in the same libpod namespace.
 func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -944,7 +965,8 @@ func WithCommand(command []string) CtrCreateOption {
 	}
 }
 
-// WithRootFS sets the rootfs for the container
+// WithRootFS sets the rootfs for the container.
+// This creates a container from a directory on disk and not an image.
 func WithRootFS(rootfs string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -957,6 +979,22 @@ func WithRootFS(rootfs string) CtrCreateOption {
 			return errors.Wrapf(ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
 		}
 		ctr.config.Rootfs = rootfs
+		return nil
+	}
+}
+
+// WithCtrNamespace sets the namespace the container will be created in.
+// Namespaces are used to create separate views of Podman's state - runtimes can
+// join a specific namespace and see only containers and pods in that namespace.
+// Empty string namespaces are allowed, and correspond to a lack of namespace.
+func WithCtrNamespace(ns string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Namespace = ns
+
 		return nil
 	}
 }
@@ -1021,6 +1059,23 @@ func WithPodCgroups() PodCreateOption {
 		}
 
 		pod.config.UsePodCgroup = true
+
+		return nil
+	}
+}
+
+// WithPodNamespace sets the namespace for the created pod.
+// Namespaces are used to create separate views of Podman's state - runtimes can
+// join a specific namespace and see only containers and pods in that namespace.
+// Empty string namespaces are allowed, and correspond to a lack of namespace.
+// Containers must belong to the same namespace as the pod they join.
+func WithPodNamespace(ns string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.Namespace = ns
 
 		return nil
 	}

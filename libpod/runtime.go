@@ -136,10 +136,22 @@ type RuntimeConfig struct {
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
-	// HooksDirNotExistFatal switches between fatal errors and non-fatal warnings if the configured HooksDir does not exist.
+	// HooksDirNotExistFatal switches between fatal errors and non-fatal
+	// warnings if the configured HooksDir does not exist.
 	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
-	// DefaultMountsFile is the path to the default mounts file for testing purposes only
+	// DefaultMountsFile is the path to the default mounts file for testing
+	// purposes only
 	DefaultMountsFile string `toml:"-"`
+	// Namespace is the libpod namespace to use.
+	// Namespaces are used to create scopes to separate containers and pods
+	// in the state.
+	// When namespace is set, libpod will only view containers and pods in
+	// the same namespace. All containers and pods created will default to
+	// the namespace set here.
+	// A namespace of "", the empty string, is equivalent to no namespace,
+	// and all containers and pods will be visible.
+	// The default namespace is "".
+	Namespace string `toml:"namespace,omitempty"`
 }
 
 var (
@@ -492,6 +504,11 @@ func makeRuntime(runtime *Runtime) (err error) {
 	default:
 		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
+
+	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
+		return errors.Wrapf(err, "error setting libpod namespace in state")
+	}
+	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this

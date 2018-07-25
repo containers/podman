@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bytes"
 	"encoding/json"
 	"path/filepath"
 	"runtime"
@@ -15,6 +16,7 @@ import (
 const (
 	idRegistryName    = "id-registry"
 	nameRegistryName  = "name-registry"
+	nsRegistryName    = "ns-registry"
 	ctrName           = "ctr"
 	allCtrsName       = "all-ctrs"
 	podName           = "pod"
@@ -27,11 +29,13 @@ const (
 	netNSName        = "netns"
 	containersName   = "containers"
 	podIDName        = "pod-id"
+	namespaceName    = "namespace"
 )
 
 var (
 	idRegistryBkt    = []byte(idRegistryName)
 	nameRegistryBkt  = []byte(nameRegistryName)
+	nsRegistryBkt    = []byte(nsRegistryName)
 	ctrBkt           = []byte(ctrName)
 	allCtrsBkt       = []byte(allCtrsName)
 	podBkt           = []byte(podName)
@@ -44,6 +48,7 @@ var (
 	netNSKey        = []byte(netNSName)
 	containersBkt   = []byte(containersName)
 	podIDKey        = []byte(podIDName)
+	namespaceKey    = []byte(namespaceName)
 )
 
 // Check if the configuration of the database is compatible with the
@@ -165,6 +170,14 @@ func getNamesBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getNSBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(nsRegistryBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "namespace registry bucket not found in DB")
+	}
+	return bkt, nil
+}
+
 func getCtrBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(ctrBkt)
 	if bkt == nil {
@@ -211,6 +224,13 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found", string(id))
 	}
 
+	if s.namespaceBytes != nil {
+		podNamespaceBytes := podDB.Get(namespaceKey)
+		if !bytes.Equal(s.namespaceBytes, podNamespaceBytes) {
+			return errors.Wrapf(ErrNSMismatch, "cannot retrieve pod %s as it is part of namespace %q and we are in namespace %q", string(id), string(podNamespaceBytes), s.namespace)
+		}
+	}
+
 	podConfigBytes := podDB.Get(configKey)
 	if podConfigBytes == nil {
 		return errors.Wrapf(ErrInternal, "pod %s is missing configuration key in DB", string(id))
@@ -246,6 +266,11 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 // Add a container to the DB
 // If pod is not nil, the container is added to the pod as well
 func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
+	if s.namespace != "" && s.namespace != ctr.config.Namespace {
+		return errors.Wrapf(ErrNSMismatch, "cannot add container %s as it is in namespace %q and we are in namespace %q",
+			ctr.ID(), s.namespace, ctr.config.Namespace)
+	}
+
 	// JSON container structs to insert into DB
 	// TODO use a higher-performance struct encoding than JSON
 	configJSON, err := json.Marshal(ctr.config)
@@ -262,6 +287,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	ctrID := []byte(ctr.ID())
 	ctrName := []byte(ctr.Name())
 
+	var ctrNamespace []byte
+	if ctr.config.Namespace != "" {
+		ctrNamespace = []byte(ctr.config.Namespace)
+	}
+
 	db, err := s.getDBCon()
 	if err != nil {
 		return err
@@ -275,6 +305,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		namesBucket, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		nsBucket, err := getNSBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -309,6 +344,12 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			if podCtrs == nil {
 				return errors.Wrapf(ErrInternal, "pod %s does not have a containers bucket", pod.ID())
 			}
+
+			podNS := podDB.Get(namespaceKey)
+			if !bytes.Equal(podNS, ctrNamespace) {
+				return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
+					ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
+			}
 		}
 
 		// Check if we already have a container with the given ID and name
@@ -329,6 +370,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if err := namesBucket.Put(ctrName, ctrID); err != nil {
 			return errors.Wrapf(err, "error adding container %s name (%s) to DB", ctr.ID(), ctr.Name())
 		}
+		if ctrNamespace != nil {
+			if err := nsBucket.Put(ctrID, ctrNamespace); err != nil {
+				return errors.Wrapf(err, "error adding container %s namespace (%q) to DB", ctr.ID(), ctr.Namespace())
+			}
+		}
 		if err := allCtrsBucket.Put(ctrID, ctrName); err != nil {
 			return errors.Wrapf(err, "error adding container %s to all containers bucket in DB", ctr.ID())
 		}
@@ -343,6 +389,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		if err := newCtrBkt.Put(stateKey, stateJSON); err != nil {
 			return errors.Wrapf(err, "error adding container %s state to DB", ctr.ID())
+		}
+		if ctrNamespace != nil {
+			if err := newCtrBkt.Put(namespaceKey, ctrNamespace); err != nil {
+				return errors.Wrapf(err, "error adding container %s namespace to DB", ctr.ID())
+			}
 		}
 		if pod != nil {
 			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
@@ -384,6 +435,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				}
 			}
 
+			depNamespace := depCtrBkt.Get(namespaceKey)
+			if !bytes.Equal(ctrNamespace, depNamespace) {
+				return errors.Wrapf(ErrNSMismatch, "container %s in namespace %q depends on container %s in namespace %q - namespaces must match", ctr.ID(), ctr.config.Namespace, dependsCtr, string(depNamespace))
+			}
+
 			depCtrDependsBkt := depCtrBkt.Bucket(dependenciesBkt)
 			if depCtrDependsBkt == nil {
 				return errors.Wrapf(ErrInternal, "container %s does not have a dependencies bucket", dependsCtr)
@@ -408,7 +464,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 // Remove a container from the DB
 // If pod is not nil, the container is treated as belonging to a pod, and
 // will be removed from the pod as well
-func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
+func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 	ctrID := []byte(ctr.ID())
 	ctrName := []byte(ctr.Name())
 
@@ -423,6 +479,11 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 	}
 
 	ctrBucket, err := getCtrBucket(tx)
+	if err != nil {
+		return err
+	}
+
+	nsBucket, err := getNSBucket(tx)
 	if err != nil {
 		return err
 	}
@@ -454,6 +515,17 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 	if ctrExists == nil {
 		ctr.valid = false
 		return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+	}
+
+	// Compare namespace
+	// We can't remove containers not in our namespace
+	if s.namespace != "" {
+		if s.namespace != ctr.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+		}
+		if pod != nil && s.namespace != pod.config.Namespace {
+			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q, does not match out namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
+		}
 	}
 
 	if podDB != nil {
@@ -501,6 +573,9 @@ func removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error {
 
 	if err := namesBucket.Delete(ctrName); err != nil {
 		return errors.Wrapf(err, "error deleting container %s name in DB", ctr.ID())
+	}
+	if err := nsBucket.Delete(ctrID); err != nil {
+		return errors.Wrapf(err, "error deleting container %s namespace in DB", ctr.ID())
 	}
 	if err := allCtrsBucket.Delete(ctrID); err != nil {
 		return errors.Wrapf(err, "error deleting container %s from all containers bucket in DB", ctr.ID())
