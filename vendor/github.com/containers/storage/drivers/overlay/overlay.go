@@ -706,8 +706,11 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 
 	workDir := path.Join(dir, "work")
 	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workDir)
+	if d.options.mountOptions != "" {
+		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
+	}
 	mountData := label.FormatMountLabel(opts, mountLabel)
-	mount := unix.Mount
+	mountFunc := unix.Mount
 	mountTarget := mergedDir
 
 	pageSize := unix.Getpagesize()
@@ -719,28 +722,26 @@ func (d *Driver) Get(id, mountLabel string) (_ string, retErr error) {
 	if len(mountData) > pageSize || d.options.mountProgram != "" {
 		//FIXME: We need to figure out to get this to work with additional stores
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
-		if d.options.mountOptions != "" {
-			opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
-		}
 		mountData = label.FormatMountLabel(opts, mountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
 		}
 
 		if d.options.mountProgram != "" {
-			mount = func(source string, target string, mType string, flags uintptr, label string) error {
+			mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 				mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
 				mountProgram.Dir = d.home
 				return mountProgram.Run()
 			}
 		} else {
-			mount = func(source string, target string, mType string, flags uintptr, label string) error {
+			mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 				return mountFrom(d.home, source, target, mType, flags, label)
 			}
 		}
 		mountTarget = path.Join(id, "merged")
 	}
-	if err := mount("overlay", mountTarget, "overlay", 0, mountData); err != nil {
+	flags, data := mount.ParseOptions(mountData)
+	if err := mountFunc("overlay", mountTarget, "overlay", uintptr(flags), data); err != nil {
 		return "", fmt.Errorf("error creating overlay mount to %s: %v", mountTarget, err)
 	}
 
