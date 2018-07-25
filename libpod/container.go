@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -106,6 +107,9 @@ type Container struct {
 	valid   bool
 	lock    storage.Locker
 	runtime *Runtime
+
+	rootlessSlirpSyncR *os.File
+	rootlessSlirpSyncW *os.File
 }
 
 // containerState contains the current state of the container
