@@ -44,12 +44,14 @@ var (
 		},
 	}
 
-	pullDescription = "Pulls an image from a registry and stores it locally.\n" +
-		"An image can be pulled using its tag or digest. If a tag is not\n" +
-		"specified, the image with the 'latest' tag (if it exists) is pulled."
+	pullDescription = `
+Pulls an image from a registry and stores it locally.
+An image can be pulled using its tag or digest. If a tag is not
+specified, the image with the 'latest' tag (if it exists) is pulled
+`
 	pullCommand = cli.Command{
 		Name:        "pull",
-		Usage:       "pull an image from a registry",
+		Usage:       "Pull an image from a registry",
 		Description: pullDescription,
 		Flags:       pullFlags,
 		Action:      pullCmd,

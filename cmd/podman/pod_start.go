@@ -16,7 +16,7 @@ var (
 			Name:  "all, a",
 			Usage: "start all running pods",
 		},
-		LatestFlag,
+		LatestPodFlag,
 	}
 	podStartDescription = `
    podman pod start

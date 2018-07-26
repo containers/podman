@@ -41,7 +41,7 @@ var podCreateFlags = []cli.Flag{
 
 var podCreateCommand = cli.Command{
 	Name:                   "create",
-	Usage:                  "create a new empty pod",
+	Usage:                  "Create a new empty pod",
 	Description:            podCreateDescription,
 	Flags:                  podCreateFlags,
 	Action:                 podCreateCmd,

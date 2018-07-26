@@ -54,7 +54,7 @@ var (
 	Can limit the number of results, and filter the output based on certain conditions.`
 	searchCommand = cli.Command{
 		Name:        "search",
-		Usage:       "search registry for image",
+		Usage:       "Search registry for image",
 		Description: searchDescription,
 		Flags:       searchFlags,
 		Action:      searchCmd,
