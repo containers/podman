@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -75,6 +76,114 @@ func TestGetPullRefName(t *testing.T) {
 		res, err := getPullRefName(srcRef, c.destName)
 		require.NoError(t, err, testName)
 		assert.Equal(t, &pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res, testName)
+	}
+}
+
+func TestRefNamesFromImageReference(t *testing.T) {
+	type expected struct{ image, dstName string }
+	for _, c := range []struct {
+		srcName  string
+		expected []expected
+	}{
+		// == docker-archive:
+		{"docker-archive:/dev/this-does-not-exist", nil}, // Input does not exist.
+		{"docker-archive:/dev/null", nil},                // Input exists but does not contain a manifest.
+		// FIXME: The implementation has extra code for len(manifest) == 0?! That will fail in getImageDigest anyway.
+		{ // RepoTags is empty
+			"docker-archive:testdata/docker-unnamed.tar.xz",
+			[]expected{{"@ec9293436c2e66da44edb9efb8d41f6b13baf62283ebe846468bc992d76d7951", "@ec9293436c2e66da44edb9efb8d41f6b13baf62283ebe846468bc992d76d7951"}},
+		},
+		{ // RepoTags is a [docker.io/library/]name:latest, normalized to the short format.
+			"docker-archive:testdata/docker-name-only.tar.xz",
+			[]expected{{"localhost/pretty-empty:latest", "localhost/pretty-empty:latest"}},
+		},
+		{ // RepoTags is a registry/name:latest
+			"docker-archive:testdata/docker-registry-name.tar.xz",
+			[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
+		},
+		{ // RepoTags has multiple items for a single image
+			"docker-archive:testdata/docker-two-names.tar.xz",
+			[]expected{
+				{"localhost/pretty-empty:latest", "localhost/pretty-empty:latest"},
+				{"example.com/empty:latest", "example.com/empty:latest"},
+			},
+		},
+		{ // FIXME: Two images in a single archive - only the "first" one (whichever it is) is returned
+			// (and docker-archive: then refuses to read anything when the manifest has more than 1 item)
+			"docker-archive:testdata/docker-two-images.tar.xz",
+			[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
+			// "example.com/empty/but:different" exists but is ignored
+		},
+
+		// == oci-archive:
+		{"oci-archive:/dev/this-does-not-exist", nil}, // Input does not exist.
+		{"oci-archive:/dev/null", nil},                // Input exists but does not contain a manifest.
+		// FIXME: The remaining tests are commented out for now, because oci-archive: does not work unprivileged.
+		// { // No name annotation
+		// 	"oci-archive:testdata/oci-unnamed.tar.gz",
+		// 	[]expected{{"@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6", "@5c8aca8137ac47e84c69ae93ce650ce967917cc001ba7aad5494073fac75b8b6"}},
+		// },
+		// { // Name is a name:latest (no normalization is defined).
+		// 	"oci-archive:testdata/oci-name-only.tar.gz",
+		// 	[]expected{{"localhost/pretty-empty:latest", "localhost/pretty-empty:latest"}},
+		// },
+		// { // Name is a registry/name:latest
+		// 	"oci-archive:testdata/oci-registry-name.tar.gz",
+		// 	[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
+		// },
+		// { // Name exists, but is an invalid Docker reference; such names are passed through, and will fail when intepreting dstName.
+		// 	"oci-archive:testdata/oci-non-docker-name.tar.gz",
+		// 	[]expected{{"UPPERCASE-IS-INVALID", "UPPERCASE-IS-INVALID"}},
+		// },
+		// Maybe test support of two images in a single archive? It should be transparently handled by adding a reference to srcRef.
+
+		// == dir:
+		{ // Absolute path
+			"dir:/dev/this-does-not-exist",
+			[]expected{{"localhost/dev/this-does-not-exist", "localhost/dev/this-does-not-exist"}},
+		},
+		{ // Relative path, single element.
+			// FIXME? Note the :latest difference in .image.  (In .dstName as well, but it has the same semantics in there.)
+			"dir:this-does-not-exist",
+			[]expected{{"localhost/this-does-not-exist:latest", "localhost/this-does-not-exist:latest"}},
+		},
+		{ // Relative path, multiple elements.
+			// FIXME: This does not add localhost/, and dstName is parsed as docker.io/testdata.
+			"dir:testdata/this-does-not-exist",
+			[]expected{{"testdata/this-does-not-exist", "testdata/this-does-not-exist"}},
+		},
+
+		// == Others, notably:
+		// === docker:// (has ImageReference.DockerReference)
+		{ // Fully-specified input
+			"docker://docker.io/library/busybox:latest",
+			[]expected{{"docker://docker.io/library/busybox:latest", "docker.io/library/busybox:latest"}},
+		},
+		{ // Minimal form of the input
+			"docker://busybox",
+			[]expected{{"docker://busybox", "docker.io/library/busybox:latest"}},
+		},
+
+		// === tarball: (as an example of what happens when ImageReference.DockerReference is nil).
+		{ // FIXME? The dstName value is invalid, and will fail.
+			// (This is NOT an API promise that the results will continue to be this way.)
+			"tarball:/dev/null",
+			[]expected{{"tarball:/dev/null", "tarball:/dev/null"}},
+		},
+	} {
+		srcRef, err := alltransports.ParseImageName(c.srcName)
+		require.NoError(t, err, c.srcName)
+
+		res, err := refNamesFromImageReference(context.Background(), srcRef, c.srcName, nil)
+		if len(c.expected) == 0 {
+			assert.Error(t, err, c.srcName)
+		} else {
+			require.NoError(t, err, c.srcName)
+			require.Len(t, res, len(c.expected), c.srcName)
+			for i, e := range c.expected {
+				assert.Equal(t, &pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res[i], fmt.Sprintf("%s #%d", c.srcName, i))
+			}
+		}
 	}
 }
 
