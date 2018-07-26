@@ -84,8 +84,8 @@ func getPullRefName(srcRef types.ImageReference, destName string) (*pullRefName,
 	}, nil
 }
 
-// returns a list of pullRefPair with the srcRef and DstRef based on the transport being used
-func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
+// refNamesFromImageReference returns a list of pullRefName for a single ImageReference, depending on the used transport.
+func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefName, error) {
 	var pullNames []*pullRefName
 	splitArr := strings.Split(imgName, ":")
 	archFile := splitArr[len(splitArr)-1]
@@ -178,8 +178,17 @@ func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageRef
 		}
 		pullNames = append(pullNames, pullInfo)
 	}
+	return pullNames, nil
+}
 
-	return ir.pullRefPairsFromRefNames(pullNames)
+// getPullListFromRef returns a list of pullRefPair for a single ImageReference, depending on the used transport.
+func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
+	refNames, err := refNamesFromImageReference(ctx, srcRef, imgName, sc)
+	if err != nil {
+		return nil, err
+	}
+
+	return ir.pullRefPairsFromRefNames(refNames)
 }
 
 // pullImage pulls an image from configured registries
