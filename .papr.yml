@@ -59,10 +59,48 @@ extra-repos:
       gpgcheck: 0
 packages:
     - podman
-    - buildah
 tests:
     - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
     - yum -y reinstall container-selinux
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
-required: false
+required: true
 context: "Fedora fedora/28/cloud Podman"
+
+---
+
+inherit: true
+host:
+    distro: fedora/28/cloud
+    specs:
+        ram: 8192
+        cpus: 4
+packages:
+    - btrfs-progs-devel
+    - atomic-registries
+    - bzip2
+    - conmon
+    - device-mapper-devel
+    - findutils
+    - git
+    - glib2-devel
+    - gnupg
+    - golang
+    - golang-github-cpuguy83-go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - skopeo-containers
+    - runc
+    - make
+    - ostree-devel
+    - python
+    - python3-dateutil
+    - which
+    - procps-ng
+    - iptables
+    - containernetworking-cni
+tests:
+    - runcon system_u:system_r:spc_t:s0 ./.papr_test.sh
+required: false
+context: "fedora 28 cloud podman systemd cgroups"
