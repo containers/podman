@@ -181,8 +181,8 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 	return pullNames, nil
 }
 
-// getPullListFromRef returns a list of pullRefPair for a single ImageReference, depending on the used transport.
-func (ir *Runtime) getPullListFromRef(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
+// refPairsFromImageReference returns a list of pullRefPair for a single ImageReference, depending on the used transport.
+func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
 	refNames, err := refNamesFromImageReference(ctx, srcRef, imgName, sc)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		pullRefPairs, err = i.imageruntime.getPullListFromRef(ctx, srcRef, i.InputName, sc)
+		pullRefPairs, err = i.imageruntime.refPairsFromImageReference(ctx, srcRef, i.InputName, sc)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error getting pullRefPair info to pull image %q", i.InputName)
 		}
