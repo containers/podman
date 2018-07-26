@@ -32,7 +32,7 @@ var (
 	loadDescription = "Loads the image from docker-archive stored on the local machine."
 	loadCommand     = cli.Command{
 		Name:        "load",
-		Usage:       "load an image from docker archive",
+		Usage:       "Load an image from docker archive",
 		Description: loadDescription,
 		Flags:       loadFlags,
 		Action:      loadCmd,

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	infoDescription = "display system information"
+	infoDescription = "Display podman system information"
 	infoCommand     = cli.Command{
 		Name:        "info",
 		Usage:       infoDescription,

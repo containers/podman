@@ -5,25 +5,24 @@ import (
 )
 
 var (
-	podDescription = `
-   podman pod
+	podDescription = `Manage container pods.
 
-   Manage container pods.
-   Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.
+Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.
 `
+	podSubCommands = []cli.Command{
+		podCreateCommand,
+		podKillCommand,
+		podPsCommand,
+		podRestartCommand,
+		podRmCommand,
+		podStartCommand,
+		podStopCommand,
+	}
 	podCommand = cli.Command{
 		Name:                   "pod",
 		Usage:                  "Manage pods",
 		Description:            podDescription,
 		UseShortOptionHandling: true,
-		Subcommands: []cli.Command{
-			podCreateCommand,
-			podKillCommand,
-			podPsCommand,
-			podRestartCommand,
-			podRmCommand,
-			podStartCommand,
-			podStopCommand,
-		},
+		Subcommands:            podSubCommands,
 	}
 )

@@ -16,7 +16,7 @@ var (
 			Name:  "all, a",
 			Usage: "restart all pods",
 		},
-		LatestFlag,
+		LatestPodFlag,
 	}
 	podRestartDescription = `Restarts one or more pods. The pod ID or name can be used.`
 

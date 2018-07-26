@@ -20,14 +20,16 @@ var (
 			Name:  "force, f",
 			Usage: "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false",
 		},
-		LatestFlag,
+		LatestPodFlag,
 	}
-	podRmDescription = "Remove one or more pods"
-	podRmCommand     = cli.Command{
-		Name: "rm",
-		Usage: fmt.Sprintf(`podman rm will remove one or more pods from the host. The pod name or ID can be used.
-                            A pod with containers will not be removed without --force.
-                            If --force is specified, all containers will be stopped, then removed.`),
+	podRmDescription = fmt.Sprintf(`
+podman rm will remove one or more pods from the host. The pod name or ID can
+be used.  A pod with containers will not be removed without --force.
+If --force is specified, all containers will be stopped, then removed.
+`)
+	podRmCommand = cli.Command{
+		Name:                   "rm",
+		Usage:                  "Remove one or more pods",
 		Description:            podRmDescription,
 		Flags:                  podRmFlags,
 		Action:                 podRmCmd,

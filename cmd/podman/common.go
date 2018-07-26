@@ -19,6 +19,10 @@ var (
 		Name:  "latest, l",
 		Usage: "act on the latest container podman is aware of",
 	}
+	LatestPodFlag = cli.BoolFlag{
+		Name:  "latest, l",
+		Usage: "act on the latest pod podman is aware of",
+	}
 )
 
 const (

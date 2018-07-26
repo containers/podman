@@ -16,7 +16,7 @@ var (
 			Name:  "all, a",
 			Usage: "stop all running pods",
 		},
-		LatestFlag,
+		LatestPodFlag,
 	}
 	podStopDescription = `
    podman pod stop

@@ -43,7 +43,7 @@ var createDescription = "Creates a new container from the given image or" +
 
 var createCommand = cli.Command{
 	Name:                   "create",
-	Usage:                  "create but do not start a container",
+	Usage:                  "Create but do not start a container",
 	Description:            createDescription,
 	Flags:                  createFlags,
 	Action:                 createCmd,

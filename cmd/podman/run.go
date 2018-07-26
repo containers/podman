@@ -29,7 +29,7 @@ var runFlags []cli.Flag = append(createFlags, cli.BoolTFlag{
 
 var runCommand = cli.Command{
 	Name:                   "run",
-	Usage:                  "run a command in a new container",
+	Usage:                  "Run a command in a new container",
 	Description:            runDescription,
 	Flags:                  runFlags,
 	Action:                 runCmd,

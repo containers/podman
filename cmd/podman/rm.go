@@ -22,11 +22,14 @@ var (
 		},
 		LatestFlag,
 	}
-	rmDescription = "Remove one or more containers"
-	rmCommand     = cli.Command{
-		Name: "rm",
-		Usage: fmt.Sprintf(`podman rm will remove one or more containers from the host.  The container name or ID can be used.
-							This does not remove images.  Running containers will not be removed without the -f option.`),
+	rmDescription = fmt.Sprintf(`
+Podman rm will remove one or more containers from the host.
+The container name or ID can be used. This does not remove images.
+Running containers will not be removed without the -f option.
+`)
+	rmCommand = cli.Command{
+		Name:                   "rm",
+		Usage:                  "Remove one or more containers",
 		Description:            rmDescription,
 		Flags:                  rmFlags,
 		Action:                 rmCmd,
