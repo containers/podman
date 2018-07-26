@@ -41,7 +41,7 @@ var (
 	loginDescription = "Login to a container registry on a specified server."
 	loginCommand     = cli.Command{
 		Name:        "login",
-		Usage:       "login to a container registry",
+		Usage:       "Login to a container registry",
 		Description: loginDescription,
 		Flags:       loginFlags,
 		Action:      loginCmd,

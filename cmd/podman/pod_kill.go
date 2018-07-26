@@ -23,7 +23,7 @@ var (
 			Usage: "Signal to send to the containers in the pod",
 			Value: "KILL",
 		},
-		LatestFlag,
+		LatestPodFlag,
 	}
 	podKillDescription = "The main process of each container inside the specified pod will be sent SIGKILL, or any signal specified with option --signal."
 	podKillCommand     = cli.Command{

@@ -68,7 +68,7 @@ var (
 
 	pushCommand = cli.Command{
 		Name:        "push",
-		Usage:       "push an image to a specified destination",
+		Usage:       "Push an image to a specified destination",
 		Description: pushDescription,
 		Flags:       pushFlags,
 		Action:      pushCmd,

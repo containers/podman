@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	rmiDescription = "removes one or more locally stored images."
+	rmiDescription = "Removes one or more locally stored images."
 	rmiFlags       = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
@@ -25,7 +25,7 @@ var (
 	}
 	rmiCommand = cli.Command{
 		Name:        "rmi",
-		Usage:       "removes one or more images from local storage",
+		Usage:       "Removes one or more images from local storage",
 		Description: rmiDescription,
 		Action:      rmiCmd,
 		ArgsUsage:   "IMAGE-NAME-OR-ID [...]",

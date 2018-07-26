@@ -23,7 +23,7 @@ var (
 	imageDescription = "Manage images"
 	imageCommand     = cli.Command{
 		Name:                   "image",
-		Usage:                  "image COMMAND",
+		Usage:                  "Manage images",
 		Description:            imageDescription,
 		ArgsUsage:              "",
 		Subcommands:            imageSubCommands,

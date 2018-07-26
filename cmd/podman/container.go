@@ -38,7 +38,7 @@ var (
 	containerDescription = "Manage containers"
 	containerCommand     = cli.Command{
 		Name:                   "container",
-		Usage:                  "container COMMAND",
+		Usage:                  "Manage Containers",
 		Description:            containerDescription,
 		ArgsUsage:              "",
 		Subcommands:            subCommands,

@@ -20,7 +20,7 @@ var (
 		"or more Dockerfiles and a specified build context directory."
 	buildCommand = cli.Command{
 		Name:           "build",
-		Usage:          "build an image using instructions from Dockerfiles",
+		Usage:          "Build an image using instructions from Dockerfiles",
 		Description:    buildDescription,
 		Flags:          append(buildahcli.BudFlags, buildahcli.FromAndBudFlags...),
 		Action:         buildCmd,
