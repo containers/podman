@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/psgo/ps"
+	"github.com/containers/psgo"
 )
 
 // GetContainerPidInformation returns process-related data of all processes in
@@ -19,12 +19,23 @@ import (
 // For more details, please refer to github.com/containers/psgo.
 func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, error) {
 	pid := strconv.Itoa(c.state.PID)
-	format := strings.Join(descriptors, ",")
-	return ps.JoinNamespaceAndProcessInfo(pid, format)
+	// TODO: psgo returns a [][]string to give users the ability to apply
+	//       filters on the data.  We need to change the API here and the
+	//       varlink API to return a [][]string if we want to make use of
+	//       filtering.
+	psgoOutput, err := psgo.JoinNamespaceAndProcessInfo(pid, descriptors)
+	if err != nil {
+		return nil, err
+	}
+	res := []string{}
+	for _, out := range psgoOutput {
+		res = append(res, strings.Join(out, "\t"))
+	}
+	return res, nil
 }
 
 // GetContainerPidInformationDescriptors returns a string slice of all supported
 // format descriptors of GetContainerPidInformation.
 func GetContainerPidInformationDescriptors() ([]string, error) {
-	return ps.ListDescriptors(), nil
+	return psgo.ListDescriptors(), nil
 }

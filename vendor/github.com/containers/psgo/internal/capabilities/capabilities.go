@@ -1,4 +1,7 @@
-package ps
+// Package capabilities provides a mapping from common kernel bit masks to the
+// alphanumerical represenation of kernel capabilities.  See capabilities(7)
+// for additional information.
+package capabilities
 
 var (
 	// capabilities are a mapping from a numerical value to the textual
@@ -47,16 +50,17 @@ var (
 		36: "BLOCK_SUSPEND",
 		37: "AUDIT_READ",
 	}
-	// fullCAPs represents the value of a bitmask with a full capability
+
+	// FullCAPs represents the value of a bitmask with a full capability
 	// set.
-	fullCAPs = uint64(0x3FFFFFFFFF)
+	FullCAPs = uint64(0x3FFFFFFFFF)
 )
 
-// maskToCaps iterates over mask and returns a slice of corresponding
+// TranslateMask iterates over mask and returns a slice of corresponding
 // capabilities.  If a bit is out of range of known capabilities, it is set as
 // "unknown" to catch potential regressions when new capabilities are added to
 // the kernel.
-func maskToCaps(mask uint64) []string {
+func TranslateMask(mask uint64) []string {
 	caps := []string{}
 	for i := uint(0); i < 64; i++ {
 		if (mask>>i)&0x1 == 1 {

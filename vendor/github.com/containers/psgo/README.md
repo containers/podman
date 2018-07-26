@@ -1,23 +1,23 @@
-[![GoDoc](https://godoc.org/github.com/containers/psgo?status.svg)](https://godoc.org/github.com/containers/psgo/ps) [![Build Status](https://travis-ci.org/containers/psgo.svg?branch=master)](https://travis-ci.org/containers/psgo)
+[![GoDoc](https://godoc.org/github.com/containers/psgo?status.svg)](https://godoc.org/github.com/containers/psgo) [![Build Status](https://travis-ci.org/containers/psgo.svg?branch=master)](https://travis-ci.org/containers/psgo)
 
 # psgo
-A ps (1) AIX-format compatible golang library extended with various descriptors useful for displaying container-related data.
+A ps(1) AIX-format compatible golang library extended with various descriptors useful for displaying container-related data.
 
-The idea behind the library is to provide an easy to use way of extracting process-related data, just as ps (1) does. The problem when using ps (1) is that the ps format strings split columns with whitespaces, making the output nearly impossible to parse. It also adds some jitter as we have to fork and execute ps either in the container or filter the output afterwards, further limiting applicability.
+The idea behind the library is to provide an easy to use way of extracting process-related data, just as ps(1) does. The problem when using ps(1) is that the ps format strings split columns with whitespaces, making the output nearly impossible to parse. It also adds some jitter as we have to fork and execute ps either in the container or filter the output afterwards, further limiting applicability.
 
 This library aims to make things a bit more comfortable, especially for container runtimes, as the API allows to join the mount namespace of a given process and will parse `/proc` and `/dev/` from there. The API consists of the following functions:
 
- - `ps.ProcessInfo(format string) ([]string, error)`
-   - ProcessInfo returns the process information of all processes in the current mount namespace. The input format must be a comma-separated list of supported AIX format descriptors.  If the input string is empty, the DefaultFormat is used. The return value is a slice of tab-separated strings, to easily use the output for column-based formatting (e.g., with the `text/tabwriter` package).
+ - `psgo.ProcessInfo(descriptors []string) ([][]string, error)`
+   - ProcessInfo returns the process information of all processes in the current mount namespace. The input descriptors must be a slice of supported AIX format descriptors in the normal form or in the code form, if supported.  If the input descriptor slice is empty, the `psgo.DefaultDescriptors` are used. The return value contains the string slice of process data, one per process.
 
- - `ps.JoinNamespaceAndProcessInfo(pid, format string) ([]string, error)`
+ - `psgo.JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, error)`
    - JoinNamespaceAndProcessInfo has the same semantics as ProcessInfo but joins the mount namespace of the specified pid before extracting data from /proc.  This way, we can extract the `/proc` data from a container without executing any command inside the container.
 
- - `ps.ListDescriptors() []string`
+ - `psgo.ListDescriptors() []string`
    - ListDescriptors returns a sorted string slice of all supported AIX format descriptors in the normal form (e.g., "args,comm,user").  It can be useful in the context of bash-completion, help messages, etc.
 
 ### Listing processes
-We can use the [psgo](https://github.com/containers/psgo/blob/master/psgo.go) tool from this project to test the core components of this library. First, let's build `psgo` via `make build`.  The binary is now located under `./bin/psgo`.  By default `psgo` displays data about all running processes in the current mount namespace, similar to the output of `ps -ef`.
+We can use the [psgo](https://github.com/containers/psgo/blob/master/sample/sample.go) sample tool from this project to test the core components of this library. First, let's build `psgo` via `make build`.  The binary is now located under `./bin/psgo`.  By default `psgo` displays data about all running processes in the current mount namespace, similar to the output of `ps -ef`.
 
 ```
 $ ./bin/psgo | head -n5
@@ -46,18 +46,26 @@ root   1     0      0.000   17.249905587s   ?     0s     sleep
 ### Format descriptors
 The ps library is compatible with all AIX format descriptors of the ps command-line utility (see `man 1 ps` for details) but it also supports some additional descriptors that can be useful when seeking specific process-related information.
 
-- **capinh**
-  - Set of inheritable capabilities. See capabilities (7) for more information.
-- **capprm**
-  - Set of permitted capabilities. See capabilities (7) for more information.
-- **capeff**
-  - Set of effective capabilities. See capabilities (7) for more information.
 - **capbnd**
-  - Set of bounding capabilities. See capabilities (7) for more information.
-- **seccomp**
-  - Seccomp mode of the process (i.e., disabled, strict or filter). See seccomp (2) for more information.
+  - Set of bounding capabilities. See capabilities(7) for more information.
+- **capeff**
+  - Set of effective capabilities. See capabilities(7) for more information.
+- **capinh**
+  - Set of inheritable capabilities. See capabilities(7) for more information.
+- **capprm**
+  - Set of permitted capabilities. See capabilities(7) for more information.
+- **hgroup**
+  - The corresponding effective group of a container process on the host.
+- **hpid**
+  - The corresponding host PID of a container process.
+- **huser**
+  - The corresponding effective user of a container process on the host.
 - **label**
   - Current security attributes of the process.
+- **seccomp**
+  - Seccomp mode of the process (i.e., disabled, strict or filter). See seccomp(2) for more information.
+- **state**
+  - Process state codes (e.g, **R** for *running*, **S** for *sleeping*). See proc(5) for more information.
 
 We can try out different format descriptors with the psgo binary:
 
