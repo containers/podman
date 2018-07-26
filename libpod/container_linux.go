@@ -21,9 +21,10 @@ func (ctr *Container) setNamespace(netNSPath string, newState *containerState) e
 		if ctr.state.NetNS != nil && netNSPath == ctr.state.NetNS.Path() {
 			newState.NetNS = ctr.state.NetNS
 		} else {
-			// Tear down the existing namespace
-			if err := ctr.runtime.teardownNetNS(ctr); err != nil {
-				logrus.Warnf(err.Error())
+			// Close the existing namespace.
+			// Whoever removed it from the database already tore it down.
+			if err := ctr.runtime.closeNetNS(ctr); err != nil {
+				return err
 			}
 
 			// Open the new network namespace
@@ -37,9 +38,10 @@ func (ctr *Container) setNamespace(netNSPath string, newState *containerState) e
 		}
 	} else {
 		// The container no longer has a network namespace
-		// Tear down the old one
-		if err := ctr.runtime.teardownNetNS(ctr); err != nil {
-			logrus.Warnf(err.Error())
+		// Close the old one, whoever removed it from the DB should have
+		// cleaned it up already.
+		if err := ctr.runtime.closeNetNS(ctr); err != nil {
+			return err
 		}
 	}
 	return nil
