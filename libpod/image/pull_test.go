@@ -1,14 +1,82 @@
 package image
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/containers/image/transports"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGetPullRefName(t *testing.T) {
+	const imageID = "@0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct{ srcName, destName, expectedImage, expectedDstName string }{
+		// == Source does not have a Docker reference (as is the case for docker-archive:, oci-archive, dir:); destination formats:
+		{ // registry/name, no tag:
+			"dir:/dev/this-does-not-exist", "example.com/from-directory",
+			// The destName value will be interpreted as "example.com/from-directory:latest" by storageTransport.
+			"example.com/from-directory", "example.com/from-directory",
+		},
+		{ // name, no registry, no tag:
+			"dir:/dev/this-does-not-exist", "from-directory",
+			// FIXME(?) Adding a registry also adds a :latest tag.  OTOH that actually matches the used destination.
+			// Either way it is surprising that the localhost/ addition changes this.  (mitr hoping to remove the "image" member).
+			"localhost/from-directory:latest", "localhost/from-directory:latest",
+		},
+		{ // registry/name:tag :
+			"dir:/dev/this-does-not-exist", "example.com/from-directory:notlatest",
+			"example.com/from-directory:notlatest", "example.com/from-directory:notlatest",
+		},
+		{ // name:tag, no registry:
+			"dir:/dev/this-does-not-exist", "from-directory:notlatest",
+			"localhost/from-directory:notlatest", "localhost/from-directory:notlatest",
+		},
+		{ // name@digest, no registry:
+			"dir:/dev/this-does-not-exist", "from-directory" + digestSuffix,
+			// FIXME?! Why is this dropping the digest, and adding :none?!
+			"localhost/from-directory:none", "localhost/from-directory:none",
+		},
+		{ // registry/name@digest:
+			"dir:/dev/this-does-not-exist", "example.com/from-directory" + digestSuffix,
+			"example.com/from-directory" + digestSuffix, "example.com/from-directory" + digestSuffix,
+		},
+		{ // ns/name:tag, no registry:
+			// FIXME: This is interpreted as "registry == ns"
+			"dir:/dev/this-does-not-exist", "ns/from-directory:notlatest",
+			"ns/from-directory:notlatest", "ns/from-directory:notlatest",
+		},
+		{ // containers-storage image ID
+			"dir:/dev/this-does-not-exist", imageID,
+			imageID, imageID,
+		},
+		// == Source does have a Docker reference.
+		// In that case getPullListFromRef uses the full transport:name input as a destName,
+		// which would be invalid in the returned dstName - but dstName is derived from the source, so it does not really matter _so_ much.
+		// Note that unlike real-world use we use different :source and :destination to verify the data flow in more detail.
+		{ // registry/name:tag
+			"docker://example.com/busybox:source", "docker://example.com/busybox:destination",
+			"docker://example.com/busybox:destination", "example.com/busybox:source",
+		},
+		{ // Implied docker.io/library and :latest
+			"docker://busybox", "docker://busybox:destination",
+			"docker://busybox:destination", "docker.io/library/busybox:latest",
+		},
+	} {
+		srcRef, err := alltransports.ParseImageName(c.srcName)
+		require.NoError(t, err, c.srcName)
+
+		testName := fmt.Sprintf("%#v %#v", c.srcName, c.destName)
+		res, err := getPullRefName(srcRef, c.destName)
+		require.NoError(t, err, testName)
+		assert.Equal(t, &pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res, testName)
+	}
+}
 
 const registriesConfWithSearch = `[registries.search]
 registries = ['example.com', 'docker.io']
