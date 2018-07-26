@@ -33,8 +33,8 @@ import (
 
 const nsRunDir = "/var/run/netns"
 
-// Creates a new persistent (bind-mounted) network namespace and returns an object
-// representing that namespace, without switching to it.
+// NewNS creates a new persistent (bind-mounted) network namespace and returns
+// an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
 
 	b := make([]byte, 16)
