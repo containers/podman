@@ -9,7 +9,7 @@ host:
      ram: 8192
      cpus: 4
 required: true
-timeout: 45m
+timeout: 90m
 
 tests:
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
@@ -34,7 +34,8 @@ extra-repos:
       gpgcheck: 0
 
 required: true
-timeout: 45m
+
+timeout: 90m
 
 tests:
   - sh .papr_prepare.sh
@@ -65,4 +66,6 @@ tests:
     - yum -y reinstall container-selinux
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 required: false
+
+timeout: 90m
 context: "Fedora fedora/28/cloud Podman"
