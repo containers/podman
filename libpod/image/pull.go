@@ -346,7 +346,7 @@ func (ir *Runtime) pullRefPairsFromRefNames(refNames []*pullRefName) ([]*pullRef
 	for i, rn := range refNames {
 		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name")
+			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", rn.dstName)
 		}
 		res[i] = &pullRefPair{
 			image:  rn.image,
