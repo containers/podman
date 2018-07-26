@@ -145,13 +145,32 @@ func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string
 	return nil
 }
 
+// Open a connection to the database.
+// Must be paired with a `defer closeDBCon()` on the returned database, to
+// ensure the state is properly unlocked
 func (s *BoltState) getDBCon() (*bolt.DB, error) {
+	// We need an in-memory lock to avoid issues around POSIX file advisory
+	// locks as described in the link below:
+	// https://www.sqlite.org/src/artifact/c230a7a24?ln=994-1081
+	s.dbLock.Lock()
+
 	db, err := bolt.Open(s.dbPath, 0600, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error opening database %s", s.dbPath)
 	}
 
 	return db, nil
+}
+
+// Close a connection to the database.
+// MUST be used in place of `db.Close()` to ensure proper unlocking of the
+// state.
+func (s *BoltState) closeDBCon(db *bolt.DB) error {
+	err := db.Close()
+
+	s.dbLock.Unlock()
+
+	return err
 }
 
 func getIDBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
@@ -296,7 +315,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer s.closeDBCon(db)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		idsBucket, err := getIDBucket(tx)
