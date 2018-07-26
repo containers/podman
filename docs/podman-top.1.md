@@ -24,7 +24,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
 
-**args,comm,etime,group,nice,pcpu,pgid,pid,ppid,rgroup,ruser,time,tty,user,vsz**
+**args, capbnd, capeff, capinh, capprm, comm, etime, group, hgroup, hpid, huser, label, nice, pcpu, pgid, pid, ppid, rgroup, ruser, seccomp, state, time, tty, user, vsz**
 
 **capbnd**
 
@@ -42,13 +42,29 @@ The following descriptors are supported in addition to the AIX format descriptor
 
   Set of permitted capabilities. See capabilities (7) for more information.
 
-**seccomp**
+**hgroup**
 
-  Seccomp mode of the process (i.e., disabled, strict or filter). See seccomp (2) for more information.
+  The corresponding effective group of a container process on the host.
+
+**hpid**
+
+  The corresponding host PID of a container process.
+
+**huser**
+
+  The corresponding effective user of a container process on the host.
 
 **label**
 
   Current security attributes of the process.
+
+**seccomp**
+
+  Seccomp mode of the process (i.e., disabled, strict or filter). See seccomp (2) for more information.
+
+**state**
+
+  Process state codes (e.g, **R** for *running*, **S** for *sleeping*). See proc(5) for more information.
 
 ## EXAMPLES
 
@@ -72,7 +88,7 @@ PID   SECCOMP   COMMAND     %CPU
 ```
 
 ## SEE ALSO
-podman(1), ps(1), seccomp(2), capabilities(7)
+podman(1), ps(1), seccomp(2), proc(5), capabilities(7)
 
 ## HISTORY
 December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>
