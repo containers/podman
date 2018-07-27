@@ -174,3 +174,44 @@ func checkMutuallyExclusiveFlags(c *cli.Context) error {
 	}
 	return nil
 }
+
+// For pod commands that have a latest and all flag, getPodsFromContext gets
+// pods the user specifies. If there's an error before getting pods, the pods slice
+// will be empty and error will be not nil. If an error occured after, the pod slice
+// will hold all of the successful pods, and error will hold the last error.
+// The remaining errors will be logged. On success, pods will hold all pods and
+// error will be nil.
+func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error) {
+	args := c.Args()
+	var pods []*libpod.Pod
+	var lastError error
+	var err error
+
+	if c.Bool("all") {
+		pods, err = r.Pods()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get running pods")
+		}
+	}
+
+	if c.Bool("latest") {
+		pod, err := r.GetLatestPod()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get latest pod")
+		}
+		pods = append(pods, pod)
+	}
+
+	for _, i := range args {
+		pod, err := r.LookupPod(i)
+		if err != nil {
+			if lastError != nil {
+				logrus.Errorf("%q", lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find pod %s", i)
+			continue
+		}
+		pods = append(pods, pod)
+	}
+	return pods, lastError
+}

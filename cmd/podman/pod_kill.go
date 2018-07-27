@@ -7,7 +7,6 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -49,10 +48,7 @@ func podKillCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
 	var killSignal uint = uint(syscall.SIGTERM)
-	var lastError error
-	var pods []*libpod.Pod
 
 	if c.String("signal") != "" {
 		// Check if the signalString provided by the user is valid
@@ -64,31 +60,10 @@ func podKillCmd(c *cli.Context) error {
 		killSignal = uint(sysSignal)
 	}
 
-	if c.Bool("all") {
-		pods, err = runtime.Pods()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get pods")
-		}
-	}
-	if c.Bool("latest") {
-		pod, err := runtime.GetLatestPod()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest pod")
-		}
-		pods = append(pods, pod)
-	}
-	for _, i := range args {
-		pod, err := runtime.LookupPod(i)
-		if err != nil {
-			logrus.Errorf("%q", lastError)
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find pods %s", i)
-			continue
-		}
-		pods = append(pods, pod)
-	}
+	// getPodsFromContext returns an error when a requested pod
+	// isn't found. The only fatal error scenerio is when there are no pods
+	// in which case the following loop will be skipped.
+	pods, lastError := getPodsFromContext(c, runtime)
 
 	for _, pod := range pods {
 		ctr_errs, err := pod.Kill(killSignal)
