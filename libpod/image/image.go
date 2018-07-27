@@ -363,7 +363,7 @@ func (i *Image) Remove(force bool) error {
 		}
 		// Do not remove if image is a base image and is not untagged, or if
 		// the image has more children.
-		if (nextParent == nil && len(parent.Names()) > 0) || len(children) > 0 {
+		if len(children) > 0 || len(parent.Names()) > 0 {
 			return nil
 		}
 		id := parent.ID()
