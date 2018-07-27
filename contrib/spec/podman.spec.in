@@ -203,6 +203,7 @@ BuildRequires: python3-varlink
 Requires: python3-setuptools
 Requires: python3-varlink
 Requires: python3-dateutil
+Requires: python3-psutil
 
 Provides: python3-%{name} = %{version}-%{release}
 Summary: Python 3 bindings and client for %{name}

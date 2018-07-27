@@ -33,6 +33,28 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         super().__init__(*args, **kwargs)
 
 
+class PortAction(argparse.Action):
+    """Validate port number given is positive integer."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Validate input."""
+        if values > 0:
+            setattr(namespace, self.dest, values)
+            return
+
+        msg = 'port numbers must be a positive integer.'
+        raise argparse.ArgumentError(self, msg)
+
+
+class PathAction(argparse.Action):
+    """Expand user- and relative-paths."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Resolve full path value."""
+        setattr(namespace, self.dest,
+                os.path.abspath(os.path.expanduser(values)))
+
+
 class PodmanArgumentParser(argparse.ArgumentParser):
     """Default remote podman configuration."""
 
@@ -64,10 +86,17 @@ class PodmanArgumentParser(argparse.ArgumentParser):
                   ' (default: XDG_RUNTIME_DIR/pypodman'))
         self.add_argument(
             '--user',
+            '-l',
             default=getpass.getuser(),
             help='Authenicating user on remote host. (default: %(default)s)')
         self.add_argument(
             '--host', help='name of remote host. (default: None)')
+        self.add_argument(
+            '--port',
+            '-p',
+            type=int,
+            action=PortAction,
+            help='port for ssh tunnel to remote host. (default: 22)')
         self.add_argument(
             '--remote-socket-path',
             metavar='PATH',
@@ -75,11 +104,14 @@ class PodmanArgumentParser(argparse.ArgumentParser):
                   ' (default: /run/podman/io.projectatomic.podman)'))
         self.add_argument(
             '--identity-file',
+            '-i',
             metavar='PATH',
+            action=PathAction,
             help=('path to ssh identity file. (default: ~user/.ssh/id_dsa)'))
         self.add_argument(
             '--config-home',
             metavar='DIRECTORY',
+            action=PathAction,
             help=('home of configuration "pypodman.conf".'
                   ' (default: XDG_CONFIG_HOME/pypodman'))
 
@@ -125,8 +157,8 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             if dir_ is None:
                 continue
             with suppress(OSError):
-                with open(os.path.join(dir_, 'pypodman/pypodman.conf'),
-                          'r') as stream:
+                with open(os.path.join(dir_,
+                                       'pypodman/pypodman.conf')) as stream:
                     config.update(pytoml.load(stream))
 
         def reqattr(name, value):
@@ -156,6 +188,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             'user',
             getattr(args, 'user')
             or os.environ.get('USER')
+            or os.environ.get('LOGNAME')
             or config['default'].get('user')
             or getpass.getuser()
         )   # yapf:disable
@@ -195,8 +228,13 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             args.local_socket_path = args.remote_socket_path
 
         args.local_uri = "unix:{}".format(args.local_socket_path)
-        args.remote_uri = "ssh://{}@{}{}".format(args.user, args.host,
-                                                 args.remote_socket_path)
+
+        components = ['ssh://', args.user, '@', args.host]
+        if args.port:
+            components.extend((':', str(args.port)))
+        components.append(args.remote_socket_path)
+
+        args.remote_uri = ''.join(components)
         return args
 
     def exit(self, status=0, message=None):

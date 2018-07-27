@@ -28,7 +28,7 @@ class TestClient(unittest.TestCase):
         p = Client(
             uri='unix:/run/podman',
             interface='io.projectatomic.podman',
-            remote_uri='ssh://user@hostname/run/podmain/podman',
+            remote_uri='ssh://user@hostname/run/podman/podman',
             identity_file='~/.ssh/id_rsa')
 
         self.assertIsInstance(p._client, BaseClient)

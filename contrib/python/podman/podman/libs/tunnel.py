@@ -1,11 +1,15 @@
 """Cache for SSH tunnels."""
 import collections
+import getpass
 import logging
 import os
 import subprocess
 import threading
 import time
 import weakref
+from contextlib import suppress
+
+import psutil
 
 Context = collections.namedtuple('Context', (
     'uri',
@@ -14,8 +18,10 @@ Context = collections.namedtuple('Context', (
     'remote_socket',
     'username',
     'hostname',
+    'port',
     'identity_file',
 ))
+Context.__new__.__defaults__ = (None, ) * len(Context._fields)
 
 
 class Portal(collections.MutableMapping):
@@ -51,7 +57,7 @@ class Portal(collections.MutableMapping):
         with self.lock:
             value, _ = self.data[key]
             del self.data[key]
-            value.close(key)
+            value.close()
             del value
 
     def __iter__(self):
@@ -93,47 +99,92 @@ class Tunnel():
     def __init__(self, context):
         """Construct Tunnel."""
         self.context = context
-        self._tunnel = None
+        self._closed = True
 
-    def bore(self, ident):
+    @property
+    def closed(self):
+        """Is tunnel closed."""
+        return self._closed
+
+    def bore(self):
         """Create SSH tunnel from given context."""
-        cmd = ['ssh']
+        cmd = ['ssh', '-fNT']
 
-        ssh_opts = '-fNT'
         if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
-            ssh_opts += 'v'
+            cmd.append('-v')
         else:
-            ssh_opts += 'q'
-        cmd.append(ssh_opts)
+            cmd.append('-q')
+
+        if self.context.port:
+            cmd.extend(('-p', str(self.context.port)))
 
         cmd.extend(('-L', '{}:{}'.format(self.context.local_socket,
                                          self.context.remote_socket)))
         if self.context.identity_file:
             cmd.extend(('-i', self.context.identity_file))
 
-        cmd.append('ssh://{}@{}'.format(self.context.username,
-                                        self.context.hostname))
+        cmd.append('{}@{}'.format(self.context.username,
+                                  self.context.hostname))
 
-        logging.debug('Tunnel cmd "%s"', ' '.join(cmd))
+        logging.debug('Opening tunnel "%s", cmd "%s"', self.context.uri,
+                      ' '.join(cmd))
 
-        self._tunnel = subprocess.Popen(cmd, close_fds=True)
+        tunnel = subprocess.Popen(cmd, close_fds=True)
+        # The return value of Popen() has no long term value as that process
+        # has already exited by the time control is returned here. This is a
+        # side effect of the -f option. wait() will be called to clean up
+        # resources.
         for _ in range(300):
             # TODO: Make timeout configurable
-            if os.path.exists(self.context.local_socket):
+            if os.path.exists(self.context.local_socket) \
+                    or tunnel.returncode is not None:
                 break
-            time.sleep(0.5)
+            with suppress(subprocess.TimeoutExpired):
+                # waiting for either socket to be created
+                # or first child to exit
+                tunnel.wait(0.5)
         else:
-            raise TimeoutError('Failed to create tunnel using: {}'.format(
-                ' '.join(cmd)))
-        weakref.finalize(self, self.close, ident)
+            raise TimeoutError(
+                'Failed to create tunnel "{}", using: "{}"'.format(
+                    self.context.uri, ' '.join(cmd)))
+        if tunnel.returncode is not None and tunnel.returncode != 0:
+            raise subprocess.CalledProcessError(tunnel.returncode,
+                                                ' '.join(cmd))
+        tunnel.wait()
+
+        self._closed = False
+        weakref.finalize(self, self.close)
         return self
 
-    def close(self, ident):
+    def close(self):
         """Close SSH tunnel."""
-        if self._tunnel is None:
+        logging.debug('Closing tunnel "%s"', self.context.uri)
+
+        if self._closed:
             return
 
-        self._tunnel.kill()
-        self._tunnel.wait(300)
-        os.remove(self.context.local_socket)
-        self._tunnel = None
+        # Find all ssh instances for user with uri tunnel the hard way...
+        targets = [
+            p
+            for p in psutil.process_iter(attrs=['name', 'username', 'cmdline'])
+            if p.info['username'] == getpass.getuser()
+            and p.info['name'] == 'ssh'
+            and self.context.local_socket in ' '.join(p.info['cmdline'])
+        ]  # yapf: disable
+
+        # ask nicely for ssh to quit, reap results
+        for proc in targets:
+            proc.terminate()
+        _, alive = psutil.wait_procs(targets, timeout=300)
+
+        # kill off the uncooperative, then report any stragglers
+        for proc in alive:
+            proc.kill()
+        _, alive = psutil.wait_procs(targets, timeout=300)
+
+        for proc in alive:
+            logging.info('process %d survived SIGKILL, giving up.', proc.pid)
+
+        with suppress(OSError):
+            os.remove(self.context.local_socket)
+        self._closed = True
