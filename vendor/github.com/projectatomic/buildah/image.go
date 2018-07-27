@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
+	"github.com/containers/image/manifest"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -34,7 +35,7 @@ const (
 	// Dockerv2ImageManifest is the MIME type of a Docker v2s2 image
 	// manifest, suitable for specifying as a value of the
 	// PreferredManifestType member of a CommitOptions structure.
-	Dockerv2ImageManifest = docker.V2S2MediaTypeManifest
+	Dockerv2ImageManifest = manifest.DockerV2Schema2MediaType
 )
 
 type containerImageRef struct {
@@ -106,12 +107,13 @@ func expectedDockerDiffIDs(image docker.V2Image) int {
 // compression that we'll be applying.
 func (i *containerImageRef) computeLayerMIMEType(what string) (omediaType, dmediaType string, err error) {
 	omediaType = v1.MediaTypeImageLayer
+	//TODO: Convert to manifest.DockerV2Schema2LayerUncompressedMediaType once available
 	dmediaType = docker.V2S2MediaTypeUncompressedLayer
 	if i.compression != archive.Uncompressed {
 		switch i.compression {
 		case archive.Gzip:
 			omediaType = v1.MediaTypeImageLayerGzip
-			dmediaType = docker.V2S2MediaTypeLayer
+			dmediaType = manifest.DockerV2Schema2LayerMediaType
 			logrus.Debugf("compressing %s with gzip", what)
 		case archive.Bzip2:
 			// Until the image specs define a media type for bzip2-compressed layers, even if we know
@@ -207,10 +209,10 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	dmanifest := docker.V2S2Manifest{
 		V2Versioned: docker.V2Versioned{
 			SchemaVersion: 2,
-			MediaType:     docker.V2S2MediaTypeManifest,
+			MediaType:     manifest.DockerV2Schema2MediaType,
 		},
 		Config: docker.V2S2Descriptor{
-			MediaType: docker.V2S2MediaTypeImageConfig,
+			MediaType: manifest.DockerV2Schema2ConfigMediaType,
 		},
 		Layers: []docker.V2S2Descriptor{},
 	}
@@ -222,9 +224,9 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Decide which type of manifest and configuration output we're going to provide.
 	manifestType := i.preferredManifestType
 	// If it's not a format we support, return an error.
-	if manifestType != v1.MediaTypeImageManifest && manifestType != docker.V2S2MediaTypeManifest {
+	if manifestType != v1.MediaTypeImageManifest && manifestType != manifest.DockerV2Schema2MediaType {
 		return nil, errors.Errorf("no supported manifest types (attempted to use %q, only know %q and %q)",
-			manifestType, v1.MediaTypeImageManifest, docker.V2S2MediaTypeManifest)
+			manifestType, v1.MediaTypeImageManifest, manifest.DockerV2Schema2MediaType)
 	}
 	// Start building the list of layers using the read-write layer.
 	layers := []string{}
@@ -448,7 +450,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Add the configuration blob to the manifest.
 	dmanifest.Config.Digest = digest.Canonical.FromBytes(dconfig)
 	dmanifest.Config.Size = int64(len(dconfig))
-	dmanifest.Config.MediaType = docker.V2S2MediaTypeImageConfig
+	dmanifest.Config.MediaType = manifest.DockerV2Schema2ConfigMediaType
 
 	// Encode the manifest.
 	dmanifestbytes, err := json.Marshal(&dmanifest)
@@ -459,13 +461,13 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 
 	// Decide which manifest and configuration blobs we'll actually output.
 	var config []byte
-	var manifest []byte
+	var imageManifest []byte
 	switch manifestType {
 	case v1.MediaTypeImageManifest:
-		manifest = omanifestbytes
+		imageManifest = omanifestbytes
 		config = oconfig
-	case docker.V2S2MediaTypeManifest:
-		manifest = dmanifestbytes
+	case manifest.DockerV2Schema2MediaType:
+		imageManifest = dmanifestbytes
 		config = dconfig
 	default:
 		panic("unreachable code: unsupported manifest type")
@@ -481,7 +483,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		compression:  i.compression,
 		config:       config,
 		configDigest: digest.Canonical.FromBytes(config),
-		manifest:     manifest,
+		manifest:     imageManifest,
 		manifestType: manifestType,
 		exporting:    i.exporting,
 	}

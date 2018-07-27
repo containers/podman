@@ -15,15 +15,6 @@ import (
 const TypeLayers = "layers"
 
 // github.com/docker/distribution/manifest/schema2/manifest.go
-const V2S2MediaTypeManifest = "application/vnd.docker.distribution.manifest.v2+json"
-
-// github.com/docker/distribution/manifest/schema2/manifest.go
-const V2S2MediaTypeImageConfig = "application/vnd.docker.container.image.v1+json"
-
-// github.com/docker/distribution/manifest/schema2/manifest.go
-const V2S2MediaTypeLayer = "application/vnd.docker.image.rootfs.diff.tar.gzip"
-
-// github.com/docker/distribution/manifest/schema2/manifest.go
 const V2S2MediaTypeUncompressedLayer = "application/vnd.docker.image.rootfs.diff.tar"
 
 // github.com/moby/moby/image/rootfs.go

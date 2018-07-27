@@ -41,7 +41,17 @@ make
 sudo make install
 ```
 
+You can also use `go get` to install to your `GOPATH`, assuming that you have a `github.com` parent folder already created under `src`:
+
+```bash
+go get github.com/opencontainers/runc
+cd $GOPATH/src/github.com/opencontainers/runc
+make
+sudo make install
+```
+
 `runc` will be installed to `/usr/local/sbin/runc` on your system.
+
 
 #### Build Tags
 
@@ -204,8 +214,7 @@ runc list
 runc delete mycontainerid
 ```
 
-This adds more complexity but allows higher level systems to manage runc and provides points in the containers creation to setup various settings after the container has created and/or before it is deleted.
-This is commonly used to setup the container's network stack after `create` but before `start` where the user's defined process will be running.
+This allows higher level systems to augment the containers creation logic with setup of various settings after the container is created and/or before it is deleted. For example, the container's network stack is commonly set up after `create` but before `start`.
 
 #### Rootless containers
 `runc` has the ability to run containers without root privileges. This is called `rootless`. You need to pass some parameters to `runc` in order to run rootless containers. See below and compare with the previous version. Run the following commands as an ordinary user:
