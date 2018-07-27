@@ -232,9 +232,7 @@ install.cni:
 install.docker: docker-docs
 	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 docs/docker*.5 -t $(MANDIR)/man5
 
 install.systemd:
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
