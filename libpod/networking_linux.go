@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/projectatomic/libpod/pkg/netns"
 	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -77,7 +77,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) createNetNS(ctr *Container) (err error) {
-	ctrNS, err := ns.NewNS()
+	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
@@ -148,7 +148,27 @@ func joinNetNS(path string) (ns.NetNS, error) {
 	return ns, nil
 }
 
-// Tear down a network namespace
+// Close a network namespace.
+// Differs from teardownNetNS() in that it will not attempt to undo the setup of
+// the namespace, but will instead only close the open file descriptor
+func (r *Runtime) closeNetNS(ctr *Container) error {
+	if ctr.state.NetNS == nil {
+		// The container has no network namespace, we're set
+		return nil
+	}
+
+	if err := ctr.state.NetNS.Close(); err != nil {
+		return errors.Wrapf(err, "error closing network namespace for container %s", ctr.ID())
+	}
+
+	ctr.state.NetNS = nil
+
+	return nil
+}
+
+// Tear down a network namespace, undoing all state associated with it.
+// The CNI firewall rules will be removed, the namespace will be unmounted,
+// and the file descriptor associated with it closed.
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {
 		// The container has no network namespace, we're set
@@ -173,25 +193,17 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
-		logrus.Errorf("Failed to tear down network namespace for container %s: %v", ctr.ID(), err)
+		return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
 	}
 
-	nsPath := ctr.state.NetNS.Path()
+	// First unmount the namespace
+	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
+		return errors.Wrapf(err, "error unmounting network namespace for container %s", ctr.ID())
+	}
 
+	// Now close the open file descriptor
 	if err := ctr.state.NetNS.Close(); err != nil {
 		return errors.Wrapf(err, "error closing network namespace for container %s", ctr.ID())
-	}
-
-	// We need to unconditionally try to unmount/remove the namespace
-	// because we may be in a separate process from the one that created the
-	// namespace, and Close() will only do that if it is the same process.
-	if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-		if err != syscall.EINVAL && err != syscall.ENOENT {
-			return errors.Wrapf(err, "error unmounting network namespace %s for container %s", nsPath, ctr.ID())
-		}
-	}
-	if err := os.RemoveAll(nsPath); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing network namespace %s for container %s", nsPath, ctr.ID())
 	}
 
 	ctr.state.NetNS = nil
