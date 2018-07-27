@@ -87,13 +87,12 @@ func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 // refNamesFromImageReference returns a list of pullRefName for a single ImageReference, depending on the used transport.
 func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefName, error) {
 	var pullNames []*pullRefName
-	splitArr := strings.Split(imgName, ":")
-	archFile := splitArr[len(splitArr)-1]
 
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
-		tarSource, err := tarfile.NewSourceFromFile(archFile)
+		archivePath := srcRef.StringWithinTransport()
+		tarSource, err := tarfile.NewSourceFromFile(archivePath)
 		if err != nil {
 			return nil, err
 		}
@@ -150,8 +149,8 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		pullInfo := getPullRefName(srcRef, dest)
 		pullNames = append(pullNames, pullInfo)
 	case DirTransport:
-		// supports pull from a directory
-		image := splitArr[1]
+		path := srcRef.StringWithinTransport()
+		image := path
 		// remove leading "/"
 		if image[:1] == "/" {
 			// Instead of removing the leading /, set localhost as the registry
