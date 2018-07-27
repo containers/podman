@@ -72,10 +72,9 @@ func TestGetPullRefName(t *testing.T) {
 		srcRef, err := alltransports.ParseImageName(c.srcName)
 		require.NoError(t, err, c.srcName)
 
-		testName := fmt.Sprintf("%#v %#v", c.srcName, c.destName)
-		res, err := getPullRefName(srcRef, c.destName)
-		require.NoError(t, err, testName)
-		assert.Equal(t, &pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res, testName)
+		res := getPullRefName(srcRef, c.destName)
+		assert.Equal(t, &pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res,
+			fmt.Sprintf("%#v %#v", c.srcName, c.destName))
 	}
 }
 

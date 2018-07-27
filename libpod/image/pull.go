@@ -64,7 +64,7 @@ type pullRefName struct {
 	dstName string
 }
 
-func getPullRefName(srcRef types.ImageReference, destName string) (*pullRefName, error) {
+func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
@@ -81,7 +81,7 @@ func getPullRefName(srcRef types.ImageReference, destName string) (*pullRefName,
 		image:   destName,
 		srcRef:  srcRef,
 		dstName: reference,
-	}, nil
+	}
 }
 
 // refNamesFromImageReference returns a list of pullRefName for a single ImageReference, depending on the used transport.
@@ -108,10 +108,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			if err != nil {
 				return nil, err
 			}
-			pullInfo, err := getPullRefName(srcRef, reference)
-			if err != nil {
-				return nil, err
-			}
+			pullInfo := getPullRefName(srcRef, reference)
 			pullNames = append(pullNames, pullInfo)
 		} else {
 			var dest []string
@@ -127,10 +124,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			}
 			// Need to load in all the repo tags from the manifest
 			for _, dst := range dest {
-				pullInfo, err := getPullRefName(srcRef, dst)
-				if err != nil {
-					return nil, err
-				}
+				pullInfo := getPullRefName(srcRef, dst)
 				pullNames = append(pullNames, pullInfo)
 			}
 		}
@@ -152,10 +146,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		pullInfo, err := getPullRefName(srcRef, dest)
-		if err != nil {
-			return nil, err
-		}
+		pullInfo := getPullRefName(srcRef, dest)
 		pullNames = append(pullNames, pullInfo)
 	} else if srcRef.Transport().Name() == DirTransport {
 		// supports pull from a directory
@@ -166,16 +157,10 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		pullInfo, err := getPullRefName(srcRef, image)
-		if err != nil {
-			return nil, err
-		}
+		pullInfo := getPullRefName(srcRef, image)
 		pullNames = append(pullNames, pullInfo)
 	} else {
-		pullInfo, err := getPullRefName(srcRef, imgName)
-		if err != nil {
-			return nil, err
-		}
+		pullInfo := getPullRefName(srcRef, imgName)
 		pullNames = append(pullNames, pullInfo)
 	}
 	return pullNames, nil
