@@ -86,8 +86,6 @@ func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 
 // refNamesFromImageReference returns a list of pullRefName for a single ImageReference, depending on the used transport.
 func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefName, error) {
-	var pullNames []*pullRefName
-
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
@@ -108,26 +106,28 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			if err != nil {
 				return nil, err
 			}
-			pullInfo := getPullRefName(srcRef, reference)
-			pullNames = append(pullNames, pullInfo)
-		} else {
-			var dest []string
-			if len(manifest[0].RepoTags) > 0 {
-				dest = append(dest, manifest[0].RepoTags...)
-			} else {
-				// If the input image has no repotags, we need to feed it a dest anyways
-				digest, err := getImageDigest(ctx, srcRef, sc)
-				if err != nil {
-					return nil, err
-				}
-				dest = append(dest, digest)
-			}
-			// Need to load in all the repo tags from the manifest
-			for _, dst := range dest {
-				pullInfo := getPullRefName(srcRef, dst)
-				pullNames = append(pullNames, pullInfo)
-			}
+			return []*pullRefName{getPullRefName(srcRef, reference)}, nil
 		}
+
+		var dest []string
+		if len(manifest[0].RepoTags) > 0 {
+			dest = append(dest, manifest[0].RepoTags...)
+		} else {
+			// If the input image has no repotags, we need to feed it a dest anyways
+			digest, err := getImageDigest(ctx, srcRef, sc)
+			if err != nil {
+				return nil, err
+			}
+			dest = append(dest, digest)
+		}
+		// Need to load in all the repo tags from the manifest
+		res := []*pullRefName{}
+		for _, dst := range dest {
+			pullInfo := getPullRefName(srcRef, dst)
+			res = append(res, pullInfo)
+		}
+		return res, nil
+
 	case OCIArchive:
 		// retrieve the manifest from index.json to access the image name
 		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
@@ -146,8 +146,8 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		pullInfo := getPullRefName(srcRef, dest)
-		pullNames = append(pullNames, pullInfo)
+		return []*pullRefName{getPullRefName(srcRef, dest)}, nil
+
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
 		image := path
@@ -157,13 +157,11 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		pullInfo := getPullRefName(srcRef, image)
-		pullNames = append(pullNames, pullInfo)
+		return []*pullRefName{getPullRefName(srcRef, image)}, nil
+
 	default:
-		pullInfo := getPullRefName(srcRef, imgName)
-		pullNames = append(pullNames, pullInfo)
+		return []*pullRefName{getPullRefName(srcRef, imgName)}, nil
 	}
-	return pullNames, nil
 }
 
 // refPairsFromImageReference returns a list of pullRefPair for a single ImageReference, depending on the used transport.
