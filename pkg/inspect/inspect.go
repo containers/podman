@@ -170,6 +170,7 @@ type ContainerInspectData struct {
 	NetworkSettings *NetworkSettings       `json:"NetworkSettings"` //TODO
 	ExitCommand     []string               `json:"ExitCommand"`
 	Namespace       string                 `json:"Namespace"`
+	IsPause         bool                   `json:"IsPause"`
 }
 
 // ContainerInspectState represents the state of a container.

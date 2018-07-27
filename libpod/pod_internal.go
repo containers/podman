@@ -20,6 +20,7 @@ func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod.config.ID = stringid.GenerateNonCryptoID()
 	pod.config.Labels = make(map[string]string)
 	pod.config.CreatedTime = time.Now()
+	pod.config.PauseContainer = new(PauseContainerConfig)
 	pod.state = new(podState)
 	pod.runtime = runtime
 

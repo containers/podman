@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
@@ -23,13 +22,11 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 	"golang.org/x/text/language"
 )
 
@@ -172,38 +169,6 @@ func (c *Container) syncContainer() error {
 	}
 
 	return nil
-}
-
-// Make a new container
-func newContainer(rspec *spec.Spec, lockDir string) (*Container, error) {
-	if rspec == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
-	}
-
-	ctr := new(Container)
-	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerState)
-
-	ctr.config.ID = stringid.GenerateNonCryptoID()
-
-	ctr.config.Spec = new(spec.Spec)
-	deepcopier.Copy(rspec).To(ctr.config.Spec)
-	ctr.config.CreatedTime = time.Now()
-
-	ctr.config.ShmSize = DefaultShmSize
-
-	ctr.state.BindMounts = make(map[string]string)
-
-	// Path our lock file will reside at
-	lockPath := filepath.Join(lockDir, ctr.config.ID)
-	// Grab a lockfile at the given path
-	lock, err := storage.GetLockfile(lockPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating lockfile for new container")
-	}
-	ctr.lock = lock
-
-	return ctr, nil
 }
 
 // Create container root filesystem for use

@@ -18,10 +18,27 @@ func (w *weightDevice) String() string {
 	return fmt.Sprintf("%s:%d", w.path, w.weight)
 }
 
+// LinuxNS is a struct that contains namespace information
+// It implemented Valid to show it is a valid namespace
+type LinuxNS interface {
+	Valid() bool
+}
+
 // IsNS returns if the specified string has a ns: prefix
 func IsNS(s string) bool {
 	parts := strings.SplitN(s, ":", 2)
 	return len(parts) > 1 && parts[0] == "ns"
+}
+
+// IsPod returns if the specified string is pod
+func IsPod(s string) bool {
+	return s == "pod"
+}
+
+// Valid checks the validity of a linux namespace
+// s should be the string representation of ns
+func Valid(s string, ns LinuxNS) bool {
+	return IsPod(s) || IsNS(s) || ns.Valid()
 }
 
 // NS is the path to the namespace to join.

@@ -7,7 +7,7 @@ import (
 )
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
+func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod, error) {
 	return nil, ErrOSNotSupported
 }
 

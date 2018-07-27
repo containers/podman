@@ -46,10 +46,8 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a created pod by id", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
 		result := podmanTest.Podman([]string{"pod", "pause", podid})
 		result.WaitWithDefaultTimeout()
@@ -57,12 +55,10 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a running pod by id", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -80,12 +76,10 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman unpause a running pod by id", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -97,11 +91,10 @@ var _ = Describe("Podman pod pause", func() {
 	})
 
 	It("podman pod pause a running pod by name", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "test1"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.CreatePod("test1")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", "test1")
+		session := podmanTest.RunTopContainerInPod("", "test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

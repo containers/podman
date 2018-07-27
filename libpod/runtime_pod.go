@@ -26,6 +26,16 @@ type PodFilter func(*Pod) bool
 // being removed
 // Otherwise, the pod will not be removed if any containers are running
 func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
 	return r.removePod(ctx, p, removeCtrs, force)
 }
 

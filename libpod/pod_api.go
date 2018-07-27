@@ -426,13 +426,18 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		}
 		podContainers = append(podContainers, pc)
 	}
+	pauseContainerID := p.state.PauseContainerID
+	if err != nil {
+		return &PodInspect{}, err
+	}
 
 	config := new(PodConfig)
 	deepcopier.Copy(p.config).To(config)
 	inspectData := PodInspect{
 		Config: config,
 		State: &PodInspectState{
-			CgroupPath: p.state.CgroupPath,
+			CgroupPath:       p.state.CgroupPath,
+			PauseContainerID: pauseContainerID,
 		},
 		Containers: podContainers,
 	}

@@ -56,8 +56,9 @@ type podPsTemplateParams struct {
 	NumberOfContainers int
 	Status             string
 	Cgroup             string
-	UsePodCgroup       bool
 	ContainerInfo      string
+	PauseContainerID   string
+	SharedNamespaces   string
 }
 
 // podPsJSONParams is used as a base structure for the psParams
@@ -73,7 +74,8 @@ type podPsJSONParams struct {
 	Status             string         `json:"status"`
 	CtrsInfo           []podPsCtrInfo `json:"containerinfo,omitempty"`
 	Cgroup             string         `json:"cgroup,omitempty"`
-	UsePodCgroup       bool           `json:"podcgroup,omitempty"`
+	PauseContainerID   string         `json:"pausecontainerid,omitempty"`
+	SharedNamespaces   []string       `json:"sharednamespaces,omitempty"`
 }
 
 // Type declaration and functions for sorting the pod PS output
@@ -111,10 +113,6 @@ func (a podPsSortedStatus) Less(i, j int) bool {
 var (
 	podPsFlags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "cgroup",
-			Usage: "Print the Cgroup information of the pod",
-		},
-		cli.BoolFlag{
 			Name:  "ctr-names",
 			Usage: "Display the container names",
 		},
@@ -137,6 +135,10 @@ var (
 		cli.BoolFlag{
 			Name:  "latest, l",
 			Usage: "Show the latest pod created",
+		},
+		cli.BoolFlag{
+			Name:  "namespace, ns",
+			Usage: "Display namespace information of the pod",
 		},
 		cli.BoolFlag{
 			Name:  "no-trunc",
@@ -348,14 +350,15 @@ func genPodPsFormat(c *cli.Context) string {
 		format = formats.IDString
 	} else {
 		format = "table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Created}}"
-		if c.Bool("cgroup") {
-			format += "\t{{.Cgroup}}\t{{.UsePodCgroup}}"
+		if c.Bool("namespace") {
+			format += "\t{{.Cgroup}}\t{{.SharedNamespaces}}"
 		}
 		if c.Bool("ctr-names") || c.Bool("ctr-ids") || c.Bool("ctr-status") {
 			format += "\t{{.ContainerInfo}}"
 		} else {
 			format += "\t{{.NumberOfContainers}}"
 		}
+		format += "\t{{.PauseContainerID}}"
 	}
 	return format
 }
@@ -415,6 +418,7 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 
 	for _, psParam := range psParams {
 		podID := psParam.ID
+		pauseID := psParam.PauseContainerID
 		var ctrStr string
 
 		truncated := ""
@@ -424,6 +428,7 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 				psParam.CtrsInfo = psParam.CtrsInfo[:NUM_CTR_INFO]
 				truncated = "..."
 			}
+			pauseID = shortID(pauseID)
 		}
 		for _, ctrInfo := range psParam.CtrsInfo {
 			ctrStr += "[ "
@@ -449,15 +454,42 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 			Name:               psParam.Name,
 			Status:             psParam.Status,
 			NumberOfContainers: psParam.NumberOfContainers,
-			UsePodCgroup:       psParam.UsePodCgroup,
 			Cgroup:             psParam.Cgroup,
 			ContainerInfo:      ctrStr,
+			PauseContainerID:   pauseID,
+			SharedNamespaces:   strings.Join(psParam.SharedNamespaces, ","),
 		}
 
 		psOutput = append(psOutput, params)
 	}
 
 	return psOutput, nil
+}
+
+func getSharedNamespaces(pod *libpod.Pod) []string {
+	var shared []string
+	if pod.SharesPID() {
+		shared = append(shared, "pid")
+	}
+	if pod.SharesNet() {
+		shared = append(shared, "net")
+	}
+	if pod.SharesMNT() {
+		shared = append(shared, "mnt")
+	}
+	if pod.SharesIPC() {
+		shared = append(shared, "ipc")
+	}
+	if pod.SharesUser() {
+		shared = append(shared, "user")
+	}
+	if pod.SharesCgroup() {
+		shared = append(shared, "cgroup")
+	}
+	if pod.SharesUTS() {
+		shared = append(shared, "uts")
+	}
+	return shared
 }
 
 // getAndSortPodJSONOutput returns the container info in its raw, sorted form
@@ -478,6 +510,10 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 
+		pauseContainerID, err := pod.PauseContainerID()
+		if err != nil {
+			return nil, err
+		}
 		for _, ctr := range ctrs {
 			batchInfo, err := shared.BatchContainerOp(ctr, bc_opts)
 			if err != nil {
@@ -508,9 +544,10 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			Name:               pod.Name(),
 			Status:             status,
 			Cgroup:             pod.CgroupParent(),
-			UsePodCgroup:       pod.UsePodCgroup(),
 			NumberOfContainers: ctrNum,
 			CtrsInfo:           ctrsInfo,
+			SharedNamespaces:   getSharedNamespaces(pod),
+			PauseContainerID:   pauseContainerID,
 		}
 
 		psOutput = append(psOutput, params)

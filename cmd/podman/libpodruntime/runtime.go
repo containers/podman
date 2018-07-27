@@ -124,5 +124,14 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 
 	// TODO flag to set CNI plugins dir?
 
+	// Pod create options
+	if c.IsSet("pause-image") {
+		options = append(options, libpod.WithDefaultPauseImage(c.String("pause-image")))
+	}
+
+	if c.IsSet("pause-command") {
+		options = append(options, libpod.WithDefaultPauseCommand(c.String("pause-command")))
+	}
+
 	return libpod.NewRuntime(options...)
 }

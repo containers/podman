@@ -364,6 +364,9 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 	networks := make([]string, 0)
 	userNetworks := c.NetMode.UserDefined()
+	if IsPod(userNetworks) {
+		userNetworks = ""
+	}
 	if userNetworks != "" {
 		for _, netName := range strings.Split(userNetworks, ",") {
 			if netName == "" {
@@ -381,6 +384,8 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
+	} else if IsPod(string(c.NetMode)) {
+		options = append(options, libpod.WithNetNSFromPod())
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		isRootless := rootless.IsRootless()
 		postConfigureNetNS := isRootless || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
@@ -398,6 +403,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 		options = append(options, libpod.WithPIDNSFrom(connectedCtr))
 	}
+	if IsPod(string(c.PidMode)) {
+		options = append(options, libpod.WithPIDNSFromPod())
+	}
+
 	if c.IpcMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.IpcMode.Container())
 		if err != nil {
@@ -406,7 +415,15 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 		options = append(options, libpod.WithIPCNSFrom(connectedCtr))
 	}
+	if IsPod(string(c.IpcMode)) {
+		options = append(options, libpod.WithIPCNSFromPod())
+	}
 
+	if IsPod(string(c.UtsMode)) {
+		options = append(options, libpod.WithUTSNSFromPod())
+	}
+
+	// TODO: MNT, USER, CGROUP
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 	if len(c.DNSSearch) > 0 {

@@ -368,16 +368,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	tty := c.Bool("tty")
 
-	pidMode := container.PidMode(c.String("pid"))
-	if !cc.IsNS(string(pidMode)) && !pidMode.Valid() {
-		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
-	}
-
-	usernsMode := container.UsernsMode(c.String("userns"))
-	if !cc.IsNS(string(usernsMode)) && !usernsMode.Valid() {
-		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
-	}
-
 	if c.Bool("detach") && c.Bool("rm") {
 		return nil, errors.Errorf("--rm and --detach can not be specified together")
 	}
@@ -388,14 +378,62 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
-	utsMode := container.UTSMode(c.String("uts"))
-	if !cc.IsNS(string(utsMode)) && !utsMode.Valid() {
+	// Kernel Namespaces
+	var pod *libpod.Pod
+	if c.IsSet("pod") {
+		pod, err = runtime.LookupPod(c.String("pod"))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pidModeStr := c.String("pid")
+	if !c.IsSet("pid") && pod != nil && pod.SharesPID() {
+		pidModeStr = "pod"
+	}
+	pidMode := container.PidMode(pidModeStr)
+	if !cc.Valid(string(pidMode), pidMode) {
+		return nil, errors.Errorf("--pid %q is not valid", c.String("pid"))
+	}
+
+	usernsModeStr := c.String("userns")
+	if !c.IsSet("userns") && pod != nil && pod.SharesUser() {
+		usernsModeStr = "pod"
+	}
+	usernsMode := container.UsernsMode(usernsModeStr)
+	if !cc.Valid(string(usernsMode), usernsMode) {
+		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
+	}
+
+	utsModeStr := c.String("uts")
+	if !c.IsSet("uts") && pod != nil && pod.SharesUTS() {
+		utsModeStr = "pod"
+	}
+	utsMode := container.UTSMode(utsModeStr)
+	if !cc.Valid(string(utsMode), utsMode) {
 		return nil, errors.Errorf("--uts %q is not valid", c.String("uts"))
 	}
-	ipcMode := container.IpcMode(c.String("ipc"))
-	if !cc.IsNS(string(ipcMode)) && !ipcMode.Valid() {
+
+	ipcModeStr := c.String("ipc")
+	if !c.IsSet("ipc") && pod != nil && pod.SharesIPC() {
+		ipcModeStr = "pod"
+	}
+	ipcMode := container.IpcMode(ipcModeStr)
+	if !cc.Valid(string(ipcMode), ipcMode) {
 		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
 	}
+	netModeStr := c.String("net")
+	if !c.IsSet("net") && pod != nil && pod.SharesNet() {
+		netModeStr = "pod"
+	}
+	// Make sure if network is set to container namespace, port binding is not also being asked for
+	netMode := container.NetworkMode(netModeStr)
+	if netMode.IsContainer() || cc.IsPod(netModeStr) {
+		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
+			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
+		}
+	}
+
 	shmDir := ""
 	if ipcMode.IsHost() {
 		shmDir = "/dev/shm"
@@ -533,14 +571,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	shmSize, err := units.FromHumanSize(c.String("shm-size"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
-	}
-	// Network
-	netMode := container.NetworkMode(c.String("network"))
-	// Make sure if network is set to container namespace, port binding is not also being asked for
-	if netMode.IsContainer() {
-		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
-			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
-		}
 	}
 
 	// Verify the additional hosts are in correct format
