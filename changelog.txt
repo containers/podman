@@ -1,3 +1,78 @@
+- Changelog for v0.7.4 (2018-07-27)
+  * Add pod pause/unpause
+  * Fix up docker compatibility messages
+  * Update vendored version of runc,buildah,containers/image
+  * Refactored method of getting pods
+  * Fix godoc comment in pkg/netns
+  * Fix handling of Linux network namespaces
+  * Update containernetworking/plugins to current master
+  * Cleanup descriptions and help information
+  * Skip seccomp-dependent tests on non-Linux
+  * Use the Linux version BoltState.getContainerFromDB on all platforms.
+  * Split parseNetNSBoltData from BoltState.getContainerFromDB
+  * Use testify/require in a few places to avoid panics in tests
+  * Skip unit tests which require storage when not running as root
+  * Don't pollute the build output with failures to build checkseccomp
+  * Remove cmd/podman/user.go
+  * double papr timeout for all ci tests
+  * vendor latest containers/psgo
+  * Vendor latest container/storage to fix overlay mountopt
+  * Add pod kill
+  * Added pod restart
+  * Added pod.Restart() functionality to libpod.
+  * Add a mutex to BoltDB state to prevent lock issues
+  * Clear variables used to store options after parsing for every volume
+  * Clean up pylint warnings and errors
+  * podman: allow to specify the IPC namespace to join
+  * podman: allow to specify the UTS namespace to join
+  * podman: allow to specify the PID namespace to join
+  * podman: allow to specify the userns to join
+  * network: support ns: prefix to join existing namespace
+  * spec: allow container:NAME network mode
+  * Update comments in BoltDB and In-Memory states
+  * Add an E2E test to verify basic namespace functionality
+  * Add libpod namespace to config
+  * Add missing runtime.go lines to set namespace
+  * Address first round of review comments
+  * Set namespace for new pods/containers based on runtime
+  * Add --namespace flag to Podman
+  * Update documentation for the State interface
+  * Ensure pods are part of the set namespace when added
+  * Enforce namespace checks on container add
+  * Add tests for state namespacing
+  * Add namespaces to in memory state
+  * Untested implementation of namespaced BoltDB access
+  * Add constraint that dependencies must be in the same ns
+  * Add namespaces and initial constraints to database
+  * Add container and pod namespaces to configs
+  * Fix varlink API usage of psgo
+  * Update issue template to point build bugs at buildah
+  * We don't currently support --mac-address
+  * Vendor in latest containers/psgo code
+  * Update container Mounted() and Mountpoint() functions
+  * [WIP] Refactor and simplify python builds
+  * AppArmor: runtime check if it's enabled on the host
+  * Add format descriptors infor to podman top
+  * Fix error handling in pod start/stop.
+  * docs/podman-top: fix typo and whitespace
+  * Use the result of reference.Parse when checking for digests.
+  * Make refNamesFromPossiblyUnqualifiedName independent from Image
+  * Make Image.HasShaInInputName to an independent local function
+  * Split createNamesToPull into ref{Names,Pairs}FromPossiblyUnqualifiedName
+  * Rename local variables in Runtime.pullRefPairsFromRefNames
+  * Split Runtime.pullRefPairsFromRefNames from Image.createNamesToPull
+  * Rename nameToPull to pullRefName
+  * Rename pullStruct to pullRefPair
+  * Replace optional nameToPull.shaPullName with mandatory dstName
+  * Introduce nameToPull, move shaPullName in there
+  * Split normalizeTag from Image.TagImage
+  * Remove Image.isShortName
+  * Inline getTags into its only user
+  * Add unit tests for imageParts
+  * Add OnBuild and usernamespace test to baseline
+  * Bump gitvalidation epoch
+  * Bump to v0.7.4-dev
+
 - Changelog for v0.7.3 (2018-07-20)
   * Update psgo vendor
   * Podman load/tag/save prepend localhost when no repository is present
