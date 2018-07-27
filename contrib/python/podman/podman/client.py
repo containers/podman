@@ -1,5 +1,6 @@
 """A client for communicating with a Podman varlink service."""
 import errno
+import logging
 import os
 from urllib.parse import urlparse
 
@@ -34,13 +35,17 @@ class BaseClient():
                 *args,
                 **kwargs):
         """Construct a Client based on input."""
+        log_level = os.environ.get('LOG_LEVEL')
+        if log_level is not None:
+            logging.basicConfig(level=logging.getLevelName(log_level.upper()))
+
         if uri is None:
             raise ValueError('uri is required and cannot be None')
         if interface is None:
             raise ValueError('interface is required and cannot be None')
 
         unsupported = set(kwargs.keys()).difference(
-            ('uri', 'interface', 'remote_uri', 'identity_file'))
+            ('uri', 'interface', 'remote_uri', 'port', 'identity_file'))
         if unsupported:
             raise ValueError('Unknown keyword arguments: {}'.format(
                 ', '.join(unsupported)))
@@ -50,38 +55,35 @@ class BaseClient():
             raise ValueError('path is required for uri,'
                              ' expected format "unix://path_to_socket"')
 
-        if kwargs.get('remote_uri'):
-            # Remote access requires the full tuple of information
-            if kwargs.get('remote_uri') is None:
-                raise ValueError(
-                    'remote_uri is required,'
-                    ' expected format "ssh://user@hostname/path_to_socket".')
-            remote = urlparse(kwargs['remote_uri'])
-            if remote.username is None:
-                raise ValueError(
-                    'username is required for remote_uri,'
-                    ' expected format "ssh://user@hostname/path_to_socket".')
-            if remote.path == '':
-                raise ValueError(
-                    'path is required for remote_uri,'
-                    ' expected format "ssh://user@hostname/path_to_socket".')
-            if remote.hostname is None:
-                raise ValueError(
-                    'hostname is required for remote_uri,'
-                    ' expected format "ssh://user@hostname/path_to_socket".')
+        if kwargs.get('remote_uri') is None:
+            return LocalClient(Context(uri, interface))
 
-            return RemoteClient(
-                Context(
-                    uri,
-                    interface,
-                    local_path,
-                    remote.path,
-                    remote.username,
-                    remote.hostname,
-                    kwargs.get('identity_file'),
-                ))
-        return LocalClient(
-            Context(uri, interface, None, None, None, None, None))
+        required = ('{} is required, expected format'
+                    ' "ssh://user@hostname[:port]/path_to_socket".')
+
+        # Remote access requires the full tuple of information
+        if kwargs.get('remote_uri') is None:
+            raise ValueError(required.format('remote_uri'))
+
+        remote = urlparse(kwargs['remote_uri'])
+        if remote.username is None:
+            raise ValueError(required.format('username'))
+        if remote.path == '':
+            raise ValueError(required.format('path'))
+        if remote.hostname is None:
+            raise ValueError(required.format('hostname'))
+
+        return RemoteClient(
+            Context(
+                uri,
+                interface,
+                local_path,
+                remote.path,
+                remote.username,
+                remote.hostname,
+                remote.port,
+                kwargs.get('identity_file'),
+            ))
 
 
 class LocalClient(BaseClient):
@@ -115,7 +117,7 @@ class RemoteClient(BaseClient):
         """Context manager for API workers to access varlink."""
         tunnel = self._portal.get(self._context.uri)
         if tunnel is None:
-            tunnel = Tunnel(self._context).bore(self._context.uri)
+            tunnel = Tunnel(self._context).bore()
             self._portal[self._context.uri] = tunnel
 
         try:
@@ -123,7 +125,7 @@ class RemoteClient(BaseClient):
             self._iface = self._client.open(self._context.interface)
             return self._iface
         except Exception:
-            tunnel.close(self._context.uri)
+            tunnel.close()
             raise
 
     def __exit__(self, e_type, e, e_traceback):
@@ -133,6 +135,7 @@ class RemoteClient(BaseClient):
         self._iface.close()
 
         # set timer to shutdown ssh tunnel
+        # self._portal.get(self._context.uri).close()
         if isinstance(e, VarlinkError):
             raise error_factory(e)
 

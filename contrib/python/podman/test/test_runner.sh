@@ -19,9 +19,9 @@ function usage {
 
 while getopts "vh" arg; do
   case $arg in
-    v ) VERBOSE='-v' ;;
-    h ) usage ; exit 0;;
-    \? ) usage ; exit 2;;
+    v ) VERBOSE='-v'; export LOG_LEVEL=debug ;;
+    h ) usage ; exit 0 ;;
+    \? ) usage ; exit 2 ;;
   esac
 done
 shift $((OPTIND -1))
@@ -113,29 +113,36 @@ PODMAN_ARGS="--storage-driver=vfs \
   --cni-config-dir=$CNI_CONFIG_PATH \
   "
 if [[ -n $VERBOSE ]]; then
-  PODMAN_ARGS="$PODMAN_ARGS --log-level=debug"
+  PODMAN_ARGS="$PODMAN_ARGS --log-level=$LOG_LEVEL"
 fi
 PODMAN="podman $PODMAN_ARGS"
 
-# document what we're about to do...
-$PODMAN --version
+# Run podman in background without systemd for test purposes
+cat >/tmp/test_podman.output <<-EOT
+$($PODMAN --version)
+$PODMAN varlink --timeout=0 ${PODMAN_HOST}
+==========================================
+EOT
 
 set -x
-# Run podman in background without systemd for test purposes
-$PODMAN varlink --timeout=0 ${PODMAN_HOST} >/tmp/test_runner.output 2>&1 &
+$PODMAN varlink --timeout=0 ${PODMAN_HOST} >>/tmp/test_podman.output 2>&1 &
 
 if [[ -z $1 ]]; then
   export PYTHONPATH=.
   python3 -m unittest discover -s . $VERBOSE
+  RETURNCODE=$?
 else
   export PYTHONPATH=.:./test
   python3 -m unittest $1 $VERBOSE
+  RETURNCODE=$?
 fi
 
 set +x
 pkill -9 podman
 pkill -9 conmon
 
-showlog /tmp/test_runner.output
+showlog /tmp/test_podman.output
 showlog /tmp/alpine.log
 showlog /tmp/busybox.log
+
+exit $RETURNCODE

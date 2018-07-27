@@ -42,6 +42,7 @@ Requires: python3-humanize
 Requires: python3-pytoml
 Requires: python3-setuptools
 Requires: python3-varlink
+Requires: python3-psutil
 Requires: podman
 
 %if 0%{?fedora}
