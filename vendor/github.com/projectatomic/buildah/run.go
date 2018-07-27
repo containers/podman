@@ -938,6 +938,17 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	b.configureEnvironment(g, options)
 
+	if os.Getuid() != 0 {
+		g.RemoveMount("/dev/pts")
+		devPts := specs.Mount{
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Source:      "devpts",
+			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		}
+		g.AddMount(devPts)
+	}
+
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")
 	}
@@ -1212,7 +1223,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Figure out how we're doing stdio handling, and create pipes and sockets.
 	var stdio sync.WaitGroup
 	var consoleListener *net.UnixListener
-	var errorFds []int
+	var errorFds, closeBeforeReadingErrorFds []int
 	stdioPipe := make([][]int, 3)
 	copyConsole := false
 	copyPipes := false
@@ -1244,6 +1255,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 				return 1, err
 			}
 			errorFds = []int{stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]}
+			closeBeforeReadingErrorFds = []int{stdioPipe[unix.Stdout][1], stdioPipe[unix.Stderr][1]}
 			// Set stdio to our pipes.
 			getCreateStdio = func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
 				stdin := os.NewFile(uintptr(stdioPipe[unix.Stdin][0]), "/dev/stdin")
@@ -1290,7 +1302,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Actually create the container.
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(errorFds...))
+		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(errorFds, closeBeforeReadingErrorFds))
 	}
 	defer func() {
 		err2 := del.Run()
@@ -1412,7 +1424,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	return wstatus, nil
 }
 
-func runCollectOutput(fds ...int) string {
+func runCollectOutput(fds, closeBeforeReadingFds []int) string {
+	for _, fd := range closeBeforeReadingFds {
+		unix.Close(fd)
+	}
 	var b bytes.Buffer
 	buf := make([]byte, 8192)
 	for _, fd := range fds {
