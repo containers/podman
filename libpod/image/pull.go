@@ -109,18 +109,17 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			return []*pullRefName{getPullRefName(srcRef, reference)}, nil
 		}
 
-		var dest []string
 		if len(manifest[0].RepoTags) == 0 {
 			// If the input image has no repotags, we need to feed it a dest anyways
 			digest, err := getImageDigest(ctx, srcRef, sc)
 			if err != nil {
 				return nil, err
 			}
-			dest = append(dest, digest)
-		} else {
-			// Need to load in all the repo tags from the manifest
-			dest = append(dest, manifest[0].RepoTags...)
+			return []*pullRefName{getPullRefName(srcRef, digest)}, nil
 		}
+
+		// Need to load in all the repo tags from the manifest
+		dest := manifest[0].RepoTags
 		res := []*pullRefName{}
 		for _, dst := range dest {
 			pullInfo := getPullRefName(srcRef, dst)
