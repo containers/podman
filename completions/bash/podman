@@ -2193,10 +2193,10 @@ _podman_pod_start() {
   "
 
   local boolean_options="
-    all
-    a
-    latest
-    l
+    --all
+    -a
+    --latest
+    -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -2214,11 +2214,53 @@ _podman_pod_stop() {
   "
 
   local boolean_options="
-    all
-    a
-    cleanup
-    latest
-    l
+    --all
+    -a
+    --cleanup
+    --latest
+    -l
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
+_podman_pod_pause() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    --all
+    -a
+    --latest
+    -l
+  "
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_pod_names
+            ;;
+    esac
+}
+
+_podman_pod_unpause() {
+  local options_with_args="
+  "
+
+  local boolean_options="
+    --all
+    -a
+    --latest
+    -l
   "
   _complete_ "$options_with_args" "$boolean_options"
     case "$cur" in
@@ -2244,6 +2286,8 @@ _podman_pod() {
      rm
      start
      stop
+     pause
+     unpause
     "
     local aliases="
      list

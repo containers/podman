@@ -12,11 +12,13 @@ Pods are a group of one or more containers sharing the same network, pid and ipc
 	podSubCommands = []cli.Command{
 		podCreateCommand,
 		podKillCommand,
+		podPauseCommand,
 		podPsCommand,
 		podRestartCommand,
 		podRmCommand,
 		podStartCommand,
 		podStopCommand,
+		podUnpauseCommand,
 	}
 	podCommand = cli.Command{
 		Name:                   "pod",
