@@ -15,7 +15,7 @@ import (
 )
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
+func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -87,36 +87,40 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 	if pod.config.UsePodCgroup {
 		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
+	if pod.HasPauseContainer() != pod.SharesNamespaces() {
+		return nil, errors.Errorf("Pods must have a pause container to share namespaces")
+	}
 
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")
+	}
+
+	if pod.HasPauseContainer() {
+		ctr, err := r.createPauseContainer(ctx, pod)
+		if err != nil {
+			// Tear down pod, as it is assumed a the pod will contain
+			// a pause container, and it does not.
+			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
+				logrus.Errorf("Error removing pod after pause container creation failure: %v", err2)
+			}
+			return nil, errors.Wrapf(err, "error adding Pause Container")
+		}
+		pod.state.PauseContainerID = ctr.ID()
+		if err := pod.save(); err != nil {
+			return nil, err
+		}
 	}
 
 	return pod, nil
 }
 
 func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	if !r.valid {
-		return ErrRuntimeStopped
-	}
-
 	if !p.valid {
 		if ok, _ := r.state.HasPod(p.ID()); !ok {
-			// Pod was either already removed, or never existed to
-			// begin with
+			// Pod probably already removed
+			// Or was never in the runtime to begin with
 			return nil
 		}
-	}
-
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	// Force a pod update
-	if err := p.updatePod(); err != nil {
-		return err
 	}
 
 	ctrs, err := r.state.PodContainers(p)
@@ -126,6 +130,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 
 	numCtrs := len(ctrs)
 
+	// If the only container in the pod is the pause container, remove the pod and container unconditionally.
+	if err := p.updatePod(); err != nil {
+		return err
+	}
+	pauseCtrID := p.state.PauseContainerID
+	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
+		removeCtrs = true
+		force = true
+	}
 	if !removeCtrs && numCtrs > 0 {
 		return errors.Wrapf(ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
 	}

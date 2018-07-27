@@ -8,9 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 // CtrRemoveTimeout is the default number of seconds to wait after stopping a container
@@ -35,11 +38,37 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}
+	return r.newContainer(ctx, rSpec, options...)
+}
 
-	ctr, err := newContainer(rSpec, r.lockDir)
-	if err != nil {
-		return nil, err
+func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+	if rSpec == nil {
+		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
+
+	ctr := new(Container)
+	ctr.config = new(ContainerConfig)
+	ctr.state = new(containerState)
+
+	ctr.config.ID = stringid.GenerateNonCryptoID()
+
+	ctr.config.Spec = new(spec.Spec)
+	deepcopier.Copy(rSpec).To(ctr.config.Spec)
+	ctr.config.CreatedTime = time.Now()
+
+	ctr.config.ShmSize = DefaultShmSize
+
+	ctr.state.BindMounts = make(map[string]string)
+
+	// Path our lock file will reside at
+	lockPath := filepath.Join(r.lockDir, ctr.config.ID)
+	// Grab a lockfile at the given path
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating lockfile for new container")
+	}
+	ctr.lock = lock
+
 	ctr.config.StopTimeout = CtrRemoveTimeout
 
 	// Set namespace based on current runtime namespace
@@ -59,6 +88,7 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.runtime = r
 
 	var pod *Pod
+
 	if ctr.config.Pod != "" {
 		// Get the pod from state
 		pod, err = r.state.Pod(ctr.config.Pod)
@@ -194,6 +224,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		// Lock the pod while we're removing container
 		pod.lock.Lock()
 		defer pod.lock.Unlock()
+		if err := pod.updatePod(); err != nil {
+			return err
+		}
+
+		pauseID := pod.state.PauseContainerID
+		if c.ID() == pauseID {
+			return errors.Errorf("a pause container cannot be removed without removing pod %s", pod.ID())
+		}
 	}
 
 	c.lock.Lock()

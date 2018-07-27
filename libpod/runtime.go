@@ -56,6 +56,11 @@ const (
 	// configuration file. If OverrideConfigPath exists, it will be used in
 	// place of the configuration file pointed to by ConfigPath.
 	OverrideConfigPath = "/etc/containers/libpod.conf"
+
+	// DefaultPauseImage to use for pause container
+	DefaultPauseImage = "k8s.gcr.io/pause:3.1"
+	// DefaultPauseCommand to be run in a pause container
+	DefaultPauseCommand = "/pause"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -152,6 +157,10 @@ type RuntimeConfig struct {
 	// and all containers and pods will be visible.
 	// The default namespace is "".
 	Namespace string `toml:"namespace,omitempty"`
+	// PauseImage is the image a pod pause container will use to manage namespaces
+	PauseImage string `toml:"pause_image"`
+	// PauseCommand is the command run to start up a pod pause container
+	PauseCommand string `toml:"pause_command"`
 }
 
 var (
@@ -186,6 +195,8 @@ var (
 		NoPivotRoot:   false,
 		CNIConfigDir:  "/etc/cni/net.d/",
 		CNIPluginDir:  []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
+		PauseCommand:  DefaultPauseCommand,
+		PauseImage:    DefaultPauseImage,
 	}
 )
 

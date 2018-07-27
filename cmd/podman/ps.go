@@ -44,6 +44,7 @@ type psTemplateParams struct {
 	User          string
 	UTS           string
 	Pod           string
+	IsPause       bool
 }
 
 // psJSONParams is used as a base structure for the psParams
@@ -71,6 +72,7 @@ type psJSONParams struct {
 	ContainerRunning bool                  `json:"ctrRunning"`
 	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
 	Pod              string                `json:"pod,omitempty"`
+	IsPause          bool                  `json:"pause"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -216,7 +218,7 @@ func psCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments, ps takes no arguments")
 	}
 
-	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"), c.Bool("pod"))
+	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"), c.Bool("pod"), c.Bool("all"))
 
 	opts := shared.PsOptions{
 		All:       c.Bool("all"),
@@ -239,7 +241,8 @@ func psCmd(c *cli.Context) error {
 		// only get running containers
 		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 			state, _ := c.State()
-			return state == libpod.ContainerStateRunning
+			// Don't return pause containers
+			return state == libpod.ContainerStateRunning && !c.IsPause()
 		})
 	}
 
@@ -417,7 +420,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 }
 
 // generate the template based on conditions given
-func genPsFormat(format string, quiet, size, namespace, pod bool) string {
+func genPsFormat(format string, quiet, size, namespace, pod, pause bool) string {
 	if format != "" {
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
@@ -431,12 +434,15 @@ func genPsFormat(format string, quiet, size, namespace, pod bool) string {
 		podappend = "{{.Pod}}\t"
 	}
 	if namespace {
-		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t", podappend)
+		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}", podappend)
 	}
 	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Created}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
 	format += podappend
 	if size {
 		format += "{{.Size}}\t"
+	}
+	if pause {
+		format += "{{.IsPause}}\t"
 	}
 	return format
 }
@@ -572,6 +578,7 @@ func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemp
 			Mounts:        getMounts(psParam.Mounts, opts.NoTrunc),
 			PID:           psParam.PID,
 			Pod:           pod,
+			IsPause:       psParam.IsPause,
 		}
 
 		if opts.Namespace {
@@ -628,6 +635,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts shared.PsOptions)
 			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 			Pod:              ctr.PodID(),
+			IsPause:          ctr.IsPause(),
 		}
 
 		psOutput = append(psOutput, params)

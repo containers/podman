@@ -12,6 +12,212 @@ import (
 )
 
 // MarshalJSON marshal bytes to json - template
+func (j *PauseContainerConfig) MarshalJSON() ([]byte, error) {
+	var buf fflib.Buffer
+	if j == nil {
+		buf.WriteString("null")
+		return buf.Bytes(), nil
+	}
+	err := j.MarshalJSONBuf(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// MarshalJSONBuf marshal buff to json - template
+func (j *PauseContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
+	if j == nil {
+		buf.WriteString("null")
+		return nil
+	}
+	var err error
+	var obj []byte
+	_ = obj
+	_ = err
+	if j.HasPauseContainer {
+		buf.WriteString(`{"makePauseContainer":true`)
+	} else {
+		buf.WriteString(`{"makePauseContainer":false`)
+	}
+	buf.WriteByte('}')
+	return nil
+}
+
+const (
+	ffjtPauseContainerConfigbase = iota
+	ffjtPauseContainerConfignosuchkey
+
+	ffjtPauseContainerConfigHasPauseContainer
+)
+
+var ffjKeyPauseContainerConfigHasPauseContainer = []byte("makePauseContainer")
+
+// UnmarshalJSON umarshall json - template of ffjson
+func (j *PauseContainerConfig) UnmarshalJSON(input []byte) error {
+	fs := fflib.NewFFLexer(input)
+	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
+}
+
+// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
+func (j *PauseContainerConfig) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
+	var err error
+	currentKey := ffjtPauseContainerConfigbase
+	_ = currentKey
+	tok := fflib.FFTok_init
+	wantedTok := fflib.FFTok_init
+
+mainparse:
+	for {
+		tok = fs.Scan()
+		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
+		if tok == fflib.FFTok_error {
+			goto tokerror
+		}
+
+		switch state {
+
+		case fflib.FFParse_map_start:
+			if tok != fflib.FFTok_left_bracket {
+				wantedTok = fflib.FFTok_left_bracket
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_key
+			continue
+
+		case fflib.FFParse_after_value:
+			if tok == fflib.FFTok_comma {
+				state = fflib.FFParse_want_key
+			} else if tok == fflib.FFTok_right_bracket {
+				goto done
+			} else {
+				wantedTok = fflib.FFTok_comma
+				goto wrongtokenerror
+			}
+
+		case fflib.FFParse_want_key:
+			// json {} ended. goto exit. woo.
+			if tok == fflib.FFTok_right_bracket {
+				goto done
+			}
+			if tok != fflib.FFTok_string {
+				wantedTok = fflib.FFTok_string
+				goto wrongtokenerror
+			}
+
+			kn := fs.Output.Bytes()
+			if len(kn) <= 0 {
+				// "" case. hrm.
+				currentKey = ffjtPauseContainerConfignosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			} else {
+				switch kn[0] {
+
+				case 'm':
+
+					if bytes.Equal(ffjKeyPauseContainerConfigHasPauseContainer, kn) {
+						currentKey = ffjtPauseContainerConfigHasPauseContainer
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPauseContainerConfigHasPauseContainer, kn) {
+					currentKey = ffjtPauseContainerConfigHasPauseContainer
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				currentKey = ffjtPauseContainerConfignosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			}
+
+		case fflib.FFParse_want_colon:
+			if tok != fflib.FFTok_colon {
+				wantedTok = fflib.FFTok_colon
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_value
+			continue
+		case fflib.FFParse_want_value:
+
+			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
+				switch currentKey {
+
+				case ffjtPauseContainerConfigHasPauseContainer:
+					goto handle_HasPauseContainer
+
+				case ffjtPauseContainerConfignosuchkey:
+					err = fs.SkipField(tok)
+					if err != nil {
+						return fs.WrapErr(err)
+					}
+					state = fflib.FFParse_after_value
+					goto mainparse
+				}
+			} else {
+				goto wantedvalue
+			}
+		}
+	}
+
+handle_HasPauseContainer:
+
+	/* handler: j.HasPauseContainer type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.HasPauseContainer = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.HasPauseContainer = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+wantedvalue:
+	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+wrongtokenerror:
+	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
+tokerror:
+	if fs.BigError != nil {
+		return fs.WrapErr(fs.BigError)
+	}
+	err = fs.Error.ToError()
+	if err != nil {
+		return fs.WrapErr(err)
+	}
+	panic("ffjson-generated: unreachable, please report bug.")
+done:
+
+	return nil
+}
+
+// MarshalJSON marshal bytes to json - template
 func (j *PodConfig) MarshalJSON() ([]byte, error) {
 	var buf fflib.Buffer
 	if j == nil {
@@ -60,10 +266,76 @@ func (j *PodConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	}
 	buf.WriteString(`,"cgroupParent":`)
 	fflib.WriteJsonString(buf, string(j.CgroupParent))
-	if j.UsePodCgroup {
-		buf.WriteString(`,"usePodCgroup":true`)
+	buf.WriteByte(',')
+	if j.UsePodCgroup != false {
+		if j.UsePodCgroup {
+			buf.WriteString(`"sharesCgroup":true`)
+		} else {
+			buf.WriteString(`"sharesCgroup":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodPID != false {
+		if j.UsePodPID {
+			buf.WriteString(`"sharesPid":true`)
+		} else {
+			buf.WriteString(`"sharesPid":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodIPC != false {
+		if j.UsePodIPC {
+			buf.WriteString(`"sharesIpc":true`)
+		} else {
+			buf.WriteString(`"sharesIpc":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodNet != false {
+		if j.UsePodNet {
+			buf.WriteString(`"sharesNet":true`)
+		} else {
+			buf.WriteString(`"sharesNet":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodMNT != false {
+		if j.UsePodMNT {
+			buf.WriteString(`"sharesMnt":true`)
+		} else {
+			buf.WriteString(`"sharesMnt":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodUser != false {
+		if j.UsePodUser {
+			buf.WriteString(`"sharesUser":true`)
+		} else {
+			buf.WriteString(`"sharesUser":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.UsePodUTS != false {
+		if j.UsePodUTS {
+			buf.WriteString(`"sharesUts":true`)
+		} else {
+			buf.WriteString(`"sharesUts":false`)
+		}
+		buf.WriteByte(',')
+	}
+	if j.PauseContainer != nil {
+		buf.WriteString(`"pauseConfig":`)
+
+		{
+
+			err = j.PauseContainer.MarshalJSONBuf(buf)
+			if err != nil {
+				return err
+			}
+
+		}
 	} else {
-		buf.WriteString(`,"usePodCgroup":false`)
+		buf.WriteString(`"pauseConfig":null`)
 	}
 	buf.WriteString(`,"created":`)
 
@@ -96,6 +368,20 @@ const (
 
 	ffjtPodConfigUsePodCgroup
 
+	ffjtPodConfigUsePodPID
+
+	ffjtPodConfigUsePodIPC
+
+	ffjtPodConfigUsePodNet
+
+	ffjtPodConfigUsePodMNT
+
+	ffjtPodConfigUsePodUser
+
+	ffjtPodConfigUsePodUTS
+
+	ffjtPodConfigPauseContainer
+
 	ffjtPodConfigCreatedTime
 )
 
@@ -109,7 +395,21 @@ var ffjKeyPodConfigLabels = []byte("labels")
 
 var ffjKeyPodConfigCgroupParent = []byte("cgroupParent")
 
-var ffjKeyPodConfigUsePodCgroup = []byte("usePodCgroup")
+var ffjKeyPodConfigUsePodCgroup = []byte("sharesCgroup")
+
+var ffjKeyPodConfigUsePodPID = []byte("sharesPid")
+
+var ffjKeyPodConfigUsePodIPC = []byte("sharesIpc")
+
+var ffjKeyPodConfigUsePodNet = []byte("sharesNet")
+
+var ffjKeyPodConfigUsePodMNT = []byte("sharesMnt")
+
+var ffjKeyPodConfigUsePodUser = []byte("sharesUser")
+
+var ffjKeyPodConfigUsePodUTS = []byte("sharesUts")
+
+var ffjKeyPodConfigPauseContainer = []byte("pauseConfig")
 
 var ffjKeyPodConfigCreatedTime = []byte("created")
 
@@ -216,10 +516,48 @@ mainparse:
 						goto mainparse
 					}
 
-				case 'u':
+				case 'p':
+
+					if bytes.Equal(ffjKeyPodConfigPauseContainer, kn) {
+						currentKey = ffjtPodConfigPauseContainer
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 's':
 
 					if bytes.Equal(ffjKeyPodConfigUsePodCgroup, kn) {
 						currentKey = ffjtPodConfigUsePodCgroup
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodPID, kn) {
+						currentKey = ffjtPodConfigUsePodPID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodIPC, kn) {
+						currentKey = ffjtPodConfigUsePodIPC
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodNet, kn) {
+						currentKey = ffjtPodConfigUsePodNet
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodMNT, kn) {
+						currentKey = ffjtPodConfigUsePodMNT
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodUser, kn) {
+						currentKey = ffjtPodConfigUsePodUser
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigUsePodUTS, kn) {
+						currentKey = ffjtPodConfigUsePodUTS
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
@@ -228,6 +566,48 @@ mainparse:
 
 				if fflib.SimpleLetterEqualFold(ffjKeyPodConfigCreatedTime, kn) {
 					currentKey = ffjtPodConfigCreatedTime
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigPauseContainer, kn) {
+					currentKey = ffjtPodConfigPauseContainer
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodUTS, kn) {
+					currentKey = ffjtPodConfigUsePodUTS
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodUser, kn) {
+					currentKey = ffjtPodConfigUsePodUser
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodMNT, kn) {
+					currentKey = ffjtPodConfigUsePodMNT
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodNet, kn) {
+					currentKey = ffjtPodConfigUsePodNet
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodIPC, kn) {
+					currentKey = ffjtPodConfigUsePodIPC
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodPID, kn) {
+					currentKey = ffjtPodConfigUsePodPID
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -302,6 +682,27 @@ mainparse:
 
 				case ffjtPodConfigUsePodCgroup:
 					goto handle_UsePodCgroup
+
+				case ffjtPodConfigUsePodPID:
+					goto handle_UsePodPID
+
+				case ffjtPodConfigUsePodIPC:
+					goto handle_UsePodIPC
+
+				case ffjtPodConfigUsePodNet:
+					goto handle_UsePodNet
+
+				case ffjtPodConfigUsePodMNT:
+					goto handle_UsePodMNT
+
+				case ffjtPodConfigUsePodUser:
+					goto handle_UsePodUser
+
+				case ffjtPodConfigUsePodUTS:
+					goto handle_UsePodUTS
+
+				case ffjtPodConfigPauseContainer:
+					goto handle_PauseContainer
 
 				case ffjtPodConfigCreatedTime:
 					goto handle_CreatedTime
@@ -559,6 +960,242 @@ handle_UsePodCgroup:
 			}
 
 		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodPID:
+
+	/* handler: j.UsePodPID type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodPID = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodPID = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodIPC:
+
+	/* handler: j.UsePodIPC type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodIPC = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodIPC = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodNet:
+
+	/* handler: j.UsePodNet type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodNet = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodNet = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodMNT:
+
+	/* handler: j.UsePodMNT type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodMNT = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodMNT = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodUser:
+
+	/* handler: j.UsePodUser type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodUser = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodUser = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UsePodUTS:
+
+	/* handler: j.UsePodUTS type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.UsePodUTS = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.UsePodUTS = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_PauseContainer:
+
+	/* handler: j.PauseContainer type=libpod.PauseContainerConfig kind=struct quoted=false*/
+
+	{
+		if tok == fflib.FFTok_null {
+
+			j.PauseContainer = nil
+
+		} else {
+
+			if j.PauseContainer == nil {
+				j.PauseContainer = new(PauseContainerConfig)
+			}
+
+			err = j.PauseContainer.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
+			if err != nil {
+				return err
+			}
+		}
+		state = fflib.FFParse_after_value
 	}
 
 	state = fflib.FFParse_after_value
@@ -1586,6 +2223,8 @@ func (j *PodInspectState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	_ = err
 	buf.WriteString(`{"cgroupPath":`)
 	fflib.WriteJsonString(buf, string(j.CgroupPath))
+	buf.WriteString(`,"pauseContainerID":`)
+	fflib.WriteJsonString(buf, string(j.PauseContainerID))
 	buf.WriteByte('}')
 	return nil
 }
@@ -1595,9 +2234,13 @@ const (
 	ffjtPodInspectStatenosuchkey
 
 	ffjtPodInspectStateCgroupPath
+
+	ffjtPodInspectStatePauseContainerID
 )
 
 var ffjKeyPodInspectStateCgroupPath = []byte("cgroupPath")
+
+var ffjKeyPodInspectStatePauseContainerID = []byte("pauseContainerID")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *PodInspectState) UnmarshalJSON(input []byte) error {
@@ -1668,6 +2311,20 @@ mainparse:
 						goto mainparse
 					}
 
+				case 'p':
+
+					if bytes.Equal(ffjKeyPodInspectStatePauseContainerID, kn) {
+						currentKey = ffjtPodInspectStatePauseContainerID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				}
+
+				if fflib.EqualFoldRight(ffjKeyPodInspectStatePauseContainerID, kn) {
+					currentKey = ffjtPodInspectStatePauseContainerID
+					state = fflib.FFParse_want_colon
+					goto mainparse
 				}
 
 				if fflib.SimpleLetterEqualFold(ffjKeyPodInspectStateCgroupPath, kn) {
@@ -1695,6 +2352,9 @@ mainparse:
 
 				case ffjtPodInspectStateCgroupPath:
 					goto handle_CgroupPath
+
+				case ffjtPodInspectStatePauseContainerID:
+					goto handle_PauseContainerID
 
 				case ffjtPodInspectStatenosuchkey:
 					err = fs.SkipField(tok)
@@ -1729,6 +2389,32 @@ handle_CgroupPath:
 			outBuf := fs.Output.Bytes()
 
 			j.CgroupPath = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_PauseContainerID:
+
+	/* handler: j.PauseContainerID type=string kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.PauseContainerID = string(string(outBuf))
 
 		}
 	}
@@ -1780,6 +2466,8 @@ func (j *podState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	_ = err
 	buf.WriteString(`{"cgroupPath":`)
 	fflib.WriteJsonString(buf, string(j.CgroupPath))
+	buf.WriteString(`,"PauseContainerID":`)
+	fflib.WriteJsonString(buf, string(j.PauseContainerID))
 	buf.WriteByte('}')
 	return nil
 }
@@ -1789,9 +2477,13 @@ const (
 	ffjtpodStatenosuchkey
 
 	ffjtpodStateCgroupPath
+
+	ffjtpodStatePauseContainerID
 )
 
 var ffjKeypodStateCgroupPath = []byte("cgroupPath")
+
+var ffjKeypodStatePauseContainerID = []byte("PauseContainerID")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *podState) UnmarshalJSON(input []byte) error {
@@ -1854,6 +2546,14 @@ mainparse:
 			} else {
 				switch kn[0] {
 
+				case 'P':
+
+					if bytes.Equal(ffjKeypodStatePauseContainerID, kn) {
+						currentKey = ffjtpodStatePauseContainerID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
 				case 'c':
 
 					if bytes.Equal(ffjKeypodStateCgroupPath, kn) {
@@ -1862,6 +2562,12 @@ mainparse:
 						goto mainparse
 					}
 
+				}
+
+				if fflib.EqualFoldRight(ffjKeypodStatePauseContainerID, kn) {
+					currentKey = ffjtpodStatePauseContainerID
+					state = fflib.FFParse_want_colon
+					goto mainparse
 				}
 
 				if fflib.SimpleLetterEqualFold(ffjKeypodStateCgroupPath, kn) {
@@ -1889,6 +2595,9 @@ mainparse:
 
 				case ffjtpodStateCgroupPath:
 					goto handle_CgroupPath
+
+				case ffjtpodStatePauseContainerID:
+					goto handle_PauseContainerID
 
 				case ffjtpodStatenosuchkey:
 					err = fs.SkipField(tok)
@@ -1923,6 +2632,32 @@ handle_CgroupPath:
 			outBuf := fs.Output.Bytes()
 
 			j.CgroupPath = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_PauseContainerID:
+
+	/* handler: j.PauseContainerID type=string kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.PauseContainerID = string(string(outBuf))
 
 		}
 	}

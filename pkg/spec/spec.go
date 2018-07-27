@@ -349,6 +349,9 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 	if pidMode.IsContainer() {
 		logrus.Debug("using container pidmode")
 	}
+	if IsPod(string(pidMode)) {
+		logrus.Debug("using pod pidmode")
+	}
 	return nil
 }
 
@@ -384,6 +387,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 	} else if IsNS(string(netMode)) {
 		logrus.Debug("Using ns netmode")
 		return g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, NS(string(netMode)))
+	} else if IsPod(string(netMode)) {
+		logrus.Debug("Using pod netmode, unless pod is not sharing")
+		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
 		return nil

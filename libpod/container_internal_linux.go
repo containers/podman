@@ -168,9 +168,28 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	var podInfraContainer string
+	if c.config.Pod != "" {
+		pod, err := c.runtime.state.LookupPod(c.config.Pod)
+		if err != nil {
+			return nil, err
+		}
+		if pod.SharesNamespaces() {
+			if err := pod.updatePod(); err != nil {
+				return nil, err
+			}
+			podInfraContainer = pod.state.PauseContainerID
+		}
+	}
+
 	// Add shared namespaces from other containers
 	if c.config.IPCNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, IPCNS, c.config.IPCNsCtr, spec.IPCNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.IPCNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, IPCNS, podInfraContainer, spec.IPCNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -179,8 +198,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 	}
+	if c.config.MountNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, MountNS, podInfraContainer, spec.MountNamespace); err != nil {
+			return nil, err
+		}
+	}
 	if c.config.NetNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, NetNS, c.config.NetNsCtr, spec.NetworkNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.NetNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, NetNS, podInfraContainer, spec.NetworkNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -189,8 +218,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 	}
+	if c.config.PIDNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, PIDNS, podInfraContainer, string(spec.PIDNamespace)); err != nil {
+			return nil, err
+		}
+	}
 	if c.config.UserNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.UserNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, UserNS, podInfraContainer, spec.UserNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -199,8 +238,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 	}
+	if c.config.UTSNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, UTSNS, podInfraContainer, spec.UTSNamespace); err != nil {
+			return nil, err
+		}
+	}
 	if c.config.CgroupNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, CgroupNS, c.config.CgroupNsCtr, spec.CgroupNamespace); err != nil {
+			return nil, err
+		}
+	}
+	if c.config.CgroupNsPod && podInfraContainer != "" {
+		if err := c.addNamespaceContainer(&g, CgroupNS, podInfraContainer, spec.CgroupNamespace); err != nil {
 			return nil, err
 		}
 	}

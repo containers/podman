@@ -39,6 +39,22 @@ Read in a line delimited file of labels
 
 Assign a name to the pod
 
+**--pause**
+
+Create a pause container and associate it with the pod. A pause container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true
+
+**--pause-command**=""
+
+The command that will be run to start the pause container. Default: "/pause"
+
+**--pause-image**=""
+
+The image that will be created for the pause container. Default: "k8s.gcr.io/pause:3.1"
+
+**--share**=""
+
+A comma deliminated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
+
 The operator can identify a pod in three ways:
 UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
 UUID short identifier (“f78375b1c487”)
@@ -52,6 +68,10 @@ for it. The name is useful any place you need to identify a pod.
 
 
 # podman pod create --name test
+
+# podman pod create --pause=false
+
+# podman pod create --pause-command /top
 
 ## SEE ALSO
 podman-pod(1)

@@ -2077,6 +2077,9 @@ _podman_logout() {
 _podman_pod_create() {
   local options_with_args="
       --cgroup-parent
+      --share
+      --pause-command
+      --pause-image
       --podidfile
       --label-file
       --label
@@ -2085,6 +2088,7 @@ _podman_pod_create() {
   "
 
   local boolean_options="
+    --pause
   "
   _complete_ "$options_with_args" "$boolean_options"
 }

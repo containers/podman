@@ -38,22 +38,19 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single empty pod", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		cid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "start", cid})
+		session := podmanTest.Podman([]string{"pod", "start", podid})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
 	It("podman pod start single pod by name", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "foobar99"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -63,38 +60,36 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "foobar99"})
-		session.WaitWithDefaultTimeout()
-		cid1 := session.OutputToString()
+		_, ec, podid1 := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"pod", "create", "--name", "foobar100"})
-		session2.WaitWithDefaultTimeout()
-		cid2 := session2.OutputToString()
+		_, ec2, podid2 := podmanTest.CreatePod("foobar100")
+		Expect(ec2).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "start", cid1, cid2})
+		session = podmanTest.Podman([]string{"pod", "start", podid1, podid2})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 	})
 
 	It("podman pod start all pods", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "foobar99"})
-		session.WaitWithDefaultTimeout()
+		_, ec, _ := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"pod", "create", "--name", "foobar100"})
-		session2.WaitWithDefaultTimeout()
+		_, ec, _ = podmanTest.CreatePod("foobar100")
+		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -107,15 +102,15 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start latest pod", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "foobar99"})
-		session.WaitWithDefaultTimeout()
+		_, ec, _ := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"pod", "create", "--name", "foobar100"})
-		session2.WaitWithDefaultTimeout()
+		_, ec, _ = podmanTest.CreatePod("foobar100")
+		Expect(ec).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"create", "--pod", "foobar100", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -128,15 +123,14 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods with bogus", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "foobar99"})
-		session.WaitWithDefaultTimeout()
-		cid1 := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("foobar99")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "start", cid1, "doesnotexist"})
+		session = podmanTest.Podman([]string{"pod", "start", podid, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))

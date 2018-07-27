@@ -104,6 +104,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			IPv6Gateway:            "",
 			MacAddress:             "", // TODO
 		},
+		IsPause: c.IsPause(),
 	}
 
 	// Copy port mappings into network settings

@@ -32,7 +32,7 @@ var (
 	CGROUP_MANAGER     = "systemd"
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry}
+	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, pause}
 	RESTORE_IMAGES     = []string{ALPINE, BB}
 	ALPINE             = "docker.io/library/alpine:latest"
 	BB                 = "docker.io/library/busybox:latest"
@@ -41,6 +41,7 @@ var (
 	nginx              = "quay.io/baude/alpine_nginx:latest"
 	redis              = "docker.io/library/redis:alpine"
 	registry           = "docker.io/library/registry:2"
+	pause              = "k8s.gcr.io/pause:3.1"
 	defaultWaitTimeout = 90
 )
 
@@ -420,6 +421,18 @@ func (p *PodmanTest) RestoreAllArtifacts() error {
 		}
 	}
 	return nil
+}
+
+// CreatePod creates a pod with no pause container
+// it optionally takes a pod name
+func (p *PodmanTest) CreatePod(name string) (*PodmanSession, int, string) {
+	var podmanArgs = []string{"pod", "create", "--pause=false", "--share", ""}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
 }
 
 //RunTopContainer runs a simple container in the background that

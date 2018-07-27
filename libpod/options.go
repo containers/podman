@@ -304,6 +304,37 @@ func WithNamespace(ns string) RuntimeOption {
 	}
 }
 
+// WithDefaultPauseImage sets the pause image for libpod.
+// A pause image is used for inter-container kernel
+// namespace sharing within a pod. Typically, a pause
+// container is lightweight and is there to reap
+// zombie processes within its pid namespace.
+func WithDefaultPauseImage(img string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.PauseImage = img
+
+		return nil
+	}
+}
+
+// WithDefaultPauseCommand sets the command to
+// run on pause container start up.
+func WithDefaultPauseCommand(cmd string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.PauseCommand = cmd
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
@@ -514,6 +545,132 @@ func WithExitCommand(exitCommand []string) CtrCreateOption {
 		}
 
 		ctr.config.ExitCommand = append(exitCommand, ctr.ID())
+		return nil
+	}
+}
+
+// WithIPCNSFromPod indicates the the container should join the IPC namespace of
+// its pod
+func WithIPCNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.IPCNsPod = true
+
+		return nil
+	}
+}
+
+// WithMountNSFromPod indicates the the container should join the Mount namespace of
+// its pod
+func WithMountNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.MountNsPod = true
+
+		return nil
+	}
+}
+
+// WithNetNSFromPod indicates the the container should join the network namespace of
+// its pod
+func WithNetNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.NetNsPod = true
+
+		return nil
+	}
+}
+
+// WithPIDNSFromPod indicates the the container should join the PID namespace of
+// its pod
+func WithPIDNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.PIDNsPod = true
+
+		return nil
+	}
+}
+
+// WithUTSNSFromPod indicates the the container should join the UTS namespace of
+// its pod
+func WithUTSNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.UTSNsPod = true
+
+		return nil
+	}
+}
+
+// WithUserNSFromPod indicates the the container should join the User namespace of
+// its pod
+func WithUserNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.UserNsPod = true
+
+		return nil
+	}
+}
+
+// WithCgroupNSFromPod indicates the the container should join the Cgroup namespace of
+// its pod
+func WithCgroupNSFromPod() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if ctr.config.Pod == "" {
+			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		}
+
+		ctr.config.CgroupNsPod = true
+
 		return nil
 	}
 }
@@ -999,6 +1156,20 @@ func WithCtrNamespace(ns string) CtrCreateOption {
 	}
 }
 
+// withIsPause sets the container to be a pause container. This means the container will be sometimes hidden
+// and expected to be the first container in the pod.
+func withIsPause() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.IsPause = true
+
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod.
@@ -1076,6 +1247,115 @@ func WithPodNamespace(ns string) PodCreateOption {
 		}
 
 		pod.config.Namespace = ns
+
+		return nil
+	}
+}
+
+// WithPodIPC tells containers in this pod to use the ipc namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodIPC() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodIPC = true
+
+		return nil
+	}
+}
+
+// WithPodNet tells containers in this pod to use the network namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodNet() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodNet = true
+
+		return nil
+	}
+}
+
+// WithPodMNT tells containers in this pod to use the mount namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodMNT() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodMNT = true
+
+		return nil
+	}
+}
+
+// WithPodUser tells containers in this pod to use the user namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodUser() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodUser = true
+
+		return nil
+	}
+}
+
+// WithPodPID tells containers in this pod to use the pid namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodPID() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodPID = true
+
+		return nil
+	}
+}
+
+// WithPodUTS tells containers in this pod to use the uts namespace
+// created for this pod.
+// Containers in a pod will inherit the kernel namespaces from the
+// first container added.
+func WithPodUTS() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.UsePodUTS = true
+
+		return nil
+	}
+}
+
+// WithPauseContainer tells the pod to create a pause container
+func WithPauseContainer() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+
+		pod.config.PauseContainer.HasPauseContainer = true
 
 		return nil
 	}

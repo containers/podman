@@ -23,7 +23,7 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 	}
 	options = append(options, libpod.WithPodCgroups())
 
-	pod, err := i.Runtime.NewPod(options...)
+	pod, err := i.Runtime.NewPod(getContext(), options...)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

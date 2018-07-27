@@ -32,23 +32,20 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		cid := session.OutputToString()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, podID := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
-		match, _ := check.GrepString(cid)
+		match, _ := check.GrepString(podID)
 		Expect(match).To(BeTrue())
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
 	It("podman create pod with name", func() {
 		name := "test"
-		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.CreatePod(name)
+		Expect(ec).To(Equal(0))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
 		check.WaitWithDefaultTimeout()
@@ -58,13 +55,11 @@ var _ = Describe("Podman pod create", func() {
 
 	It("podman create pod with doubled name", func() {
 		name := "test"
-		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		_, ec, _ := podmanTest.CreatePod(name)
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "create", "--name", name})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(1)))
+		_, ec2, _ := podmanTest.CreatePod(name)
+		Expect(ec2).To(Not(Equal(0)))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
@@ -77,9 +72,8 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"pod", "create", "--name", name})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(1)))
+		_, ec, _ := podmanTest.CreatePod(name)
+		Expect(ec).To(Not(Equal(0)))
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()

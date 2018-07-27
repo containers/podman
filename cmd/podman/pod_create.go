@@ -3,12 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+)
+
+var (
+	// CRI-O default kernel namespaces
+	DefaultKernelNamespaces = "ipc,net,uts"
 )
 
 var podCreateDescription = "Creates a new empty pod. The pod ID is then" +
@@ -33,9 +39,26 @@ var podCreateFlags = []cli.Flag{
 		Name:  "name, n",
 		Usage: "Assign a name to the pod",
 	},
+	cli.BoolTFlag{
+		Name:  "pause",
+		Usage: "Create a pause container associated with the pod to share namespaces with",
+	},
+	cli.StringFlag{
+		Name:  "pause-image",
+		Usage: "The image of the pause container to associate with the pod",
+	},
+	cli.StringFlag{
+		Name:  "pause-command",
+		Usage: "The command to run on the pause container when the pod is started",
+	},
 	cli.StringFlag{
 		Name:  "pod-id-file",
 		Usage: "Write the pod ID to the file",
+	},
+	cli.StringFlag{
+		Name:  "share",
+		Usage: "A comma deliminated list of kernel namespaces the pod will share",
+		Value: DefaultKernelNamespaces,
 	},
 }
 
@@ -71,6 +94,9 @@ func podCreateCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "unable to write pod id file %s", c.String("pod-id-file"))
 		}
 	}
+	if !c.BoolT("pause") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
+		return errors.Errorf("You cannot share kernel namespaces on the pod level without a pause container")
+	}
 
 	if c.IsSet("cgroup-parent") {
 		options = append(options, libpod.WithPodCgroupParent(c.String("cgroup-parent")))
@@ -88,10 +114,39 @@ func podCreateCmd(c *cli.Context) error {
 		options = append(options, libpod.WithPodName(c.String("name")))
 	}
 
+	if c.BoolT("pause") {
+		options = append(options, libpod.WithPauseContainer())
+		for _, toShare := range strings.Split(c.String("share"), ",") {
+			switch toShare {
+			case "net":
+				options = append(options, libpod.WithPodNet())
+			case "mnt":
+				//options = append(options, libpod.WithPodMNT())
+				logrus.Debug("Mount Namespace sharing functionality not supported")
+			case "pid":
+				options = append(options, libpod.WithPodPID())
+			case "user":
+				// Note: more set up needs to be done before this doesn't error out a create.
+				logrus.Debug("User Namespace sharing functionality not supported")
+			case "ipc":
+				options = append(options, libpod.WithPodIPC())
+			case "uts":
+				options = append(options, libpod.WithPodUTS())
+			case "":
+			case "none":
+				continue
+			default:
+				return errors.Errorf("Invalid kernel namespace to share: %s. Options are: %s, or none", toShare, strings.Join(libpod.KernelNamespaces, ","))
+			}
+		}
+	}
+
 	// always have containers use pod cgroups
+	// User Opt out is not yet supported
 	options = append(options, libpod.WithPodCgroups())
 
-	pod, err := runtime.NewPod(options...)
+	ctx := getContext()
+	pod, err := runtime.NewPod(ctx, options...)
 	if err != nil {
 		return err
 	}
