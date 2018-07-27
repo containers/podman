@@ -91,7 +91,8 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 	archFile := splitArr[len(splitArr)-1]
 
 	// supports pulling from docker-archive, oci, and registries
-	if srcRef.Transport().Name() == DockerArchive {
+	switch srcRef.Transport().Name() {
+	case DockerArchive:
 		tarSource, err := tarfile.NewSourceFromFile(archFile)
 		if err != nil {
 			return nil, err
@@ -128,7 +129,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 				pullNames = append(pullNames, pullInfo)
 			}
 		}
-	} else if srcRef.Transport().Name() == OCIArchive {
+	case OCIArchive:
 		// retrieve the manifest from index.json to access the image name
 		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
 		if err != nil {
@@ -148,7 +149,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		}
 		pullInfo := getPullRefName(srcRef, dest)
 		pullNames = append(pullNames, pullInfo)
-	} else if srcRef.Transport().Name() == DirTransport {
+	case DirTransport:
 		// supports pull from a directory
 		image := splitArr[1]
 		// remove leading "/"
@@ -159,7 +160,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		}
 		pullInfo := getPullRefName(srcRef, image)
 		pullNames = append(pullNames, pullInfo)
-	} else {
+	default:
 		pullInfo := getPullRefName(srcRef, imgName)
 		pullNames = append(pullNames, pullInfo)
 	}
