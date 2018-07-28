@@ -144,20 +144,23 @@ func saveCmd(c *cli.Context) error {
 	return nil
 }
 
-func imageNameForSaveDestination(newImage *libpodImage.Image, source string) string {
-	if !strings.Contains(newImage.ID(), source) {
+// imageNameForSaveDestination returns a Docker-like reference appropriate for saving img,
+// which the user referred to as imgUserInput; or an empty string, if there is no appropriate
+// reference.
+func imageNameForSaveDestination(img *libpodImage.Image, imgUserInput string) string {
+	if !strings.Contains(img.ID(), imgUserInput) {
 		prepend := ""
-		if !strings.Contains(source, libpodImage.DefaultLocalRepo) {
+		if !strings.Contains(imgUserInput, libpodImage.DefaultLocalRepo) {
 			// we need to check if localhost was added to the image name in NewFromLocal
-			for _, name := range newImage.Names() {
+			for _, name := range img.Names() {
 				// if the user searched for the image whose tag was prepended with localhost, we'll need to prepend localhost to successfully search
-				if strings.Contains(name, libpodImage.DefaultLocalRepo) && strings.Contains(name, source) {
+				if strings.Contains(name, libpodImage.DefaultLocalRepo) && strings.Contains(name, imgUserInput) {
 					prepend = fmt.Sprintf("%s/", libpodImage.DefaultLocalRepo)
 					break
 				}
 			}
 		}
-		return fmt.Sprintf("%s%s", prepend, source)
+		return fmt.Sprintf("%s%s", prepend, imgUserInput)
 	}
 	return ""
 }
