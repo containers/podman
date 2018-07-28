@@ -145,7 +145,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := newImage.pullImage(ctx, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
+	imageName, err := ir.pullImage(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
@@ -163,16 +163,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 // This function is needed because it is possible for a tar archive to have multiple tags for one image
 func (ir *Runtime) LoadFromArchive(ctx context.Context, name, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
 	var newImages []*Image
-	newImage := Image{
-		InputName:    name,
-		Local:        false,
-		imageruntime: ir,
-	}
 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := newImage.pullImage(ctx, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImage(ctx, name, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
