@@ -551,7 +551,7 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 		return err
 	}
 	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
-	if strings.HasPrefix(DockerTransport, dest.Transport().Name()) {
+	if dest.Transport().Name() == DockerTransport {
 		imgRef, err := reference.Parse(dest.DockerReference().String())
 		if err != nil {
 			return err
