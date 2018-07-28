@@ -165,7 +165,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 }
 
 // refPairsFromImageReference returns a list of pullRefPair for a single ImageReference, depending on the used transport.
-func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefPair, error) {
+func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]pullRefPair, error) {
 	refNames, err := refNamesFromImageReference(ctx, srcRef, imgName, sc)
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.
 // pulled.
 func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	// pullImage copies the image from the source to the destination
-	var pullRefPairs []*pullRefPair
+	var pullRefPairs []pullRefPair
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(i.InputName)
 	if err != nil {
@@ -317,7 +317,7 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]pullRefName, error
 
 // refPairsFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
-func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
+func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]pullRefPair, error) {
 	refNames, err := refNamesFromPossiblyUnqualifiedName(i.InputName)
 	if err != nil {
 		return nil, err
@@ -325,16 +325,16 @@ func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
 	return i.imageruntime.pullRefPairsFromRefNames(refNames)
 }
 
-// pullRefPairsFromNames converts a []pullRefName to []*pullRefPair
-func (ir *Runtime) pullRefPairsFromRefNames(refNames []pullRefName) ([]*pullRefPair, error) {
+// pullRefPairsFromNames converts a []pullRefName to []pullRefPair
+func (ir *Runtime) pullRefPairsFromRefNames(refNames []pullRefName) ([]pullRefPair, error) {
 	// Here we construct the destination references
-	res := make([]*pullRefPair, len(refNames))
+	res := make([]pullRefPair, len(refNames))
 	for i, rn := range refNames {
 		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", rn.dstName)
 		}
-		res[i] = &pullRefPair{
+		res[i] = pullRefPair{
 			image:  rn.image,
 			srcRef: rn.srcRef,
 			dstRef: destRef,
