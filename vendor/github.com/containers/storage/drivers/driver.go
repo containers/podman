@@ -66,8 +66,9 @@ type ProtoDriver interface {
 	Remove(id string) error
 	// Get returns the mountpoint for the layered filesystem referred
 	// to by this id. You can optionally specify a mountLabel or "".
+	// Optionally it gets the mappings used to create the layer.
 	// Returns the absolute path to the mounted layered filesystem.
-	Get(id, mountLabel string) (dir string, err error)
+	Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (dir string, err error)
 	// Put releases the system resources for the specified id,
 	// e.g, unmounting layered filesystem.
 	Put(id string) error
@@ -118,6 +119,10 @@ type LayerIDMapUpdater interface {
 	// relative to a parent layer, but before this method is called, may be discarded
 	// by Diff().
 	UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error
+
+	// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in a
+	// image and it is not required to Chown the files when running in an user namespace.
+	SupportsShifting() bool
 }
 
 // Driver is the interface for layered/snapshot file system drivers.
