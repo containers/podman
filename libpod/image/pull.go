@@ -34,8 +34,6 @@ var (
 	// DirTransport is the transport for pushing and pulling
 	// images to and from a directory
 	DirTransport = directory.Transport.Name()
-	// TransportNames are the supported transports in string form
-	TransportNames = [...]string{DefaultTransport, DockerArchive, OCIArchive, "ostree:", "dir:"}
 	// TarballTransport is the transport for importing a tar archive
 	// and creating a filesystem image
 	TarballTransport = tarball.Transport.Name()
