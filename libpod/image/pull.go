@@ -119,9 +119,8 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		}
 
 		// Need to load in all the repo tags from the manifest
-		dest := manifest[0].RepoTags
 		res := []*pullRefName{}
-		for _, dst := range dest {
+		for _, dst := range manifest[0].RepoTags {
 			pullInfo := getPullRefName(srcRef, dst)
 			res = append(res, pullInfo)
 		}
