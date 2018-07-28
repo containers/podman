@@ -45,10 +45,10 @@ var (
 func loadCmd(c *cli.Context) error {
 
 	args := c.Args()
-	var image string
+	var imageName string
 
 	if len(args) == 1 {
-		image = args[0]
+		imageName = args[0]
 	}
 	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
@@ -109,8 +109,8 @@ func loadCmd(c *cli.Context) error {
 	if err != nil {
 		// generate full src name with specified image:tag
 		fullSrc := libpod.OCIArchive + ":" + input
-		if image != "" {
-			fullSrc = fullSrc + ":" + image
+		if imageName != "" {
+			fullSrc = fullSrc + ":" + imageName
 		}
 		newImages, err = runtime.ImageRuntime().LoadFromArchive(ctx, fullSrc, c.String("signature-policy"), writer)
 		if err != nil {
