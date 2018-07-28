@@ -514,8 +514,9 @@ func (i *Image) UntagImage(tag string) error {
 	return nil
 }
 
-// PushImage pushes the given image to a location described by the given path
-func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+// PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
+// Use PushImageToReference if the destination is known precisely.
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
