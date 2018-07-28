@@ -78,7 +78,7 @@ func TestGetPullRefName(t *testing.T) {
 	}
 }
 
-func TestRefNamesFromImageReference(t *testing.T) {
+func TestPullGoalNamesFromImageReference(t *testing.T) {
 	type expected struct{ image, dstName string }
 	for _, c := range []struct {
 		srcName  string
@@ -173,14 +173,14 @@ func TestRefNamesFromImageReference(t *testing.T) {
 		srcRef, err := alltransports.ParseImageName(c.srcName)
 		require.NoError(t, err, c.srcName)
 
-		res, err := refNamesFromImageReference(context.Background(), srcRef, c.srcName, nil)
+		res, err := pullGoalNamesFromImageReference(context.Background(), srcRef, c.srcName, nil)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.srcName)
 		} else {
 			require.NoError(t, err, c.srcName)
-			require.Len(t, res, len(c.expected), c.srcName)
+			require.Len(t, res.refNames, len(c.expected), c.srcName)
 			for i, e := range c.expected {
-				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res[i], fmt.Sprintf("%s #%d", c.srcName, i))
+				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res.refNames[i], fmt.Sprintf("%s #%d", c.srcName, i))
 			}
 		}
 	}
@@ -190,11 +190,11 @@ const registriesConfWithSearch = `[registries.search]
 registries = ['example.com', 'docker.io']
 `
 
-func TestRefNamesFromPossiblyUnqualifiedName(t *testing.T) {
+func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	type pullRefStrings struct{ image, srcRef, dstName string } // pullRefName with string data only
 
-	registriesConf, err := ioutil.TempFile("", "TestRefNamesFromPossiblyUnqualifiedName")
+	registriesConf, err := ioutil.TempFile("", "TestPullGoalNamesFromPossiblyUnqualifiedName")
 	require.NoError(t, err)
 	defer registriesConf.Close()
 	defer os.Remove(registriesConf.Name())
@@ -282,13 +282,13 @@ func TestRefNamesFromPossiblyUnqualifiedName(t *testing.T) {
 		// Unqualified, name:tag@digest. This code is happy to try, but .srcRef parsing currently rejects such input.
 		{"busybox:notlatest" + digestSuffix, nil},
 	} {
-		res, err := refNamesFromPossiblyUnqualifiedName(c.input)
+		res, err := pullGoalNamesFromPossiblyUnqualifiedName(c.input)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			strings := make([]pullRefStrings, len(res))
-			for i, rn := range res {
+			strings := make([]pullRefStrings, len(res.refNames))
+			for i, rn := range res.refNames {
 				strings[i] = pullRefStrings{
 					image:   rn.image,
 					srcRef:  transports.ImageName(rn.srcRef),
