@@ -55,6 +55,11 @@ type pullRefPair struct {
 	dstRef types.ImageReference
 }
 
+// pullGoal represents the prepared image references and decided behavior to be executed by imagePull
+type pullGoal struct {
+	refPairs []pullRefPair
+}
+
 // pullRefName records a prepared source reference and a destination name to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
 type pullRefName struct {
 	image   string
@@ -164,14 +169,14 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 	}
 }
 
-// refPairsFromImageReference returns a list of pullRefPair for a single ImageReference, depending on the used transport.
-func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]pullRefPair, error) {
+// pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
+func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (pullGoal, error) {
 	refNames, err := refNamesFromImageReference(ctx, srcRef, imgName, sc)
 	if err != nil {
-		return nil, err
+		return pullGoal{}, err
 	}
 
-	return ir.pullRefPairsFromRefNames(refNames)
+	return ir.pullGoalFromRefNames(refNames)
 }
 
 // pullImage pulls an image from configured registries
@@ -179,19 +184,19 @@ func (ir *Runtime) refPairsFromImageReference(ctx context.Context, srcRef types.
 // pulled.
 func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	// pullImage copies the image from the source to the destination
-	var pullRefPairs []pullRefPair
+	var goal pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(i.InputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
-		pullRefPairs, err = i.refPairsFromPossiblyUnqualifiedName()
+		goal, err = i.pullGoalFromPossiblyUnqualifiedName()
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		pullRefPairs, err = i.imageruntime.refPairsFromImageReference(ctx, srcRef, i.InputName, sc)
+		goal, err = i.imageruntime.pullGoalFromImageReference(ctx, srcRef, i.InputName, sc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error getting pullRefPair info to pull image %q", i.InputName)
+			return nil, errors.Wrapf(err, "error determining pull goal for image %q", i.InputName)
 		}
 	}
 	policyContext, err := getPolicyContext(sc)
@@ -205,7 +210,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 		return nil, err
 	}
 	var images []string
-	for _, imageInfo := range pullRefPairs {
+	for _, imageInfo := range goal.refPairs {
 		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
 		if imageInfo.srcRef.Transport().Name() == DockerTransport {
 			imgRef := imageInfo.srcRef.DockerReference()
@@ -315,24 +320,24 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]pullRefName, error
 	return pullNames, nil
 }
 
-// refPairsFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// pullGoalFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
-func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]pullRefPair, error) {
+func (i *Image) pullGoalFromPossiblyUnqualifiedName() (pullGoal, error) {
 	refNames, err := refNamesFromPossiblyUnqualifiedName(i.InputName)
 	if err != nil {
-		return nil, err
+		return pullGoal{}, err
 	}
-	return i.imageruntime.pullRefPairsFromRefNames(refNames)
+	return i.imageruntime.pullGoalFromRefNames(refNames)
 }
 
-// pullRefPairsFromNames converts a []pullRefName to []pullRefPair
-func (ir *Runtime) pullRefPairsFromRefNames(refNames []pullRefName) ([]pullRefPair, error) {
+// pullRefPairsFromNames converts a []pullRefName to a pullGoal
+func (ir *Runtime) pullGoalFromRefNames(refNames []pullRefName) (pullGoal, error) {
 	// Here we construct the destination references
 	res := make([]pullRefPair, len(refNames))
 	for i, rn := range refNames {
 		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", rn.dstName)
+			return pullGoal{}, errors.Wrapf(err, "error parsing dest reference name %#v", rn.dstName)
 		}
 		res[i] = pullRefPair{
 			image:  rn.image,
@@ -340,5 +345,5 @@ func (ir *Runtime) pullRefPairsFromRefNames(refNames []pullRefName) ([]pullRefPa
 			dstRef: destRef,
 		}
 	}
-	return res, nil
+	return pullGoal{refPairs: res}, nil
 }
