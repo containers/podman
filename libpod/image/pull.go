@@ -38,14 +38,14 @@ var (
 	// and creating a filesystem image
 	TarballTransport = tarball.Transport.Name()
 	// DockerTransport is the transport for docker registries
-	DockerTransport = docker.Transport.Name() + "://"
+	DockerTransport = docker.Transport.Name()
 	// AtomicTransport is the transport for atomic registries
 	AtomicTransport = "atomic"
 	// DefaultTransport is a prefix that we apply to an image name
 	// NOTE: This is a string prefix, not actually a transport name usable for transports.Get();
 	// and because syntaxes of image names are transport-dependent, the prefix is not really interchangeable;
 	// each user implicitly assumes the appended string is a Docker-like reference.
-	DefaultTransport = DockerTransport
+	DefaultTransport = DockerTransport + "://"
 	// DefaultLocalRepo is the default local repository for local image operations
 	// Remote pulls will still use defined registries
 	DefaultLocalRepo = "localhost"
@@ -206,7 +206,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	var images []string
 	for _, imageInfo := range pullRefPairs {
 		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
-		if strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) {
+		if imageInfo.srcRef.Transport().Name() == DockerTransport {
 			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
 			if err != nil {
 				return nil, err
@@ -219,7 +219,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 			}
 		}
 		// Print the following statement only when pulling from a docker or atomic registry
-		if writer != nil && (strings.HasPrefix(DockerTransport, imageInfo.srcRef.Transport().Name()) || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
+		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
 		}
 		if err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
