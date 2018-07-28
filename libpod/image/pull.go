@@ -259,16 +259,12 @@ func hasShaInInputName(inputName string) bool {
 // refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image names to try pulling in combination with the registries.conf file as well
 func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, error) {
-	var (
-		pullNames []*pullRefName
-		imageName string
-	)
-
 	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
+		var imageName string
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
 		} else {
@@ -287,30 +283,30 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, erro
 		} else {
 			ps.dstName = ps.image
 		}
-		pullNames = append(pullNames, &ps)
+		return []*pullRefName{&ps}, nil
+	}
 
-	} else {
-		searchRegistries, err := registries.GetRegistries()
+	searchRegistries, err := registries.GetRegistries()
+	if err != nil {
+		return nil, err
+	}
+	var pullNames []*pullRefName
+	for _, registry := range searchRegistries {
+		decomposedImage.registry = registry
+		imageName := decomposedImage.assembleWithTransport()
+		if hasShaInInputName(inputName) {
+			imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
+		}
+		srcRef, err := alltransports.ParseImageName(imageName)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		for _, registry := range searchRegistries {
-			decomposedImage.registry = registry
-			imageName := decomposedImage.assembleWithTransport()
-			if hasShaInInputName(inputName) {
-				imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
-			}
-			srcRef, err := alltransports.ParseImageName(imageName)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
-			}
-			ps := pullRefName{
-				image:  decomposedImage.assemble(),
-				srcRef: srcRef,
-			}
-			ps.dstName = ps.image
-			pullNames = append(pullNames, &ps)
+		ps := pullRefName{
+			image:  decomposedImage.assemble(),
+			srcRef: srcRef,
 		}
+		ps.dstName = ps.image
+		pullNames = append(pullNames, &ps)
 	}
 	return pullNames, nil
 }
