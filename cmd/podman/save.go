@@ -93,6 +93,12 @@ func saveCmd(c *cli.Context) error {
 		return err
 	}
 
+	source := args[0]
+	newImage, err := runtime.ImageRuntime().NewFromLocal(source)
+	if err != nil {
+		return err
+	}
+
 	var dst, manifestType string
 	switch c.String("format") {
 	case libpod.OCIArchive:
@@ -119,11 +125,7 @@ func saveCmd(c *cli.Context) error {
 			return err
 		}
 	}
-	source := args[0]
-	newImage, err := runtime.ImageRuntime().NewFromLocal(source)
-	if err != nil {
-		return err
-	}
+
 	dest := dst
 	// need dest to be in the format transport:path:reference for the following transports
 	if (strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive)) && !strings.Contains(newImage.ID(), source) {
