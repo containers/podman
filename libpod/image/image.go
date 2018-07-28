@@ -551,7 +551,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return err
 	}
-	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
+	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
 	if dest.Transport().Name() == DockerTransport {
 		imgRef := dest.DockerReference()
 		if imgRef == nil { // This should never happen; such references can’t be created.
@@ -906,7 +906,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, err
 	}
 	defer policyContext.Destroy()
-	copyOptions := getCopyOptions(sc, writer, nil, nil, signingOptions, "", "", false, nil)
+	copyOptions := getCopyOptions(sc, writer, nil, nil, signingOptions, "", false, nil)
 	dest, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)
