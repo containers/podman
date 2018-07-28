@@ -200,6 +200,7 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 			}
 			assert.Equal(t, c.expectedPullAllPairs, res.pullAllPairs, c.srcName)
 			assert.False(t, res.usedSearchRegistries, c.srcName)
+			assert.Nil(t, res.searchedRegistries, c.srcName)
 		}
 	}
 }
@@ -326,6 +327,11 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			assert.Equal(t, c.expected, strings, c.input)
 			assert.False(t, res.pullAllPairs, c.input)
 			assert.Equal(t, c.expectedUsedSearchRegistries, res.usedSearchRegistries, c.input)
+			if !c.expectedUsedSearchRegistries {
+				assert.Nil(t, res.searchedRegistries, c.input)
+			} else {
+				assert.Equal(t, []string{"example.com", "docker.io"}, res.searchedRegistries, c.input)
+			}
 		}
 	}
 }
