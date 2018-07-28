@@ -348,7 +348,7 @@ func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag 
 
 	so := image.SigningOptions{}
 
-	if err := newImage.PushImage(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, false, nil); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, false, nil); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyPushImage(newImage.ID())
@@ -517,7 +517,7 @@ func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, de
 		return err
 	}
 
-	if err := newImage.PushImage(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, false, additionalTags); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, false, additionalTags); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyExportImage(newImage.ID())
