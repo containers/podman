@@ -533,7 +533,11 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 			return err
 		}
 	}
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, forceSecure, additionalDockerArchiveTags)
+}
 
+// PushImageToReference pushes the given image to a location described by the given path
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 
 	policyContext, err := getPolicyContext(sc)
