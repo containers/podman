@@ -62,6 +62,10 @@ type pullRefName struct {
 	dstName string
 }
 
+func singlePullRefNameGoal(rn *pullRefName) []*pullRefName {
+	return []*pullRefName{rn}
+}
+
 func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
@@ -104,7 +108,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			if err != nil {
 				return nil, err
 			}
-			return []*pullRefName{getPullRefName(srcRef, reference)}, nil
+			return singlePullRefNameGoal(getPullRefName(srcRef, reference)), nil
 		}
 
 		if len(manifest[0].RepoTags) == 0 {
@@ -113,7 +117,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			if err != nil {
 				return nil, err
 			}
-			return []*pullRefName{getPullRefName(srcRef, digest)}, nil
+			return singlePullRefNameGoal(getPullRefName(srcRef, digest)), nil
 		}
 
 		// Need to load in all the repo tags from the manifest
@@ -142,7 +146,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		return []*pullRefName{getPullRefName(srcRef, dest)}, nil
+		return singlePullRefNameGoal(getPullRefName(srcRef, dest)), nil
 
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
@@ -153,10 +157,10 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		return []*pullRefName{getPullRefName(srcRef, image)}, nil
+		return singlePullRefNameGoal(getPullRefName(srcRef, image)), nil
 
 	default:
-		return []*pullRefName{getPullRefName(srcRef, imgName)}, nil
+		return singlePullRefNameGoal(getPullRefName(srcRef, imgName)), nil
 	}
 }
 
@@ -283,7 +287,7 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, erro
 		} else {
 			ps.dstName = ps.image
 		}
-		return []*pullRefName{&ps}, nil
+		return singlePullRefNameGoal(&ps), nil
 	}
 
 	searchRegistries, err := registries.GetRegistries()
