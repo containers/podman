@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/manifest"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -552,11 +553,11 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 	}
 	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
 	if dest.Transport().Name() == DockerTransport {
-		imgRef, err := reference.Parse(dest.DockerReference().String())
-		if err != nil {
-			return err
+		imgRef := dest.DockerReference()
+		if imgRef == nil { // This should never happen; such references can’t be created.
+			return fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference", transports.ImageName(dest))
 		}
-		registry := reference.Domain(imgRef.(reference.Named))
+		registry := reference.Domain(imgRef)
 
 		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
 			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true

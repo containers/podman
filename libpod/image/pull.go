@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
@@ -207,11 +208,12 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	for _, imageInfo := range pullRefPairs {
 		copyOptions := getCopyOptions(writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
 		if imageInfo.srcRef.Transport().Name() == DockerTransport {
-			imgRef, err := reference.Parse(imageInfo.srcRef.DockerReference().String())
-			if err != nil {
-				return nil, err
+			imgRef := imageInfo.srcRef.DockerReference()
+			if imgRef == nil { // This should never happen; such references can’t be created.
+				return nil, fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference",
+					transports.ImageName(imageInfo.srcRef))
 			}
-			registry := reference.Domain(imgRef.(reference.Named))
+			registry := reference.Domain(imgRef)
 
 			if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
 				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = true
