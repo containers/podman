@@ -23,17 +23,18 @@ type DockerRegistryOptions struct {
 	DockerInsecureSkipTLSVerify bool
 }
 
-// GetSystemContext constructs a new system context from a parent context, the given signaturePolicy path, and the
-// values in the DockerRegistryOptions
-func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, signaturePolicyPath, authFile string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *types.SystemContext {
+// GetSystemContext constructs a new system context from a parent context. the values in the DockerRegistryOptions, and other parameters.
+func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, authFile string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *types.SystemContext {
 	sc := &types.SystemContext{
-		SignaturePolicyPath:         signaturePolicyPath,
 		DockerAuthConfig:            o.DockerRegistryCreds,
 		DockerCertPath:              o.DockerCertPath,
 		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
 		AuthFilePath:                authFile,
 		DirForceCompress:            forceCompress,
 		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
+	}
+	if parent != nil {
+		sc.SignaturePolicyPath = parent.SignaturePolicyPath
 	}
 	return sc
 }

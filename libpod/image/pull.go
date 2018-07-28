@@ -232,7 +232,7 @@ func (ir *Runtime) pullImage(ctx context.Context, inputName string, writer io.Wr
 	}
 	var images []string
 	for _, imageInfo := range goal.refPairs {
-		copyOptions := getCopyOptions(sc, writer, signaturePolicyPath, dockerOptions, nil, signingOptions, authfile, "", false, nil)
+		copyOptions := getCopyOptions(sc, writer, dockerOptions, nil, signingOptions, authfile, "", false, nil)
 		if imageInfo.srcRef.Transport().Name() == DockerTransport {
 			imgRef := imageInfo.srcRef.DockerReference()
 			if imgRef == nil { // This should never happen; such references can’t be created.
