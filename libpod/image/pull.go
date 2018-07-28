@@ -200,11 +200,8 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 	return ir.pullGoalFromGoalNames(goalNames)
 }
 
-// pullImage pulls an image from configured registries based on inputName.
-// By default, only the latest tag (or a specific tag if requested) will be
-// pulled.
+// pullImage pulls an image based on input name, which may involve from configured registries.
 func (ir *Runtime) pullImage(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
-	// pullImage copies the image from the source to the destination
 	var goal pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -220,6 +217,11 @@ func (ir *Runtime) pullImage(ctx context.Context, inputName string, writer io.Wr
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
+	return ir.doPullImage(ctx, sc, goal, writer, signingOptions, dockerOptions, forceSecure)
+}
+
+// doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
+func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
 		return nil, err
