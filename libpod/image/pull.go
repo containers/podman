@@ -44,6 +44,9 @@ var (
 	// AtomicTransport is the transport for atomic registries
 	AtomicTransport = "atomic"
 	// DefaultTransport is a prefix that we apply to an image name
+	// NOTE: This is a string prefix, not actually a transport name usable for transports.Get();
+	// and because syntaxes of image names are transport-dependent, the prefix is not really interchangeable;
+	// each user implicitly assumes the appended string is a Docker-like reference.
 	DefaultTransport = DockerTransport
 	// DefaultLocalRepo is the default local repository for local image operations
 	// Remote pulls will still use defined registries
