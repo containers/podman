@@ -159,17 +159,17 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	return &newImage, nil
 }
 
-// LoadFromArchive creates a new image object for images pulled from a tar archive (podman load)
+// LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
 // This function is needed because it is possible for a tar archive to have multiple tags for one image
-func (ir *Runtime) LoadFromArchive(ctx context.Context, name, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
+func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
 	var newImages []*Image
 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImage(ctx, name, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImage(ctx, transports.ImageName(srcRef), writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to pull %s", name)
+		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
 
 	for _, name := range imageNames {
