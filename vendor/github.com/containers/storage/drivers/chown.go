@@ -114,7 +114,7 @@ func NewNaiveLayerIDMapUpdater(driver ProtoDriver) LayerIDMapUpdater {
 // same "container" IDs.
 func (n *naiveLayerIDMapUpdater) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
 	driver := n.ProtoDriver
-	layerFs, err := driver.Get(id, mountLabel)
+	layerFs, err := driver.Get(id, mountLabel, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -123,4 +123,9 @@ func (n *naiveLayerIDMapUpdater) UpdateLayerIDMap(id string, toContainer, toHost
 	}()
 
 	return ChownPathByMaps(layerFs, toContainer, toHost)
+}
+
+// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
+func (n *naiveLayerIDMapUpdater) SupportsShifting() bool {
+	return false
 }

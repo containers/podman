@@ -137,7 +137,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		label.SetFileLabel(dir, mountLabel)
 	}
 	if parent != "" {
-		parentDir, err := d.Get(parent, "")
+		parentDir, err := d.Get(parent, "", nil, nil)
 		if err != nil {
 			return fmt.Errorf("%s: %s", parent, err)
 		}
@@ -179,7 +179,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the directory for the given id.
-func (d *Driver) Get(id, mountLabel string) (string, error) {
+func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
 	dir := d.dir(id)
 	if st, err := os.Stat(dir); err != nil {
 		return "", err

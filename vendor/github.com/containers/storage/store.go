@@ -896,13 +896,18 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 			gidMap = s.gidMap
 		}
 	}
-	layerOptions := &LayerOptions{
-		IDMappingOptions: IDMappingOptions{
-			HostUIDMapping: options.HostUIDMapping,
-			HostGIDMapping: options.HostGIDMapping,
-			UIDMap:         copyIDMap(uidMap),
-			GIDMap:         copyIDMap(gidMap),
-		},
+	var layerOptions *LayerOptions
+	if s.graphDriver.SupportsShifting() {
+		layerOptions = &LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+	} else {
+		layerOptions = &LayerOptions{
+			IDMappingOptions: IDMappingOptions{
+				HostUIDMapping: options.HostUIDMapping,
+				HostGIDMapping: options.HostGIDMapping,
+				UIDMap:         copyIDMap(uidMap),
+				GIDMap:         copyIDMap(gidMap),
+			},
+		}
 	}
 	return rlstore.Put(id, parentLayer, names, mountLabel, nil, layerOptions, writeable, nil, diff)
 }
@@ -964,6 +969,10 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 
 func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, readWrite bool, rlstore LayerStore, lstores []ROLayerStore, options IDMappingOptions) (*Layer, error) {
 	layerMatchesMappingOptions := func(layer *Layer, options IDMappingOptions) bool {
+		// If the driver supports shifting and the layer has no mappings, we can use it.
+		if s.graphDriver.SupportsShifting() && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
+			return true
+		}
 		// If we want host mapping, and the layer uses mappings, it's not the best match.
 		if options.HostUIDMapping && len(layer.UIDMap) != 0 {
 			return false
@@ -1036,16 +1045,22 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 		}
 		rc, err := layerHomeStore.Diff("", layer.ID, &diffOptions)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading layer %q to create an ID-mapped version of it")
+			return nil, errors.Wrapf(err, "error reading layer %q to create an ID-mapped version of it", layer.ID)
 		}
 		defer rc.Close()
-		layerOptions := LayerOptions{
-			IDMappingOptions: IDMappingOptions{
-				HostUIDMapping: options.HostUIDMapping,
-				HostGIDMapping: options.HostGIDMapping,
-				UIDMap:         copyIDMap(options.UIDMap),
-				GIDMap:         copyIDMap(options.GIDMap),
-			},
+
+		var layerOptions LayerOptions
+		if s.graphDriver.SupportsShifting() {
+			layerOptions = LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+		} else {
+			layerOptions = LayerOptions{
+				IDMappingOptions: IDMappingOptions{
+					HostUIDMapping: options.HostUIDMapping,
+					HostGIDMapping: options.HostGIDMapping,
+					UIDMap:         copyIDMap(options.UIDMap),
+					GIDMap:         copyIDMap(options.GIDMap),
+				},
+			}
 		}
 		mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, rc)
 		if err != nil {
@@ -1089,6 +1104,8 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	imageID := ""
 	uidMap := options.UIDMap
 	gidMap := options.GIDMap
+
+	idMappingsOptions := options.IDMappingOptions
 	if image != "" {
 		var imageHomeStore ROImageStore
 		istore, err := s.ImageStore()
@@ -1121,7 +1138,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		if err != nil {
 			return nil, err
 		}
-		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, imageHomeStore == istore, rlstore, lstores, options.IDMappingOptions)
+		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, imageHomeStore == istore, rlstore, lstores, idMappingsOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -1140,13 +1157,18 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			gidMap = s.gidMap
 		}
 	}
-	layerOptions := &LayerOptions{
-		IDMappingOptions: IDMappingOptions{
-			HostUIDMapping: options.HostUIDMapping,
-			HostGIDMapping: options.HostGIDMapping,
-			UIDMap:         copyIDMap(uidMap),
-			GIDMap:         copyIDMap(gidMap),
-		},
+	var layerOptions *LayerOptions
+	if s.graphDriver.SupportsShifting() {
+		layerOptions = &LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+	} else {
+		layerOptions = &LayerOptions{
+			IDMappingOptions: IDMappingOptions{
+				HostUIDMapping: idMappingsOptions.HostUIDMapping,
+				HostGIDMapping: idMappingsOptions.HostGIDMapping,
+				UIDMap:         copyIDMap(uidMap),
+				GIDMap:         copyIDMap(gidMap),
+			},
+		}
 	}
 	clayer, err := rlstore.Create(layer, imageTopLayer, nil, "", nil, layerOptions, true)
 	if err != nil {
@@ -1164,10 +1186,10 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	}
 	options = &ContainerOptions{
 		IDMappingOptions: IDMappingOptions{
-			HostUIDMapping: len(clayer.UIDMap) == 0,
-			HostGIDMapping: len(clayer.GIDMap) == 0,
-			UIDMap:         copyIDMap(clayer.UIDMap),
-			GIDMap:         copyIDMap(clayer.GIDMap),
+			HostUIDMapping: len(options.UIDMap) == 0,
+			HostGIDMapping: len(options.GIDMap) == 0,
+			UIDMap:         copyIDMap(options.UIDMap),
+			GIDMap:         copyIDMap(options.GIDMap),
 		},
 	}
 	container, err := rcstore.Create(id, names, imageID, layer, metadata, options)
@@ -2230,8 +2252,11 @@ func (s *store) Version() ([][2]string, error) {
 }
 
 func (s *store) Mount(id, mountLabel string) (string, error) {
-	if layerID, err := s.ContainerLayerID(id); err == nil {
-		id = layerID
+	container, err := s.Container(id)
+	var uidMap, gidMap []idtools.IDMap
+	if err == nil {
+		uidMap, gidMap = container.UIDMap, container.GIDMap
+		id = container.LayerID
 	}
 	rlstore, err := s.LayerStore()
 	if err != nil {
@@ -2243,7 +2268,7 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 		rlstore.Load()
 	}
 	if rlstore.Exists(id) {
-		return rlstore.Mount(id, mountLabel)
+		return rlstore.Mount(id, mountLabel, uidMap, gidMap)
 	}
 	return "", ErrLayerUnknown
 }
