@@ -15,7 +15,6 @@ import (
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
-	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
@@ -35,9 +34,6 @@ var (
 	// DirTransport is the transport for pushing and pulling
 	// images to and from a directory
 	DirTransport = directory.Transport.Name()
-	// TarballTransport is the transport for importing a tar archive
-	// and creating a filesystem image
-	TarballTransport = tarball.Transport.Name()
 	// DockerTransport is the transport for docker registries
 	DockerTransport = docker.Transport.Name()
 	// AtomicTransport is the transport for atomic registries

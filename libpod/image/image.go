@@ -878,8 +878,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 // Import imports and image into the store and returns an image
 func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
-	file := TarballTransport + ":" + path
-	src, err := alltransports.ParseImageName(file)
+	src, err := tarball.Transport.ParseReference(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing image name %q", path)
 	}
