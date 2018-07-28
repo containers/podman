@@ -103,6 +103,10 @@ func saveCmd(c *cli.Context) error {
 	switch c.String("format") {
 	case libpod.OCIArchive:
 		dst = libpod.OCIArchive + ":" + output
+		destImageName := imageNameForSaveDestination(newImage, source)
+		if destImageName != "" {
+			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		}
 	case "oci-dir":
 		dst = libpod.DirTransport + ":" + output
 		manifestType = imgspecv1.MediaTypeImageManifest
@@ -113,6 +117,10 @@ func saveCmd(c *cli.Context) error {
 		fallthrough
 	case "":
 		dst = libpod.DockerArchive + ":" + output
+		destImageName := imageNameForSaveDestination(newImage, source)
+		if destImageName != "" {
+			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		}
 	default:
 		return errors.Errorf("unknown format option %q", c.String("format"))
 	}
@@ -126,15 +134,7 @@ func saveCmd(c *cli.Context) error {
 		}
 	}
 
-	dest := dst
-	// need dest to be in the format transport:path:reference for the following transports
-	if strings.Contains(dst, libpod.OCIArchive) || strings.Contains(dst, libpod.DockerArchive) {
-		destImageName := imageNameForSaveDestination(newImage, source)
-		if destImageName != "" {
-			dest = fmt.Sprintf("%s:%s", dst, destImageName)
-		}
-	}
-	if err := newImage.PushImage(getContext(), dest, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
+	if err := newImage.PushImage(getContext(), dst, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
 		if err2 := os.Remove(output); err2 != nil {
 			logrus.Errorf("error deleting %q: %v", output, err)
 		}
