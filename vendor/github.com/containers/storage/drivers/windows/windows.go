@@ -362,7 +362,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the rootfs path for the id. This will mount the dir at its given path.
-func (d *Driver) Get(id, mountLabel string) (string, error) {
+func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
 	panicIfUsedByLcow()
 	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, mountLabel)
 	var dir string
@@ -620,7 +620,7 @@ func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 		return
 	}
 
-	layerFs, err := d.Get(id, "")
+	layerFs, err := d.Get(id, "", nil, nil)
 	if err != nil {
 		return
 	}
@@ -952,6 +952,11 @@ func (d *Driver) AdditionalImageStores() []string {
 // matching those in toContainer to matching those in toHost.
 func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
 	return fmt.Errorf("windows doesn't support changing ID mappings")
+}
+
+// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
+func (d *Driver) SupportsShifting() bool {
+	return false
 }
 
 type storageOptions struct {
