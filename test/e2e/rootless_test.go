@@ -29,6 +29,9 @@ var _ = Describe("Podman rootless", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman rootless rootfs", func() {

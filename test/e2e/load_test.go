@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -26,6 +27,9 @@ var _ = Describe("Podman load", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman load input flag", func() {
@@ -164,11 +168,9 @@ var _ = Describe("Podman load", func() {
 
 	It("podman load localhost repo from scratch", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
-		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		podmanTest.RestoreArtifact(fedoraMinimal)
 
-		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
+		setup := podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
@@ -192,11 +194,9 @@ var _ = Describe("Podman load", func() {
 
 	It("podman load localhost repo from dir", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load")
-		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		podmanTest.RestoreArtifact(fedoraMinimal)
 
-		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
+		setup := podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
