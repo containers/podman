@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	image2 "github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -112,7 +112,7 @@ func pullCmd(c *cli.Context) error {
 	}
 
 	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
-	if strings.HasPrefix(image, libpod.DockerArchive+":") {
+	if strings.HasPrefix(image, dockerarchive.Transport.Name()+":") {
 		srcRef, err := alltransports.ParseImageName(image)
 		if err != nil {
 			return errors.Wrapf(err, "error parsing %q", image)
