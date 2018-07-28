@@ -167,7 +167,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImage(ctx, transports.ImageName(srcRef), writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
