@@ -199,6 +199,7 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res.refNames[i], fmt.Sprintf("%s #%d", c.srcName, i))
 			}
 			assert.Equal(t, c.expectedPullAllPairs, res.pullAllPairs, c.srcName)
+			assert.False(t, res.usedSearchRegistries, c.srcName)
 		}
 	}
 }
@@ -232,37 +233,43 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 	os.Setenv("REGISTRIES_CONFIG_PATH", registriesConf.Name())
 
 	for _, c := range []struct {
-		input    string
-		expected []pullRefStrings
+		input                        string
+		expected                     []pullRefStrings
+		expectedUsedSearchRegistries bool
 	}{
-		{"#", nil}, // Clearly invalid.
+		{"#", nil, false}, // Clearly invalid.
 		{ // Fully-explicit docker.io, name-only.
 			"docker.io/library/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
 			[]pullRefStrings{{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox"}},
+			false,
 		},
 		{ // docker.io with implied /library/, name-only.
 			"docker.io/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
 			// The .dstName fields differ for the explicit/implicit /library/ cases, but StorageTransport.ParseStoreReference normalizes that.
 			[]pullRefStrings{{"docker.io/busybox", "docker://busybox:latest", "docker.io/busybox"}},
+			false,
 		},
 		{ // Qualified example.com, name-only.
 			"example.com/ns/busybox",
 			[]pullRefStrings{{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox"}},
+			false,
 		},
 		{ // Qualified example.com, name:tag.
 			"example.com/ns/busybox:notlatest",
 			[]pullRefStrings{{"example.com/ns/busybox:notlatest", "docker://example.com/ns/busybox:notlatest", "example.com/ns/busybox:notlatest"}},
+			false,
 		},
 		{ // Qualified example.com, name@digest.
 			"example.com/ns/busybox" + digestSuffix,
 			[]pullRefStrings{{"example.com/ns/busybox" + digestSuffix, "docker://example.com/ns/busybox" + digestSuffix,
 				// FIXME?! Why is .dstName dropping the digest, and adding :none?!
 				"example.com/ns/busybox:none"}},
+			false,
 		},
 		// Qualified example.com, name:tag@digest.  This code is happy to try, but .srcRef parsing currently rejects such input.
-		{"example.com/ns/busybox:notlatest" + digestSuffix, nil},
+		{"example.com/ns/busybox:notlatest" + digestSuffix, nil, false},
 		{ // Unqualified, single-name, name-only
 			"busybox",
 			[]pullRefStrings{
@@ -270,6 +277,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
 				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/busybox:latest"},
 			},
+			true,
 		},
 		{ // Unqualified, namespaced, name-only
 			"ns/busybox",
@@ -278,6 +286,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"ns/busybox", "docker://ns/busybox:latest", "ns/busybox"},
 			},
+			false,
 		},
 		{ // Unqualified, name:tag
 			"busybox:notlatest",
@@ -286,6 +295,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
 				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/busybox:notlatest"},
 			},
+			true,
 		},
 		{ // Unqualified, name@digest
 			"busybox" + digestSuffix,
@@ -295,9 +305,10 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
 				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/busybox:none"},
 			},
+			true,
 		},
 		// Unqualified, name:tag@digest. This code is happy to try, but .srcRef parsing currently rejects such input.
-		{"busybox:notlatest" + digestSuffix, nil},
+		{"busybox:notlatest" + digestSuffix, nil, false},
 	} {
 		res, err := pullGoalNamesFromPossiblyUnqualifiedName(c.input)
 		if len(c.expected) == 0 {
@@ -314,6 +325,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			}
 			assert.Equal(t, c.expected, strings, c.input)
 			assert.False(t, res.pullAllPairs, c.input)
+			assert.Equal(t, c.expectedUsedSearchRegistries, res.usedSearchRegistries, c.input)
 		}
 	}
 }
