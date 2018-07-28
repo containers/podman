@@ -42,16 +42,16 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 	return results[0], nil
 }
 
-// getCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters
-func getCopyOptions(reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *cp.Options {
+// getCopyOptions constructs a new containers/image/copy.Options{} struct from the given parameters, inheriting some from sc.
+func getCopyOptions(sc *types.SystemContext, reportWriter io.Writer, signaturePolicyPath string, srcDockerRegistry, destDockerRegistry *DockerRegistryOptions, signing SigningOptions, authFile, manifestType string, forceCompress bool, additionalDockerArchiveTags []reference.NamedTagged) *cp.Options {
 	if srcDockerRegistry == nil {
 		srcDockerRegistry = &DockerRegistryOptions{}
 	}
 	if destDockerRegistry == nil {
 		destDockerRegistry = &DockerRegistryOptions{}
 	}
-	srcContext := srcDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
-	destContext := destDockerRegistry.GetSystemContext(signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
+	srcContext := srcDockerRegistry.GetSystemContext(sc, signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
+	destContext := destDockerRegistry.GetSystemContext(sc, signaturePolicyPath, authFile, forceCompress, additionalDockerArchiveTags)
 	return &cp.Options{
 		RemoveSignatures:      signing.RemoveSignatures,
 		SignBy:                signing.SignBy,
