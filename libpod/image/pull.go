@@ -200,24 +200,24 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 	return ir.pullGoalFromGoalNames(goalNames)
 }
 
-// pullImage pulls an image from configured registries
+// pullImage pulls an image from configured registries based on inputName.
 // By default, only the latest tag (or a specific tag if requested) will be
 // pulled.
-func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) pullImage(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
 	// pullImage copies the image from the source to the destination
 	var goal pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
-	srcRef, err := alltransports.ParseImageName(i.InputName)
+	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
-		goal, err = i.pullGoalFromPossiblyUnqualifiedName()
+		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		goal, err = i.imageruntime.pullGoalFromImageReference(ctx, srcRef, i.InputName, sc)
+		goal, err = ir.pullGoalFromImageReference(ctx, srcRef, inputName, sc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error determining pull goal for image %q", i.InputName)
+			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
 	policyContext, err := getPolicyContext(sc)
@@ -338,14 +338,14 @@ func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames,
 	}, nil
 }
 
-// pullGoalFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
+// pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
-func (i *Image) pullGoalFromPossiblyUnqualifiedName() (pullGoal, error) {
-	goalNames, err := pullGoalNamesFromPossiblyUnqualifiedName(i.InputName)
+func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (pullGoal, error) {
+	goalNames, err := pullGoalNamesFromPossiblyUnqualifiedName(inputName)
 	if err != nil {
 		return pullGoal{}, err
 	}
-	return i.imageruntime.pullGoalFromGoalNames(goalNames)
+	return ir.pullGoalFromGoalNames(goalNames)
 }
 
 // pullGoalFromGoalNames converts a pullGoalNames to a pullGoal
