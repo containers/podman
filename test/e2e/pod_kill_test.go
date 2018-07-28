@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -25,7 +26,9 @@ var _ = Describe("Podman pod kill", func() {
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman pod kill bogus", func() {

@@ -29,7 +29,9 @@ var _ = Describe("Podman ps", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman ps no containers", func() {
@@ -232,7 +234,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
+		podmanTest.RestoreArtifact(fedoraMinimal)
 		session = podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

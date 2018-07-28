@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -26,7 +27,9 @@ var _ = Describe("Podman privileged container tests", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman privileged make sure sys is mounted rw", func() {

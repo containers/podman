@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -22,11 +23,13 @@ var _ = Describe("Podman refresh", func() {
 		}
 		podmanTest = PodmanCreate(tmpdir)
 		podmanTest.RestoreAllArtifacts()
-		podmanTest.RestoreArtifact(fedoraMinimal)
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	Specify("Refresh with no containers succeeds", func() {

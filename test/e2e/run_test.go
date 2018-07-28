@@ -31,6 +31,9 @@ var _ = Describe("Podman run", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman run a container based on local image", func() {

@@ -3,6 +3,7 @@ package integration
 import (
 	"os"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,7 +26,9 @@ var _ = Describe("Podman run dns", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman run add search domain", func() {

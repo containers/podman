@@ -1,12 +1,12 @@
 package integration
 
 import (
-	"os"
-
 	"fmt"
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
 )
 
 var _ = Describe("Podman port", func() {
@@ -27,7 +27,9 @@ var _ = Describe("Podman port", func() {
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman port all and latest", func() {

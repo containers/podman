@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -20,13 +21,14 @@ var _ = Describe("Podman run ns", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
 		podmanTest.RestoreArtifact(fedoraMinimal)
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
-
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman run pidns test", func() {
