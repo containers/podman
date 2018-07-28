@@ -15,7 +15,6 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	libpodImage "github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -106,7 +105,7 @@ func saveCmd(c *cli.Context) error {
 	var destRef types.ImageReference
 	var manifestType string
 	switch c.String("format") {
-	case libpod.OCIArchive:
+	case "oci-archive":
 		destImageName := imageNameForSaveDestination(newImage, source)
 		destRef, err = ociarchive.NewReference(output, destImageName) // destImageName may be ""
 		if err != nil {
@@ -124,9 +123,7 @@ func saveCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
 		}
 		manifestType = manifest.DockerV2Schema2MediaType
-	case libpod.DockerArchive:
-		fallthrough
-	case "":
+	case "docker-archive", "":
 		dst := output
 		destImageName := imageNameForSaveDestination(newImage, source)
 		if destImageName != "" {
