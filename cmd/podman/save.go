@@ -6,8 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/image/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
@@ -99,27 +103,38 @@ func saveCmd(c *cli.Context) error {
 		return err
 	}
 
-	var dst, manifestType string
+	var destRef types.ImageReference
+	var manifestType string
 	switch c.String("format") {
 	case libpod.OCIArchive:
-		dst = libpod.OCIArchive + ":" + output
 		destImageName := imageNameForSaveDestination(newImage, source)
-		if destImageName != "" {
-			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		destRef, err = ociarchive.NewReference(output, destImageName) // destImageName may be ""
+		if err != nil {
+			return errors.Wrapf(err, "error getting OCI archive ImageReference for (%q, %q)", output, destImageName)
 		}
 	case "oci-dir":
-		dst = libpod.DirTransport + ":" + output
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
 		manifestType = imgspecv1.MediaTypeImageManifest
 	case "docker-dir":
-		dst = libpod.DirTransport + ":" + output
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
 		manifestType = manifest.DockerV2Schema2MediaType
 	case libpod.DockerArchive:
 		fallthrough
 	case "":
-		dst = libpod.DockerArchive + ":" + output
+		dst := output
 		destImageName := imageNameForSaveDestination(newImage, source)
 		if destImageName != "" {
 			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		}
+		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		if err != nil {
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
 		}
 	default:
 		return errors.Errorf("unknown format option %q", c.String("format"))
@@ -134,7 +149,7 @@ func saveCmd(c *cli.Context) error {
 		}
 	}
 
-	if err := newImage.PushImage(getContext(), dst, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
+	if err := newImage.PushImageToReference(getContext(), destRef, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
 		if err2 := os.Remove(output); err2 != nil {
 			logrus.Errorf("error deleting %q: %v", output, err)
 		}
