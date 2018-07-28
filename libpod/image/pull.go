@@ -58,8 +58,9 @@ type pullRefPair struct {
 // pullGoal represents the prepared image references and decided behavior to be executed by imagePull
 type pullGoal struct {
 	refPairs             []pullRefPair
-	pullAllPairs         bool // Pull all refPairs instead of stopping on first success.
-	usedSearchRegistries bool // refPairs construction has depended on registries.GetRegistries()
+	pullAllPairs         bool     // Pull all refPairs instead of stopping on first success.
+	usedSearchRegistries bool     // refPairs construction has depended on registries.GetRegistries()
+	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
 }
 
 // pullRefName records a prepared source reference and a destination name to pull.
@@ -72,8 +73,9 @@ type pullRefName struct {
 // pullGoalNames is an intermediate variant of pullGoal which uses pullRefName instead of pullRefPair.
 type pullGoalNames struct {
 	refNames             []pullRefName
-	pullAllPairs         bool // Pull all refNames instead of stopping on first success.
-	usedSearchRegistries bool // refPairs construction has depended on registries.GetRegistries()
+	pullAllPairs         bool     // Pull all refNames instead of stopping on first success.
+	usedSearchRegistries bool     // refPairs construction has depended on registries.GetRegistries()
+	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
 }
 
 func singlePullRefNameGoal(rn pullRefName) *pullGoalNames {
@@ -81,6 +83,7 @@ func singlePullRefNameGoal(rn pullRefName) *pullGoalNames {
 		refNames:             []pullRefName{rn},
 		pullAllPairs:         false, // Does not really make a difference.
 		usedSearchRegistries: false,
+		searchedRegistries:   nil,
 	}
 }
 
@@ -148,6 +151,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			refNames:             res,
 			pullAllPairs:         true,
 			usedSearchRegistries: false,
+			searchedRegistries:   nil,
 		}, nil
 
 	case OCIArchive:
@@ -260,11 +264,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
 	if len(images) == 0 {
 		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
-		searchRegistries, err := registries.GetRegistries()
-		if err != nil {
-			return nil, err
-		}
-		if goal.usedSearchRegistries && len(searchRegistries) == 0 {
+		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
 		}
 		return nil, errors.Errorf("unable to find image in the registries defined in %q", registryPath)
@@ -334,6 +334,7 @@ func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames,
 		refNames:             pullNames,
 		pullAllPairs:         false,
 		usedSearchRegistries: true,
+		searchedRegistries:   searchRegistries,
 	}, nil
 }
 
@@ -369,5 +370,6 @@ func (ir *Runtime) pullGoalFromGoalNames(goalNames *pullGoalNames) (pullGoal, er
 		refPairs:             res,
 		pullAllPairs:         goalNames.pullAllPairs,
 		usedSearchRegistries: goalNames.usedSearchRegistries,
+		searchedRegistries:   goalNames.searchedRegistries,
 	}, nil
 }
