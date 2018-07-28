@@ -20,15 +20,14 @@ class Mixin:
         Will block if container has been detached.
         """
         with self._client() as podman:
-            results = podman.StartContainer(self.id)
-            logging.debug('Started Container "{}"'.format(
-                results['container']))
+            results = podman.StartContainer(self._id)
+            logging.debug('Started Container "%s"', results['container'])
 
             if not hasattr(self, 'pseudo_tty') or self.pseudo_tty is None:
                 return self._refresh(podman)
 
-            logging.debug('Setting up PseudoTTY for Container "{}"'.format(
-                results['container']))
+            logging.debug('Setting up PseudoTTY for Container "%s"',
+                          results['container'])
 
             try:
                 # save off the old settings for terminal
@@ -54,7 +53,7 @@ class Mixin:
 
                     sources = [skt, self.pseudo_tty.stdin]
                     while sources:
-                        logging.debug('Waiting on sources: {}'.format(sources))
+                        logging.debug('Waiting on sources: %s', sources)
                         readable, _, _ = select.select(sources, [], [])
 
                         if skt in readable:

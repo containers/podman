@@ -49,7 +49,7 @@ class PodmanError(VarlinkErrorProxy):
     pass
 
 
-error_map = {
+ERROR_MAP = {
     'io.projectatomic.podman.ContainerNotFound': ContainerNotFound,
     'io.projectatomic.podman.ErrorOccurred': ErrorOccurred,
     'io.projectatomic.podman.ImageNotFound': ImageNotFound,
@@ -60,6 +60,6 @@ error_map = {
 def error_factory(exception):
     """Map Exceptions to a discrete type."""
     try:
-        return error_map[exception.error()](exception)
+        return ERROR_MAP[exception.error()](exception)
     except KeyError:
         return exception
