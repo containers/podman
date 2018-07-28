@@ -48,7 +48,7 @@ var (
 	DefaultLocalRepo = "localhost"
 )
 
-// pullRefPair records a pair of prepared image references to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
+// pullRefPair records a pair of prepared image references to pull.
 type pullRefPair struct {
 	image  string
 	srcRef types.ImageReference
@@ -57,10 +57,11 @@ type pullRefPair struct {
 
 // pullGoal represents the prepared image references and decided behavior to be executed by imagePull
 type pullGoal struct {
-	refPairs []pullRefPair
+	refPairs     []pullRefPair
+	pullAllPairs bool // Pull all refPairs instead of stopping on first success.
 }
 
-// pullRefName records a prepared source reference and a destination name to try to pull (if not DockerArchive) or to pull all (if DockerArchive)
+// pullRefName records a prepared source reference and a destination name to pull.
 type pullRefName struct {
 	image   string
 	srcRef  types.ImageReference
@@ -69,11 +70,15 @@ type pullRefName struct {
 
 // pullGoalNames is an intermediate variant of pullGoal which uses pullRefName instead of pullRefPair.
 type pullGoalNames struct {
-	refNames []pullRefName
+	refNames     []pullRefName
+	pullAllPairs bool // Pull all refNames instead of stopping on first success.
 }
 
 func singlePullRefNameGoal(rn pullRefName) *pullGoalNames {
-	return &pullGoalNames{refNames: []pullRefName{rn}}
+	return &pullGoalNames{
+		refNames:     []pullRefName{rn},
+		pullAllPairs: false, // Does not really make a difference.
+	}
 }
 
 func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
@@ -137,7 +142,8 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			res = append(res, pullInfo)
 		}
 		return &pullGoalNames{
-			refNames: res,
+			refNames:     res,
+			pullAllPairs: true,
 		}, nil
 
 	case OCIArchive:
@@ -241,7 +247,7 @@ func (i *Image) pullImage(ctx context.Context, writer io.Writer, authfile, signa
 				io.WriteString(writer, "Failed\n")
 			}
 		} else {
-			if imageInfo.srcRef.Transport().Name() != DockerArchive {
+			if !goal.pullAllPairs {
 				return []string{imageInfo.image}, nil
 			}
 			images = append(images, imageInfo.image)
@@ -325,7 +331,8 @@ func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames,
 		pullNames = append(pullNames, ps)
 	}
 	return &pullGoalNames{
-		refNames: pullNames,
+		refNames:     pullNames,
+		pullAllPairs: false,
 	}, nil
 }
 
@@ -357,5 +364,8 @@ func (ir *Runtime) pullGoalFromGoalNames(goalNames *pullGoalNames) (pullGoal, er
 			dstRef: destRef,
 		}
 	}
-	return pullGoal{refPairs: res}, nil
+	return pullGoal{
+		refPairs:     res,
+		pullAllPairs: goalNames.pullAllPairs,
+	}, nil
 }
