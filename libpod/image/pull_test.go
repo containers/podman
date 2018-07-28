@@ -73,7 +73,7 @@ func TestGetPullRefName(t *testing.T) {
 		require.NoError(t, err, c.srcName)
 
 		res := getPullRefName(srcRef, c.destName)
-		assert.Equal(t, &pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res,
+		assert.Equal(t, pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res,
 			fmt.Sprintf("%#v %#v", c.srcName, c.destName))
 	}
 }
@@ -180,7 +180,7 @@ func TestRefNamesFromImageReference(t *testing.T) {
 			require.NoError(t, err, c.srcName)
 			require.Len(t, res, len(c.expected), c.srcName)
 			for i, e := range c.expected {
-				assert.Equal(t, &pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res[i], fmt.Sprintf("%s #%d", c.srcName, i))
+				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res[i], fmt.Sprintf("%s #%d", c.srcName, i))
 			}
 		}
 	}

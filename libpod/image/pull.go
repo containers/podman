@@ -62,11 +62,11 @@ type pullRefName struct {
 	dstName string
 }
 
-func singlePullRefNameGoal(rn *pullRefName) []*pullRefName {
-	return []*pullRefName{rn}
+func singlePullRefNameGoal(rn pullRefName) []pullRefName {
+	return []pullRefName{rn}
 }
 
-func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
+func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
@@ -79,7 +79,7 @@ func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 	if srcRef.DockerReference() != nil {
 		reference = srcRef.DockerReference().String()
 	}
-	return &pullRefName{
+	return pullRefName{
 		image:   destName,
 		srcRef:  srcRef,
 		dstName: reference,
@@ -87,7 +87,7 @@ func getPullRefName(srcRef types.ImageReference, destName string) *pullRefName {
 }
 
 // refNamesFromImageReference returns a list of pullRefName for a single ImageReference, depending on the used transport.
-func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]*pullRefName, error) {
+func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) ([]pullRefName, error) {
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
@@ -121,7 +121,7 @@ func refNamesFromImageReference(ctx context.Context, srcRef types.ImageReference
 		}
 
 		// Need to load in all the repo tags from the manifest
-		res := []*pullRefName{}
+		res := []pullRefName{}
 		for _, dst := range manifest[0].RepoTags {
 			pullInfo := getPullRefName(srcRef, dst)
 			res = append(res, pullInfo)
@@ -262,7 +262,7 @@ func hasShaInInputName(inputName string) bool {
 
 // refNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
 // image names to try pulling in combination with the registries.conf file as well
-func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, error) {
+func refNamesFromPossiblyUnqualifiedName(inputName string) ([]pullRefName, error) {
 	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
@@ -287,14 +287,14 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, erro
 		} else {
 			ps.dstName = ps.image
 		}
-		return singlePullRefNameGoal(&ps), nil
+		return singlePullRefNameGoal(ps), nil
 	}
 
 	searchRegistries, err := registries.GetRegistries()
 	if err != nil {
 		return nil, err
 	}
-	var pullNames []*pullRefName
+	var pullNames []pullRefName
 	for _, registry := range searchRegistries {
 		decomposedImage.registry = registry
 		imageName := decomposedImage.assembleWithTransport()
@@ -310,7 +310,7 @@ func refNamesFromPossiblyUnqualifiedName(inputName string) ([]*pullRefName, erro
 			srcRef: srcRef,
 		}
 		ps.dstName = ps.image
-		pullNames = append(pullNames, &ps)
+		pullNames = append(pullNames, ps)
 	}
 	return pullNames, nil
 }
@@ -325,8 +325,8 @@ func (i *Image) refPairsFromPossiblyUnqualifiedName() ([]*pullRefPair, error) {
 	return i.imageruntime.pullRefPairsFromRefNames(refNames)
 }
 
-// pullRefPairsFromNames converts a []*pullRefName to []*pullRefPair
-func (ir *Runtime) pullRefPairsFromRefNames(refNames []*pullRefName) ([]*pullRefPair, error) {
+// pullRefPairsFromNames converts a []pullRefName to []*pullRefPair
+func (ir *Runtime) pullRefPairsFromRefNames(refNames []pullRefName) ([]*pullRefPair, error) {
 	// Here we construct the destination references
 	res := make([]*pullRefPair, len(refNames))
 	for i, rn := range refNames {
