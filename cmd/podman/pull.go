@@ -111,7 +111,7 @@ func pullCmd(c *cli.Context) error {
 	}
 
 	// Possible for docker-archive to have multiple tags, so use NewFromLoad instead
-	if strings.Contains(image, libpod.DockerArchive) {
+	if strings.HasPrefix(image, libpod.DockerArchive+":") {
 		newImage, err := runtime.ImageRuntime().LoadFromArchive(getContext(), image, c.String("signature-policy"), writer)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image from %q", image)
