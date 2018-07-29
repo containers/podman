@@ -251,6 +251,16 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		}
 	}
 
+	// Get the lock
+	lockPath := filepath.Join(s.lockDir, string(id))
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
+	}
+	ctr.lock = lock
+	ctr.lock.Lock()
+	defer ctr.lock.Unlock()
+
 	configBytes := ctrBkt.Get(configKey)
 	if configBytes == nil {
 		return errors.Wrapf(ErrInternal, "container %s missing config key in DB", string(id))
@@ -275,14 +285,6 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		valid = false
 	}
 
-	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
-	}
-	ctr.lock = lock
-
 	ctr.runtime = s.runtime
 	ctr.valid = valid
 
@@ -302,6 +304,16 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 		}
 	}
 
+	// Get the lock
+	lockPath := filepath.Join(s.lockDir, string(id))
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
+	}
+	pod.lock = lock
+	pod.lock.Lock()
+	defer pod.lock.Unlock()
+
 	podConfigBytes := podDB.Get(configKey)
 	if podConfigBytes == nil {
 		return errors.Wrapf(ErrInternal, "pod %s is missing configuration key in DB", string(id))
@@ -319,14 +331,6 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	if err := json.Unmarshal(podStateBytes, pod.state); err != nil {
 		return errors.Wrapf(err, "error unmarshalling pod %s state from DB", string(id))
 	}
-
-	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
-	}
-	pod.lock = lock
 
 	pod.runtime = s.runtime
 	pod.valid = true
