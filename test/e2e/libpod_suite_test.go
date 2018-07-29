@@ -216,6 +216,9 @@ func WaitForContainer(p *PodmanTest) bool {
 // Cleanup cleans up the temporary store
 func (p *PodmanTest) Cleanup() {
 	// Remove all containers
+	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
+	stopall.WaitWithDefaultTimeout()
+
 	session := p.Podman([]string{"rm", "-fa"})
 	session.Wait(90)
 	// Nuke tempdir
