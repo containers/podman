@@ -35,7 +35,7 @@ var (
 	BB                 = "docker.io/library/busybox:latest"
 	BB_GLIBC           = "docker.io/library/busybox:glibc"
 	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
-	nginx              = "docker.io/library/nginx:latest"
+	nginx              = "quay.io/baude/alpine_nginx:latest"
 	defaultWaitTimeout = 90
 )
 

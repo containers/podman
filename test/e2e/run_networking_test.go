@@ -76,7 +76,7 @@ var _ = Describe("Podman rmi", func() {
 
 	It("podman run network expose ports in image metadata", func() {
 		podmanTest.RestoreArtifact(nginx)
-		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
+		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 		results := podmanTest.Podman([]string{"inspect", "-l"})

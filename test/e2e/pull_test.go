@@ -53,21 +53,21 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from alternate registry with tag", func() {
-		session := podmanTest.Podman([]string{"pull", "registry.fedoraproject.org/fedora-minimal:latest"})
+		session := podmanTest.Podman([]string{"pull", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "registry.fedoraproject.org/fedora-minimal:latest"})
+		session = podmanTest.Podman([]string{"rmi", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman pull from alternate registry without tag", func() {
-		session := podmanTest.Podman([]string{"pull", "registry.fedoraproject.org/fedora-minimal"})
+		session := podmanTest.Podman([]string{"pull", "quay.io/baude/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "registry.fedoraproject.org/fedora-minimal"})
+		session = podmanTest.Podman([]string{"rmi", "quay.io/baude/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
