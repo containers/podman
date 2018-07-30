@@ -192,14 +192,11 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman --sort by size", func() {
-		// these images chosen because their size would be sorted differently alphabetically vs
-		// by the size of their virtual fs
-		session := podmanTest.Podman([]string{"run", "docker.io/mattdm/fedora-small", "ls"})
+		session := podmanTest.Podman([]string{"create", "busybox", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
-		session = podmanTest.Podman([]string{"run", "-dt", "-P", "docker.io/library/nginx:latest"})
+		session = podmanTest.Podman([]string{"create", "-dt", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
