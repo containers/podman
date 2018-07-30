@@ -256,23 +256,8 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		return errors.Wrapf(ErrInternal, "container %s missing config key in DB", string(id))
 	}
 
-	stateBytes := ctrBkt.Get(stateKey)
-	if stateBytes == nil {
-		return errors.Wrapf(ErrInternal, "container %s missing state key in DB", string(id))
-	}
-
-	netNSBytes := ctrBkt.Get(netNSKey)
-
 	if err := json.Unmarshal(configBytes, ctr.config); err != nil {
 		return errors.Wrapf(err, "error unmarshalling container %s config", string(id))
-	}
-
-	if err := json.Unmarshal(stateBytes, ctr.state); err != nil {
-		return errors.Wrapf(err, "error unmarshalling container %s state", string(id))
-	}
-
-	if !parseNetNSBoltData(ctr, netNSBytes) {
-		valid = false
 	}
 
 	// Get the lock
@@ -311,15 +296,6 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 		return errors.Wrapf(err, "error unmarshalling pod %s config from DB", string(id))
 	}
 
-	podStateBytes := podDB.Get(stateKey)
-	if podStateBytes == nil {
-		return errors.Wrapf(ErrInternal, "pod %s is missing state key in DB", string(id))
-	}
-
-	if err := json.Unmarshal(podStateBytes, pod.state); err != nil {
-		return errors.Wrapf(err, "error unmarshalling pod %s state from DB", string(id))
-	}
-
 	// Get the lock
 	lockPath := filepath.Join(s.lockDir, string(id))
 	lock, err := storage.GetLockfile(lockPath)
@@ -352,7 +328,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s state to JSON", ctr.ID())
 	}
-	netNSPath := ctr.setNamespaceStatePath()
+	netNSPath := getNetNSPath(ctr)
 	dependsCtrs := ctr.Dependencies()
 
 	ctrID := []byte(ctr.ID())

@@ -528,8 +528,10 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return err
 	}
 
-	// Do we need to replace the container's netns?
-	ctr.setNamespace(netNSPath, newState)
+	// Handle network namespace
+	if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
+		return err
+	}
 
 	// New state compiled successfully, swap it into the current state
 	ctr.state = newState
@@ -555,7 +557,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s state to JSON", ctr.ID())
 	}
-	netNSPath := ctr.setNamespaceStatePath()
+	netNSPath := getNetNSPath(ctr)
 
 	ctrID := []byte(ctr.ID())
 
