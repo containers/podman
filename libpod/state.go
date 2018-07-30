@@ -1,6 +1,18 @@
 package libpod
 
-// State is a storage backend for libpod's current state
+// State is a storage backend for libpod's current state.
+// A State is only initialized once per instance of libpod.
+// As such, initialization methods for State implementations may safely assume
+// they will be run as a singleton.
+// For all container and pod retrieval methods, a State must retrieve the
+// Configuration struct of the container or pod and include it in the returned
+// struct. The State of the container or pod may optionally be included as well,
+// but this is not a requirement.
+// As such, all containers and pods must be synced with the database via the
+// UpdateContainer and UpdatePod calls before any state-specific information is
+// retrieved after they are pulled from the database.
+// Generally speaking, the syncContainer() call should be run at the beginning
+// of all API operations, which will silently handle this.
 type State interface {
 	// Close performs any pre-exit cleanup (e.g. closing database
 	// connections) that may be required
