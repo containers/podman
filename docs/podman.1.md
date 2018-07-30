@@ -171,6 +171,17 @@ Containers created by a non-root user are not visible to other users and are not
 
 It is required to have multiple uids/gids set for an user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
 
+If you have a recent version of usermod, you can execute the following
+commands to add the ranges to the files
+
+	$ sudo usermod --add-subuids 10000-75535 USERNAME
+	$ sudo usermod --add-subgids 10000-75535 USERNAME
+
+Or just add the content manually.
+
+	$ echo USERNAME:10000:65536 >> /etc/subuid
+	$ echo USERNAME:10000:65536 >> /etc/subgid
+
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
 Currently it is not possible to create a network device, so rootless containers need to run in the host network namespace.  If a rootless container creates a network namespace,
