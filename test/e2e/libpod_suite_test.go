@@ -13,27 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/image/copy"
-	"github.com/containers/image/signature"
-	"github.com/containers/image/storage"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
-	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/parsers/kernel"
 	"github.com/containers/storage/pkg/reexec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/inspect"
 )
-
-// - CRIO_ROOT=/var/tmp/checkout PODMAN_BINARY=/usr/bin/podman CONMON_BINARY=/usr/libexec/podman/conmon PAPR=1 sh .papr.sh
-// PODMAN_OPTIONS="--root $TESTDIR/crio $STORAGE_OPTIONS --runroot $TESTDIR/crio-run --runtime ${RUNTIME_BINARY} --conmon ${CONMON_BINARY} --cni-config-dir ${LIBPOD_CNI_CONFIG}"
-
-//TODO do the image caching
-// "$COPYIMG_BINARY" --root "$TESTDIR/crio" $STORAGE_OPTIONS --runroot "$TESTDIR/crio-run" --image-name=${IMAGES[${key}]} --import-from=dir:"$ARTIFACTS_PATH"/${key} --add-name=${IMAGES[${key}]}
-//TODO whats the best way to clean up after a test
 
 var (
 	PODMAN_BINARY      string
@@ -43,9 +29,10 @@ var (
 	INTEGRATION_ROOT   string
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{"alpine", "busybox", fedoraMinimal, nginx}
-	RESTORE_IMAGES     = []string{"alpine", "busybox"}
+	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx}
+	RESTORE_IMAGES     = []string{ALPINE, BB}
 	ALPINE             = "docker.io/library/alpine:latest"
+	BB                 = "docker.io/library/busybox:latest"
 	BB_GLIBC           = "docker.io/library/busybox:glibc"
 	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
 	nginx              = "docker.io/library/nginx:latest"
@@ -80,19 +67,6 @@ func TestLibpod(t *testing.T) {
 		CACHE_IMAGES = []string{}
 		RESTORE_IMAGES = []string{}
 	}
-
-	// HACK HACK HACK
-	// We leak file descriptors through c/storage locks and image caching
-	// Until we come up with a better solution, just set rlimits on open
-	// files really high
-	rlimits := new(syscall.Rlimit)
-	rlimits.Cur = 99999
-	rlimits.Max = 99999
-	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-		fmt.Printf("Error setting new rlimits: %v", err)
-		os.Exit(1)
-	}
-
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Libpod Suite")
 }
@@ -363,89 +337,29 @@ func (p *PodmanTest) CreateArtifact(image string) error {
 	if os.Getenv("NO_TEST_CACHE") != "" {
 		return nil
 	}
-	fmt.Printf("Caching %s...\n", image)
-	imageName := fmt.Sprintf("docker://%s", image)
-	systemContext := types.SystemContext{
-		SignaturePolicyPath: p.SignaturePolicyPath,
-	}
-	policy, err := signature.DefaultPolicy(&systemContext)
-	if err != nil {
-		return errors.Errorf("error loading signature policy: %v", err)
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		return errors.Errorf("error loading signature policy: %v", err)
-	}
-	defer func() {
-		_ = policyContext.Destroy()
-	}()
-	options := &copy.Options{}
+	fmt.Printf("Caching %s...", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	if _, err := os.Stat(destName); os.IsNotExist(err) {
+		pull := p.Podman([]string{"pull", image})
+		pull.Wait(90)
 
-	importRef, err := alltransports.ParseImageName(imageName)
-	if err != nil {
-		return errors.Errorf("error parsing image name %v: %v", image, err)
+		save := p.Podman([]string{"save", "-o", destName, image})
+		save.Wait(90)
+		fmt.Printf("\n")
+	} else {
+		fmt.Printf(" already exists.\n")
 	}
-
-	imageDir := strings.Replace(image, "/", "_", -1)
-	exportTo := filepath.Join("dir:", p.ArtifactPath, imageDir)
-	exportRef, err := alltransports.ParseImageName(exportTo)
-	if err != nil {
-		return errors.Errorf("error parsing image name %v: %v", exportTo, err)
-	}
-
-	return copy.Image(getTestContext(), policyContext, exportRef, importRef, options)
+	return nil
 }
 
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTest) RestoreArtifact(image string) error {
-	storeOptions := sstorage.DefaultStoreOptions
-	storeOptions.GraphDriverName = "vfs"
-	//storeOptions.GraphDriverOptions = storageOptions
-	storeOptions.GraphRoot = p.CrioRoot
-	storeOptions.RunRoot = p.RunRoot
-	store, err := sstorage.GetStore(storeOptions)
-	if err != nil {
-		return errors.Errorf("error opening storage: %v", err)
-	}
-	defer func() {
-		_, _ = store.Shutdown(false)
-	}()
-
-	storage.Transport.SetStore(store)
-
-	ref, err := storage.Transport.ParseStoreReference(store, image)
-	if err != nil {
-		return errors.Errorf("error parsing image name: %v", err)
-	}
-
-	imageDir := strings.Replace(image, "/", "_", -1)
-	importFrom := fmt.Sprintf("dir:%s", filepath.Join(p.ArtifactPath, imageDir))
-	importRef, err := alltransports.ParseImageName(importFrom)
-	if err != nil {
-		return errors.Errorf("error parsing image name %v: %v", image, err)
-	}
-
-	systemContext := types.SystemContext{
-		SignaturePolicyPath: p.SignaturePolicyPath,
-	}
-	policy, err := signature.DefaultPolicy(&systemContext)
-	if err != nil {
-		return errors.Errorf("error loading signature policy: %v", err)
-	}
-
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		return errors.Errorf("error loading signature policy: %v", err)
-	}
-	defer func() {
-		_ = policyContext.Destroy()
-	}()
-
-	options := &copy.Options{}
-	err = copy.Image(getTestContext(), policyContext, ref, importRef, options)
-	if err != nil {
-		return errors.Errorf("error importing %s: %v", importFrom, err)
-	}
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	restore := p.Podman([]string{"load", "-q", "-i", destName})
+	restore.Wait(90)
 	return nil
 }
 
