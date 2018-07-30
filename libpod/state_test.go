@@ -108,7 +108,7 @@ func TestAddAndGetContainer(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -128,7 +128,7 @@ func TestAddAndGetContainerFromMultiple(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr1.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr1, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr1, true)
 	})
 }
 
@@ -278,7 +278,7 @@ func TestAddCtrDepInPodFails(t *testing.T) {
 		assert.NoError(t, err)
 		require.Len(t, ctrs, 1)
 
-		testContainersEqual(t, testCtr1, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr1, true)
 	})
 }
 
@@ -328,7 +328,7 @@ func TestAddCtrDepInDifferentNamespaceFails(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(ctrs))
 
-		testContainersEqual(t, testCtr1, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr1, true)
 	})
 }
 
@@ -347,7 +347,7 @@ func TestAddCtrSameNamespaceSucceeds(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -417,7 +417,7 @@ func TestGetContainerInSameNamespaceSucceeds(t *testing.T) {
 		ctr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, ctr)
+		testContainersEqual(t, ctr, testCtr, true)
 	})
 }
 
@@ -434,7 +434,7 @@ func TestGetContainerInNamespaceWhileNotInNamespaceSucceeds(t *testing.T) {
 		ctr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, ctr)
+		testContainersEqual(t, ctr, testCtr, true)
 	})
 }
 
@@ -463,7 +463,7 @@ func TestLookupContainerByFullID(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -478,7 +478,7 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.ID()[0:8])
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -511,7 +511,7 @@ func TestLookupContainerByName(t *testing.T) {
 		retrievedCtr, err := state.LookupContainer(testCtr.Name())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -556,7 +556,7 @@ func TestLookupCtrInSameNamespaceSucceeds(t *testing.T) {
 		ctr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, ctr)
+		testContainersEqual(t, ctr, testCtr, true)
 	})
 }
 
@@ -597,7 +597,7 @@ func TestLookupContainerMatchInDifferentNamespaceSucceeds(t *testing.T) {
 		ctr, err := state.LookupContainer("000")
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr2, ctr)
+		testContainersEqual(t, ctr, testCtr2, true)
 	})
 }
 
@@ -701,7 +701,7 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 		err = state.UpdateContainer(testCtr)
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, testCtr, retrievedCtr, false)
 	})
 }
 
@@ -730,7 +730,7 @@ func TestSaveAndUpdateContainerSameNamespaceSucceeds(t *testing.T) {
 		err = state.UpdateContainer(testCtr)
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, testCtr, retrievedCtr, false)
 	})
 }
 
@@ -883,7 +883,7 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 		assert.NoError(t, err)
 		require.Len(t, ctrs, 1)
 
-		testContainersEqual(t, testCtr, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr, true)
 	})
 }
 
@@ -946,7 +946,7 @@ func TestGetContainerOneContainerInNamespace(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(ctrs))
 
-		testContainersEqual(t, testCtr1, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr1, true)
 	})
 }
 
@@ -1314,7 +1314,7 @@ func TestGetPodOnePod(t *testing.T) {
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 	})
 }
 
@@ -1335,7 +1335,7 @@ func TestGetOnePodFromTwo(t *testing.T) {
 		statePod, err := state.Pod(testPod1.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod1, statePod)
+		testPodsEqual(t, statePod, testPod1, true)
 	})
 }
 
@@ -1386,7 +1386,7 @@ func TestGetPodInNamespaceSucceeds(t *testing.T) {
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 	})
 }
 
@@ -1432,7 +1432,7 @@ func TestLookupPodFullID(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 	})
 }
 
@@ -1447,7 +1447,7 @@ func TestLookupPodUniquePartialID(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.ID()[0:8])
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 	})
 }
 
@@ -1481,7 +1481,7 @@ func TestLookupPodByName(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.Name())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, statePod, true)
 	})
 }
 
@@ -1526,7 +1526,7 @@ func TestLookupPodInSameNamespaceSucceeds(t *testing.T) {
 		statePod, err := state.LookupPod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 	})
 }
 
@@ -1570,7 +1570,7 @@ func TestLookupPodOneInDifferentNamespaceFindsRightPod(t *testing.T) {
 		pod, err := state.LookupPod(strings.Repeat("1", 5))
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod1, pod)
+		testPodsEqual(t, pod, testPod1, true)
 	})
 }
 
@@ -1686,8 +1686,7 @@ func TestAddPodValidPodSucceeds(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		testPodsEqual(t, testPod, allPods[0])
-		assert.Equal(t, testPod.valid, allPods[0].valid)
+		testPodsEqual(t, allPods[0], testPod, true)
 	})
 }
 
@@ -1807,8 +1806,7 @@ func TestAddPodSameNamespaceSucceeds(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		testPodsEqual(t, testPod, allPods[0])
-		assert.Equal(t, testPod.valid, allPods[0].valid)
+		testPodsEqual(t, allPods[0], testPod, true)
 	})
 }
 
@@ -1888,7 +1886,7 @@ func TestRemovePodFromPods(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		testPodsEqual(t, testPod2, allPods[0])
+		testPodsEqual(t, allPods[0], testPod2, true)
 	})
 }
 
@@ -1986,7 +1984,7 @@ func TestAllPodsFindsPod(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		testPodsEqual(t, testPod, allPods[0])
+		testPodsEqual(t, allPods[0], testPod, true)
 	})
 }
 
@@ -2070,7 +2068,7 @@ func TestAllPodsOnePodInDifferentNamespace(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allPods))
 
-		testPodsEqual(t, testPod1, allPods[0])
+		testPodsEqual(t, allPods[0], testPod1, true)
 	})
 }
 
@@ -2338,7 +2336,7 @@ func TestPodContainersOneContainer(t *testing.T) {
 		assert.NoError(t, err)
 		require.Len(t, ctrs, 1)
 
-		testContainersEqual(t, testCtr, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr, true)
 	})
 }
 
@@ -2644,8 +2642,8 @@ func TestAddContainerToPodSucceeds(t *testing.T) {
 		assert.NoError(t, err)
 		require.Len(t, allCtrs, 1)
 
-		testContainersEqual(t, testCtr, ctrs[0])
-		testContainersEqual(t, ctrs[0], allCtrs[0])
+		testContainersEqual(t, ctrs[0], testCtr, true)
+		testContainersEqual(t, ctrs[0], allCtrs[0], false)
 	})
 }
 
@@ -2710,7 +2708,7 @@ func TestAddContainerToPodWithAddContainer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(allCtrs))
 
-		testContainersEqual(t, testCtr1, ctrs[0])
+		testContainersEqual(t, ctrs[0], testCtr1, true)
 	})
 }
 
@@ -3029,7 +3027,7 @@ func TestAddContainerToPodSameNamespaceSucceeds(t *testing.T) {
 		allCtrs, err := state.AllContainers()
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(allCtrs))
-		testContainersEqual(t, testCtr, allCtrs[0])
+		testContainersEqual(t, allCtrs[0], testCtr, true)
 	})
 }
 
@@ -3123,7 +3121,7 @@ func TestAddCtrToPodSameNamespaceSucceeds(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		testContainersEqual(t, testCtr, retrievedCtr)
+		testContainersEqual(t, retrievedCtr, testCtr, true)
 	})
 }
 
@@ -3477,7 +3475,7 @@ func TestSaveAndUpdatePod(t *testing.T) {
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 
 		testPod.state.CgroupPath = "/new/path/for/test"
 
@@ -3487,7 +3485,7 @@ func TestSaveAndUpdatePod(t *testing.T) {
 		err = state.UpdatePod(statePod)
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, false)
 	})
 }
 
@@ -3506,7 +3504,7 @@ func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, statePod, testPod, true)
 
 		testPod.state.CgroupPath = "/new/path/for/test"
 
@@ -3516,6 +3514,6 @@ func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
 		err = state.UpdatePod(statePod)
 		assert.NoError(t, err)
 
-		testPodsEqual(t, testPod, statePod)
+		testPodsEqual(t, testPod, statePod, false)
 	})
 }
