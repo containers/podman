@@ -382,11 +382,11 @@ func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name str
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
-	imageID, err := runtime.RemoveImage(ctx, newImage, force)
+	_, err = runtime.RemoveImage(ctx, newImage, force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyRemoveImage(imageID)
+	return call.ReplyRemoveImage(newImage.ID())
 }
 
 // SearchImage searches all registries configured in /etc/containers/registries.conf for an image
