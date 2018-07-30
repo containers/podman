@@ -839,7 +839,7 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
-	if err := c.unmount(); err != nil {
+	if err := c.unmount(false); err != nil {
 		// If the container has already been removed, warn but don't
 		// error
 		// We still want to be able to kick the container out of the
@@ -1338,9 +1338,9 @@ func (c *Container) mount() (string, error) {
 }
 
 // unmount unmounts the container's root filesystem
-func (c *Container) unmount() error {
+func (c *Container) unmount(force bool) error {
 	// Also unmount storage
-	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID()); err != nil {
+	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID(), force); err != nil {
 		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
 	}
 

@@ -231,7 +231,7 @@ func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 	return mountPoint, nil
 }
 
-func (r *storageService) UnmountContainerImage(idOrName string) (bool, error) {
+func (r *storageService) UnmountContainerImage(idOrName string, force bool) (bool, error) {
 	if idOrName == "" {
 		return false, ErrEmptyID
 	}
@@ -239,7 +239,17 @@ func (r *storageService) UnmountContainerImage(idOrName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	mounted, err := r.store.Unmount(container.ID, false)
+
+	if !force {
+		mounted, err := r.store.Mounted(container.ID)
+		if err != nil {
+			return false, err
+		}
+		if mounted == 0 {
+			return false, storage.ErrLayerNotMounted
+		}
+	}
+	mounted, err := r.store.Unmount(container.ID, force)
 	if err != nil {
 		logrus.Debugf("failed to unmount container %q: %v", container.ID, err)
 		return false, err
