@@ -53,7 +53,7 @@ var _ = Describe("Podman refresh", func() {
 	})
 
 	Specify("Refresh with running container restarts container", func() {
-		createSession := podmanTest.Podman([]string{"run", "-d", ALPINE, "sleep", "120"})
+		createSession := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
 		createSession.WaitWithDefaultTimeout()
 		Expect(createSession.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))

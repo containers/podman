@@ -35,12 +35,9 @@ var _ = Describe("Podman run exit", func() {
 		mount := podmanTest.SystemExec("mount", nil)
 		mount.WaitWithDefaultTimeout()
 		out1 := mount.OutputToString()
-		result := podmanTest.Podman([]string{"run", "-d", ALPINE, "echo", "hello"})
+		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-
-		result = podmanTest.SystemExec("sleep", []string{"5"})
-		result.WaitWithDefaultTimeout()
 
 		mount = podmanTest.SystemExec("mount", nil)
 		mount.WaitWithDefaultTimeout()
