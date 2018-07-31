@@ -329,6 +329,12 @@ func resetState(state *containerState) error {
 
 // Refresh refreshes the container's state after a restart
 func (c *Container) refresh() error {
+	// Don't need a full sync, but we do need to update from the database to
+	// pick up potentially-missing container state
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return err
+	}
+
 	if !c.valid {
 		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
 	}
