@@ -2,9 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	. "github.com/onsi/ginkgo"
@@ -177,10 +175,7 @@ var _ = Describe("Podman search", func() {
 		Expect(push.ExitCode()).To(Equal(0))
 
 		// registries.conf set up
-		regFileBytes := []byte(regFileContents)
-		outfile := filepath.Join(podmanTest.TempDir, "registries.conf")
-		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
-		ioutil.WriteFile(outfile, regFileBytes, 0644)
+		podmanTest.setRegistriesConfigEnv([]byte(regFileContents))
 
 		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine"})
 		search.WaitWithDefaultTimeout()
@@ -191,7 +186,7 @@ var _ = Describe("Podman search", func() {
 		Expect(search.ErrorToString()).Should(BeEmpty())
 
 		// cleanup
-		os.Setenv("REGISTRIES_CONFIG_PATH", "")
+		resetRegistriesConfigEnv()
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
@@ -208,10 +203,7 @@ var _ = Describe("Podman search", func() {
 		Expect(push.ExitCode()).To(Equal(0))
 
 		// registries.conf set up
-		regFileBytes := []byte(regFileContents)
-		outfile := filepath.Join(podmanTest.TempDir, "registries.conf")
-		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
-		ioutil.WriteFile(outfile, regFileBytes, 0644)
+		podmanTest.setRegistriesConfigEnv([]byte(regFileContents))
 
 		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine", "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
@@ -222,7 +214,7 @@ var _ = Describe("Podman search", func() {
 		Expect(match).Should(BeTrue())
 
 		// cleanup
-		os.Setenv("REGISTRIES_CONFIG_PATH", "")
+		resetRegistriesConfigEnv()
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
@@ -239,10 +231,7 @@ var _ = Describe("Podman search", func() {
 		Expect(push.ExitCode()).To(Equal(0))
 
 		// registries.conf set up
-		regFileBytes := []byte(badRegFileContents)
-		outfile := filepath.Join(podmanTest.TempDir, "registries.conf")
-		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
-		ioutil.WriteFile(outfile, regFileBytes, 0644)
+		podmanTest.setRegistriesConfigEnv([]byte(badRegFileContents))
 
 		search := podmanTest.Podman([]string{"search", "localhost:5000/my-alpine"})
 		search.WaitWithDefaultTimeout()
@@ -253,7 +242,7 @@ var _ = Describe("Podman search", func() {
 		Expect(match).Should(BeTrue())
 
 		// cleanup
-		os.Setenv("REGISTRIES_CONFIG_PATH", "")
+		resetRegistriesConfigEnv()
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
@@ -278,10 +267,7 @@ var _ = Describe("Podman search", func() {
 		Expect(push.ExitCode()).To(Equal(0))
 
 		// registries.conf set up
-		regFileBytes := []byte(regFileContents2)
-		outfile := filepath.Join(podmanTest.TempDir, "registries.conf")
-		os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
-		ioutil.WriteFile(outfile, regFileBytes, 0644)
+		podmanTest.setRegistriesConfigEnv([]byte(regFileContents2))
 
 		search := podmanTest.Podman([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
@@ -292,6 +278,6 @@ var _ = Describe("Podman search", func() {
 		Expect(match).Should(BeTrue())
 
 		// cleanup
-		os.Setenv("REGISTRIES_CONFIG_PATH", "")
+		resetRegistriesConfigEnv()
 	})
 })

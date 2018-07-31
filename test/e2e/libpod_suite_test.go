@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -60,6 +61,12 @@ type PodmanTest struct {
 	TempDir             string
 }
 
+// HostOS is a simple struct for the test os
+type HostOS struct {
+	Distribution string
+	Version      string
+}
+
 // TestLibpod ginkgo master function
 func TestLibpod(t *testing.T) {
 	if reexec.Init() {
@@ -91,7 +98,20 @@ var _ = BeforeSuite(func() {
 			os.Exit(1)
 		}
 	}
-
+	host := GetHostDistributionInfo()
+	if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
+		f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Println("Unable to enable userspace on RHEL 7")
+			os.Exit(1)
+		}
+		_, err = f.WriteString("15000")
+		if err != nil {
+			fmt.Println("Unable to enable userspace on RHEL 7")
+			os.Exit(1)
+		}
+		f.Close()
+	}
 })
 
 // CreateTempDirin
@@ -101,6 +121,7 @@ func CreateTempDirInTempDir() (string, error) {
 
 // PodmanCreate creates a PodmanTest instance for the tests
 func PodmanCreate(tempDir string) PodmanTest {
+
 	cwd, _ := os.Getwd()
 
 	podmanBinary := filepath.Join(cwd, "../../bin/podman")
@@ -123,7 +144,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 	runCBinary := "/usr/bin/runc"
 	CNIConfigDir := "/etc/cni/net.d"
 
-	return PodmanTest{
+	p := PodmanTest{
 		PodmanBinary:        podmanBinary,
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),
@@ -135,6 +156,10 @@ func PodmanCreate(tempDir string) PodmanTest {
 		ArtifactPath:        ARTIFACT_DIR,
 		TempDir:             tempDir,
 	}
+
+	// Setup registries.conf ENV variable
+	p.setDefaultRegistriesConfigEnv()
+	return p
 }
 
 //MakeOptions assembles all the podman main options
@@ -201,6 +226,9 @@ func (p *PodmanTest) Cleanup() {
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
 	}
+
+	// Clean up the registries configuration file ENV variable set in Create
+	resetRegistriesConfigEnv()
 }
 
 // CleanupPod cleans up the temporary store
@@ -571,24 +599,40 @@ func (p *PodmanTest) BuildImage(dockerfile, imageName string, layers string) {
 	Expect(session.ExitCode()).To(Equal(0))
 }
 
-//GetHostDistribution returns the dist in string format. If the
-//distribution cannot be determined, an empty string will be returned.
-func (p *PodmanTest) GetHostDistribution() string {
-	content, err := ioutil.ReadFile("/etc/os-release")
+//GetHostDistributionInfo returns a struct with its distribution name and version
+func GetHostDistributionInfo() HostOS {
+	f, err := os.Open("/etc/os-release")
+	defer f.Close()
 	if err != nil {
-		return ""
+		return HostOS{}
 	}
-	for _, line := range content {
-		if strings.HasPrefix(fmt.Sprintf("%x", line), "ID") {
-			fields := strings.Split(fmt.Sprintf("%x", line), "=")
-			if len(fields) < 2 {
-				return ""
-			}
-			return strings.Trim(fields[1], "\"")
 
+	l := bufio.NewScanner(f)
+	host := HostOS{}
+	for l.Scan() {
+		if strings.HasPrefix(l.Text(), "ID=") {
+			host.Distribution = strings.Replace(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "", -1)
+		}
+		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
+			host.Version = strings.Replace(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "", -1)
 		}
 	}
-	return ""
+	return host
+}
+
+func (p *PodmanTest) setDefaultRegistriesConfigEnv() {
+	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
+	os.Setenv("REGISTRIES_CONFIG_PATH", defaultFile)
+}
+
+func (p *PodmanTest) setRegistriesConfigEnv(b []byte) {
+	outfile := filepath.Join(p.TempDir, "registries.conf")
+	os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
+	ioutil.WriteFile(outfile, b, 0644)
+}
+
+func resetRegistriesConfigEnv() {
+	os.Setenv("REGISTRIES_CONFIG_PATH", "")
 }
 
 // IsKernelNewThan compares the current kernel version to one provided.  If
