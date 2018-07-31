@@ -272,7 +272,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
 		}
-		return nil, errors.Errorf("unable to find image in the registries defined in %q", registryPath)
+		return nil, errors.Errorf("unable to find image on registries defined in %s, or you do not have pull access", registryPath)
 	}
 	return images, nil
 }
