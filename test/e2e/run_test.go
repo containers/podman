@@ -490,11 +490,12 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with built-in volume image", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", "docker.io/library/redis:alpine", "ls"})
+		podmanTest.RestoreArtifact(redis)
+		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "docker.io/library/redis:alpine"})
+		session = podmanTest.Podman([]string{"rmi", redis})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -524,7 +525,8 @@ USER mail`
 		err = ioutil.WriteFile(volFile, []byte(data), 0755)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"create", "--volume", vol + ":/myvol", "docker.io/library/redis:alpine", "sh"})
+		podmanTest.RestoreArtifact(redis)
+		session := podmanTest.Podman([]string{"create", "--volume", vol + ":/myvol", redis, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ctrID := session.OutputToString()
@@ -539,7 +541,8 @@ USER mail`
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {
-		session := podmanTest.Podman([]string{"create", "docker.io/library/redis:alpine", "sh"})
+		podmanTest.RestoreArtifact(redis)
+		session := podmanTest.Podman([]string{"create", redis, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ctrID := session.OutputToString()

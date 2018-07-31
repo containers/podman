@@ -123,7 +123,8 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {
-		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		podmanTest.RestoreArtifact(registry)
+		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg.ExitCode()).To(Equal(0))
 
@@ -142,7 +143,8 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search in local registry", func() {
-		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		podmanTest.RestoreArtifact(registry)
+		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
@@ -161,7 +163,8 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
-		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry4", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		podmanTest.RestoreArtifact(registry)
+		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry4", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
@@ -192,7 +195,8 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry5", "registry:2"})
+		podmanTest.RestoreArtifact(registry)
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry5", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
@@ -222,7 +226,8 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry6", "registry:2"})
+		podmanTest.RestoreArtifact(registry)
+		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry6", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
@@ -252,17 +257,18 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
-		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry7", "registry:2"})
-		registry.WaitWithDefaultTimeout()
-		Expect(registry.ExitCode()).To(Equal(0))
+		podmanTest.RestoreArtifact(registry)
+		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry7", registry})
+		registryLocal.WaitWithDefaultTimeout()
+		Expect(registryLocal.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(&podmanTest, "registry7", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
-		registry = podmanTest.Podman([]string{"run", "-d", "-p", "6000:5000", "--name", "registry8", "registry:2"})
-		registry.WaitWithDefaultTimeout()
-		Expect(registry.ExitCode()).To(Equal(0))
+		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", "6000:5000", "--name", "registry8", registry})
+		registryLocal.WaitWithDefaultTimeout()
+		Expect(registryLocal.ExitCode()).To(Equal(0))
 
 		if !WaitContainerReady(&podmanTest, "registry8", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")

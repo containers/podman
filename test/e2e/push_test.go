@@ -58,7 +58,8 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", "docker.io/library/registry:2", "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		podmanTest.RestoreArtifact(registry)
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -91,8 +92,8 @@ var _ = Describe("Podman push", func() {
 				defer podmanTest.SystemExec("setenforce", []string{"1"})
 			}
 		}
-
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", "registry:2", "-Bbn", "podmantest", "test"})
+		podmanTest.RestoreArtifact(registry)
+		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", registry, "-Bbn", "podmantest", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -108,7 +109,7 @@ var _ = Describe("Podman push", func() {
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", "registry:2"})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", registry})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

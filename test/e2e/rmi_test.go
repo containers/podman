@@ -150,7 +150,7 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "--name", "c_test1", ALPINE, "true"})
+		session = podmanTest.Podman([]string{"create", "--name", "c_test1", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -158,7 +158,7 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "--name", "c_test2", "test1", "true"})
+		session = podmanTest.Podman([]string{"create", "--name", "c_test2", "test1", "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

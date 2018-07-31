@@ -193,9 +193,8 @@ var _ = Describe("Podman load", func() {
 
 	It("podman load localhost repo from dir", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load")
-		podmanTest.RestoreArtifact(fedoraMinimal)
 
-		setup := podmanTest.Podman([]string{"tag", "fedora-minimal", "hello:world"})
+		setup := podmanTest.Podman([]string{"tag", BB, "hello:world"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
@@ -218,16 +217,16 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load xz compressed image", func() {
-		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
+		outfile := filepath.Join(podmanTest.TempDir, "bb.tar")
 
-		save := podmanTest.Podman([]string{"save", "-o", outfile, ALPINE})
+		save := podmanTest.Podman([]string{"save", "-o", outfile, BB})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 		session := podmanTest.SystemExec("xz", []string{outfile})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
+		rmi := podmanTest.Podman([]string{"rmi", BB})
 		rmi.WaitWithDefaultTimeout()
 		Expect(rmi.ExitCode()).To(Equal(0))
 

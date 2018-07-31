@@ -29,13 +29,15 @@ var (
 	INTEGRATION_ROOT   string
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx}
+	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry}
 	RESTORE_IMAGES     = []string{ALPINE, BB}
 	ALPINE             = "docker.io/library/alpine:latest"
 	BB                 = "docker.io/library/busybox:latest"
 	BB_GLIBC           = "docker.io/library/busybox:glibc"
 	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
 	nginx              = "quay.io/baude/alpine_nginx:latest"
+	redis              = "docker.io/library/redis:alpine"
+	registry           = "docker.io/library/registry:2"
 	defaultWaitTimeout = 90
 )
 
