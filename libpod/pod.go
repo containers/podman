@@ -154,6 +154,11 @@ func (p *Pod) save() error {
 
 // Refresh a pod's state after restart
 func (p *Pod) refresh() error {
+	// Need to to an update from the DB to pull potentially-missing state
+	if err := p.runtime.state.UpdatePod(p); err != nil {
+		return err
+	}
+
 	if !p.valid {
 		return ErrPodRemoved
 	}
