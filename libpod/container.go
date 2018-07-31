@@ -92,7 +92,16 @@ func (ns LinuxNS) String() string {
 	}
 }
 
-// Container is a single OCI container
+// Container is a single OCI container.
+// All operations on a Container that access state must begin with a call to
+// syncContainer().
+// There is no guarantee that state exists in a readable state before
+// syncContainer() is run, and even if it does, its contents will be out of date
+// and must be refreshed from the database.
+// Generally, this requirement applies only to top-level functions; helpers can
+// assume that their callers handled this requirement. Generally speaking, if a
+// function takes the container lock and accesses any part of state, it should
+// syncContainer() immediately after locking.
 // ffjson: skip
 type Container struct {
 	config *ContainerConfig

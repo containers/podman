@@ -12,7 +12,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Pod represents a group of containers that may share namespaces
+// Pod represents a group of containers that are managed together.
+// Any operations on a Pod that access state must begin with a call to
+// updatePod().
+// There is no guarantee that state exists in a readable state before this call,
+// and even if it does its contents will be out of date and must be refreshed
+// from the database.
+// Generally, this requirement applies only to top-level functions; helpers can
+// assume their callers handled this requirement. Generally speaking, if a
+// function takes the pod lock and accesses any part of state, it should
+// updatePod() immediately after locking.
 // ffjson: skip
 type Pod struct {
 	config *PodConfig
@@ -145,6 +154,11 @@ func (p *Pod) save() error {
 
 // Refresh a pod's state after restart
 func (p *Pod) refresh() error {
+	// Need to to an update from the DB to pull potentially-missing state
+	if err := p.runtime.state.UpdatePod(p); err != nil {
+		return err
+	}
+
 	if !p.valid {
 		return ErrPodRemoved
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -145,22 +146,26 @@ func getTestPod2(lockPath string) (*Pod, error) {
 
 // This horrible hack tests if containers are equal in a way that should handle
 // empty arrays being dropped to nil pointers in the spec JSON
-func testContainersEqual(t *testing.T, a, b *Container) {
+// For some operations (container retrieval from the database) state is allowed
+// to be empty. This is controlled by the allowedEmpty bool.
+func testContainersEqual(t *testing.T, a, b *Container, allowedEmpty bool) {
 	if a == nil && b == nil {
 		return
 	}
 	require.NotNil(t, a)
 	require.NotNil(t, b)
 
-	assert.NotNil(t, a.config)
-	assert.NotNil(t, b.config)
-	assert.NotNil(t, a.state)
-	assert.NotNil(t, b.state)
+	require.NotNil(t, a.config)
+	require.NotNil(t, b.config)
+	require.NotNil(t, a.state)
+	require.NotNil(t, b.state)
 
 	aConfig := new(ContainerConfig)
 	bConfig := new(ContainerConfig)
 	aState := new(containerState)
 	bState := new(containerState)
+
+	blankState := new(containerState)
 
 	assert.Equal(t, a.valid, b.valid)
 
@@ -186,25 +191,38 @@ func testContainersEqual(t *testing.T, a, b *Container) {
 	err = json.Unmarshal(bStateJSON, bState)
 	assert.NoError(t, err)
 
-	assert.EqualValues(t, aState, bState)
+	if allowedEmpty {
+		assert.True(t, reflect.DeepEqual(aState, bState) || reflect.DeepEqual(aState, blankState))
+	} else {
+		assert.EqualValues(t, aState, bState)
+	}
 }
 
-// Test if pods are equal
-func testPodsEqual(t *testing.T, a, b *Pod) {
+// Test if pods are equal.
+// For some operations (pod retrieval from the database) state is allowed to be
+// empty. This is controlled by the allowedEmpty bool.
+func testPodsEqual(t *testing.T, a, b *Pod, allowedEmpty bool) {
 	if a == nil && b == nil {
 		return
 	}
 
-	assert.NotNil(t, a)
-	assert.NotNil(t, b)
+	blankState := new(podState)
 
-	assert.NotNil(t, a.config)
-	assert.NotNil(t, b.config)
-	assert.NotNil(t, a.state)
-	assert.NotNil(t, b.state)
+	require.NotNil(t, a)
+	require.NotNil(t, b)
+
+	require.NotNil(t, a.config)
+	require.NotNil(t, b.config)
+	require.NotNil(t, a.state)
+	require.NotNil(t, b.state)
 
 	assert.Equal(t, a.valid, b.valid)
 
 	assert.EqualValues(t, a.config, b.config)
-	assert.EqualValues(t, a.state, b.state)
+
+	if allowedEmpty {
+		assert.True(t, reflect.DeepEqual(a.state, b.state) || reflect.DeepEqual(a.state, blankState))
+	} else {
+		assert.EqualValues(t, a.state, b.state)
+	}
 }
