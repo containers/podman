@@ -257,17 +257,20 @@ const registriesConfWithSearch = `[registries.search]
 registries = ['example.com', 'docker.io']
 `
 
-func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
+func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	type pullRefStrings struct{ image, srcRef, dstName string } // pullRefName with string data only
+	type pullRefStrings struct{ image, srcRef, dstName string } // pullRefPair with string data only
 
-	registriesConf, err := ioutil.TempFile("", "TestPullGoalNamesFromPossiblyUnqualifiedName")
+	registriesConf, err := ioutil.TempFile("", "TestPullGoalFromPossiblyUnqualifiedName")
 	require.NoError(t, err)
 	defer registriesConf.Close()
 	defer os.Remove(registriesConf.Name())
 
 	err = ioutil.WriteFile(registriesConf.Name(), []byte(registriesConfWithSearch), 0600)
 	require.NoError(t, err)
+
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
 
 	// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
 	// run in parallel unless they opt in by calling t.Parallel().  So don’t do that.
@@ -290,19 +293,18 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 		{ // Fully-explicit docker.io, name-only.
 			"docker.io/library/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-			[]pullRefStrings{{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox"}},
+			[]pullRefStrings{{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox:latest"}},
 			false,
 		},
 		{ // docker.io with implied /library/, name-only.
 			"docker.io/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-			// The .dstName fields differ for the explicit/implicit /library/ cases, but StorageTransport.ParseStoreReference normalizes that.
-			[]pullRefStrings{{"docker.io/busybox", "docker://busybox:latest", "docker.io/busybox"}},
+			[]pullRefStrings{{"docker.io/busybox", "docker://busybox:latest", "docker.io/library/busybox:latest"}},
 			false,
 		},
 		{ // Qualified example.com, name-only.
 			"example.com/ns/busybox",
-			[]pullRefStrings{{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox"}},
+			[]pullRefStrings{{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox:latest"}},
 			false,
 		},
 		{ // Qualified example.com, name:tag.
@@ -324,7 +326,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"example.com/busybox:latest", "docker://example.com/busybox:latest", "example.com/busybox:latest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/busybox:latest"},
+				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/library/busybox:latest"},
 			},
 			true,
 		},
@@ -333,7 +335,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			// FIXME: This is interpreted as "registry == ns", and actual pull happens from docker.io/ns/busybox:latest;
 			// example.com should be first in the list but isn't used at all.
 			[]pullRefStrings{
-				{"ns/busybox", "docker://ns/busybox:latest", "ns/busybox"},
+				{"ns/busybox", "docker://ns/busybox:latest", "docker.io/ns/busybox:latest"},
 			},
 			false,
 		},
@@ -342,7 +344,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"example.com/busybox:notlatest", "docker://example.com/busybox:notlatest", "example.com/busybox:notlatest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/busybox:notlatest"},
+				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/library/busybox:notlatest"},
 			},
 			true,
 		},
@@ -352,27 +354,24 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 				// FIXME?! Why is .input and .dstName dropping the digest, and adding :none?!
 				{"example.com/busybox:none", "docker://example.com/busybox" + digestSuffix, "example.com/busybox:none"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/busybox:none"},
+				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/library/busybox:none"},
 			},
 			true,
 		},
 		// Unqualified, name:tag@digest. This code is happy to try, but .srcRef parsing currently rejects such input.
 		{"busybox:notlatest" + digestSuffix, nil, false},
 	} {
-		res, err := pullGoalNamesFromPossiblyUnqualifiedName(c.input)
+		res, err := ir.pullGoalFromPossiblyUnqualifiedName(c.input)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			strings := make([]pullRefStrings, len(res.refNames))
-			for i, rn := range res.refNames {
-				strings[i] = pullRefStrings{
-					image:   rn.image,
-					srcRef:  transports.ImageName(rn.srcRef),
-					dstName: rn.dstName,
-				}
+			for i, e := range c.expected {
+				testDescription := fmt.Sprintf("%s #%d", c.input, i)
+				assert.Equal(t, e.image, res.refPairs[i].image, testDescription)
+				assert.Equal(t, e.srcRef, transports.ImageName(res.refPairs[i].srcRef), testDescription)
+				assert.Equal(t, e.dstName, storageReferenceWithoutLocation(res.refPairs[i].dstRef), testDescription)
 			}
-			assert.Equal(t, c.expected, strings, c.input)
 			assert.False(t, res.pullAllPairs, c.input)
 			assert.Equal(t, c.expectedUsedSearchRegistries, res.usedSearchRegistries, c.input)
 			if !c.expectedUsedSearchRegistries {
