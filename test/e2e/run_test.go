@@ -562,7 +562,7 @@ USER mail`
 		err = os.MkdirAll(vol2, 0755)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:ro", "--volume", vol2 + ":/myvol2", ALPINE, "touch", "/myvol2/foo.txt"})
+		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", ALPINE, "touch", "/myvol2/foo.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

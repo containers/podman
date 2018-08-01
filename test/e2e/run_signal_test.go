@@ -63,7 +63,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		udsPath := filepath.Join(udsDir, "fifo")
 		syscall.Mkfifo(udsPath, 0600)
 
-		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
+		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
 		uds, _ := os.OpenFile(udsPath, os.O_RDONLY, 0600)
 		defer uds.Close()
