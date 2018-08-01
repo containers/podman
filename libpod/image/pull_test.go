@@ -61,16 +61,18 @@ func storageReferenceWithoutLocation(ref types.ImageReference) string {
 	return res
 }
 
-func TestGetPullRefName(t *testing.T) {
+func TestGetPullRefPair(t *testing.T) {
 	const imageID = "@0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
 
 	for _, c := range []struct{ srcName, destName, expectedImage, expectedDstName string }{
 		// == Source does not have a Docker reference (as is the case for docker-archive:, oci-archive, dir:); destination formats:
 		{ // registry/name, no tag:
 			"dir:/dev/this-does-not-exist", "example.com/from-directory",
-			// The destName value will be interpreted as "example.com/from-directory:latest" by storageTransport.
-			"example.com/from-directory", "example.com/from-directory",
+			"example.com/from-directory", "example.com/from-directory:latest",
 		},
 		{ // name, no registry, no tag:
 			"dir:/dev/this-does-not-exist", "from-directory",
@@ -98,7 +100,7 @@ func TestGetPullRefName(t *testing.T) {
 		{ // ns/name:tag, no registry:
 			// FIXME: This is interpreted as "registry == ns"
 			"dir:/dev/this-does-not-exist", "ns/from-directory:notlatest",
-			"ns/from-directory:notlatest", "ns/from-directory:notlatest",
+			"ns/from-directory:notlatest", "docker.io/ns/from-directory:notlatest",
 		},
 		{ // containers-storage image ID
 			"dir:/dev/this-does-not-exist", imageID,
@@ -116,13 +118,22 @@ func TestGetPullRefName(t *testing.T) {
 			"docker://busybox", "docker://busybox:destination",
 			"docker://busybox:destination", "docker.io/library/busybox:latest",
 		},
+		// == Invalid destination format.
+		{"tarball:/dev/null", "tarball:/dev/null", "", ""},
 	} {
+		testDescription := fmt.Sprintf("%#v %#v", c.srcName, c.destName)
 		srcRef, err := alltransports.ParseImageName(c.srcName)
-		require.NoError(t, err, c.srcName)
+		require.NoError(t, err, testDescription)
 
-		res := getPullRefName(srcRef, c.destName)
-		assert.Equal(t, pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res,
-			fmt.Sprintf("%#v %#v", c.srcName, c.destName))
+		res, err := ir.getPullRefPair(srcRef, c.destName)
+		if c.expectedDstName == "" {
+			assert.Error(t, err, testDescription)
+		} else {
+			require.NoError(t, err, testDescription)
+			assert.Equal(t, c.expectedImage, res.image, testDescription)
+			assert.Equal(t, srcRef, res.srcRef, testDescription)
+			assert.Equal(t, c.expectedDstName, storageReferenceWithoutLocation(res.dstRef), testDescription)
+		}
 	}
 }
 
