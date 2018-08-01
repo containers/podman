@@ -441,7 +441,7 @@ func (c *Container) Mount() (string, error) {
 }
 
 // Unmount unmounts a container's filesystem on the host
-func (c *Container) Unmount() error {
+func (c *Container) Unmount(force bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -469,7 +469,7 @@ func (c *Container) Unmount() error {
 			return errors.Wrapf(err, "can't unmount %s last mount, it is still in use", c.ID())
 		}
 	}
-	return c.unmount()
+	return c.unmount(force)
 }
 
 // Pause pauses a container

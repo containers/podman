@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/libpod"
@@ -16,13 +17,24 @@ var (
 			Name:  "all, a",
 			Usage: "umount all of the currently mounted containers",
 		},
+		cli.BoolFlag{
+			Name:  "force, f",
+			Usage: "force the complete umount all of the currently mounted containers",
+		},
 	}
 
+	description = `
+Container storage increments a mount counter each time a container is mounted.
+When a container is unmounted, the mount counter is decremented and the
+container's root filesystem is physically unmounted only when the mount
+counter reaches zero indicating no other processes are using the mount.
+An unmount can be forced with the --force flag.
+`
 	umountCommand = cli.Command{
 		Name:        "umount",
 		Aliases:     []string{"unmount"},
 		Usage:       "Unmounts working container's root filesystem",
-		Description: "Unmounts working container's root filesystem",
+		Description: description,
 		Flags:       umountFlags,
 		Action:      umountCmd,
 		ArgsUsage:   "CONTAINER-NAME-OR-ID",
@@ -36,6 +48,7 @@ func umountCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
+	force := c.Bool("force")
 	umountAll := c.Bool("all")
 	args := c.Args()
 	if len(args) == 0 && !umountAll {
@@ -58,7 +71,7 @@ func umountCmd(c *cli.Context) error {
 				continue
 			}
 
-			if err = ctr.Unmount(); err != nil {
+			if err = ctr.Unmount(force); err != nil {
 				if lastError != nil {
 					logrus.Error(lastError)
 				}
@@ -78,7 +91,10 @@ func umountCmd(c *cli.Context) error {
 				continue
 			}
 
-			if err = ctr.Unmount(); err != nil {
+			if err = ctr.Unmount(force); err != nil {
+				if umountAll && errors.Cause(err) == storage.ErrLayerNotMounted {
+					continue
+				}
 				if lastError != nil {
 					logrus.Error(lastError)
 				}
