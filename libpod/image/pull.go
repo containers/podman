@@ -63,6 +63,16 @@ type pullGoal struct {
 	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
 }
 
+// singlePullRefPairGoal returns a no-frills pull goal for the specified reference pair.
+func singlePullRefPairGoal(rp pullRefPair) *pullGoal {
+	return &pullGoal{
+		refPairs:             []pullRefPair{rp},
+		pullAllPairs:         false, // Does not really make a difference.
+		usedSearchRegistries: false,
+		searchedRegistries:   nil,
+	}
+}
+
 // pullRefName records a prepared source reference and a destination name to pull.
 type pullRefName struct {
 	image   string
@@ -87,7 +97,7 @@ func singlePullRefNameGoal(rn pullRefName) *pullGoalNames {
 	}
 }
 
-func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
+func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) (pullRefPair, error) {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
@@ -100,22 +110,24 @@ func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
 	if srcRef.DockerReference() != nil {
 		reference = srcRef.DockerReference().String()
 	}
-	return pullRefName{
-		image:   destName,
-		srcRef:  srcRef,
-		dstName: reference,
+	destRef, err := is.Transport.ParseStoreReference(ir.store, reference)
+	if err != nil {
+		return pullRefPair{}, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
 	}
+	return pullRefPair{
+		image:  destName,
+		srcRef: srcRef,
+		dstRef: destRef,
+	}, nil
 }
 
-// getSinglePullRefNameGoal calls getPullRefName with the specified parameters, and returns a single-pair goal for the return value.
-func (ir *Runtime) getSinglePullRefNameGoal(srcRef types.ImageReference, destName string) (*pullGoal, error) {
-	rn := getPullRefName(srcRef, destName)
-	goalNames := singlePullRefNameGoal(rn)
-	goal, err := ir.pullGoalFromGoalNames(goalNames)
+// getSinglePullRefPairGoal calls getPullRefPair with the specified parameters, and returns a single-pair goal for the return value.
+func (ir *Runtime) getSinglePullRefPairGoal(srcRef types.ImageReference, destName string) (*pullGoal, error) {
+	rp, err := ir.getPullRefPair(srcRef, destName)
 	if err != nil {
 		return nil, err
 	}
-	return &goal, nil
+	return singlePullRefPairGoal(rp), nil
 }
 
 // pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
@@ -140,7 +152,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 			if err != nil {
 				return nil, err
 			}
-			return ir.getSinglePullRefNameGoal(srcRef, reference)
+			return ir.getSinglePullRefPairGoal(srcRef, reference)
 		}
 
 		if len(manifest[0].RepoTags) == 0 {
@@ -149,25 +161,24 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 			if err != nil {
 				return nil, err
 			}
-			return ir.getSinglePullRefNameGoal(srcRef, digest)
+			return ir.getSinglePullRefPairGoal(srcRef, digest)
 		}
 
 		// Need to load in all the repo tags from the manifest
-		res := []pullRefName{}
+		res := []pullRefPair{}
 		for _, dst := range manifest[0].RepoTags {
-			pullInfo := getPullRefName(srcRef, dst)
+			pullInfo, err := ir.getPullRefPair(srcRef, dst)
+			if err != nil {
+				return nil, err
+			}
 			res = append(res, pullInfo)
 		}
-		goal, err := ir.pullGoalFromGoalNames(&pullGoalNames{
-			refNames:             res,
+		return &pullGoal{
+			refPairs:             res,
 			pullAllPairs:         true,
 			usedSearchRegistries: false,
 			searchedRegistries:   nil,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return &goal, nil
+		}, nil
 
 	case OCIArchive:
 		// retrieve the manifest from index.json to access the image name
@@ -187,7 +198,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		return ir.getSinglePullRefNameGoal(srcRef, dest)
+		return ir.getSinglePullRefPairGoal(srcRef, dest)
 
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
@@ -198,10 +209,10 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		return ir.getSinglePullRefNameGoal(srcRef, image)
+		return ir.getSinglePullRefPairGoal(srcRef, image)
 
 	default:
-		return ir.getSinglePullRefNameGoal(srcRef, imgName)
+		return ir.getSinglePullRefPairGoal(srcRef, imgName)
 	}
 }
 
