@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
+	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
@@ -45,10 +47,10 @@ var (
 func loadCmd(c *cli.Context) error {
 
 	args := c.Args()
-	var image string
+	var imageName string
 
 	if len(args) == 1 {
-		image = args[0]
+		imageName = args[0]
 	}
 	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
@@ -104,20 +106,24 @@ func loadCmd(c *cli.Context) error {
 
 	ctx := getContext()
 
-	src := libpod.DockerArchive + ":" + input
-	newImages, err := runtime.ImageRuntime().LoadFromArchive(ctx, src, c.String("signature-policy"), writer)
+	var newImages []*image.Image
+	src, err := dockerarchive.ParseReference(input) // FIXME? We should add dockerarchive.NewReference()
+	if err == nil {
+		newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
+	}
 	if err != nil {
 		// generate full src name with specified image:tag
-		fullSrc := libpod.OCIArchive + ":" + input
-		if image != "" {
-			fullSrc = fullSrc + ":" + image
+		src, err := ociarchive.NewReference(input, imageName) // imageName may be ""
+		if err == nil {
+			newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
 		}
-		newImages, err = runtime.ImageRuntime().LoadFromArchive(ctx, fullSrc, c.String("signature-policy"), writer)
 		if err != nil {
-			src = libpod.DirTransport + ":" + input
-			newImages, err = runtime.ImageRuntime().LoadFromArchive(ctx, src, c.String("signature-policy"), writer)
+			src, err := directory.NewReference(input)
+			if err == nil {
+				newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
+			}
 			if err != nil {
-				return errors.Wrapf(err, "error pulling %q", src)
+				return errors.Wrapf(err, "error pulling %q", input)
 			}
 		}
 	}

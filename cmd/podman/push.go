@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/directory"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
@@ -101,7 +101,7 @@ func pushCmd(c *cli.Context) error {
 	// --compress and --format can only be used for the "dir" transport
 	splitArg := strings.SplitN(destName, ":", 2)
 	if c.IsSet("compress") || c.IsSet("format") {
-		if splitArg[0] != libpod.DirTransport {
+		if splitArg[0] != directory.Transport.Name() {
 			return errors.Errorf("--compress and --format can be set only when pushing to a directory using the 'dir' transport")
 		}
 	}
@@ -164,6 +164,5 @@ func pushCmd(c *cli.Context) error {
 		return err
 	}
 
-	//return runtime.PushImage(srcName, destName, options)
-	return newImage.PushImage(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure, nil)
+	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure, nil)
 }

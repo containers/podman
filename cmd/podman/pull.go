@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 
+	dockerarchive "github.com/containers/image/docker/archive"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
 	image2 "github.com/projectatomic/libpod/libpod/image"
 	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
@@ -110,9 +111,13 @@ func pullCmd(c *cli.Context) error {
 		forceSecure = c.Bool("tls-verify")
 	}
 
-	// Possible for docker-archive to have multiple tags, so use NewFromLoad instead
-	if strings.Contains(image, libpod.DockerArchive) {
-		newImage, err := runtime.ImageRuntime().LoadFromArchive(getContext(), image, c.String("signature-policy"), writer)
+	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
+	if strings.HasPrefix(image, dockerarchive.Transport.Name()+":") {
+		srcRef, err := alltransports.ParseImageName(image)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing %q", image)
+		}
+		newImage, err := runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, c.String("signature-policy"), writer)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image from %q", image)
 		}

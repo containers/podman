@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/manifest"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -144,7 +145,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := newImage.pullImage(ctx, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
+	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
@@ -158,22 +159,17 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	return &newImage, nil
 }
 
-// LoadFromArchive creates a new image object for images pulled from a tar archive (podman load)
+// LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
 // This function is needed because it is possible for a tar archive to have multiple tags for one image
-func (ir *Runtime) LoadFromArchive(ctx context.Context, name, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
+func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*Image, error) {
 	var newImages []*Image
-	newImage := Image{
-		InputName:    name,
-		Local:        false,
-		imageruntime: ir,
-	}
 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := newImage.pullImage(ctx, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to pull %s", name)
+		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
 
 	for _, name := range imageNames {
@@ -513,8 +509,9 @@ func (i *Image) UntagImage(tag string) error {
 	return nil
 }
 
-// PushImage pushes the given image to a location described by the given path
-func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+// PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
+// Use PushImageToReference if the destination is known precisely.
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -532,7 +529,11 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 			return err
 		}
 	}
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, forceSecure, additionalDockerArchiveTags)
+}
 
+// PushImageToReference pushes the given image to a location described by the given path
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 
 	policyContext, err := getPolicyContext(sc)
@@ -550,13 +551,13 @@ func (i *Image) PushImage(ctx context.Context, destination, manifestMIMEType, au
 	if err != nil {
 		return err
 	}
-	copyOptions := getCopyOptions(writer, signaturePolicyPath, nil, dockerRegistryOptions, signingOptions, authFile, manifestMIMEType, forceCompress, additionalDockerArchiveTags)
-	if strings.HasPrefix(DockerTransport, dest.Transport().Name()) {
-		imgRef, err := reference.Parse(dest.DockerReference().String())
-		if err != nil {
-			return err
+	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
+	if dest.Transport().Name() == DockerTransport {
+		imgRef := dest.DockerReference()
+		if imgRef == nil { // This should never happen; such references can’t be created.
+			return fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference", transports.ImageName(dest))
 		}
-		registry := reference.Domain(imgRef.(reference.Named))
+		registry := reference.Domain(imgRef)
 
 		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
 			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true
@@ -873,8 +874,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 // Import imports and image into the store and returns an image
 func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
-	file := TarballTransport + ":" + path
-	src, err := alltransports.ParseImageName(file)
+	src, err := tarball.Transport.ParseReference(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing image name %q", path)
 	}
@@ -906,7 +906,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, err
 	}
 	defer policyContext.Destroy()
-	copyOptions := getCopyOptions(writer, "", nil, nil, signingOptions, "", "", false, nil)
+	copyOptions := getCopyOptions(sc, writer, nil, nil, signingOptions, "", nil)
 	dest, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)
