@@ -5,13 +5,61 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
+	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// newTestRuntime returns a *Runtime implementation and a cleanup function which the caller is expected to call.
+func newTestRuntime(t *testing.T) (*Runtime, func()) {
+	wd, err := ioutil.TempDir("", "testStorageRuntime")
+	require.NoError(t, err)
+	err = os.MkdirAll(wd, 0700)
+	require.NoError(t, err)
+
+	store, err := storage.GetStore(storage.StoreOptions{
+		RunRoot:            filepath.Join(wd, "run"),
+		GraphRoot:          filepath.Join(wd, "root"),
+		GraphDriverName:    "vfs",
+		GraphDriverOptions: []string{},
+		UIDMap: []idtools.IDMap{{
+			ContainerID: 0,
+			HostID:      os.Getuid(),
+			Size:        1,
+		}},
+		GIDMap: []idtools.IDMap{{
+			ContainerID: 0,
+			HostID:      os.Getgid(),
+			Size:        1,
+		}},
+	})
+	require.NoError(t, err)
+
+	ir := NewImageRuntimeFromStore(store)
+	cleanup := func() { _ = os.RemoveAll(wd) }
+	return ir, cleanup
+}
+
+// storageReferenceWithoutLocation returns ref.StringWithinTransport(),
+// stripping the [store-specification] prefix from containers/image/storage reference format.
+func storageReferenceWithoutLocation(ref types.ImageReference) string {
+	res := ref.StringWithinTransport()
+	if res[0] == '[' {
+		closeIndex := strings.IndexRune(res, ']')
+		if closeIndex > 0 {
+			res = res[closeIndex+1:]
+		}
+	}
+	return res
+}
 
 func TestGetPullRefName(t *testing.T) {
 	const imageID = "@0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -78,7 +126,10 @@ func TestGetPullRefName(t *testing.T) {
 	}
 }
 
-func TestPullGoalNamesFromImageReference(t *testing.T) {
+func TestPullGoalFromImageReference(t *testing.T) {
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
+
 	type expected struct{ image, dstName string }
 	for _, c := range []struct {
 		srcName              string
@@ -139,29 +190,26 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 		// 	[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
 		//  false,
 		// },
-		// { // Name exists, but is an invalid Docker reference; such names are passed through, and will fail when intepreting dstName.
-		// 	"oci-archive:testdata/oci-non-docker-name.tar.gz",
-		// 	[]expected{{"UPPERCASE-IS-INVALID", "UPPERCASE-IS-INVALID"}},
-		//  false,
-		// },
+		// // Name exists, but is an invalid Docker reference; such names will fail when creating dstReference.
+		// {"oci-archive:testdata/oci-non-docker-name.tar.gz", nil, false},
 		// Maybe test support of two images in a single archive? It should be transparently handled by adding a reference to srcRef.
 
 		// == dir:
 		{ // Absolute path
 			"dir:/dev/this-does-not-exist",
-			[]expected{{"localhost/dev/this-does-not-exist", "localhost/dev/this-does-not-exist"}},
+			[]expected{{"localhost/dev/this-does-not-exist", "localhost/dev/this-does-not-exist:latest"}},
 			false,
 		},
 		{ // Relative path, single element.
-			// FIXME? Note the :latest difference in .image.  (In .dstName as well, but it has the same semantics in there.)
+			// FIXME? Note the :latest difference in .image.
 			"dir:this-does-not-exist",
 			[]expected{{"localhost/this-does-not-exist:latest", "localhost/this-does-not-exist:latest"}},
 			false,
 		},
 		{ // Relative path, multiple elements.
-			// FIXME: This does not add localhost/, and dstName is parsed as docker.io/testdata.
+			// FIXME: This does not add localhost/, so dstName is normalized to docker.io/testdata.
 			"dir:testdata/this-does-not-exist",
-			[]expected{{"testdata/this-does-not-exist", "testdata/this-does-not-exist"}},
+			[]expected{{"testdata/this-does-not-exist", "docker.io/testdata/this-does-not-exist:latest"}},
 			false,
 		},
 
@@ -179,24 +227,24 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 		},
 
 		// === tarball: (as an example of what happens when ImageReference.DockerReference is nil).
-		{ // FIXME? The dstName value is invalid, and will fail.
-			// (This is NOT an API promise that the results will continue to be this way.)
-			"tarball:/dev/null",
-			[]expected{{"tarball:/dev/null", "tarball:/dev/null"}},
-			false,
-		},
+		// FIXME? This tries to parse "tarball:/dev/null" as a storageReference, and fails.
+		// (This is NOT an API promise that the results will continue to be this way.)
+		{"tarball:/dev/null", nil, false},
 	} {
 		srcRef, err := alltransports.ParseImageName(c.srcName)
 		require.NoError(t, err, c.srcName)
 
-		res, err := pullGoalNamesFromImageReference(context.Background(), srcRef, c.srcName, nil)
+		res, err := ir.pullGoalFromImageReference(context.Background(), srcRef, c.srcName, nil)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.srcName)
 		} else {
 			require.NoError(t, err, c.srcName)
-			require.Len(t, res.refNames, len(c.expected), c.srcName)
+			require.Len(t, res.refPairs, len(c.expected), c.srcName)
 			for i, e := range c.expected {
-				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res.refNames[i], fmt.Sprintf("%s #%d", c.srcName, i))
+				testDescription := fmt.Sprintf("%s #%d", c.srcName, i)
+				assert.Equal(t, e.image, res.refPairs[i].image, testDescription)
+				assert.Equal(t, srcRef, res.refPairs[i].srcRef, testDescription)
+				assert.Equal(t, e.dstName, storageReferenceWithoutLocation(res.refPairs[i].dstRef), testDescription)
 			}
 			assert.Equal(t, c.expectedPullAllPairs, res.pullAllPairs, c.srcName)
 			assert.False(t, res.usedSearchRegistries, c.srcName)
