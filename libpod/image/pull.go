@@ -107,6 +107,12 @@ func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
 	}
 }
 
+// getSinglePullRefNameGoal calls getPullRefName with the specified parameters, and returns a single-pair goal for the return value.
+func getSinglePullRefNameGoal(srcRef types.ImageReference, destName string) (*pullGoalNames, error) {
+	rn := getPullRefName(srcRef, destName)
+	return singlePullRefNameGoal(rn), nil
+}
+
 // pullGoalNamesFromImageReference returns a pullGoalNames for a single ImageReference, depending on the used transport.
 func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoalNames, error) {
 	// supports pulling from docker-archive, oci, and registries
@@ -129,7 +135,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return singlePullRefNameGoal(getPullRefName(srcRef, reference)), nil
+			return getSinglePullRefNameGoal(srcRef, reference)
 		}
 
 		if len(manifest[0].RepoTags) == 0 {
@@ -138,7 +144,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return singlePullRefNameGoal(getPullRefName(srcRef, digest)), nil
+			return getSinglePullRefNameGoal(srcRef, digest)
 		}
 
 		// Need to load in all the repo tags from the manifest
@@ -172,7 +178,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		return singlePullRefNameGoal(getPullRefName(srcRef, dest)), nil
+		return getSinglePullRefNameGoal(srcRef, dest)
 
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
@@ -183,10 +189,10 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		return singlePullRefNameGoal(getPullRefName(srcRef, image)), nil
+		return getSinglePullRefNameGoal(srcRef, image)
 
 	default:
-		return singlePullRefNameGoal(getPullRefName(srcRef, imgName)), nil
+		return getSinglePullRefNameGoal(srcRef, imgName)
 	}
 }
 
