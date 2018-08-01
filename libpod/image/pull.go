@@ -108,13 +108,18 @@ func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
 }
 
 // getSinglePullRefNameGoal calls getPullRefName with the specified parameters, and returns a single-pair goal for the return value.
-func getSinglePullRefNameGoal(srcRef types.ImageReference, destName string) (*pullGoalNames, error) {
+func (ir *Runtime) getSinglePullRefNameGoal(srcRef types.ImageReference, destName string) (*pullGoal, error) {
 	rn := getPullRefName(srcRef, destName)
-	return singlePullRefNameGoal(rn), nil
+	goalNames := singlePullRefNameGoal(rn)
+	goal, err := ir.pullGoalFromGoalNames(goalNames)
+	if err != nil {
+		return nil, err
+	}
+	return &goal, nil
 }
 
-// pullGoalNamesFromImageReference returns a pullGoalNames for a single ImageReference, depending on the used transport.
-func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoalNames, error) {
+// pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
+func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoal, error) {
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
@@ -135,7 +140,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return getSinglePullRefNameGoal(srcRef, reference)
+			return ir.getSinglePullRefNameGoal(srcRef, reference)
 		}
 
 		if len(manifest[0].RepoTags) == 0 {
@@ -144,7 +149,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return getSinglePullRefNameGoal(srcRef, digest)
+			return ir.getSinglePullRefNameGoal(srcRef, digest)
 		}
 
 		// Need to load in all the repo tags from the manifest
@@ -153,12 +158,16 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			pullInfo := getPullRefName(srcRef, dst)
 			res = append(res, pullInfo)
 		}
-		return &pullGoalNames{
+		goal, err := ir.pullGoalFromGoalNames(&pullGoalNames{
 			refNames:             res,
 			pullAllPairs:         true,
 			usedSearchRegistries: false,
 			searchedRegistries:   nil,
-		}, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &goal, nil
 
 	case OCIArchive:
 		// retrieve the manifest from index.json to access the image name
@@ -178,7 +187,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		return getSinglePullRefNameGoal(srcRef, dest)
+		return ir.getSinglePullRefNameGoal(srcRef, dest)
 
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
@@ -189,21 +198,11 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		return getSinglePullRefNameGoal(srcRef, image)
+		return ir.getSinglePullRefNameGoal(srcRef, image)
 
 	default:
-		return getSinglePullRefNameGoal(srcRef, imgName)
+		return ir.getSinglePullRefNameGoal(srcRef, imgName)
 	}
-}
-
-// pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
-func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (pullGoal, error) {
-	goalNames, err := pullGoalNamesFromImageReference(ctx, srcRef, imgName, sc)
-	if err != nil {
-		return pullGoal{}, err
-	}
-
-	return ir.pullGoalFromGoalNames(goalNames)
 }
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
@@ -219,10 +218,11 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 			return nil, errors.Wrap(err, "error getting default registries to try")
 		}
 	} else {
-		goal, err = ir.pullGoalFromImageReference(ctx, srcRef, inputName, sc)
+		g, err := ir.pullGoalFromImageReference(ctx, srcRef, inputName, sc)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
+		goal = *g
 	}
 	return ir.doPullImage(ctx, sc, goal, writer, signingOptions, dockerOptions, forceSecure)
 }
@@ -234,7 +234,7 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
-	return ir.doPullImage(ctx, sc, goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
