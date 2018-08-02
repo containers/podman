@@ -95,12 +95,6 @@ func BecomeRootInUserNS() (bool, int, error) {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
-	setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
-	err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
-	if err != nil {
-		return false, -1, errors.Wrapf(err, "cannot write setgroups file")
-	}
-
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	mappings, err := idtools.NewIDMappings(username, username)
@@ -117,6 +111,12 @@ func BecomeRootInUserNS() (bool, int, error) {
 		uidsMapped = tryMappingTool("newuidmap", pid, os.Getuid(), uids) == nil
 	}
 	if !uidsMapped {
+		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
+		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot write setgroups file")
+		}
+
 		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
 		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getuid())), 0666)
 		if err != nil {
