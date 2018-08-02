@@ -97,6 +97,8 @@ reexec_in_user_namespace(int ready)
     return pid;
 
   argv = get_cmd_line_args (ppid);
+  if (argv == NULL)
+    _exit (EXIT_FAILURE);
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
