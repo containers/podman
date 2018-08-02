@@ -20,7 +20,7 @@ SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/libdm_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh) varlink
 BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
-	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/ioprojectatomicpodman.go
+	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
 
 PYTHON ?= /usr/bin/python3
@@ -131,7 +131,7 @@ clean:
 		test/checkseccomp/checkseccomp \
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
-		cmd/podman/varlink/ioprojectatomicpodman.go \
+		cmd/podman/varlink/iopodman.go \
 		$(MANPAGES) ||:
 ifdef HAS_PYTHON3
 		$(MAKE) -C contrib/python/podman clean
@@ -235,8 +235,8 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
 
 install.systemd:
-	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.socket ${SYSTEMDDIR}/io.projectatomic.podman.socket
-	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.projectatomic.podman.service ${SYSTEMDDIR}/io.projectatomic.podman.service
+	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.podman.socket ${SYSTEMDDIR}/io.podman.socket
+	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.podman.service ${SYSTEMDDIR}/io.podman.service
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
 install.python:
@@ -288,7 +288,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		make all install; \
 	fi
 
-varlink_generate: .gopathok cmd/podman/varlink/ioprojectatomicpodman.go
+varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
 varlink_api_generate: .gopathok API.md
 
 .PHONY: install.libseccomp.sudo
@@ -298,10 +298,10 @@ install.libseccomp.sudo:
 	cd ../../seccomp/libseccomp && git checkout $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
 
-cmd/podman/varlink/ioprojectatomicpodman.go: cmd/podman/varlink/io.projectatomic.podman.varlink
+cmd/podman/varlink/iopodman.go: cmd/podman/varlink/io.podman.varlink
 	$(GO) generate ./cmd/podman/varlink/...
 
-API.md: cmd/podman/varlink/io.projectatomic.podman.varlink
+API.md: cmd/podman/varlink/io.podman.varlink
 	$(GO) generate ./docs/...
 
 validate: gofmt .gitvalidation

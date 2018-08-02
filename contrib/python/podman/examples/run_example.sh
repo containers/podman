@@ -22,8 +22,8 @@ if [[ $(id -u) != 0 ]]; then
   exit 2
 fi
 
-if ! systemctl --quiet is-active io.projectatomic.podman.socket; then
-  echo 1>&2 'podman is not running. systemctl enable --now io.projectatomic.podman.socket'
+if ! systemctl --quiet is-active io.podman.socket; then
+  echo 1>&2 'podman is not running. systemctl enable --now io.podman.socket'
   exit 1
 fi
 

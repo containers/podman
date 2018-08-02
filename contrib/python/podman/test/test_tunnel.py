@@ -56,7 +56,7 @@ class TestTunnel(unittest.TestCase):
 
         context = Context(
             'unix:/01',
-            'io.projectatomic.podman',
+            'io.podman',
             '/tmp/user/socket',
             '/run/podman/socket',
             'user',

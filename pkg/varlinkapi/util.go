@@ -15,15 +15,15 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func makeListContainer(containerID string, batchInfo batchcontainer.BatchContainerStruct) ioprojectatomicpodman.ListContainerData {
+func makeListContainer(containerID string, batchInfo batchcontainer.BatchContainerStruct) iopodman.ListContainerData {
 	var (
-		mounts []ioprojectatomicpodman.ContainerMount
-		ports  []ioprojectatomicpodman.ContainerPortMappings
+		mounts []iopodman.ContainerMount
+		ports  []iopodman.ContainerPortMappings
 	)
 	ns := batchcontainer.GetNamespaces(batchInfo.Pid)
 
 	for _, mount := range batchInfo.ConConfig.Spec.Mounts {
-		m := ioprojectatomicpodman.ContainerMount{
+		m := iopodman.ContainerMount{
 			Destination: mount.Destination,
 			Type:        mount.Type,
 			Source:      mount.Source,
@@ -33,7 +33,7 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 	}
 
 	for _, pm := range batchInfo.ConConfig.PortMappings {
-		p := ioprojectatomicpodman.ContainerPortMappings{
+		p := iopodman.ContainerPortMappings{
 			Host_port:      strconv.Itoa(int(pm.HostPort)),
 			Host_ip:        pm.HostIP,
 			Protocol:       pm.Protocol,
@@ -45,7 +45,7 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 
 	// If we find this needs to be done for other container endpoints, we should
 	// convert this to a separate function or a generic map from struct function.
-	namespace := ioprojectatomicpodman.ContainerNameSpace{
+	namespace := iopodman.ContainerNameSpace{
 		User:   ns.User,
 		Uts:    ns.UTS,
 		Pidns:  ns.PIDNS,
@@ -56,7 +56,7 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 		Ipc:    ns.IPC,
 	}
 
-	lc := ioprojectatomicpodman.ListContainerData{
+	lc := iopodman.ListContainerData{
 		Id:               containerID,
 		Image:            batchInfo.ConConfig.RootfsImageName,
 		Imageid:          batchInfo.ConConfig.RootfsImageID,

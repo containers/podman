@@ -106,7 +106,7 @@ RUN chmod 755 /tmp/hello.sh
 ENTRYPOINT ["/tmp/hello.sh"]
 EOT
 
-export PODMAN_HOST="unix:${TMPDIR}/podman/io.projectatomic.podman"
+export PODMAN_HOST="unix:${TMPDIR}/podman/io.podman"
 PODMAN_ARGS="--storage-driver=vfs \
   --root=${TMPDIR}/crio \
   --runroot=${TMPDIR}/crio-run \

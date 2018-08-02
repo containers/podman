@@ -101,7 +101,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             '--remote-socket-path',
             metavar='PATH',
             help=('path of podman socket on remote host'
-                  ' (default: /run/podman/io.projectatomic.podman)'))
+                  ' (default: /run/podman/io.podman)'))
         self.add_argument(
             '--identity-file',
             '-i',
@@ -198,7 +198,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             getattr(args, 'remote_socket_path')
             or os.environ.get('REMOTE_SOCKET_PATH')
             or config['default'].get('remote_socket_path')
-            or '/run/podman/io.projectatomic.podman'
+            or '/run/podman/io.podman'
         )   # yapf:disable
 
         reqattr(
