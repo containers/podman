@@ -44,6 +44,7 @@ type psTemplateParams struct {
 	PIDNS         string
 	User          string
 	UTS           string
+	Pod           string
 }
 
 // psJSONParams is used as a base structure for the psParams
@@ -69,6 +70,7 @@ type psJSONParams struct {
 	Mounts           []string                      `json:"mounts"`
 	ContainerRunning bool                          `json:"ctrRunning"`
 	Namespaces       *batchcontainer.Namespace     `json:"namespace,omitempty"`
+	Pod              string                        `json:"pod,omitempty"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -100,6 +102,10 @@ func (a psSortedImage) Less(i, j int) bool { return a.psSorted[i].Image < a.psSo
 type psSortedNames struct{ psSorted }
 
 func (a psSortedNames) Less(i, j int) bool { return a.psSorted[i].Names < a.psSorted[j].Names }
+
+type psSortedPod struct{ psSorted }
+
+func (a psSortedPod) Less(i, j int) bool { return a.psSorted[i].Pod < a.psSorted[j].Pod }
 
 type psSortedRunningFor struct{ psSorted }
 
@@ -150,6 +156,10 @@ var (
 		cli.BoolFlag{
 			Name:  "no-trunc",
 			Usage: "Display the extended information",
+		},
+		cli.BoolFlag{
+			Name:  "pod",
+			Usage: "Print the ID and name of the pod the containers are associated with",
 		},
 		cli.BoolFlag{
 			Name:  "quiet, q",
@@ -206,7 +216,7 @@ func psCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments, ps takes no arguments")
 	}
 
-	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"))
+	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"), c.Bool("pod"))
 
 	opts := batchcontainer.PsOptions{
 		All:       c.Bool("all"),
@@ -215,6 +225,7 @@ func psCmd(c *cli.Context) error {
 		Last:      c.Int("last"),
 		Latest:    c.Bool("latest"),
 		NoTrunc:   c.Bool("no-trunc"),
+		Pod:       c.Bool("pod"),
 		Quiet:     c.Bool("quiet"),
 		Size:      c.Bool("size"),
 		Namespace: c.Bool("namespace"),
@@ -406,7 +417,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 }
 
 // generate the template based on conditions given
-func genPsFormat(format string, quiet, size, namespace bool) string {
+func genPsFormat(format string, quiet, size, namespace, pod bool) string {
 	if format != "" {
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
@@ -415,10 +426,15 @@ func genPsFormat(format string, quiet, size, namespace bool) string {
 	if quiet {
 		return formats.IDString
 	}
+	podappend := ""
+	if pod {
+		podappend = "{{.Pod}}\t"
+	}
 	if namespace {
-		return "table {{.ID}}\t{{.Names}}\t{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t"
+		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}\t", podappend)
 	}
 	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Created}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
+	format += podappend
 	if size {
 		format += "{{.Size}}\t"
 	}
@@ -472,6 +488,8 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 		sort.Sort(psSortedNames{psOutput})
 	case "created":
 		sort.Sort(psSortedCreated{psOutput})
+	case "pod":
+		sort.Sort(psSortedPod{psOutput})
 	default:
 		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
@@ -481,14 +499,17 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 // getTemplateOutput returns the modified container information
 func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) ([]psTemplateParams, error) {
 	var (
-		psOutput     []psTemplateParams
-		status, size string
-		ns           *batchcontainer.Namespace
+		psOutput          []psTemplateParams
+		pod, status, size string
+		ns                *batchcontainer.Namespace
 	)
 	// If the user is trying to filter based on size, or opted to sort on size
 	// the size bool must be set.
 	if strings.Contains(opts.Format, ".Size") || opts.Sort == "size" {
 		opts.Size = true
+	}
+	if strings.Contains(opts.Format, ".Pod") || opts.Sort == "pod" {
+		opts.Pod = true
 	}
 
 	for _, psParam := range psParams {
@@ -504,6 +525,9 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 				return nil, errors.Errorf("Container %s does not have a size struct", psParam.ID)
 			}
 			size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
+		}
+		if opts.Pod {
+			pod = psParam.Pod
 		}
 		runningFor := units.HumanDuration(psParam.RunningFor)
 
@@ -531,6 +555,7 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 
 		if !opts.NoTrunc {
 			ctrID = shortID(psParam.ID)
+			pod = shortID(psParam.Pod)
 		}
 		params := psTemplateParams{
 			ID:            ctrID,
@@ -546,6 +571,7 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 			Labels:        labels,
 			Mounts:        getMounts(psParam.Mounts, opts.NoTrunc),
 			PID:           psParam.PID,
+			Pod:           pod,
 		}
 
 		if opts.Namespace {
@@ -599,6 +625,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			Mounts:           batchInfo.ConConfig.UserVolumes,
 			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
+			Pod:              ctr.PodID(),
 		}
 
 		if !batchInfo.StartedTime.IsZero() && batchInfo.ConState == libpod.ContainerStateRunning {
