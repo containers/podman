@@ -9,7 +9,8 @@ services:
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq update; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install btrfs-tools libdevmapper-dev libgpgme11-dev libapparmor-dev; fi
-  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext python3-setuptools python3-dateutil; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install autoconf automake bison e2fslibs-dev libfuse-dev libtool liblzma-dev gettext; fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo apt-get -qq install python3-setuptools python3-dateutil python3-psutil; fi
   - if [ "${TRAVIS_OS_NAME}" = linux ]; then sudo make install.libseccomp.sudo; fi
 
 install:

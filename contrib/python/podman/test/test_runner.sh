@@ -117,14 +117,19 @@ if [[ -n $VERBOSE ]]; then
 fi
 PODMAN="podman $PODMAN_ARGS"
 
-# Run podman in background without systemd for test purposes
 cat >/tmp/test_podman.output <<-EOT
 $($PODMAN --version)
 $PODMAN varlink --timeout=0 ${PODMAN_HOST}
 ==========================================
 EOT
 
+# Run podman in background without systemd for test purposes
 set -x
+# Until podman issue#... is fixed.
+sysctl fs.inotify.max_user_watches=999999
+sysctl fs.inotify.max_user_instances=999999
+sysctl fs.inotify.max_queued_events=999999
+
 $PODMAN varlink --timeout=0 ${PODMAN_HOST} >>/tmp/test_podman.output 2>&1 &
 
 if [[ -z $1 ]]; then

@@ -23,6 +23,7 @@ class TestSystem(unittest.TestCase):
         with podman.Client(self.host) as pclient:
             self.assertTrue(pclient.system.ping())
 
+    @unittest.skip("TODO: Need to setup ssh under Travis")
     def test_remote_ping(self):
         host = urlparse(self.host)
         remote_uri = 'ssh://root@localhost{}'.format(host.path)

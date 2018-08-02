@@ -52,6 +52,8 @@ class TestTunnel(unittest.TestCase):
     @patch('os.path.exists', return_value=True)
     @patch('weakref.finalize')
     def test_tunnel(self, mock_finalize, mock_exists, mock_Popen):
+        mock_Popen.return_value.returncode = 0
+
         context = Context(
             'unix:/01',
             'io.projectatomic.podman',
