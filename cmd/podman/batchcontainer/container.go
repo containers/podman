@@ -25,6 +25,7 @@ type PsOptions struct {
 	Last      int
 	Latest    bool
 	NoTrunc   bool
+	Pod       bool
 	Quiet     bool
 	Size      bool
 	Sort      string

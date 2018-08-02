@@ -24,6 +24,10 @@ all the containers information.  By default it lists:
 
 Show all the containers, default is only running containers
 
+**--pod**
+
+Display the pods the containers are associated with
+
 **--no-trunc**
 
 Display the extended information
@@ -46,6 +50,7 @@ Valid placeholders for the Go template are listed below:
 | .CreatedAt      | Creation time for container                      |
 | .RunningFor     | Time elapsed since container was started         |
 | .Status         | Status of container                              |
+| .Pod            | Pod the container is associated with             |
 | .Ports          | Exposed ports                                    |
 | .Size           | Size of container                                |
 | .Names          | Name of container                                |

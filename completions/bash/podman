@@ -1924,6 +1924,7 @@ _podman_ps() {
      --all -a
      --latest -l
      --no-trunc
+     --pod
      --quiet -q
      --size -s
      --namespace --ns
