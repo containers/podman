@@ -246,4 +246,23 @@ var _ = Describe("Podman ps", func() {
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
 
 	})
+
+	It("podman --pod", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podid := session.OutputToString()
+
+		session = podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "--pod", "--no-trunc"})
+
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		Expect(session.OutputToString()).To(ContainSubstring(podid))
+
+	})
 })
