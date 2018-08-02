@@ -1,0 +1,13 @@
+[Unit]
+Description=Podman Remote API Service
+Requires=io.podman.socket
+After=io.podman.socket
+Documentation=man:podman-varlink(1)
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/podman varlink unix:/run/podman/io.podman
+
+[Install]
+WantedBy=multi-user.target
+Also=io.podman.socket

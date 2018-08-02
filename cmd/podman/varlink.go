@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
+	iopodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/pkg/varlinkapi"
 	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
@@ -52,7 +52,7 @@ func varlinkCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.New(c, runtime)}
+	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(c, runtime)}
 	// Register varlink service. The metadata can be retrieved with:
 	// $ varlink info [varlink address URI]
 	service, err := varlink.NewService(

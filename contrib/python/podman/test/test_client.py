@@ -15,7 +15,7 @@ class TestClient(unittest.TestCase):
     def test_local(self, mock_ping):
         p = Client(
             uri='unix:/run/podman',
-            interface='io.projectatomic.podman',
+            interface='io.podman',
         )
 
         self.assertIsInstance(p._client, LocalClient)
@@ -27,7 +27,7 @@ class TestClient(unittest.TestCase):
     def test_remote(self, mock_ping):
         p = Client(
             uri='unix:/run/podman',
-            interface='io.projectatomic.podman',
+            interface='io.podman',
             remote_uri='ssh://user@hostname/run/podman/podman',
             identity_file='~/.ssh/id_rsa')
 

@@ -1,4 +1,4 @@
-# io.projectatomic.podman
+# io.podman
 Podman Service Interface and API description.  The master version of this document can be found
 in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file in the upstream libpod repository.
 ## Index
@@ -174,7 +174,7 @@ input required for CreateContainer is an image name.  If the image name is not f
 error will be returned.  Otherwise, the ID of the newly created container will be returned.
 #### Example
 ~~~
-$ varlink call unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.CreateContainer '{"create": {"image": "alpine"}}'
+$ varlink call unix:/run/podman/io.podman/io.podman.CreateContainer '{"create": {"image": "alpine"}}'
 {
   "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
 }
@@ -223,7 +223,7 @@ second is a "control" socket where things like resizing the TTY events are sent.
 found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/io.projectatomic.podman/io.projectatomic.podman.GetAttachSockets '{"name": "b7624e775431219161"}'
+$ varlink call -m unix:/run/io.podman/io.podman.GetAttachSockets '{"name": "b7624e775431219161"}'
 {
   "sockets": {
     "container_id": "b7624e7754312191613245ce1a46844abee60025818fe3c3f3203435623a1eca",
@@ -256,7 +256,7 @@ contains attributes like memory and cpu usage.  If the container cannot be found
 [ContainerNotFound](#ContainerNotFound)  error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.GetContainerStats '{"name": "c33e4164f384"}'
+$ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name": "c33e4164f384"}'
 {
   "container": {
     "block_input": 0,
@@ -344,7 +344,7 @@ arguments that represent ps options.  If the container cannot be found, a [Conta
 error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ListContainerProcesses '{"name": "135d71b9495f", "opts": []}'
 {
   "container": [
     "  UID   PID  PPID  C STIME TTY          TIME CMD",
@@ -380,7 +380,7 @@ method Ping() [StringResponse](#StringResponse)</div>
 Ping provides a response for developers to ensure their varlink setup is working.
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.Ping
+$ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
 {
   "ping": {
     "message": "OK"
@@ -395,7 +395,7 @@ PullImage pulls an image from a repository to local storage.  After the pull is 
 is returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
+$ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
 {
   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 }
@@ -416,7 +416,7 @@ container can be stopped and removed.  Upon successful removal of the container,
 container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
+$ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
 {
   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 }
@@ -430,7 +430,7 @@ should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFo
 ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
 #### Example
 ~~~
-varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
+varlink call -m unix:/run/podman/io.podman/io.podman.RemoveImage '{"name": "registry.fedoraproject.org/fedora", "force": true}'
 {
   "image": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 }
@@ -477,7 +477,7 @@ returns the container ID once stopped. If the container cannot be found, a [Cont
 error will be returned instead. See also [KillContainer](KillContainer).
 #### Error
 ~~~
-$ varlink call -m unix:/run/podman/io.projectatomic.podman/io.projectatomic.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
+$ varlink call -m unix:/run/podman/io.podman/io.podman.StopContainer '{"name": "135d71b9495f", "timeout": 5}'
 {
   "container": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 }

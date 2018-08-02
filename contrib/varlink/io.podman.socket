@@ -3,7 +3,7 @@ Description=Podman Remote API Socket
 Documentation=man:podman-varlink(1)
 
 [Socket]
-ListenStream=/run/podman/io.projectatomic.podman
+ListenStream=/run/podman/io.podman
 SocketMode=0600
 
 [Install]

@@ -26,24 +26,24 @@ second. A value of `0` means no timeout and the session will not expire.
 Run the podman varlink service manually and accept the default timeout.
 
 ```
-# podman varlink unix:/run/podman/io.projectatomic.podman
+$ podman varlink unix:/run/podman/io.podman
 ```
 
 Run the podman varlink service manually with a 5 second timeout.
 
 ```
-# podman varlink --timeout 5000 unix:/run/podman/io.projectatomic.podman
+$ podman varlink --timeout 5000 unix:/run/podman/io.podman
 ```
 
 ## CONFIGURATION
 
-Users of the podman varlink service should enable the _io.projectatomic.podman.socket_ and _io.projectatomic.podman.service_.
+Users of the podman varlink service should enable the _io.podman.socket_ and _io.podman.service_.
 This is the preferred method for running the varlink service.
 
 You can do this via systemctl.
 
 ```
-# systemctl enable --now io.projectatomic.podman.socket
+systemctl enable --now io.podman.socket
 ```
 
 ## SEE ALSO
