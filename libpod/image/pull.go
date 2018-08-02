@@ -63,31 +63,17 @@ type pullGoal struct {
 	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
 }
 
-// pullRefName records a prepared source reference and a destination name to pull.
-type pullRefName struct {
-	image   string
-	srcRef  types.ImageReference
-	dstName string
-}
-
-// pullGoalNames is an intermediate variant of pullGoal which uses pullRefName instead of pullRefPair.
-type pullGoalNames struct {
-	refNames             []pullRefName
-	pullAllPairs         bool     // Pull all refNames instead of stopping on first success.
-	usedSearchRegistries bool     // refPairs construction has depended on registries.GetRegistries()
-	searchedRegistries   []string // The list of search registries used; set only if usedSearchRegistries
-}
-
-func singlePullRefNameGoal(rn pullRefName) *pullGoalNames {
-	return &pullGoalNames{
-		refNames:             []pullRefName{rn},
+// singlePullRefPairGoal returns a no-frills pull goal for the specified reference pair.
+func singlePullRefPairGoal(rp pullRefPair) *pullGoal {
+	return &pullGoal{
+		refPairs:             []pullRefPair{rp},
 		pullAllPairs:         false, // Does not really make a difference.
 		usedSearchRegistries: false,
 		searchedRegistries:   nil,
 	}
 }
 
-func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
+func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) (pullRefPair, error) {
 	imgPart, err := decompose(destName)
 	if err == nil && !imgPart.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
@@ -100,15 +86,28 @@ func getPullRefName(srcRef types.ImageReference, destName string) pullRefName {
 	if srcRef.DockerReference() != nil {
 		reference = srcRef.DockerReference().String()
 	}
-	return pullRefName{
-		image:   destName,
-		srcRef:  srcRef,
-		dstName: reference,
+	destRef, err := is.Transport.ParseStoreReference(ir.store, reference)
+	if err != nil {
+		return pullRefPair{}, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
 	}
+	return pullRefPair{
+		image:  destName,
+		srcRef: srcRef,
+		dstRef: destRef,
+	}, nil
 }
 
-// pullGoalNamesFromImageReference returns a pullGoalNames for a single ImageReference, depending on the used transport.
-func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoalNames, error) {
+// getSinglePullRefPairGoal calls getPullRefPair with the specified parameters, and returns a single-pair goal for the return value.
+func (ir *Runtime) getSinglePullRefPairGoal(srcRef types.ImageReference, destName string) (*pullGoal, error) {
+	rp, err := ir.getPullRefPair(srcRef, destName)
+	if err != nil {
+		return nil, err
+	}
+	return singlePullRefPairGoal(rp), nil
+}
+
+// pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
+func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoal, error) {
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
@@ -129,7 +128,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return singlePullRefNameGoal(getPullRefName(srcRef, reference)), nil
+			return ir.getSinglePullRefPairGoal(srcRef, reference)
 		}
 
 		if len(manifest[0].RepoTags) == 0 {
@@ -138,17 +137,20 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			if err != nil {
 				return nil, err
 			}
-			return singlePullRefNameGoal(getPullRefName(srcRef, digest)), nil
+			return ir.getSinglePullRefPairGoal(srcRef, digest)
 		}
 
 		// Need to load in all the repo tags from the manifest
-		res := []pullRefName{}
+		res := []pullRefPair{}
 		for _, dst := range manifest[0].RepoTags {
-			pullInfo := getPullRefName(srcRef, dst)
+			pullInfo, err := ir.getPullRefPair(srcRef, dst)
+			if err != nil {
+				return nil, err
+			}
 			res = append(res, pullInfo)
 		}
-		return &pullGoalNames{
-			refNames:             res,
+		return &pullGoal{
+			refPairs:             res,
 			pullAllPairs:         true,
 			usedSearchRegistries: false,
 			searchedRegistries:   nil,
@@ -172,7 +174,7 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 		} else {
 			dest = manifest.Annotations["org.opencontainers.image.ref.name"]
 		}
-		return singlePullRefNameGoal(getPullRefName(srcRef, dest)), nil
+		return ir.getSinglePullRefPairGoal(srcRef, dest)
 
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
@@ -183,27 +185,17 @@ func pullGoalNamesFromImageReference(ctx context.Context, srcRef types.ImageRefe
 			// so docker.io isn't prepended, and the path becomes the repository
 			image = DefaultLocalRepo + image
 		}
-		return singlePullRefNameGoal(getPullRefName(srcRef, image)), nil
+		return ir.getSinglePullRefPairGoal(srcRef, image)
 
 	default:
-		return singlePullRefNameGoal(getPullRefName(srcRef, imgName)), nil
+		return ir.getSinglePullRefPairGoal(srcRef, imgName)
 	}
-}
-
-// pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
-func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (pullGoal, error) {
-	goalNames, err := pullGoalNamesFromImageReference(ctx, srcRef, imgName, sc)
-	if err != nil {
-		return pullGoal{}, err
-	}
-
-	return ir.pullGoalFromGoalNames(goalNames)
 }
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
 func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
-	var goal pullGoal
+	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
@@ -218,7 +210,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
-	return ir.doPullImage(ctx, sc, goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
 }
 
 // pullImageFromReference pulls an image from a types.imageReference.
@@ -228,7 +220,7 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
-	return ir.doPullImage(ctx, sc, goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
@@ -291,15 +283,15 @@ func hasShaInInputName(inputName string) bool {
 	return strings.Contains(inputName, "@sha256:")
 }
 
-// pullGoalNamesFromPossiblyUnqualifiedName looks at a decomposed image and determines the possible
-// image names to try pulling in combination with the registries.conf file as well
-func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames, error) {
+// pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
+// image references to try pulling in combination with the registries.conf file as well
+func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullGoal, error) {
 	decomposedImage, err := decompose(inputName)
 	if err != nil {
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		var imageName string
+		var imageName, destName string
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
 		} else {
@@ -309,23 +301,28 @@ func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames,
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		ps := pullRefName{
+		if hasShaInInputName(inputName) {
+			destName = decomposedImage.assemble()
+		} else {
+			destName = inputName
+		}
+		destRef, err := is.Transport.ParseStoreReference(ir.store, destName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
+		}
+		ps := pullRefPair{
 			image:  inputName,
 			srcRef: srcRef,
+			dstRef: destRef,
 		}
-		if hasShaInInputName(inputName) {
-			ps.dstName = decomposedImage.assemble()
-		} else {
-			ps.dstName = ps.image
-		}
-		return singlePullRefNameGoal(ps), nil
+		return singlePullRefPairGoal(ps), nil
 	}
 
 	searchRegistries, err := registries.GetRegistries()
 	if err != nil {
 		return nil, err
 	}
-	var pullNames []pullRefName
+	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
 		decomposedImage.registry = registry
 		imageName := decomposedImage.assembleWithTransport()
@@ -336,53 +333,20 @@ func pullGoalNamesFromPossiblyUnqualifiedName(inputName string) (*pullGoalNames,
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		ps := pullRefName{
+		ps := pullRefPair{
 			image:  decomposedImage.assemble(),
 			srcRef: srcRef,
 		}
-		ps.dstName = ps.image
-		pullNames = append(pullNames, ps)
+		ps.dstRef, err = is.Transport.ParseStoreReference(ir.store, ps.image)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", ps.image)
+		}
+		refPairs = append(refPairs, ps)
 	}
-	return &pullGoalNames{
-		refNames:             pullNames,
+	return &pullGoal{
+		refPairs:             refPairs,
 		pullAllPairs:         false,
 		usedSearchRegistries: true,
 		searchedRegistries:   searchRegistries,
-	}, nil
-}
-
-// pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
-// image references to try pulling in combination with the registries.conf file as well
-func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (pullGoal, error) {
-	goalNames, err := pullGoalNamesFromPossiblyUnqualifiedName(inputName)
-	if err != nil {
-		return pullGoal{}, err
-	}
-	return ir.pullGoalFromGoalNames(goalNames)
-}
-
-// pullGoalFromGoalNames converts a pullGoalNames to a pullGoal
-func (ir *Runtime) pullGoalFromGoalNames(goalNames *pullGoalNames) (pullGoal, error) {
-	if goalNames == nil { // The value is a pointer only to make (return nil, err) possible in callers; they should never return nil on success
-		return pullGoal{}, errors.New("internal error: pullGoalFromGoalNames(nil)")
-	}
-	// Here we construct the destination references
-	res := make([]pullRefPair, len(goalNames.refNames))
-	for i, rn := range goalNames.refNames {
-		destRef, err := is.Transport.ParseStoreReference(ir.store, rn.dstName)
-		if err != nil {
-			return pullGoal{}, errors.Wrapf(err, "error parsing dest reference name %#v", rn.dstName)
-		}
-		res[i] = pullRefPair{
-			image:  rn.image,
-			srcRef: rn.srcRef,
-			dstRef: destRef,
-		}
-	}
-	return pullGoal{
-		refPairs:             res,
-		pullAllPairs:         goalNames.pullAllPairs,
-		usedSearchRegistries: goalNames.usedSearchRegistries,
-		searchedRegistries:   goalNames.searchedRegistries,
 	}, nil
 }

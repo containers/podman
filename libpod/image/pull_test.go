@@ -5,24 +5,74 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
+	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetPullRefName(t *testing.T) {
+// newTestRuntime returns a *Runtime implementation and a cleanup function which the caller is expected to call.
+func newTestRuntime(t *testing.T) (*Runtime, func()) {
+	wd, err := ioutil.TempDir("", "testStorageRuntime")
+	require.NoError(t, err)
+	err = os.MkdirAll(wd, 0700)
+	require.NoError(t, err)
+
+	store, err := storage.GetStore(storage.StoreOptions{
+		RunRoot:            filepath.Join(wd, "run"),
+		GraphRoot:          filepath.Join(wd, "root"),
+		GraphDriverName:    "vfs",
+		GraphDriverOptions: []string{},
+		UIDMap: []idtools.IDMap{{
+			ContainerID: 0,
+			HostID:      os.Getuid(),
+			Size:        1,
+		}},
+		GIDMap: []idtools.IDMap{{
+			ContainerID: 0,
+			HostID:      os.Getgid(),
+			Size:        1,
+		}},
+	})
+	require.NoError(t, err)
+
+	ir := NewImageRuntimeFromStore(store)
+	cleanup := func() { _ = os.RemoveAll(wd) }
+	return ir, cleanup
+}
+
+// storageReferenceWithoutLocation returns ref.StringWithinTransport(),
+// stripping the [store-specification] prefix from containers/image/storage reference format.
+func storageReferenceWithoutLocation(ref types.ImageReference) string {
+	res := ref.StringWithinTransport()
+	if res[0] == '[' {
+		closeIndex := strings.IndexRune(res, ']')
+		if closeIndex > 0 {
+			res = res[closeIndex+1:]
+		}
+	}
+	return res
+}
+
+func TestGetPullRefPair(t *testing.T) {
 	const imageID = "@0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
 
 	for _, c := range []struct{ srcName, destName, expectedImage, expectedDstName string }{
 		// == Source does not have a Docker reference (as is the case for docker-archive:, oci-archive, dir:); destination formats:
 		{ // registry/name, no tag:
 			"dir:/dev/this-does-not-exist", "example.com/from-directory",
-			// The destName value will be interpreted as "example.com/from-directory:latest" by storageTransport.
-			"example.com/from-directory", "example.com/from-directory",
+			"example.com/from-directory", "example.com/from-directory:latest",
 		},
 		{ // name, no registry, no tag:
 			"dir:/dev/this-does-not-exist", "from-directory",
@@ -50,7 +100,7 @@ func TestGetPullRefName(t *testing.T) {
 		{ // ns/name:tag, no registry:
 			// FIXME: This is interpreted as "registry == ns"
 			"dir:/dev/this-does-not-exist", "ns/from-directory:notlatest",
-			"ns/from-directory:notlatest", "ns/from-directory:notlatest",
+			"ns/from-directory:notlatest", "docker.io/ns/from-directory:notlatest",
 		},
 		{ // containers-storage image ID
 			"dir:/dev/this-does-not-exist", imageID,
@@ -68,17 +118,29 @@ func TestGetPullRefName(t *testing.T) {
 			"docker://busybox", "docker://busybox:destination",
 			"docker://busybox:destination", "docker.io/library/busybox:latest",
 		},
+		// == Invalid destination format.
+		{"tarball:/dev/null", "tarball:/dev/null", "", ""},
 	} {
+		testDescription := fmt.Sprintf("%#v %#v", c.srcName, c.destName)
 		srcRef, err := alltransports.ParseImageName(c.srcName)
-		require.NoError(t, err, c.srcName)
+		require.NoError(t, err, testDescription)
 
-		res := getPullRefName(srcRef, c.destName)
-		assert.Equal(t, pullRefName{image: c.expectedImage, srcRef: srcRef, dstName: c.expectedDstName}, res,
-			fmt.Sprintf("%#v %#v", c.srcName, c.destName))
+		res, err := ir.getPullRefPair(srcRef, c.destName)
+		if c.expectedDstName == "" {
+			assert.Error(t, err, testDescription)
+		} else {
+			require.NoError(t, err, testDescription)
+			assert.Equal(t, c.expectedImage, res.image, testDescription)
+			assert.Equal(t, srcRef, res.srcRef, testDescription)
+			assert.Equal(t, c.expectedDstName, storageReferenceWithoutLocation(res.dstRef), testDescription)
+		}
 	}
 }
 
-func TestPullGoalNamesFromImageReference(t *testing.T) {
+func TestPullGoalFromImageReference(t *testing.T) {
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
+
 	type expected struct{ image, dstName string }
 	for _, c := range []struct {
 		srcName              string
@@ -139,29 +201,26 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 		// 	[]expected{{"example.com/empty:latest", "example.com/empty:latest"}},
 		//  false,
 		// },
-		// { // Name exists, but is an invalid Docker reference; such names are passed through, and will fail when intepreting dstName.
-		// 	"oci-archive:testdata/oci-non-docker-name.tar.gz",
-		// 	[]expected{{"UPPERCASE-IS-INVALID", "UPPERCASE-IS-INVALID"}},
-		//  false,
-		// },
+		// // Name exists, but is an invalid Docker reference; such names will fail when creating dstReference.
+		// {"oci-archive:testdata/oci-non-docker-name.tar.gz", nil, false},
 		// Maybe test support of two images in a single archive? It should be transparently handled by adding a reference to srcRef.
 
 		// == dir:
 		{ // Absolute path
 			"dir:/dev/this-does-not-exist",
-			[]expected{{"localhost/dev/this-does-not-exist", "localhost/dev/this-does-not-exist"}},
+			[]expected{{"localhost/dev/this-does-not-exist", "localhost/dev/this-does-not-exist:latest"}},
 			false,
 		},
 		{ // Relative path, single element.
-			// FIXME? Note the :latest difference in .image.  (In .dstName as well, but it has the same semantics in there.)
+			// FIXME? Note the :latest difference in .image.
 			"dir:this-does-not-exist",
 			[]expected{{"localhost/this-does-not-exist:latest", "localhost/this-does-not-exist:latest"}},
 			false,
 		},
 		{ // Relative path, multiple elements.
-			// FIXME: This does not add localhost/, and dstName is parsed as docker.io/testdata.
+			// FIXME: This does not add localhost/, so dstName is normalized to docker.io/testdata.
 			"dir:testdata/this-does-not-exist",
-			[]expected{{"testdata/this-does-not-exist", "testdata/this-does-not-exist"}},
+			[]expected{{"testdata/this-does-not-exist", "docker.io/testdata/this-does-not-exist:latest"}},
 			false,
 		},
 
@@ -179,24 +238,24 @@ func TestPullGoalNamesFromImageReference(t *testing.T) {
 		},
 
 		// === tarball: (as an example of what happens when ImageReference.DockerReference is nil).
-		{ // FIXME? The dstName value is invalid, and will fail.
-			// (This is NOT an API promise that the results will continue to be this way.)
-			"tarball:/dev/null",
-			[]expected{{"tarball:/dev/null", "tarball:/dev/null"}},
-			false,
-		},
+		// FIXME? This tries to parse "tarball:/dev/null" as a storageReference, and fails.
+		// (This is NOT an API promise that the results will continue to be this way.)
+		{"tarball:/dev/null", nil, false},
 	} {
 		srcRef, err := alltransports.ParseImageName(c.srcName)
 		require.NoError(t, err, c.srcName)
 
-		res, err := pullGoalNamesFromImageReference(context.Background(), srcRef, c.srcName, nil)
+		res, err := ir.pullGoalFromImageReference(context.Background(), srcRef, c.srcName, nil)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.srcName)
 		} else {
 			require.NoError(t, err, c.srcName)
-			require.Len(t, res.refNames, len(c.expected), c.srcName)
+			require.Len(t, res.refPairs, len(c.expected), c.srcName)
 			for i, e := range c.expected {
-				assert.Equal(t, pullRefName{image: e.image, srcRef: srcRef, dstName: e.dstName}, res.refNames[i], fmt.Sprintf("%s #%d", c.srcName, i))
+				testDescription := fmt.Sprintf("%s #%d", c.srcName, i)
+				assert.Equal(t, e.image, res.refPairs[i].image, testDescription)
+				assert.Equal(t, srcRef, res.refPairs[i].srcRef, testDescription)
+				assert.Equal(t, e.dstName, storageReferenceWithoutLocation(res.refPairs[i].dstRef), testDescription)
 			}
 			assert.Equal(t, c.expectedPullAllPairs, res.pullAllPairs, c.srcName)
 			assert.False(t, res.usedSearchRegistries, c.srcName)
@@ -209,17 +268,20 @@ const registriesConfWithSearch = `[registries.search]
 registries = ['example.com', 'docker.io']
 `
 
-func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
+func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	type pullRefStrings struct{ image, srcRef, dstName string } // pullRefName with string data only
+	type pullRefStrings struct{ image, srcRef, dstName string } // pullRefPair with string data only
 
-	registriesConf, err := ioutil.TempFile("", "TestPullGoalNamesFromPossiblyUnqualifiedName")
+	registriesConf, err := ioutil.TempFile("", "TestPullGoalFromPossiblyUnqualifiedName")
 	require.NoError(t, err)
 	defer registriesConf.Close()
 	defer os.Remove(registriesConf.Name())
 
 	err = ioutil.WriteFile(registriesConf.Name(), []byte(registriesConfWithSearch), 0600)
 	require.NoError(t, err)
+
+	ir, cleanup := newTestRuntime(t)
+	defer cleanup()
 
 	// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
 	// run in parallel unless they opt in by calling t.Parallel().  So don’t do that.
@@ -242,19 +304,18 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 		{ // Fully-explicit docker.io, name-only.
 			"docker.io/library/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-			[]pullRefStrings{{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox"}},
+			[]pullRefStrings{{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox:latest"}},
 			false,
 		},
 		{ // docker.io with implied /library/, name-only.
 			"docker.io/busybox",
 			// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-			// The .dstName fields differ for the explicit/implicit /library/ cases, but StorageTransport.ParseStoreReference normalizes that.
-			[]pullRefStrings{{"docker.io/busybox", "docker://busybox:latest", "docker.io/busybox"}},
+			[]pullRefStrings{{"docker.io/busybox", "docker://busybox:latest", "docker.io/library/busybox:latest"}},
 			false,
 		},
 		{ // Qualified example.com, name-only.
 			"example.com/ns/busybox",
-			[]pullRefStrings{{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox"}},
+			[]pullRefStrings{{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox:latest"}},
 			false,
 		},
 		{ // Qualified example.com, name:tag.
@@ -276,7 +337,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"example.com/busybox:latest", "docker://example.com/busybox:latest", "example.com/busybox:latest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/busybox:latest"},
+				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/library/busybox:latest"},
 			},
 			true,
 		},
@@ -285,7 +346,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			// FIXME: This is interpreted as "registry == ns", and actual pull happens from docker.io/ns/busybox:latest;
 			// example.com should be first in the list but isn't used at all.
 			[]pullRefStrings{
-				{"ns/busybox", "docker://ns/busybox:latest", "ns/busybox"},
+				{"ns/busybox", "docker://ns/busybox:latest", "docker.io/ns/busybox:latest"},
 			},
 			false,
 		},
@@ -294,7 +355,7 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"example.com/busybox:notlatest", "docker://example.com/busybox:notlatest", "example.com/busybox:notlatest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/busybox:notlatest"},
+				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/library/busybox:notlatest"},
 			},
 			true,
 		},
@@ -304,27 +365,24 @@ func TestPullGoalNamesFromPossiblyUnqualifiedName(t *testing.T) {
 				// FIXME?! Why is .input and .dstName dropping the digest, and adding :none?!
 				{"example.com/busybox:none", "docker://example.com/busybox" + digestSuffix, "example.com/busybox:none"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/busybox:none"},
+				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/library/busybox:none"},
 			},
 			true,
 		},
 		// Unqualified, name:tag@digest. This code is happy to try, but .srcRef parsing currently rejects such input.
 		{"busybox:notlatest" + digestSuffix, nil, false},
 	} {
-		res, err := pullGoalNamesFromPossiblyUnqualifiedName(c.input)
+		res, err := ir.pullGoalFromPossiblyUnqualifiedName(c.input)
 		if len(c.expected) == 0 {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			strings := make([]pullRefStrings, len(res.refNames))
-			for i, rn := range res.refNames {
-				strings[i] = pullRefStrings{
-					image:   rn.image,
-					srcRef:  transports.ImageName(rn.srcRef),
-					dstName: rn.dstName,
-				}
+			for i, e := range c.expected {
+				testDescription := fmt.Sprintf("%s #%d", c.input, i)
+				assert.Equal(t, e.image, res.refPairs[i].image, testDescription)
+				assert.Equal(t, e.srcRef, transports.ImageName(res.refPairs[i].srcRef), testDescription)
+				assert.Equal(t, e.dstName, storageReferenceWithoutLocation(res.refPairs[i].dstRef), testDescription)
 			}
-			assert.Equal(t, c.expected, strings, c.input)
 			assert.False(t, res.pullAllPairs, c.input)
 			assert.Equal(t, c.expectedUsedSearchRegistries, res.usedSearchRegistries, c.input)
 			if !c.expectedUsedSearchRegistries {
