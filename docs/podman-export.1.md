@@ -1,7 +1,7 @@
 % podman-export "1"
 
 ## NAME
-podman export - Export container's filesystem contents as a tar archive
+podman\-export - Export container's filesystem contents as a tar archive
 
 ## SYNOPSIS
 **podman export** [*options*] *container*

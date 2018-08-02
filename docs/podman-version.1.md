@@ -7,7 +7,7 @@ podman\-version - Display the PODMAN Version Information
 **podman version** [*options*]
 
 ## DESCRIPTION
-Shows the the following information: Version, Go Version, Git Commit, Build Time,
+Shows the following information: Version, Go Version, Git Commit, Build Time,
 OS, and Architecture.
 
 ## OPTIONS
