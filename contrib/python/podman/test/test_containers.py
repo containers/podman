@@ -110,7 +110,7 @@ class TestContainers(PodmanTestCase):
 
         # TODO: brittle, depends on knowing history of ctnr
         self.assertGreaterEqual(len(actual['changed']), 2)
-        self.assertGreaterEqual(len(actual['added']), 3)
+        self.assertGreaterEqual(len(actual['added']), 2)
         self.assertEqual(len(actual['deleted']), 0)
 
     def test_kill(self):
