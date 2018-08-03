@@ -248,6 +248,15 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		defer src.Close()
 	}
 
+	// If the pull command was used, we only pull the image,
+	// we don't create a container.
+	if options.ImageOnly {
+		imgBuilder := &Builder{
+			FromImageID: imageID,
+		}
+		return imgBuilder, nil
+	}
+
 	name := "working-container"
 	if options.Container != "" {
 		name = options.Container

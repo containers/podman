@@ -360,7 +360,9 @@ type BuilderOptions struct {
 	// after processing the AddCapabilities set, when running commands in the
 	// container.  If a capability appears in both lists, it will be dropped.
 	DropCapabilities []string
-
+	// ImageOnly is a boolean designating that we wish to only pull the image and
+	// to not create a container from it.  Used by pull command.
+	ImageOnly       bool
 	CommonBuildOpts *CommonBuildOptions
 }
 

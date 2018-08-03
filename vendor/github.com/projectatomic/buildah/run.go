@@ -29,6 +29,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah/bind"
+	"github.com/projectatomic/buildah/chroot"
 	"github.com/projectatomic/buildah/util"
 	"github.com/projectatomic/libpod/pkg/secrets"
 	"github.com/sirupsen/logrus"
@@ -40,7 +41,7 @@ const (
 	// DefaultWorkingDir is used if none was specified.
 	DefaultWorkingDir = "/"
 	// runUsingRuntimeCommand is a command we use as a key for reexec
-	runUsingRuntimeCommand = Package + "-runtime"
+	runUsingRuntimeCommand = Package + "-oci-runtime"
 )
 
 // TerminalPolicy takes the value DefaultTerminal, WithoutTerminal, or WithTerminal.
@@ -112,6 +113,9 @@ const (
 	IsolationDefault Isolation = iota
 	// IsolationOCI is a proper OCI runtime.
 	IsolationOCI
+	// IsolationChroot is a more chroot-like environment: less isolation,
+	// but with fewer requirements.
+	IsolationChroot
 )
 
 // String converts a Isolation into a string.
@@ -121,6 +125,8 @@ func (i Isolation) String() string {
 		return "IsolationDefault"
 	case IsolationOCI:
 		return "IsolationOCI"
+	case IsolationChroot:
+		return "IsolationChroot"
 	}
 	return fmt.Sprintf("unrecognized isolation type %d", i)
 }
@@ -129,10 +135,10 @@ func (i Isolation) String() string {
 type RunOptions struct {
 	// Hostname is the hostname we set for the running container.
 	Hostname string
-	// Isolation is either IsolationDefault or IsolationOCI.
+	// Isolation is either IsolationDefault, IsolationOCI, or IsolationChroot.
 	Isolation Isolation
-	// Runtime is the name of the command to run.  It should accept the same arguments
-	// that runc does, and produce similar output.
+	// Runtime is the name of the runtime to run.  It should accept the
+	// same arguments that runc does, and produce similar output.
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
@@ -792,6 +798,11 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			}
 		}
 	}
+	if configureNetwork {
+		for name, val := range util.DefaultNetworkSysctl {
+			g.AddLinuxSysctl(name, val)
+		}
+	}
 	return configureNetwork, configureNetworks, configureUTS, nil
 }
 
@@ -969,8 +980,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 	defer func() {
-		if err2 := b.Unmount(); err2 != nil {
-			logrus.Errorf("error unmounting container: %v", err2)
+		if err := b.Unmount(); err != nil {
+			logrus.Errorf("error unmounting container: %v", err)
 		}
 	}()
 	g.SetRootPath(mountPoint)
@@ -1069,6 +1080,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	switch isolation {
 	case IsolationOCI:
 		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+	case IsolationChroot:
+		err = chroot.RunUsingChroot(spec, path, options.Stdin, options.Stdout, options.Stderr)
 	default:
 		err = errors.Errorf("don't know how to run this command")
 	}
@@ -1677,7 +1690,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 			}
 			// If the descriptor was closed elsewhere, remove it from our list.
 			if pollFd.Revents&unix.POLLNVAL != 0 {
-				logrus.Debugf("error polling descriptor %d: closed?", pollFd.Fd)
+				logrus.Debugf("error polling descriptor %s: closed?", readDesc[int(pollFd.Fd)])
 				removes[int(pollFd.Fd)] = struct{}{}
 			}
 			// If the POLLIN flag isn't set, then there's no data to be read from this descriptor.
