@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -40,6 +41,14 @@ func CommonBuildOptions(c *cli.Context) (*buildah.CommonBuildOptions, error) {
 		memorySwap  int64
 		err         error
 	)
+	rlim := unix.Rlimit{Cur: 1048576, Max: 1048576}
+	defaultLimits := []string{}
+	if err := unix.Setrlimit(unix.RLIMIT_NOFILE, &rlim); err == nil {
+		defaultLimits = append(defaultLimits, fmt.Sprintf("nofile=%d:%d", rlim.Cur, rlim.Max))
+	}
+	if err := unix.Setrlimit(unix.RLIMIT_NPROC, &rlim); err == nil {
+		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", rlim.Cur, rlim.Max))
+	}
 	if c.String("memory") != "" {
 		memoryLimit, err = units.RAMInBytes(c.String("memory"))
 		if err != nil {
@@ -77,7 +86,7 @@ func CommonBuildOptions(c *cli.Context) (*buildah.CommonBuildOptions, error) {
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
 		ShmSize:      c.String("shm-size"),
-		Ulimit:       c.StringSlice("ulimit"),
+		Ulimit:       append(defaultLimits, c.StringSlice("ulimit")...),
 		Volumes:      c.StringSlice("volume"),
 	}
 	if err := parseSecurityOpts(c.StringSlice("security-opt"), commonOpts); err != nil {
@@ -531,12 +540,17 @@ func NamespaceOptions(c *cli.Context) (namespaceOptions buildah.NamespaceOptions
 	return options, policy, nil
 }
 
-func defaultIsolation() buildah.Isolation {
-	isolation := os.Getenv("BUILDAH_ISOLATION")
-	if strings.HasPrefix(strings.ToLower(isolation), "oci") {
-		return buildah.IsolationOCI
+func defaultIsolation() (buildah.Isolation, error) {
+	isolation, isSet := os.LookupEnv("BUILDAH_ISOLATION")
+	if isSet {
+		if strings.HasPrefix(strings.ToLower(isolation), "oci") {
+			return buildah.IsolationOCI, nil
+		} else if strings.HasPrefix(strings.ToLower(isolation), "chroot") {
+			return buildah.IsolationChroot, nil
+		}
+		return 0, errors.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
 	}
-	return buildah.IsolationDefault
+	return buildah.IsolationDefault, nil
 }
 
 // IsolationOption parses the --isolation flag.
@@ -544,9 +558,11 @@ func IsolationOption(c *cli.Context) (buildah.Isolation, error) {
 	if c.String("isolation") != "" {
 		if strings.HasPrefix(strings.ToLower(c.String("isolation")), "oci") {
 			return buildah.IsolationOCI, nil
+		} else if strings.HasPrefix(strings.ToLower(c.String("isolation")), "chroot") {
+			return buildah.IsolationChroot, nil
 		} else {
 			return buildah.IsolationDefault, errors.Errorf("unrecognized isolation type %q", c.String("isolation"))
 		}
 	}
-	return defaultIsolation(), nil
+	return defaultIsolation()
 }

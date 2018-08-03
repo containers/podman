@@ -29,6 +29,18 @@ var (
 	}
 )
 
+func getDockerfiles(files []string) []string {
+	var dockerfiles []string
+	for _, f := range files {
+		if f == "-" {
+			dockerfiles = append(dockerfiles, "/dev/stdin")
+		} else {
+			dockerfiles = append(dockerfiles, f)
+		}
+	}
+	return dockerfiles
+}
+
 func buildCmd(c *cli.Context) error {
 	// The following was taken directly from projectatomic/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
@@ -62,7 +74,7 @@ func buildCmd(c *cli.Context) error {
 		}
 	}
 
-	dockerfiles := c.StringSlice("file")
+	dockerfiles := getDockerfiles(c.StringSlice("file"))
 	format := "oci"
 	if c.IsSet("format") {
 		format = strings.ToLower(c.String("format"))

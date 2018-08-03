@@ -11,6 +11,8 @@ podman\-build - Build a container image using a Dockerfile.
 
 The build context directory can be specified as the http(s) URL of an archive, git repository or Dockerfile.
 
+Dockerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This can be useful to decompose Dockerfiles into several reusable parts that can be used via CPP's **#include** directive.  Notice, a Dockerfile.in file can still be used by other tools when manually preprocessing them via `cpp -E`.
+
 When the URL is an archive, the contents of the URL is downloaded to a temporary location and extracted before execution.
 
 When the URL is an Dockerfile, the Dockerfile is downloaded to a temporary location.
@@ -179,6 +181,8 @@ first specified file.
 If a build context is not specified, and at least one Dockerfile is a
 local file, the directory in which it resides will be used as the build
 context.
+
+If you specify `-f -`, the Dockerfile contents will be read from stdin.
 
 **--force-rm** *bool-value*
 
@@ -522,7 +526,11 @@ podman build .
 
 podman build -f Dockerfile.simple .
 
+cat ~/Dockerfile | podman build -f - .
+
 podman build -f Dockerfile.simple -f Dockerfile.notsosimple
+
+podman build -f Dockerfile.in ~
 
 podman build -t imageName .
 

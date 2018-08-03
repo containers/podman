@@ -16,9 +16,9 @@
 
 HOME=`pwd`
 
-########
-# test "build-from-scratch"
-########
+echo ########################################################
+echo test "build-from-scratch"
+echo ########################################################
   TARGET=scratch-image
   podman build -q=True -t $TARGET $HOME/test/build/from-scratch
   CID=$(buildah from $TARGET)
@@ -33,9 +33,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-preserve-subvolumes"
-########
+echo ########################################################
+echo test "build-preserve-subvolumes"
+echo ########################################################
   TARGET=volume-image
   podman build -t $TARGET $HOME/test/build/preserve-volumes
   CID=$(buildah from $TARGET)
@@ -50,9 +50,9 @@ HOME=`pwd`
   podman rmi $(buildah --debug=false images -q)
   buildah --debug=false images -q
 
-########
-# test "build-git-context"
-########
+echo ########################################################
+echo test "build-git-context"
+echo ########################################################
   TARGET=giturl-image
   # Any repo should do, but this one is small and is FROM: scratch.
   GITREPO=git://github.com/projectatomic/nulecule-library
@@ -63,9 +63,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-github-context"
-########
+echo ########################################################
+echo test "build-github-context"
+echo ########################################################
   TARGET=github-image
   # Any repo should do, but this one is small and is FROM: scratch.
   GITREPO=github.com/projectatomic/nulecule-library
@@ -77,9 +77,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-additional-tags"
-########
+echo ########################################################
+echo test "build-additional-tags"
+echo ########################################################
   TARGET=scratch-image
   TARGET2=another-scratch-image
   TARGET3=so-many-scratch-images
@@ -95,9 +95,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-volume-perms"
-########
+echo ########################################################
+echo test "build-volume-perms"
+echo ########################################################
   TARGET=volume-image
   podman build -t $TARGET $HOME/test/build/volume-perms
   CID=$(buildah from $TARGET)
@@ -110,9 +110,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-from-glob"
-########
+echo ########################################################
+echo test "build-from-glob"
+echo ########################################################
   TARGET=alpine-image
   podman build -t $TARGET -file Dockerfile2.glob $HOME/test/build/from-multiple-files
   CID=$(buildah from $TARGET)
@@ -124,9 +124,9 @@ HOME=`pwd`
   podman images -q
 
 
-########
-# test "build-from-multiple-files-one-from"
-########
+echo ########################################################
+echo test "build-from-multiple-files-one-from"
+echo ########################################################
   TARGET=scratch-image
   podman build -t $TARGET -file $HOME/test/build/from-multiple-files/Dockerfile1.scratch -file $HOME/test/build/from-multiple-files/Dockerfile2.nofrom
   CID=$(buildah from $TARGET)
@@ -146,9 +146,9 @@ HOME=`pwd`
   buildah --debug=false images -q
 
 
-########
-# test "build-from-multiple-files-two-froms"
-########
+echo ########################################################
+echo test "build-from-multiple-files-two-froms"
+echo ########################################################
   TARGET=scratch-image
   podman build -t $TARGET -file $HOME/test/build/from-multiple-files/Dockerfile1.scratch -file $HOME/test/build/from-multiple-files/Dockerfile2.withfrom
   CID=$(buildah from $TARGET)
@@ -167,6 +167,32 @@ HOME=`pwd`
   cmp $ROOT/Dockerfile1 $HOME/test/build/from-multiple-files/Dockerfile1.alpine
   cmp $ROOT/Dockerfile2.withfrom $HOME/test/build/from-multiple-files/Dockerfile2.withfrom
   test -s $ROOT/etc/passwd
+  buildah rm $CID
+  podman rmi $(buildah --debug=false images -q)
+  buildah --debug=false images -q
+
+echo ########################################################
+echo test "build-from-multiple-files-two-froms" with "-f -"
+echo ########################################################
+  TARGET=scratch-image
+  cat $HOME/test/build/from-multiple-files/Dockerfile1.alpine | podman build -t ${TARGET} -file - -file Dockerfile2.withfrom $HOME/test/build/from-multiple-files
+  CID=$(buildah from $TARGET)
+  ROOT=$(buildah mount $CID)
+  cmp $ROOT/Dockerfile1 $HOME/test/build/from-multiple-files/Dockerfile1.alpine
+  cmp $ROOT/Dockerfile2.withfrom $HOME/test/build/from-multiple-files/Dockerfile2.withfrom
+  test -s $ROOT/etc/passwd
+  buildah rm $CID
+  podman rmi $(buildah --debug=false images -q)
+  buildah --debug=false images -q
+
+echo ########################################################
+echo test "build with preprocessor"
+echo ########################################################
+
+  target=alpine-image
+  podman build -q -t ${TARGET} -f Decomposed.in $HOME/test/build/preprocess
+  buildah --debug=false images
+  CID=$(buildah from $TARGET)
   buildah rm $CID
   podman rmi $(buildah --debug=false images -q)
   buildah --debug=false images -q
