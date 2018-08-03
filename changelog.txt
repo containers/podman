@@ -1,3 +1,87 @@
+- Changelog for v0.8.1 (2018-08-03)
+  * Vendor in latest github.com/projectatomic/buildah
+  * Update gitvalidation epoch
+  * Check for missing arguments in /proc/self/cmdline
+  * Added ps --pod option
+  * clarify pull error message
+  * rootless: do not set setgroups to deny when using newuidmap
+  * Man page fixes found by https://pagure.io/ManualPageScan
+  * Inline pullGoalNamesFromPossiblyUnqualifiedName into Runtime.pullGoalFromPossibly...
+  * Replace getPullRefName by Runtime.getPullRefPair
+  * Inline pullGoalNamesFromImageReference back into Runtime.pullGoalFromImageReference
+  * Introduce getSinglePullRefNameGoal
+  * Test Runtime.pullGoalFromPossiblyUnqualifiedName instead of pullGoalNameFrom...
+  * Test Runtime.pullGoalFromImageReference instead of pullGoalNamesFromImageReference
+  * Use REGISTRIES_CONFIG_PATH for all tests
+  * rootless: do not segfault if the parent already died
+  * RFC: Rename runtime.pullImage to runtime.pullImageFromHeuristicSource
+  * Introduce Runtime.pullImageFromReference, call it in Runtime.FromImageReference
+  * RFC: Remove unused transport name constants from libpod
+  * Replace Runtime.LoadFromArchive with Runtime.LoadFromArchiveReference
+  * Rename the "image" variable to "imageName"
+  * Fix the heuristic for docker-archive: sources in (podman pull)
+  * Split doPullImage from pullImage
+  * Remove the forceCompress parameter from getCopyOptions and DRO.GetSystemContext
+  * Remove the authFile parameter from getCopyOptions and DRO.GetSystemContext
+  * Remove the signaturePolicyPath parameter from getCopyOptions and DRO.GetSystemContext
+  * Add a *types.SystemContext parameter to getCopyOptions and DRO.GetSystemContext
+  * Move pullImage from Image to Runtime
+  * Do not re-parse the list of search registries just for an error message
+  * Eliminate duplicate determination whether to use search registries
+  * Eliminate the "DockerArchive means pull all refPairs" special case
+  * Introduce struct pullGoalNames
+  * Introduce struct pullGoal
+  * Use []pullRefPair instead of []*pullRefPair
+  * Use []pullRefName instead of []*pullRefName
+  * Introduce singlePullRefNameGoal
+  * Use an early return from refNamesFromPossiblyUnqualifiedName
+  * RFC: Rename Image.PushImage to Image.PushImageToHeuristicDestination
+  * Remove an unnecessary use of alltransports.ParseImageName
+  * RFC? Hard-code "format" string values instead of using libpod.* transport names
+  * Use PushImageToReference for (podman save)
+  * Call imageNameForSaveDestination while creating the references
+  * Exit early in the simple case in imageNameForSaveDestination
+  * Rename parameters of imageNameForSaveDestination
+  * Split imageNameForSaveDestination from saveCmd
+  * Split a single if statement into two.
+  * Move source handling before destination parsing
+  * Split Image.PushImageToReference from Image.PushImage
+  * Don't format to string and re-parse a DockerReference()
+  * Remove the :// end from DockerTransport
+  * Remove the TransportNames arrays
+  * Document the properties of DefaultTransport a bit better.
+  * Eliminate the "dest" variable.
+  * Use an early exit if a docker-archive: image has no repo tags
+  * Reorganize the tag loading in DockerArchive case
+  * Return early in refNamesFromImageReference instead of appending to pullNames
+  * Use srcRef.StringWithinTransport() instead of parsing imgName again
+  * Use a switch instead of if/if else/.../else
+  * Remove the error return value from getPullRefName
+  * Rename getPullListFromRef to refPairsFromImageReference
+  * Split refNamesFromImageReference from Runtime.getPullListFromRef
+  * Replace getPullRefPair with getPullRefName
+  * Include the rejected reference when parsing it fails in pullRefPairsFromRefNames
+  * Add --force to podman umount to force the unmounting of the rootfs
+  * Integration Test Improvements #3
+  * Ensure container and pod refresh picks up a State
+  * Fix build on non-linux platforms
+  * Rework state testing to allow State structs to be empty
+  * Add additional comments on accessing state in API
+  * Do not fetch pod and ctr State on retrieval in Bolt
+  * network: add support for rootless network with slirp4netns
+  * varlink ImageRemove should always return image ID
+  * Add documentations on how to setup /etc/subuid and /etc/subgid
+  * Integration Test Improvements #2
+  * avoid spewing fds do to restore of cached images
+  * Add load test for xz compressed images
+  * Speed up test results
+  * Show duration for each ginkgo test and test speed improvements
+  * vendor: update containers/storage
+  * Clean up pylint warnings and errors for podman
+  * podman rmi shouldn't delete named referenced images
+  * Bump gitvalidation epoch
+  * Bump to v0.8.1-dev
+
 - Changelog for v0.7.4 (2018-07-27)
   * Add pod pause/unpause
   * Fix up docker compatibility messages
