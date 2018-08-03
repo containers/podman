@@ -1,11 +1,14 @@
 package imagebuildah
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -215,6 +218,7 @@ type Executor struct {
 	noCache                        bool
 	removeIntermediateCtrs         bool
 	forceRmIntermediateCtrs        bool
+	containerIDs                   []string // Stores the IDs of the successful intermediate containers used during layer build
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
@@ -684,6 +688,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 	// Add the top layer of this image to b.topLayers so we can keep track of them
 	// when building with cached images.
 	b.topLayers = append(b.topLayers, builder.TopLayer)
+	logrus.Debugln("Container ID:", builder.ContainerID)
 	return nil
 }
 
@@ -811,12 +816,8 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 			// it is used to create the container for the next step.
 			imgID = cacheID
 		}
-		// Delete the intermediate container if b.removeIntermediateCtrs is true.
-		if b.removeIntermediateCtrs {
-			if err := b.Delete(); err != nil {
-				return errors.Wrap(err, "error deleting intermediate container")
-			}
-		}
+		// Add container ID of successful intermediate container to b.containerIDs
+		b.containerIDs = append(b.containerIDs, b.builder.ContainerID)
 		// Prepare for the next step with imgID as the new base image.
 		if i != len(children)-1 {
 			if err := b.Prepare(ctx, ib, node, imgID); err != nil {
@@ -1122,11 +1123,14 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 	if len(stages) == 0 {
 		errors.New("error building: no stages to build")
 	}
-	var stageExecutor *Executor
+	var (
+		stageExecutor *Executor
+		lastErr       error
+	)
 	for _, stage := range stages {
 		stageExecutor = b.withName(stage.Name, stage.Position)
 		if err := stageExecutor.Prepare(ctx, stage.Builder, stage.Node, ""); err != nil {
-			return err
+			lastErr = err
 		}
 		// Always remove the intermediate/build containers, even if the build was unsuccessful.
 		// If building with layers, remove all intermediate/build containers if b.forceRmIntermediateCtrs
@@ -1135,8 +1139,18 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 			defer stageExecutor.Delete()
 		}
 		if err := stageExecutor.Execute(ctx, stage.Builder, stage.Node); err != nil {
-			return err
+			lastErr = err
 		}
+
+		// Delete the successful intermediate containers if an error in the build
+		// process occurs and b.removeIntermediateCtrs is true.
+		if lastErr != nil {
+			if b.removeIntermediateCtrs {
+				stageExecutor.deleteSuccessfulIntermediateCtrs()
+			}
+			return lastErr
+		}
+		b.containerIDs = append(b.containerIDs, stageExecutor.containerIDs...)
 	}
 
 	if !b.layers && !b.noCache {
@@ -1154,7 +1168,9 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 	// the removal of intermediate/build containers will be handled by the
 	// defer statement above.
 	if b.removeIntermediateCtrs && (b.layers || b.noCache) {
-		return stageExecutor.Delete()
+		if err := b.deleteSuccessfulIntermediateCtrs(); err != nil {
+			return errors.Errorf("Failed to cleanup intermediate containers")
+		}
 	}
 	return nil
 }
@@ -1173,6 +1189,8 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		}
 	}(dockerfiles...)
 	for _, dfile := range paths {
+		var data io.ReadCloser
+
 		if strings.HasPrefix(dfile, "http://") || strings.HasPrefix(dfile, "https://") {
 			logrus.Debugf("reading remote Dockerfile %q", dfile)
 			resp, err := http.Get(dfile)
@@ -1183,7 +1201,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 				resp.Body.Close()
 				return errors.Errorf("no contents in %q", dfile)
 			}
-			dockerfiles = append(dockerfiles, resp.Body)
+			data = resp.Body
 		} else {
 			if !filepath.IsAbs(dfile) {
 				logrus.Debugf("resolving local Dockerfile %q", dfile)
@@ -1199,12 +1217,23 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 				contents.Close()
 				return errors.Wrapf(err, "error reading info about %q", dfile)
 			}
-			if dinfo.Size() == 0 {
+			if dinfo.Mode().IsRegular() && dinfo.Size() == 0 {
 				contents.Close()
 				return errors.Wrapf(err, "no contents in %q", dfile)
 			}
-			dockerfiles = append(dockerfiles, contents)
+			data = contents
 		}
+
+		// pre-process Dockerfiles with ".in" suffix
+		if strings.HasSuffix(dfile, ".in") {
+			pData, err := preprocessDockerfileContents(data, options.ContextDirectory)
+			if err != nil {
+				return err
+			}
+			data = *pData
+		}
+
+		dockerfiles = append(dockerfiles, data)
 	}
 	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
 	if err != nil {
@@ -1224,4 +1253,68 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 	b := imagebuilder.NewBuilder(options.Args)
 	stages := imagebuilder.NewStages(mainNode, b)
 	return exec.Build(ctx, stages)
+}
+
+// deleteSuccessfulIntermediateCtrs goes through the container IDs in b.containerIDs
+// and deletes the containers associated with that ID.
+func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
+	var lastErr error
+	for _, ctr := range b.containerIDs {
+		if err := b.store.DeleteContainer(ctr); err != nil {
+			logrus.Errorf("error deleting build container %q: %v\n", ctr, err)
+			lastErr = err
+		}
+	}
+	return lastErr
+}
+
+// preprocessDockerfileContents runs CPP(1) in preprocess-only mode on the input
+// dockerfile content and will use ctxDir as the base include path.
+//
+// Note: we cannot use cmd.StdoutPipe() as cmd.Wait() closes it.
+func preprocessDockerfileContents(r io.ReadCloser, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
+	cppPath := "/usr/bin/cpp"
+	if _, err = os.Stat(cppPath); err != nil {
+		if os.IsNotExist(err) {
+			err = errors.Errorf("error: Dockerfile.in support requires %s to be installed", cppPath)
+		}
+		return nil, err
+	}
+
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+
+	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	pipe, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			pipe.Close()
+		}
+	}()
+
+	if err = cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	if _, err = io.Copy(pipe, r); err != nil {
+		return nil, err
+	}
+
+	pipe.Close()
+	if err = cmd.Wait(); err != nil {
+		if stderr.Len() > 0 {
+			err = fmt.Errorf("%v: %s", err, strings.TrimSpace(stderr.String()))
+		}
+		return nil, errors.Wrapf(err, "error pre-processing Dockerfile")
+	}
+
+	rc := ioutil.NopCloser(bytes.NewReader(stdout.Bytes()))
+	return &rc, nil
 }
