@@ -17,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
@@ -28,11 +27,7 @@ import (
 // ListImages lists all the images in the store
 // It requires no inputs.
 func (i *LibpodAPI) ListImages(call ioprojectatomicpodman.VarlinkCall) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	images, err := runtime.ImageRuntime().GetImages()
+	images, err := i.Runtime.ImageRuntime().GetImages()
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get list of images %q", err))
 	}
@@ -60,11 +55,7 @@ func (i *LibpodAPI) ListImages(call ioprojectatomicpodman.VarlinkCall) error {
 
 // GetImage returns a single image in the form of a ImageInList
 func (i *LibpodAPI) GetImage(call ioprojectatomicpodman.VarlinkCall, name string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -101,13 +92,8 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		memoryLimit int64
 		memorySwap  int64
 		namespace   []buildah.NamespaceOption
+		err         error
 	)
-
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	defer runtime.Shutdown(false)
 
 	systemContext := types.SystemContext{}
 	dockerfiles := config.Dockerfile
@@ -215,7 +201,7 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		call.Continues = true
 	}
 
-	c := build(runtime, options, config.Dockerfile)
+	c := build(i.Runtime, options, config.Dockerfile)
 	var log []string
 	done := false
 	for {
@@ -249,7 +235,7 @@ func (i *LibpodAPI) BuildImage(call ioprojectatomicpodman.VarlinkCall, config io
 		}
 	}
 	call.Continues = false
-	newImage, err := runtime.ImageRuntime().NewFromLocal(config.Tags[0])
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(config.Tags[0])
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -280,11 +266,7 @@ func (i *LibpodAPI) CreateImage(call ioprojectatomicpodman.VarlinkCall) error {
 // InspectImage returns an image's inspect information as a string that can be serialized.
 // Requires an image ID or name
 func (i *LibpodAPI) InspectImage(call ioprojectatomicpodman.VarlinkCall, name string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
@@ -299,11 +281,7 @@ func (i *LibpodAPI) InspectImage(call ioprojectatomicpodman.VarlinkCall, name st
 // HistoryImage returns the history of the image's layers
 // Requires an image or name
 func (i *LibpodAPI) HistoryImage(call ioprojectatomicpodman.VarlinkCall, name string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
@@ -329,11 +307,7 @@ func (i *LibpodAPI) HistoryImage(call ioprojectatomicpodman.VarlinkCall, name st
 // PushImage pushes an local image to registry
 // TODO We need to add options for signing, credentials, tls, and multi-tag
 func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag string, tlsVerify bool) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(err.Error())
 	}
@@ -356,11 +330,7 @@ func (i *LibpodAPI) PushImage(call ioprojectatomicpodman.VarlinkCall, name, tag 
 
 // TagImage accepts an image name and tag as strings and tags an image in the local store.
 func (i *LibpodAPI) TagImage(call ioprojectatomicpodman.VarlinkCall, name, tag string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
@@ -374,15 +344,11 @@ func (i *LibpodAPI) TagImage(call ioprojectatomicpodman.VarlinkCall, name, tag s
 // remove the image even if being used by stopped containers
 func (i *LibpodAPI) RemoveImage(call ioprojectatomicpodman.VarlinkCall, name string, force bool) error {
 	ctx := getContext()
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
-	_, err = runtime.RemoveImage(ctx, newImage, force)
+	_, err = i.Runtime.RemoveImage(ctx, newImage, force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -420,11 +386,7 @@ func (i *LibpodAPI) SearchImage(call ioprojectatomicpodman.VarlinkCall, name str
 // DeleteUnusedImages deletes any images that do not have containers associated with it.
 // TODO Filters are not implemented
 func (i *LibpodAPI) DeleteUnusedImages(call ioprojectatomicpodman.VarlinkCall) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	images, err := runtime.ImageRuntime().GetImages()
+	images, err := i.Runtime.ImageRuntime().GetImages()
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -446,17 +408,13 @@ func (i *LibpodAPI) DeleteUnusedImages(call ioprojectatomicpodman.VarlinkCall) e
 
 // Commit ...
 func (i *LibpodAPI) Commit(call ioprojectatomicpodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	ctr, err := runtime.LookupContainer(name)
+	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(i.Runtime.GetConfig().SignaturePolicyPath, "", false)
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   runtime.GetConfig().SignaturePolicyPath,
+		SignaturePolicyPath:   i.Runtime.GetConfig().SignaturePolicyPath,
 		ReportWriter:          nil,
 		SystemContext:         sc,
 		PreferredManifestType: buildah.OCIv1ImageManifest,
@@ -478,10 +436,6 @@ func (i *LibpodAPI) Commit(call ioprojectatomicpodman.VarlinkCall, name, imageNa
 
 // ImportImage imports an image from a tarball to the image store
 func (i *LibpodAPI) ImportImage(call ioprojectatomicpodman.VarlinkCall, source, reference, message string, changes []string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
 	configChanges, err := util.GetImageConfig(changes)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -493,7 +447,7 @@ func (i *LibpodAPI) ImportImage(call ioprojectatomicpodman.VarlinkCall, source, 
 		Config:  configChanges,
 		History: history,
 	}
-	newImage, err := runtime.ImageRuntime().Import(getContext(), source, reference, nil, image.SigningOptions{}, config)
+	newImage, err := i.Runtime.ImageRuntime().Import(getContext(), source, reference, nil, image.SigningOptions{}, config)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -503,11 +457,7 @@ func (i *LibpodAPI) ImportImage(call ioprojectatomicpodman.VarlinkCall, source, 
 // ExportImage exports an image to the provided destination
 // destination must have the transport type!!
 func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, destination string, compress bool, tags []string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(name)
 	}
@@ -526,11 +476,7 @@ func (i *LibpodAPI) ExportImage(call ioprojectatomicpodman.VarlinkCall, name, de
 // PullImage pulls an image from a registry to the image store.
 // TODO This implementation is incomplete
 func (i *LibpodAPI) PullImage(call ioprojectatomicpodman.VarlinkCall, name string) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	newImage, err := runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true, false)
+	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true, false)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 	}

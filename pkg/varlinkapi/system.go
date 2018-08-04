@@ -4,7 +4,6 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 )
@@ -36,11 +35,7 @@ func (i *LibpodAPI) Ping(call ioprojectatomicpodman.VarlinkCall) error {
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call ioprojectatomicpodman.VarlinkCall) error {
 	podmanInfo := ioprojectatomicpodman.PodmanInfo{}
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	info, err := runtime.Info()
+	info, err := i.Runtime.Info()
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
