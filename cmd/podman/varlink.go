@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	ioprojectatomicpodman "github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/pkg/varlinkapi"
 	"github.com/projectatomic/libpod/version"
@@ -44,7 +45,14 @@ func varlinkCmd(c *cli.Context) error {
 	}
 	timeout := time.Duration(c.Int64("timeout")) * time.Millisecond
 
-	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.New(c)}
+	// Create a single runtime for varlink
+	runtime, err := libpodruntime.GetRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "error creating libpod runtime")
+	}
+	defer runtime.Shutdown(false)
+
+	var varlinkInterfaces = []*ioprojectatomicpodman.VarlinkInterface{varlinkapi.New(c, runtime)}
 	// Register varlink service. The metadata can be retrieved with:
 	// $ varlink info [varlink address URI]
 	service, err := varlink.NewService(

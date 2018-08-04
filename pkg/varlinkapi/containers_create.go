@@ -10,7 +10,6 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/libpod/image"
@@ -22,22 +21,16 @@ import (
 
 // CreateContainer ...
 func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, config ioprojectatomicpodman.Create) error {
-	runtime, err := libpodruntime.GetRuntime(i.Cli)
-	if err != nil {
-		return call.ReplyRuntimeError(err.Error())
-	}
-	defer runtime.Shutdown(false)
-
-	rtc := runtime.GetConfig()
+	rtc := i.Runtime.GetConfig()
 	ctx := getContext()
 
-	newImage, err := runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+	newImage, err := i.Runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	data, err := newImage.Inspect(ctx)
 
-	createConfig, err := varlinkCreateToCreateConfig(ctx, config, runtime, config.Image, data)
+	createConfig, err := varlinkCreateToCreateConfig(ctx, config, i.Runtime, config.Image, data)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -47,12 +40,12 @@ func (i *LibpodAPI) CreateContainer(call ioprojectatomicpodman.VarlinkCall, conf
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
-	options, err := createConfig.GetContainerCreateOptions(runtime)
+	options, err := createConfig.GetContainerCreateOptions(i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
-	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
+	ctr, err := i.Runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
