@@ -7,10 +7,12 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/pkg/system"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/utils"
 )
 
 // InfoData holds the info type, i.e store, host etc and the data for each type
@@ -84,6 +86,11 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	}
 	info["hostname"] = host
 
+	// Don't think this should be catastrophic if we cannot get the versions
+	conmonVersion, _ := r.GetConmonVersion()
+	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
+	info["conmonVersion"] = conmonVersion
+	info["OCIRuntimeVersion"] = ociruntimeVersion
 	return info, nil
 }
 
@@ -145,4 +152,22 @@ func readUptime() (string, error) {
 		return "", fmt.Errorf("invalid uptime")
 	}
 	return string(f[0]), nil
+}
+
+// GetConmonVersion returns a string representation of the conmon version
+func (r *Runtime) GetConmonVersion() (string, error) {
+	output, err := utils.ExecCmd(r.conmonPath, "--version")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
+}
+
+// GetOCIRuntimeVersion returns a string representation of the oci runtimes version
+func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
+	output, err := utils.ExecCmd(r.ociRuntimePath, "--version")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(output, "\n"), nil
 }
