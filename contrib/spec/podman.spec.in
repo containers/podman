@@ -1,26 +1,7 @@
-# If any of the following macros should be set otherwise,
-# you can wrap any of them with the following conditions:
-# - %%if 0%%{centos} == 7
-# - %%if 0%%{?rhel} == 7
-# - %%if 0%%{?fedora} == 23
-# Or just test for particular distribution:
-# - %%if 0%%{centos}
-# - %%if 0%%{?rhel}
-# - %%if 0%%{?fedora}
-#
-# Be aware, on centos, both %%rhel and %%centos are set. If you want to test
-# rhel specific macros, you can use %%if 0%%{?rhel} && 0%%{?centos} == 0 condition.
-# (Don't forget to replace double percentage symbol with single one in order to apply a condition)
-
-# Generate devel rpm
 %global with_devel 0
-# Build project from bundled dependencies
 %global with_bundled 1
-# Build with debug info rpm
 %global with_debug 1
-# Run tests in check section
 %global with_check 0
-# Generate unit-test rpm
 %global with_unit_test 0
 
 %if 0%{?fedora} >= 28
@@ -37,160 +18,159 @@
 %endif
 
 # %if ! 0% {?gobuild:1}
-%define gobuild(o:) go build -tags="$BUILDTAGS selinux seccomp" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
+%define gobuild(o:) go build -tags="$BUILDTAGS" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
 #% endif
 
-%global provider        github
-%global provider_tld    com
-%global project         projectatomic
-%global repo            libpod
+%global provider github
+%global provider_tld com
+%global project projectatomic
+%global repo libpod
 # https://github.com/projectatomic/libpod
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
-%global import_path     %{provider_prefix}
-%global commit          #COMMIT#
-%global shortcommit     %(c=%{commit}; echo ${c:0:7})
+%global import_path %{provider_prefix}
+%global git0 https://%{provider}.%{provider_tld}/%{project}/%{repo}
+%global commit0 #COMMIT#
+%global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 
-Name:           podman
-Version:        0.8.2
-Release:        #COMMITDATE#.git%{shortcommit}%{?dist}
-Summary:        Manage Pods, Containers and Container Images
-License:        ASL 2.0
-URL:            https://%{provider_prefix}
-Source0:        https://%{provider_prefix}/podman-%{shortcommit}.tar.gz
-
+Name: podman
+Version: 0.8.2
+Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
+Summary: Manage Pods, Containers and Container Images
+License: ASL 2.0
+URL: %{git_podman}
+Source0: %{git0}/archive/%{commit0}/%{repo}-%{shortcommit0}.tar.gz
+Patch0: makefile.patch
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
-ExclusiveArch: x86_64
+ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
 # If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
-BuildRequires:  %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
-BuildRequires:  btrfs-progs-devel
-BuildRequires:  device-mapper-devel
-BuildRequires:  glib2-devel
-BuildRequires:  glibc-devel
-BuildRequires:  glibc-static
-BuildRequires:  git
-BuildRequires:  go-md2man
-BuildRequires:  gpgme-devel
-BuildRequires:  libassuan-devel
-BuildRequires:  libgpg-error-devel
-BuildRequires:  libseccomp-devel
-BuildRequires:  libselinux-devel
-BuildRequires:  pkgconfig
-BuildRequires:  runc
-BuildRequires:  skopeo-containers
-Requires:       runc
-Requires:       skopeo-containers
-Requires:       conmon >= 1.10.1
-Requires:       iptables
-Requires:       containernetworking-cni
-Requires:       atomic-registries
-Requires:       oci-systemd-hook
+BuildRequires: %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
+BuildRequires: btrfs-progs-devel
+BuildRequires: device-mapper-devel
+BuildRequires: glib2-devel
+BuildRequires: glibc-devel
+BuildRequires: glibc-static
+BuildRequires: git
+BuildRequires: go-md2man
+BuildRequires: gpgme-devel
+BuildRequires: libassuan-devel
+BuildRequires: libgpg-error-devel
+BuildRequires: libseccomp-devel
+BuildRequires: libselinux-devel
+BuildRequires: ostree-devel
+BuildRequires: pkgconfig
+BuildRequires: make
+Requires: runc
+Requires: containers-common
+Requires: containernetworking-cni >= 0.6.0-3
+Requires: iptables
+Requires: oci-systemd-hook
+Recommends: container-selinux
 
 # vendored libraries
-# awk '{print "Provides: bundled(golang("$1")) = "$2}' containerd-*/vendor.conf | sort
+# awk '{print "Provides: bundled(golang("$1")) = "$2}' vendor.conf | sort
 # [thanks to Carl George <carl@george.computer> for containerd.spec]
-Provides: bundled(golang(github.com/asaskevich/govalidator)) = v6
 Provides: bundled(golang(github.com/Azure/go-ansiterm)) = 19f72df4d05d31cbe1c56bfc8045c96babff6c7e
 Provides: bundled(golang(github.com/blang/semver)) = v3.5.0
+Provides: bundled(golang(github.com/boltdb/bolt)) = master
 Provides: bundled(golang(github.com/buger/goterm)) = 2f8dfbc7dbbff5dd1d391ed91482c24df243b2d3
 Provides: bundled(golang(github.com/BurntSushi/toml)) = v0.2.0
-Provides: bundled(golang(github.com/containerd/cgroups)) = 7a5fdd8330119dc70d850260db8f3594d89d6943
+Provides: bundled(golang(github.com/containerd/cgroups)) = 77e628511d924b13a77cebdc73b757a47f6d751b
 Provides: bundled(golang(github.com/containerd/continuity)) = master
-Provides: bundled(golang(github.com/containernetworking/cni)) = v0.4.0
-Provides: bundled(golang(github.com/containers/image)) = 9b4510f6d1627c8e53c3303a8fe48ca7842c2ace
-Provides: bundled(golang(github.com/containers/storage)) = 1824cf917a6b42d8c41179e807bb20a5fd6c0f0a
+Provides: bundled(golang(github.com/containernetworking/cni)) = v0.7.0-alpha1
+Provides: bundled(golang(github.com/containernetworking/plugins)) = 1fb94a4222eafc6f948eacdca9c9f2158b427e53
+Provides: bundled(golang(github.com/containers/image)) = c6e0eee0f8eb38e78ae2e44a9aeea0576f451617
+Provides: bundled(golang(github.com/containers/psgo)) = dd34e7e448e5d4f3c7ce87b5da7738b00778dbfd
+Provides: bundled(golang(github.com/containers/storage)) = 8b1a0f8d6863cf05709af333b8997a437652ec4c
 Provides: bundled(golang(github.com/coreos/go-systemd)) = v14
-Provides: bundled(golang(github.com/coreos/pkg)) = v3
+Provides: bundled(golang(github.com/cri-o/ocicni)) = master
+Provides: bundled(golang(github.com/cyphar/filepath-securejoin)) = v0.2.1
 Provides: bundled(golang(github.com/davecgh/go-spew)) = v1.1.0
-Provides: bundled(golang(github.com/dgrijalva/jwt-go)) = v3.0.0
 Provides: bundled(golang(github.com/docker/distribution)) = 7a8efe719e55bbfaff7bc5718cdf0ed51ca821df
-Provides: bundled(golang(github.com/docker/docker)) = ce452fb72ffcdb7605ce98bde9302238f47c63c5
+Provides: bundled(golang(github.com/docker/docker)) = 86f080cff0914e9694068ed78d503701667c4c00
 Provides: bundled(golang(github.com/docker/docker-credential-helpers)) = d68f9aeca33f5fd3f08eeae5e9d175edf4e731d1
 Provides: bundled(golang(github.com/docker/go-connections)) = 3ede32e2033de7505e6500d6c868c2b9ed9f169d
 Provides: bundled(golang(github.com/docker/go-units)) = v0.3.2
 Provides: bundled(golang(github.com/docker/libtrust)) = aabc10ec26b754e797f9028f4589c5b7bd90dc20
 Provides: bundled(golang(github.com/docker/spdystream)) = ed496381df8283605c435b86d4fdd6f4f20b8c6e
-Provides: bundled(golang(github.com/emicklei/go-restful)) = ff4f55a206334ef123e4f79bbf348980da81ca46
-Provides: bundled(golang(github.com/emicklei/go-restful-swagger12)) = 1.0.1
-Provides: bundled(golang(github.com/exponent-io/jsonpath)) = d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 Provides: bundled(golang(github.com/fatih/camelcase)) = f6a740d52f961c60348ebb109adde9f4635d7540
+Provides: bundled(golang(github.com/fsnotify/fsnotify)) = 7d7316ed6e1ed2de075aab8dfc76de5d158d66e1
+Provides: bundled(golang(github.com/fsouza/go-dockerclient)) = master
 Provides: bundled(golang(github.com/ghodss/yaml)) = 04f313413ffd65ce25f2541bfd2b2ceec5c0908c
 Provides: bundled(golang(github.com/godbus/dbus)) = a389bdde4dd695d414e47b755e95e72b7826432c
-Provides: bundled(golang(github.com/gogo/protobuf)) = v0.3
+Provides: bundled(golang(github.com/gogo/protobuf)) = c0656edd0d9eab7c66d1eb0c568f9039345796f7
 Provides: bundled(golang(github.com/golang/glog)) = 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 Provides: bundled(golang(github.com/golang/groupcache)) = b710c8433bd175204919eb38776e944233235d03
-Provides: bundled(golang(github.com/golang/protobuf)) = 748d386b5c1ea99658fd69fe9f03991ce86a90c1
+Provides: bundled(golang(github.com/golang/protobuf)) = 4bd1920723d7b7c925de087aa32e2187708897f7
+Provides: bundled(golang(github.com/googleapis/gnostic)) = 0c5108395e2debce0d731cf0287ddf7242066aba
 Provides: bundled(golang(github.com/google/gofuzz)) = 44d81051d367757e1c7c6a5a86423ece9afcf63c
-Provides: bundled(golang(github.com/go-openapi/analysis)) = b44dc874b601d9e4e2f6e19140e794ba24bead3b
-Provides: bundled(golang(github.com/go-openapi/errors)) = d24ebc2075bad502fac3a8ae27aa6dd58e1952dc
-Provides: bundled(golang(github.com/go-openapi/jsonpointer)) = 779f45308c19820f1a69e9a4cd965f496e0da10f
-Provides: bundled(golang(github.com/go-openapi/jsonreference)) = 36d33bfe519efae5632669801b180bf1a245da3b
-Provides: bundled(golang(github.com/go-openapi/loads)) = 18441dfa706d924a39a030ee2c3b1d8d81917b38
-Provides: bundled(golang(github.com/go-openapi/spec)) = 6aced65f8501fe1217321abf0749d354824ba2ff
-Provides: bundled(golang(github.com/go-openapi/strfmt)) = 93a31ef21ac23f317792fff78f9539219dd74619
-Provides: bundled(golang(github.com/go-openapi/swag)) = 1d0bd113de87027671077d3c71eb3ac5d7dbba72
 Provides: bundled(golang(github.com/gorilla/context)) = v1.1
 Provides: bundled(golang(github.com/gorilla/mux)) = v1.3.0
 Provides: bundled(golang(github.com/hashicorp/errwrap)) = 7554cd9344cec97297fa6649b055a8c98c2a1e55
 Provides: bundled(golang(github.com/hashicorp/golang-lru)) = 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
 Provides: bundled(golang(github.com/hashicorp/go-multierror)) = 83588e72410abfbe4df460eeb6f30841ae47d4c4
 Provides: bundled(golang(github.com/imdario/mergo)) = 0.2.2
-Provides: bundled(golang(github.com/juju/ratelimit)) = 5b9ff866471762aa2ab2dced63c9fb6f53921342
+Provides: bundled(golang(github.com/json-iterator/go)) = 1.0.0
 Provides: bundled(golang(github.com/kr/pty)) = v1.0.0
-Provides: bundled(golang(github.com/mailru/easyjson)) = 99e922cf9de1bc0ab38310c277cff32c2147e747
 Provides: bundled(golang(github.com/mattn/go-runewidth)) = v0.0.1
-Provides: bundled(golang(github.com/matttproud/golang_protobuf_extensions)) = fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
 Provides: bundled(golang(github.com/Microsoft/go-winio)) = 78439966b38d69bf38227fbf57ac8a6fee70f69a
 Provides: bundled(golang(github.com/Microsoft/hcsshim)) = 43f9725307998e09f2e3816c2c0c36dc98f0c982
 Provides: bundled(golang(github.com/mistifyio/go-zfs)) = v2.1.1
-Provides: bundled(golang(github.com/mitchellh/mapstructure)) = d0303fe809921458f417bcf828397a65db30a7e4
 Provides: bundled(golang(github.com/mrunalp/fileutils)) = master
 Provides: bundled(golang(github.com/mtrmac/gpgme)) = b2432428689ca58c2b8e8dea9449d3295cf96fc9
+Provides: bundled(golang(github.com/Nvveen/Gotty)) = master
 Provides: bundled(golang(github.com/opencontainers/go-digest)) = v1.0.0-rc0
 Provides: bundled(golang(github.com/opencontainers/image-spec)) = v1.0.0
-Provides: bundled(golang(github.com/opencontainers/runc)) = 45bde006ca8c90e089894508708bcf0e2cdf9e13
+Provides: bundled(golang(github.com/opencontainers/runc)) = 6e15bc3f92fd4c58b3285e8f27eaeb6b22d62920
 Provides: bundled(golang(github.com/opencontainers/runtime-spec)) = v1.0.0
 Provides: bundled(golang(github.com/opencontainers/runtime-tools)) = 625e2322645b151a7cbb93a8b42920933e72167f
-Provides: bundled(golang(github.com/opencontainers/selinux)) = b29023b86e4a69d1b46b7e7b4e2b6fda03f0b9cd
+Provides: bundled(golang(github.com/opencontainers/selinux)) = b6fa367ed7f534f9ba25391cc2d467085dbb445a
+Provides: bundled(golang(github.com/openshift/imagebuilder)) = master
 Provides: bundled(golang(github.com/ostreedev/ostree-go)) = master
 Provides: bundled(golang(github.com/pkg/errors)) = v0.8.0
 Provides: bundled(golang(github.com/pmezard/go-difflib)) = 792786c7400a136282c1664665ae0a8db921c6c2
 Provides: bundled(golang(github.com/pquerna/ffjson)) = d49c2bc1aa135aad0c6f4fc2056623ec78f5d5ac
-Provides: bundled(golang(github.com/prometheus/client_golang)) = e7e903064f5e9eb5da98208bae10b475d4db0f8c
-Provides: bundled(golang(github.com/prometheus/client_model)) = fa8ad6fec33561be4280a8f0514318c79d7f6cb6
-Provides: bundled(golang(github.com/prometheus/common)) = 13ba4ddd0caa9c28ca7b7bffe1dfa9ed8d5ef207
-Provides: bundled(golang(github.com/prometheus/procfs)) = 65c1f6f8f0fc1e2185eb9863a3bc751496404259
-Provides: bundled(golang(github.com/PuerkitoBio/purell)) = v1.1.0
-Provides: bundled(golang(github.com/PuerkitoBio/urlesc)) = 5bd2802263f21d8788851d5305584c82a5c75d7e
-Provides: bundled(golang(github.com/renstrom/dedent)) = v1.0.0
+Provides: bundled(golang(github.com/projectatomic/buildah)) = a2c8358455f9b6a254c572455af2a0afcfcec544
+Provides: bundled(golang(github.com/seccomp/containers-golang)) = master
 Provides: bundled(golang(github.com/seccomp/libseccomp-golang)) = v0.9.0
 Provides: bundled(golang(github.com/sirupsen/logrus)) = v1.0.0
 Provides: bundled(golang(github.com/spf13/pflag)) = 9ff6c6923cfffbcd502984b8e0c80539a94968b7
 Provides: bundled(golang(github.com/stretchr/testify)) = 4d4bfba8f1d1027c4fdbe371823030df51419987
 Provides: bundled(golang(github.com/syndtr/gocapability)) = e7cb7fa329f456b3855136a2642b197bad7366ba
 Provides: bundled(golang(github.com/tchap/go-patricia)) = v2.2.6
-Provides: bundled(golang(github.com/ugorji/go)) = d23841a297e5489e787e72fceffabf9d2994b52a
-Provides: bundled(golang(github.com/urfave/cli)) = 39908eb08fee7c10d842622a114a5c133fb0a3c6
+Provides: bundled(golang(github.com/ulikunitz/xz)) = v0.5.4
+Provides: bundled(golang(github.com/ulule/deepcopier)) = master
+# "-" are not accepted in version strings, so comment out below line
+#Provides: bundled(golang(github.com/urfave/cli)) = fix-short-opts-parsing
+Provides: bundled(golang(github.com/varlink/go)) = master
 Provides: bundled(golang(github.com/vbatts/tar-split)) = v0.10.2
 Provides: bundled(golang(github.com/vishvananda/netlink)) = master
 Provides: bundled(golang(github.com/vishvananda/netns)) = master
 Provides: bundled(golang(github.com/xeipuuv/gojsonpointer)) = master
 Provides: bundled(golang(github.com/xeipuuv/gojsonreference)) = master
 Provides: bundled(golang(github.com/xeipuuv/gojsonschema)) = master
-Provides: bundled(golang(golang.org/x/crypto)) = 3fbbcd23f1cb824e69491a5930cfeff09b12f4d2
+Provides: bundled(golang(golang.org/x/crypto)) = 81e90905daefcd6fd217b62423c0908922eadb30
 Provides: bundled(golang(golang.org/x/net)) = c427ad74c6d7a814201695e9ffde0c5d400a7674
-Provides: bundled(golang(golang.org/x/sys)) = 9aade4d3a3b7e6d876cd3823ad20ec45fc035402
+Provides: bundled(golang(golang.org/x/sys)) = master
 Provides: bundled(golang(golang.org/x/text)) = f72d8390a633d5dfb0cc84043294db9f6c935756
+Provides: bundled(golang(golang.org/x/time)) = f51c12702a4d776e4c1fa9b0fabab841babae631
+Provides: bundled(golang(google.golang.org/grpc)) = v1.0.4
 Provides: bundled(golang(gopkg.in/cheggaaa/pb.v1)) = v1.0.7
-Provides: bundled(golang(gopkg.in/fsnotify.v1)) = v1.4.2
 Provides: bundled(golang(gopkg.in/inf.v0)) = v0.9.0
 Provides: bundled(golang(gopkg.in/mgo.v2)) = v2
-Provides: bundled(golang(gopkg.in/tomb.v1)) = v1
+Provides: bundled(golang(gopkg.in/square/go-jose.v2)) = v2.1.3
 Provides: bundled(golang(gopkg.in/yaml.v2)) = v2
+Provides: bundled(golang(k8s.io/api)) = 5ce4aa0bf2f097f6021127b3d879eeda82026be8
+Provides: bundled(golang(k8s.io/apiextensions-apiserver)) = 1b31e26d82f1ec2e945c560790e98f34bb5f2e63
+Provides: bundled(golang(k8s.io/apimachinery)) = 616b23029fa3dc3e0ccefd47963f5651a6543d94
+Provides: bundled(golang(k8s.io/apiserver)) = 4d1163080139f1f9094baf8a3a6099e85e1867f6
+Provides: bundled(golang(k8s.io/client-go)) = 7cd1d3291b7d9b1e2d54d4b69eb65995eaf8888e
+Provides: bundled(golang(k8s.io/kube-openapi)) = 275e2ce91dec4c05a4094a7b1daee5560b555ac9
+Provides: bundled(golang(k8s.io/utils)) = 258e2a2fa64568210fbd6267cf1d8fd87c3cb86e
 
 %description
 %{summary}
-libpod provides a library for applications looking to use
+%{repo} provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
 %if %{with varlink}
@@ -199,23 +179,35 @@ BuildArch: noarch
 BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-varlink
-
 Requires: python3-setuptools
 Requires: python3-varlink
 Requires: python3-dateutil
-Requires: python3-psutil
-
+Requires: python3-humanize
 Provides: python3-%{name} = %{version}-%{release}
-Summary: Python 3 bindings and client for %{name}
+Summary: Python 3 bindings for %{name}
 
 %description -n python3-%{name}
-This package contains Python 3 bindings and client for %{name}.
+This package contains Python 3 bindings for %{name}.
+
+%package -n python3-py%{name}
+BuildArch: noarch
+BuildRequires: python3-devel
+BuildRequires: python3-setuptools
+BuildRequires: python3-varlink
+Requires: python3-setuptools
+Requires: python3-varlink
+Requires: python3-dateutil
+Summary: Python 3 tool for %{name}
+
+%description -n python3-py%{name}
+This package contains Python 3 tool for %{name}.
 %endif # varlink
 
 %if 0%{?with_devel}
-%package -n libpod-devel
+%package devel
 Summary:       Library for applications looking to use Container Pods
 BuildArch:     noarch
+Provides: %{repo}-devel = %{version}-%{release}
 
 %if 0%{?with_check} && ! 0%{?with_bundled}
 BuildRequires: golang(github.com/BurntSushi/toml)
@@ -252,6 +244,7 @@ BuildRequires: golang(github.com/docker/docker/pkg/term)
 BuildRequires: golang(github.com/docker/docker/pkg/truncindex)
 BuildRequires: golang(github.com/ghodss/yaml)
 BuildRequires: golang(github.com/godbus/dbus)
+BuildRequires: golang(github.com/mattn/go-sqlite3)
 BuildRequires: golang(github.com/mrunalp/fileutils)
 BuildRequires: golang(github.com/opencontainers/go-digest)
 BuildRequires: golang(github.com/opencontainers/image-spec/specs-go/v1)
@@ -304,6 +297,7 @@ Requires:      golang(github.com/docker/docker/pkg/term)
 Requires:      golang(github.com/docker/docker/pkg/truncindex)
 Requires:      golang(github.com/ghodss/yaml)
 Requires:      golang(github.com/godbus/dbus)
+Requires:      golang(github.com/mattn/go-sqlite3)
 Requires:      golang(github.com/mrunalp/fileutils)
 Requires:      golang(github.com/opencontainers/go-digest)
 Requires:      golang(github.com/opencontainers/image-spec/specs-go/v1)
@@ -370,8 +364,11 @@ providing packages with %{import_path} prefix.
 %endif
 
 %prep
-%autosetup -Sgit -n podman-%{shortcommit}
+%autosetup -Sgit -n %{repo}-%{commit0}
 sed -i '/\/bin\/env/d' completions/bash/%{name}
+sed -i 's/0.0.0/%{version}/' contrib/python/%{name}/setup.py
+sed -i 's/0.0.0/%{version}/' contrib/python/py%{name}/setup.py
+mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 %build
 mkdir _build
@@ -381,28 +378,27 @@ ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) containers_image_ostree_stub"
-export PODMAN_VERSION=%{version}
+export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh)"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
-GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{name} %{import_path}/cmd/%{name}
 BUILDTAGS=$BUILDTAGS make binaries docs
 
 %install
 install -dp %{buildroot}%{_unitdir}
-%make_install PREFIX=%{buildroot}%{_prefix} install install.completions
+%{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+        install.bin \
+        install.man \
+        install.cni \
+        install.systemd \
+        install.completions
 
 %if %{with varlink}
-#install python-podman
-pushd contrib/python/podman
-%{__python3} setup.py install --root %{buildroot}
-popd
+%{__make} DESTDIR=%{buildroot} install.python
+%endif # varlink
 
-#install python-pypodman
-pushd contrib/python/pypodman
-%{__python3} setup.py install --root %{buildroot}
-popd
-%endif #varlink
+# install libpod.conf
+install -dp %{buildroot}%{_datadir}/containers
+install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -473,45 +469,51 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 
 %files
 %license LICENSE
-%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
-%{_bindir}/py%{name}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
+%{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.%{project}.%{name}.service
 %{_unitdir}/io.%{project}.%{name}.socket
-%{_tmpfilesdir}/%{name}.conf
+%{_usr}/lib/tmpfiles.d/%{name}.conf
 
 %if %{with varlink}
 %files -n python3-%{name}
 %license LICENSE
-%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
-%dir %{python3_sitelib}
-%{python3_sitelib}/*
-%endif #varlink
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%dir %{python3_sitelib}/%{name}
+%{python3_sitelib}/%{name}/*
+%{python3_sitelib}/%{name}*.egg-info
+
+%files -n python3-py%{name}
+%license LICENSE
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%dir %{python3_sitelib}/py%{name}
+%{python3_sitelib}/py%{name}/*
+%{python3_sitelib}/py%{name}*.egg-info
+%{_bindir}/py%{name}
+%endif # varlink
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %dir %{gopath}/src/%{provider}.%{provider_tld}/%{project}
 %endif
 
 %if 0%{?with_unit_test} && 0%{?with_devel}
 %files unit-test-devel -f unit-test-devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %endif
 
 %changelog
-* Tue Feb 06 2018 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.3.git367213a
-- Resolves: #1541554 - first official build
-- built commit 367213a
+* Sat Aug 4 2018 Dan Walsh <dwalsh@redhat.com> - 0.8.1-1.git6b4ab2a
+- Bump to v0.8.1
 
-* Fri Feb 02 2018 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.2.git0387f69
-- built commit 0387f69
-
-* Wed Jan 10 2018 Frantisek Kluknavsky <fkluknav@redhat.com> - 0-0.1.gitc1b2278
-- First package for Fedora
+* Sun Jul 29 2018 Lokesh Mandvekar (Bot) <lsm5+bot@fedoraproject.org> - 0.8.10.8.1-1.dev.git1a439f9.dev.git5a4e590.dev.git433cbd51
+- bump to 0.8.1
+- autobuilt 433cbd5
