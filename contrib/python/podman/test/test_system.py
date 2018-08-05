@@ -23,9 +23,10 @@ class TestSystem(unittest.TestCase):
         with podman.Client(self.host) as pclient:
             self.assertTrue(pclient.system.ping())
 
+    @unittest.skip("TODO: Need to setup ssh under Travis")
     def test_remote_ping(self):
         host = urlparse(self.host)
-        remote_uri = 'ssh://root@localhost/{}'.format(host.path)
+        remote_uri = 'ssh://root@localhost{}'.format(host.path)
 
         local_uri = 'unix:{}/tunnel/podman.sock'.format(self.tmpdir)
         with podman.Client(
@@ -33,7 +34,7 @@ class TestSystem(unittest.TestCase):
                 remote_uri=remote_uri,
                 identity_file=os.path.expanduser('~/.ssh/id_rsa'),
         ) as remote_client:
-            remote_client.system.ping()
+            self.assertTrue(remote_client.system.ping())
 
     def test_versions(self):
         with podman.Client(self.host) as pclient:

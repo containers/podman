@@ -46,6 +46,11 @@ user.
 Name of remote host. There is no default, if not given \f[C]pypodman\f[]
 attempts to connect to \f[C]\-\-remote\-socket\-path\f[] on local host.
 .PP
+\f[B]\[en]port\f[]
+.PP
+The optional port for \f[C]ssh\f[] to connect tunnel to on remote host.
+Default is None and will allow \f[C]ssh\f[] to follow it's default configuration.
+.PP
 \f[B]\[en]remote\-socket\-path\f[]
 .PP
 Path on remote host for podman service's \f[C]AF_UNIX\f[] socket. The default is

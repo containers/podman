@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+from subprocess import CalledProcessError
 
 from pypodman.lib import PodmanArgumentParser
 
@@ -49,14 +50,15 @@ def main():
 
     try:
         returncode = getattr(obj, args.method)()
+    except KeyboardInterrupt:
+        pass
     except AttributeError as e:
         logging.critical(e, exc_info=want_tb())
         logging.warning('See subparser "%s" configuration.',
                         args.subparser_name)
         returncode = 3
-    except KeyboardInterrupt:
-        pass
     except (
+            CalledProcessError,
             ConnectionRefusedError,
             ConnectionResetError,
             TimeoutError,

@@ -4,7 +4,6 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-import podman
 from podman.libs.tunnel import Context, Portal, Tunnel
 
 
@@ -53,6 +52,8 @@ class TestTunnel(unittest.TestCase):
     @patch('os.path.exists', return_value=True)
     @patch('weakref.finalize')
     def test_tunnel(self, mock_finalize, mock_exists, mock_Popen):
+        mock_Popen.return_value.returncode = 0
+
         context = Context(
             'unix:/01',
             'io.projectatomic.podman',
@@ -60,20 +61,22 @@ class TestTunnel(unittest.TestCase):
             '/run/podman/socket',
             'user',
             'hostname',
+            None,
             '~/.ssh/id_rsa',
         )
-        tunnel = Tunnel(context).bore('unix:/01')
+        tunnel = Tunnel(context).bore()
 
         cmd = [
             'ssh',
-            '-fNTq',
+            '-fNT',
+            '-q',
             '-L',
             '{}:{}'.format(context.local_socket, context.remote_socket),
             '-i',
             context.identity_file,
-            'ssh://{}@{}'.format(context.username, context.hostname),
+            '{}@{}'.format(context.username, context.hostname),
         ]
 
-        mock_finalize.assert_called_once_with(tunnel, tunnel.close, 'unix:/01')
+        mock_finalize.assert_called_once_with(tunnel, tunnel.close)
         mock_exists.assert_called_once_with(context.local_socket)
         mock_Popen.assert_called_once_with(cmd, close_fds=True)
