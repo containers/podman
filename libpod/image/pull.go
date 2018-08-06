@@ -272,7 +272,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
 		}
+		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
+		if !goal.usedSearchRegistries {
+			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
+		}
 		return nil, errors.Errorf("unable to find image on registries defined in %s, or you do not have pull access", registryPath)
+
 	}
 	return images, nil
 }
