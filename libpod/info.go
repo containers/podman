@@ -37,6 +37,18 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["MemFree"] = mi.MemFree
 	info["SwapTotal"] = mi.SwapTotal
 	info["SwapFree"] = mi.SwapFree
+	conmonVersion, _ := r.GetConmonVersion()
+	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
+	info["Conmon"] = map[string]interface{}{
+		"path":    r.conmonPath,
+		"package": r.ociRuntime.conmonPackage(),
+		"version": conmonVersion,
+	}
+	info["OCIRuntime"] = map[string]interface{}{
+		"path":    r.ociRuntime.path,
+		"package": r.ociRuntime.pathPackage(),
+		"version": ociruntimeVersion,
+	}
 
 	kv, err := readKernelVersion()
 	if err != nil {
@@ -86,11 +98,6 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	}
 	info["hostname"] = host
 
-	// Don't think this should be catastrophic if we cannot get the versions
-	conmonVersion, _ := r.GetConmonVersion()
-	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
-	info["conmonVersion"] = conmonVersion
-	info["OCIRuntimeVersion"] = ociruntimeVersion
 	return info, nil
 }
 

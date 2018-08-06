@@ -30,57 +30,78 @@ Run podman info with plain text response:
 ```
 $ podman info
 host:
-  MemFree: 28464242688
-  MemTotal: 33147686912
-  OCIRuntimeVersion: 'runc version spec: 1.0.0'
-  SwapFree: 34359734272
-  SwapTotal: 34359734272
+  Conmon:
+    package: conmon-1.10.3-1.gite558bd5.fc28.x86_64
+    path: /usr/libexec/crio/conmon
+    version: 'conmon version 1.10.3, commit: 55022fb3be4382a61599b7024a677f9a642ae0a7'
+  MemFree: 2428579840
+  MemTotal: 16679260160
+  OCIRuntime:
+    package: runc-1.0.0-46.dev.gitb4e2ecb.fc28.x86_64
+    path: /usr/bin/runc
+    version: 'runc version spec: 1.0.0'
+  SwapFree: 0
+  SwapTotal: 0
   arch: amd64
-  conmonVersion: 'conmon version 1.11.0-dev, commit: 42209340c7abcab66f47e9161fa0f1b16ea8c134'
-  cpus: 8
+  cpus: 4
   hostname: localhost.localdomain
-  kernel: 4.17.9-200.fc28.x86_64
+  kernel: 4.17.11-200.fc28.x86_64
   os: linux
-  uptime: 47m 34.95s
+  uptime: 23h 16m 57.86s (Approximately 0.96 days)
 insecure registries:
   registries: []
 registries:
   registries:
   - docker.io
+  - quay.io
   - registry.fedoraproject.org
   - registry.access.redhat.com
 store:
   ContainerStore:
-    number: 40
+    number: 3
   GraphDriverName: overlay
   GraphOptions:
-  - overlay.override_kernel_check=true
+  - overlay.mountopt=nodev
   GraphRoot: /var/lib/containers/storage
   GraphStatus:
-    Backing Filesystem: extfs
+    Backing Filesystem: xfs
     Native Overlay Diff: "true"
     Supports d_type: "true"
   ImageStore:
-    number: 10
+    number: 2
   RunRoot: /var/run/containers/storage
 ```
 Run podman info with JSON formatted response:
 ```
 $ podman info --debug --format json
 {
+    "debug": {
+        "compiler": "gc",
+        "git commit": "",
+        "go version": "go1.10",
+        "podman version": "0.8.2-dev"
+    },
     "host": {
-        "MemFree": 28421324800,
-        "MemTotal": 33147686912,
-        "OCIRuntimeVersion": "runc version spec: 1.0.0",
-        "SwapFree": 34359734272,
-        "SwapTotal": 34359734272,
+        "Conmon": {
+            "package": "conmon-1.10.3-1.gite558bd5.fc28.x86_64",
+            "path": "/usr/libexec/crio/conmon",
+            "version": "conmon version 1.10.3, commit: 55022fb3be4382a61599b7024a677f9a642ae0a7"
+        },
+        "MemFree": 2484420608,
+        "MemTotal": 16679260160,
+        "OCIRuntime": {
+            "package": "runc-1.0.0-46.dev.gitb4e2ecb.fc28.x86_64",
+            "path": "/usr/bin/runc",
+            "version": "runc version spec: 1.0.0"
+        },
+        "SwapFree": 0,
+        "SwapTotal": 0,
         "arch": "amd64",
-        "conmonVersion": "conmon version 1.11.0-dev, commit: 42209340c7abcab66f47e9161fa0f1b16ea8c134",
-        "cpus": 8,
+        "cpus": 4,
         "hostname": "localhost.localdomain",
-        "kernel": "4.17.9-200.fc28.x86_64",
+        "kernel": "4.17.11-200.fc28.x86_64",
         "os": "linux",
-        "uptime": "50m 20.27s"
+        "uptime": "23h 14m 45.48s (Approximately 0.96 days)"
     },
     "insecure registries": {
         "registries": []
@@ -88,35 +109,36 @@ $ podman info --debug --format json
     "registries": {
         "registries": [
             "docker.io",
+            "quay.io",
             "registry.fedoraproject.org",
-            "registry.access.redhat.com",
+            "registry.access.redhat.com"
         ]
     },
     "store": {
         "ContainerStore": {
-            "number": 40
+            "number": 3
         },
         "GraphDriverName": "overlay",
         "GraphOptions": [
-            "overlay.override_kernel_check=true"
+            "overlay.mountopt=nodev"
         ],
         "GraphRoot": "/var/lib/containers/storage",
         "GraphStatus": {
-            "Backing Filesystem": "extfs",
+            "Backing Filesystem": "xfs",
             "Native Overlay Diff": "true",
             "Supports d_type": "true"
         },
         "ImageStore": {
-            "number": 10
+            "number": 2
         },
         "RunRoot": "/var/run/containers/storage"
     }
 }
-```
+	```
 Run podman info and only get the registries information.
 ```
 $ podman info --format={{".registries"}}
-map[registries:[docker.io registry.fedoraproject.org registry.access.redhat.com]]
+map[registries:[docker.io quay.io registry.fedoraproject.org registry.access.redhat.com]]
 ```
 
 ## SEE ALSO

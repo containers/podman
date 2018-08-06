@@ -18,3 +18,11 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
 	return ErrNotImplemented
 }
+
+func (r *OCIRuntime) pathPackage() string {
+	return ""
+}
+
+func (r *OCIRuntime) conmonPackage() string {
+	return ""
+}
