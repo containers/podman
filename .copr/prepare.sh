@@ -19,4 +19,4 @@ sed "s,#COMMIT#,${COMMIT},;
          contrib/spec/podman.spec.in > contrib/spec/podman.spec
 
 mkdir build/
-git archive --prefix "podman-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/podman-${COMMIT_SHORT}.tar.gz"
+git archive --prefix "podman-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/libpod-${COMMIT_SHORT}.tar.gz"
