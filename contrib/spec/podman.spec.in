@@ -30,7 +30,7 @@
 %global import_path %{provider_prefix}
 %global git0 https://%{provider}.%{provider_tld}/%{project}/%{repo}
 %global commit0 #COMMIT#
-%global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
+%global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
 
 Name: podman
 Version: 0.8.2
