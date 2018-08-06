@@ -3,6 +3,7 @@ package lock
 import (
 	"fmt"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,6 +47,19 @@ func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 		t.Fatalf("Error opening locks: %v", err)
 	}
 	defer func() {
+		// Unlock and deallocate all locks
+		// Ignore EBUSY (lock is already unlocked)
+		// Ignore ENOENT (lock is not allocated)
+		var i uint32
+		for i = 0; i < numLocks; i++ {
+			if err := locks.UnlockSemaphore(i); err != nil && err != syscall.EBUSY {
+				t.Fatalf("Error unlocking semaphore %d: %v", i, err)
+			}
+			if err := locks.DeallocateSemaphore(i); err != nil && err != syscall.ENOENT {
+				t.Fatalf("Error deallocating semaphore %d: %v", i, err)
+			}
+		}
+
 		if err := locks.Close(); err != nil {
 			t.Fatalf("Error closing locks: %v", err)
 		}
@@ -80,5 +94,18 @@ func TestLockLifecycleSingleLock(t *testing.T) {
 
 		err = locks.DeallocateSemaphore(sem)
 		assert.NoError(t, err)
+	})
+}
+
+// Test allocate two locks returns different locks
+func TestAllocateTwoLocksGetsDifferentLocks(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		sem1, err := locks.AllocateSemaphore()
+		assert.NoError(t, err)
+
+		sem2, err := locks.AllocateSemaphore()
+		assert.NoError(t, err)
+
+		assert.NotEqual(t, sem1, sem2)
 	})
 }

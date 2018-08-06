@@ -321,7 +321,8 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 // subsequently realize they have been removed).
 // Returns 0 on success, -1 on failure
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
-  int bitmap_index, index_in_bitmap;
+  int bitmap_index, index_in_bitmap, ret_code;
+  unsigned int sem_value = 0;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -334,7 +335,20 @@ int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  sem_post(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+  // Only allow a post if the semaphore is less than 1 (locked)
+  // This allows us to preserve mutex behavior
+  ret_code = sem_getvalue(&(shm->locks[bitmap_index].locks[index_in_bitmap]), &sem_value);
+  if (ret_code != 0) {
+    return -1 * errno;
+  }
+  if (sem_value >= 1) {
+    return -1 * EBUSY;
+  }
+
+  ret_code = sem_post(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
+  if (ret_code != 0) {
+    return -1 * errno;
+  }
 
   return 0;
 }
