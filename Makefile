@@ -1,4 +1,5 @@
 GO ?= go
+DESTDIR ?= /
 EPOCH_TEST_COMMIT ?= 7462ebe830b256e9e145d133c824de5dfd23045d
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
@@ -240,8 +241,8 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 -D contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
 install.python:
-	$(MAKE) -C contrib/python/podman install
-	$(MAKE) -C contrib/python/pypodman install
+	$(MAKE) DESTDIR=${DESTDIR} -C contrib/python/podman install
+	$(MAKE) DESTDIR=${DESTDIR} -C contrib/python/pypodman install
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
