@@ -113,10 +113,25 @@ func rpmVersion(path string) string {
 	return strings.Trim(output, "\n")
 }
 
+func dpkgVersion(path string) string {
+	output := "Unknown"
+	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
 func (r *OCIRuntime) pathPackage() string {
-	return rpmVersion(r.path)
+	if out := rpmVersion(r.path); out != "Unknown" {
+		return out
+	}
+	return dpkgVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	return rpmVersion(r.conmonPath)
+	if out := rpmVersion(r.conmonPath); out != "Unknown" {
+		return out
+	}
+	return dpkgVersion(r.conmonPath)
 }
