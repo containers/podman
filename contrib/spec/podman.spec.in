@@ -64,7 +64,11 @@ Requires: containers-common
 Requires: containernetworking-cni >= 0.6.0-3
 Requires: iptables
 Requires: oci-systemd-hook
+%if 0%{?fedora}
 Recommends: container-selinux
+%else
+Requires: container-selinux
+%endif
 
 # vendored libraries
 # awk '{print "Provides: bundled(golang("$1")) = "$2}' vendor.conf | sort
