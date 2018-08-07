@@ -1,4 +1,5 @@
 PYTHON ?= /usr/bin/python3
+DESTDIR := /
 
 .PHONY: python-pypodman
 python-pypodman:
@@ -14,7 +15,7 @@ integration:
 
 .PHONY: install
 install:
-	$(PYTHON) setup.py install
+	$(PYTHON) setup.py install --root ${DESTDIR}
 
 .PHONY: clobber
 clobber: uninstall clean
