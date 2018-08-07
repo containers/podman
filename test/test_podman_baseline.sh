@@ -36,6 +36,13 @@ then
     set -eu
 fi
 
+pkg_manager=`command -v dnf`
+if [ -z "$pkg_manager" ]; then
+    pkg_manager=`command -v yum`
+fi
+
+echo "Package manager binary: $pkg_manager"
+
 ########
 # Next two commands should return blanks
 ########
@@ -145,7 +152,7 @@ then
     ########
     # Install Docker, but not for long!
     ########
-    dnf -y install docker
+    $package_manager -y install docker
 fi
 systemctl restart docker
 
@@ -164,7 +171,7 @@ then
     ########
     # Time to remove Docker
     ########
-    dnf -y remove docker
+    $package_manager -y remove docker
 fi
 
 ########
