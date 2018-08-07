@@ -32,8 +32,8 @@ typedef struct shm_struct {
 } shm_struct_t;
 
 size_t compute_shm_size(uint32_t num_bitmaps);
-shm_struct_t *setup_lock_shm(uint32_t num_locks);
-shm_struct_t *open_lock_shm(uint32_t num_locks);
+shm_struct_t *setup_lock_shm(uint32_t num_locks, int *error_code);
+shm_struct_t *open_lock_shm(uint32_t num_locks, int *error_code);
 int32_t close_lock_shm(shm_struct_t *shm);
 int64_t allocate_semaphore(shm_struct_t *shm);
 int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index);

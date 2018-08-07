@@ -80,6 +80,42 @@ func TestCreateNewSHMBadSize(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// Test that creating an SHM with 0 size fails
+func TestCreateNewSHMZeroSize(t *testing.T) {
+	_, err := CreateSHMLock(0)
+	assert.Error(t, err)
+}
+
+// Test that deallocating an unallocated lock errors
+func TestDeallocateUnallocatedLockErrors(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		err := locks.DeallocateSemaphore(0)
+		assert.Error(t, err)
+	})
+}
+
+// Test that unlocking an unlocked lock fails
+func TestUnlockingUnlockedLockFails(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		err := locks.UnlockSemaphore(0)
+		assert.Error(t, err)
+	})
+}
+
+// Test that locking and double-unlocking fails
+func TestDoubleUnlockFails(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		err := locks.LockSemaphore(0)
+		assert.NoError(t, err)
+
+		err = locks.UnlockSemaphore(0)
+		assert.NoError(t, err)
+
+		err = locks.UnlockSemaphore(0)
+		assert.Error(t, err)
+	})
+}
+
 // Test allocating - lock - unlock - deallocate cycle, single lock
 func TestLockLifecycleSingleLock(t *testing.T) {
 	runLockTest(t, func(t *testing.T, locks *SHMLocks) {

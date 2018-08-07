@@ -27,16 +27,17 @@ type SHMLocks struct {
 // semaphores, and returns a struct that can be used to operate on those locks.
 // numLocks must be a multiple of the lock bitmap size (by default, 32).
 func CreateSHMLock(numLocks uint32) (*SHMLocks, error) {
-	if numLocks % bitmapSize != 0 {
+	if numLocks % bitmapSize != 0 || numLocks == 0 {
 		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be a multiple of %d", C.bitmap_size_c)
 	}
 
 	locks := new(SHMLocks)
 
-	lockStruct := C.setup_lock_shm(C.uint32_t(numLocks))
+	var errCode C.int = 0
+	lockStruct := C.setup_lock_shm(C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
-		return nil, errors.Wrapf(syscall.ENOENT, "error creating shared memory locks")
+		return nil, syscall.Errno(-1 * errCode)
 	}
 
 	locks.lockStruct = lockStruct
@@ -51,16 +52,17 @@ func CreateSHMLock(numLocks uint32) (*SHMLocks, error) {
 // segment was created with and be a multiple of the lock bitmap size (default
 // 32)
 func OpenSHMLock(numLocks uint32) (*SHMLocks, error) {
-	if numLocks % bitmapSize != 0 {
+	if numLocks % bitmapSize != 0 || numLocks == 0 {
 		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be a multiple of %d", C.bitmap_size_c)
 	}
 
 	locks := new(SHMLocks)
 
-	lockStruct := C.open_lock_shm(C.uint32_t(numLocks))
+	var errCode C.int = 0
+	lockStruct := C.open_lock_shm(C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
-		return nil, errors.Wrapf(syscall.ENOENT, "error creating shared memory locks")
+		return nil, syscall.Errno(-1 * errCode)
 	}
 
 	locks.lockStruct = lockStruct
