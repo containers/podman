@@ -39,7 +39,6 @@ Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
 URL: %{git_podman}
 Source0: %{git0}/archive/%{commit0}/%{repo}-%{shortcommit0}.tar.gz
-Patch0: makefile.patch
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
 ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
@@ -364,7 +363,7 @@ providing packages with %{import_path} prefix.
 %endif
 
 %prep
-%autosetup -Sgit -n %{repo}-%{commit0}
+%autosetup -Sgit -n %{repo}-%{shortcommit0}
 sed -i '/\/bin\/env/d' completions/bash/%{name}
 sed -i 's/0.0.0/%{version}/' contrib/python/%{name}/setup.py
 sed -i 's/0.0.0/%{version}/' contrib/python/py%{name}/setup.py
@@ -476,8 +475,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/bash-completion/completions/*
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_datadir}/containers/%{repo}.conf
-%{_unitdir}/io.%{project}.%{name}.service
-%{_unitdir}/io.%{project}.%{name}.socket
+%{_unitdir}/io.podman.service
+%{_unitdir}/io.podman.socket
 %{_usr}/lib/tmpfiles.d/%{name}.conf
 
 %if %{with varlink}
