@@ -29,7 +29,6 @@ type psTemplateParams struct {
 	Command       string
 	CreatedAtTime time.Time
 	Created       string
-	RunningFor    string
 	Status        string
 	Ports         string
 	Size          string
@@ -57,10 +56,11 @@ type psJSONParams struct {
 	Image            string                        `json:"image"`
 	ImageID          string                        `json:"image_id"`
 	Command          []string                      `json:"command"`
-	CreatedAt        time.Time                     `json:"createdAt"`
 	ExitCode         int32                         `json:"exitCode"`
 	Exited           bool                          `json:"exited"`
-	RunningFor       time.Duration                 `json:"runningFor"`
+	CreatedAt        time.Time                     `json:"createdAt"`
+	StartedAt        time.Time                     `json:"startedAt"`
+	ExitedAt         time.Time                     `json:"exitedAt"`
 	Status           string                        `json:"status"`
 	PID              int                           `json:"PID"`
 	Ports            []ocicni.PortMapping          `json:"ports"`
@@ -110,7 +110,7 @@ func (a psSortedPod) Less(i, j int) bool { return a.psSorted[i].Pod < a.psSorted
 type psSortedRunningFor struct{ psSorted }
 
 func (a psSortedRunningFor) Less(i, j int) bool {
-	return a.psSorted[i].RunningFor < a.psSorted[j].RunningFor
+	return a.psSorted[j].StartedAt.After(a.psSorted[i].StartedAt)
 }
 
 type psSortedStatus struct{ psSorted }
@@ -529,7 +529,6 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 		if opts.Pod {
 			pod = psParam.Pod
 		}
-		runningFor := units.HumanDuration(psParam.RunningFor)
 
 		command := strings.Join(psParam.Command, " ")
 		if !opts.NoTrunc {
@@ -542,9 +541,10 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 
 		switch psParam.Status {
 		case libpod.ContainerStateStopped.String():
-			status = fmt.Sprintf("Exited (%d) %s ago", psParam.ExitCode, runningFor)
+			exitedSince := units.HumanDuration(time.Since(psParam.ExitedAt))
+			status = fmt.Sprintf("Exited (%d) %s ago", psParam.ExitCode, exitedSince)
 		case libpod.ContainerStateRunning.String():
-			status = "Up " + runningFor + " ago"
+			status = "Up " + units.HumanDuration(time.Since(psParam.StartedAt)) + " ago"
 		case libpod.ContainerStatePaused.String():
 			status = "Paused"
 		case libpod.ContainerStateCreated.String(), libpod.ContainerStateConfigured.String():
@@ -563,7 +563,6 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 			Command:       command,
 			CreatedAtTime: psParam.CreatedAt,
 			Created:       units.HumanDuration(time.Since(psParam.CreatedAt)) + " ago",
-			RunningFor:    runningFor,
 			Status:        status,
 			Ports:         ports,
 			Size:          size,
@@ -613,9 +612,11 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			Image:            batchInfo.ConConfig.RootfsImageName,
 			ImageID:          batchInfo.ConConfig.RootfsImageID,
 			Command:          batchInfo.ConConfig.Spec.Process.Args,
-			CreatedAt:        batchInfo.ConConfig.CreatedTime,
 			ExitCode:         batchInfo.ExitCode,
 			Exited:           batchInfo.Exited,
+			CreatedAt:        batchInfo.ConConfig.CreatedTime,
+			StartedAt:        batchInfo.StartedTime,
+			ExitedAt:         batchInfo.ExitedTime,
 			Status:           batchInfo.ConState.String(),
 			PID:              batchInfo.Pid,
 			Ports:            batchInfo.ConConfig.PortMappings,
@@ -626,10 +627,6 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 			Pod:              ctr.PodID(),
-		}
-
-		if !batchInfo.StartedTime.IsZero() && batchInfo.ConState == libpod.ContainerStateRunning {
-			params.RunningFor = time.Since(batchInfo.StartedTime)
 		}
 
 		psOutput = append(psOutput, params)
