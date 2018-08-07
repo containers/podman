@@ -690,9 +690,6 @@ will convert /foo into a `shared` mount point. Alternatively one can directly
 change propagation properties of source mount. Say `/` is source mount for
 `/foo`, then use `mount --make-shared /` to convert `/` into a `shared` mount.
 
-To disable automatic copying of data from the container path to the volume, use
-the `nocopy` flag. The `nocopy` flag can be set on bind mounts and named volumes.
-
 **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
 
 Mount volumes from the specified container(s).
