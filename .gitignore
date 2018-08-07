@@ -15,4 +15,5 @@
 .ropeproject
 __pycache__
 /cmd/podman/varlink/ioprojectatomicpodman.go
+/cmd/podman/varlink/iopodman.go
 .gopathok

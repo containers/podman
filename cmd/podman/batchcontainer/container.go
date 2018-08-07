@@ -42,6 +42,7 @@ type BatchContainerStruct struct {
 	Exited      bool
 	Pid         int
 	StartedTime time.Time
+	ExitedTime  time.Time
 	Size        *ContainerSize
 }
 
@@ -76,6 +77,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		pid         int
 		size        *ContainerSize
 		startedTime time.Time
+		exitedTime  time.Time
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -92,6 +94,10 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		startedTime, err = c.StartedTime()
 		if err != nil {
 			logrus.Errorf("error getting started time for %q: %v", c.ID(), err)
+		}
+		exitedTime, err = c.FinishedTime()
+		if err != nil {
+			logrus.Errorf("error getting exited time for %q: %v", c.ID(), err)
 		}
 
 		if !opts.Size && !opts.Namespace {
@@ -132,6 +138,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 		Exited:      exited,
 		Pid:         pid,
 		StartedTime: startedTime,
+		ExitedTime:  exitedTime,
 		Size:        size,
 	}, nil
 }
