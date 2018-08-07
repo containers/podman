@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/containerd/cgroups"
@@ -101,4 +102,36 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err e
 	wg.Wait()
 
 	return err
+}
+
+func rpmVersion(path string) string {
+	output := "Unknown"
+	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func dpkgVersion(path string) string {
+	output := "Unknown"
+	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func (r *OCIRuntime) pathPackage() string {
+	if out := rpmVersion(r.path); out != "Unknown" {
+		return out
+	}
+	return dpkgVersion(r.path)
+}
+
+func (r *OCIRuntime) conmonPackage() string {
+	if out := rpmVersion(r.conmonPath); out != "Unknown" {
+		return out
+	}
+	return dpkgVersion(r.conmonPath)
 }
