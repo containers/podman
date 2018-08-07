@@ -50,7 +50,7 @@ func CreateSHMLock(numLocks uint32) (*SHMLocks, error) {
 // OpenSHMLock opens an existing shared-memory segment holding a given number of
 // POSIX semaphores. numLocks must match the number of locks the shared memory
 // segment was created with and be a multiple of the lock bitmap size (default
-// 32)
+// 32).
 func OpenSHMLock(numLocks uint32) (*SHMLocks, error) {
 	if numLocks % bitmapSize != 0 || numLocks == 0 {
 		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be a multiple of %d", C.bitmap_size_c)
@@ -95,7 +95,9 @@ func (locks *SHMLocks) Close() error {
 
 // AllocateSemaphore allocates a semaphore from a shared-memory segment for use
 // by a container or pod.
-// Returns the index of the semaphore that was allocated
+// Returns the index of the semaphore that was allocated.
+// Allocations past the maximum number of locks given when the SHM segment was
+// created will result in an error, and no semaphore will be allocated.
 func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	if !locks.valid {
 		return 0, errors.Wrapf(syscall.EINVAL, "locks have already been closed")
@@ -110,8 +112,9 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	return uint32(retCode), nil
 }
 
-// DeallocateSemaphore frees a semaphore in a shared-memory segment for use by
-// a container of pod
+// DeallocateSemaphore frees a semaphore in a shared-memory segment so it can be
+// reallocated to another container or pod.
+// The given semaphore must be already allocated, or an error will be returned.
 func (locks *SHMLocks) DeallocateSemaphore(sem uint32) error {
 	if !locks.valid {
 		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
@@ -130,7 +133,13 @@ func (locks *SHMLocks) DeallocateSemaphore(sem uint32) error {
 	return nil
 }
 
-// LockSemaphore locks the given semaphore
+// LockSemaphore locks the given semaphore.
+// If the semaphore is already locked, LockSemaphore will block until the lock
+// can be acquired.
+// There is no requirement that the given semaphore be allocated.
+// This ensures that attempts to lock a container after it has been deleted,
+// but before the caller has queried the database to determine this, will
+// succeed.
 func (locks *SHMLocks) LockSemaphore(sem uint32) error {
 	if !locks.valid {
 		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
@@ -149,7 +158,12 @@ func (locks *SHMLocks) LockSemaphore(sem uint32) error {
 	return nil
 }
 
-// UnlockSemaphore locks the given semaphore
+// UnlockSemaphore unlocks the given semaphore.
+// Unlocking a semaphore that is already unlocked with return EBUSY.
+// There is no requirement that the given semaphore be allocated.
+// This ensures that attempts to lock a container after it has been deleted,
+// but before the caller has queried the database to determine this, will
+// succeed.
 func (locks *SHMLocks) UnlockSemaphore(sem uint32) error {
 	if !locks.valid {
 		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")

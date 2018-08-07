@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -143,5 +144,101 @@ func TestAllocateTwoLocksGetsDifferentLocks(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.NotEqual(t, sem1, sem2)
+	})
+}
+
+// Test allocate all locks successful and all are unique
+func TestAllocateAllLocksSucceeds(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		sems := make(map[uint32]bool)
+		for i := 0; i < numLocks; i++ {
+			sem, err := locks.AllocateSemaphore()
+			assert.NoError(t, err)
+
+			// Ensure the allocate semaphore is unique
+			_, ok := sems[sem]
+			assert.False(t, ok)
+
+			sems[sem] = true
+		}
+	})
+}
+
+// Test allocating more than the given max fails
+func TestAllocateTooManyLocksFails(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		// Allocate all locks
+		for i := 0; i < numLocks; i++ {
+			_, err := locks.AllocateSemaphore()
+			assert.NoError(t, err)
+		}
+
+		// Try and allocate one more
+		_, err := locks.AllocateSemaphore()
+		assert.Error(t, err)
+	})
+}
+
+// Test allocating max locks, deallocating one, and then allocating again succeeds
+func TestAllocateDeallocateCycle(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		// Allocate all locks
+		for i := 0; i < numLocks; i++ {
+			_, err := locks.AllocateSemaphore()
+			assert.NoError(t, err)
+		}
+
+		// Now loop through again, deallocating and reallocating.
+		// Each time we free 1 semaphore, allocate again, and make sure
+		// we get the same semaphore back.
+		var j uint32
+		for j = 0; j < numLocks; j++ {
+			err := locks.DeallocateSemaphore(j)
+			assert.NoError(t, err)
+
+			newSem, err := locks.AllocateSemaphore()
+			assert.NoError(t, err)
+			assert.Equal(t, j, newSem)
+		}
+	})
+}
+
+// Test that locks actually lock
+func TestLockSemaphoreActuallyLocks(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		// This entire test is very ugly - lots of sleeps to try and get
+		// things to occur in the right order.
+		// It also doesn't even exercise the multiprocess nature of the
+		// locks.
+
+		// Get the current time
+		startTime := time.Now()
+
+		// Start a goroutine to take the lock and then release it after
+		// a second.
+		go func() {
+			err := locks.LockSemaphore(0)
+			assert.NoError(t, err)
+
+			time.Sleep(1 * time.Second)
+
+			err = locks.UnlockSemaphore(0)
+			assert.NoError(t, err)
+		}()
+
+		// Sleep for a quarter of a second to give the goroutine time
+		// to kick off and grab the lock
+		time.Sleep(250 * time.Millisecond)
+
+		// Take the lock
+		err := locks.LockSemaphore(0)
+		assert.NoError(t, err)
+
+		// Get the current time
+		endTime := time.Now()
+
+		// Verify that at least 1 second has passed since start
+		duration := endTime.Sub(startTime)
+		assert.True(t, duration.Seconds() > 1.0)
 	})
 }
