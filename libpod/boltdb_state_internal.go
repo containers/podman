@@ -21,15 +21,18 @@ const (
 	allCtrsName       = "all-ctrs"
 	podName           = "pod"
 	allPodsName       = "allPods"
+	volName           = "vol"
+	allVolsName       = "allVolumes"
 	runtimeConfigName = "runtime-config"
 
-	configName       = "config"
-	stateName        = "state"
-	dependenciesName = "dependencies"
-	netNSName        = "netns"
-	containersName   = "containers"
-	podIDName        = "pod-id"
-	namespaceName    = "namespace"
+	configName         = "config"
+	stateName          = "state"
+	dependenciesName   = "dependencies"
+	volCtrDependencies = "vol-dependencies"
+	netNSName          = "netns"
+	containersName     = "containers"
+	podIDName          = "pod-id"
+	namespaceName      = "namespace"
 
 	staticDirName   = "static-dir"
 	tmpDirName      = "tmp-dir"
@@ -47,15 +50,18 @@ var (
 	allCtrsBkt       = []byte(allCtrsName)
 	podBkt           = []byte(podName)
 	allPodsBkt       = []byte(allPodsName)
+	volBkt           = []byte(volName)
+	allVolsBkt       = []byte(allVolsName)
 	runtimeConfigBkt = []byte(runtimeConfigName)
 
-	configKey       = []byte(configName)
-	stateKey        = []byte(stateName)
-	dependenciesBkt = []byte(dependenciesName)
-	netNSKey        = []byte(netNSName)
-	containersBkt   = []byte(containersName)
-	podIDKey        = []byte(podIDName)
-	namespaceKey    = []byte(namespaceName)
+	configKey          = []byte(configName)
+	stateKey           = []byte(stateName)
+	dependenciesBkt    = []byte(dependenciesName)
+	volDependenciesBkt = []byte(volCtrDependencies)
+	netNSKey           = []byte(netNSName)
+	containersBkt      = []byte(containersName)
+	podIDKey           = []byte(podIDName)
+	namespaceKey       = []byte(namespaceName)
 
 	staticDirKey   = []byte(staticDirName)
 	tmpDirKey      = []byte(tmpDirName)
@@ -234,6 +240,22 @@ func getAllPodsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getVolBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(volBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "volumes bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getAllVolsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(allVolsBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "all volumes bucket not found in DB")
+	}
+	return bkt, nil
+}
+
 func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(runtimeConfigBkt)
 	if bkt == nil {
@@ -315,6 +337,35 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	return nil
 }
 
+func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bucket) error {
+	volDB := volBkt.Bucket(name)
+	if volDB == nil {
+		return errors.Wrapf(ErrNoSuchVolume, "volume with name %s not found", string(name))
+	}
+
+	volConfigBytes := volDB.Get(configKey)
+	if volConfigBytes == nil {
+		return errors.Wrapf(ErrInternal, "volume %s is missing configuration key in DB", string(name))
+	}
+
+	if err := json.Unmarshal(volConfigBytes, volume.config); err != nil {
+		return errors.Wrapf(err, "error unmarshalling volume %s config from DB", string(name))
+	}
+
+	// Get the lock
+	lockPath := filepath.Join(s.runtime.lockDir, string(name))
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving lockfile for volume %s", string(name))
+	}
+	volume.lock = lock
+
+	volume.runtime = s.runtime
+	volume.valid = true
+
+	return nil
+}
+
 // Add a container to the DB
 // If pod is not nil, the container is added to the pod as well
 func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
@@ -372,6 +423,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		allCtrsBucket, err := getAllCtrsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBkt, err := getVolBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -508,6 +564,25 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			}
 		}
 
+		// Add container to volume dependencies bucket if container is using a named volume
+		for _, vol := range ctr.config.Spec.Mounts {
+			if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
+				volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
+
+				volDB := volBkt.Bucket([]byte(volName))
+				if volDB == nil {
+					return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volName)
+				}
+
+				ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+				if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
+					if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
+						return errors.Wrapf(err, "error storing container dependencies %q for volume %s in ctrDependencies bucket in DB", ctr.ID(), volName)
+					}
+				}
+			}
+		}
+
 		return nil
 	})
 	return err
@@ -541,6 +616,11 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	}
 
 	allCtrsBucket, err := getAllCtrsBucket(tx)
+	if err != nil {
+		return err
+	}
+
+	volBkt, err := getVolBucket(tx)
 	if err != nil {
 		return err
 	}
@@ -660,6 +740,26 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 
 		if err := depCtrDependsBkt.Delete(ctrID); err != nil {
 			return errors.Wrapf(err, "error removing container %s as a dependency of container %s", ctr.ID(), depCtr)
+		}
+	}
+
+	// Remove container from volume dependencies bucket if container is using a named volume
+	for _, vol := range ctr.config.Spec.Mounts {
+		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
+			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
+
+			volDB := volBkt.Bucket([]byte(volName))
+			if volDB == nil {
+				// Let's assume the volume was already deleted and continue to remove the container
+				continue
+			}
+
+			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+			if depExists := ctrDepsBkt.Get(ctrID); depExists != nil {
+				if err := ctrDepsBkt.Delete(ctrID); err != nil {
+					return errors.Wrapf(err, "error deleting container dependencies %q for volume %s in ctrDependencies bucket in DB", ctr.ID(), volName)
+				}
+			}
 		}
 	}
 

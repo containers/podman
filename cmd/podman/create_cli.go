@@ -201,12 +201,13 @@ func parseVolumesFrom(volumesFrom []string) error {
 }
 
 func validateVolumeHostDir(hostDir string) error {
-	if !filepath.IsAbs(hostDir) {
-		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
+	if filepath.IsAbs(hostDir) {
+		if _, err := os.Stat(hostDir); err != nil {
+			return errors.Wrapf(err, "error checking path %q", hostDir)
+		}
 	}
-	if _, err := os.Stat(hostDir); err != nil {
-		return errors.Wrapf(err, "error checking path %q", hostDir)
-	}
+	// If hostDir is not an absolute path, that means the user wants to create a
+	// named volume. This will be done later on in the code.
 	return nil
 }
 

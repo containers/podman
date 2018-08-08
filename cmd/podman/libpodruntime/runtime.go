@@ -14,6 +14,11 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	storageOpts := new(storage.StoreOptions)
 	options := []libpod.RuntimeOption{}
 
+	_, volumePath, err := util.GetDefaultStoreOptions()
+	if err != nil {
+		return nil, err
+	}
+
 	if c.IsSet("uidmap") || c.IsSet("gidmap") || c.IsSet("subuidmap") || c.IsSet("subgidmap") {
 		mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
 		if err != nil {
@@ -90,6 +95,7 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	if c.IsSet("infra-command") {
 		options = append(options, libpod.WithDefaultInfraCommand(c.String("infra-command")))
 	}
+	options = append(options, libpod.WithVolumePath(volumePath))
 	if c.IsSet("config") {
 		return libpod.NewRuntimeFromConfig(c.String("config"), options...)
 	}

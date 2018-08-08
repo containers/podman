@@ -153,4 +153,27 @@ type State interface {
 	// If a namespace has been set, only pods in that namespace will be
 	// returned.
 	AllPods() ([]*Pod, error)
+
+	// Volume accepts full name of volume
+	// If the volume doesn't exist, an error will be returned
+	Volume(volName string) (*Volume, error)
+	// HasVolume returns true if volName exists in the state,
+	// otherwise it returns false
+	HasVolume(volName string) (bool, error)
+	// VolumeInUse goes through the container dependencies of a volume
+	// and checks if the volume is being used by any container. If it is
+	// a slice of container IDs using the volume is returned
+	VolumeInUse(volume *Volume) ([]string, error)
+	// AddVolume adds the specified volume to state. The volume's name
+	// must be unique within the list of existing volumes
+	AddVolume(volume *Volume) error
+	// RemoveVolCtrDep updates the list of container dependencies that the
+	// volume has. It either deletes the dependent container ID from
+	// the sub-bucket
+	RemoveVolCtrDep(volume *Volume, ctrID string) error
+	// RemoveVolume removes the specified volume.
+	// Only volumes that have no container dependencies can be removed
+	RemoveVolume(volume *Volume) error
+	// AllVolumes returns all the volumes available in the state
+	AllVolumes() ([]*Volume, error)
 }
