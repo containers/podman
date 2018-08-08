@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
 
@@ -128,4 +129,37 @@ func (r *Runtime) GetLatestPod() (*Pod, error) {
 		}
 	}
 	return pods[lastCreatedIndex], nil
+}
+
+// GetRunningPods returns an array of running pods
+func (r *Runtime) GetRunningPods() ([]*Pod, error) {
+	var (
+		pods        []string
+		runningPods []*Pod
+	)
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
+	containers, err := r.GetRunningContainers()
+	if err != nil {
+		return nil, err
+	}
+	// Assemble running pods
+	for _, c := range containers {
+		if !util.StringInSlice(c.PodID(), pods) {
+			pods = append(pods, c.PodID())
+			pod, err := r.GetPod(c.PodID())
+			if err != nil {
+				if errors.Cause(err) == ErrPodRemoved || errors.Cause(err) == ErrNoSuchPod {
+					continue
+				}
+				return nil, err
+			}
+			runningPods = append(runningPods, pod)
+		}
+	}
+	return runningPods, nil
 }
