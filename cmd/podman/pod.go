@@ -11,6 +11,7 @@ Pods are a group of one or more containers sharing the same network, pid and ipc
 `
 	podSubCommands = []cli.Command{
 		podCreateCommand,
+		podInspectCommand,
 		podKillCommand,
 		podPauseCommand,
 		podPsCommand,

@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/projectatomic/libpod/libpod"
 	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
@@ -334,6 +335,14 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 // container and returns json
 func (s *PodmanSession) InspectContainerToJSON() []inspect.ContainerData {
 	var i []inspect.ContainerData
+	err := json.Unmarshal(s.Out.Contents(), &i)
+	Expect(err).To(BeNil())
+	return i
+}
+
+// InspectPodToJSON takes the sessions output from a pod inspect and returns json
+func (s *PodmanSession) InspectPodToJSON() libpod.PodInspect {
+	var i libpod.PodInspect
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
