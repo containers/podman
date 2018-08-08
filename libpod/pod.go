@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 // Pod represents a group of containers that are managed together.
@@ -57,6 +58,20 @@ type PodConfig struct {
 type podState struct {
 	// CgroupPath is the path to the pod's CGroup
 	CgroupPath string
+}
+
+// PodInspect represents the data we want to display for
+// podman pod inspect
+type PodInspect struct {
+	Config     *PodConfig
+	State      *podState
+	Containers []PodContainerInfo
+}
+
+// PodContainerInfo keeps information on a container in a pod
+type PodContainerInfo struct {
+	ID    string `json:"id"`
+	State string `json:"state"`
 }
 
 // ID retrieves the pod's ID
@@ -696,3 +711,38 @@ func (p *Pod) Status() (map[string]ContainerStatus, error) {
 // TODO add pod batching
 // Lock pod to avoid lock contention
 // Store and lock all containers (no RemoveContainer in batch guarantees cache will not become stale)
+
+// Inspect returns a PodInspect struct to describe the pod
+func (p *Pod) Inspect() (*PodInspect, error) {
+	var (
+		podContainers []PodContainerInfo
+	)
+
+	containers, err := p.AllContainers()
+	if err != nil {
+		return &PodInspect{}, err
+	}
+	for _, c := range containers {
+		containerStatus := "unknown"
+		// Ignoring possible errors here because we dont want this to be
+		// catastrophic in nature
+		containerState, err := c.State()
+		if err == nil {
+			containerStatus = containerState.String()
+		}
+		pc := PodContainerInfo{
+			ID:    c.ID(),
+			State: containerStatus,
+		}
+		podContainers = append(podContainers, pc)
+	}
+
+	config := new(PodConfig)
+	deepcopier.Copy(p.config).To(config)
+	inspectData := PodInspect{
+		Config:     config,
+		State:      p.state,
+		Containers: podContainers,
+	}
+	return &inspectData, nil
+}
