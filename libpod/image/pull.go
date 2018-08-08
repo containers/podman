@@ -43,9 +43,9 @@ var (
 	// and because syntaxes of image names are transport-dependent, the prefix is not really interchangeable;
 	// each user implicitly assumes the appended string is a Docker-like reference.
 	DefaultTransport = DockerTransport + "://"
-	// DefaultLocalRepo is the default local repository for local image operations
+	// DefaultLocalRegistry is the default local registry for local image operations
 	// Remote pulls will still use defined registries
-	DefaultLocalRepo = "localhost"
+	DefaultLocalRegistry = "localhost"
 )
 
 // pullRefPair records a pair of prepared image references to pull.
@@ -74,12 +74,12 @@ func singlePullRefPairGoal(rp pullRefPair) *pullGoal {
 }
 
 func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) (pullRefPair, error) {
-	imgPart, err := decompose(destName)
-	if err == nil && !imgPart.hasRegistry {
+	decomposedDest, err := decompose(destName)
+	if err == nil && !decomposedDest.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
-		imgPart.registry = DefaultLocalRepo
-		imgPart.hasRegistry = true
-		destName = imgPart.assemble()
+		decomposedDest.registry = DefaultLocalRegistry
+		decomposedDest.hasRegistry = true
+		destName = decomposedDest.assemble()
 	}
 
 	reference := destName
@@ -179,11 +179,9 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 	case DirTransport:
 		path := srcRef.StringWithinTransport()
 		image := path
-		// remove leading "/"
 		if image[:1] == "/" {
-			// Instead of removing the leading /, set localhost as the registry
-			// so docker.io isn't prepended, and the path becomes the repository
-			image = DefaultLocalRepo + image
+			// Set localhost as the registry so docker.io isn't prepended, and the path becomes the repository
+			image = DefaultLocalRegistry + image
 		}
 		return ir.getSinglePullRefPairGoal(srcRef, image)
 

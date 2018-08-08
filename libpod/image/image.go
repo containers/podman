@@ -258,7 +258,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	}
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
-	img, err = i.imageruntime.getImage(DefaultLocalRepo + "/" + i.InputName)
+	img, err = i.imageruntime.getImage(fmt.Sprintf("%s/%s", DefaultLocalRegistry, i.InputName))
 	if err == nil {
 		return img.image, err
 	}
@@ -465,7 +465,7 @@ func normalizeTag(tag string) (string, error) {
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
-		tag = fmt.Sprintf("%s/%s", DefaultLocalRepo, tag)
+		tag = fmt.Sprintf("%s/%s", DefaultLocalRegistry, tag)
 	}
 	return tag, nil
 }

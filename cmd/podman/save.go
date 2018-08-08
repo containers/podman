@@ -145,7 +145,6 @@ func saveCmd(c *cli.Context) error {
 			return err
 		}
 	}
-
 	if err := newImage.PushImageToReference(getContext(), destRef, manifestType, "", "", writer, c.Bool("compress"), libpodImage.SigningOptions{}, &libpodImage.DockerRegistryOptions{}, false, additionaltags); err != nil {
 		if err2 := os.Remove(output); err2 != nil {
 			logrus.Errorf("error deleting %q: %v", output, err)
@@ -165,12 +164,15 @@ func imageNameForSaveDestination(img *libpodImage.Image, imgUserInput string) st
 	}
 
 	prepend := ""
-	if !strings.Contains(imgUserInput, libpodImage.DefaultLocalRepo) {
+	localRegistryPrefix := fmt.Sprintf("%s/", libpodImage.DefaultLocalRegistry)
+	if !strings.HasPrefix(imgUserInput, localRegistryPrefix) {
 		// we need to check if localhost was added to the image name in NewFromLocal
 		for _, name := range img.Names() {
-			// if the user searched for the image whose tag was prepended with localhost, we'll need to prepend localhost to successfully search
-			if strings.Contains(name, libpodImage.DefaultLocalRepo) && strings.Contains(name, imgUserInput) {
-				prepend = fmt.Sprintf("%s/", libpodImage.DefaultLocalRepo)
+			// If the user is saving an image in the localhost registry,  getLocalImage need
+			// a name that matches the format localhost/<tag1>:<tag2> or localhost/<tag>:latest to correctly
+			// set up the manifest and save.
+			if strings.HasPrefix(name, localRegistryPrefix) && (strings.HasSuffix(name, imgUserInput) || strings.HasSuffix(name, fmt.Sprintf("%s:latest", imgUserInput))) {
+				prepend = localRegistryPrefix
 				break
 			}
 		}
