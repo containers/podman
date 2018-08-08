@@ -169,10 +169,10 @@ localunit: varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
-	ginkgo -v test/e2e/
+	ginkgo -p -v test/e2e/
 
 localintegration: varlink_generate test-binaries clientintegration
-	ginkgo -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -p -v -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 clientintegration:
 	$(MAKE) -C contrib/python/podman integration
