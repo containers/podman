@@ -1,7 +1,7 @@
 package lock
 
-// LockManager provides an interface for allocating multiprocess locks.
-// Locks returned by LockManager MUST be multiprocess - allocating a lock in
+// Manager provides an interface for allocating multiprocess locks.
+// Locks returned by Manager MUST be multiprocess - allocating a lock in
 // process A and retrieving that lock's ID in process B must return handles for
 // the same lock, and locking the lock in A should exclude B from the lock until
 // it is unlocked in A.
@@ -13,7 +13,7 @@ package lock
 // AllocateLock() must fail once all available locks have been allocated.
 // Locks are returned to use by calls to Free(), and can subsequently be
 // reallocated.
-type LockManager interface {
+type Manager interface {
 	// AllocateLock returns an unallocated lock.
 	// It is guaranteed that the same lock will not be returned again by
 	// AllocateLock until the returned lock has Free() called on it.
@@ -35,7 +35,7 @@ type LockManager interface {
 type Locker interface {
 	// ID retrieves the lock's ID.
 	// ID is guaranteed to uniquely identify the lock within the
-	// LockManager - that is, calling RetrieveLock with this ID will return
+	// Manager - that is, calling RetrieveLock with this ID will return
 	// another instance of the same lock.
 	ID() string
 	// Lock locks the lock.

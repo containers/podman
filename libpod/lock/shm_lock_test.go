@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"syscall"
-	"time"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,6 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
-
 func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 	locks, err := OpenSHMLock(numLocks)
 	if err != nil {
@@ -66,7 +65,7 @@ func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 		}
 	}()
 
-	success := t.Run("locks", func (t *testing.T) {
+	success := t.Run("locks", func(t *testing.T) {
 		testFunc(t, locks)
 	})
 	if !success {
