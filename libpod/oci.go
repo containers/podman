@@ -279,7 +279,10 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 		args = append(args, "--no-pivot")
 	}
 
-	if logrus.GetLevel() == logrus.DebugLevel {
+	logLevel := logrus.GetLevel()
+	args = append(args, "--log-level", logLevel.String())
+
+	if logLevel == logrus.DebugLevel {
 		logrus.Debug("%s messages will be logged to syslog", r.conmonPath)
 		args = append(args, "--syslog")
 	}

@@ -62,7 +62,7 @@ RUN set -x \
        && go get github.com/onsi/gomega/...
 
 # Install conmon
-ENV CRIO_COMMIT f9ae39e395880507d52295ca58e3683f22524777
+ENV CRIO_COMMIT 662dbb31b5d4f5ed54511a47cde7190c61c28677
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
