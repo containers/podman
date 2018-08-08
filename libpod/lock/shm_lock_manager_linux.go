@@ -1,3 +1,5 @@
+// +build linux
+
 package lock
 
 import (
@@ -7,16 +9,17 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/libpod/libpod/lock/shm"
 )
 
 // SHMLockManager manages shared memory locks.
 type SHMLockManager struct {
-	locks *SHMLocks
+	locks *shm.SHMLocks
 }
 
 // NewSHMLockManager makes a new SHMLockManager with the given number of locks.
 func NewSHMLockManager(numLocks uint32) (Manager, error) {
-	locks, err := CreateSHMLock(numLocks)
+	locks, err := shm.CreateSHMLock(numLocks)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +32,8 @@ func NewSHMLockManager(numLocks uint32) (Manager, error) {
 
 // OpenSHMLockManager opens an existing SHMLockManager with the given number of
 // locks.
-func OpenSHMLockManager(numLocks uint32) (LockManager, error) {
-	locks, err := OpenSHMLock(numLocks)
+func OpenSHMLockManager(numLocks uint32) (Manager, error) {
+	locks, err := shm.OpenSHMLock(numLocks)
 	if err != nil {
 		return nil, err
 	}
@@ -59,20 +62,20 @@ func (m *SHMLockManager) AllocateLock() (Locker, error) {
 func (m *SHMLockManager) RetrieveLock(id string) (Locker, error) {
 	intID, err := strconv.ParseInt(id, 16, 64)
 	if err != nil {
-		return errors.Wrapf(err, "given ID %q is not a valid SHMLockManager ID - cannot be parsed as int", id)
+		return nil, errors.Wrapf(err, "given ID %q is not a valid SHMLockManager ID - cannot be parsed as int", id)
 	}
 
 	if intID < 0 {
-		return errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - must be positive", id)
+		return nil, errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - must be positive", id)
 	}
 
 	if intID > math.MaxUint32 {
-		return errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - too large", id)
+		return nil, errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - too large", id)
 	}
 
 	var u32ID uint32 = uint32(intID)
-	if u32ID >= m.locks.maxLocks {
-		return errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - too large to fit", id)
+	if u32ID >= m.locks.GetMaxLocks() {
+		return nil, errors.Wrapf(syscall.EINVAL, "given ID %q is not a valid SHMLockManager ID - too large to fit", id)
 	}
 
 	lock := new(SHMLock)

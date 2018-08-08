@@ -1,4 +1,4 @@
-package lock
+package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
 // #include "shm_lock.h"
@@ -70,6 +70,11 @@ func OpenSHMLock(numLocks uint32) (*SHMLocks, error) {
 	locks.valid = true
 
 	return locks, nil
+}
+
+// GetMaxLocks returns the maximum number of locks in the SHM
+func (locks *SHMLocks) GetMaxLocks() uint32 {
+	return locks.maxLocks
 }
 
 // Close closes an existing shared-memory segment.
