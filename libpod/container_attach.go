@@ -96,11 +96,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	}
 
 	receiveStdoutError := make(chan error)
-	if streams.AttachOutput || streams.AttachError {
-		go func() {
-			receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, streams.AttachOutput, streams.AttachError, conn)
-		}()
-	}
+	go func() {
+		receiveStdoutError <- redirectResponseToOutputStreams(streams.OutputStream, streams.ErrorStream, streams.AttachOutput, streams.AttachError, conn)
+	}()
 
 	stdinDone := make(chan error)
 	go func() {
