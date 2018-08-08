@@ -23,7 +23,7 @@ BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
-
+# foo
 PYTHON ?= /usr/bin/python3
 HAS_PYTHON3 := $(shell command -v python3 2>/dev/null)
 
