@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	gosignal "os/signal"
+	"os/user"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -97,6 +98,15 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
+	if username == "" {
+		user, err := user.LookupId(fmt.Sprintf("%d", os.Geteuid()))
+		if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+			return false, 0, errors.Wrapf(err, "could not find user by UID nor USER env was set")
+		}
+		if err == nil {
+			username = user.Username
+		}
+	}
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
 		return false, -1, err
