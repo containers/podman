@@ -18,6 +18,7 @@ Pods are a group of one or more containers sharing the same network, pid and ipc
 		podRestartCommand,
 		podRmCommand,
 		podStartCommand,
+		podStatsCommand,
 		podStopCommand,
 		podUnpauseCommand,
 	}

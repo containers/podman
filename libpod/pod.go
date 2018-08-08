@@ -148,16 +148,54 @@ func (p *Pod) AllContainersByID() ([]string, error) {
 
 // AllContainers retrieves the containers in the pod
 func (p *Pod) AllContainers() ([]*Container, error) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	if !p.valid {
 		return nil, ErrPodRemoved
 	}
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.allContainers()
+}
 
+func (p *Pod) allContainers() ([]*Container, error) {
 	return p.runtime.state.PodContainers(p)
 }
 
 // TODO add pod batching
 // Lock pod to avoid lock contention
 // Store and lock all containers (no RemoveContainer in batch guarantees cache will not become stale)
+
+// PodContainerStats is an organization struct for pods and their containers
+type PodContainerStats struct {
+	Pod            *Pod
+	ContainerStats map[string]*ContainerStats
+}
+
+// GetPodStats returns the stats for each of its containers
+func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (map[string]*ContainerStats, error) {
+	var (
+		ok       bool
+		prevStat *ContainerStats
+	)
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if err := p.updatePod(); err != nil {
+		return nil, err
+	}
+	containers, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return nil, err
+	}
+	newContainerStats := make(map[string]*ContainerStats)
+	for _, c := range containers {
+		if prevStat, ok = previousContainerStats[c.ID()]; !ok {
+			prevStat = &ContainerStats{}
+		}
+		newStats, err := c.GetContainerStats(prevStat)
+		if err != nil {
+			return nil, err
+		}
+		newContainerStats[c.ID()] = newStats
+	}
+	return newContainerStats, nil
+}
