@@ -57,14 +57,6 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
 			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 		}
-		// Creating CGroup path is currently a NOOP until proper systemd
-		// cgroup management is merged
-	case SystemdCgroupsManager:
-		if pod.config.CgroupParent == "" {
-			pod.config.CgroupParent = SystemdDefaultCgroupParent
-		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
-		}
 		// If we are set to use pod cgroups, set the cgroup parent that
 		// all containers in the pod will share
 		// No need to create it with cgroupfs - the first container to
@@ -72,6 +64,14 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		if pod.config.UsePodCgroup {
 			pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
 		}
+	case SystemdCgroupsManager:
+		if pod.config.CgroupParent == "" {
+			pod.config.CgroupParent = SystemdDefaultCgroupParent
+		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
+			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+		}
+		// Creating CGroup path is currently a NOOP until proper systemd
+		// cgroup management is merged
 	default:
 		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}

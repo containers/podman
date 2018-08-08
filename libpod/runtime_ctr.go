@@ -85,6 +85,9 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 				if err != nil {
 					return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 				}
+				if podCgroup == "" {
+					return nil, errors.Wrapf(ErrInternal, "pod %s cgroup is not set", pod.ID())
+				}
 				ctr.config.CgroupParent = podCgroup
 			} else {
 				ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
