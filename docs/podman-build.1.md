@@ -207,11 +207,19 @@ that the IPC namespace in which `buildah` itself is being run should be reused,
 or it can be the path to an IPC namespace which is already in use by
 another process.
 
-**--isolation** [Not Supported]
+**--isolation** *type*
 
-Podman is not currently supported on Windows, and does not have a daemon.
-If you want to override the container isolation you can choose a different
-OCI Runtime, using the --runtime flag.
+Controls what type of isolation is used for running processes as part of `RUN`
+instructions.  Recognized types include *oci* (OCI-compatible runtime, the
+default), *rootless* (OCI-compatible runtime invoked using a modified
+configuration and its --rootless flag enabled, with *--no-new-keyring
+--no-pivot* added to its *create* invocation, with network and UTS namespaces
+disabled, and IPC, PID, and user namespaces enabled; the default for
+unprivileged users), and *chroot* (an internal wrapper that leans more toward
+chroot(1) than container technology).
+
+Note: You can also override the default isolation type by setting the
+BUILDAH\_ISOLATION environment variable.  `export BUILDAH_ISOLATION=oci`
 
 **--label** *label*
 
