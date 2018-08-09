@@ -104,6 +104,12 @@ RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
 
+# Install ffjson
+RUN set -x \
+      && export GOPATH=/go \
+      && go get github.com/pquerna/ffjson \
+      && install -D -m 755 "$GOPATH"/bin/ffjson /usr/bin/
+
 # Install cni config
 #RUN make install.cni
 RUN mkdir -p /etc/cni/net.d/
