@@ -372,3 +372,77 @@ podman run whale-says
 podman rm --all
 podman rmi --all
 rm ./Dockerfile*
+
+########
+# Run AppArmor rootless tests
+########
+if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
+    # Expected to succeed
+    sudo -u "#1000" podman run alpine echo hello
+    rc=$?
+    echo -n "rootless with no AppArmor profile "
+    if [ $rc == 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
+
+    # Expected to succeed
+    sudo -u "#1000" podman run --security-opt apparmor=unconfined alpine echo hello
+    rc=$?
+    echo -n "rootless with unconfined AppArmor profile "
+    if [ $rc == 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
+
+    aaFile="/tmp/aaProfile"
+    aaProfile="aa-demo-profile"
+    cat > $aaFile << EOF
+#include <tunables/global>
+profile aa-demo-profile flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  deny mount,
+  deny /sys/[^f]*/** wklx,
+  deny /sys/f[^s]*/** wklx,
+  deny /sys/fs/[^c]*/** wklx,
+  deny /sys/fs/c[^g]*/** wklx,
+  deny /sys/fs/cg[^r]*/** wklx,
+  deny /sys/firmware/efi/efivars/** rwklx,
+  deny /sys/kernel/security/** rwklx,
+}
+EOF
+
+    apparmor_parser -Kr $aaFile
+
+    #Expected to pass (as root)
+    podman run --security-opt apparmor=$aaProfile alpine echo hello
+    rc=$?
+    echo -n "root with specified AppArmor profile: "
+    if [ $rc == 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
+
+    #Expected to fail (as rootless)
+    sudo -u "#1000" podman run --security-opt apparmor=$aaProfile alpine echo hello
+    rc=$?
+    echo -n "rootless with specified AppArmor profile: "
+    if [ $rc != 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
+
+    ########
+    # Clean up Podman and $aaFile
+    ########
+    apparmor_parser -R $aaFile
+    podman rm --all
+    podman rmi --all
+    sudo -u "#1000" podman rm --all
+    sudo -u "#1000" podman rmi --all
+    rm -f $aaFile
+fi
