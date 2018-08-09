@@ -2,7 +2,6 @@
 import sys
 
 import podman
-
 from pypodman.lib import AbstractActionBase
 
 
@@ -32,11 +31,11 @@ class Rm(AbstractActionBase):
 
     def remove(self):
         """Remove container(s)."""
-        for id_ in self._args.targets:
+        for ident in self._args.targets:
             try:
-                ctnr = self.client.containers.get(id_)
+                ctnr = self.client.containers.get(ident)
                 ctnr.remove(self._args.force)
-                print(id_)
+                print(ident)
             except podman.ContainerNotFound as e:
                 sys.stdout.flush()
                 print(

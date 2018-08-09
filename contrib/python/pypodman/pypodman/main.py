@@ -42,6 +42,9 @@ def main():
     returncode = None
     try:
         obj = args.class_(args)
+    except AttributeError:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logging.critical(repr(e), exc_info=want_tb())
         logging.warning('See subparser "%s" configuration.',
@@ -59,6 +62,7 @@ def main():
         returncode = 3
     except (
             CalledProcessError,
+            ConnectionError,
             ConnectionRefusedError,
             ConnectionResetError,
             TimeoutError,
