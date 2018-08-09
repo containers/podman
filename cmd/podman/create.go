@@ -231,7 +231,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			logrus.Infof("Sucessfully loaded AppAmor profile '%s'", profile)
 			config.ApparmorProfile = profile
 		}
-	} else if config.ApparmorProfile != "" {
+	} else if config.ApparmorProfile != "" && config.ApparmorProfile != "unconfined" {
 		if !apparmor.IsEnabled() {
 			return fmt.Errorf("profile specified but AppArmor is disabled on the host")
 		}
