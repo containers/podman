@@ -297,13 +297,13 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
 varlink_api_generate: .gopathok API.md
 
-ffjson_generate: libpod/container_ffjson.go libpod/pod_ffjson.go
+ffjson_generate: .gopathok libpod/container_ffjson.go libpod/pod_ffjson.go
 
-libpod/container_ffjson.go: .gopathok libpod/container.go
+libpod/container_ffjson.go: libpod/container.go
 	rm -f libpod/container_ffjson.go
 	ffjson $(GOPKGDIR)/libpod/container.go
 
-libpod/pod_ffjson.go: .gopathok libpod/pod.go
+libpod/pod_ffjson.go: libpod/pod.go
 	rm -f libpod/pod_ffjson.go
 	ffjson $(GOPKGDIR)/libpod/pod.go
 
