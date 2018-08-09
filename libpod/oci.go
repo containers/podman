@@ -283,7 +283,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	args = append(args, "--log-level", logLevel.String())
 
 	if logLevel == logrus.DebugLevel {
-		logrus.Debug("%s messages will be logged to syslog", r.conmonPath)
+		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
 		args = append(args, "--syslog")
 	}
 
