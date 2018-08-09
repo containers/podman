@@ -16,11 +16,15 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats := new(ContainerStats)
 	stats.ContainerID = c.ID()
 	stats.Name = c.Name()
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return stats, err
+
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return stats, err
+		}
 	}
+
 	if c.state.State != ContainerStateRunning {
 		return stats, nil
 	}
