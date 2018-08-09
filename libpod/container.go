@@ -455,7 +455,7 @@ func (c *Container) Dependencies() []string {
 		dependsCtrs[c.config.NetNsCtr] = true
 	}
 	if c.config.PIDNsCtr != "" {
-		dependsCtrs[c.config.NetNsCtr] = true
+		dependsCtrs[c.config.PIDNsCtr] = true
 	}
 	if c.config.UserNsCtr != "" {
 		dependsCtrs[c.config.UserNsCtr] = true
