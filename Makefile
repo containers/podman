@@ -181,7 +181,7 @@ clientintegration:
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman python
+binaries: varlink_generate ffjson_generate podman python
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -260,7 +260,7 @@ uninstall:
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ffjson
 
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
@@ -281,6 +281,11 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 		   $(GO) get -u github.com/cpuguy83/go-md2man; \
 	fi
 
+.install.ffjson: .gopathok
+	if [ ! -x "$(GOBIN)/ffjson" ]; then\
+		  $(GO) get -u github.com/pquerna/ffjson; \
+	fi
+
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
 		git clone https://github.com/ostreedev/ostree $(FIRST_GOPATH)/src/github.com/ostreedev/ostree ; \
@@ -291,6 +296,16 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
 varlink_api_generate: .gopathok API.md
+
+ffjson_generate: .gopathok libpod/container_ffjson.go libpod/pod_ffjson.go
+
+libpod/container_ffjson.go: libpod/container.go
+	rm -f libpod/container_ffjson.go
+	ffjson $(GOPKGDIR)/libpod/container.go
+
+libpod/pod_ffjson.go: libpod/pod.go
+	rm -f libpod/pod_ffjson.go
+	ffjson $(GOPKGDIR)/libpod/pod.go
 
 .PHONY: install.libseccomp.sudo
 install.libseccomp.sudo:
