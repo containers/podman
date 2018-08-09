@@ -229,12 +229,13 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         args.local_uri = "unix:{}".format(args.local_socket_path)
 
-        components = ['ssh://', args.user, '@', args.host]
-        if args.port:
-            components.extend((':', str(args.port)))
-        components.append(args.remote_socket_path)
+        if args.host:
+            components = ['ssh://', args.user, '@', args.host]
+            if args.port:
+                components.extend((':', str(args.port)))
+            components.append(args.remote_socket_path)
 
-        args.remote_uri = ''.join(components)
+            args.remote_uri = ''.join(components)
         return args
 
     def exit(self, status=0, message=None):
