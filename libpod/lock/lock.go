@@ -23,7 +23,7 @@ type Manager interface {
 	// RetrieveLock retrieves a lock given its UUID.
 	// The underlying lock MUST be the same as another other lock with the
 	// same UUID.
-	RetrieveLock(id string) (Locker, error)
+	RetrieveLock(id uint32) (Locker, error)
 }
 
 // Locker is similar to sync.Locker, but provides a method for freeing the lock
@@ -37,7 +37,7 @@ type Locker interface {
 	// ID is guaranteed to uniquely identify the lock within the
 	// Manager - that is, calling RetrieveLock with this ID will return
 	// another instance of the same lock.
-	ID() string
+	ID() uint32
 	// Lock locks the lock.
 	// This call MUST block until it successfully acquires the lock or
 	// encounters a fatal error.
@@ -46,8 +46,8 @@ type Locker interface {
 	// A call to Unlock() on a lock that is already unlocked lock MUST
 	// error.
 	Unlock() error
-	// Deallocate deallocates the underlying lock, allowing its reuse by
-	// other pods and containers.
+	// Free deallocates the underlying lock, allowing its reuse by other
+	// pods and containers.
 	// The lock MUST still be usable after a Free() - some libpod instances
 	// may still retain Container structs with the old lock. This simply
 	// advises the manager that the lock may be reallocated.

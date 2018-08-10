@@ -1,6 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
-#include <semaphore.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -12,19 +12,67 @@
 #include "shm_lock.h"
 
 // Compute the size of the SHM struct
-size_t compute_shm_size(uint32_t num_bitmaps) {
+static size_t compute_shm_size(uint32_t num_bitmaps) {
   return sizeof(shm_struct_t) + (num_bitmaps * sizeof(lock_group_t));
 }
 
+// Take the given mutex.
+// Handles exceptional conditions, including a mutex locked by a process that
+// died holding it.
+// Returns 0 on success, or positive errno on failure.
+static int take_mutex(pthread_mutex_t *mutex) {
+  int ret_code;
+
+  do {
+    ret_code = pthread_mutex_lock(mutex);
+  } while(ret_code == EAGAIN);
+
+  if (ret_code == EOWNERDEAD) {
+    // The previous owner of the mutex died while holding it
+    // Take it for ourselves
+    ret_code = pthread_mutex_consistent(mutex);
+    if (ret_code != 0) {
+      // Someone else may have gotten here first and marked the state consistent
+      // However, the mutex could also be invalid.
+      // Fail here instead of looping back to trying to lock the mutex.
+      return ret_code;
+    }
+  } else if (ret_code != 0) {
+    return ret_code;
+  }
+
+  return 0;
+}
+
+// Release the given mutex.
+// Returns 0 on success, or positive errno on failure.
+static int release_mutex(pthread_mutex_t *mutex) {
+  int ret_code;
+
+  do {
+    ret_code = pthread_mutex_unlock(mutex);
+  } while(ret_code == EAGAIN);
+
+  if (ret_code != 0) {
+    return ret_code;
+  }
+
+  return 0;
+}
+
 // Set up an SHM segment holding locks for libpod.
-// num_locks must be a multiple of BITMAP_SIZE (32 by default).
+// num_locks must not be 0.
+// Path is the path to the SHM segment. It must begin with a single / and
+// container no other / characters, and be at most 255 characters including
+// terminating NULL byte.
 // Returns a valid pointer on success or NULL on error.
-// If an error occurs, it will be written to the int pointed to by error_code.
-shm_struct_t *setup_lock_shm(uint32_t num_locks, int *error_code) {
+// If an error occurs, negative ERRNO values will be written to error_code.
+shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   int shm_fd, i, j, ret_code;
   uint32_t num_bitmaps;
   size_t shm_size;
   shm_struct_t *shm;
+  pthread_mutexattr_t attr;
 
   // If error_code doesn't point to anything, we can't reasonably return errors
   // So fail immediately
@@ -34,54 +82,81 @@ shm_struct_t *setup_lock_shm(uint32_t num_locks, int *error_code) {
 
   // We need a nonzero number of locks
   if (num_locks == 0) {
-    *error_code = EINVAL;
+    *error_code = -1 * EINVAL;
+    return NULL;
+  }
+
+  if (path == NULL) {
+    *error_code = -1 * EINVAL;
     return NULL;
   }
 
   // Calculate the number of bitmaps required
-  if (num_locks % BITMAP_SIZE != 0) {
-    // Number of locks not a multiple of BITMAP_SIZE
-    *error_code = EINVAL;
-    return NULL;
-  }
   num_bitmaps = num_locks / BITMAP_SIZE;
+  if (num_locks % BITMAP_SIZE != 0) {
+    // The actual number given is not an even multiple of our bitmap size
+    // So round up
+    num_bitmaps += 1;
+  }
 
   // Calculate size of the shm segment
   shm_size = compute_shm_size(num_bitmaps);
 
   // Create a new SHM segment for us
-  shm_fd = shm_open(SHM_NAME, O_RDWR | O_CREAT | O_EXCL, 0600);
+  shm_fd = shm_open(path, O_RDWR | O_CREAT | O_EXCL, 0600);
   if (shm_fd < 0) {
-    *error_code = errno;
+    *error_code = -1 * errno;
     return NULL;
   }
 
   // Increase its size to what we need
   ret_code = ftruncate(shm_fd, shm_size);
   if (ret_code < 0) {
-    *error_code = errno;
+    *error_code = -1 * errno;
     goto CLEANUP_UNLINK;
   }
 
   // Map the shared memory in
   shm = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
   if (shm == MAP_FAILED) {
-    *error_code = errno;
+    *error_code = -1 * errno;
     goto CLEANUP_UNLINK;
   }
 
   // We have successfully mapped the memory, now initialize the region
   shm->magic = MAGIC;
-  shm->num_locks = num_locks;
+  shm->unused = 0;
+  shm->num_locks = num_bitmaps * BITMAP_SIZE;
   shm->num_bitmaps = num_bitmaps;
 
-  // Initialize the semaphore that protects the bitmaps.
-  // Initialize to value 1, as we're a mutex, and set pshared as this will be
-  // shared between processes in an SHM.
-  ret_code = sem_init(&(shm->segment_lock), true, 1);
-  if (ret_code < 0) {
-    *error_code = errno;
+  // Create an initializer for our pthread mutexes
+  ret_code = pthread_mutexattr_init(&attr);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
     goto CLEANUP_UNMAP;
+  }
+
+  // Set mutexes to pshared - multiprocess-safe
+  ret_code = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_FREEATTR;
+  }
+
+  // Set mutexes to robust - if a process dies while holding a mutex, we'll get
+  // a special error code on the next attempt to lock it.
+  // This should prevent panicing processes from leaving the state unusable.
+  ret_code = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_FREEATTR;
+  }
+
+  // Initialize the mutex that protects the bitmaps using the mutex attributes
+  ret_code = pthread_mutex_init(&(shm->segment_lock), &attr);
+  if (ret_code != 0) {
+    *error_code = -1 * ret_code;
+    goto CLEANUP_FREEATTR;
   }
 
   // Initialize all bitmaps to 0 initially
@@ -89,12 +164,11 @@ shm_struct_t *setup_lock_shm(uint32_t num_locks, int *error_code) {
   for (i = 0; i < num_bitmaps; i++) {
     shm->locks[i].bitmap = 0;
     for (j = 0; j < BITMAP_SIZE; j++) {
-      // As above, initialize to 1 to act as a mutex, and set pshared as we'll
-      // be living in an SHM.
-      ret_code = sem_init(&(shm->locks[i].locks[j]), true, 1);
-      if (ret_code < 0) {
-	*error_code = errno;
-	goto CLEANUP_UNMAP;
+      // Initialize each mutex
+      ret_code = pthread_mutex_init(&(shm->locks[i].locks[j]), &attr);
+      if (ret_code != 0) {
+	*error_code = -1 * ret_code;
+	goto CLEANUP_FREEATTR;
       }
     }
   }
@@ -103,23 +177,33 @@ shm_struct_t *setup_lock_shm(uint32_t num_locks, int *error_code) {
   // Ignore errors, it's ok if we leak a single FD and this should only run once
   close(shm_fd);
 
+  // Destroy the pthread initializer attribute.
+  // Again, ignore errors, this will only run once and we might leak a tiny bit
+  // of memory at worst.
+  pthread_mutexattr_destroy(&attr);
+
   return shm;
 
   // Cleanup after an error
+ CLEANUP_FREEATTR:
+  pthread_mutexattr_destroy(&attr);
  CLEANUP_UNMAP:
   munmap(shm, shm_size);
  CLEANUP_UNLINK:
   close(shm_fd);
-  shm_unlink(SHM_NAME);
+  shm_unlink(path);
   return NULL;
 }
 
 // Open an existing SHM segment holding libpod locks.
 // num_locks is the number of locks that will be configured in the SHM segment.
-// num_locks must be a multiple of BITMAP_SIZE (32 by default).
+// num_locks cannot be 0.
+// Path is the path to the SHM segment. It must begin with a single / and
+// container no other / characters, and be at most 255 characters including
+// terminating NULL byte.
 // Returns a valid pointer on success or NULL on error.
-// If an error occurs, it will be written to the int pointed to by error_code.
-shm_struct_t *open_lock_shm(uint32_t num_locks, int *error_code) {
+// If an error occurs, negative ERRNO values will be written to error_code.
+shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   int shm_fd;
   shm_struct_t *shm;
   size_t shm_size;
@@ -131,30 +215,34 @@ shm_struct_t *open_lock_shm(uint32_t num_locks, int *error_code) {
 
   // We need a nonzero number of locks
   if (num_locks == 0) {
-    *error_code = EINVAL;
+    *error_code = -1 * EINVAL;
+    return NULL;
+  }
+
+  if (path == NULL) {
+    *error_code = -1 * EINVAL;
     return NULL;
   }
 
   // Calculate the number of bitmaps required
-  if (num_locks % BITMAP_SIZE != 0) {
-    // Number of locks not a multiple of BITMAP_SIZE
-    *error_code = EINVAL;
-    return NULL;
-  }
   num_bitmaps = num_locks / BITMAP_SIZE;
+  if (num_locks % BITMAP_SIZE != 0) {
+    num_bitmaps += 1;
+  }
 
   // Calculate size of the shm segment
   shm_size = compute_shm_size(num_bitmaps);
 
-  shm_fd = shm_open(SHM_NAME, O_RDWR, 0600);
+  shm_fd = shm_open(path, O_RDWR, 0600);
   if (shm_fd < 0) {
+    *error_code = -1 * errno;
     return NULL;
   }
 
   // Map the shared memory in
   shm = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
   if (shm == MAP_FAILED) {
-    *error_code = errno;
+    *error_code = -1 * errno;
   }
 
   // Ignore errors, it's ok if we leak a single FD since this only runs once
@@ -167,11 +255,11 @@ shm_struct_t *open_lock_shm(uint32_t num_locks, int *error_code) {
 
   // Need to check the SHM to see if it's actually our locks
   if (shm->magic != MAGIC) {
-    *error_code = errno;
+    *error_code = -1 * errno;
     goto CLEANUP;
   }
-  if (shm->num_locks != num_locks) {
-    *error_code = errno;
+  if (shm->num_locks != (num_bitmaps * BITMAP_SIZE)) {
+    *error_code = -1 * errno;
     goto CLEANUP;
   }
 
@@ -219,11 +307,9 @@ int64_t allocate_semaphore(shm_struct_t *shm) {
   }
 
   // Lock the semaphore controlling access to our shared memory
-  do {
-    ret_code = sem_wait(&(shm->segment_lock));
-  } while(ret_code == EINTR);
+  ret_code = take_mutex(&(shm->segment_lock));
   if (ret_code != 0) {
-    return -1 * errno;
+    return -1 * ret_code;
   }
 
   // Loop through our bitmaps to search for one that is not full
@@ -237,8 +323,13 @@ int64_t allocate_semaphore(shm_struct_t *shm) {
 	  sem_number = (BITMAP_SIZE * i) + num_within_bitmap;
 	  // OR in the bitmap
 	  shm->locks[i].bitmap = shm->locks[i].bitmap | test_map;
-	  // Clear the semaphore
-	  sem_post(&(shm->segment_lock));
+
+	  // Clear the mutex
+	  ret_code = release_mutex(&(shm->segment_lock));
+	  if (ret_code != 0) {
+	    return -1 * ret_code;
+	  }
+
 	  // Return the semaphore we've allocated
 	  return sem_number;
 	}
@@ -250,8 +341,11 @@ int64_t allocate_semaphore(shm_struct_t *shm) {
     }
   }
 
-  // Post to the semaphore to clear the lock
-  sem_post(&(shm->segment_lock));
+  // Clear the mutex
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
 
   // All bitmaps are full
   // We have no available semaphores, report allocation failure
@@ -282,23 +376,20 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
     return -1 * EFAULT;
   }
 
-  test_map = 0x1;
-  for (i = 0; i < index_in_bitmap; i++) {
-    test_map = test_map << 1;
-  }
+  test_map = 0x1 << index_in_bitmap;
 
-  // Lock the semaphore controlling access to our shared memory
-  do {
-    ret_code = sem_wait(&(shm->segment_lock));
-  } while(ret_code == EINTR);
+  // Lock the mutex controlling access to our shared memory
+  ret_code = take_mutex(&(shm->segment_lock));
   if (ret_code != 0) {
-    return -1 * errno;
+    return -1 * ret_code;
   }
 
   // Check if the semaphore is allocated
   if ((test_map & shm->locks[bitmap_index].bitmap) == 0) {
-    // Post to the semaphore to clear the lock
-    sem_post(&(shm->segment_lock));
+    ret_code = release_mutex(&(shm->segment_lock));
+    if (ret_code != 0) {
+      return -1 * ret_code;
+    }
 
     return -1 * ENOENT;
   }
@@ -308,8 +399,10 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   test_map = ~test_map;
   shm->locks[bitmap_index].bitmap = shm->locks[bitmap_index].bitmap & test_map;
 
-  // Post to the semaphore to clear the lock
-  sem_post(&(shm->segment_lock));
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
 
   return 0;
 }
@@ -333,15 +426,7 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  // Lock the semaphore controlling access to our shared memory
-  do {
-    ret_code = sem_wait(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
-  } while(ret_code == EINTR);
-  if (ret_code != 0) {
-    return -1 * errno;
-  }
-
-  return 0;
+  return -1 * take_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
 }
 
 // Unlock a given semaphore
@@ -351,7 +436,6 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 // Returns 0 on success, -1 on failure
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   int bitmap_index, index_in_bitmap, ret_code;
-  unsigned int sem_value = 0;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -364,20 +448,5 @@ int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_index = sem_index / BITMAP_SIZE;
   index_in_bitmap = sem_index % BITMAP_SIZE;
 
-  // Only allow a post if the semaphore is less than 1 (locked)
-  // This allows us to preserve mutex behavior
-  ret_code = sem_getvalue(&(shm->locks[bitmap_index].locks[index_in_bitmap]), &sem_value);
-  if (ret_code != 0) {
-    return -1 * errno;
-  }
-  if (sem_value >= 1) {
-    return -1 * EBUSY;
-  }
-
-  ret_code = sem_post(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
-  if (ret_code != 0) {
-    return -1 * errno;
-  }
-
-  return 0;
+  return -1 * release_mutex(&(shm->locks[bitmap_index].locks[index_in_bitmap]));
 }

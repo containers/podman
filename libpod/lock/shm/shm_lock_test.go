@@ -3,6 +3,7 @@ package shm
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -17,11 +18,13 @@ import (
 // We can at least verify that the locks work within the local process.
 
 // 4 * BITMAP_SIZE to ensure we have to traverse bitmaps
-const numLocks = 128
+const numLocks uint32 = 4 * BitmapSize
+
+const lockPath = "/libpod_test"
 
 // We need a test main to ensure that the SHM is created before the tests run
 func TestMain(m *testing.M) {
-	shmLock, err := CreateSHMLock(numLocks)
+	shmLock, err := CreateSHMLock(lockPath, numLocks)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating SHM for tests: %v\n", err)
 		os.Exit(-1)
@@ -42,19 +45,15 @@ func TestMain(m *testing.M) {
 }
 
 func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
-	locks, err := OpenSHMLock(numLocks)
+	locks, err := OpenSHMLock(lockPath, numLocks)
 	if err != nil {
 		t.Fatalf("Error opening locks: %v", err)
 	}
 	defer func() {
-		// Unlock and deallocate all locks
-		// Ignore EBUSY (lock is already unlocked)
+		// Deallocate all locks
 		// Ignore ENOENT (lock is not allocated)
 		var i uint32
 		for i = 0; i < numLocks; i++ {
-			if err := locks.UnlockSemaphore(i); err != nil && err != syscall.EBUSY {
-				t.Fatalf("Error unlocking semaphore %d: %v", i, err)
-			}
 			if err := locks.DeallocateSemaphore(i); err != nil && err != syscall.ENOENT {
 				t.Fatalf("Error deallocating semaphore %d: %v", i, err)
 			}
@@ -73,16 +72,22 @@ func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 	}
 }
 
-// Test that creating an SHM with a bad size fails
-func TestCreateNewSHMBadSize(t *testing.T) {
+// Test that creating an SHM with a bad size rounds up to a good size
+func TestCreateNewSHMBadSizeRoundsUp(t *testing.T) {
 	// Odd number, not a power of 2, should never be a word size on a system
-	_, err := CreateSHMLock(7)
-	assert.Error(t, err)
+	lock, err := CreateSHMLock("/test1", 7)
+	assert.NoError(t, err)
+
+	assert.Equal(t, lock.GetMaxLocks(), BitmapSize)
+
+	if err := lock.Close(); err != nil {
+		t.Fatalf("Error closing locks: %v", err)
+	}
 }
 
 // Test that creating an SHM with 0 size fails
 func TestCreateNewSHMZeroSize(t *testing.T) {
-	_, err := CreateSHMLock(0)
+	_, err := CreateSHMLock("/test2", 0)
 	assert.Error(t, err)
 }
 
@@ -239,5 +244,30 @@ func TestLockSemaphoreActuallyLocks(t *testing.T) {
 		// Verify that at least 1 second has passed since start
 		duration := endTime.Sub(startTime)
 		assert.True(t, duration.Seconds() > 1.0)
+	})
+}
+
+// Test that locking and unlocking two semaphores succeeds
+// Ensures that runtime.LockOSThread() is doing its job
+func TestLockAndUnlockTwoSemaphore(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		err := locks.LockSemaphore(0)
+		assert.NoError(t, err)
+
+		err = locks.LockSemaphore(1)
+		assert.NoError(t, err)
+
+		err = locks.UnlockSemaphore(1)
+		assert.NoError(t, err)
+
+		// Now yield scheduling
+		// To try and get us on another OS thread
+		runtime.Gosched()
+
+		// And unlock the last semaphore
+		// If we are in a different OS thread, this should fail.
+		// However, runtime.UnlockOSThread() should guarantee we are not
+		err = locks.UnlockSemaphore(0)
+		assert.NoError(t, err)
 	})
 }

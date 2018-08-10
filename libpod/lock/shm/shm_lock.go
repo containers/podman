@@ -1,47 +1,54 @@
 package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
+// #include <stdlib.h>
 // #include "shm_lock.h"
 // const uint32_t bitmap_size_c = BITMAP_SIZE;
 import "C"
 
 import (
+	"runtime"
 	"syscall"
+	"unsafe"
 
 	"github.com/pkg/errors"
 )
 
-var (
-	bitmapSize uint32 = uint32(C.bitmap_size_c)
+const (
+	BitmapSize uint32 = uint32(C.bitmap_size_c)
 )
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
 // segment.
 type SHMLocks struct { // nolint
 	lockStruct *C.shm_struct_t
-	valid      bool
 	maxLocks   uint32
+	valid      bool
 }
 
 // CreateSHMLock sets up a shared-memory segment holding a given number of POSIX
 // semaphores, and returns a struct that can be used to operate on those locks.
-// numLocks must be a multiple of the lock bitmap size (by default, 32).
-func CreateSHMLock(numLocks uint32) (*SHMLocks, error) {
-	if numLocks%bitmapSize != 0 || numLocks == 0 {
-		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be a multiple of %d", C.bitmap_size_c)
+// numLocks must not be 0, and may be rounded up to a multiple of the bitmap
+// size used by the underlying implementation.
+func CreateSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
+	if numLocks == 0 {
+		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must greater than 0 0")
 	}
 
 	locks := new(SHMLocks)
 
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+
 	var errCode C.int
-	lockStruct := C.setup_lock_shm(C.uint32_t(numLocks), &errCode)
+	lockStruct := C.setup_lock_shm(cPath, C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
 		return nil, syscall.Errno(-1 * errCode)
 	}
 
 	locks.lockStruct = lockStruct
-	locks.maxLocks = numLocks
+	locks.maxLocks = uint32(lockStruct.num_locks)
 	locks.valid = true
 
 	return locks, nil
@@ -49,17 +56,19 @@ func CreateSHMLock(numLocks uint32) (*SHMLocks, error) {
 
 // OpenSHMLock opens an existing shared-memory segment holding a given number of
 // POSIX semaphores. numLocks must match the number of locks the shared memory
-// segment was created with and be a multiple of the lock bitmap size (default
-// 32).
-func OpenSHMLock(numLocks uint32) (*SHMLocks, error) {
-	if numLocks%bitmapSize != 0 || numLocks == 0 {
-		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be a multiple of %d", C.bitmap_size_c)
+// segment was created with.
+func OpenSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
+	if numLocks == 0 {
+		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must greater than 0")
 	}
 
 	locks := new(SHMLocks)
 
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+
 	var errCode C.int
-	lockStruct := C.open_lock_shm(C.uint32_t(numLocks), &errCode)
+	lockStruct := C.open_lock_shm(cPath, C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
 		return nil, syscall.Errno(-1 * errCode)
@@ -108,6 +117,8 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 		return 0, errors.Wrapf(syscall.EINVAL, "locks have already been closed")
 	}
 
+	// This returns a U64, so we have the full u32 range available for
+	// semaphore indexes, and can still return error codes.
 	retCode := C.allocate_semaphore(locks.lockStruct)
 	if retCode < 0 {
 		// Negative errno returned
@@ -154,6 +165,10 @@ func (locks *SHMLocks) LockSemaphore(sem uint32) error {
 		return errors.Wrapf(syscall.EINVAL, "given semaphore %d is higher than maximum locks count %d", sem, locks.maxLocks)
 	}
 
+	// For pthread mutexes, we have to guarantee lock and unlock happen in
+	// the same thread.
+	runtime.LockOSThread()
+
 	retCode := C.lock_semaphore(locks.lockStruct, C.uint32_t(sem))
 	if retCode < 0 {
 		// Negative errno returned
@@ -183,6 +198,13 @@ func (locks *SHMLocks) UnlockSemaphore(sem uint32) error {
 		// Negative errno returned
 		return syscall.Errno(-1 * retCode)
 	}
+
+	// For pthread mutexes, we have to guarantee lock and unlock happen in
+	// the same thread.
+	// OK if we take multiple locks - UnlockOSThread() won't actually unlock
+	// until the number of calls equals the number of calls to
+	// LockOSThread()
+	runtime.UnlockOSThread()
 
 	return nil
 }
