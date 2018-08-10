@@ -145,7 +145,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 	}
 	cgroupManager := CGROUP_MANAGER
 	if os.Getenv("CGROUP_MANAGER") != "" {
-		storageOptions = os.Getenv("CGROUP_MANAGER")
+		cgroupManager = os.Getenv("CGROUP_MANAGER")
 	}
 
 	runCBinary := "/usr/bin/runc"
