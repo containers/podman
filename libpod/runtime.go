@@ -628,16 +628,14 @@ func (r *Runtime) refresh(alivePath string) error {
 	for _, ctr := range ctrs {
 		ctr.lock.Lock()
 		if err := ctr.refresh(); err != nil {
-			ctr.lock.Unlock()
-			return err
+			logrus.Errorf("Error refreshing container %s: %v", ctr.ID(), err)
 		}
 		ctr.lock.Unlock()
 	}
 	for _, pod := range pods {
 		pod.lock.Lock()
 		if err := pod.refresh(); err != nil {
-			pod.lock.Unlock()
-			return err
+			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
 		}
 		pod.lock.Unlock()
 	}
