@@ -174,7 +174,7 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool)
 // Locks the container, but does not lock the runtime
 func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool) error {
 	if !c.valid {
-		if ok, _ := r.HasContainer(c.ID()); !ok {
+		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
 			// Or was never in the runtime to begin with
 			return nil
