@@ -1,3 +1,45 @@
+- Changelog for v0.8.2 (2018-08-10)
+  * We need to sort mounts so that one mount does not over mount another.
+  * search name should include registry
+  * Split pod.go into 3 files
+  * Make errors during refresh nonfatal
+  * Add batch check to container stats lock
+  * removeContainer: fix deadlock
+  * Add FFJSON to build container
+  * Don't require .gopathok for individual FFJSON targets
+  * Add FFJSON generation to makefile
+  * Re-add FFJSON for container and pod structs
+  * Fixed a bug setting dependencies on the wrong container
+  * Always connect to the stdout and stderr of stream
+  * apparmor: respect "unconfined" setting
+  * oci.go: syslog: fix debug formatting
+  * add podman pod inspect
+  * Fix ambiguity in adding localhost to podman save
+  * Fix CGroupFS cgroup manager cgroup creation for pods
+  * Update Conmon commit for testing
+  * Pass newly-added --log-level flag to Conmon
+  * Cleanup man pages
+  * Improve ps handling of container start/stop time
+  * rootless: fix user lookup if USER= is not set
+  * enabled copr epel builds again
+  * Handle yum and dnf
+  * Test regressions against the RPM spec file
+  * Pass DESTDIR down to python Makefile
+  * Add dpkg support for returning oci/conmon versions
+  * Have info print conmon/oci runtime information
+  * Better pull error for fully-qualified images
+  * Stub varlink pod methods.
+  * Remove inotify work around
+  * Rename varlink socket and interface
+  * Change tarball filename in copr prepare and match short-commit length
+  * Add Runc and Conmon versions to Podman Version
+  * update copr spec, lets get it building again
+  * Add missing dependencies to build system
+  * Port to MacOS
+  * Make one runtime for the varlink service
+  * Bump gitvalidation epoch
+  * Bump to v0.8.2-dev
+
 - Changelog for v0.8.1 (2018-08-03)
   * Vendor in latest github.com/projectatomic/buildah
   * Update gitvalidation epoch
