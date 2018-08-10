@@ -178,7 +178,7 @@ var (
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		CgroupManager: CgroupfsCgroupsManager,
+		CgroupManager: SystemdCgroupsManager,
 		HooksDir:      hooks.DefaultDir,
 		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:        "",
