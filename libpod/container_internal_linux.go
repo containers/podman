@@ -248,6 +248,12 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.SetLinuxCgroupsPath(cgroupPath)
 	}
 
+	// Mounts need to be sorted so paths will not cover other paths
+	mounts := sortMounts(g.Mounts())
+	g.ClearMounts()
+	for _, m := range mounts {
+		g.AddMount(m)
+	}
 	return g.Config, nil
 }
 
