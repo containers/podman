@@ -3,7 +3,7 @@ package libpod
 import (
 	"strings"
 
-	"github.com/docker/docker/pkg/truncindex"
+	"github.com/containers/storage/pkg/truncindex"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/pkg/registrar"
 )

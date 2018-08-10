@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -120,4 +121,27 @@ func WaitForFile(path string, timeout time.Duration) error {
 		close(chControl)
 		return errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
+}
+
+type byDestination []spec.Mount
+
+func (m byDestination) Len() int {
+	return len(m)
+}
+
+func (m byDestination) Less(i, j int) bool {
+	return m.parts(i) < m.parts(j)
+}
+
+func (m byDestination) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m byDestination) parts(i int) int {
+	return strings.Count(filepath.Clean(m[i].Destination), string(os.PathSeparator))
+}
+
+func sortMounts(m []spec.Mount) []spec.Mount {
+	sort.Sort(byDestination(m))
+	return m
 }

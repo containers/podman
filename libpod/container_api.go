@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/libpod/libpod/driver"
 	"github.com/projectatomic/libpod/pkg/inspect"

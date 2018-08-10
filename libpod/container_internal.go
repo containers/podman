@@ -16,8 +16,8 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
-	"github.com/docker/docker/pkg/mount"
-	"github.com/docker/docker/pkg/stringid"
+	"github.com/containers/storage/pkg/mount"
+	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -829,7 +829,6 @@ func (c *Container) cleanupStorage() error {
 		logrus.Debugf("Storage is already unmounted, skipping...")
 		return nil
 	}
-
 	for _, mount := range c.config.Mounts {
 		if err := c.unmountSHM(mount); err != nil {
 			return err
@@ -1178,7 +1177,7 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 		mount := spec.Mount{
 			Destination: k,
 			Type:        "bind",
-			Options:     []string{"rbind", "rw"},
+			Options:     []string{"private", "bind", "rw"},
 		}
 		if MountExists(g.Mounts(), k) {
 			continue

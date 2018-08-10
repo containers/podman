@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	"github.com/docker/docker/pkg/stringid"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
