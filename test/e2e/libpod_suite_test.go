@@ -29,7 +29,7 @@ var (
 	CNI_CONFIG_DIR     string
 	RUNC_BINARY        string
 	INTEGRATION_ROOT   string
-	CGROUP_MANAGER     = "cgroupfs"
+	CGROUP_MANAGER     = "systemd"
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
 	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry}
@@ -142,6 +142,10 @@ func PodmanCreate(tempDir string) PodmanTest {
 	storageOptions := STORAGE_OPTIONS
 	if os.Getenv("STORAGE_OPTIONS") != "" {
 		storageOptions = os.Getenv("STORAGE_OPTIONS")
+	}
+	cgroupManager := CGROUP_MANAGER
+	if os.Getenv("CGROUP_MANAGER") != "" {
+		storageOptions = os.Getenv("CGROUP_MANAGER")
 	}
 
 	runCBinary := "/usr/bin/runc"
