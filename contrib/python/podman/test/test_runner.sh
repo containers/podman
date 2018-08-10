@@ -111,6 +111,7 @@ PODMAN_ARGS="--storage-driver=vfs \
   --root=${TMPDIR}/crio \
   --runroot=${TMPDIR}/crio-run \
   --cni-config-dir=$CNI_CONFIG_PATH \
+  --cgroup-manager=cgroupfs \
   "
 if [[ -n $VERBOSE ]]; then
   PODMAN_ARGS="$PODMAN_ARGS --log-level=$LOG_LEVEL"
