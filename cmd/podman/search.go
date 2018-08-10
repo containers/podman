@@ -264,7 +264,7 @@ func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts
 			if len(description) > 44 && !opts.noTrunc {
 				description = description[:descriptionTruncLength] + "..."
 			}
-			name := index + "/" + results[i].Name
+			name := reg + "/" + results[i].Name
 			if index == "docker.io" && !strings.Contains(results[i].Name, "/") {
 				name = index + "/library/" + results[i].Name
 			}
