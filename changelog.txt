@@ -1,3 +1,16 @@
+- Changelog for v0.8.2.1 (2018-08-11)
+  * Ensure pod inspect is locked and validity-checked
+  * Further fix tests
+  * Bump gitvalidation epoch
+  * Bump to v0.8.3-dev
+  * Fix python tests again
+  * Fix python tests to use cgroupfs
+  * Fix typo breaking tests
+  * Force cgroupfs for python tests
+  * Swap default CGroup manager to systemd
+  * Only use cgroupfs for containerized tests
+  * Temporarily force all tests to use cgroupfs driver
+
 - Changelog for v0.8.2 (2018-08-10)
   * We need to sort mounts so that one mount does not over mount another.
   * search name should include registry
