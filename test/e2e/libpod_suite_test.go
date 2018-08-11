@@ -162,7 +162,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		ArtifactPath:        ARTIFACT_DIR,
 		TempDir:             tempDir,
-		CgroupManager:       CGROUP_MANAGER,
+		CgroupManager:       cgroupManager,
 	}
 
 	// Setup registries.conf ENV variable
