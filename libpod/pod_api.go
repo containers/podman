@@ -398,7 +398,13 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		podContainers []PodContainerInfo
 	)
 
-	containers, err := p.AllContainers()
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if err := p.updatePod(); err != nil {
+		return nil, err
+	}
+
+	containers, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return &PodInspect{}, err
 	}
@@ -420,8 +426,10 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	config := new(PodConfig)
 	deepcopier.Copy(p.config).To(config)
 	inspectData := PodInspect{
-		Config:     config,
-		State:      p.state,
+		Config: config,
+		State: &PodInspectState{
+			CgroupPath: p.state.CgroupPath,
+		},
 		Containers: podContainers,
 	}
 	return &inspectData, nil
