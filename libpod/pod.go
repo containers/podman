@@ -41,7 +41,7 @@ type PodConfig struct {
 	// join containers to it.
 	// If true, all containers joined to the pod will use the pod cgroup as
 	// their cgroup parent, and cannot set a different cgroup parent
-	UsePodCgroup bool
+	UsePodCgroup bool `json:"usePodCgroup"`
 
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
@@ -50,15 +50,20 @@ type PodConfig struct {
 // podState represents a pod's state
 type podState struct {
 	// CgroupPath is the path to the pod's CGroup
-	CgroupPath string
+	CgroupPath string `json:"cgroupPath"`
 }
 
 // PodInspect represents the data we want to display for
 // podman pod inspect
 type PodInspect struct {
 	Config     *PodConfig
-	State      *podState
+	State      *PodInspectState
 	Containers []PodContainerInfo
+}
+
+// PodInspectState contains inspect data on the pod's state
+type PodInspectState struct {
+	CgroupPath string `json:"cgroupPath"`
 }
 
 // PodContainerInfo keeps information on a container in a pod
