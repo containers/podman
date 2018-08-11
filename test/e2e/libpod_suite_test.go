@@ -29,6 +29,7 @@ var (
 	CNI_CONFIG_DIR     string
 	RUNC_BINARY        string
 	INTEGRATION_ROOT   string
+	CGROUP_MANAGER     = "systemd"
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
 	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry}
@@ -60,6 +61,7 @@ type PodmanTest struct {
 	SignaturePolicyPath string
 	ArtifactPath        string
 	TempDir             string
+	CgroupManager       string
 }
 
 // HostOS is a simple struct for the test os
@@ -141,6 +143,10 @@ func PodmanCreate(tempDir string) PodmanTest {
 	if os.Getenv("STORAGE_OPTIONS") != "" {
 		storageOptions = os.Getenv("STORAGE_OPTIONS")
 	}
+	cgroupManager := CGROUP_MANAGER
+	if os.Getenv("CGROUP_MANAGER") != "" {
+		cgroupManager = os.Getenv("CGROUP_MANAGER")
+	}
 
 	runCBinary := "/usr/bin/runc"
 	CNIConfigDir := "/etc/cni/net.d"
@@ -156,6 +162,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		ArtifactPath:        ARTIFACT_DIR,
 		TempDir:             tempDir,
+		CgroupManager:       cgroupManager,
 	}
 
 	// Setup registries.conf ENV variable
@@ -165,8 +172,8 @@ func PodmanCreate(tempDir string) PodmanTest {
 
 //MakeOptions assembles all the podman main options
 func (p *PodmanTest) MakeOptions() []string {
-	return strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s",
-		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir), " ")
+	return strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
+		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
 }
 
 // Podman is the exec call to podman on the filesystem, uid and gid the credentials to use
