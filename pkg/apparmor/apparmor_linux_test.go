@@ -11,7 +11,7 @@ type versionExpected struct {
 	version int
 }
 
-func TestParseVersion(t *testing.T) {
+func TestParseAAParserVersion(t *testing.T) {
 	if !IsEnabled() {
 		t.Skip("AppArmor disabled: skipping tests")
 	}
@@ -67,7 +67,7 @@ Copyright 2009-2012 Canonical Ltd.
 	}
 
 	for _, v := range versions {
-		version, err := parseVersion(v.output)
+		version, err := parseAAParserVersion(v.output)
 		if err != nil {
 			t.Fatalf("expected error to be nil for %#v, got: %v", v, err)
 		}
