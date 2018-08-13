@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -69,28 +68,30 @@ func macroExists(m string) bool {
 	return err == nil
 }
 
-// InstallDefault generates a default profile in a temp directory determined by
-// os.TempDir(), then loads the profile into the kernel using 'apparmor_parser'.
+// InstallDefault generates a default profile and loads it into the kernel
+// using 'apparmor_parser'.
 func InstallDefault(name string) error {
 	p := profileData{
 		Name: name,
 	}
 
-	// Install to a temporary directory.
-	f, err := ioutil.TempFile("", name)
+	cmd := exec.Command("apparmor_parser", "-Kr")
+	pipe, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
-	profilePath := f.Name()
-
-	defer f.Close()
-	defer os.Remove(profilePath)
-
-	if err := p.generateDefault(f); err != nil {
+	if err := cmd.Start(); err != nil {
+		pipe.Close()
+		return err
+	}
+	if err := p.generateDefault(pipe); err != nil {
+		pipe.Close()
+		cmd.Wait()
 		return err
 	}
 
-	return loadProfile(profilePath)
+	pipe.Close()
+	return cmd.Wait()
 }
 
 // IsLoaded checks if a profile with the given name has been loaded into the
@@ -133,14 +134,6 @@ func execAAParser(dir string, args ...string) (string, error) {
 	}
 
 	return string(output), nil
-}
-
-// loadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
-// replace the profile. The `-K` is necessary to make sure that apparmor_parser
-// doesn't try to write to a read-only filesystem.
-func loadProfile(profilePath string) error {
-	_, err := execAAParser("", "-Kr", profilePath)
-	return err
 }
 
 // getAAParserVersion returns the major and minor version of apparmor_parser.
