@@ -4,6 +4,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	"strings"
@@ -70,10 +71,21 @@ func (r *Runtime) NewPod(options ...PodCreateOption) (*Pod, error) {
 		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
 			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 		}
-		// Creating CGroup path is currently a NOOP until proper systemd
-		// cgroup management is merged
+		// If we are set to use pod cgroups, set the cgroup parent that
+		// all containers in the pod will share
+		if pod.config.UsePodCgroup {
+			cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()))
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
+			}
+			pod.state.CgroupPath = cgroupPath
+		}
 	default:
 		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+	}
+
+	if pod.config.UsePodCgroup {
+		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
@@ -91,11 +103,20 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		return ErrRuntimeStopped
 	}
 
+	if !p.valid {
+		if ok, _ := r.state.HasPod(p.ID()); !ok {
+			// Pod was either already removed, or never existed to
+			// begin with
+			return nil
+		}
+	}
+
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if !p.valid {
-		return ErrPodRemoved
+	// Force a pod update
+	if err := p.updatePod(); err != nil {
+		return err
 	}
 
 	ctrs, err := r.state.PodContainers(p)
@@ -216,20 +237,27 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 
 	// Remove pod cgroup, if present
 	if p.state.CgroupPath != "" {
+		logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
+
 		switch p.runtime.config.CgroupManager {
 		case SystemdCgroupsManager:
-			// NOOP for now, until proper systemd cgroup management
-			// is implemented
+			if err := deleteSystemdCgroup(p.state.CgroupPath); err != nil {
+				// The pod is already almost gone.
+				// No point in hard-failing if we fail
+				// this bit of cleanup.
+				logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+			}
 		case CgroupfsCgroupsManager:
 			// Delete the cgroupfs cgroup
-			logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
-
 			cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(p.state.CgroupPath))
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				return err
 			} else if err == nil {
 				if err := cgroup.Delete(); err != nil {
-					return err
+					// The pod is already almost gone.
+					// No point in hard-failing if we fail
+					// this bit of cleanup.
+					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
 		default:
