@@ -24,8 +24,14 @@ func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd
 		if r.cgroupManager == SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 
-			logrus.Infof("Running conmon under slice %s and unitName %s", cgroupParent, unitName)
-			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, cgroupParent, unitName); err != nil {
+			realCgroupParent := cgroupParent
+			splitParent := strings.Split(cgroupParent, "/")
+			if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
+				realCgroupParent = splitParent[len(splitParent)-1]
+			}
+
+			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
+			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
 				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		} else {
