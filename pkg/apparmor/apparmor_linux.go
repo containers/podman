@@ -17,6 +17,9 @@ import (
 	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 )
 
+// profileDirectory is the file store for apparmor profiles and macros.
+var profileDirectory = "/etc/apparmor.d"
+
 // IsEnabled returns true if AppArmor is enabled on the host.
 func IsEnabled() bool {
 	return runcaa.IsEnabled()
