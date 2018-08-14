@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
 	buildahcli "github.com/projectatomic/buildah/pkg/cli"
 	"github.com/projectatomic/buildah/pkg/parse"
 	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
+	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -227,6 +229,10 @@ func buildCmd(c *cli.Context) error {
 
 	if c.Bool("quiet") {
 		options.ReportWriter = ioutil.Discard
+	}
+
+	if rootless.IsRootless() {
+		options.Isolation = buildah.IsolationOCIRootless
 	}
 
 	return runtime.Build(getContext(), options, dockerfiles...)
