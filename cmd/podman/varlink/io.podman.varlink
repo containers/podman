@@ -655,48 +655,45 @@ method GetPod() -> (notimplemented: NotImplemented)
 method InspectPod() -> (notimplemented: NotImplemented)
 
 # StartPod starts containers in a pod.  It takes the name or ID of pod.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
-# error will be returned.  If the pod has no containers, a [PodNoContainers](#PodNoContainers) error will be returned.
-# Containers in a pod are started independently. If there is an error starting one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were started.
+# error will be returned.  Containers in a pod are started independently. If there is an error starting one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was started with no errors, the pod ID is returned.
 # See also [CreatePod](#CreatePod).
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.StartPod '{"name": "135d71b9495f"}'
 # {
 #   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6",
-#   "error": []
 # }
 # ~~~
-method StartPod() -> (notimplemented: NotImplemented)
+method StartPod(name: string) -> (pod: string)
 
 # StopPod stops containers in a pod.  It takes the name or ID of a pod.
 # If the pod cannot be found, a [PodNotFound](#PodNotFound) error will be returned instead.
 # Containers in a pod are stopped independently. If there is an error stopping one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were stopped.
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was stopped with no errors, the pod ID is returned.
 # See also [KillPod](KillPod).
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71b9495f"}'
 # {
 #   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
-#   "error": []
 # }
 # ~~~
-method StopPod() -> (notimplemented: NotImplemented)
+method StopPod(name: string) -> (pod: string)
 
 # RestartPod will restart containers in a pod given a pod name or ID. Containers in
 # the pod that are running will be stopped, then all stopped containers will be run.
-# If the pod cannot be found by name or ID, a [PodNotFound](#PodNotFound) error will be
-# returned.  If the pod has no containers, a [PodNoContainers](#PodNoContainers)
-# error will be returned.
+# If the pod cannot be found by name or ID, a [PodNotFound](#PodNotFound) error will be returned.
 # Containers in a pod are restarted independently. If there is an error restarting one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were restarted.
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was restarted with no errors, the pod ID is returned.
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135d71b9495f"}'
 # {
 #   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
-#   "error": []
 # }
 # ~~~
 method RestartPod() -> (notimplemented: NotImplemented)
@@ -704,36 +701,39 @@ method RestartPod() -> (notimplemented: NotImplemented)
 # KillPod takes the name or ID of a pod as well as a signal to be applied to the pod.  If the pod cannot be found, a
 # [PodNotFound](#PodNotFound) error is returned.
 # Containers in a pod are killed independently. If there is an error killing one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were killed.
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was killed with no errors, the pod ID is returned.
 # See also [StopPod](StopPod).
 method KillPod() -> (notimplemented: NotImplemented)
 
 # PausePod takes the name or ID of a pod and pauses the running containers associated with it.  If the pod cannot be found,
 # a [PodNotFound](#PodNotFound) error will be returned.
 # Containers in a pod are paused independently. If there is an error pausing one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were paused.
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was paused with no errors, the pod ID is returned.
 # See also [UnpausePod](#UnpausePod).
 method PausePod() -> (notimplemented: NotImplemented)
 
 # UnpausePod takes the name or ID of a pod and unpauses the paused containers associated with it.  If the pod cannot be
 # found, a [PodNotFound](#PodNotFound) error will be returned.
-# Containers in a pod are unpaused independently. If there is an error pausing one container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were unpaused.
+# Containers in a pod are unpaused independently. If there is an error unpausing one container, the ID of those containers
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was unpaused with no errors, the pod ID is returned.
 # See also [PausePod](#PausePod).
 method UnpausePod() -> (notimplemented: NotImplemented)
 
 # RemovePod takes the name or ID of a pod as well a boolean representing whether a running
 # container in the pod can be stopped and removed.  If a pod has containers associated with it, and force is not true,
-# a [PodHasContainer](#PodHasContainer) error will be returned.
+# an error will occur.
 # If the pod cannot be found by name or ID, a [PodNotFound](#PodNotFound) error will be returned.
 # Containers in a pod are removed independently. If there is an error removing any container, the ID of those containers
-# will be returned in a list of [PodContainerError](#PodContainerError).  The ID of the pod is returned if any containers were removed.
+# will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
+# If the pod was removed with no errors, the pod ID is returned.
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4fd98cb57"}'
 # {
 #   "pod": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
-#   "error": []
 # }
 # ~~~
 method RemovePod() -> (notimplemented: NotImplemented)
@@ -756,15 +756,9 @@ error ContainerNotFound (name: string)
 # PodNotFound means the pod could not be found by the provided name or ID in local storage.
 error PodNotFound (name: string)
 
-# PodNoContainers means the pod does not have any containers associated and cannot be started or restarted.
-error PodNoContainers (name: string)
-
-# PodHasContainers means the pod has containers associated and cannot be stopped without the force boolean set as true.
-error PodHasContainers (name: string)
-
 # PodContainerError means a container associated with a pod failed to preform an operation. It contains
 # a container ID of the container that failed.
-error PodContainerError (names: string)
+error PodContainerError (podname: string, ctrnames: []string)
 
 # ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
 # is includes as part of the error's text.
