@@ -714,8 +714,3 @@ func (r *Runtime) generateName() (string, error) {
 func (r *Runtime) ImageRuntime() *image.Runtime {
 	return r.imageRuntime
 }
-
-// GetLayers returns the layers available in the store
-func (r *Runtime) GetLayers() ([]storage.Layer, error) {
-	return r.store.Layers()
-}
