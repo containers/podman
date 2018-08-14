@@ -105,6 +105,10 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 
 	if c.GlobalIsSet("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(c.GlobalString("cgroup-manager")))
+	} else {
+		if rootless.IsRootless() {
+			options = append(options, libpod.WithCgroupManager("cgroupfs"))
+		}
 	}
 
 	// TODO flag to set libpod static dir?
