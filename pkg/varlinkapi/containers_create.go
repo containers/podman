@@ -135,6 +135,14 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 		workDir = "/"
 	}
 
+	hostname := create.Hostname
+	if networkMode == "host" && hostname == "" {
+		hostname, err = os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	imageID := data.ID
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
@@ -153,7 +161,7 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 		Entrypoint:        create.Entrypoint,
 		Env:               create.Env,
 		GroupAdd:          create.Group_add,
-		Hostname:          create.Hostname,
+		Hostname:          hostname,
 		HostAdd:           create.Host_add,
 		IDMappings:        idmappings,
 		Image:             imageName,
