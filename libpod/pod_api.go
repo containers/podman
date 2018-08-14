@@ -55,7 +55,11 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 		startNode(ctx, node, false, ctrErrors, ctrsVisited, false)
 	}
 
-	return ctrErrors, nil
+	if len(ctrErrors) > 0 {
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
+	}
+
+	return nil, nil
 }
 
 // Stop stops all containers within a pod that are not already stopped
@@ -352,7 +356,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, nil
+		return ctrErrors, errors.Wrapf(ErrCtrExists, "error killing some containers")
 	}
 
 	return nil, nil
