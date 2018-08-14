@@ -1,4 +1,4 @@
-package batchcontainer
+package shared
 
 import (
 	"encoding/json"

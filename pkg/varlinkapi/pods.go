@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"syscall"
 
-	"github.com/projectatomic/libpod/cmd/podman/batchcontainer"
+	"github.com/projectatomic/libpod/cmd/podman/shared"
 	"github.com/projectatomic/libpod/cmd/podman/varlink"
 	"github.com/projectatomic/libpod/libpod"
 )
@@ -40,7 +40,7 @@ func (i *LibpodAPI) ListPods(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	opts := batchcontainer.PsOptions{}
+	opts := shared.PsOptions{}
 	for _, pod := range pods {
 		listPod, err := makeListPod(pod, opts)
 		if err != nil {
@@ -57,7 +57,7 @@ func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name)
 	}
-	opts := batchcontainer.PsOptions{}
+	opts := shared.PsOptions{}
 
 	listPod, err := makeListPod(pod, opts)
 	if err != nil {

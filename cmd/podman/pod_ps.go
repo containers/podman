@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/batchcontainer"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	bc_opts batchcontainer.PsOptions
+	bc_opts shared.PsOptions
 )
 
 type podPsCtrInfo struct {
@@ -296,7 +296,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			ctr_statuses, err := p.ContainerStatus()
+			ctr_statuses, err := p.Status()
 			if err != nil {
 				return false
 			}
@@ -324,7 +324,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			status, err := p.Status()
+			status, err := shared.GetPodStatus(p)
 			if err != nil {
 				return false
 			}
@@ -473,13 +473,13 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 		ctrNum := len(ctrs)
-		status, err := pod.Status()
+		status, err := shared.GetPodStatus(pod)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, ctr := range ctrs {
-			batchInfo, err := batchcontainer.BatchContainerOp(ctr, bc_opts)
+			batchInfo, err := shared.BatchContainerOp(ctr, bc_opts)
 			if err != nil {
 				return nil, err
 			}

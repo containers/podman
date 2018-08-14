@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/batchcontainer"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -121,7 +121,7 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *l
 				inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
 				break
 			}
-			data, err = batchcontainer.GetCtrInspectInfo(ctr, libpodInspectData)
+			data, err = shared.GetCtrInspectInfo(ctr, libpodInspectData)
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error parsing container data %q", ctr.ID())
 				break
@@ -156,7 +156,7 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *l
 					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
 					break
 				}
-				data, err = batchcontainer.GetCtrInspectInfo(ctr, libpodInspectData)
+				data, err = shared.GetCtrInspectInfo(ctr, libpodInspectData)
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error parsing container data %q", ctr.ID)
 					break
