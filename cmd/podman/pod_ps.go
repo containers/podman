@@ -296,7 +296,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			ctr_statuses, err := p.Status()
+			ctr_statuses, err := p.ContainerStatus()
 			if err != nil {
 				return false
 			}
@@ -324,7 +324,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
 		}
 		return func(p *libpod.Pod) bool {
-			status, err := getPodStatus(p)
+			status, err := p.Status()
 			if err != nil {
 				return false
 			}
@@ -460,52 +460,6 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 	return psOutput, nil
 }
 
-func getPodStatus(pod *libpod.Pod) (string, error) {
-	ctr_statuses, err := pod.Status()
-	if err != nil {
-		return ERROR, err
-	}
-	ctrNum := len(ctr_statuses)
-	if ctrNum == 0 {
-		return CREATED, nil
-	}
-	statuses := map[string]int{
-		STOPPED: 0,
-		RUNNING: 0,
-		PAUSED:  0,
-		CREATED: 0,
-		ERROR:   0,
-	}
-	for _, ctr_status := range ctr_statuses {
-		switch ctr_status {
-		case libpod.ContainerStateStopped:
-			statuses[STOPPED]++
-		case libpod.ContainerStateRunning:
-			statuses[RUNNING]++
-		case libpod.ContainerStatePaused:
-			statuses[PAUSED]++
-		case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
-			statuses[CREATED]++
-		default:
-			statuses[ERROR]++
-		}
-	}
-
-	if statuses[RUNNING] > 0 {
-		return RUNNING, nil
-	} else if statuses[PAUSED] == ctrNum {
-		return PAUSED, nil
-	} else if statuses[STOPPED] == ctrNum {
-		return EXITED, nil
-	} else if statuses[STOPPED] > 0 {
-		return STOPPED, nil
-	} else if statuses[ERROR] > 0 {
-		return ERROR, nil
-	} else {
-		return CREATED, nil
-	}
-}
-
 // getAndSortPodJSONOutput returns the container info in its raw, sorted form
 func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *libpod.Runtime) ([]podPsJSONParams, error) {
 	var (
@@ -519,7 +473,7 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 		ctrNum := len(ctrs)
-		status, err := getPodStatus(pod)
+		status, err := pod.Status()
 		if err != nil {
 			return nil, err
 		}
