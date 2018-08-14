@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/batchcontainer"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -52,25 +52,25 @@ type psTemplateParams struct {
 // psJSONParams will be populated by data from libpod.Container,
 // the members of the struct are the sama data types as their sources.
 type psJSONParams struct {
-	ID               string                        `json:"id"`
-	Image            string                        `json:"image"`
-	ImageID          string                        `json:"image_id"`
-	Command          []string                      `json:"command"`
-	ExitCode         int32                         `json:"exitCode"`
-	Exited           bool                          `json:"exited"`
-	CreatedAt        time.Time                     `json:"createdAt"`
-	StartedAt        time.Time                     `json:"startedAt"`
-	ExitedAt         time.Time                     `json:"exitedAt"`
-	Status           string                        `json:"status"`
-	PID              int                           `json:"PID"`
-	Ports            []ocicni.PortMapping          `json:"ports"`
-	Size             *batchcontainer.ContainerSize `json:"size,omitempty"`
-	Names            string                        `json:"names"`
-	Labels           fields.Set                    `json:"labels"`
-	Mounts           []string                      `json:"mounts"`
-	ContainerRunning bool                          `json:"ctrRunning"`
-	Namespaces       *batchcontainer.Namespace     `json:"namespace,omitempty"`
-	Pod              string                        `json:"pod,omitempty"`
+	ID               string                `json:"id"`
+	Image            string                `json:"image"`
+	ImageID          string                `json:"image_id"`
+	Command          []string              `json:"command"`
+	ExitCode         int32                 `json:"exitCode"`
+	Exited           bool                  `json:"exited"`
+	CreatedAt        time.Time             `json:"createdAt"`
+	StartedAt        time.Time             `json:"startedAt"`
+	ExitedAt         time.Time             `json:"exitedAt"`
+	Status           string                `json:"status"`
+	PID              int                   `json:"PID"`
+	Ports            []ocicni.PortMapping  `json:"ports"`
+	Size             *shared.ContainerSize `json:"size,omitempty"`
+	Names            string                `json:"names"`
+	Labels           fields.Set            `json:"labels"`
+	Mounts           []string              `json:"mounts"`
+	ContainerRunning bool                  `json:"ctrRunning"`
+	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
+	Pod              string                `json:"pod,omitempty"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -218,7 +218,7 @@ func psCmd(c *cli.Context) error {
 
 	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"), c.Bool("pod"))
 
-	opts := batchcontainer.PsOptions{
+	opts := shared.PsOptions{
 		All:       c.Bool("all"),
 		Filter:    c.String("filter"),
 		Format:    format,
@@ -497,11 +497,11 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 }
 
 // getTemplateOutput returns the modified container information
-func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) ([]psTemplateParams, error) {
+func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemplateParams, error) {
 	var (
 		psOutput          []psTemplateParams
 		pod, status, size string
-		ns                *batchcontainer.Namespace
+		ns                *shared.Namespace
 	)
 	// If the user is trying to filter based on size, or opted to sort on size
 	// the size bool must be set.
@@ -589,13 +589,13 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 }
 
 // getAndSortJSONOutput returns the container info in its raw, sorted form
-func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.PsOptions) ([]psJSONParams, error) {
+func getAndSortJSONParams(containers []*libpod.Container, opts shared.PsOptions) ([]psJSONParams, error) {
 	var (
 		psOutput psSorted
-		ns       *batchcontainer.Namespace
+		ns       *shared.Namespace
 	)
 	for _, ctr := range containers {
-		batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
+		batchInfo, err := shared.BatchContainerOp(ctr, opts)
 		if err != nil {
 			if errors.Cause(err) == libpod.ErrNoSuchCtr {
 				logrus.Warn(err)
@@ -605,7 +605,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 		}
 
 		if opts.Namespace {
-			ns = batchcontainer.GetNamespaces(batchInfo.Pid)
+			ns = shared.GetNamespaces(batchInfo.Pid)
 		}
 		params := psJSONParams{
 			ID:               ctr.ID(),
@@ -634,7 +634,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts batchcontainer.Ps
 	return sortPsOutput(opts.Sort, psOutput)
 }
 
-func generatePsOutput(containers []*libpod.Container, opts batchcontainer.PsOptions) error {
+func generatePsOutput(containers []*libpod.Container, opts shared.PsOptions) error {
 	if len(containers) == 0 && opts.Format != formats.JSONString {
 		return nil
 	}

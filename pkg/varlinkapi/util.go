@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/batchcontainer"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 )
@@ -15,12 +15,12 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func makeListContainer(containerID string, batchInfo batchcontainer.BatchContainerStruct) iopodman.ListContainerData {
+func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.ListContainerData {
 	var (
 		mounts []iopodman.ContainerMount
 		ports  []iopodman.ContainerPortMappings
 	)
-	ns := batchcontainer.GetNamespaces(batchInfo.Pid)
+	ns := shared.GetNamespaces(batchInfo.Pid)
 
 	for _, mount := range batchInfo.ConConfig.Spec.Mounts {
 		m := iopodman.ContainerMount{
@@ -78,7 +78,7 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 	return lc
 }
 
-func makeListPodContainers(containerID string, batchInfo batchcontainer.BatchContainerStruct) iopodman.ListPodContainerInfo {
+func makeListPodContainers(containerID string, batchInfo shared.BatchContainerStruct) iopodman.ListPodContainerInfo {
 	lc := iopodman.ListPodContainerInfo{
 		Id:     containerID,
 		Status: batchInfo.ConState.String(),
@@ -87,10 +87,10 @@ func makeListPodContainers(containerID string, batchInfo batchcontainer.BatchCon
 	return lc
 }
 
-func makeListPod(pod *libpod.Pod, batchInfo batchcontainer.PsOptions) (iopodman.ListPodData, error) {
+func makeListPod(pod *libpod.Pod, batchInfo shared.PsOptions) (iopodman.ListPodData, error) {
 	var listPodsContainers []iopodman.ListPodContainerInfo
 	var errPodData = iopodman.ListPodData{}
-	status, err := pod.Status()
+	status, err := shared.GetPodStatus(pod)
 	if err != nil {
 		return errPodData, err
 	}
@@ -99,7 +99,7 @@ func makeListPod(pod *libpod.Pod, batchInfo batchcontainer.PsOptions) (iopodman.
 		return errPodData, err
 	}
 	for _, ctr := range containers {
-		batchInfo, err := batchcontainer.BatchContainerOp(ctr, batchInfo)
+		batchInfo, err := shared.BatchContainerOp(ctr, batchInfo)
 		if err != nil {
 			return errPodData, err
 		}

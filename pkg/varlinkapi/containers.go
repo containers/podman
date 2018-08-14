@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/batchcontainer"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/storage/pkg/archive"
@@ -26,12 +26,12 @@ func (i *LibpodAPI) ListContainers(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	opts := batchcontainer.PsOptions{
+	opts := shared.PsOptions{
 		Namespace: true,
 		Size:      true,
 	}
 	for _, ctr := range containers {
-		batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
+		batchInfo, err := shared.BatchContainerOp(ctr, opts)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -47,11 +47,11 @@ func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	opts := batchcontainer.PsOptions{
+	opts := shared.PsOptions{
 		Namespace: true,
 		Size:      true,
 	}
-	batchInfo, err := batchcontainer.BatchContainerOp(ctr, opts)
+	batchInfo, err := shared.BatchContainerOp(ctr, opts)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -68,7 +68,7 @@ func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) err
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	data, err := batchcontainer.GetCtrInspectInfo(ctr, inspectInfo)
+	data, err := shared.GetCtrInspectInfo(ctr, inspectInfo)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

@@ -8,15 +8,6 @@ import (
 	"github.com/ulule/deepcopier"
 )
 
-const (
-	stopped = "Stopped"
-	running = "Running"
-	paused  = "Paused"
-	exited  = "Exited"
-	errored = "Error"
-	created = "Created"
-)
-
 // Start starts all containers within a pod
 // It combines the effects of Init() and Start() on a container
 // If a container has already been initialized it will be started,
@@ -371,9 +362,9 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	return nil, nil
 }
 
-// ContainerStatus gets the status of all containers in the pod
+// Status gets the status of all containers in the pod
 // Returns a map of Container ID to Container Status
-func (p *Pod) ContainerStatus() (map[string]ContainerStatus, error) {
+func (p *Pod) Status() (map[string]ContainerStatus, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -403,54 +394,6 @@ func (p *Pod) ContainerStatus() (map[string]ContainerStatus, error) {
 	}
 
 	return status, nil
-}
-
-// Status determines the status of the pod based on the
-// statuses of the containers in the pod.
-// Returns a string representation of the pod status
-func (p *Pod) Status() (string, error) {
-	ctrStatuses, err := p.ContainerStatus()
-	if err != nil {
-		return errored, err
-	}
-	ctrNum := len(ctrStatuses)
-	if ctrNum == 0 {
-		return created, nil
-	}
-	statuses := map[string]int{
-		stopped: 0,
-		running: 0,
-		paused:  0,
-		created: 0,
-		errored: 0,
-	}
-	for _, ctrStatus := range ctrStatuses {
-		switch ctrStatus {
-		case ContainerStateStopped:
-			statuses[stopped]++
-		case ContainerStateRunning:
-			statuses[running]++
-		case ContainerStatePaused:
-			statuses[paused]++
-		case ContainerStateCreated, ContainerStateConfigured:
-			statuses[created]++
-		default:
-			statuses[errored]++
-		}
-	}
-
-	if statuses[running] > 0 {
-		return running, nil
-	} else if statuses[paused] == ctrNum {
-		return paused, nil
-	} else if statuses[stopped] == ctrNum {
-		return exited, nil
-	} else if statuses[stopped] > 0 {
-		return stopped, nil
-	} else if statuses[errored] > 0 {
-		return errored, nil
-	}
-	return created, nil
 }
 
 // Inspect returns a PodInspect struct to describe the pod
