@@ -1203,8 +1203,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			}
 			data = resp.Body
 		} else {
-			if !filepath.IsAbs(dfile) {
-				logrus.Debugf("resolving local Dockerfile %q", dfile)
+			// If the Dockerfile isn't found try prepending the
+			// context directory to it.
+			if _, err := os.Stat(dfile); os.IsNotExist(err) {
 				dfile = filepath.Join(options.ContextDirectory, dfile)
 			}
 			logrus.Debugf("reading local Dockerfile %q", dfile)
