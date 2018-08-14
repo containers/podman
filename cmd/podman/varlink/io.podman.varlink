@@ -638,21 +638,21 @@ method PullImage(name: string) -> (id: string)
 #   "pod": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
 # }
 # ~~~
-method CreatePod() -> (notimplemented: NotImplemented)
+method CreatePod(name: string, cgroup_parent: string, labels: [string]string) -> (pod: string)
 
 # ListPods returns a list of pods in no particular order.  They are
 # returned as an array of ListPodData structs.  See also [GetPod](#GetPod).
-method ListPods() -> (notimplemented: NotImplemented)
+method ListPods() -> (pods: []ListPodData)
 
 # GetPod takes a name or ID of a pod and returns single [ListPodData](#ListPodData)
 # structure.  A [PodNotFound](#PodNotFound) error will be returned if the pod cannot be found.
 # See also [ListPods](ListPods).
-method GetPod() -> (notimplemented: NotImplemented)
+method GetPod(name: string) -> (pod: ListPodData)
 
 # InspectPod takes the name or ID of an image and returns a string respresentation of data associated with the
 # pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
 # be returned if the pod cannot be found.
-method InspectPod() -> (notimplemented: NotImplemented)
+method InspectPod(name: string) -> (pod: string)
 
 # StartPod starts containers in a pod.  It takes the name or ID of pod.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
 # error will be returned.  Containers in a pod are started independently. If there is an error starting one container, the ID of those containers
@@ -696,7 +696,7 @@ method StopPod(name: string) -> (pod: string)
 #   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 # }
 # ~~~
-method RestartPod() -> (notimplemented: NotImplemented)
+method RestartPod(name: string) -> (pod: string)
 
 # KillPod takes the name or ID of a pod as well as a signal to be applied to the pod.  If the pod cannot be found, a
 # [PodNotFound](#PodNotFound) error is returned.
@@ -704,7 +704,7 @@ method RestartPod() -> (notimplemented: NotImplemented)
 # will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 # If the pod was killed with no errors, the pod ID is returned.
 # See also [StopPod](StopPod).
-method KillPod() -> (notimplemented: NotImplemented)
+method KillPod(name: string, signal: int) -> (pod: string)
 
 # PausePod takes the name or ID of a pod and pauses the running containers associated with it.  If the pod cannot be found,
 # a [PodNotFound](#PodNotFound) error will be returned.
@@ -712,7 +712,7 @@ method KillPod() -> (notimplemented: NotImplemented)
 # will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 # If the pod was paused with no errors, the pod ID is returned.
 # See also [UnpausePod](#UnpausePod).
-method PausePod() -> (notimplemented: NotImplemented)
+method PausePod(name: string) -> (pod: string)
 
 # UnpausePod takes the name or ID of a pod and unpauses the paused containers associated with it.  If the pod cannot be
 # found, a [PodNotFound](#PodNotFound) error will be returned.
@@ -720,7 +720,7 @@ method PausePod() -> (notimplemented: NotImplemented)
 # will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 # If the pod was unpaused with no errors, the pod ID is returned.
 # See also [PausePod](#PausePod).
-method UnpausePod() -> (notimplemented: NotImplemented)
+method UnpausePod(name: string) -> (pod: string)
 
 # RemovePod takes the name or ID of a pod as well a boolean representing whether a running
 # container in the pod can be stopped and removed.  If a pod has containers associated with it, and force is not true,
@@ -731,12 +731,12 @@ method UnpausePod() -> (notimplemented: NotImplemented)
 # If the pod was removed with no errors, the pod ID is returned.
 # #### Example
 # ~~~
-# $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4fd98cb57"}'
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4fd98cb57", "force": "true"}'
 # {
 #   "pod": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 # }
 # ~~~
-method RemovePod() -> (notimplemented: NotImplemented)
+method RemovePod(name: string, force: bool) -> (pod: string)
 
 # This method has not be implemented yet.
 method WaitPod() -> (notimplemented: NotImplemented)
