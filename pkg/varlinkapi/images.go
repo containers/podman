@@ -367,6 +367,12 @@ func (i *LibpodAPI) SearchImage(call iopodman.VarlinkCall, name string, limit in
 	for _, reg := range registries {
 		results, err := docker.SearchRegistry(getContext(), sc, reg, name, int(limit))
 		if err != nil {
+			// If we are searching multiple registries, don't make something like an
+			// auth error fatal. Unfortunately we cannot differentiate between auth
+			// errors and other possibles errors
+			if len(registries) > 1 {
+				continue
+			}
 			return call.ReplyErrorOccurred(err.Error())
 		}
 		for _, result := range results {
