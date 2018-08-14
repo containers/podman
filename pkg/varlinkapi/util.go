@@ -77,3 +77,43 @@ func makeListContainer(containerID string, batchInfo batchcontainer.BatchContain
 	}
 	return lc
 }
+
+func makeListPodContainers(containerID string, batchInfo batchcontainer.BatchContainerStruct) iopodman.ListPodContainerInfo {
+	lc := iopodman.ListPodContainerInfo{
+		Id:     containerID,
+		Status: batchInfo.ConState.String(),
+		Name:   batchInfo.ConConfig.Name,
+	}
+	return lc
+}
+
+func makeListPod(pod *libpod.Pod, batchInfo batchcontainer.PsOptions) (iopodman.ListPodData, error) {
+	var listPodsContainers []iopodman.ListPodContainerInfo
+	var errPodData = iopodman.ListPodData{}
+	status, err := pod.Status()
+	if err != nil {
+		return errPodData, err
+	}
+	containers, err := pod.AllContainers()
+	if err != nil {
+		return errPodData, err
+	}
+	for _, ctr := range containers {
+		batchInfo, err := batchcontainer.BatchContainerOp(ctr, batchInfo)
+		if err != nil {
+			return errPodData, err
+		}
+
+		listPodsContainers = append(listPodsContainers, makeListPodContainers(ctr.ID(), batchInfo))
+	}
+	listPod := iopodman.ListPodData{
+		Createdat:          pod.CreatedTime().String(),
+		Id:                 pod.ID(),
+		Name:               pod.Name(),
+		Status:             status,
+		Cgroup:             pod.CgroupParent(),
+		Numberofcontainers: strconv.Itoa(len(listPodsContainers)),
+		Containersinfo:     listPodsContainers,
+	}
+	return listPod, nil
+}
