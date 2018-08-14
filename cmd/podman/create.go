@@ -575,6 +575,16 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
 
+	hostname := c.String("hostname")
+	// If the user does not set the hostname and they set the network to host, the
+	// container's hostname should be the same as the host
+	if !c.IsSet("hostname") && c.String("network") == "host" {
+		hostname, err = os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
 		Annotations:       annotations,
@@ -594,7 +604,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		Env:               env,
 		//ExposedPorts:   ports,
 		GroupAdd:       c.StringSlice("group-add"),
-		Hostname:       c.String("hostname"),
+		Hostname:       hostname,
 		HostAdd:        c.StringSlice("add-host"),
 		IDMappings:     idmappings,
 		Image:          imageName,

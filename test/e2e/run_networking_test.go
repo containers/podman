@@ -98,4 +98,18 @@ var _ = Describe("Podman rmi", func() {
 		Expect(containerConfig[0].NetworkSettings.Ports[0].HostPort).ToNot(Equal("80"))
 	})
 
+	It("podman run host network; container should have same hostname as host", func() {
+		hostname, _ := os.Hostname()
+		session := podmanTest.Podman([]string{"run", "-it", "--net=host", ALPINE, "hostname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Equal(hostname))
+	})
+
+	It("podman run host network; user input hostname overrides host's hostname", func() {
+		hostname := "foobar"
+		session := podmanTest.Podman([]string{"run", "-it", "--net=host", "--hostname", "foobar", ALPINE, "hostname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Equal(hostname))
+	})
+
 })
