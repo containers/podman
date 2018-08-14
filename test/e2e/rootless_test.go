@@ -34,6 +34,16 @@ var _ = Describe("Podman rootless", func() {
 		GinkgoWriter.Write([]byte(timedResult))
 	})
 
+	It("podman rootless help|version", func() {
+		commands := []string{"help", "version"}
+		for _, v := range commands {
+			env := os.Environ()
+			cmd := podmanTest.PodmanAsUser([]string{v}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+		}
+	})
+
 	It("podman rootless rootfs", func() {
 		// Check if we can create an user namespace
 		err := exec.Command("unshare", "-r", "echo", "hello").Run()
