@@ -25,18 +25,11 @@ var (
 	exitCode = 125
 )
 
+var cmdsNotRequiringRootless = map[string]bool{"help": true, "version": true}
+
 func main() {
 	debug := false
 	cpuProfile := false
-
-	became, ret, err := rootless.BecomeRootInUserNS()
-	if err != nil {
-		logrus.Errorf(err.Error())
-		os.Exit(1)
-	}
-	if became {
-		os.Exit(ret)
-	}
 
 	if reexec.Init() {
 		return
@@ -97,6 +90,19 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
+		args := c.Args()
+		if args.Present() {
+			if _, notRequireRootless := cmdsNotRequiringRootless[args.First()]; !notRequireRootless {
+				became, ret, err := rootless.BecomeRootInUserNS()
+				if err != nil {
+					logrus.Errorf(err.Error())
+					os.Exit(1)
+				}
+				if became {
+					os.Exit(ret)
+				}
+			}
+		}
 		if c.GlobalBool("syslog") {
 			hook, err := lsyslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
 			if err == nil {
