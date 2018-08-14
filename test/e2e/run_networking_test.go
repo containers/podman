@@ -10,9 +10,10 @@ import (
 
 var _ = Describe("Podman rmi", func() {
 	var (
-		tempdir    string
-		err        error
-		podmanTest PodmanTest
+		tempdir     string
+		err         error
+		podmanTest  PodmanTest
+		hostname, _ = os.Hostname()
 	)
 
 	BeforeEach(func() {
@@ -98,4 +99,35 @@ var _ = Describe("Podman rmi", func() {
 		Expect(containerConfig[0].NetworkSettings.Ports[0].HostPort).ToNot(Equal("80"))
 	})
 
+	It("podman run hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(hostname)
+		Expect(match).Should(BeFalse())
+	})
+
+	It("podman run --net host hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(hostname)
+		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run --net host --hostname ... hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", "--hostname", "foobar", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("foobar")
+		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run --hostname ... hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--hostname", "foobar", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("foobar")
+		Expect(match).Should(BeTrue())
+	})
 })

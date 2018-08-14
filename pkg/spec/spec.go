@@ -1,6 +1,7 @@
 package createconfig
 
 import (
+	"os"
 	"strings"
 
 	"github.com/docker/docker/daemon/caps"
@@ -73,6 +74,14 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.AddAnnotation(key, val)
 	}
 	g.SetRootReadonly(config.ReadOnlyRootfs)
+	if config.Hostname == "" {
+		if config.NetMode.IsHost() {
+			config.Hostname, err = os.Hostname()
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to retrieve hostname")
+			}
+		}
+	}
 	g.SetHostname(config.Hostname)
 	if config.Hostname != "" {
 		g.AddProcessEnv("HOSTNAME", config.Hostname)
