@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -166,11 +166,17 @@ func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 	}
 }
 
-// getRegistries obtains the list of registries defined in the global registries file.
+// getRegistries obtains the list of search registries defined in the global registries file.
 func getRegistries(sc *types.SystemContext) ([]string, error) {
-	searchRegistries, err := sysregistries.GetRegistries(sc)
+	var searchRegistries []string
+	registries, err := sysregistriesv2.GetRegistries(sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
+	}
+	for _, registry := range sysregistriesv2.FindUnqualifiedSearchRegistries(registries) {
+		if !registry.Blocked {
+			searchRegistries = append(searchRegistries, registry.URL)
+		}
 	}
 	return searchRegistries, nil
 }

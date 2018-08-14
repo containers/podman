@@ -545,6 +545,8 @@ func defaultIsolation() (buildah.Isolation, error) {
 	if isSet {
 		if strings.HasPrefix(strings.ToLower(isolation), "oci") {
 			return buildah.IsolationOCI, nil
+		} else if strings.HasPrefix(strings.ToLower(isolation), "rootless") {
+			return buildah.IsolationOCIRootless, nil
 		} else if strings.HasPrefix(strings.ToLower(isolation), "chroot") {
 			return buildah.IsolationChroot, nil
 		}
@@ -558,6 +560,8 @@ func IsolationOption(c *cli.Context) (buildah.Isolation, error) {
 	if c.String("isolation") != "" {
 		if strings.HasPrefix(strings.ToLower(c.String("isolation")), "oci") {
 			return buildah.IsolationOCI, nil
+		} else if strings.HasPrefix(strings.ToLower(c.String("isolation")), "rootless") {
+			return buildah.IsolationOCIRootless, nil
 		} else if strings.HasPrefix(strings.ToLower(c.String("isolation")), "chroot") {
 			return buildah.IsolationChroot, nil
 		} else {

@@ -33,7 +33,7 @@ type Cmd struct {
 	Setsid                     bool
 	Setpgrp                    bool
 	Ctty                       *os.File
-	OOMScoreAdj                int
+	OOMScoreAdj                *int
 	Hook                       func(pid int) error
 }
 
@@ -234,18 +234,18 @@ func (c *Cmd) Start() error {
 		}
 	}
 
-	// Adjust the process's OOM score.
-	oomScoreAdj, err := os.OpenFile(fmt.Sprintf("/proc/%s/oom_score_adj", pidString), os.O_TRUNC|os.O_WRONLY, 0)
-	if err != nil {
-		fmt.Fprintf(continueWrite, "error opening oom_score_adj: %v", err)
-		return errors.Wrapf(err, "error opening /proc/%s/oom_score_adj", pidString)
+	if c.OOMScoreAdj != nil {
+		oomScoreAdj, err := os.OpenFile(fmt.Sprintf("/proc/%s/oom_score_adj", pidString), os.O_TRUNC|os.O_WRONLY, 0)
+		if err != nil {
+			fmt.Fprintf(continueWrite, "error opening oom_score_adj: %v", err)
+			return errors.Wrapf(err, "error opening /proc/%s/oom_score_adj", pidString)
+		}
+		defer oomScoreAdj.Close()
+		if _, err := fmt.Fprintf(oomScoreAdj, "%d\n", *c.OOMScoreAdj); err != nil {
+			fmt.Fprintf(continueWrite, "error writing \"%d\" to oom_score_adj: %v", c.OOMScoreAdj, err)
+			return errors.Wrapf(err, "error writing \"%d\" to /proc/%s/oom_score_adj", c.OOMScoreAdj, pidString)
+		}
 	}
-	if _, err := fmt.Fprintf(oomScoreAdj, "%d\n", c.OOMScoreAdj); err != nil {
-		fmt.Fprintf(continueWrite, "error writing \"%d\" to oom_score_adj: %v", c.OOMScoreAdj, err)
-		return errors.Wrapf(err, "error writing \"%d\" to /proc/%s/oom_score_adj", c.OOMScoreAdj, pidString)
-	}
-	defer oomScoreAdj.Close()
-
 	// Run any additional setup that we want to do before the child starts running proper.
 	if c.Hook != nil {
 		if err = c.Hook(pid); err != nil {

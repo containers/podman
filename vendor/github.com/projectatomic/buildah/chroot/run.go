@@ -551,9 +551,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 		cmd.Setsid = true
 		cmd.Ctty = ctty
 	}
-	if spec.Process.OOMScoreAdj != nil {
-		cmd.OOMScoreAdj = *spec.Process.OOMScoreAdj
-	}
+	cmd.OOMScoreAdj = spec.Process.OOMScoreAdj
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	cmd.Hook = func(int) error {
 		for _, f := range closeOnceRunning {
