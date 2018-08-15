@@ -346,6 +346,11 @@ type ListPodData (
     containersinfo: []ListPodContainerInfo
 )
 
+type PodContainerErrorData (
+    containerid: string,
+    reason: string
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -758,7 +763,7 @@ error PodNotFound (name: string)
 
 # PodContainerError means a container associated with a pod failed to preform an operation. It contains
 # a container ID of the container that failed.
-error PodContainerError (podname: string, ctrnames: []string)
+error PodContainerError (podname: string, errors: []PodContainerErrorData)
 
 # ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
 # is includes as part of the error's text.
