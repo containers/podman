@@ -95,9 +95,10 @@ func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
@@ -116,9 +117,10 @@ func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
@@ -137,9 +139,10 @@ func (i *LibpodAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
@@ -164,9 +167,10 @@ func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
@@ -185,9 +189,10 @@ func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
@@ -206,9 +211,10 @@ func (i *LibpodAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if ctrErrs != nil {
-		containerErrs := make([]string, len(ctrErrs))
-		for ctr := range ctrErrs {
-			containerErrs = append(containerErrs, ctr)
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
 		}
 		return call.ReplyPodContainerError(pod.ID(), containerErrs)
 	}
