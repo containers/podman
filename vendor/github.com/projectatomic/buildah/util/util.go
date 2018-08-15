@@ -15,7 +15,7 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
@@ -114,10 +114,16 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	}
 
 	// Figure out the list of registries.
-	registries, err := sysregistries.GetRegistries(sc)
+	var registries []string
+	allRegistries, err := sysregistriesv2.GetRegistries(sc)
 	if err != nil {
 		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
 		registries = []string{}
+	}
+	for _, registry := range sysregistriesv2.FindUnqualifiedSearchRegistries(allRegistries) {
+		if !registry.Blocked {
+			registries = append(registries, registry.URL)
+		}
 	}
 
 	// Create all of the combinations.  Some registries need an additional component added, so

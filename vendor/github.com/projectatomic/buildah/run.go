@@ -116,6 +116,8 @@ const (
 	// IsolationChroot is a more chroot-like environment: less isolation,
 	// but with fewer requirements.
 	IsolationChroot
+	// IsolationOCIRootless is a proper OCI runtime in rootless mode.
+	IsolationOCIRootless
 )
 
 // String converts a Isolation into a string.
@@ -127,6 +129,8 @@ func (i Isolation) String() string {
 		return "IsolationOCI"
 	case IsolationChroot:
 		return "IsolationChroot"
+	case IsolationOCIRootless:
+		return "IsolationOCIRootless"
 	}
 	return fmt.Sprintf("unrecognized isolation type %d", i)
 }
@@ -135,7 +139,7 @@ func (i Isolation) String() string {
 type RunOptions struct {
 	// Hostname is the hostname we set for the running container.
 	Hostname string
-	// Isolation is either IsolationDefault, IsolationOCI, or IsolationChroot.
+	// Isolation is either IsolationDefault, IsolationOCI, IsolationChroot, or IsolationOCIRootless.
 	Isolation Isolation
 	// Runtime is the name of the runtime to run.  It should accept the
 	// same arguments that runc does, and produce similar output.
@@ -350,6 +354,13 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		return false
 	}
 
+	ipc := namespaceOptions.Find(string(specs.IPCNamespace))
+	hostIPC := ipc == nil || ipc.Host
+	net := namespaceOptions.Find(string(specs.NetworkNamespace))
+	hostNetwork := net == nil || net.Host
+	user := namespaceOptions.Find(string(specs.UserNamespace))
+	hostUser := user == nil || user.Host
+
 	// Copy mounts from the generated list.
 	mountCgroups := true
 	specMounts := []specs.Mount{}
@@ -357,9 +368,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		// Override some of the mounts from the generated list if we're doing different things with namespaces.
 		if specMount.Destination == "/dev/shm" {
 			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777", "size=" + shmSize}
-			user := namespaceOptions.Find(string(specs.UserNamespace))
-			ipc := namespaceOptions.Find(string(specs.IPCNamespace))
-			if (ipc == nil || ipc.Host) && (user != nil && !user.Host) {
+			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/shm"); err != nil && os.IsNotExist(err) {
 					continue
 				}
@@ -372,9 +381,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 			}
 		}
 		if specMount.Destination == "/dev/mqueue" {
-			user := namespaceOptions.Find(string(specs.UserNamespace))
-			ipc := namespaceOptions.Find(string(specs.IPCNamespace))
-			if (ipc == nil || ipc.Host) && (user != nil && !user.Host) {
+			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/mqueue"); err != nil && os.IsNotExist(err) {
 					continue
 				}
@@ -387,9 +394,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 			}
 		}
 		if specMount.Destination == "/sys" {
-			user := namespaceOptions.Find(string(specs.UserNamespace))
-			net := namespaceOptions.Find(string(specs.NetworkNamespace))
-			if (net == nil || net.Host) && (user != nil && !user.Host) {
+			if hostNetwork && !hostUser {
 				mountCgroups = false
 				if _, err := os.Stat("/sys"); err != nil && os.IsNotExist(err) {
 					continue
@@ -715,7 +720,6 @@ func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy, termina
 
 func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, idmapOptions IDMappingOptions, policy NetworkConfigurationPolicy) (configureNetwork bool, configureNetworks []string, configureUTS bool, err error) {
 	// Set namespace options in the container configuration.
-	hostPidns := false
 	configureUserns := false
 	specifiedNetwork := false
 	for _, namespaceOption := range namespaceOptions {
@@ -725,8 +729,6 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			if !namespaceOption.Host && namespaceOption.Path == "" {
 				configureUserns = true
 			}
-		case string(specs.PIDNamespace):
-			hostPidns = namespaceOption.Host
 		case string(specs.NetworkNamespace):
 			specifiedNetwork = true
 			configureNetwork = false
@@ -754,11 +756,9 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			return false, nil, false, errors.Wrapf(err, "error adding %q namespace %q for run", namespaceOption.Name, namespaceOption.Path)
 		}
 	}
+
 	// If we've got mappings, we're going to have to create a user namespace.
 	if len(idmapOptions.UIDMap) > 0 || len(idmapOptions.GIDMap) > 0 || configureUserns {
-		if hostPidns {
-			return false, nil, false, errors.New("unable to mix host PID namespace with user namespace")
-		}
 		if err := g.AddOrReplaceLinuxNamespace(specs.UserNamespace, ""); err != nil {
 			return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.UserNamespace))
 		}
@@ -940,25 +940,25 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			logrus.Errorf("error removing %q: %v", path, err2)
 		}
 	}()
+
 	gp, err := generate.New("linux")
 	if err != nil {
 		return err
 	}
-
 	g := &gp
 
-	b.configureEnvironment(g, options)
-
-	if os.Getuid() != 0 {
-		g.RemoveMount("/dev/pts")
-		devPts := specs.Mount{
-			Destination: "/dev/pts",
-			Type:        "devpts",
-			Source:      "devpts",
-			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+	isolation := options.Isolation
+	if isolation == IsolationDefault {
+		isolation = b.Isolation
+		if isolation == IsolationDefault {
+			isolation = IsolationOCI
 		}
-		g.AddMount(devPts)
 	}
+	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {
+		return err
+	}
+
+	b.configureEnvironment(g, options)
 
 	if b.CommonBuildOpts == nil {
 		return errors.Errorf("Invalid format on container you must recreate the container")
@@ -1070,22 +1070,137 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 	}
 
-	isolation := options.Isolation
-	if isolation == IsolationDefault {
-		isolation = b.Isolation
-		if isolation == IsolationDefault {
-			isolation = IsolationOCI
-		}
-	}
 	switch isolation {
 	case IsolationOCI:
-		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+		// The default is --rootless=auto, which makes troubleshooting a bit harder.
+		// rootlessFlag := []string{"--rootless=false"}
+		// for _, arg := range options.Args {
+		// 	if strings.HasPrefix(arg, "--rootless") {
+		// 		rootlessFlag = nil
+		// 	}
+		// }
+		// options.Args = append(options.Args, rootlessFlag...)
+		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, nil, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	case IsolationChroot:
 		err = chroot.RunUsingChroot(spec, path, options.Stdin, options.Stdout, options.Stderr)
+	case IsolationOCIRootless:
+		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID); err != nil {
+			return err
+		}
+		rootlessFlag := []string{"--rootless=true"}
+		for _, arg := range options.Args {
+			if strings.HasPrefix(arg, "--rootless") {
+				rootlessFlag = nil
+			}
+		}
+		options.Args = append(options.Args, rootlessFlag...)
+		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, []string{"--no-new-keyring", "--no-pivot"}, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	default:
 		err = errors.Errorf("don't know how to run this command")
 	}
 	return err
+}
+
+func checkAndOverrideIsolationOptions(isolation Isolation, options *RunOptions) error {
+	switch isolation {
+	case IsolationOCIRootless:
+		if ns := options.NamespaceOptions.Find(string(specs.IPCNamespace)); ns == nil || ns.Host {
+			logrus.Debugf("Forcing use of an IPC namespace.")
+		}
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.IPCNamespace)})
+		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil && !ns.Host {
+			logrus.Debugf("Disabling network namespace.")
+		}
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.NetworkNamespace), Host: true})
+		if ns := options.NamespaceOptions.Find(string(specs.PIDNamespace)); ns == nil || ns.Host {
+			logrus.Debugf("Forcing use of a PID namespace.")
+		}
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.PIDNamespace), Host: false})
+		if ns := options.NamespaceOptions.Find(string(specs.UserNamespace)); ns == nil || ns.Host {
+			logrus.Debugf("Forcing use of a user namespace.")
+		}
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.UserNamespace)})
+		if ns := options.NamespaceOptions.Find(string(specs.UTSNamespace)); ns != nil && !ns.Host {
+			logrus.Debugf("Disabling UTS namespace.")
+		}
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.UTSNamespace), Host: true})
+	case IsolationOCI:
+		pidns := options.NamespaceOptions.Find(string(specs.PIDNamespace))
+		userns := options.NamespaceOptions.Find(string(specs.UserNamespace))
+		if (pidns == nil || pidns.Host) && (userns != nil && !userns.Host) {
+			return fmt.Errorf("not allowed to mix host PID namespace with container user namespace")
+		}
+	}
+	return nil
+}
+
+func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, rootUID, rootGID uint32) error {
+	spec.Hostname = ""
+	spec.Process.User.AdditionalGids = nil
+	spec.Linux.Resources = nil
+
+	emptyDir := filepath.Join(bundleDir, "empty")
+	if err := os.Mkdir(emptyDir, 0); err != nil {
+		return errors.Wrapf(err, "error creating %q", emptyDir)
+	}
+
+	// Replace /sys with a read-only bind mount.
+	mounts := []specs.Mount{
+		{
+			Source:      "/dev",
+			Destination: "/dev",
+			Type:        "tmpfs",
+			Options:     []string{"private", "strictatime", "noexec", "nosuid", "mode=755", "size=65536k"},
+		},
+		{
+			Source:      "mqueue",
+			Destination: "/dev/mqueue",
+			Type:        "mqueue",
+			Options:     []string{"private", "nodev", "noexec", "nosuid"},
+		},
+		{
+			Source:      "pts",
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Options:     []string{"private", "noexec", "nosuid", "newinstance", "ptmxmode=0666", "mode=0620"},
+		},
+		{
+			Source:      "shm",
+			Destination: "/dev/shm",
+			Type:        "tmpfs",
+			Options:     []string{"private", "nodev", "noexec", "nosuid", "mode=1777", "size=65536k"},
+		},
+		{
+			Source:      "/proc",
+			Destination: "/proc",
+			Type:        "proc",
+			Options:     []string{"private", "nodev", "noexec", "nosuid"},
+		},
+		{
+			Source:      "/sys",
+			Destination: "/sys",
+			Type:        "bind",
+			Options:     []string{bind.NoBindOption, "rbind", "private", "nodev", "noexec", "nosuid", "ro"},
+		},
+	}
+	// Cover up /sys/fs/cgroup and /sys/fs/selinux, if they exist in our source for /sys.
+	if _, err := os.Stat("/sys/fs/cgroup"); err == nil {
+		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/cgroup")
+	}
+	if _, err := os.Stat("/sys/fs/selinux"); err == nil {
+		spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/selinux")
+	}
+	// Keep anything that isn't under /dev, /proc, or /sys.
+	for i := range spec.Mounts {
+		if spec.Mounts[i].Destination == "/dev" || strings.HasPrefix(spec.Mounts[i].Destination, "/dev/") ||
+			spec.Mounts[i].Destination == "/proc" || strings.HasPrefix(spec.Mounts[i].Destination, "/proc/") ||
+			spec.Mounts[i].Destination == "/sys" || strings.HasPrefix(spec.Mounts[i].Destination, "/sys/") {
+			continue
+		}
+		mounts = append(mounts, spec.Mounts[i])
+	}
+	spec.Mounts = mounts
+	return nil
 }
 
 type runUsingRuntimeSubprocOptions struct {
@@ -1095,10 +1210,11 @@ type runUsingRuntimeSubprocOptions struct {
 	BundlePath        string
 	ConfigureNetwork  bool
 	ConfigureNetworks []string
+	MoreCreateArgs    []string
 	ContainerName     string
 }
 
-func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bool, configureNetworks []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
+func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
 	var confwg sync.WaitGroup
 	config, conferr := json.Marshal(runUsingRuntimeSubprocOptions{
 		Options:           options,
@@ -1107,6 +1223,7 @@ func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bo
 		BundlePath:        bundlePath,
 		ConfigureNetwork:  configureNetwork,
 		ConfigureNetworks: configureNetworks,
+		MoreCreateArgs:    moreCreateArgs,
 		ContainerName:     containerName,
 	})
 	if conferr != nil {
@@ -1177,7 +1294,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Run the container, start to finish.
-	status, err := runUsingRuntime(options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
+	status, err := runUsingRuntime(options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)
@@ -1192,7 +1309,7 @@ func runUsingRuntimeMain() {
 	os.Exit(1)
 }
 
-func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetworks []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
+func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
 	// Lock the caller to a single OS-level thread.
 	runtime.LockOSThread()
 
@@ -1226,8 +1343,6 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 		runtime = util.Runtime()
 	}
 
-	// Default to not specifying a console socket location.
-	var moreCreateArgs []string
 	// Default to just passing down our stdio.
 	getCreateStdio := func() (io.ReadCloser, io.WriteCloser, io.WriteCloser) {
 		return os.Stdin, os.Stdout, os.Stderr
@@ -1313,6 +1428,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	del.Stderr = os.Stderr
 
 	// Actually create the container.
+	logrus.Debugf("Running %q", create.Args)
 	err = create.Run()
 	if err != nil {
 		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(errorFds, closeBeforeReadingErrorFds))
@@ -1373,6 +1489,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	go runCopyStdio(&stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec)
 
 	// Start the container.
+	logrus.Debugf("Running %q", start.Args)
 	err = start.Run()
 	if err != nil {
 		return 1, errors.Wrapf(err, "error starting container")
