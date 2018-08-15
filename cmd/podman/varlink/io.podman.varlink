@@ -605,7 +605,7 @@ method DeleteUnusedImages() -> (images: []string)
 # container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 # be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
 # the resulting image's ID will be returned as a string.
-method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool) -> (image: string)
+method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) -> (image: string)
 
 # ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 # descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).

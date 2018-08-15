@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/image/docker"
+	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -126,18 +127,17 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	if config.Pull_always {
 		pullPolicy = imagebuildah.PullAlways
 	}
-
-	format := "oci"
+	manifestType := "oci"
 	if config.Image_format != "" {
-		format = config.Image_format
+		manifestType = config.Image_format
 	}
 
-	if strings.HasPrefix(format, "oci") {
-		format = imagebuildah.OCIv1ImageFormat
-	} else if strings.HasPrefix(format, "docker") {
-		format = imagebuildah.Dockerv2ImageFormat
+	if strings.HasPrefix(manifestType, "oci") {
+		manifestType = imagebuildah.OCIv1ImageFormat
+	} else if strings.HasPrefix(manifestType, "docker") {
+		manifestType = imagebuildah.Dockerv2ImageFormat
 	} else {
-		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image type %q", format))
+		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image type %q", manifestType))
 	}
 
 	if config.Memory != "" {
@@ -187,7 +187,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		AdditionalTags: config.Tags,
 		//Runtime: runtime.
 		//RuntimeArgs: ,
-		OutputFormat:     format,
+		OutputFormat:     manifestType,
 		SystemContext:    &systemContext,
 		CommonBuildOpts:  commonOpts,
 		Squash:           config.Squash,
@@ -413,17 +413,26 @@ func (i *LibpodAPI) DeleteUnusedImages(call iopodman.VarlinkCall) error {
 }
 
 // Commit ...
-func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool) error {
+func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool, manifestType string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
 	sc := image.GetSystemContext(i.Runtime.GetConfig().SignaturePolicyPath, "", false)
+	var mimeType string
+	switch manifestType {
+	case "oci", "":
+		mimeType = buildah.OCIv1ImageManifest
+	case "docker":
+		mimeType = manifest.DockerV2Schema2MediaType
+	default:
+		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image format %q", manifestType))
+	}
 	coptions := buildah.CommitOptions{
 		SignaturePolicyPath:   i.Runtime.GetConfig().SignaturePolicyPath,
 		ReportWriter:          nil,
 		SystemContext:         sc,
-		PreferredManifestType: buildah.OCIv1ImageManifest,
+		PreferredManifestType: mimeType,
 	}
 	options := libpod.ContainerCommitOptions{
 		CommitOptions: coptions,
