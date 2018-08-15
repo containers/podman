@@ -43,7 +43,7 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
 // manager in libpod
-const SystemdDefaultCgroupParent = "system.slice"
+const SystemdDefaultCgroupParent = "machine.slice"
 
 // LinuxNS represents a Linux namespace
 type LinuxNS int

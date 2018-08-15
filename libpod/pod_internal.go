@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -67,8 +68,11 @@ func (p *Pod) refresh() error {
 	if p.config.UsePodCgroup {
 		switch p.runtime.config.CgroupManager {
 		case SystemdCgroupsManager:
-			// NOOP for now, until proper systemd cgroup management
-			// is implemented
+			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
+			if err != nil {
+				logrus.Errorf("Error creating CGroup for pod %s: %v", p.ID(), err)
+			}
+			p.state.CgroupPath = cgroupPath
 		case CgroupfsCgroupsManager:
 			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
 
