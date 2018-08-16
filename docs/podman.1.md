@@ -58,11 +58,14 @@ Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
 
-Select which storage driver is used to manage storage of images and containers (default is overlay)
+Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf, and is *vfs* for other users.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+
+Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
+specify additional options via the `--storage-opt` flag.
 
 **--storage-opt**=**value**
 
-Used to pass an option to the storage driver
+Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
 
 **--syslog**
 
