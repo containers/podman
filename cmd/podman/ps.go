@@ -522,9 +522,10 @@ func getTemplateOutput(psParams []psJSONParams, opts batchcontainer.PsOptions) (
 		}
 		if opts.Size {
 			if psParam.Size == nil {
-				return nil, errors.Errorf("Container %s does not have a size struct", psParam.ID)
+				size = units.HumanSizeWithPrecision(0, 0)
+			} else {
+				size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
 			}
-			size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
 		}
 		if opts.Pod {
 			pod = psParam.Pod
