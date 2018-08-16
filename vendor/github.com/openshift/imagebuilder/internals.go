@@ -46,12 +46,23 @@ func handleJSONArgs(args []string, attributes map[string]bool) []string {
 	return []string{strings.Join(args, " ")}
 }
 
+func hasSlash(input string) bool {
+	return strings.HasSuffix(input, string(os.PathSeparator)) || strings.HasSuffix(input, string(os.PathSeparator)+".")
+}
+
 // makeAbsolute ensures that the provided path is absolute.
 func makeAbsolute(dest, workingDir string) string {
 	// Twiddle the destination when its a relative path - meaning, make it
 	// relative to the WORKINGDIR
+	if dest == "." {
+		if !hasSlash(workingDir) {
+			workingDir += string(os.PathSeparator)
+		}
+		dest = workingDir
+	}
+
 	if !filepath.IsAbs(dest) {
-		hasSlash := strings.HasSuffix(dest, string(os.PathSeparator)) || strings.HasSuffix(dest, string(os.PathSeparator)+".")
+		hasSlash := hasSlash(dest)
 		dest = filepath.Join(string(os.PathSeparator), filepath.FromSlash(workingDir), dest)
 
 		// Make sure we preserve any trailing slash

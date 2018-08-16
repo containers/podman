@@ -27,6 +27,9 @@ type Copy struct {
 	Src      []string
 	Dest     string
 	Download bool
+	// If set, the owner:group for the destination.  This value is passed
+	// to the executor for handling.
+	Chown string
 }
 
 // Run defines a run operation required in the container.
@@ -51,7 +54,7 @@ func (logExecutor) Preserve(path string) error {
 
 func (logExecutor) Copy(excludes []string, copies ...Copy) error {
 	for _, c := range copies {
-		log.Printf("COPY %v -> %s (from:%s download:%t)", c.Src, c.Dest, c.From, c.Download)
+		log.Printf("COPY %v -> %s (from:%s download:%t), chown: %s", c.Src, c.Dest, c.From, c.Download, c.Chown)
 	}
 	return nil
 }

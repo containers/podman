@@ -149,18 +149,21 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	}
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
+	var chown string
 	var from string
 	if len(flagArgs) > 0 {
 		for _, arg := range flagArgs {
 			switch {
+			case strings.HasPrefix(arg, "--chown="):
+				chown = strings.TrimPrefix(arg, "--chown=")
 			case strings.HasPrefix(arg, "--from="):
 				from = strings.TrimPrefix(arg, "--from=")
 			default:
-				return fmt.Errorf("COPY only supports the --from=<image|stage> flag")
+				return fmt.Errorf("COPY only supports the --chown=<uid:gid> and the --from=<image|stage> flags")
 			}
 		}
 	}
-	b.PendingCopies = append(b.PendingCopies, Copy{From: from, Src: args[0:last], Dest: dest, Download: false})
+	b.PendingCopies = append(b.PendingCopies, Copy{From: from, Src: args[0:last], Dest: dest, Download: false, Chown: chown})
 	return nil
 }
 
