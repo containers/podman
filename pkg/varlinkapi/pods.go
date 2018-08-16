@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"syscall"
 
-	"github.com/projectatomic/libpod/cmd/podman/shared"
-	"github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
 )
 
 // CreatePod ...
@@ -91,18 +91,10 @@ func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Start(getContext())
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyStartPod(pod.ID())
 }
 
@@ -113,18 +105,10 @@ func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Stop(true)
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyStopPod(pod.ID())
 }
 
@@ -135,18 +119,10 @@ func (i *LibpodAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Restart(getContext())
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyRestartPod(pod.ID())
 }
 
@@ -163,18 +139,10 @@ func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Kill(killSignal)
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyKillPod(pod.ID())
 }
 
@@ -185,18 +153,10 @@ func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Pause()
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyPausePod(pod.ID())
 }
 
@@ -207,18 +167,10 @@ func (i *LibpodAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyPodNotFound(name)
 	}
 	ctrErrs, err := pod.Unpause()
-	if err != nil && ctrErrs == nil {
-		return call.ReplyErrorOccurred(err.Error())
+	callErr := handlePodCall(call, pod, ctrErrs, err)
+	if callErr != nil {
+		return err
 	}
-	if ctrErrs != nil {
-		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
-		for ctr, reason := range ctrErrs {
-			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
-			containerErrs = append(containerErrs, ctrErr)
-		}
-		return call.ReplyPodContainerError(pod.ID(), containerErrs)
-	}
-
 	return call.ReplyUnpausePod(pod.ID())
 }
 

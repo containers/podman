@@ -117,3 +117,19 @@ func makeListPod(pod *libpod.Pod, batchInfo shared.PsOptions) (iopodman.ListPodD
 	}
 	return listPod, nil
 }
+
+func handlePodCall(call iopodman.VarlinkCall, pod *libpod.Pod, ctrErrs map[string]error, err error) error {
+	if err != nil && ctrErrs == nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if ctrErrs != nil {
+		containerErrs := make([]iopodman.PodContainerErrorData, len(ctrErrs))
+		for ctr, reason := range ctrErrs {
+			ctrErr := iopodman.PodContainerErrorData{Containerid: ctr, Reason: reason.Error()}
+			containerErrs = append(containerErrs, ctrErr)
+		}
+		return call.ReplyPodContainerError(pod.ID(), containerErrs)
+	}
+
+	return nil
+}
