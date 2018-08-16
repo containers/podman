@@ -35,7 +35,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
-	} else if rootless.IsRootless() && !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+	} else if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
 		addCgroup = false
 		g.RemoveMount("/sys")
 		sysMnt := spec.Mount{
