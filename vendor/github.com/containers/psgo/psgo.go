@@ -25,6 +25,7 @@ import (
 	"github.com/containers/psgo/internal/dev"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/containers/psgo/internal/process"
+	"github.com/containers/psgo/internal/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -183,23 +184,28 @@ var (
 			procFn: processVSZ,
 		},
 		{
+			normal: "capamb",
+			header: "AMBIENT CAPS",
+			procFn: processCAPAMB,
+		},
+		{
 			normal: "capinh",
-			header: "CAPABILITIES",
+			header: "INHERITED CAPS",
 			procFn: processCAPINH,
 		},
 		{
 			normal: "capprm",
-			header: "CAPABILITIES",
+			header: "PERMITTED CAPS",
 			procFn: processCAPPRM,
 		},
 		{
 			normal: "capeff",
-			header: "CAPABILITIES",
+			header: "EFFECTIVE CAPS",
 			procFn: processCAPEFF,
 		},
 		{
 			normal: "capbnd",
-			header: "CAPABILITIES",
+			header: "BOUNDING CAPS",
 			procFn: processCAPBND,
 		},
 		{
@@ -276,6 +282,19 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 		defer wg.Done()
 		runtime.LockOSThread()
 
+		// extract user namespaces prior to joining the mount namespace
+		currentUserNs, err := proc.ParseUserNamespace("self")
+		if err != nil {
+			dataErr = errors.Wrapf(err, "error determining user namespace")
+			return
+		}
+
+		pidUserNs, err := proc.ParseUserNamespace(pid)
+		if err != nil {
+			dataErr = errors.Wrapf(err, "error determining user namespace of PID %s", pid)
+		}
+
+		// join the mount namespace of pid
 		fd, err := os.Open(fmt.Sprintf("/proc/%s/ns/mnt", pid))
 		if err != nil {
 			dataErr = err
@@ -290,12 +309,19 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 		}
 		unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
 
+		// extract all pids mentioned in pid's mount namespace
 		pids, err := proc.GetPIDs()
 		if err != nil {
 			dataErr = err
 			return
 		}
-		processes, err := process.FromPIDs(pids)
+
+		ctx := types.PsContext{
+			// join the user NS if the pid's user NS is different
+			// to the caller's user NS.
+			JoinUserNS: currentUserNs != pidUserNs,
+		}
+		processes, err := process.FromPIDs(&ctx, pids)
 		if err != nil {
 			dataErr = err
 			return
@@ -324,7 +350,9 @@ func ProcessInfo(descriptors []string) ([][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	processes, err := process.FromPIDs(pids)
+
+	ctx := types.PsContext{JoinUserNS: false}
+	processes, err := process.FromPIDs(&ctx, pids)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +368,8 @@ func setHostProcesses(pid string) error {
 		return err
 	}
 
-	processes, err := process.FromPIDs(pids)
+	ctx := types.PsContext{JoinUserNS: false}
+	processes, err := process.FromPIDs(&ctx, pids)
 	if err != nil {
 		return err
 	}
@@ -421,14 +450,14 @@ func processPPID(p *process.Process) (string, error) {
 }
 
 // processUSER returns the effective user name of the process.  This will be
-// the textual group ID, if it can be optained, or a decimal representation
+// the textual user ID, if it can be optained, or a decimal representation
 // otherwise.
 func processUSER(p *process.Process) (string, error) {
 	return process.LookupUID(p.Status.Uids[1])
 }
 
 // processRUSER returns the effective user name of the process.  This will be
-// the textual group ID, if it can be optained, or a decimal representation
+// the textual user ID, if it can be optained, or a decimal representation
 // otherwise.
 func processRUSER(p *process.Process) (string, error) {
 	return process.LookupUID(p.Status.Uids[0])
@@ -555,6 +584,13 @@ func parseCAP(cap string) (string, error) {
 	}
 	sort.Strings(caps)
 	return strings.Join(caps, ","), nil
+}
+
+// processCAPAMB returns the set of ambient capabilties associated with
+// process p.  If all capabilties are set, "full" is returned.  If no
+// capability is enabled, "none" is returned.
+func processCAPAMB(p *process.Process) (string, error) {
+	return parseCAP(p.Status.CapAmb)
 }
 
 // processCAPINH returns the set of inheritable capabilties associated with

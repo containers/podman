@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/psgo/internal/host"
 	"github.com/containers/psgo/internal/proc"
+	"github.com/containers/psgo/internal/types"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/pkg/errors"
 )
@@ -61,13 +62,13 @@ func LookupUID(uid string) (string, error) {
 
 // New returns a new Process with the specified pid and parses the relevant
 // data from /proc and /dev.
-func New(pid string) (*Process, error) {
+func New(ctx *types.PsContext, pid string) (*Process, error) {
 	p := Process{Pid: pid}
 
 	if err := p.parseStat(); err != nil {
 		return nil, err
 	}
-	if err := p.parseStatus(); err != nil {
+	if err := p.parseStatus(ctx); err != nil {
 		return nil, err
 	}
 	if err := p.parseCmdLine(); err != nil {
@@ -88,10 +89,10 @@ func New(pid string) (*Process, error) {
 }
 
 // FromPIDs creates a new Process for each pid.
-func FromPIDs(pids []string) ([]*Process, error) {
+func FromPIDs(ctx *types.PsContext, pids []string) ([]*Process, error) {
 	processes := []*Process{}
 	for _, pid := range pids {
-		p, err := New(pid)
+		p, err := New(ctx, pid)
 		if err != nil {
 			if os.IsNotExist(err) {
 				// proc parsing is racy
@@ -116,8 +117,8 @@ func (p *Process) parseStat() error {
 }
 
 // parseStatus parses /proc/$pid/status.
-func (p *Process) parseStatus() error {
-	s, err := proc.ParseStatus(p.Pid)
+func (p *Process) parseStatus(ctx *types.PsContext) error {
+	s, err := proc.ParseStatus(ctx, p.Pid)
 	if err != nil {
 		return err
 	}
@@ -135,7 +136,7 @@ func (p *Process) parseCmdLine() error {
 	return nil
 }
 
-// parsePIDNamespace parses all host-related data fields.
+// parsePIDNamespace sets the PID namespace.
 func (p *Process) parsePIDNamespace() error {
 	pidNS, err := proc.ParsePIDNamespace(p.Pid)
 	if err != nil {

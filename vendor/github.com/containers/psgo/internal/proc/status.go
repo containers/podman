@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
+	"github.com/containers/psgo/internal/types"
 	"github.com/pkg/errors"
 )
 
@@ -160,8 +162,24 @@ type Status struct {
 	NonvoluntaryCtxtSwitches string
 }
 
-// readStatus is used for mocking in unit tests.
-var readStatus = func(path string) ([]string, error) {
+// readStatusUserNS joins the user namespace of pid and returns the content of
+// /proc/pid/status as a string slice.
+func readStatusUserNS(pid string) ([]string, error) {
+	path := fmt.Sprintf("/proc/%s/status", pid)
+	args := []string{"nsenter", "-U", "-t", pid, "cat", path}
+
+	c := exec.Command(args[0], args[1:]...)
+	output, err := c.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("error executing %q: %v", strings.Join(args, " "), err)
+	}
+
+	return strings.Split(string(output), "\n"), nil
+}
+
+// readStatusDefault returns the content of /proc/pid/status as a string slice.
+func readStatusDefault(pid string) ([]string, error) {
+	path := fmt.Sprintf("/proc/%s/status", pid)
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -175,15 +193,26 @@ var readStatus = func(path string) ([]string, error) {
 }
 
 // ParseStatus parses the /proc/$pid/status file and returns a *Status.
-func ParseStatus(pid string) (*Status, error) {
-	path := fmt.Sprintf("/proc/%s/status", pid)
-	lines, err := readStatus(path)
+func ParseStatus(ctx *types.PsContext, pid string) (*Status, error) {
+	var lines []string
+	var err error
+
+	if ctx.JoinUserNS {
+		lines, err = readStatusUserNS(pid)
+	} else {
+		lines, err = readStatusDefault(pid)
+	}
+
 	if err != nil {
 		return nil, err
 	}
+	return parseStatus(pid, lines)
+}
 
+// parseStatus extracts data from lines and returns a *Status.
+func parseStatus(pid string, lines []string) (*Status, error) {
 	s := Status{}
-	errUnexpectedInput := errors.New(fmt.Sprintf("unexpected input from %s", path))
+	errUnexpectedInput := fmt.Errorf("unexpected input from /proc/%s/status", pid)
 	for _, line := range lines {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
