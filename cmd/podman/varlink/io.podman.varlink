@@ -334,6 +334,13 @@ type ListPodContainerInfo (
     status: string
 )
 
+# PodCreate is an input structure for creating pods.
+type PodCreate (
+    name: string,
+    cgroupParent: string,
+    labels: [string]string
+)
+
 # ListPodData is the returned struct for an individual pod
 type ListPodData (
     id: string,
@@ -634,16 +641,17 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 # ~~~
 method PullImage(name: string) -> (id: string)
 
-# CreatePod creates a new empty pod.  It takes name and cgroup_parent args as strings, and a labels map
+# CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.
 # #### Example
 # ~~~
-# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"name": "test"}'
+# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"name": "test"}}'
 # {
-#   "pod": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
+#   "pod": "b05dee7bd4ccfee688099fe1588a7a898d6ddd6897de9251d4671c9b0feacb2a"
 # }
+#
 # ~~~
-method CreatePod(name: string, cgroup_parent: string, labels: [string]string) -> (pod: string)
+method CreatePod(create: PodCreate) -> (pod: string)
 
 # ListPods returns a list of pods in no particular order.  They are
 # returned as an array of ListPodData structs.  See also [GetPod](#GetPod).
