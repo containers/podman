@@ -2,7 +2,7 @@
 
 ## Status: Active Development
 
-See [libpod](https://github.com/projectatomic/libpod/contrib/python/pypodman)
+See [libpod](https://github.com/containers/libpod/contrib/python/pypodman)
 
 ## Releases
 

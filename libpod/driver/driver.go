@@ -1,8 +1,8 @@
 package driver
 
 import (
+	"github.com/containers/libpod/pkg/inspect"
 	cstorage "github.com/containers/storage"
-	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
 // GetDriverName returns the name of the driver for the given store

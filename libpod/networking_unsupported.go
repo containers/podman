@@ -3,7 +3,7 @@
 package libpod
 
 import (
-	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/inspect"
 )
 
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {

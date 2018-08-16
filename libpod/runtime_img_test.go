@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
+	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/stretchr/testify/assert"
 )
 

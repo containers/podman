@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/utils"
 )
 
 // InfoData holds the info type, i.e store, host etc and the data for each type

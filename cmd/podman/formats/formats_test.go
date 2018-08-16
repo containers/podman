@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/inspect"
 )
 
 func TestSetJSONFormatEncoder(t *testing.T) {

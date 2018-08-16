@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 	"github.com/stretchr/testify/assert"
 )
 

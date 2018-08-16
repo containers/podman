@@ -4,11 +4,11 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/containers/libpod/pkg/inspect"
+	cc "github.com/containers/libpod/pkg/spec"
 	units "github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/projectatomic/libpod/pkg/inspect"
-	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 )

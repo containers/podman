@@ -11,17 +11,17 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	sysreg "github.com/containers/libpod/pkg/registries"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/imagebuildah"
-	"github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/image"
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
-	"github.com/projectatomic/libpod/pkg/util"
 )
 
 // ListImages lists all the images in the store

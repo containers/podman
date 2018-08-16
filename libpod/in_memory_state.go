@@ -3,9 +3,9 @@ package libpod
 import (
 	"strings"
 
+	"github.com/containers/libpod/pkg/registrar"
 	"github.com/containers/storage/pkg/truncindex"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/registrar"
 )
 
 // TODO: Maybe separate idIndex for pod/containers

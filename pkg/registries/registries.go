@@ -6,8 +6,8 @@ import (
 
 	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/rootless"
 )
 
 // userRegistriesFile is the path to the per user registry configuration file.

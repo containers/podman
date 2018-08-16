@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

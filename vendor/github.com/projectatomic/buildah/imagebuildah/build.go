@@ -96,6 +96,8 @@ type BuildOptions struct {
 	// is supplied, the message will be sent to Err (or os.Stderr, if Err
 	// is nil) by default.
 	Log func(format string, args ...interface{})
+	// In is connected to stdin for RUN instructions.
+	In io.Reader
 	// Out is a place where non-error log messages are sent.
 	Out io.Writer
 	// Err is a place where error log messages should be sent.
@@ -190,6 +192,7 @@ type Executor struct {
 	outputFormat                   string
 	additionalTags                 []string
 	log                            func(format string, args ...interface{})
+	in                             io.Reader
 	out                            io.Writer
 	err                            io.Writer
 	signaturePolicyPath            string
@@ -471,11 +474,15 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 	if b.builder == nil {
 		return errors.Errorf("no build container available")
 	}
-	devNull, err := os.Open(os.DevNull)
-	if err != nil {
-		return errors.Errorf("error opening %q for reading: %v", os.DevNull, err)
+	stdin := b.in
+	if stdin == nil {
+		devNull, err := os.Open(os.DevNull)
+		if err != nil {
+			return errors.Errorf("error opening %q for reading: %v", os.DevNull, err)
+		}
+		defer devNull.Close()
+		stdin = devNull
 	}
-	defer devNull.Close()
 	options := buildah.RunOptions{
 		Hostname:   config.Hostname,
 		Runtime:    b.runtime,
@@ -486,7 +493,7 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 		WorkingDir: config.WorkingDir,
 		Entrypoint: config.Entrypoint,
 		Cmd:        config.Cmd,
-		Stdin:      devNull,
+		Stdin:      stdin,
 		Stdout:     b.out,
 		Stderr:     b.err,
 		Quiet:      b.quiet,
@@ -504,7 +511,7 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 	if err := b.volumeCacheSave(); err != nil {
 		return err
 	}
-	err = b.builder.Run(args, options)
+	err := b.builder.Run(args, options)
 	if err2 := b.volumeCacheRestore(); err2 != nil {
 		if err == nil {
 			return err2
@@ -557,6 +564,7 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		volumeCache:             make(map[string]string),
 		volumeCacheInfo:         make(map[string]os.FileInfo),
 		log:                     options.Log,
+		in:                      options.In,
 		out:                     options.Out,
 		err:                     options.Err,
 		reportWriter:            options.ReportWriter,

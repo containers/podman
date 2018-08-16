@@ -10,14 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	crioAnnotations "github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/chrootuser"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	crioAnnotations "github.com/projectatomic/libpod/pkg/annotations"
-	"github.com/projectatomic/libpod/pkg/chrootuser"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"strings"
 
+	hooks "github.com/containers/libpod/pkg/hooks"
+	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	hooks "github.com/projectatomic/libpod/pkg/hooks"
-	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 )
 
 // Version is the hook configuration version defined in this package.

@@ -9,11 +9,11 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/image"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 

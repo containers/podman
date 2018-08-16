@@ -1,6 +1,6 @@
 # io.podman
 Podman Service Interface and API description.  The master version of this document can be found
-in the [API.md](https://github.com/projectatomic/libpod/blob/master/API.md) file in the upstream libpod repository.
+in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
 ## Index
 
 [func AttachToContainer() NotImplemented](#AttachToContainer)

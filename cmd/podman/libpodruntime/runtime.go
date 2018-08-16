@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/urfave/cli"
 )
 

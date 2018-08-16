@@ -45,9 +45,9 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && apt-get clean
 
-ADD . /go/src/github.com/projectatomic/libpod
+ADD . /go/src/github.com/containers/libpod
 
-RUN set -x && cd /go/src/github.com/projectatomic/libpod && make install.libseccomp.sudo
+RUN set -x && cd /go/src/github.com/containers/libpod && make install.libseccomp.sudo
 
 # Install runc
 ENV RUNC_COMMIT ad0f5255060d36872be04de22f8731f38ef2d7b1
@@ -124,7 +124,7 @@ RUN pip3 install varlink
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
-WORKDIR /go/src/github.com/projectatomic/libpod
+WORKDIR /go/src/github.com/containers/libpod
 
 # Wrap all commands in the "docker-in-docker" script to allow nested containers,
 # and allow testing of apparmor.

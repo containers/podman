@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker"
+	"github.com/containers/libpod/cmd/podman/formats"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/common"
+	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/formats"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/common"
-	sysreg "github.com/projectatomic/libpod/pkg/registries"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

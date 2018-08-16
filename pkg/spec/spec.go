@@ -4,13 +4,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 )
 
