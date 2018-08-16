@@ -46,6 +46,8 @@ root   1     0      0.000   17.249905587s   ?     0s     sleep
 ### Format descriptors
 The ps library is compatible with all AIX format descriptors of the ps command-line utility (see `man 1 ps` for details) but it also supports some additional descriptors that can be useful when seeking specific process-related information.
 
+- **capamb**
+  - Set of ambient capabilities. See capabilities(7) for more information.
 - **capbnd**
   - Set of bounding capabilities. See capabilities(7) for more information.
 - **capeff**
