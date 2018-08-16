@@ -20,6 +20,7 @@ Pods are a group of one or more containers sharing the same network, pid and ipc
 		podStartCommand,
 		podStatsCommand,
 		podStopCommand,
+		podTopCommand,
 		podUnpauseCommand,
 	}
 	podCommand = cli.Command{
