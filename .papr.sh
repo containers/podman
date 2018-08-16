@@ -3,7 +3,7 @@ set -xeuo pipefail
 
 export GOPATH=/go
 export PATH=$HOME/gopath/bin:$PATH
-export GOSRC=/$GOPATH/src/github.com/projectatomic/libpod
+export GOSRC=/$GOPATH/src/github.com/containers/libpod
 
 
 # PAPR adds a merge commit, for testing, which fails the

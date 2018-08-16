@@ -2,6 +2,7 @@ package buildah
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -19,6 +20,28 @@ import (
 	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
+
+// PullOptions can be used to alter how an image is copied in from somewhere.
+type PullOptions struct {
+	// SignaturePolicyPath specifies an override location for the signature
+	// policy which should be used for verifying the new image as it is
+	// being written.  Except in specific circumstances, no value should be
+	// specified, indicating that the shared, system-wide default policy
+	// should be used.
+	SignaturePolicyPath string
+	// ReportWriter is an io.Writer which will be used to log the writing
+	// of the new image.
+	ReportWriter io.Writer
+	// Store is the local storage store which holds the source image.
+	Store storage.Store
+	// github.com/containers/image/types SystemContext to hold credentials
+	// and other authentication/authorization information.
+	SystemContext *types.SystemContext
+	// Transport is a value which is prepended to the image's name, if the
+	// image name alone can not be resolved to a reference to a source
+	// image.  No separator is implicitly added.
+	Transport string
+}
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference, spec string) (string, error) {
 	if srcRef == nil {
@@ -112,7 +135,13 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 	return name, nil
 }
 
-func pullImage(ctx context.Context, store storage.Store, imageName string, options BuilderOptions, sc *types.SystemContext) (types.ImageReference, error) {
+// Pull copies the contents of the image from somewhere else.
+func Pull(ctx context.Context, imageName string, options PullOptions) (types.ImageReference, error) {
+	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
+	return pullImage(ctx, options.Store, imageName, options, systemContext)
+}
+
+func pullImage(ctx context.Context, store storage.Store, imageName string, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {
 	spec := imageName
 	srcRef, err := alltransports.ParseImageName(spec)
 	if err != nil {
@@ -143,12 +172,6 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing image name %q", destName)
 	}
-
-	img, err := srcRef.NewImageSource(ctx, sc)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error initializing %q as an image source", spec)
-	}
-	img.Close()
 
 	policy, err := signature.DefaultPolicy(sc)
 	if err != nil {

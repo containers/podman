@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/containers/image/pkg/docker/config"
+	"github.com/containers/libpod/libpod/common"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod/common"
 	"github.com/urfave/cli"
 )
 

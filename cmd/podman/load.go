@@ -9,9 +9,9 @@ import (
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
 	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	"github.com/pkg/errors"
-	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,11 +5,11 @@ package main
 import (
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/varlinkapi"
+	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	iopodman "github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/pkg/varlinkapi"
-	"github.com/projectatomic/libpod/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/varlink/go/varlink"
@@ -59,7 +59,7 @@ func varlinkCmd(c *cli.Context) error {
 		"Atomic",
 		"podman",
 		version.Version,
-		"https://github.com/projectatomic/libpod",
+		"https://github.com/containers/libpod",
 	)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new varlink service")

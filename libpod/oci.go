@@ -15,21 +15,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/ctime"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/ctime"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	// TODO import these functions into libpod and remove the import
 	// Trying to keep libpod from depending on CRI-O code
-	"github.com/projectatomic/libpod/utils"
+	"github.com/containers/libpod/utils"
 )
 
 // OCI code is undergoing heavy rewrite

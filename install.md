@@ -73,15 +73,15 @@ apt-get install -y \
 Debian, Ubuntu, and related distributions will also need to do the following setup:
 
  * A copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
- * [Add required configuration files](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#adding-required-configuration-files)
+ * [Add required configuration files](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#adding-required-configuration-files)
  * Install conmon, CNI plugins and runc
-   * [Install conmon](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)
-   * [Install CNI plugins](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-cni-plugins)
-   * [runc Installation](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) - Although installable, the latest runc is not available in the Ubuntu repos. Version 1.0.0-rc4 is the minimal requirement.
+   * [Install conmon](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)
+   * [Install CNI plugins](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-cni-plugins)
+   * [runc Installation](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) - Although installable, the latest runc is not available in the Ubuntu repos. Version 1.0.0-rc4 is the minimal requirement.
 
 **NOTE**
 
-If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else [build](https://github.com/projectatomic/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) your own.
+If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else [build](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) your own.
 
 Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
 
@@ -122,7 +122,7 @@ Next, clone the source code using:
 ```bash
 mkdir -p $GOPATH/src/github.com/projectatomic
 cd $_ # or cd $GOPATH/src/github.com/projectatomic
-git clone https://github.com/projectatomic/libpod # or your fork
+git clone https://github.com/containers/libpod # or your fork
 cd libpod
 ```
 

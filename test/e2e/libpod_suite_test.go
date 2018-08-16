@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/storage/pkg/parsers/kernel"
 	"github.com/containers/storage/pkg/reexec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/inspect"
 )
 
 var (

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 )
 

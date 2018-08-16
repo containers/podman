@@ -66,7 +66,13 @@ func reserveSELinuxLabels(store storage.Store, id string) error {
 }
 
 func pullAndFindImage(ctx context.Context, store storage.Store, imageName string, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
-	ref, err := pullImage(ctx, store, imageName, options, sc)
+	pullOptions := PullOptions{
+		ReportWriter:  options.ReportWriter,
+		Store:         store,
+		SystemContext: options.SystemContext,
+		Transport:     options.Transport,
+	}
+	ref, err := pullImage(ctx, store, imageName, pullOptions, sc)
 	if err != nil {
 		logrus.Debugf("error pulling image %q: %v", imageName, err)
 		return nil, nil, err
@@ -246,15 +252,6 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			return nil, errors.Wrapf(err, "error instantiating image for %q", transports.ImageName(ref))
 		}
 		defer src.Close()
-	}
-
-	// If the pull command was used, we only pull the image,
-	// we don't create a container.
-	if options.ImageOnly {
-		imgBuilder := &Builder{
-			FromImageID: imageID,
-		}
-		return imgBuilder, nil
 	}
 
 	name := "working-container"

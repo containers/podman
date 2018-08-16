@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"sync"
 
+	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	current "github.com/projectatomic/libpod/pkg/hooks/1.0.0"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"

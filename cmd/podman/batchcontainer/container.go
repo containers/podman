@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/inspect"
+	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/inspect"
-	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/sirupsen/logrus"
 )
 

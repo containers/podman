@@ -176,10 +176,6 @@ var (
 			Name:  "squash",
 			Usage: "Squash newly built layers into a single new layer. The build process does not currently support caching so this is a NOOP.",
 		},
-		cli.BoolTFlag{
-			Name:  "stream",
-			Usage: "There is no daemon in use, so this command is a NOOP.",
-		},
 		cli.StringSliceFlag{
 			Name:  "tag, t",
 			Usage: "tagged `name` to apply to the built image",

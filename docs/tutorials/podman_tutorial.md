@@ -31,8 +31,8 @@ and make libpod.
 ```console
 $ export GOPATH=~/go
 $ mkdir -p $GOPATH
-$ git clone https://github.com/projectatomic/libpod/ $GOPATH/src/github.com/projectatomic/libpod
-$ cd $GOPATH/src/github.com/projectatomic/libpod
+$ git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
+$ cd $GOPATH/src/github.com/containers/libpod
 $ make
 $ sudo make install PREFIX=/usr
 ```
@@ -91,8 +91,8 @@ $ sudo cp runc /usr/bin/runc
 
 ### Building and installing Podman
 ```console
-$ git clone https://github.com/projectatomic/libpod/ $GOPATH/src/github.com/projectatomic/libpod
-$ cd $GOPATH/src/github.com/projectatomic/libpod
+$ git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
+$ cd $GOPATH/src/github.com/containers/libpod
 $ make
 $ sudo make install PREFIX=/usr
 ```

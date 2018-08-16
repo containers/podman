@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/formats"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/image"
 	units "github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/formats"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 

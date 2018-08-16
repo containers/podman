@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"strconv"
 
-	podmanVersion "github.com/projectatomic/libpod/version"
+	podmanVersion "github.com/containers/libpod/version"
 )
 
 // Overwritten at build time

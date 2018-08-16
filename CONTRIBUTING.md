@@ -13,7 +13,7 @@ that we follow.
 ## Reporting Issues
 
 Before reporting an issue, check our backlog of
-[open issues](https://github.com/projectatomic/libpod/issues)
+[open issues](https://github.com/containers/libpod/issues)
 to see if someone else has already reported it. If so, feel free to add
 your scenario, or additional information, to the discussion. Or simply
 "subscribe" to it to be notified when it is updated.
@@ -128,9 +128,9 @@ For general questions and discussion, please use the
 IRC `#podman` channel on `irc.freenode.net`.
 
 For discussions around issues/bugs and features, you can use the github
-[issues](https://github.com/projectatomic/libpod/issues)
+[issues](https://github.com/containers/libpod/issues)
 and
-[PRs](https://github.com/projectatomic/libpod/pulls)
+[PRs](https://github.com/containers/libpod/pulls)
 tracking system.
 
 [owners]: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md#owners

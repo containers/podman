@@ -8,14 +8,14 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/inspect"
+	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
-	"github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/image"
-	"github.com/projectatomic/libpod/pkg/inspect"
-	cc "github.com/projectatomic/libpod/pkg/spec"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 

@@ -933,7 +933,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	}
 	logrus.Debugf("bind mounted %q to %q", "/dev", filepath.Join(spec.Root.Path, "/dev"))
 
-	// Bind /proc read-write.
+	// Bind /proc read-only.
 	subProc := filepath.Join(spec.Root.Path, "/proc")
 	if err := unix.Mount("/proc", subProc, "bind", procFlags, ""); err != nil {
 		if os.IsNotExist(err) {
@@ -1131,6 +1131,15 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 	}
 
+	// Create an empty directory for to use for masking directories.
+	roEmptyDir := filepath.Join(bundlePath, "empty")
+	if len(spec.Linux.MaskedPaths) > 0 {
+		if err := os.Mkdir(roEmptyDir, 0700); err != nil {
+			return undoBinds, errors.Wrapf(err, "error creating empty directory %q", roEmptyDir)
+		}
+		removes = append(removes, roEmptyDir)
+	}
+
 	// Set up any masked paths that we need to.  If we're running inside of
 	// a container, some of these locations will already be read-only tmpfs
 	// filesystems or bind mounted to os.DevNull.  If we're not running
@@ -1218,10 +1227,10 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 					}
 				}
 			}
-			// The target's a directory, so mount a read-only tmpfs on it.
-			roFlags := uintptr(syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RDONLY)
+			// The target's a directory, so read-only bind mount an empty directory on it.
+			roFlags := uintptr(syscall.MS_BIND | syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RDONLY)
 			if !isReadOnly || (hasContent && isAccessible) {
-				if err = unix.Mount("none", target, "tmpfs", roFlags, "size=0"); err != nil {
+				if err = unix.Mount(roEmptyDir, target, "bind", roFlags, ""); err != nil {
 					return undoBinds, errors.Wrapf(err, "error masking directory %q in mount namespace", target)
 				}
 				if err = unix.Statfs(target, &fs); err != nil {

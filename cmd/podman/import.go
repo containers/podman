@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/image"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 

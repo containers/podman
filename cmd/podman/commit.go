@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/containers/image/manifest"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/libpod/image"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/urfave/cli"
 )
 

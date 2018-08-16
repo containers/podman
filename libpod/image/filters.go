@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projectatomic/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/inspect"
 )
 
 // ResultFilter is a mock function for image filtering

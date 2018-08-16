@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/projectatomic/libpod/cmd/podman/batchcontainer"
-	"github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/containers/libpod/cmd/podman/batchcontainer"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
 )
 
 // getContext returns a non-nil, empty context
