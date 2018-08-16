@@ -1,7 +1,7 @@
 package shared
 
 import (
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/containers/libpod/libpod"
 )
 
 const (
