@@ -10,16 +10,16 @@ import (
 )
 
 // CreatePod ...
-func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, name, cgroupParent string, labels map[string]string) error {
+func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
 	var options []libpod.PodCreateOption
-	if cgroupParent != "" {
-		options = append(options, libpod.WithPodCgroupParent(cgroupParent))
+	if create.CgroupParent != "" {
+		options = append(options, libpod.WithPodCgroupParent(create.CgroupParent))
 	}
-	if len(labels) > 0 {
-		options = append(options, libpod.WithPodLabels(labels))
+	if len(create.Labels) > 0 {
+		options = append(options, libpod.WithPodLabels(create.Labels))
 	}
-	if name != "" {
-		options = append(options, libpod.WithPodName(name))
+	if create.Name != "" {
+		options = append(options, libpod.WithPodName(create.Name))
 	}
 	options = append(options, libpod.WithPodCgroups())
 
