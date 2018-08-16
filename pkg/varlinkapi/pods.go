@@ -21,6 +21,20 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 	if create.Name != "" {
 		options = append(options, libpod.WithPodName(create.Name))
 	}
+	if len(create.Share) > 0 && !create.Pause {
+		return call.ReplyErrorOccurred("You cannot share kernel namespaces on the pod level without a pause container")
+	}
+	if len(create.Share) == 0 && create.Pause {
+		return call.ReplyErrorOccurred("You must share kernel namespaces to run a pause container")
+	}
+	if create.Pause {
+		options = append(options, libpod.WithPauseContainer())
+		nsOptions, err := shared.GetNamespaceOptions(create.Share)
+		if err != nil {
+			return err
+		}
+		options = append(options, nsOptions...)
+	}
 	options = append(options, libpod.WithPodCgroups())
 
 	pod, err := i.Runtime.NewPod(getContext(), options...)

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -59,4 +60,36 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 		return errored, nil
 	}
 	return created, nil
+}
+
+// GetNamespaceOptions transforms a slice of kernel namespaces
+// into a slice of pod create options. Currently, not all
+// kernel namespaces are supported, and they will be returned in an error
+func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
+	var options []libpod.PodCreateOption
+	var erroredOptions []libpod.PodCreateOption
+	for _, toShare := range ns {
+		switch toShare {
+		case "net":
+			options = append(options, libpod.WithPodNet())
+		case "mnt":
+			//options = append(options, libpod.WithPodMNT())
+			return erroredOptions, errors.Errorf("Mount sharing functionality not supported on pod level")
+		case "pid":
+			options = append(options, libpod.WithPodPID())
+		case "user":
+			// Note: more set up needs to be done before this doesn't error out a create.
+			return erroredOptions, errors.Errorf("User sharing functionality not supported on pod level")
+		case "ipc":
+			options = append(options, libpod.WithPodIPC())
+		case "uts":
+			options = append(options, libpod.WithPodUTS())
+		case "":
+		case "none":
+			return erroredOptions, nil
+		default:
+			return erroredOptions, errors.Errorf("Invalid kernel namespace to share: %s. Options are: net, pid, ipc, uts or none", toShare)
+		}
+	}
+	return options, nil
 }

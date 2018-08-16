@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -116,29 +117,11 @@ func podCreateCmd(c *cli.Context) error {
 
 	if c.BoolT("pause") {
 		options = append(options, libpod.WithPauseContainer())
-		for _, toShare := range strings.Split(c.String("share"), ",") {
-			switch toShare {
-			case "net":
-				options = append(options, libpod.WithPodNet())
-			case "mnt":
-				//options = append(options, libpod.WithPodMNT())
-				logrus.Debug("Mount Namespace sharing functionality not supported")
-			case "pid":
-				options = append(options, libpod.WithPodPID())
-			case "user":
-				// Note: more set up needs to be done before this doesn't error out a create.
-				logrus.Debug("User Namespace sharing functionality not supported")
-			case "ipc":
-				options = append(options, libpod.WithPodIPC())
-			case "uts":
-				options = append(options, libpod.WithPodUTS())
-			case "":
-			case "none":
-				continue
-			default:
-				return errors.Errorf("Invalid kernel namespace to share: %s. Options are: %s, or none", toShare, strings.Join(libpod.KernelNamespaces, ","))
-			}
+		nsOptions, err := shared.GetNamespaceOptions(strings.Split(c.String("share"), ","))
+		if err != nil {
+			return err
 		}
+		options = append(options, nsOptions...)
 	}
 
 	// always have containers use pod cgroups

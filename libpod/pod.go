@@ -7,11 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// KernelNamespaces is a list of the kernel namespaces a pod can share
-	KernelNamespaces = []string{"ipc", "net", "pid", "user", "mnt", "uts", "cgroup"}
-)
-
 // Pod represents a group of containers that are managed together.
 // Any operations on a Pod that access state must begin with a call to
 // updatePod().
