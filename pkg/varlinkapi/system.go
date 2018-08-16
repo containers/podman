@@ -4,8 +4,8 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/projectatomic/libpod/cmd/podman/varlink"
-	"github.com/projectatomic/libpod/libpod"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
 )
 
 // GetVersion ...

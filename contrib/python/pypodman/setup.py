@@ -27,7 +27,7 @@ setup(
     packages=find_packages(exclude=['test']),
     python_requires='>=3',
     zip_safe=True,
-    url='http://github.com/projectatomic/libpod',
+    url='http://github.com/containers/libpod',
     keywords='varlink libpod podman pypodman',
     classifiers=[
         'Development Status :: 3 - Alpha',

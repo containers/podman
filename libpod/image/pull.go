@@ -18,9 +18,9 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/registries"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/registries"
-	"github.com/projectatomic/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 

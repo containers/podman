@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod/driver"
-	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"

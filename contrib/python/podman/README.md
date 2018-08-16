@@ -2,7 +2,7 @@
 
 ## Status: Active Development
 
-See [libpod](https://github.com/projectatomic/libpod)
+See [libpod](https://github.com/containers/libpod)
 
 ## Releases
 

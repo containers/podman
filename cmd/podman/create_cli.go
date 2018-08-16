@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/docker/pkg/sysinfo"
 	"github.com/pkg/errors"
-	cc "github.com/projectatomic/libpod/pkg/spec"
 	"github.com/sirupsen/logrus"
 )
 

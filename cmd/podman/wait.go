@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/urfave/cli"
 )
 

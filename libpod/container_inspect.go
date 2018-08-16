@@ -1,8 +1,8 @@
 package libpod
 
 import (
+	"github.com/containers/libpod/pkg/inspect"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/projectatomic/libpod/pkg/inspect"
 	"github.com/sirupsen/logrus"
 )
 

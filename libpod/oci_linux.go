@@ -12,9 +12,9 @@ import (
 	"sync"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

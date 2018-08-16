@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	"github.com/projectatomic/libpod/libpod/image"
 	"github.com/urfave/cli"
 )
 
@@ -97,7 +97,7 @@ func rmiCmd(c *cli.Context) error {
 		// Note that we have to query the storage one-by-one to
 		// always get the latest state for each image.  Otherwise, we
 		// run inconsistency issues, for instance, with repoTags.
-		// See https://github.com/projectatomic/libpod/issues/930 as
+		// See https://github.com/containers/libpod/issues/930 as
 		// an exemplary inconsistency issue.
 		for _, i := range images {
 			newImage, err := runtime.ImageRuntime().NewFromLocal(i)

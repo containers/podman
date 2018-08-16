@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/urfave/cli"
 )
 

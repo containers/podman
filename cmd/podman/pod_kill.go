@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

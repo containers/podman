@@ -48,7 +48,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	// It essentially repeats the test above but with the `-it` short option
 	// that broke execution at:
-	//     https://github.com/projectatomic/libpod/pull/1066#issuecomment-403562116
+	//     https://github.com/containers/libpod/pull/1066#issuecomment-403562116
 	// To avoid a potential future regression, use this as a test.
 	It("podman uidmapping and gidmapping with short-opts", func() {
 		if os.Getenv("SKIP_USERNS") != "" {

@@ -146,7 +146,6 @@ type Builder struct {
 	// Image metadata and runtime settings, in multiple formats.
 	OCIv1  v1.Image       `json:"ociv1,omitempty"`
 	Docker docker.V2Image `json:"docker,omitempty"`
-
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format.
 	DefaultMountsFilePath string `json:"defaultMountsFilePath,omitempty"`
 
@@ -292,7 +291,6 @@ type CommonBuildOptions struct {
 
 // BuilderOptions are used to initialize a new Builder.
 type BuilderOptions struct {
-
 	// Args define variables that users can pass at build-time to the builder
 	Args map[string]string
 	// FromImage is the name of the image which should be used as the
@@ -360,9 +358,7 @@ type BuilderOptions struct {
 	// after processing the AddCapabilities set, when running commands in the
 	// container.  If a capability appears in both lists, it will be dropped.
 	DropCapabilities []string
-	// ImageOnly is a boolean designating that we wish to only pull the image and
-	// to not create a container from it.  Used by pull command.
-	ImageOnly       bool
+
 	CommonBuildOpts *CommonBuildOptions
 }
 

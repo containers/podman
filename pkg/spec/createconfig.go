@@ -7,6 +7,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/api/types/container"
@@ -15,8 +17,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
-	"github.com/projectatomic/libpod/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

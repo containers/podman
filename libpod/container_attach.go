@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/libpod/pkg/kubeutils"
+	"github.com/containers/libpod/utils"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/pkg/kubeutils"
-	"github.com/projectatomic/libpod/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"

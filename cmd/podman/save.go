@@ -12,10 +12,10 @@ import (
 	"github.com/containers/image/manifest"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	libpodImage "github.com/containers/libpod/libpod/image"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/cmd/podman/libpodruntime"
-	libpodImage "github.com/projectatomic/libpod/libpod/image"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

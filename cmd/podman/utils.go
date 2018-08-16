@@ -6,10 +6,10 @@ import (
 	"os"
 	gosignal "os/signal"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/libpod/libpod"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
