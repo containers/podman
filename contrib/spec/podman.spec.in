@@ -64,10 +64,12 @@ Requires: containers-common
 Requires: containernetworking-cni >= 0.6.0-3
 Requires: iptables
 Requires: oci-systemd-hook
-%if 0%{?fedora}
-Recommends: container-selinux
-%else
+%if 0%{?rhel} && 0%{?rhel} < 8
 Requires: container-selinux
+Requires: slirp4netns
+%else
+Recommends: container-selinux
+Recommends: slirp4netns
 %endif
 
 # vendored libraries
