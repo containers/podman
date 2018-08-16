@@ -85,8 +85,9 @@ func topCmd(c *cli.Context) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "unable to lookup %s", args[0])
+		return errors.Wrapf(err, "unable to lookup requested container")
 	}
+
 	conStat, err := container.State()
 	if err != nil {
 		return errors.Wrapf(err, "unable to look up state for %s", args[0])
