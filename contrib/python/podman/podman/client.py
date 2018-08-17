@@ -175,12 +175,12 @@ class Client():
             if not System(self._client).ping():
                 raise ConnectionRefusedError(
                     errno.ECONNREFUSED,
-                    'Failed varlink connection "{}"'.format(address), address)
+                    ('Failed varlink connection "{}"').format(address))
         except FileNotFoundError:
             raise ConnectionError(
                 errno.ECONNREFUSED,
                 ('Failed varlink connection "{}".'
-                 ' Is podman service running?').format(address), address)
+                 ' Is podman socket or service running?').format(address))
 
     def __enter__(self):
         """Return `self` upon entering the runtime context."""
