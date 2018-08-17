@@ -25,7 +25,7 @@ Print usage statement
 
 **--cgroup-manager**
 
-CGroup manager to use for container cgroups. Supported values are cgroupfs (default) or systemd. Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
+CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd (default). Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
 
 **--config value, -c**=**"config.file"**
 

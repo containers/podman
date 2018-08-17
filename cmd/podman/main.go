@@ -144,7 +144,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "cgroup-manager",
-			Usage: "cgroup manager to use (cgroupfs or systemd, default cgroupfs)",
+			Usage: "cgroup manager to use (cgroupfs or systemd, default systemd)",
 		},
 		cli.StringFlag{
 			Name:  "cni-config-dir",
