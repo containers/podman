@@ -28,10 +28,15 @@ func Device(d *configs.Device) spec.LinuxDevice {
 }
 
 func addDevice(g *generate.Generator, device string) error {
-	dev, err := devices.DeviceFromPath(device, "rwm")
+	src, dst, permissions, err := parseDevice(device)
 	if err != nil {
-		return errors.Wrapf(err, "%s is not a valid device", device)
+		return err
 	}
+	dev, err := devices.DeviceFromPath(src, permissions)
+	if err != nil {
+		return errors.Wrapf(err, "%s is not a valid device", src)
+	}
+	dev.Path = dst
 	linuxdev := spec.LinuxDevice{
 		Path:     dev.Path,
 		Type:     string(dev.Type),

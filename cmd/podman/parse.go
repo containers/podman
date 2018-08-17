@@ -38,19 +38,6 @@ type PortMapping struct {
 	HostIp string `protobuf:"bytes,4,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`
 }
 
-// Device specifies a host device to mount into a container.
-type HostDevice struct {
-	// Path of the device within the container.
-	ContainerPath string `protobuf:"bytes,1,opt,name=container_path,json=containerPath,proto3" json:"container_path,omitempty"`
-	// Path of the device on the host.
-	HostPath string `protobuf:"bytes,2,opt,name=host_path,json=hostPath,proto3" json:"host_path,omitempty"`
-	// Cgroups permissions of the device, candidates are one or more of
-	// * r - allows container to read from the specified device.
-	// * w - allows container to write to the specified device.
-	// * m - allows container to create device files that do not yet exist.
-	Permissions string `protobuf:"bytes,3,opt,name=permissions,proto3" json:"permissions,omitempty"`
-}
-
 // Note: for flags that are in the form <number><unit>, use the RAMInBytes function
 // from the units package in docker/go-units/size.go
 
@@ -104,75 +91,6 @@ func validateBlkioWeight(val int64) (int64, error) { //nolint
 		return val, nil
 	}
 	return -1, errors.Errorf("invalid blkio weight %q, should be between 10 and 1000", val)
-}
-
-// parseDevice parses a device mapping string to a container.DeviceMapping struct
-// for device flag
-func parseDevice(device string) (*HostDevice, error) { //nolint
-	_, err := validateDevice(device)
-	if err != nil {
-		return nil, errors.Wrapf(err, "device string not valid %q", device)
-	}
-
-	src := ""
-	dst := ""
-	permissions := "rwm"
-	arr := strings.Split(device, ":")
-	switch len(arr) {
-	case 3:
-		permissions = arr[2]
-		fallthrough
-	case 2:
-		if validDeviceMode(arr[1]) {
-			permissions = arr[1]
-		} else {
-			dst = arr[1]
-		}
-		fallthrough
-	case 1:
-		src = arr[0]
-	default:
-		return nil, fmt.Errorf("invalid device specification: %s", device)
-	}
-
-	if dst == "" {
-		dst = src
-	}
-
-	deviceMapping := &HostDevice{
-		ContainerPath: dst,
-		HostPath:      src,
-		Permissions:   permissions,
-	}
-	return deviceMapping, nil
-}
-
-// validDeviceMode checks if the mode for device is valid or not.
-// Valid mode is a composition of r (read), w (write), and m (mknod).
-func validDeviceMode(mode string) bool {
-	var legalDeviceMode = map[rune]bool{
-		'r': true,
-		'w': true,
-		'm': true,
-	}
-	if mode == "" {
-		return false
-	}
-	for _, c := range mode {
-		if !legalDeviceMode[c] {
-			return false
-		}
-		legalDeviceMode[c] = false
-	}
-	return true
-}
-
-// validateDevice validates a path for devices
-// It will make sure 'val' is in the form:
-//    [host-dir:]container-path[:mode]
-// It also validates the device mode.
-func validateDevice(val string) (string, error) {
-	return validatePath(val, validDeviceMode)
 }
 
 func validatePath(val string, validator func(string) bool) (string, error) {
