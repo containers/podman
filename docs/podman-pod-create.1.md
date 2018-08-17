@@ -19,13 +19,21 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
-**--podidfile**=""
-
-Write the pod ID to the file
-
 **--help**
 
 Print usage statement
+
+**--infra**
+
+Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true
+
+**--infra-command**=""
+
+The command that will be run to start the infra container. Default: "/pause"
+
+**--infra-image**=""
+
+The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1"
 
 **-l**, **--label**=[]
 
@@ -39,17 +47,9 @@ Read in a line delimited file of labels
 
 Assign a name to the pod
 
-**--pause**
+**--podidfile**=""
 
-Create a pause container and associate it with the pod. A pause container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true
-
-**--pause-command**=""
-
-The command that will be run to start the pause container. Default: "/pause"
-
-**--pause-image**=""
-
-The image that will be created for the pause container. Default: "k8s.gcr.io/pause:3.1"
+Write the pod ID to the file
 
 **--share**=""
 
@@ -69,9 +69,9 @@ for it. The name is useful any place you need to identify a pod.
 
 # podman pod create --name test
 
-# podman pod create --pause=false
+# podman pod create --infra=false
 
-# podman pod create --pause-command /top
+# podman pod create --infra-command /top
 
 ## SEE ALSO
 podman-pod(1)

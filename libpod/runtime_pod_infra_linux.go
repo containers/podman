@@ -11,40 +11,40 @@ import (
 
 const (
 	// IDTruncLength is the length of the pod's id that will be used to make the
-	// pause container name
+	// infra container name
 	IDTruncLength = 12
 )
 
-func (r *Runtime) makePauseContainer(ctx context.Context, p *Pod, imgName, imgID string) (*Container, error) {
+func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string) (*Container, error) {
 
-	// Set up generator for pause container defaults
+	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
 	if err != nil {
 		return nil, err
 	}
 
 	g.SetRootReadonly(true)
-	g.SetProcessArgs([]string{r.config.PauseCommand})
+	g.SetProcessArgs([]string{r.config.InfraCommand})
 
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	var options []CtrCreateOption
 	options = append(options, r.WithPod(p))
 	options = append(options, WithRootFSFromImage(imgID, imgName, false))
 	options = append(options, WithName(containerName))
-	options = append(options, withIsPause())
+	options = append(options, withIsInfra())
 
 	return r.newContainer(ctx, g.Config, options...)
 }
 
-// createPauseContainer wrap creates a pause container for a pod.
-// A pause container becomes the basis for kernel namespace sharing between
+// createInfraContainer wrap creates an infra container for a pod.
+// An infra container becomes the basis for kernel namespace sharing between
 // containers in the pod.
-func (r *Runtime) createPauseContainer(ctx context.Context, p *Pod) (*Container, error) {
+func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container, error) {
 	if !r.valid {
 		return nil, ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.PauseImage, "", "", nil, nil, image.SigningOptions{}, false, false)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -56,5 +56,5 @@ func (r *Runtime) createPauseContainer(ctx context.Context, p *Pod) (*Container,
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makePauseContainer(ctx, p, imageName, imageID)
+	return r.makeInfraContainer(ctx, p, imageName, imageID)
 }

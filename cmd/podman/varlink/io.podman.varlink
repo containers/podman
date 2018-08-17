@@ -343,7 +343,7 @@ type PodCreate (
     cgroupParent: string,
     labels: [string]string,
     share: []string,
-    pause: bool
+    infra: bool
 )
 
 # ListPodData is the returned struct for an individual pod
@@ -655,7 +655,7 @@ method PullImage(name: string) -> (id: string)
 #   "pod": "b05dee7bd4ccfee688099fe1588a7a898d6ddd6897de9251d4671c9b0feacb2a"
 # }
 #
-# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"pause": true, "share": ["ipc", "net", "uts"]}}'
+# $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"infra": true, "share": ["ipc", "net", "uts"]}}'
 # {
 #   "pod": "d7697449a8035f613c1a8891286502aca68fff7d5d49a85279b3bda229af3b28"
 # }

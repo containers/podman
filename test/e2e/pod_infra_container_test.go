@@ -23,7 +23,7 @@ var _ = Describe("Podman pod create", func() {
 		}
 		podmanTest = PodmanCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
-		podmanTest.RestoreArtifact(pause)
+		podmanTest.RestoreArtifact(infra)
 	})
 
 	AfterEach(func() {
@@ -33,7 +33,7 @@ var _ = Describe("Podman pod create", func() {
 		GinkgoWriter.Write([]byte(timedResult))
 	})
 
-	It("podman create pause container", func() {
+	It("podman create infra container", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -50,7 +50,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
-	It("podman start pause container", func() {
+	It("podman start infra container", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -66,7 +66,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
-	It("podman pause container namespaces", func() {
+	It("podman infra container namespaces", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -134,8 +134,8 @@ var _ = Describe("Podman pod create", func() {
 		Expect(len(PIDs)).To(Equal(4))
 
 		ctrPID, _ := strconv.Atoi(PIDs[1])
-		pausePID, _ := strconv.Atoi(PIDs[2])
-		Expect(ctrPID).To(BeNumerically("<", pausePID))
+		infraPID, _ := strconv.Atoi(PIDs[2])
+		Expect(ctrPID).To(BeNumerically("<", infraPID))
 	})
 
 	It("podman pod doesn't share PIDNS if requested to not", func() {
@@ -160,11 +160,11 @@ var _ = Describe("Podman pod create", func() {
 		check = podmanTest.Podman([]string{"top", podID[:12] + "-infra", "pid"})
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
-		pauseTop := check.OutputToStringArray()
+		infraTop := check.OutputToStringArray()
 
 		ctrPID, _ := strconv.Atoi(ctrTop[1])
-		pausePID, _ := strconv.Atoi(pauseTop[1])
-		Expect(ctrPID).To(Equal(pausePID))
+		infraPID, _ := strconv.Atoi(infraTop[1])
+		Expect(ctrPID).To(Equal(infraPID))
 	})
 
 	It("podman pod container can override pod net NS", func() {
@@ -263,7 +263,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(PID1).To(Not(Equal(PID2)))
 	})
 
-	It("podman pod pause container deletion", func() {
+	It("podman pod infra container deletion", func() {
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "ipc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -272,9 +272,9 @@ var _ = Describe("Podman pod create", func() {
 		session = podmanTest.Podman([]string{"ps", "-aq"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		pauseID := session.OutputToString()
+		infraID := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"rm", pauseID})
+		session = podmanTest.Podman([]string{"rm", infraID})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 

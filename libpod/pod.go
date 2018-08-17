@@ -54,7 +54,7 @@ type PodConfig struct {
 	UsePodUser bool `json:"sharesUser,omitempty"`
 	UsePodUTS  bool `json:"sharesUts,omitempty"`
 
-	PauseContainer *PauseContainerConfig `json:"pauseConfig"`
+	InfraContainer *InfraContainerConfig `json:"infraConfig"`
 
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
@@ -64,9 +64,9 @@ type PodConfig struct {
 type podState struct {
 	// CgroupPath is the path to the pod's CGroup
 	CgroupPath string `json:"cgroupPath"`
-	// PauseContainerID is the container that holds pod namespace information
-	// Most often a pause container
-	PauseContainerID string
+	// InfraContainerID is the container that holds pod namespace information
+	// Most often an infra container
+	InfraContainerID string
 }
 
 // PodInspect represents the data we want to display for
@@ -80,7 +80,7 @@ type PodInspect struct {
 // PodInspectState contains inspect data on the pod's state
 type PodInspectState struct {
 	CgroupPath       string `json:"cgroupPath"`
-	PauseContainerID string `json:"pauseContainerID"`
+	InfraContainerID string `json:"infraContainerID"`
 }
 
 // PodContainerInfo keeps information on a container in a pod
@@ -89,9 +89,9 @@ type PodContainerInfo struct {
 	State string `json:"state"`
 }
 
-// PauseContainerConfig is the configuration for the pod's pause container
-type PauseContainerConfig struct {
-	HasPauseContainer bool `json:"makePauseContainer"`
+// InfraContainerConfig is the configuration for the pod's infra container
+type InfraContainerConfig struct {
+	HasInfraContainer bool `json:"makeInfraContainer"`
 }
 
 // ID retrieves the pod's ID
@@ -218,20 +218,20 @@ func (p *Pod) allContainers() ([]*Container, error) {
 	return p.runtime.state.PodContainers(p)
 }
 
-// HasPauseContainer returns whether the pod will create a pause container
-func (p *Pod) HasPauseContainer() bool {
-	return p.config.PauseContainer.HasPauseContainer
+// HasInfraContainer returns whether the pod will create an infra container
+func (p *Pod) HasInfraContainer() bool {
+	return p.config.InfraContainer.HasInfraContainer
 }
 
-// SharesNamespaces checks if the pod has any kernel namespaces set as shared. A pause container will not be
+// SharesNamespaces checks if the pod has any kernel namespaces set as shared. An infra container will not be
 // created if no kernel namespaces are shared.
 func (p *Pod) SharesNamespaces() bool {
 	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMNT() || p.SharesUser() || p.SharesUTS()
 }
 
-// PauseContainerID returns a the pause container ID for a pod.
-// If the container returned is "", the pod has no pause container.
-func (p *Pod) PauseContainerID() (string, error) {
+// InfraContainerID returns the infra container ID for a pod.
+// If the container returned is "", the pod has no infra container.
+func (p *Pod) InfraContainerID() (string, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -239,7 +239,7 @@ func (p *Pod) PauseContainerID() (string, error) {
 		return "", err
 	}
 
-	return p.state.PauseContainerID, nil
+	return p.state.InfraContainerID, nil
 }
 
 // TODO add pod batching

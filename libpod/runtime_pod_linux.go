@@ -87,25 +87,25 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	if pod.config.UsePodCgroup {
 		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
-	if pod.HasPauseContainer() != pod.SharesNamespaces() {
-		return nil, errors.Errorf("Pods must have a pause container to share namespaces")
+	if pod.HasInfraContainer() != pod.SharesNamespaces() {
+		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
 
-	if pod.HasPauseContainer() {
-		ctr, err := r.createPauseContainer(ctx, pod)
+	if pod.HasInfraContainer() {
+		ctr, err := r.createInfraContainer(ctx, pod)
 		if err != nil {
 			// Tear down pod, as it is assumed a the pod will contain
 			// a pause container, and it does not.
 			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
 				logrus.Errorf("Error removing pod after pause container creation failure: %v", err2)
 			}
-			return nil, errors.Wrapf(err, "error adding Pause Container")
+			return nil, errors.Wrapf(err, "error adding Infra Container")
 		}
-		pod.state.PauseContainerID = ctr.ID()
+		pod.state.InfraContainerID = ctr.ID()
 		if err := pod.save(); err != nil {
 			return nil, err
 		}
@@ -134,7 +134,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	if err := p.updatePod(); err != nil {
 		return err
 	}
-	pauseCtrID := p.state.PauseContainerID
+	pauseCtrID := p.state.InfraContainerID
 	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
 		removeCtrs = true
 		force = true

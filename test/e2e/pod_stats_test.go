@@ -43,12 +43,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -100,12 +98,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on running pods", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -119,12 +115,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on all pods", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -138,12 +132,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats with json output", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
