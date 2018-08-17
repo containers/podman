@@ -114,6 +114,20 @@ var _ = Describe("Podman rmi", func() {
 		match, _ := session.GrepString(hostname)
 		Expect(match).Should(BeTrue())
 	})
+	It("podman run --net host --uts host hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", "--uts", "host", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(hostname)
+		Expect(match).Should(BeTrue())
+	})
+	It("podman run --uts host hostname test", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--uts", "host", ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(hostname)
+		Expect(match).Should(BeTrue())
+	})
 
 	It("podman run --net host --hostname ... hostname test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--net", "host", "--hostname", "foobar", ALPINE, "printenv", "HOSTNAME"})

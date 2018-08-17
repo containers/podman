@@ -74,18 +74,23 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.AddAnnotation(key, val)
 	}
 	g.SetRootReadonly(config.ReadOnlyRootfs)
-	if config.Hostname == "" {
-		if config.NetMode.IsHost() {
-			config.Hostname, err = os.Hostname()
-			if err != nil {
-				return nil, errors.Wrap(err, "unable to retrieve hostname")
-			}
+
+	hostname := config.Hostname
+	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
+		hostname, err = os.Hostname()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to retrieve hostname")
 		}
 	}
-	g.SetHostname(config.Hostname)
-	if config.Hostname != "" {
-		g.AddProcessEnv("HOSTNAME", config.Hostname)
+	g.RemoveHostname()
+	if config.Hostname != "" || !config.UtsMode.IsHost() {
+		// Set the hostname in the OCI configuration only
+		// if specified by the user or if we are creating
+		// a new UTS namespace.
+		g.SetHostname(hostname)
 	}
+	g.AddProcessEnv("HOSTNAME", hostname)
+
 	for sysctlKey, sysctlVal := range config.Sysctl {
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)
 	}
