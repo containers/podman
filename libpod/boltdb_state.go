@@ -705,7 +705,11 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 				// We just won't include the container in the
 				// results.
 				if errors.Cause(err) != ErrNSMismatch {
-					return err
+					// Even if it's not an NS mismatch, it's
+					// not worth erroring over.
+					// If we do, a single bad container JSON
+					// could render libpod unusable.
+					logrus.Errorf("Error retrieving container %s from the database: %v", string(id), err)
 				}
 			} else {
 				ctrs = append(ctrs, ctr)
@@ -1655,7 +1659,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 
 			if err := s.getPodFromDB(id, pod, podBucket); err != nil {
 				if errors.Cause(err) != ErrNSMismatch {
-					return err
+					logrus.Errorf("Error retrieving pod %s from the database: %v", string(id), err)
 				}
 			} else {
 				pods = append(pods, pod)
