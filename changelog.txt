@@ -1,3 +1,47 @@
+- Changelog for v0.8.3 (2018-08-17)
+  * Make failure to retrieve individual ctrs/pods nonfatal
+  * Mention that systemd is the default cgroup manager
+  * Add dependency for python3-psutil module
+  * Vendor in latest buildah and imagebuilder
+  * Don't fail on size.
+  * Fix handling of socket connection refusal.
+  * podman: fix --uts=host
+  * podman pod stats
+  * Added helper function for libpod pod api calls
+  * CreatePod args now PodCreate structure
+  * Added reason to PodContainerError
+  * Change batchcontainer to shared
+  * Add Pod API to varlink.
+  * Change pod varlink API.
+  * Moved getPodStatus to pod API to be used in varlink
+  * Vendor in latest containers/psgo code
+  * switch projectatomic to containers
+  * Revert "spec: bind mount /sys only for rootless containers"
+  * Suport format param for varlink Commit
+  * Fix segfault in top when -l and no args are passed
+  * Document STORAGE_DRIVER and STORAGE_OPTS environment variable
+  * podman.spec: recommend slirp4netns
+  * Do not 'make all' on Travis for Linux
+  * Fix build on non-Linux OSes
+  * Create pod CGroups when using the systemd cgroup driver
+  * Switch systemd default CGroup parent to machine.slice
+  * spec: bind mount /sys only for rootless containers
+  * build, rootless: specify IsolationOCIRootless
+  * vendor: update buildah version
+  * Fix handling of hostname in --net=host
+  * Updated pod_api to reflect function spec
+  * Add create and pull commands
+  * rootless: not require userns for help/version
+  * pkg/apparmor: use a pipe instead of a tmp file
+  * pkg/apparmor: move data under Linux/apparmor buildtags
+  * pkg/apparmor: move all linux-code into apparmor_linux*
+  * podman in rootless mode will only work with cgroupfs at this point.
+  * when searching, survive errors for multiple registries
+  * Remove unused function in runtime.go
+  * Fix papr tests by forcing cgroupfs in CI
+  * Bump gitvalidation epoch
+  * Bump to v0.8.3-dev
+
 - Changelog for v0.8.2.1 (2018-08-11)
   * Ensure pod inspect is locked and validity-checked
   * Further fix tests
