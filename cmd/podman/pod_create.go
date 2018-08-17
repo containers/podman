@@ -28,6 +28,18 @@ var podCreateFlags = []cli.Flag{
 		Name:  "cgroup-parent",
 		Usage: "Set parent cgroup for the pod",
 	},
+	cli.BoolTFlag{
+		Name:  "infra",
+		Usage: "Create an infra container associated with the pod to share namespaces with",
+	},
+	cli.StringFlag{
+		Name:  "infra-image",
+		Usage: "The image of the infra container to associate with the pod",
+	},
+	cli.StringFlag{
+		Name:  "infra-command",
+		Usage: "The command to run on the infra container when the pod is started",
+	},
 	cli.StringSliceFlag{
 		Name:  "label-file",
 		Usage: "Read in a line delimited file of labels (default [])",
@@ -39,18 +51,6 @@ var podCreateFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "name, n",
 		Usage: "Assign a name to the pod",
-	},
-	cli.BoolTFlag{
-		Name:  "pause",
-		Usage: "Create a pause container associated with the pod to share namespaces with",
-	},
-	cli.StringFlag{
-		Name:  "pause-image",
-		Usage: "The image of the pause container to associate with the pod",
-	},
-	cli.StringFlag{
-		Name:  "pause-command",
-		Usage: "The command to run on the pause container when the pod is started",
 	},
 	cli.StringFlag{
 		Name:  "pod-id-file",
@@ -95,8 +95,8 @@ func podCreateCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "unable to write pod id file %s", c.String("pod-id-file"))
 		}
 	}
-	if !c.BoolT("pause") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
-		return errors.Errorf("You cannot share kernel namespaces on the pod level without a pause container")
+	if !c.BoolT("infra") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
+		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
 	}
 
 	if c.IsSet("cgroup-parent") {
@@ -115,8 +115,8 @@ func podCreateCmd(c *cli.Context) error {
 		options = append(options, libpod.WithPodName(c.String("name")))
 	}
 
-	if c.BoolT("pause") {
-		options = append(options, libpod.WithPauseContainer())
+	if c.BoolT("infra") {
+		options = append(options, libpod.WithInfraContainer())
 		nsOptions, err := shared.GetNamespaceOptions(strings.Split(c.String("share"), ","))
 		if err != nil {
 			return err

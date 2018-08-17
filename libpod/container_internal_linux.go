@@ -178,7 +178,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			if err := pod.updatePod(); err != nil {
 				return nil, err
 			}
-			podInfraContainer = pod.state.PauseContainerID
+			podInfraContainer = pod.state.InfraContainerID
 		}
 	}
 

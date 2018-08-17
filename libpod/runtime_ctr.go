@@ -228,9 +228,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 			return err
 		}
 
-		pauseID := pod.state.PauseContainerID
-		if c.ID() == pauseID {
-			return errors.Errorf("a pause container cannot be removed without removing pod %s", pod.ID())
+		infraID := pod.state.InfraContainerID
+		if c.ID() == infraID {
+			return errors.Errorf("an infra container cannot be removed without removing pod %s", pod.ID())
 		}
 	}
 

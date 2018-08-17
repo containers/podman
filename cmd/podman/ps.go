@@ -44,7 +44,7 @@ type psTemplateParams struct {
 	User          string
 	UTS           string
 	Pod           string
-	IsPause       bool
+	IsInfra       bool
 }
 
 // psJSONParams is used as a base structure for the psParams
@@ -72,7 +72,7 @@ type psJSONParams struct {
 	ContainerRunning bool                  `json:"ctrRunning"`
 	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
 	Pod              string                `json:"pod,omitempty"`
-	IsPause          bool                  `json:"pause"`
+	IsInfra          bool                  `json:"infra"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -241,8 +241,8 @@ func psCmd(c *cli.Context) error {
 		// only get running containers
 		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 			state, _ := c.State()
-			// Don't return pause containers
-			return state == libpod.ContainerStateRunning && !c.IsPause()
+			// Don't return infra containers
+			return state == libpod.ContainerStateRunning && !c.IsInfra()
 		})
 	}
 
@@ -420,7 +420,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 }
 
 // generate the template based on conditions given
-func genPsFormat(format string, quiet, size, namespace, pod, pause bool) string {
+func genPsFormat(format string, quiet, size, namespace, pod, infra bool) string {
 	if format != "" {
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
@@ -441,8 +441,8 @@ func genPsFormat(format string, quiet, size, namespace, pod, pause bool) string 
 	if size {
 		format += "{{.Size}}\t"
 	}
-	if pause {
-		format += "{{.IsPause}}\t"
+	if infra {
+		format += "{{.IsInfra}}\t"
 	}
 	return format
 }
@@ -578,7 +578,7 @@ func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemp
 			Mounts:        getMounts(psParam.Mounts, opts.NoTrunc),
 			PID:           psParam.PID,
 			Pod:           pod,
-			IsPause:       psParam.IsPause,
+			IsInfra:       psParam.IsInfra,
 		}
 
 		if opts.Namespace {
@@ -635,7 +635,7 @@ func getAndSortJSONParams(containers []*libpod.Container, opts shared.PsOptions)
 			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
 			Namespaces:       ns,
 			Pod:              ctr.PodID(),
-			IsPause:          ctr.IsPause(),
+			IsInfra:          ctr.IsInfra(),
 		}
 
 		psOutput = append(psOutput, params)

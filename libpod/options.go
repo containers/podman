@@ -304,32 +304,32 @@ func WithNamespace(ns string) RuntimeOption {
 	}
 }
 
-// WithDefaultPauseImage sets the pause image for libpod.
-// A pause image is used for inter-container kernel
-// namespace sharing within a pod. Typically, a pause
+// WithDefaultInfraImage sets the infra image for libpod.
+// An infra image is used for inter-container kernel
+// namespace sharing within a pod. Typically, an infra
 // container is lightweight and is there to reap
 // zombie processes within its pid namespace.
-func WithDefaultPauseImage(img string) RuntimeOption {
+func WithDefaultInfraImage(img string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.PauseImage = img
+		rt.config.InfraImage = img
 
 		return nil
 	}
 }
 
-// WithDefaultPauseCommand sets the command to
+// WithDefaultInfraCommand sets the command to
 // run on pause container start up.
-func WithDefaultPauseCommand(cmd string) RuntimeOption {
+func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.PauseCommand = cmd
+		rt.config.InfraCommand = cmd
 
 		return nil
 	}
@@ -1156,15 +1156,15 @@ func WithCtrNamespace(ns string) CtrCreateOption {
 	}
 }
 
-// withIsPause sets the container to be a pause container. This means the container will be sometimes hidden
+// withIsInfra sets the container to be an infra container. This means the container will be sometimes hidden
 // and expected to be the first container in the pod.
-func withIsPause() CtrCreateOption {
+func withIsInfra() CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
 
-		ctr.config.IsPause = true
+		ctr.config.IsInfra = true
 
 		return nil
 	}
@@ -1348,14 +1348,14 @@ func WithPodUTS() PodCreateOption {
 	}
 }
 
-// WithPauseContainer tells the pod to create a pause container
-func WithPauseContainer() PodCreateOption {
+// WithInfraContainer tells the pod to create a pause container
+func WithInfraContainer() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return ErrPodFinalized
 		}
 
-		pod.config.PauseContainer.HasPauseContainer = true
+		pod.config.InfraContainer.HasInfraContainer = true
 
 		return nil
 	}

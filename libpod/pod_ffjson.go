@@ -12,7 +12,7 @@ import (
 )
 
 // MarshalJSON marshal bytes to json - template
-func (j *PauseContainerConfig) MarshalJSON() ([]byte, error) {
+func (j *InfraContainerConfig) MarshalJSON() ([]byte, error) {
 	var buf fflib.Buffer
 	if j == nil {
 		buf.WriteString("null")
@@ -26,7 +26,7 @@ func (j *PauseContainerConfig) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalJSONBuf marshal buff to json - template
-func (j *PauseContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
+func (j *InfraContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	if j == nil {
 		buf.WriteString("null")
 		return nil
@@ -35,34 +35,34 @@ func (j *PauseContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	var obj []byte
 	_ = obj
 	_ = err
-	if j.HasPauseContainer {
-		buf.WriteString(`{"makePauseContainer":true`)
+	if j.HasInfraContainer {
+		buf.WriteString(`{"makeInfraContainer":true`)
 	} else {
-		buf.WriteString(`{"makePauseContainer":false`)
+		buf.WriteString(`{"makeInfraContainer":false`)
 	}
 	buf.WriteByte('}')
 	return nil
 }
 
 const (
-	ffjtPauseContainerConfigbase = iota
-	ffjtPauseContainerConfignosuchkey
+	ffjtInfraContainerConfigbase = iota
+	ffjtInfraContainerConfignosuchkey
 
-	ffjtPauseContainerConfigHasPauseContainer
+	ffjtInfraContainerConfigHasInfraContainer
 )
 
-var ffjKeyPauseContainerConfigHasPauseContainer = []byte("makePauseContainer")
+var ffjKeyInfraContainerConfigHasInfraContainer = []byte("makeInfraContainer")
 
 // UnmarshalJSON umarshall json - template of ffjson
-func (j *PauseContainerConfig) UnmarshalJSON(input []byte) error {
+func (j *InfraContainerConfig) UnmarshalJSON(input []byte) error {
 	fs := fflib.NewFFLexer(input)
 	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
 }
 
 // UnmarshalJSONFFLexer fast json unmarshall - template ffjson
-func (j *PauseContainerConfig) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
+func (j *InfraContainerConfig) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
 	var err error
-	currentKey := ffjtPauseContainerConfigbase
+	currentKey := ffjtInfraContainerConfigbase
 	_ = currentKey
 	tok := fflib.FFTok_init
 	wantedTok := fflib.FFTok_init
@@ -108,7 +108,7 @@ mainparse:
 			kn := fs.Output.Bytes()
 			if len(kn) <= 0 {
 				// "" case. hrm.
-				currentKey = ffjtPauseContainerConfignosuchkey
+				currentKey = ffjtInfraContainerConfignosuchkey
 				state = fflib.FFParse_want_colon
 				goto mainparse
 			} else {
@@ -116,21 +116,21 @@ mainparse:
 
 				case 'm':
 
-					if bytes.Equal(ffjKeyPauseContainerConfigHasPauseContainer, kn) {
-						currentKey = ffjtPauseContainerConfigHasPauseContainer
+					if bytes.Equal(ffjKeyInfraContainerConfigHasInfraContainer, kn) {
+						currentKey = ffjtInfraContainerConfigHasInfraContainer
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
 
 				}
 
-				if fflib.EqualFoldRight(ffjKeyPauseContainerConfigHasPauseContainer, kn) {
-					currentKey = ffjtPauseContainerConfigHasPauseContainer
+				if fflib.EqualFoldRight(ffjKeyInfraContainerConfigHasInfraContainer, kn) {
+					currentKey = ffjtInfraContainerConfigHasInfraContainer
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
 
-				currentKey = ffjtPauseContainerConfignosuchkey
+				currentKey = ffjtInfraContainerConfignosuchkey
 				state = fflib.FFParse_want_colon
 				goto mainparse
 			}
@@ -147,10 +147,10 @@ mainparse:
 			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
 				switch currentKey {
 
-				case ffjtPauseContainerConfigHasPauseContainer:
-					goto handle_HasPauseContainer
+				case ffjtInfraContainerConfigHasInfraContainer:
+					goto handle_HasInfraContainer
 
-				case ffjtPauseContainerConfignosuchkey:
+				case ffjtInfraContainerConfignosuchkey:
 					err = fs.SkipField(tok)
 					if err != nil {
 						return fs.WrapErr(err)
@@ -164,9 +164,9 @@ mainparse:
 		}
 	}
 
-handle_HasPauseContainer:
+handle_HasInfraContainer:
 
-	/* handler: j.HasPauseContainer type=bool kind=bool quoted=false*/
+	/* handler: j.HasInfraContainer type=bool kind=bool quoted=false*/
 
 	{
 		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
@@ -182,11 +182,11 @@ handle_HasPauseContainer:
 
 			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
 
-				j.HasPauseContainer = true
+				j.HasInfraContainer = true
 
 			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
 
-				j.HasPauseContainer = false
+				j.HasInfraContainer = false
 
 			} else {
 				err = errors.New("unexpected bytes for true/false value")
@@ -323,19 +323,19 @@ func (j *PodConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	if j.PauseContainer != nil {
-		buf.WriteString(`"pauseConfig":`)
+	if j.InfraContainer != nil {
+		buf.WriteString(`"infraConfig":`)
 
 		{
 
-			err = j.PauseContainer.MarshalJSONBuf(buf)
+			err = j.InfraContainer.MarshalJSONBuf(buf)
 			if err != nil {
 				return err
 			}
 
 		}
 	} else {
-		buf.WriteString(`"pauseConfig":null`)
+		buf.WriteString(`"infraConfig":null`)
 	}
 	buf.WriteString(`,"created":`)
 
@@ -380,7 +380,7 @@ const (
 
 	ffjtPodConfigUsePodUTS
 
-	ffjtPodConfigPauseContainer
+	ffjtPodConfigInfraContainer
 
 	ffjtPodConfigCreatedTime
 )
@@ -409,7 +409,7 @@ var ffjKeyPodConfigUsePodUser = []byte("sharesUser")
 
 var ffjKeyPodConfigUsePodUTS = []byte("sharesUts")
 
-var ffjKeyPodConfigPauseContainer = []byte("pauseConfig")
+var ffjKeyPodConfigInfraContainer = []byte("infraConfig")
 
 var ffjKeyPodConfigCreatedTime = []byte("created")
 
@@ -493,6 +493,11 @@ mainparse:
 						currentKey = ffjtPodConfigID
 						state = fflib.FFParse_want_colon
 						goto mainparse
+
+					} else if bytes.Equal(ffjKeyPodConfigInfraContainer, kn) {
+						currentKey = ffjtPodConfigInfraContainer
+						state = fflib.FFParse_want_colon
+						goto mainparse
 					}
 
 				case 'l':
@@ -512,14 +517,6 @@ mainparse:
 
 					} else if bytes.Equal(ffjKeyPodConfigNamespace, kn) {
 						currentKey = ffjtPodConfigNamespace
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'p':
-
-					if bytes.Equal(ffjKeyPodConfigPauseContainer, kn) {
-						currentKey = ffjtPodConfigPauseContainer
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
@@ -570,8 +567,8 @@ mainparse:
 					goto mainparse
 				}
 
-				if fflib.EqualFoldRight(ffjKeyPodConfigPauseContainer, kn) {
-					currentKey = ffjtPodConfigPauseContainer
+				if fflib.SimpleLetterEqualFold(ffjKeyPodConfigInfraContainer, kn) {
+					currentKey = ffjtPodConfigInfraContainer
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -701,8 +698,8 @@ mainparse:
 				case ffjtPodConfigUsePodUTS:
 					goto handle_UsePodUTS
 
-				case ffjtPodConfigPauseContainer:
-					goto handle_PauseContainer
+				case ffjtPodConfigInfraContainer:
+					goto handle_InfraContainer
 
 				case ffjtPodConfigCreatedTime:
 					goto handle_CreatedTime
@@ -1175,22 +1172,22 @@ handle_UsePodUTS:
 	state = fflib.FFParse_after_value
 	goto mainparse
 
-handle_PauseContainer:
+handle_InfraContainer:
 
-	/* handler: j.PauseContainer type=libpod.PauseContainerConfig kind=struct quoted=false*/
+	/* handler: j.InfraContainer type=libpod.InfraContainerConfig kind=struct quoted=false*/
 
 	{
 		if tok == fflib.FFTok_null {
 
-			j.PauseContainer = nil
+			j.InfraContainer = nil
 
 		} else {
 
-			if j.PauseContainer == nil {
-				j.PauseContainer = new(PauseContainerConfig)
+			if j.InfraContainer == nil {
+				j.InfraContainer = new(InfraContainerConfig)
 			}
 
-			err = j.PauseContainer.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
+			err = j.InfraContainer.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
 			if err != nil {
 				return err
 			}
@@ -2223,8 +2220,8 @@ func (j *PodInspectState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	_ = err
 	buf.WriteString(`{"cgroupPath":`)
 	fflib.WriteJsonString(buf, string(j.CgroupPath))
-	buf.WriteString(`,"pauseContainerID":`)
-	fflib.WriteJsonString(buf, string(j.PauseContainerID))
+	buf.WriteString(`,"infraContainerID":`)
+	fflib.WriteJsonString(buf, string(j.InfraContainerID))
 	buf.WriteByte('}')
 	return nil
 }
@@ -2235,12 +2232,12 @@ const (
 
 	ffjtPodInspectStateCgroupPath
 
-	ffjtPodInspectStatePauseContainerID
+	ffjtPodInspectStateInfraContainerID
 )
 
 var ffjKeyPodInspectStateCgroupPath = []byte("cgroupPath")
 
-var ffjKeyPodInspectStatePauseContainerID = []byte("pauseContainerID")
+var ffjKeyPodInspectStateInfraContainerID = []byte("infraContainerID")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *PodInspectState) UnmarshalJSON(input []byte) error {
@@ -2311,18 +2308,18 @@ mainparse:
 						goto mainparse
 					}
 
-				case 'p':
+				case 'i':
 
-					if bytes.Equal(ffjKeyPodInspectStatePauseContainerID, kn) {
-						currentKey = ffjtPodInspectStatePauseContainerID
+					if bytes.Equal(ffjKeyPodInspectStateInfraContainerID, kn) {
+						currentKey = ffjtPodInspectStateInfraContainerID
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
 
 				}
 
-				if fflib.EqualFoldRight(ffjKeyPodInspectStatePauseContainerID, kn) {
-					currentKey = ffjtPodInspectStatePauseContainerID
+				if fflib.SimpleLetterEqualFold(ffjKeyPodInspectStateInfraContainerID, kn) {
+					currentKey = ffjtPodInspectStateInfraContainerID
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -2353,8 +2350,8 @@ mainparse:
 				case ffjtPodInspectStateCgroupPath:
 					goto handle_CgroupPath
 
-				case ffjtPodInspectStatePauseContainerID:
-					goto handle_PauseContainerID
+				case ffjtPodInspectStateInfraContainerID:
+					goto handle_InfraContainerID
 
 				case ffjtPodInspectStatenosuchkey:
 					err = fs.SkipField(tok)
@@ -2396,9 +2393,9 @@ handle_CgroupPath:
 	state = fflib.FFParse_after_value
 	goto mainparse
 
-handle_PauseContainerID:
+handle_InfraContainerID:
 
-	/* handler: j.PauseContainerID type=string kind=string quoted=false*/
+	/* handler: j.InfraContainerID type=string kind=string quoted=false*/
 
 	{
 
@@ -2414,7 +2411,7 @@ handle_PauseContainerID:
 
 			outBuf := fs.Output.Bytes()
 
-			j.PauseContainerID = string(string(outBuf))
+			j.InfraContainerID = string(string(outBuf))
 
 		}
 	}
@@ -2466,8 +2463,8 @@ func (j *podState) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	_ = err
 	buf.WriteString(`{"cgroupPath":`)
 	fflib.WriteJsonString(buf, string(j.CgroupPath))
-	buf.WriteString(`,"PauseContainerID":`)
-	fflib.WriteJsonString(buf, string(j.PauseContainerID))
+	buf.WriteString(`,"InfraContainerID":`)
+	fflib.WriteJsonString(buf, string(j.InfraContainerID))
 	buf.WriteByte('}')
 	return nil
 }
@@ -2478,12 +2475,12 @@ const (
 
 	ffjtpodStateCgroupPath
 
-	ffjtpodStatePauseContainerID
+	ffjtpodStateInfraContainerID
 )
 
 var ffjKeypodStateCgroupPath = []byte("cgroupPath")
 
-var ffjKeypodStatePauseContainerID = []byte("PauseContainerID")
+var ffjKeypodStateInfraContainerID = []byte("InfraContainerID")
 
 // UnmarshalJSON umarshall json - template of ffjson
 func (j *podState) UnmarshalJSON(input []byte) error {
@@ -2546,10 +2543,10 @@ mainparse:
 			} else {
 				switch kn[0] {
 
-				case 'P':
+				case 'I':
 
-					if bytes.Equal(ffjKeypodStatePauseContainerID, kn) {
-						currentKey = ffjtpodStatePauseContainerID
+					if bytes.Equal(ffjKeypodStateInfraContainerID, kn) {
+						currentKey = ffjtpodStateInfraContainerID
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
@@ -2564,8 +2561,8 @@ mainparse:
 
 				}
 
-				if fflib.EqualFoldRight(ffjKeypodStatePauseContainerID, kn) {
-					currentKey = ffjtpodStatePauseContainerID
+				if fflib.SimpleLetterEqualFold(ffjKeypodStateInfraContainerID, kn) {
+					currentKey = ffjtpodStateInfraContainerID
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -2596,8 +2593,8 @@ mainparse:
 				case ffjtpodStateCgroupPath:
 					goto handle_CgroupPath
 
-				case ffjtpodStatePauseContainerID:
-					goto handle_PauseContainerID
+				case ffjtpodStateInfraContainerID:
+					goto handle_InfraContainerID
 
 				case ffjtpodStatenosuchkey:
 					err = fs.SkipField(tok)
@@ -2639,9 +2636,9 @@ handle_CgroupPath:
 	state = fflib.FFParse_after_value
 	goto mainparse
 
-handle_PauseContainerID:
+handle_InfraContainerID:
 
-	/* handler: j.PauseContainerID type=string kind=string quoted=false*/
+	/* handler: j.InfraContainerID type=string kind=string quoted=false*/
 
 	{
 
@@ -2657,7 +2654,7 @@ handle_PauseContainerID:
 
 			outBuf := fs.Output.Bytes()
 
-			j.PauseContainerID = string(string(outBuf))
+			j.InfraContainerID = string(string(outBuf))
 
 		}
 	}

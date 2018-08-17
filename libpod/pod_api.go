@@ -426,7 +426,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		}
 		podContainers = append(podContainers, pc)
 	}
-	pauseContainerID := p.state.PauseContainerID
+	infraContainerID := p.state.InfraContainerID
 	if err != nil {
 		return &PodInspect{}, err
 	}
@@ -437,7 +437,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		Config: config,
 		State: &PodInspectState{
 			CgroupPath:       p.state.CgroupPath,
-			PauseContainerID: pauseContainerID,
+			InfraContainerID: infraContainerID,
 		},
 		Containers: podContainers,
 	}

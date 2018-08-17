@@ -342,9 +342,9 @@ type ContainerConfig struct {
 	// It picks up the built-in volumes of the container used by --volumes-from
 	LocalVolumes []string
 
-	// IsPause is a bool indicating whether this container is a pause container used for
+	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
-	IsPause bool `json:"pause"`
+	IsInfra bool `json:"pause"`
 }
 
 // ContainerStatus returns a string representation for users
@@ -974,7 +974,7 @@ func (c *Container) RootGID() int {
 	return 0
 }
 
-// IsPause returns whether the container is a pause container
-func (c *Container) IsPause() bool {
-	return c.config.IsPause
+// IsInfra returns whether the container is an infra container
+func (c *Container) IsInfra() bool {
+	return c.config.IsInfra
 }
