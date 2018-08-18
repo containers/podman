@@ -225,7 +225,7 @@ containers.  This file is usually provided by the containers-common package.
 
 The link above takes you to the seccomp.json
 
-### [policy.json](https://github.com/projectatomic/skopeo/blob/master/default-policy.json)
+### [policy.json](https://github.com/containers/skopeo/blob/master/default-policy.json)
 
 `/etc/containers/policy.json`
 
