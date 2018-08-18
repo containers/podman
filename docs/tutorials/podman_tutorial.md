@@ -71,7 +71,7 @@ $ sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 ```console
 $ sudo mkdir -p /etc/containers
 $ sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-$ sudo curl https://raw.githubusercontent.com/projectatomic/skopeo/master/default-policy.json -o /etc/containers/policy.json
+$ sudo curl https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o /etc/containers/policy.json
 ```
 #### Installing CNI plugins
 ```console

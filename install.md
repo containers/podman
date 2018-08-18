@@ -106,7 +106,7 @@ As with other Go projects, PODMAN must be cloned into a directory structure like
 GOPATH
 └── src
     └── github.com
-	└── projectatomic
+	└── containers
 	    └── libpod
 ```
 
@@ -120,8 +120,8 @@ mkdir -p $GOPATH
 Next, clone the source code using:
 
 ```bash
-mkdir -p $GOPATH/src/github.com/projectatomic
-cd $_ # or cd $GOPATH/src/github.com/projectatomic
+mkdir -p $GOPATH/src/github.com/containers
+cd $_ # or cd $GOPATH/src/github.com/containers
 git clone https://github.com/containers/libpod # or your fork
 cd libpod
 ```
@@ -225,7 +225,7 @@ containers.  This file is usually provided by the containers-common package.
 
 The link above takes you to the seccomp.json
 
-### [policy.json](https://github.com/projectatomic/skopeo/blob/master/default-policy.json)
+### [policy.json](https://github.com/containers/skopeo/blob/master/default-policy.json)
 
 `/etc/containers/policy.json`
 
