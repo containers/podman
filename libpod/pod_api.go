@@ -427,9 +427,6 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		podContainers = append(podContainers, pc)
 	}
 	infraContainerID := p.state.InfraContainerID
-	if err != nil {
-		return &PodInspect{}, err
-	}
 
 	config := new(PodConfig)
 	deepcopier.Copy(p.config).To(config)

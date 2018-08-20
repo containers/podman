@@ -551,17 +551,29 @@ func WithExitCommand(exitCommand []string) CtrCreateOption {
 
 // WithIPCNSFromPod indicates the the container should join the IPC namespace of
 // its pod
-func WithIPCNSFromPod() CtrCreateOption {
+func WithIPCNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.IPCNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.IPCNsCtr = infraContainer
 
 		return nil
 	}
@@ -569,17 +581,29 @@ func WithIPCNSFromPod() CtrCreateOption {
 
 // WithMountNSFromPod indicates the the container should join the Mount namespace of
 // its pod
-func WithMountNSFromPod() CtrCreateOption {
+func WithMountNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.MountNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.MountNsCtr = infraContainer
 
 		return nil
 	}
@@ -587,17 +611,29 @@ func WithMountNSFromPod() CtrCreateOption {
 
 // WithNetNSFromPod indicates the the container should join the network namespace of
 // its pod
-func WithNetNSFromPod() CtrCreateOption {
+func WithNetNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.NetNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.NetNsCtr = infraContainer
 
 		return nil
 	}
@@ -605,17 +641,29 @@ func WithNetNSFromPod() CtrCreateOption {
 
 // WithPIDNSFromPod indicates the the container should join the PID namespace of
 // its pod
-func WithPIDNSFromPod() CtrCreateOption {
+func WithPIDNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.PIDNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.PIDNsCtr = infraContainer
 
 		return nil
 	}
@@ -623,17 +671,29 @@ func WithPIDNSFromPod() CtrCreateOption {
 
 // WithUTSNSFromPod indicates the the container should join the UTS namespace of
 // its pod
-func WithUTSNSFromPod() CtrCreateOption {
+func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.UTSNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.UTSNsCtr = infraContainer
 
 		return nil
 	}
@@ -641,17 +701,29 @@ func WithUTSNSFromPod() CtrCreateOption {
 
 // WithUserNSFromPod indicates the the container should join the User namespace of
 // its pod
-func WithUserNSFromPod() CtrCreateOption {
+func WithUserNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.UserNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.UserNsCtr = infraContainer
 
 		return nil
 	}
@@ -659,17 +731,29 @@ func WithUserNSFromPod() CtrCreateOption {
 
 // WithCgroupNSFromPod indicates the the container should join the Cgroup namespace of
 // its pod
-func WithCgroupNSFromPod() CtrCreateOption {
+func WithCgroupNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+
+		if p == nil {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 		}
 
 		if ctr.config.Pod == "" {
 			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
 		}
 
-		ctr.config.CgroupNsPod = true
+		if ctr.config.Pod != p.ID() {
+			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		}
+
+		infraContainer, err := p.InfraContainerID()
+		if err != nil {
+			return err
+		}
+		ctr.config.CgroupNsCtr = infraContainer
 
 		return nil
 	}
@@ -1284,17 +1368,19 @@ func WithPodNet() PodCreateOption {
 	}
 }
 
-// WithPodMNT tells containers in this pod to use the mount namespace
+// WithPodMount tells containers in this pod to use the mount namespace
 // created for this pod.
 // Containers in a pod will inherit the kernel namespaces from the
 // first container added.
-func WithPodMNT() PodCreateOption {
+// TODO implement WithMountNSFrom, so WithMountNsFromPod functions properly
+// Then this option can be added on the pod level
+func WithPodMount() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return ErrPodFinalized
 		}
 
-		pod.config.UsePodMNT = true
+		pod.config.UsePodMount = true
 
 		return nil
 	}
@@ -1304,6 +1390,8 @@ func WithPodMNT() PodCreateOption {
 // created for this pod.
 // Containers in a pod will inherit the kernel namespaces from the
 // first container added.
+// TODO implement WithUserNSFrom, so WithUserNsFromPod functions properly
+// Then this option can be added on the pod level
 func WithPodUser() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {

@@ -6,6 +6,8 @@ import (
 	"context"
 
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
@@ -32,6 +34,11 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	options = append(options, WithRootFSFromImage(imgID, imgName, false))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
+
+	// Since user namespace sharing is not implemented, we only need to check if it's rootless
+	portMappings := make([]ocicni.PortMapping, 0)
+	networks := make([]string, 0)
+	options = append(options, WithNetNS(portMappings, rootless.IsRootless(), networks))
 
 	return r.newContainer(ctx, g.Config, options...)
 }

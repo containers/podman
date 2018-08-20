@@ -309,6 +309,7 @@ func createExitCommand(runtime *libpod.Runtime) []string {
 func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
+	var pod *libpod.Pod
 	var err error
 
 	// Uncomment after talking to mheon about unimplemented funcs
@@ -323,7 +324,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	}
 	if c.Pod != "" {
 		logrus.Debugf("adding container to pod %s", c.Pod)
-		pod, err := runtime.LookupPod(c.Pod)
+		pod, err = runtime.LookupPod(c.Pod)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
 		}
@@ -385,7 +386,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if IsPod(string(c.NetMode)) {
-		options = append(options, libpod.WithNetNSFromPod())
+		options = append(options, libpod.WithNetNSFromPod(pod))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		isRootless := rootless.IsRootless()
 		postConfigureNetNS := isRootless || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
@@ -404,7 +405,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		options = append(options, libpod.WithPIDNSFrom(connectedCtr))
 	}
 	if IsPod(string(c.PidMode)) {
-		options = append(options, libpod.WithPIDNSFromPod())
+		options = append(options, libpod.WithPIDNSFromPod(pod))
 	}
 
 	if c.IpcMode.IsContainer() {
@@ -416,11 +417,11 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		options = append(options, libpod.WithIPCNSFrom(connectedCtr))
 	}
 	if IsPod(string(c.IpcMode)) {
-		options = append(options, libpod.WithIPCNSFromPod())
+		options = append(options, libpod.WithIPCNSFromPod(pod))
 	}
 
 	if IsPod(string(c.UtsMode)) {
-		options = append(options, libpod.WithUTSNSFromPod())
+		options = append(options, libpod.WithUTSNSFromPod(pod))
 	}
 
 	// TODO: MNT, USER, CGROUP

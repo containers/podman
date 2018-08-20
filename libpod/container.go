@@ -252,19 +252,6 @@ type ContainerConfig struct {
 	UTSNsCtr    string `json:"utsNsCtr,omitempty"`
 	CgroupNsCtr string `json:"cgroupNsCtr,omitempty"`
 
-	// Whether container shares an NS with the pod
-	// NetNsPod conflicts with the CreateNetNS bool
-	// {namespace}NsPod conflicts with {namespace}NsCtr
-	// The pause container will be considered dependencies of the given container
-	// It must be started before the given container is started
-	IPCNsPod    bool `json:"ipcNsPod,omitempty"`
-	MountNsPod  bool `json:"mountNsPod,omitempty"`
-	NetNsPod    bool `json:"netNsPod,omitempty"`
-	PIDNsPod    bool `json:"pidNsPod,omitempty"`
-	UserNsPod   bool `json:"userNsPod,omitempty"`
-	UTSNsPod    bool `json:"utsNsPod,omitempty"`
-	CgroupNsPod bool `json:"cgroupNsPod,omitempty"`
-
 	// IDs of dependency containers.
 	// These containers must be started before this container is started.
 	Dependencies []string

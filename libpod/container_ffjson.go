@@ -194,62 +194,6 @@ func (j *ContainerConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		fflib.WriteJsonString(buf, string(j.CgroupNsCtr))
 		buf.WriteByte(',')
 	}
-	if j.IPCNsPod != false {
-		if j.IPCNsPod {
-			buf.WriteString(`"ipcNsPod":true`)
-		} else {
-			buf.WriteString(`"ipcNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.MountNsPod != false {
-		if j.MountNsPod {
-			buf.WriteString(`"mountNsPod":true`)
-		} else {
-			buf.WriteString(`"mountNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.NetNsPod != false {
-		if j.NetNsPod {
-			buf.WriteString(`"netNsPod":true`)
-		} else {
-			buf.WriteString(`"netNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.PIDNsPod != false {
-		if j.PIDNsPod {
-			buf.WriteString(`"pidNsPod":true`)
-		} else {
-			buf.WriteString(`"pidNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.UserNsPod != false {
-		if j.UserNsPod {
-			buf.WriteString(`"userNsPod":true`)
-		} else {
-			buf.WriteString(`"userNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.UTSNsPod != false {
-		if j.UTSNsPod {
-			buf.WriteString(`"utsNsPod":true`)
-		} else {
-			buf.WriteString(`"utsNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
-	if j.CgroupNsPod != false {
-		if j.CgroupNsPod {
-			buf.WriteString(`"cgroupNsPod":true`)
-		} else {
-			buf.WriteString(`"cgroupNsPod":false`)
-		}
-		buf.WriteByte(',')
-	}
 	buf.WriteString(`"Dependencies":`)
 	if j.Dependencies != nil {
 		buf.WriteString(`[`)
@@ -582,20 +526,6 @@ const (
 
 	ffjtContainerConfigCgroupNsCtr
 
-	ffjtContainerConfigIPCNsPod
-
-	ffjtContainerConfigMountNsPod
-
-	ffjtContainerConfigNetNsPod
-
-	ffjtContainerConfigPIDNsPod
-
-	ffjtContainerConfigUserNsPod
-
-	ffjtContainerConfigUTSNsPod
-
-	ffjtContainerConfigCgroupNsPod
-
 	ffjtContainerConfigDependencies
 
 	ffjtContainerConfigCreateNetNS
@@ -694,20 +624,6 @@ var ffjKeyContainerConfigUserNsCtr = []byte("userNsCtr")
 var ffjKeyContainerConfigUTSNsCtr = []byte("utsNsCtr")
 
 var ffjKeyContainerConfigCgroupNsCtr = []byte("cgroupNsCtr")
-
-var ffjKeyContainerConfigIPCNsPod = []byte("ipcNsPod")
-
-var ffjKeyContainerConfigMountNsPod = []byte("mountNsPod")
-
-var ffjKeyContainerConfigNetNsPod = []byte("netNsPod")
-
-var ffjKeyContainerConfigPIDNsPod = []byte("pidNsPod")
-
-var ffjKeyContainerConfigUserNsPod = []byte("userNsPod")
-
-var ffjKeyContainerConfigUTSNsPod = []byte("utsNsPod")
-
-var ffjKeyContainerConfigCgroupNsPod = []byte("cgroupNsPod")
 
 var ffjKeyContainerConfigDependencies = []byte("Dependencies")
 
@@ -863,11 +779,6 @@ mainparse:
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
-					} else if bytes.Equal(ffjKeyContainerConfigCgroupNsPod, kn) {
-						currentKey = ffjtContainerConfigCgroupNsPod
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
 					} else if bytes.Equal(ffjKeyContainerConfigCreateNetNS, kn) {
 						currentKey = ffjtContainerConfigCreateNetNS
 						state = fflib.FFParse_want_colon
@@ -962,11 +873,6 @@ mainparse:
 						currentKey = ffjtContainerConfigIPCNsCtr
 						state = fflib.FFParse_want_colon
 						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigIPCNsPod, kn) {
-						currentKey = ffjtContainerConfigIPCNsPod
-						state = fflib.FFParse_want_colon
-						goto mainparse
 					}
 
 				case 'l':
@@ -993,11 +899,6 @@ mainparse:
 						currentKey = ffjtContainerConfigMountNsCtr
 						state = fflib.FFParse_want_colon
 						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigMountNsPod, kn) {
-						currentKey = ffjtContainerConfigMountNsPod
-						state = fflib.FFParse_want_colon
-						goto mainparse
 					}
 
 				case 'n':
@@ -1014,11 +915,6 @@ mainparse:
 
 					} else if bytes.Equal(ffjKeyContainerConfigNetNsCtr, kn) {
 						currentKey = ffjtContainerConfigNetNsCtr
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigNetNsPod, kn) {
-						currentKey = ffjtContainerConfigNetNsPod
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
@@ -1042,11 +938,6 @@ mainparse:
 
 					} else if bytes.Equal(ffjKeyContainerConfigPIDNsCtr, kn) {
 						currentKey = ffjtContainerConfigPIDNsCtr
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigPIDNsPod, kn) {
-						currentKey = ffjtContainerConfigPIDNsPod
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
@@ -1131,16 +1022,6 @@ mainparse:
 
 					} else if bytes.Equal(ffjKeyContainerConfigUTSNsCtr, kn) {
 						currentKey = ffjtContainerConfigUTSNsCtr
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigUserNsPod, kn) {
-						currentKey = ffjtContainerConfigUserNsPod
-						state = fflib.FFParse_want_colon
-						goto mainparse
-
-					} else if bytes.Equal(ffjKeyContainerConfigUTSNsPod, kn) {
-						currentKey = ffjtContainerConfigUTSNsPod
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
@@ -1286,48 +1167,6 @@ mainparse:
 
 				if fflib.EqualFoldRight(ffjKeyContainerConfigDependencies, kn) {
 					currentKey = ffjtContainerConfigDependencies
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigCgroupNsPod, kn) {
-					currentKey = ffjtContainerConfigCgroupNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigUTSNsPod, kn) {
-					currentKey = ffjtContainerConfigUTSNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigUserNsPod, kn) {
-					currentKey = ffjtContainerConfigUserNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigPIDNsPod, kn) {
-					currentKey = ffjtContainerConfigPIDNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigNetNsPod, kn) {
-					currentKey = ffjtContainerConfigNetNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigMountNsPod, kn) {
-					currentKey = ffjtContainerConfigMountNsPod
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyContainerConfigIPCNsPod, kn) {
-					currentKey = ffjtContainerConfigIPCNsPod
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -1582,27 +1421,6 @@ mainparse:
 
 				case ffjtContainerConfigCgroupNsCtr:
 					goto handle_CgroupNsCtr
-
-				case ffjtContainerConfigIPCNsPod:
-					goto handle_IPCNsPod
-
-				case ffjtContainerConfigMountNsPod:
-					goto handle_MountNsPod
-
-				case ffjtContainerConfigNetNsPod:
-					goto handle_NetNsPod
-
-				case ffjtContainerConfigPIDNsPod:
-					goto handle_PIDNsPod
-
-				case ffjtContainerConfigUserNsPod:
-					goto handle_UserNsPod
-
-				case ffjtContainerConfigUTSNsPod:
-					goto handle_UTSNsPod
-
-				case ffjtContainerConfigCgroupNsPod:
-					goto handle_CgroupNsPod
 
 				case ffjtContainerConfigDependencies:
 					goto handle_Dependencies
@@ -2462,251 +2280,6 @@ handle_CgroupNsCtr:
 			outBuf := fs.Output.Bytes()
 
 			j.CgroupNsCtr = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_IPCNsPod:
-
-	/* handler: j.IPCNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.IPCNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.IPCNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_MountNsPod:
-
-	/* handler: j.MountNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.MountNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.MountNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_NetNsPod:
-
-	/* handler: j.NetNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.NetNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.NetNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_PIDNsPod:
-
-	/* handler: j.PIDNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.PIDNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.PIDNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_UserNsPod:
-
-	/* handler: j.UserNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.UserNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.UserNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_UTSNsPod:
-
-	/* handler: j.UTSNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.UTSNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.UTSNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_CgroupNsPod:
-
-	/* handler: j.CgroupNsPod type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.CgroupNsPod = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.CgroupNsPod = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
 
 		}
 	}

@@ -88,7 +88,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.runtime = r
 
 	var pod *Pod
-
 	if ctr.config.Pod != "" {
 		// Get the pod from state
 		pod, err = r.state.Pod(ctr.config.Pod)
@@ -230,7 +229,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 
 		infraID := pod.state.InfraContainerID
 		if c.ID() == infraID {
-			return errors.Errorf("an infra container cannot be removed without removing pod %s", pod.ID())
+			return errors.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
 		}
 	}
 
