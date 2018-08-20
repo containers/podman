@@ -27,7 +27,7 @@ class Attach(AbstractActionBase):
         """Construct Attach class."""
         super().__init__(args)
         if not args.image:
-            raise ValueError('You must supply at least one image id'
+            raise ValueError('You must supply one image id'
                              ' or name to be attached.')
 
     def attach(self):
