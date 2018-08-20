@@ -61,6 +61,44 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(stats.ExitCode()).To(Equal(0))
 	})
 
+	It("podman stats on a specific running pod with shortID", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podid := session.OutputToString()
+
+		session = podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", podid[:5]})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).To(Equal(0))
+	})
+
+	It("podman stats on a specific running pod with name", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--name", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podid := session.OutputToString()
+
+		session = podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		stats := podmanTest.Podman([]string{"pod", "stats", "--no-stream", "test"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).To(Equal(0))
+	})
+
 	It("podman stats on running pods", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
