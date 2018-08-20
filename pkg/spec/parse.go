@@ -8,6 +8,10 @@ import (
 	"github.com/docker/go-units"
 )
 
+// POD signifies a kernel namespace is being shared
+// by a container with the pod it is associated with
+const POD = "pod"
+
 // weightDevice is a structure that holds device:weight pair
 type weightDevice struct {
 	path   string
@@ -32,7 +36,7 @@ func IsNS(s string) bool {
 
 // IsPod returns if the specified string is pod
 func IsPod(s string) bool {
-	return s == "pod"
+	return s == POD
 }
 
 // Valid checks the validity of a linux namespace

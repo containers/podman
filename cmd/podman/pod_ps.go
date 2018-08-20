@@ -474,7 +474,7 @@ func getSharedNamespaces(pod *libpod.Pod) []string {
 	if pod.SharesNet() {
 		shared = append(shared, "net")
 	}
-	if pod.SharesMNT() {
+	if pod.SharesMount() {
 		shared = append(shared, "mnt")
 	}
 	if pod.SharesIPC() {

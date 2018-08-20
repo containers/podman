@@ -73,12 +73,10 @@ func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 		case "net":
 			options = append(options, libpod.WithPodNet())
 		case "mnt":
-			//options = append(options, libpod.WithPodMNT())
 			return erroredOptions, errors.Errorf("Mount sharing functionality not supported on pod level")
 		case "pid":
 			options = append(options, libpod.WithPodPID())
 		case "user":
-			// Note: more set up needs to be done before this doesn't error out a create.
 			return erroredOptions, errors.Errorf("User sharing functionality not supported on pod level")
 		case "ipc":
 			options = append(options, libpod.WithPodIPC())

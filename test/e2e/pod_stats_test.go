@@ -60,12 +60,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod with shortID", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -79,12 +77,10 @@ var _ = Describe("Podman pod stats", func() {
 	})
 
 	It("podman stats on a specific running pod with name", func() {
-		session := podmanTest.Podman([]string{"pod", "create", "--name", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		podid := session.OutputToString()
+		_, ec, podid := podmanTest.CreatePod("test")
+		Expect(ec).To(Equal(0))
 
-		session = podmanTest.RunTopContainerInPod("", podid)
+		session := podmanTest.RunTopContainerInPod("", podid)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

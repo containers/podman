@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	// CRI-O default kernel namespaces
+	// Kernel namespaces shared by default within a pod
 	DefaultKernelNamespaces = "ipc,net,uts"
 )
 
@@ -35,10 +35,12 @@ var podCreateFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "infra-image",
 		Usage: "The image of the infra container to associate with the pod",
+		Value: libpod.DefaultInfraImage,
 	},
 	cli.StringFlag{
 		Name:  "infra-command",
 		Usage: "The command to run on the infra container when the pod is started",
+		Value: libpod.DefaultInfraCommand,
 	},
 	cli.StringSliceFlag{
 		Name:  "label-file",
@@ -58,7 +60,7 @@ var podCreateFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "share",
-		Usage: "A comma deliminated list of kernel namespaces the pod will share",
+		Usage: "A comma delimited list of kernel namespaces the pod will share",
 		Value: DefaultKernelNamespaces,
 	},
 }

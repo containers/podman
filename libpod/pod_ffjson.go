@@ -299,8 +299,8 @@ func (j *PodConfig) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
-	if j.UsePodMNT != false {
-		if j.UsePodMNT {
+	if j.UsePodMount != false {
+		if j.UsePodMount {
 			buf.WriteString(`"sharesMnt":true`)
 		} else {
 			buf.WriteString(`"sharesMnt":false`)
@@ -374,7 +374,7 @@ const (
 
 	ffjtPodConfigUsePodNet
 
-	ffjtPodConfigUsePodMNT
+	ffjtPodConfigUsePodMount
 
 	ffjtPodConfigUsePodUser
 
@@ -403,7 +403,7 @@ var ffjKeyPodConfigUsePodIPC = []byte("sharesIpc")
 
 var ffjKeyPodConfigUsePodNet = []byte("sharesNet")
 
-var ffjKeyPodConfigUsePodMNT = []byte("sharesMnt")
+var ffjKeyPodConfigUsePodMount = []byte("sharesMnt")
 
 var ffjKeyPodConfigUsePodUser = []byte("sharesUser")
 
@@ -543,8 +543,8 @@ mainparse:
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
-					} else if bytes.Equal(ffjKeyPodConfigUsePodMNT, kn) {
-						currentKey = ffjtPodConfigUsePodMNT
+					} else if bytes.Equal(ffjKeyPodConfigUsePodMount, kn) {
+						currentKey = ffjtPodConfigUsePodMount
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
@@ -585,8 +585,8 @@ mainparse:
 					goto mainparse
 				}
 
-				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodMNT, kn) {
-					currentKey = ffjtPodConfigUsePodMNT
+				if fflib.EqualFoldRight(ffjKeyPodConfigUsePodMount, kn) {
+					currentKey = ffjtPodConfigUsePodMount
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -689,8 +689,8 @@ mainparse:
 				case ffjtPodConfigUsePodNet:
 					goto handle_UsePodNet
 
-				case ffjtPodConfigUsePodMNT:
-					goto handle_UsePodMNT
+				case ffjtPodConfigUsePodMount:
+					goto handle_UsePodMount
 
 				case ffjtPodConfigUsePodUser:
 					goto handle_UsePodUser
@@ -1067,9 +1067,9 @@ handle_UsePodNet:
 	state = fflib.FFParse_after_value
 	goto mainparse
 
-handle_UsePodMNT:
+handle_UsePodMount:
 
-	/* handler: j.UsePodMNT type=bool kind=bool quoted=false*/
+	/* handler: j.UsePodMount type=bool kind=bool quoted=false*/
 
 	{
 		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
@@ -1085,11 +1085,11 @@ handle_UsePodMNT:
 
 			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
 
-				j.UsePodMNT = true
+				j.UsePodMount = true
 
 			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
 
-				j.UsePodMNT = false
+				j.UsePodMount = false
 
 			} else {
 				err = errors.New("unexpected bytes for true/false value")

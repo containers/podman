@@ -389,7 +389,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	pidModeStr := c.String("pid")
 	if !c.IsSet("pid") && pod != nil && pod.SharesPID() {
-		pidModeStr = "pod"
+		pidModeStr = cc.POD
 	}
 	pidMode := container.PidMode(pidModeStr)
 	if !cc.Valid(string(pidMode), pidMode) {
@@ -398,7 +398,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	usernsModeStr := c.String("userns")
 	if !c.IsSet("userns") && pod != nil && pod.SharesUser() {
-		usernsModeStr = "pod"
+		usernsModeStr = cc.POD
 	}
 	usernsMode := container.UsernsMode(usernsModeStr)
 	if !cc.Valid(string(usernsMode), usernsMode) {
@@ -407,7 +407,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	utsModeStr := c.String("uts")
 	if !c.IsSet("uts") && pod != nil && pod.SharesUTS() {
-		utsModeStr = "pod"
+		utsModeStr = cc.POD
 	}
 	utsMode := container.UTSMode(utsModeStr)
 	if !cc.Valid(string(utsMode), utsMode) {
@@ -416,15 +416,15 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	ipcModeStr := c.String("ipc")
 	if !c.IsSet("ipc") && pod != nil && pod.SharesIPC() {
-		ipcModeStr = "pod"
+		ipcModeStr = cc.POD
 	}
 	ipcMode := container.IpcMode(ipcModeStr)
 	if !cc.Valid(string(ipcMode), ipcMode) {
 		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
 	}
-	netModeStr := c.String("net")
-	if !c.IsSet("net") && pod != nil && pod.SharesNet() {
-		netModeStr = "pod"
+	netModeStr := c.String("network")
+	if !c.IsSet("network") && pod != nil && pod.SharesNet() {
+		netModeStr = cc.POD
 	}
 	// Make sure if network is set to container namespace, port binding is not also being asked for
 	netMode := container.NetworkMode(netModeStr)

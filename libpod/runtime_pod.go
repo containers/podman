@@ -33,6 +33,14 @@ func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		return ErrRuntimeStopped
 	}
 
+	if !p.valid {
+		if ok, _ := r.state.HasPod(p.ID()); !ok {
+			// Pod probably already removed
+			// Or was never in the runtime to begin with
+			return nil
+		}
+	}
+
 	p.lock.Lock()
 	defer p.lock.Unlock()
 

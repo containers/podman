@@ -115,12 +115,8 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 }
 
 func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
-	if !p.valid {
-		if ok, _ := r.state.HasPod(p.ID()); !ok {
-			// Pod probably already removed
-			// Or was never in the runtime to begin with
-			return nil
-		}
+	if err := p.updatePod(); err != nil {
+		return err
 	}
 
 	ctrs, err := r.state.PodContainers(p)
@@ -131,9 +127,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	numCtrs := len(ctrs)
 
 	// If the only container in the pod is the pause container, remove the pod and container unconditionally.
-	if err := p.updatePod(); err != nil {
-		return err
-	}
 	pauseCtrID := p.state.InfraContainerID
 	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
 		removeCtrs = true

@@ -38,7 +38,6 @@ type PodConfig struct {
 	Labels map[string]string `json:"labels"`
 	// CgroupParent contains the pod's CGroup parent
 	CgroupParent string `json:"cgroupParent"`
-
 	// UsePodCgroup indicates whether the pod will create its own CGroup and
 	// join containers to it.
 	// If true, all containers joined to the pod will use the pod cgroup as
@@ -47,12 +46,12 @@ type PodConfig struct {
 
 	// The following UsePod{kernelNamespace} indicate whether the containers
 	// in the pod will inherit the namespace from the first container in the pod.
-	UsePodPID  bool `json:"sharesPid,omitempty"`
-	UsePodIPC  bool `json:"sharesIpc,omitempty"`
-	UsePodNet  bool `json:"sharesNet,omitempty"`
-	UsePodMNT  bool `json:"sharesMnt,omitempty"`
-	UsePodUser bool `json:"sharesUser,omitempty"`
-	UsePodUTS  bool `json:"sharesUts,omitempty"`
+	UsePodPID   bool `json:"sharesPid,omitempty"`
+	UsePodIPC   bool `json:"sharesIpc,omitempty"`
+	UsePodNet   bool `json:"sharesNet,omitempty"`
+	UsePodMount bool `json:"sharesMnt,omitempty"`
+	UsePodUser  bool `json:"sharesUser,omitempty"`
+	UsePodUTS   bool `json:"sharesUts,omitempty"`
 
 	InfraContainer *InfraContainerConfig `json:"infraConfig"`
 
@@ -148,10 +147,10 @@ func (p *Pod) SharesNet() bool {
 	return p.config.UsePodNet
 }
 
-// SharesMNT returns whether containers in pod
+// SharesMount returns whether containers in pod
 // default to use PID namespace of first container in pod
-func (p *Pod) SharesMNT() bool {
-	return p.config.UsePodMNT
+func (p *Pod) SharesMount() bool {
+	return p.config.UsePodMount
 }
 
 // SharesUser returns whether containers in pod
@@ -226,7 +225,7 @@ func (p *Pod) HasInfraContainer() bool {
 // SharesNamespaces checks if the pod has any kernel namespaces set as shared. An infra container will not be
 // created if no kernel namespaces are shared.
 func (p *Pod) SharesNamespaces() bool {
-	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMNT() || p.SharesUser() || p.SharesUTS()
+	return p.SharesPID() || p.SharesIPC() || p.SharesNet() || p.SharesMount() || p.SharesUser() || p.SharesUTS()
 }
 
 // InfraContainerID returns the infra container ID for a pod.
