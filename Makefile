@@ -133,6 +133,8 @@ clean:
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
 		cmd/podman/varlink/iopodman.go \
+		libpod/container_ffjson.go \
+		libpod/pod_ffjson.go \
 		$(MANPAGES) ||:
 ifdef HAS_PYTHON3
 		$(MAKE) -C contrib/python/podman clean
