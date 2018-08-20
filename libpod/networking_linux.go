@@ -249,9 +249,35 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	return nil
 }
 
+func getContainerNetNS(ctr *Container) (string, error) {
+	if ctr.state.NetNS != nil {
+		return ctr.state.NetNS.Path(), nil
+	}
+	if ctr.config.NetNsCtr != "" {
+		c, err := ctr.runtime.GetContainer(ctr.config.NetNsCtr)
+		if err != nil {
+			return "", err
+		}
+		if err = c.syncContainer(); err != nil {
+			return "", err
+		}
+		return c.state.NetNS.Path(), nil
+	}
+	return "", nil
+}
+
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
-	err := ns.WithNetNSPath(ctr.state.NetNS.Path(), func(_ ns.NetNS) error {
+	netNSPath, netPathErr := getContainerNetNS(ctr)
+	if netPathErr != nil {
+		return nil, netPathErr
+	}
+	if netNSPath == "" {
+		// If netNSPath is empty, it was set as none, and no netNS was set up
+		// this is a valid state and thus return no error, nor any statistics
+		return nil, nil
+	}
+	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
 		link, err := netlink.LinkByName(ocicni.DefaultInterfaceName)
 		if err != nil {
 			return err
