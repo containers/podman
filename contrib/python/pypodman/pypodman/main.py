@@ -45,6 +45,9 @@ def main():
     except AttributeError:
         parser.print_help(sys.stderr)
         sys.exit(1)
+    except ValueError as e:
+        print(e, file=sys.stderr, flush=True)
+        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logging.critical(repr(e), exc_info=want_tb())
         logging.warning('See subparser "%s" configuration.',
