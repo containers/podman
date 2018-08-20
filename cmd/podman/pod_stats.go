@@ -228,7 +228,7 @@ func getPodsByList(podList []string, r *libpod.Runtime) ([]*libpod.Pod, error) {
 		pods []*libpod.Pod
 	)
 	for _, p := range podList {
-		pod, err := r.GetPod(p)
+		pod, err := r.LookupPod(p)
 		if err != nil {
 			return nil, err
 		}
