@@ -2,6 +2,7 @@ import os
 import signal
 import unittest
 from test.podman_testcase import PodmanTestCase
+from test.retry_decorator import retry
 
 import podman
 
@@ -217,6 +218,8 @@ class TestContainers(PodmanTestCase):
         self.assertTrue(ctnr.running)
         self.assertTrue(ctnr.status, 'running')
 
+    # creating cgoups can be flakey
+    @retry(podman.libs.errors.ErrorOccurred, tries=16, delay=2, print_=print)
     def test_stats(self):
         self.assertTrue(self.alpine_ctnr.running)
 

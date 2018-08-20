@@ -1,3 +1,4 @@
+"""Base for podman tests."""
 import contextlib
 import functools
 import itertools
@@ -16,6 +17,7 @@ class PodmanTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Fixture to setup podman test case."""
         if hasattr(PodmanTestCase, 'alpine_process'):
             PodmanTestCase.tearDownClass()
 
@@ -91,6 +93,7 @@ class PodmanTestCase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Fixture to clean up after podman unittest."""
         try:
             PodmanTestCase.alpine_process.kill()
             assert 0 == PodmanTestCase.alpine_process.wait(500)
@@ -104,5 +107,6 @@ class PodmanTestCase(unittest.TestCase):
 
     @contextlib.contextmanager
     def assertRaisesNotImplemented(self):
+        """Sugar for unimplemented varlink methods."""
         with self.assertRaisesRegex(VarlinkError, MethodNotImplemented):
             yield
