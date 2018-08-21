@@ -66,8 +66,14 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
 	stats.SystemNano = cgroupStats.CPU.Usage.Kernel
-	stats.NetInput = netStats.TxBytes
-	stats.NetOutput = netStats.RxBytes
+	// Handle case where the container is not in a network namespace
+	if netStats != nil {
+		stats.NetInput = netStats.TxBytes
+		stats.NetOutput = netStats.RxBytes
+	} else {
+		stats.NetInput = 0
+		stats.NetOutput = 0
+	}
 
 	return stats, nil
 }
