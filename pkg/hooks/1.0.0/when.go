@@ -74,7 +74,7 @@ func (when *When) Match(config *rspec.Spec, annotations map[string]string, hasBi
 		}
 	}
 
-	if config.Process != nil {
+	if config.Process != nil && len(when.Commands) > 0 {
 		if len(config.Process.Args) == 0 {
 			return false, errors.New("process.args must have at least one entry")
 		}
