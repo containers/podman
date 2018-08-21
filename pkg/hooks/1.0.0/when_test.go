@@ -24,16 +24,22 @@ func TestNoMatch(t *testing.T) {
 
 func TestAlways(t *testing.T) {
 	config := &rspec.Spec{}
+	processStruct := &rspec.Process{
+		Args: []string{"/bin/sh", "a", "b"},
+	}
 	for _, always := range []bool{true, false} {
 		for _, or := range []bool{true, false} {
-			t.Run(fmt.Sprintf("always %t, or %t", always, or), func(t *testing.T) {
-				when := When{Always: &always, Or: or}
-				match, err := when.Match(config, map[string]string{}, false)
-				if err != nil {
-					t.Fatal(err)
-				}
-				assert.Equal(t, always, match)
-			})
+			for _, process := range []*rspec.Process{processStruct, nil} {
+				t.Run(fmt.Sprintf("always %t, or %t, has process %t", always, or, (process != nil)), func(t *testing.T) {
+					config.Process = process
+					when := When{Always: &always, Or: or}
+					match, err := when.Match(config, map[string]string{}, false)
+					if err != nil {
+						t.Fatal(err)
+					}
+					assert.Equal(t, always, match)
+				})
+			}
 		}
 	}
 }
