@@ -50,9 +50,9 @@ Image stored in local container/storage
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
 
-**--cert-dir**
+**--cert-dir** *path*
 
-Pathname of a directory containing TLS certificates and keys.
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_.
 
 **--creds**

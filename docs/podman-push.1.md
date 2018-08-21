@@ -55,9 +55,9 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**cert-dir="PATHNAME"**
+**--cert-dir** *path*
 
-Pathname of a directory containing TLS certificates and keys.
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_.
 
 **--compress**
