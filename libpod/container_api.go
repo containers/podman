@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
@@ -298,6 +300,19 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		capList = caps.GetAllCapabilities()
 	}
 
+	// If user was set, look it up in the container to get a UID to use on
+	// the host
+	hostUser := ""
+	if user != "" {
+		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, user)
+		if err != nil {
+			return errors.Wrapf(err, "error getting user to launch exec session as")
+		}
+
+		// runc expects user formatted as uid:gid
+		hostUser = fmt.Sprintf("%d:%d", uid, gid)
+	}
+
 	// Generate exec session ID
 	// Ensure we don't conflict with an existing session ID
 	sessionID := stringid.GenerateNonCryptoID()
@@ -318,7 +333,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 
-	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, user, sessionID)
+	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, hostUser, sessionID)
 	if err != nil {
 		return errors.Wrapf(err, "error creating exec command for container %s", c.ID())
 	}
