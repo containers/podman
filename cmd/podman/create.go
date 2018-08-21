@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -509,7 +510,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	// STOP SIGNAL
 	stopSignal := syscall.SIGTERM
-	signalString := "SIGTERM"
+	signalString := ""
 	if data != nil {
 		signalString = data.ContainerConfig.StopSignal
 	}
@@ -648,6 +649,17 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
 
+	var systemd bool
+	if c.BoolT("systemd") && ((filepath.Base(command[0]) == "init") || (filepath.Base(command[0]) == "systemd")) {
+		systemd = true
+		if signalString == "" {
+			stopSignal, err = signal.ParseSignal("RTMIN+3")
+			if err != nil {
+				return nil, errors.Wrapf(err, "error parsing systemd signal")
+			}
+		}
+	}
+
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
 		Annotations:       annotations,
@@ -726,6 +738,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		StopSignal:  stopSignal,
 		StopTimeout: c.Uint("stop-timeout"),
 		Sysctl:      sysctl,
+		Systemd:     systemd,
 		Tmpfs:       c.StringSlice("tmpfs"),
 		Tty:         tty,
 		User:        user,
