@@ -145,7 +145,7 @@ libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
 
 dbuild: libpodimage
-	docker run --name=${LIBPOD_INSTANCE} --privileged ${LIBPOD_IMAGE} -v ${PWD}:/go/src/${PROJECT} --rm ${ENTRYPOINT} make binaries
+	docker run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} ${ENTRYPOINT} make binaries
 
 test: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localunit localintegration
