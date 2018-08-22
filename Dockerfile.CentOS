@@ -61,11 +61,11 @@ RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
 
-# Install ffjson
+# Install easyjson
 RUN set -x \
       && export GOPATH=/go \
-      && go get github.com/pquerna/ffjson \
-      && install -D -m 755 "$GOPATH"/bin/ffjson /usr/bin/
+      && go get -u github.com/mailru/easyjson/... \
+      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
 # Install conmon
 ENV CRIO_COMMIT 662dbb31b5d4f5ed54511a47cde7190c61c28677
