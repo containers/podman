@@ -112,7 +112,7 @@ var _ = Describe("Podman exec", func() {
 
 	It("podman exec with user only in container", func() {
 		testUser := "test123"
-		setup := podmanTest.RunTopContainer("test1")
+		setup := podmanTest.Podman([]string{"run", "--name", "test1", "-d", fedoraMinimal, "sleep", "60"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
