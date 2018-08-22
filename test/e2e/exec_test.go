@@ -100,4 +100,29 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman exec simple command with user", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "--user", "root", "test1", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman exec with user only in container", func() {
+		testUser := "test123"
+		setup := podmanTest.Podman([]string{"run", "--name", "test1", "-d", fedoraMinimal, "sleep", "60"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "test1", "useradd", testUser})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"exec", "--user", testUser, "test1", "whoami"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+		Expect(session2.OutputToString()).To(Equal(testUser))
+	})
 })
