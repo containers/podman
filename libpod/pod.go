@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/pkg/errors"
 )
 
 // Pod represents a group of containers that are managed together.
@@ -192,10 +193,14 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (ma
 			prevStat = &ContainerStats{}
 		}
 		newStats, err := c.GetContainerStats(prevStat)
-		if err != nil {
+		// If the container wasn't running, don't include it
+		// but also suppress the error
+		if err != nil && errors.Cause(err) != ErrCtrStateInvalid {
 			return nil, err
 		}
-		newContainerStats[c.ID()] = newStats
+		if err == nil {
+			newContainerStats[c.ID()] = newStats
+		}
 	}
 	return newContainerStats, nil
 }

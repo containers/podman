@@ -207,6 +207,9 @@ func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) er
 	}
 	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
+		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			return call.ReplyNoContainerRunning()
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	cs := iopodman.ContainerStats{

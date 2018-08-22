@@ -199,6 +199,9 @@ func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+	if len(podStats) == 0 {
+		return call.ReplyNoContainerRunning()
+	}
 	containersStats := make([]iopodman.ContainerStats, 0)
 	for ctrID, containerStats := range podStats {
 		cs := iopodman.ContainerStats{
