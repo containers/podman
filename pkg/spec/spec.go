@@ -41,7 +41,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/sys",
 			Type:        "sysfs",
 			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
+			Options:     []string{"private", "nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
 	} else if !canMountSys {
@@ -65,7 +65,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/dev/pts",
 			Type:        "devpts",
 			Source:      "devpts",
-			Options:     []string{"nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+			Options:     []string{"private", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
 		}
 		g.AddMount(devPts)
 	}
@@ -95,7 +95,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+			Options:     []string{"private", "nosuid", "noexec", "nodev", "relatime", cgroupPerm},
 		}
 		g.AddMount(cgroupMnt)
 	}
@@ -223,7 +223,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 
 	for _, i := range config.Tmpfs {
 		// Default options if nothing passed
-		options := []string{"rw", "noexec", "nosuid", "nodev", "size=65536k"}
+		options := []string{"rw", "private", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
 			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
@@ -303,17 +303,9 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
 	configSpec.Mounts = append(configSpec.Mounts, mounts...)
-	for _, mount := range configSpec.Mounts {
-		for _, opt := range mount.Options {
-			switch opt {
-			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-				if err := g.SetLinuxRootPropagation(opt); err != nil {
-					return nil, errors.Wrapf(err, "error setting root propagation for %q", mount.Destination)
-				}
-			}
-		}
+	if err := g.SetLinuxRootPropagation("shared"); err != nil {
+		return nil, errors.Wrapf(err, "failed to set propagation to rslave")
 	}
-
 	if canAddResources {
 		// BLOCK IO
 		blkio, err := config.CreateBlockIO()
