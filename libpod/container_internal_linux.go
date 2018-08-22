@@ -107,7 +107,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			Type:        "bind",
 			Source:      srcPath,
 			Destination: dstPath,
-			Options:     []string{"rw", "bind"},
+			Options:     []string{"rw", "bind", "private"},
 		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
