@@ -25,7 +25,13 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.HostSpecific = true
 	addCgroup := true
-	if config.Privileged {
+	canMountSys := true
+
+	if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+		canMountSys = false
+	}
+
+	if config.Privileged && canMountSys {
 		cgroupPerm = "rw"
 		g.RemoveMount("/sys")
 		sysMnt := spec.Mount{
@@ -35,14 +41,18 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Options:     []string{"nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
-	} else if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+	} else if !canMountSys {
 		addCgroup = false
 		g.RemoveMount("/sys")
+		r := "ro"
+		if config.Privileged {
+			r = "rw"
+		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
 			Type:        "bind",
 			Source:      "/sys",
-			Options:     []string{"nosuid", "noexec", "nodev", "ro", "rbind"},
+			Options:     []string{"nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
 	}
