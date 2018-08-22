@@ -80,7 +80,7 @@ func translateDescriptors(descriptors []string) ([]aixFormatDescriptor, error) {
 
 var (
 	// DefaultDescriptors is the `ps -ef` compatible default format.
-	DefaultDescriptors = []string{"user", "pid", "ppid", "pcpu", "etime", "tty", "time", "comm"}
+	DefaultDescriptors = []string{"user", "pid", "ppid", "pcpu", "etime", "tty", "time", "args"}
 
 	// ErrUnkownDescriptor is returned when an unknown descriptor is parsed.
 	ErrUnkownDescriptor = errors.New("unknown descriptor")
@@ -334,6 +334,48 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 	return data, dataErr
 }
 
+// JoinNamespaceAndProcessInfoByPids has similar semantics to
+// JoinNamespaceAndProcessInfo and avoids duplicate entries by joining a giving
+// PID namepsace only once.
+func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) {
+	// Extracting data from processes that share the same PID namespace
+	// would yield duplicate results.  Avoid that by extracting data only
+	// from the first process in `pids` from a given PID namespace.
+	// `nsMap` is used for quick lookups if a given PID namespace is
+	// already covered, `pidList` is used to preserve the order which is
+	// not guaranteed by nondeterministic maps in golang.
+	nsMap := make(map[string]bool)
+	pidList := []string{}
+	for _, pid := range pids {
+		ns, err := proc.ParsePIDNamespace(pid)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// catch race conditions
+				continue
+			}
+			return nil, errors.Wrapf(err, "error extracing PID namespace")
+		}
+		if _, exists := nsMap[ns]; !exists {
+			nsMap[ns] = true
+			pidList = append(pidList, pid)
+		}
+	}
+
+	data := [][]string{}
+	for i, pid := range pidList {
+		pidData, err := JoinNamespaceAndProcessInfo(pid, descriptors)
+		if err != nil {
+			return nil, err
+		}
+		if i == 0 {
+			data = append(data, pidData[0])
+		}
+		data = append(data, pidData[1:]...)
+	}
+
+	return data, nil
+}
+
 // ProcessInfo returns the process information of all processes in the current
 // mount namespace. The input format must be a comma-separated list of
 // supported AIX format descriptors.  If the input string is empty, the
@@ -341,12 +383,18 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 // The return value is an array of tab-separated strings, to easily use the
 // output for column-based formatting (e.g., with the `text/tabwriter` package).
 func ProcessInfo(descriptors []string) ([][]string, error) {
-	aixDescriptors, err := translateDescriptors(descriptors)
+	pids, err := proc.GetPIDs()
 	if err != nil {
 		return nil, err
 	}
 
-	pids, err := proc.GetPIDs()
+	return ProcessInfoByPids(pids, descriptors)
+}
+
+// ProcessInfoByPids is like ProcessInfo, but the process information returned
+// is limited to a list of user specified PIDs.
+func ProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) {
+	aixDescriptors, err := translateDescriptors(descriptors)
 	if err != nil {
 		return nil, err
 	}
@@ -470,22 +518,20 @@ func processName(p *process.Process) (string, error) {
 
 // processARGS returns the command of p with all its arguments.
 func processARGS(p *process.Process) (string, error) {
-	args := p.CmdLine
 	// ps (1) returns "[$name]" if command/args are empty
-	if len(args) == 0 {
+	if p.CmdLine[0] == "" {
 		return processName(p)
 	}
-	return strings.Join(args, " "), nil
+	return strings.Join(p.CmdLine, " "), nil
 }
 
 // processCOMM returns the command name (i.e., executable name) of process p.
 func processCOMM(p *process.Process) (string, error) {
-	args := p.CmdLine
 	// ps (1) returns "[$name]" if command/args are empty
-	if len(args) == 0 {
+	if p.CmdLine[0] == "" {
 		return processName(p)
 	}
-	spl := strings.Split(args[0], "/")
+	spl := strings.Split(p.CmdLine[0], "/")
 	return spl[len(spl)-1], nil
 }
 
