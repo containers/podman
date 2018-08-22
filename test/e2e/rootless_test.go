@@ -44,7 +44,7 @@ var _ = Describe("Podman rootless", func() {
 		}
 	})
 
-	It("podman rootless rootfs", func() {
+	runRootless := func(args []string) {
 		// Check if we can create an user namespace
 		err := exec.Command("unshare", "-r", "echo", "hello").Run()
 		if err != nil {
@@ -96,7 +96,9 @@ var _ = Describe("Podman rootless", func() {
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
 			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
-			cmd := podmanTest.PodmanAsUser([]string{"run", "--rootfs", mountPath, "echo", "hello"}, 1000, 1000, env)
+			allArgs := append([]string{"run"}, args...)
+			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
+			cmd := podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
 			Expect(cmd.ExitCode()).To(Equal(0))
@@ -107,5 +109,21 @@ var _ = Describe("Podman rootless", func() {
 		umount := podmanTest.Podman([]string{"umount", cid})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
+	}
+
+	It("podman rootless rootfs", func() {
+		runRootless([]string{})
+	})
+
+	It("podman rootless rootfs --net host", func() {
+		runRootless([]string{"--net", "host"})
+	})
+
+	It("podman rootless rootfs --privileged", func() {
+		runRootless([]string{"--privileged"})
+	})
+
+	It("podman rootless rootfs --net host --privileged", func() {
+		runRootless([]string{"--net", "host", "--privileged"})
 	})
 })
