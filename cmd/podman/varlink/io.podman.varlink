@@ -441,7 +441,8 @@ method ExportContainer(name: string, path: string) -> (tarfile: string)
 
 # GetContainerStats takes the name or ID of a container and returns a single ContainerStats structure which
 # contains attributes like memory and cpu usage.  If the container cannot be found, a
-# [ContainerNotFound](#ContainerNotFound)  error will be returned.
+# [ContainerNotFound](#ContainerNotFound) error will be returned. If the container is not running, a [NoContainerRunning](#NoContainerRunning)
+# error will be returned
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name": "c33e4164f384"}'
@@ -759,6 +760,7 @@ method TopPod() -> (notimplemented: NotImplemented)
 
 # GetPodStats takes the name or ID of a pod and returns a pod name and slice of ContainerStats structure which
 # contains attributes like memory and cpu usage.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
+# error will be returned.  If the pod has no running containers associated with it, a [NoContainerRunning](#NoContainerRunning)
 # error will be returned.
 # #### Example
 # ~~~
@@ -791,6 +793,9 @@ error ImageNotFound (name: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
 error ContainerNotFound (name: string)
+
+# NoContainerRunning means none of the containers requested are running in a command that requires a running container.
+error NoContainerRunning ()
 
 # PodNotFound means the pod could not be found by the provided name or ID in local storage.
 error PodNotFound (name: string)

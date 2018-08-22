@@ -138,7 +138,7 @@ func statsCmd(c *cli.Context) error {
 			id := ctr.ID()
 			if _, ok := containerStats[ctr.ID()]; !ok {
 				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
-				if errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr {
+				if errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
 					// skip dealing with a container that is gone
 					continue
 				}

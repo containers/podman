@@ -26,7 +26,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	}
 
 	if c.state.State != ContainerStateRunning {
-		return stats, nil
+		return stats, ErrCtrStateInvalid
 	}
 
 	cgroupPath, err := c.CGroupPath()
