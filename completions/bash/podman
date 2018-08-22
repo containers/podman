@@ -2284,12 +2284,14 @@ _podman_pod() {
     subcommands="
      create
      kill
+     pause
      ps
      restart
      rm
      start
+     stats
      stop
-     pause
+     top
      unpause
     "
     local aliases="
