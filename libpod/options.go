@@ -557,16 +557,8 @@ func WithIPCNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -587,16 +579,8 @@ func WithMountNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -617,16 +601,8 @@ func WithNetNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -647,16 +623,8 @@ func WithPIDNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -677,16 +645,8 @@ func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -707,16 +667,8 @@ func WithUserNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
@@ -737,16 +689,8 @@ func WithCgroupNSFromPod(p *Pod) CtrCreateOption {
 			return ErrCtrFinalized
 		}
 
-		if p == nil {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
-		}
-
-		if ctr.config.Pod == "" {
-			return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
-		}
-
-		if ctr.config.Pod != p.ID() {
-			return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		if err := validPodNSOption(p, ctr.config.Pod); err != nil {
+			return err
 		}
 
 		infraContainer, err := p.InfraContainerID()
