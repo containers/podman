@@ -34,6 +34,20 @@ func IsRootless() bool {
 	return os.Getuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
 }
 
+var (
+	skipStorageSetup = false
+)
+
+// SetSkipStorageSetup tells the runtime to not setup containers/storage
+func SetSkipStorageSetup(v bool) {
+	skipStorageSetup = v
+}
+
+// SkipStorageSetup tells if we should skip the containers/storage setup
+func SkipStorageSetup() bool {
+	return skipStorageSetup
+}
+
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
 	uidEnv := os.Getenv("_LIBPOD_ROOTLESS_UID")
