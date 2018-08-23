@@ -239,6 +239,11 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 				return err
 			}
 		}
+
+		// Free the container's lock
+		if err := ctr.lock.Free(); err != nil {
+			return err
+		}
 	}
 
 	// Remove containers from the state

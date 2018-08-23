@@ -830,19 +830,22 @@ func (r *Runtime) refresh(alivePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
+	// No locks are taken during pod and container refresh.
+	// Furthermore, the pod and container refresh() functions are not
+	// allowed to take locks themselves.
+	// We cannot assume that any pod or container has a valid lock until
+	// after this function has returned.
+	// The runtime alive lock should suffice to provide mutual exclusion
+	// until this has run.
 	for _, ctr := range ctrs {
-		ctr.lock.Lock()
 		if err := ctr.refresh(); err != nil {
 			logrus.Errorf("Error refreshing container %s: %v", ctr.ID(), err)
 		}
-		ctr.lock.Unlock()
 	}
 	for _, pod := range pods {
-		pod.lock.Lock()
 		if err := pod.refresh(); err != nil {
 			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
 		}
-		pod.lock.Unlock()
 	}
 
 	// Create a file indicating the runtime is alive and ready

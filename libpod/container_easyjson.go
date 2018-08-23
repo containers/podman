@@ -1275,6 +1275,8 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 			out.Pod = string(in.String())
 		case "namespace":
 			out.Namespace = string(in.String())
+		case "lockID":
+			out.LockID = uint32(in.Uint32())
 		case "idMappingsOptions":
 			easyjson1dbef17bDecodeGithubComContainersLibpodVendorGithubComContainersStorage(in, &out.IDMappings)
 		case "rootfsImageID":
@@ -1777,6 +1779,16 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.String(string(in.Namespace))
+	}
+	{
+		const prefix string = ",\"lockID\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Uint32(uint32(in.LockID))
 	}
 	if true {
 		const prefix string = ",\"idMappingsOptions\":"

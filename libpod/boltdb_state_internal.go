@@ -288,10 +288,9 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(ctr.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for container %s", string(id))
 	}
 	ctr.lock = lock
 

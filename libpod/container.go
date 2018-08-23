@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -122,7 +123,7 @@ type Container struct {
 	batched bool
 
 	valid   bool
-	lock    storage.Locker
+	lock    lock.Locker
 	runtime *Runtime
 
 	rootlessSlirpSyncR *os.File
@@ -211,6 +212,8 @@ type Config struct {
 	Pod string `json:"pod,omitempty"`
 	// Namespace the container is in
 	Namespace string `json:"namespace,omitempty"`
+	// ID of this container's lock
+	LockID uint32 `json:"lockID"`
 
 	// TODO consider breaking these subsections up into smaller structs
 
