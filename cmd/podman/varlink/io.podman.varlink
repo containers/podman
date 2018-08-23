@@ -441,7 +441,8 @@ method ExportContainer(name: string, path: string) -> (tarfile: string)
 
 # GetContainerStats takes the name or ID of a container and returns a single ContainerStats structure which
 # contains attributes like memory and cpu usage.  If the container cannot be found, a
-# [ContainerNotFound](#ContainerNotFound)  error will be returned.
+# [ContainerNotFound](#ContainerNotFound) error will be returned. If the container is not running, a [NoContainerRunning](#NoContainerRunning)
+# error will be returned
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name": "c33e4164f384"}'
@@ -757,14 +758,44 @@ method WaitPod() -> (notimplemented: NotImplemented)
 # This method has not been implemented yet.
 method TopPod() -> (notimplemented: NotImplemented)
 
-# This method has not been implemented yet.
-method StatsPod() -> (notimplemented: NotImplemented)
+# GetPodStats takes the name or ID of a pod and returns a pod name and slice of ContainerStats structure which
+# contains attributes like memory and cpu usage.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
+# error will be returned.  If the pod has no running containers associated with it, a [NoContainerRunning](#NoContainerRunning)
+# error will be returned.
+# #### Example
+# ~~~
+# $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b508b6f12b11d8fe02e"}'
+# {
+#   "containers": [
+#     {
+#       "block_input": 0,
+#       "block_output": 0,
+#       "cpu": 2.833470544016107524276e-08,
+#       "cpu_nano": 54363072,
+#       "id": "a64b51f805121fe2c5a3dc5112eb61d6ed139e3d1c99110360d08b58d48e4a93",
+#       "mem_limit": 12276146176,
+#       "mem_perc": 7.974359265237864966003e-03,
+#       "mem_usage": 978944,
+#       "name": "quirky_heisenberg",
+#       "net_input": 866,
+#       "net_output": 7388,
+#       "pids": 1,
+#       "system_nano": 20000000
+#     }
+#   ],
+#   "pod": "7f62b508b6f12b11d8fe02e0db4de6b9e43a7d7699b33a4fc0d574f6e82b4ebd"
+# }
+# ~~~
+method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
 error ContainerNotFound (name: string)
+
+# NoContainerRunning means none of the containers requested are running in a command that requires a running container.
+error NoContainerRunning ()
 
 # PodNotFound means the pod could not be found by the provided name or ID in local storage.
 error PodNotFound (name: string)

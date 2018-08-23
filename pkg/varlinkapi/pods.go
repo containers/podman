@@ -187,3 +187,39 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 
 	return call.ReplyRemovePod(pod.ID())
 }
+
+// GetPodStats ...
+func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
+	pod, err := i.Runtime.LookupPod(name)
+	if err != nil {
+		return call.ReplyPodNotFound(name)
+	}
+	prevStats := make(map[string]*libpod.ContainerStats)
+	podStats, err := pod.GetPodStats(prevStats)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if len(podStats) == 0 {
+		return call.ReplyNoContainerRunning()
+	}
+	containersStats := make([]iopodman.ContainerStats, 0)
+	for ctrID, containerStats := range podStats {
+		cs := iopodman.ContainerStats{
+			Id:           ctrID,
+			Name:         containerStats.Name,
+			Cpu:          containerStats.CPU,
+			Cpu_nano:     int64(containerStats.CPUNano),
+			System_nano:  int64(containerStats.SystemNano),
+			Mem_usage:    int64(containerStats.MemUsage),
+			Mem_limit:    int64(containerStats.MemLimit),
+			Mem_perc:     containerStats.MemPerc,
+			Net_input:    int64(containerStats.NetInput),
+			Net_output:   int64(containerStats.NetOutput),
+			Block_input:  int64(containerStats.BlockInput),
+			Block_output: int64(containerStats.BlockOutput),
+			Pids:         int64(containerStats.PIDs),
+		}
+		containersStats = append(containersStats, cs)
+	}
+	return call.ReplyGetPodStats(pod.ID(), containersStats)
+}
