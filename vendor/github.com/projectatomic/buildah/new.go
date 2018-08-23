@@ -140,7 +140,11 @@ func newContainerIDMappingOptions(idmapOptions *IDMappingOptions) storage.IDMapp
 func resolveImage(ctx context.Context, systemContext *types.SystemContext, store storage.Store, options BuilderOptions) (types.ImageReference, *storage.Image, error) {
 	var ref types.ImageReference
 	var img *storage.Image
-	for _, image := range util.ResolveName(options.FromImage, options.Registry, systemContext, store) {
+	images, err := util.ResolveName(options.FromImage, options.Registry, systemContext, store)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error parsing reference to image %q", options.FromImage)
+	}
+	for _, image := range images {
 		var err error
 		if len(image) >= minimumTruncatedIDLength {
 			if img, err = store.Image(image); err == nil && img != nil && strings.HasPrefix(img.ID, image) {

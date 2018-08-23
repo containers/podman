@@ -63,17 +63,17 @@ var (
 // ResolveName checks if name is a valid image name, and if that name doesn't
 // include a domain portion, returns a list of the names which it might
 // correspond to in the set of configured registries.
-func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) []string {
+func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) ([]string, error) {
 	if name == "" {
-		return nil
+		return nil, nil
 	}
 
 	// Maybe it's a truncated image ID.  Don't prepend a registry name, then.
 	if len(name) >= minimumTruncatedIDLength {
 		if img, err := store.Image(name); err == nil && img != nil && strings.HasPrefix(img.ID, name) {
 			// It's a truncated version of the ID of an image that's present in local storage;
-			// we need to expand the ID.
-			return []string{img.ID}
+			// we need only expand the ID.
+			return []string{img.ID}, nil
 		}
 	}
 
@@ -81,18 +81,18 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	split := strings.SplitN(name, ":", 2)
 	if len(split) == 2 {
 		if _, ok := Transports[split[0]]; ok {
-			return []string{split[1]}
+			return []string{split[1]}, nil
 		}
 	}
 
 	// If the image name already included a domain component, we're done.
 	named, err := reference.ParseNormalizedNamed(name)
 	if err != nil {
-		return []string{name}
+		return nil, errors.Wrapf(err, "error parsing image name %q", name)
 	}
 	if named.String() == name {
 		// Parsing produced the same result, so there was a domain name in there to begin with.
-		return []string{name}
+		return []string{name}, nil
 	}
 	if reference.Domain(named) != "" && RegistryDefaultPathPrefix[reference.Domain(named)] != "" {
 		// If this domain can cause us to insert something in the middle, check if that happened.
@@ -109,7 +109,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		defaultPrefix := RegistryDefaultPathPrefix[reference.Domain(named)] + "/"
 		if strings.HasPrefix(repoPath, defaultPrefix) && path.Join(domain, repoPath[len(defaultPrefix):])+tag+digest == name {
 			// Yup, parsing just inserted a bit in the middle, so there was a domain name there to begin with.
-			return []string{name}
+			return []string{name}, nil
 		}
 	}
 
@@ -145,7 +145,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		candidate := path.Join(registry, middle, name)
 		candidates = append(candidates, candidate)
 	}
-	return candidates
+	return candidates, nil
 }
 
 // ExpandNames takes unqualified names, parses them as image names, and returns
@@ -156,7 +156,10 @@ func ExpandNames(names []string, firstRegistry string, systemContext *types.Syst
 	expanded := make([]string, 0, len(names))
 	for _, n := range names {
 		var name reference.Named
-		nameList := ResolveName(n, firstRegistry, systemContext, store)
+		nameList, err := ResolveName(n, firstRegistry, systemContext, store)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing name %q", n)
+		}
 		if len(nameList) == 0 {
 			named, err := reference.ParseNormalizedNamed(n)
 			if err != nil {
@@ -189,7 +192,11 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 	var ref types.ImageReference
 	var img *storage.Image
 	var err error
-	for _, name := range ResolveName(image, firstRegistry, systemContext, store) {
+	names, err := ResolveName(image, firstRegistry, systemContext, store)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error parsing name %q", image)
+	}
+	for _, name := range names {
 		ref, err = is.Transport.ParseStoreReference(store, name)
 		if err != nil {
 			logrus.Debugf("error parsing reference to image %q: %v", name, err)
