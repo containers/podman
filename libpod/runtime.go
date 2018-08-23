@@ -11,6 +11,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/firewall"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
@@ -64,6 +65,11 @@ const (
 
 	// DefaultInitPath is the default path to the container-init binary
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
+
+	// DefaultSHMLockPath is the default path for SHM locks
+	DefaultSHMLockPath = "/libpod_lock"
+	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
+	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -86,6 +92,7 @@ type Runtime struct {
 	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
+	lockManager     lock.Manager
 	configuredFrom  *runtimeConfiguredFrom
 }
 
@@ -165,6 +172,7 @@ type RuntimeConfig struct {
 	// and all containers and pods will be visible.
 	// The default namespace is "".
 	Namespace string `toml:"namespace,omitempty"`
+
 	// InfraImage is the image a pod infra container will use to manage namespaces
 	InfraImage string `toml:"infra_image"`
 	// InfraCommand is the command run to start up a pod infra container
@@ -179,6 +187,10 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
+
+	// NumLocks is the number of locks to make available for containers and
+	// pods.
+	NumLocks uint32 `toml:"num_locks,omitempty"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -234,6 +246,7 @@ var (
 		InfraImage:            DefaultInfraImage,
 		EnablePortReservation: true,
 		EnableLabeling:        true,
+		NumLocks:              2048,
 	}
 )
 
@@ -487,6 +500,56 @@ func makeRuntime(runtime *Runtime) (err error) {
 		}
 	}
 
+	// We now need to see if the system has restarted
+	// We check for the presence of a file in our tmp directory to verify this
+	// This check must be locked to prevent races
+	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
+	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
+	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	if err != nil {
+		return errors.Wrapf(err, "error acquiring runtime init lock")
+	}
+	// Acquire the lock and hold it until we return
+	// This ensures that no two processes will be in runtime.refresh at once
+	// TODO: we can't close the FD in this lock, so we should keep it around
+	// and use it to lock important operations
+	aliveLock.Lock()
+	locked := true
+	doRefresh := false
+	defer func() {
+		if locked {
+			aliveLock.Unlock()
+		}
+	}()
+	_, err = os.Stat(runtimeAliveFile)
+	if err != nil {
+		// If the file doesn't exist, we need to refresh the state
+		// This will trigger on first use as well, but refreshing an
+		// empty state only creates a single file
+		// As such, it's not really a performance concern
+		if os.IsNotExist(err) {
+			doRefresh = true
+		} else {
+			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+		}
+	}
+
+	// Set up the lock manager
+	var manager lock.Manager
+	lockPath := DefaultSHMLockPath
+	if rootless.IsRootless() {
+		lockPath = DefaultRootlessSHMLockPath
+	}
+	if doRefresh {
+		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+	} else {
+		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "error initializing SHM locking")
+	}
+	runtime.lockManager = manager
+
 	// Set up the state
 	switch runtime.config.StateType {
 	case InMemoryStateStore:
@@ -656,46 +719,19 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	runtime.firewallBackend = fwBackend
 
-	// We now need to see if the system has restarted
-	// We check for the presence of a file in our tmp directory to verify this
-	// This check must be locked to prevent races
-	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
-	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
-	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
-	if err != nil {
-		return errors.Wrapf(err, "error acquiring runtime init lock")
-	}
-	// Acquire the lock and hold it until we return
-	// This ensures that no two processes will be in runtime.refresh at once
-	// TODO: we can't close the FD in this lock, so we should keep it around
-	// and use it to lock important operations
-	aliveLock.Lock()
-	locked := true
-	defer func() {
-		if locked {
+	// If we need to refresh the state, do it now - things are guaranteed to
+	// be set up by now.
+	if doRefresh {
+		if os.Geteuid() != 0 {
 			aliveLock.Unlock()
-		}
-	}()
-	_, err = os.Stat(runtimeAliveFile)
-	if err != nil {
-		// If the file doesn't exist, we need to refresh the state
-		// This will trigger on first use as well, but refreshing an
-		// empty state only creates a single file
-		// As such, it's not really a performance concern
-		if os.IsNotExist(err) {
-			if os.Geteuid() != 0 {
-				aliveLock.Unlock()
-				locked = false
-				if err2 := runtime.refreshRootless(); err2 != nil {
-					return err2
-				}
-			} else {
-				if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-					return err2
-				}
+			locked = false
+			if err2 := runtime.refreshRootless(); err2 != nil {
+				return err2
 			}
 		} else {
-			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+				return err2
+			}
 		}
 	}
 

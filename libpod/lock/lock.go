@@ -41,11 +41,14 @@ type Locker interface {
 	// Lock locks the lock.
 	// This call MUST block until it successfully acquires the lock or
 	// encounters a fatal error.
-	Lock() error
+	// All errors must be handled internally, as they are not returned. For
+	// the most part, panicking should be appropriate.
+	Lock()
 	// Unlock unlocks the lock.
-	// A call to Unlock() on a lock that is already unlocked lock MUST
-	// error.
-	Unlock() error
+	// All errors must be handled internally, as they are not returned. For
+	// the most part, panicking should be appropriate.
+	// This includes unlocking locks which are already unlocked.
+	Unlock()
 	// Free deallocates the underlying lock, allowing its reuse by other
 	// pods and containers.
 	// The lock MUST still be usable after a Free() - some libpod instances

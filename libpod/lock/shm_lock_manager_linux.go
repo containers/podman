@@ -73,13 +73,17 @@ func (l *SHMLock) ID() uint32 {
 }
 
 // Lock acquires the lock.
-func (l *SHMLock) Lock() error {
-	return l.manager.locks.LockSemaphore(l.lockID)
+func (l *SHMLock) Lock() {
+	if err := l.manager.locks.LockSemaphore(l.lockID); err != nil {
+		panic(err.Error())
+	}
 }
 
 // Unlock releases the lock.
-func (l *SHMLock) Unlock() error {
-	return l.manager.locks.UnlockSemaphore(l.lockID)
+func (l *SHMLock) Unlock() {
+	if err := l.manager.locks.UnlockSemaphore(l.lockID); err != nil {
+		panic(err.Error())
+	}
 }
 
 // Free releases the lock, allowing it to be reused.

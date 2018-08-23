@@ -12,9 +12,13 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-const (
+var (
+	// BitmapSize is the size of the bitmap used when managing SHM locks.
+	// an SHM lock manager's max locks will be rounded up to a multiple of
+	// this number.
 	BitmapSize uint32 = uint32(C.bitmap_size_c)
 )
 
@@ -50,6 +54,8 @@ func CreateSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 	locks.lockStruct = lockStruct
 	locks.maxLocks = uint32(lockStruct.num_locks)
 	locks.valid = true
+
+	logrus.Debugf("Initialized SHM lock manager at path %s", path)
 
 	return locks, nil
 }
