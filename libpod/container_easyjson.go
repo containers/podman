@@ -95,7 +95,9 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod(in *jlexer.Lexer, out
 						if v1 == nil {
 							v1 = new(ExecSession)
 						}
-						(*v1).UnmarshalEasyJSON(in)
+						if data := in.Raw(); in.Ok() {
+							in.AddError((*v1).UnmarshalJSON(data))
+						}
 					}
 					(out.ExecSessions)[key] = v1
 					in.WantComma()
@@ -362,7 +364,7 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod(out *jwriter.Writer, 
 				if v6Value == nil {
 					out.RawString("null")
 				} else {
-					(*v6Value).MarshalEasyJSON(out)
+					out.Raw((*v6Value).MarshalJSON())
 				}
 			}
 			out.RawByte('}')
@@ -1672,6 +1674,8 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				}
 				in.Delim(']')
 			}
+		case "pause":
+			out.IsInfra = bool(in.Bool())
 		default:
 			in.SkipRecursive()
 		}
@@ -2313,6 +2317,16 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			}
 			out.RawByte(']')
 		}
+	}
+	{
+		const prefix string = ",\"pause\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.IsInfra))
 	}
 	out.RawByte('}')
 }
