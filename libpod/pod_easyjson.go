@@ -38,6 +38,8 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod(in *jlexer.Lexer, out
 		switch key {
 		case "cgroupPath":
 			out.CgroupPath = string(in.String())
+		case "InfraContainerID":
+			out.InfraContainerID = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -61,6 +63,16 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod(out *jwriter.Writer, 
 			out.RawString(prefix)
 		}
 		out.String(string(in.CgroupPath))
+	}
+	{
+		const prefix string = ",\"InfraContainerID\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.InfraContainerID))
 	}
 	out.RawByte('}')
 }
@@ -109,6 +121,8 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod1(in *jlexer.Lexer, ou
 		switch key {
 		case "cgroupPath":
 			out.CgroupPath = string(in.String())
+		case "infraContainerID":
+			out.InfraContainerID = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -132,6 +146,16 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod1(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.String(string(in.CgroupPath))
+	}
+	{
+		const prefix string = ",\"infraContainerID\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.InfraContainerID))
 	}
 	out.RawByte('}')
 }
@@ -186,7 +210,9 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				if out.Config == nil {
 					out.Config = new(PodConfig)
 				}
-				(*out.Config).UnmarshalEasyJSON(in)
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.Config).UnmarshalJSON(data))
+				}
 			}
 		case "State":
 			if in.IsNull() {
@@ -196,7 +222,9 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				if out.State == nil {
 					out.State = new(PodInspectState)
 				}
-				(*out.State).UnmarshalEasyJSON(in)
+				if data := in.Raw(); in.Ok() {
+					in.AddError((*out.State).UnmarshalJSON(data))
+				}
 			}
 		case "Containers":
 			if in.IsNull() {
@@ -215,7 +243,9 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				}
 				for !in.IsDelim(']') {
 					var v1 PodContainerInfo
-					(v1).UnmarshalEasyJSON(in)
+					if data := in.Raw(); in.Ok() {
+						in.AddError((v1).UnmarshalJSON(data))
+					}
 					out.Containers = append(out.Containers, v1)
 					in.WantComma()
 				}
@@ -246,7 +276,7 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 		if in.Config == nil {
 			out.RawString("null")
 		} else {
-			(*in.Config).MarshalEasyJSON(out)
+			out.Raw((*in.Config).MarshalJSON())
 		}
 	}
 	{
@@ -260,7 +290,7 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 		if in.State == nil {
 			out.RawString("null")
 		} else {
-			(*in.State).MarshalEasyJSON(out)
+			out.Raw((*in.State).MarshalJSON())
 		}
 	}
 	{
@@ -279,7 +309,7 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 				if v2 > 0 {
 					out.RawByte(',')
 				}
-				(v3).MarshalEasyJSON(out)
+				out.Raw((v3).MarshalJSON())
 			}
 			out.RawByte(']')
 		}
@@ -440,8 +470,30 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod4(in *jlexer.Lexer, ou
 			}
 		case "cgroupParent":
 			out.CgroupParent = string(in.String())
-		case "usePodCgroup":
+		case "sharesCgroup":
 			out.UsePodCgroup = bool(in.Bool())
+		case "sharesPid":
+			out.UsePodPID = bool(in.Bool())
+		case "sharesIpc":
+			out.UsePodIPC = bool(in.Bool())
+		case "sharesNet":
+			out.UsePodNet = bool(in.Bool())
+		case "sharesMnt":
+			out.UsePodMount = bool(in.Bool())
+		case "sharesUser":
+			out.UsePodUser = bool(in.Bool())
+		case "sharesUts":
+			out.UsePodUTS = bool(in.Bool())
+		case "infraConfig":
+			if in.IsNull() {
+				in.Skip()
+				out.InfraContainer = nil
+			} else {
+				if out.InfraContainer == nil {
+					out.InfraContainer = new(InfraContainerConfig)
+				}
+				easyjsonBe091417DecodeGithubComContainersLibpodLibpod5(in, &*out.InfraContainer)
+			}
 		case "created":
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.CreatedTime).UnmarshalJSON(data))
@@ -526,8 +578,8 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod4(out *jwriter.Writer,
 		}
 		out.String(string(in.CgroupParent))
 	}
-	{
-		const prefix string = ",\"usePodCgroup\":"
+	if in.UsePodCgroup {
+		const prefix string = ",\"sharesCgroup\":"
 		if first {
 			first = false
 			out.RawString(prefix[1:])
@@ -535,6 +587,80 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod4(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Bool(bool(in.UsePodCgroup))
+	}
+	if in.UsePodPID {
+		const prefix string = ",\"sharesPid\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodPID))
+	}
+	if in.UsePodIPC {
+		const prefix string = ",\"sharesIpc\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodIPC))
+	}
+	if in.UsePodNet {
+		const prefix string = ",\"sharesNet\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodNet))
+	}
+	if in.UsePodMount {
+		const prefix string = ",\"sharesMnt\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodMount))
+	}
+	if in.UsePodUser {
+		const prefix string = ",\"sharesUser\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodUser))
+	}
+	if in.UsePodUTS {
+		const prefix string = ",\"sharesUts\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UsePodUTS))
+	}
+	{
+		const prefix string = ",\"infraConfig\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		if in.InfraContainer == nil {
+			out.RawString("null")
+		} else {
+			easyjsonBe091417EncodeGithubComContainersLibpodLibpod5(out, *in.InfraContainer)
+		}
 	}
 	{
 		const prefix string = ",\"created\":"
@@ -571,4 +697,51 @@ func (v *PodConfig) UnmarshalJSON(data []byte) error {
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *PodConfig) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonBe091417DecodeGithubComContainersLibpodLibpod4(l, v)
+}
+func easyjsonBe091417DecodeGithubComContainersLibpodLibpod5(in *jlexer.Lexer, out *InfraContainerConfig) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "makeInfraContainer":
+			out.HasInfraContainer = bool(in.Bool())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonBe091417EncodeGithubComContainersLibpodLibpod5(out *jwriter.Writer, in InfraContainerConfig) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"makeInfraContainer\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.HasInfraContainer))
+	}
+	out.RawByte('}')
 }
