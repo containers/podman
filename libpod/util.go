@@ -145,3 +145,18 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 	sort.Sort(byDestination(m))
 	return m
 }
+
+func validPodNSOption(p *Pod, ctrPod string) error {
+	if p == nil {
+		return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
+	}
+
+	if ctrPod == "" {
+		return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+	}
+
+	if ctrPod != p.ID() {
+		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+	}
+	return nil
+}
