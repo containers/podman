@@ -356,7 +356,7 @@ If _imageName_ does not include a registry name, the registry name *localhost* w
 
 Require HTTPS and verify certificates when talking to container registries (defaults to true).
 
-**--ulimit**=*type*:*soft-limit*[:*hard-limit*]
+**--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 
 Specifies resource limits to apply to processes launched when processing `RUN` instructions.
 This option can be specified multiple times.  Recognized resource types
