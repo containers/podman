@@ -398,9 +398,14 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 
 	// Set up containers/storage
-	store, err := storage.GetStore(runtime.config.StorageConfig)
-	if err != nil {
-		return err
+	var store storage.Store
+	if rootless.SkipStorageSetup() {
+		logrus.Debug("Not configuring container store")
+	} else {
+		store, err = storage.GetStore(runtime.config.StorageConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	runtime.store = store
@@ -417,7 +422,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// Setting signaturepolicypath
 	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
 	defer func() {
-		if err != nil {
+		if err != nil && store != nil {
 			// Don't forcibly shut down
 			// We could be opening a store in use by another libpod
 			_, err2 := store.Shutdown(false)
@@ -604,8 +609,10 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
-	if _, err := r.store.Shutdown(force); err != nil {
-		lastError = errors.Wrapf(err, "Error shutting down container storage")
+	if r.store != nil {
+		if _, err := r.store.Shutdown(force); err != nil {
+			lastError = errors.Wrapf(err, "Error shutting down container storage")
+		}
 	}
 	if err := r.state.Close(); err != nil {
 		if lastError != nil {

@@ -681,6 +681,12 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 
 	execCmd := exec.Command(r.path, args...)
+	if rootless.IsRootless() {
+		args = append([]string{"--preserve-credentials", "-U", "-t", fmt.Sprintf("%d", c.state.PID), r.path}, args...)
+		// using nsenter might not be correct if the target PID joined a different user namespace.
+		// A better way would be to retrieve the parent ns (NS_GET_PARENT) until it is a child of the current namespace.
+		execCmd = exec.Command("nsenter", args...)
+	}
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
