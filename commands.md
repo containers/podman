@@ -38,7 +38,9 @@
 | [podman-pod-restart](/docs/podman-pod-restart.1.md)      | Restart one or more pods                                                  ||
 | [podman-pod-rm(1)](/docs/podman-pod-rm.1.md)             | Remove one or more pods                                                   ||
 | [podman-pod-start(1)](/docs/podman-pod-start.1.md)       | Start one or more pods                                                    ||
+| [podman-pod-stats(1)](/docs/podman-pod-stats.1.md)       | Display a live stream of one or more pods' resource usage statistics      ||                                               ||
 | [podman-pod-stop(1)](/docs/podman-pod-stop.1.md)         | Stop one or more pods                                                     ||
+| [podman-pod-top(1)](/docs/podman-pod-top.1.md)           | Display the running processes of a pod                                    ||
 | [podman-pod-unpause(1)](podman-pod-unpause.1.md)         | Unpause one or more pods.                                                 ||
 | [podman-port(1)](/docs/podman-port.1.md)                 | List port mappings for running containers                                 |[![...](/docs/play.png)]()|
 | [podman-ps(1)](/docs/podman-ps.1.md)                     | Prints out information about containers                                   |[![...](/docs/play.png)](https://asciinema.org/a/bbT41kac6CwZ5giESmZLIaTLR)|
