@@ -725,7 +725,10 @@ func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
 	if b.output != "" {
 		imageRef, err = alltransports.ParseImageName(b.output)
 		if err != nil {
-			candidates := util.ResolveName(b.output, "", b.systemContext, b.store)
+			candidates, err := util.ResolveName(b.output, "", b.systemContext, b.store)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error parsing target image name %q: %v", b.output)
+			}
 			if len(candidates) == 0 {
 				return nil, errors.Errorf("error parsing target image name %q", b.output)
 			}
@@ -962,6 +965,7 @@ func (b *Executor) getFilesToCopy(node *parser.Node) ([]string, error) {
 		}
 		if strings.HasPrefix(currNode.Value, "http://") || strings.HasPrefix(currNode.Value, "https://") {
 			src = append(src, currNode.Value)
+			currNode = currNode.Next
 			continue
 		}
 		matches, err := filepath.Glob(filepath.Join(b.contextDir, currNode.Value))
@@ -1143,7 +1147,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 	for _, stage := range stages {
 		stageExecutor = b.withName(stage.Name, stage.Position)
 		if err := stageExecutor.Prepare(ctx, stage.Builder, stage.Node, ""); err != nil {
-			lastErr = err
+			return err
 		}
 		// Always remove the intermediate/build containers, even if the build was unsuccessful.
 		// If building with layers, remove all intermediate/build containers if b.forceRmIntermediateCtrs
