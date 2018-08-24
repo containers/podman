@@ -134,7 +134,7 @@ var (
 			Name:  "all, a",
 			Usage: "Show all the containers, default is only running containers",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "filter, f",
 			Usage: "Filter output based on conditions given",
 		},
@@ -222,7 +222,6 @@ func psCmd(c *cli.Context) error {
 
 	opts := shared.PsOptions{
 		All:       c.Bool("all"),
-		Filter:    c.String("filter"),
 		Format:    format,
 		Last:      c.Int("last"),
 		Latest:    c.Bool("latest"),
@@ -246,8 +245,8 @@ func psCmd(c *cli.Context) error {
 		})
 	}
 
-	if opts.Filter != "" {
-		filters := strings.Split(opts.Filter, ",")
+	filters := c.StringSlice("filter")
+	if len(filters) > 0 {
 		for _, f := range filters {
 			filterSplit := strings.SplitN(f, "=", 2)
 			if len(filterSplit) < 2 {
@@ -317,7 +316,7 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return strings.Contains(c.ID(), filterValue)
 		}, nil
 	case "label":
-		var filterArray []string = strings.Split(filterValue, "=")
+		var filterArray []string = strings.SplitN(filterValue, "=", 2)
 		var filterKey string = filterArray[0]
 		if len(filterArray) > 1 {
 			filterValue = filterArray[1]

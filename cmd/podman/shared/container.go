@@ -20,7 +20,6 @@ import (
 // PsOptions describes the struct being formed for ps
 type PsOptions struct {
 	All       bool
-	Filter    string
 	Format    string
 	Last      int
 	Latest    bool
