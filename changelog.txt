@@ -1,3 +1,50 @@
+- Changelog for v0.8.4 (2018-08-24)
+  * Add release notes
+  * Regenerate easyjson after rebase
+  * Vendor easyjson code to fix build
+  * Swap from FFJSON to easyjson
+  * Make 'make clean' remove FFJSON generated code
+  * rootless: allow to override policy.json by the user
+  * add completion for --pod in run and create
+  * Fixed formatting and lowered verbosity of pod ps
+  * Do not try to enable AppArmor in rootless mode
+  * exposes tcp port only if no proto specified.
+  * rpm-spec: use skopeo-containers instead of containers-common
+  * Reveal information about container capabilities
+  * Vendor in latest projectatomic/buildah
+  * Refactor error checking in With*NSFromPod options
+  * Fixing network ns segfault
+  * Change pause container to infra container
+  * Support pause containers in varlink
+  * Added option to share kernel namespaces in libpod and podman
+  * Changed GetContainerStats to return ErrCtrStateInvalid
+  * Add GetPodStats to varlink
+  * rpm-spec: update distro-specific dependencies
+  * Add podman pod top
+  * Include pod stats and top in commands/completions
+  * Vendor changes to psgo
+  * Fix syntax description of --ulimit command
+  * Swap test image in exec test to fedora for useradd
+  * Add tests for exec --user
+  * Properly translate users into runc format for exec
+  * test: ad more tests for rootless containers
+  * rootless: fix --net host --privileged
+  * Fix a bug with hook ALWAYS matching with a process
+  * Fixed segfault in stats where container had netNS none or from container
+  * Enable pod stats with short ID and name
+  * Touch up cert-dir in man pages
+  * make dbuild fixed on ubuntu/debian
+  * vendor latest github.com/urfave/cli
+  * Add retry decorator for flakey tests
+  * Update error message from reviews
+  * Support Attach subcommand in pypodman
+  * Fix handling of devices
+  * tutorial: point to containers/skopeo
+  * point to containers/skopeo
+  * install.md:  point to containers/libpod
+  * Bump gitvalidation epoch
+  * Bump to v0.8.4-dev
+
 - Changelog for v0.8.3 (2018-08-17)
   * Make failure to retrieve individual ctrs/pods nonfatal
   * Mention that systemd is the default cgroup manager
