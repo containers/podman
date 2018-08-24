@@ -335,11 +335,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, hostUser, sessionID)
 	if err != nil {
-		return errors.Wrapf(err, "error creating exec command for container %s", c.ID())
-	}
-
-	if err := execCmd.Start(); err != nil {
-		return errors.Wrapf(err, "error starting exec command for container %s", c.ID())
+		return errors.Wrapf(err, "error exec %s", c.ID())
 	}
 
 	pidFile := c.execPidPath(sessionID)

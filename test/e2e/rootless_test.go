@@ -6,10 +6,24 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func canExec() bool {
+	const nsGetParent = 0xb702
+
+	u, err := os.Open("/proc/self/ns/user")
+	if err != nil {
+		return false
+	}
+	defer u.Close()
+
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, u.Fd(), uintptr(nsGetParent), 0)
+	return errno != syscall.ENOTTY
+}
 
 var _ = Describe("Podman rootless", func() {
 	var (
@@ -100,18 +114,20 @@ var _ = Describe("Podman rootless", func() {
 			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
 			cmd := podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
 			Expect(cmd.ExitCode()).To(Equal(0))
+			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
 
-			allArgsD := append([]string{"run", "-d"}, args...)
-			allArgsD = append(allArgsD, "--rootfs", mountPath, "sleep", "1d")
-			cmd = podmanTest.PodmanAsUser(allArgsD, 1000, 1000, env)
+			allArgs = append([]string{"run", "-d"}, args...)
+			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "unshare", "-r", "unshare", "-r", "top")
+			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
-			cid := cmd.OutputToStringArray()[0]
 
-			allArgsE := []string{"exec", cid, "echo", "hello"}
-			cmd = podmanTest.PodmanAsUser(allArgsE, 1000, 1000, env)
+			if !canExec() {
+				Skip("ioctl(NS_GET_PARENT) not supported.")
+			}
+
+			cmd = podmanTest.PodmanAsUser([]string{"exec", "-l", "echo", "hello"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
