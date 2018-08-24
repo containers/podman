@@ -263,7 +263,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	configPath := ConfigPath
 	foundConfig := true
 	if rootless.IsRootless() {
-		configPath = filepath.Join(os.Getenv("HOME"), ".config/containers/libpod.conf")
+		home := os.Getenv("HOME")
+		if runtime.config.SignaturePolicyPath == "" {
+			newPath := filepath.Join(home, ".config/containers/policy.json")
+			if _, err := os.Stat(newPath); err == nil {
+				runtime.config.SignaturePolicyPath = newPath
+			}
+		}
+		configPath = filepath.Join(home, ".config/containers/libpod.conf")
 		if _, err := os.Stat(configPath); err != nil {
 			foundConfig = false
 		}
