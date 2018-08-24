@@ -104,11 +104,11 @@ RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
 
-# Install ffjson
+# Install easyjson
 RUN set -x \
       && export GOPATH=/go \
-      && go get github.com/pquerna/ffjson \
-      && install -D -m 755 "$GOPATH"/bin/ffjson /usr/bin/
+      && go get -u github.com/mailru/easyjson/... \
+      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
 # Install cni config
 #RUN make install.cni

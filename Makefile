@@ -133,6 +133,10 @@ clean:
 		test/copyimg/copyimg \
 		test/testdata/redis-image \
 		cmd/podman/varlink/iopodman.go \
+		libpod/container_ffjson.go \
+		libpod/pod_ffjson.go \
+		libpod/container_easyjson.go \
+		libpod/pod_easyjson.go \
 		$(MANPAGES) ||:
 ifdef HAS_PYTHON3
 		$(MAKE) -C contrib/python/podman clean
@@ -181,7 +185,7 @@ clientintegration:
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate ffjson_generate podman python
+binaries: varlink_generate easyjson_generate podman python
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
@@ -260,7 +264,7 @@ uninstall:
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ffjson
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.easyjson
 
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
@@ -281,9 +285,9 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		   $(GO) get -u github.com/cpuguy83/go-md2man; \
 	fi
 
-.install.ffjson: .gopathok
+.install.easyjson: .gopathok
 	if [ ! -x "$(GOBIN)/ffjson" ]; then\
-		  $(GO) get -u github.com/pquerna/ffjson; \
+		  $(GO) get -u github.com/mailru/easyjson/...; \
 	fi
 
 .install.ostree: .gopathok
@@ -297,15 +301,15 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
 varlink_api_generate: .gopathok API.md
 
-ffjson_generate: .gopathok libpod/container_ffjson.go libpod/pod_ffjson.go
+easyjson_generate: .gopathok libpod/container_easyjson.go libpod/pod_easyjson.go
 
-libpod/container_ffjson.go: libpod/container.go
-	rm -f libpod/container_ffjson.go
-	ffjson $(GOPKGDIR)/libpod/container.go
+libpod/container_easyjson.go: libpod/container.go
+	rm -f libpod/container_easyjson.go
+	cd "$(GOPKGDIR)" && easyjson ./libpod/container.go
 
-libpod/pod_ffjson.go: libpod/pod.go
-	rm -f libpod/pod_ffjson.go
-	ffjson $(GOPKGDIR)/libpod/pod.go
+libpod/pod_easyjson.go: libpod/pod.go
+	rm -f libpod/pod_easyjson.go
+	cd "$(GOPKGDIR)" && easyjson ./libpod/pod.go
 
 .PHONY: install.libseccomp.sudo
 install.libseccomp.sudo:
