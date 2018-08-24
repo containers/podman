@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -57,8 +58,8 @@ type podPsTemplateParams struct {
 	Status             string
 	Cgroup             string
 	ContainerInfo      string
-	InfraContainerID   string
-	SharedNamespaces   string
+	InfraID            string
+	Namespaces         string
 }
 
 // podPsJSONParams is used as a base structure for the psParams
@@ -70,12 +71,12 @@ type podPsJSONParams struct {
 	CreatedAt          time.Time      `json:"createdAt"`
 	ID                 string         `json:"id"`
 	Name               string         `json:"name"`
-	NumberOfContainers int            `json:"numberofcontainers"`
+	NumberOfContainers int            `json:"numberOfContainers"`
 	Status             string         `json:"status"`
-	CtrsInfo           []podPsCtrInfo `json:"containerinfo,omitempty"`
+	CtrsInfo           []podPsCtrInfo `json:"containerInfo,omitempty"`
 	Cgroup             string         `json:"cgroup,omitempty"`
-	InfraContainerID   string         `json:"infracontainerid,omitempty"`
-	SharedNamespaces   []string       `json:"sharednamespaces,omitempty"`
+	InfraID            string         `json:"infraContainerId,omitempty"`
+	Namespaces         []string       `json:"namespaces,omitempty"`
 }
 
 // Type declaration and functions for sorting the pod PS output
@@ -351,14 +352,14 @@ func genPodPsFormat(c *cli.Context) string {
 	} else {
 		format = "table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Created}}"
 		if c.Bool("namespace") {
-			format += "\t{{.Cgroup}}\t{{.SharedNamespaces}}"
+			format += "\t{{.Cgroup}}\t{{.Namespaces}}"
 		}
 		if c.Bool("ctr-names") || c.Bool("ctr-ids") || c.Bool("ctr-status") {
 			format += "\t{{.ContainerInfo}}"
 		} else {
 			format += "\t{{.NumberOfContainers}}"
 		}
-		format += "\t{{.InfraContainerID}}"
+		format += "\t{{.InfraID}}"
 	}
 	return format
 }
@@ -386,6 +387,9 @@ func (p *podPsTemplateParams) podHeaderMap() map[string]string {
 		value := key
 		if value == "ID" {
 			value = "Pod" + value
+		}
+		if value == "NumberOfContainers" {
+			value = "#OfContainers"
 		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
@@ -418,7 +422,7 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 
 	for _, psParam := range psParams {
 		podID := psParam.ID
-		infraID := psParam.InfraContainerID
+		infraID := psParam.InfraID
 		var ctrStr string
 
 		truncated := ""
@@ -431,21 +435,23 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 			infraID = shortID(infraID)
 		}
 		for _, ctrInfo := range psParam.CtrsInfo {
-			ctrStr += "[ "
+			infoSlice := make([]string, 0)
 			if opts.IdsOfContainers {
 				if opts.NoTrunc {
-					ctrStr += ctrInfo.Id
+					infoSlice = append(infoSlice, ctrInfo.Id)
 				} else {
-					ctrStr += shortID(ctrInfo.Id)
+					infoSlice = append(infoSlice, shortID(ctrInfo.Id))
 				}
 			}
 			if opts.NamesOfContainers {
-				ctrStr += ctrInfo.Name + " "
+				infoSlice = append(infoSlice, ctrInfo.Name)
 			}
 			if opts.StatusOfContainers {
-				ctrStr += ctrInfo.Status + " "
+				infoSlice = append(infoSlice, ctrInfo.Status)
 			}
-			ctrStr += "] "
+			if len(infoSlice) != 0 {
+				ctrStr += fmt.Sprintf("[%s] ", strings.Join(infoSlice, ","))
+			}
 		}
 		ctrStr += truncated
 		params := podPsTemplateParams{
@@ -456,8 +462,8 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 			NumberOfContainers: psParam.NumberOfContainers,
 			Cgroup:             psParam.Cgroup,
 			ContainerInfo:      ctrStr,
-			InfraContainerID:   infraID,
-			SharedNamespaces:   strings.Join(psParam.SharedNamespaces, ","),
+			InfraID:            infraID,
+			Namespaces:         strings.Join(psParam.Namespaces, ","),
 		}
 
 		psOutput = append(psOutput, params)
@@ -466,7 +472,7 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 	return psOutput, nil
 }
 
-func getSharedNamespaces(pod *libpod.Pod) []string {
+func getNamespaces(pod *libpod.Pod) []string {
 	var shared []string
 	if pod.SharesPID() {
 		shared = append(shared, "pid")
@@ -510,7 +516,7 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 
-		infraContainerID, err := pod.InfraContainerID()
+		infraID, err := pod.InfraContainerID()
 		if err != nil {
 			return nil, err
 		}
@@ -546,8 +552,8 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			Cgroup:             pod.CgroupParent(),
 			NumberOfContainers: ctrNum,
 			CtrsInfo:           ctrsInfo,
-			SharedNamespaces:   getSharedNamespaces(pod),
-			InfraContainerID:   infraContainerID,
+			Namespaces:         getNamespaces(pod),
+			InfraID:            infraID,
 		}
 
 		psOutput = append(psOutput, params)
