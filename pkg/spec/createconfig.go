@@ -492,10 +492,7 @@ func (c *CreateConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
 			}
 
 			pm.HostPort = int32(hostPort)
-			// CNI requires us to make both udp and tcp structs
-			pm.Protocol = "udp"
-			portBindings = append(portBindings, pm)
-			pm.Protocol = "tcp"
+			pm.Protocol = containerPb.Proto()
 			portBindings = append(portBindings, pm)
 		}
 	}

@@ -54,7 +54,6 @@ var _ = Describe("Podman port", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
-		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/udp -> 0.0.0.0:%s", port))).To(BeTrue())
 		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
 	})
 
