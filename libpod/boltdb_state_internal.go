@@ -323,10 +323,9 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(pod.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for pod %s", string(id))
 	}
 	pod.lock = lock
 

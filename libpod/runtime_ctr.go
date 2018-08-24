@@ -81,7 +81,11 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		return nil, errors.Wrapf(err, "error allocating lock for new container")
 	}
 	ctr.lock = lock
-	ctr.config.LockID = c.lock.ID()
+	ctr.config.LockID = ctr.lock.ID()
+
+	ctr.valid = true
+	ctr.state.State = ContainerStateConfigured
+	ctr.runtime = r
 
 	ctr.valid = true
 	ctr.state.State = ContainerStateConfigured

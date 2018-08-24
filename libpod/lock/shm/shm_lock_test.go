@@ -18,7 +18,7 @@ import (
 // We can at least verify that the locks work within the local process.
 
 // 4 * BITMAP_SIZE to ensure we have to traverse bitmaps
-const numLocks uint32 = 4 * BitmapSize
+var numLocks uint32 = 4 * BitmapSize
 
 const lockPath = "/libpod_test"
 
@@ -155,7 +155,8 @@ func TestAllocateTwoLocksGetsDifferentLocks(t *testing.T) {
 func TestAllocateAllLocksSucceeds(t *testing.T) {
 	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
 		sems := make(map[uint32]bool)
-		for i := 0; i < numLocks; i++ {
+		var i uint32
+		for i = 0; i < numLocks; i++ {
 			sem, err := locks.AllocateSemaphore()
 			assert.NoError(t, err)
 
@@ -172,7 +173,8 @@ func TestAllocateAllLocksSucceeds(t *testing.T) {
 func TestAllocateTooManyLocksFails(t *testing.T) {
 	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
 		// Allocate all locks
-		for i := 0; i < numLocks; i++ {
+		var i uint32
+		for i = 0; i < numLocks; i++ {
 			_, err := locks.AllocateSemaphore()
 			assert.NoError(t, err)
 		}
@@ -187,7 +189,8 @@ func TestAllocateTooManyLocksFails(t *testing.T) {
 func TestAllocateDeallocateCycle(t *testing.T) {
 	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
 		// Allocate all locks
-		for i := 0; i < numLocks; i++ {
+		var i uint32
+		for i = 0; i < numLocks; i++ {
 			_, err := locks.AllocateSemaphore()
 			assert.NoError(t, err)
 		}

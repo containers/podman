@@ -48,6 +48,14 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		pod.config.Name = name
 	}
 
+	// Allocate a lock for the pod
+	lock, err := r.lockManager.AllocateLock()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error allocating lock for new pod")
+	}
+	pod.lock = lock
+	pod.config.LockID = pod.lock.ID()
+
 	pod.valid = true
 
 	// Check CGroup parent sanity, and set it if it was not set

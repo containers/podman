@@ -451,12 +451,11 @@ func (c *Container) refresh() error {
 	}
 
 	// We need to pick up a new lock
-	lock, err := c.runtime.lockManager.AllocateLock()
+	lock, err := c.runtime.lockManager.RetrieveLock(c.config.LockID)
 	if err != nil {
 		return errors.Wrapf(err, "error acquiring lock for container %s", c.ID())
 	}
 	c.lock = lock
-	c.config.LockID = c.lock.ID()
 
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
