@@ -60,7 +60,7 @@ BuildRequires: ostree-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 Requires: runc
-Requires: containers-common
+Requires: skopeo-containers
 Requires: containernetworking-cni >= 0.6.0-3
 Requires: iptables
 Requires: oci-systemd-hook
