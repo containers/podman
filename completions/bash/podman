@@ -1644,6 +1644,10 @@ _podman_container_run() {
 			esac
 			return
 			;;
+		--pod)
+			__podman_complete_pod_names
+			return
+			;;
 		--pid)
 			case "$cur" in
 				*:*)
