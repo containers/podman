@@ -57,6 +57,9 @@ includes tables showing Docker commands and their Podman equivalent commands.
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
 
+**[Release Notes](RELEASE_NOTES.md)**
+Release notes for recent Podman versions
+
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
 
