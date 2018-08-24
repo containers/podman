@@ -682,15 +682,23 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	execCmd := exec.Command(r.path, args...)
 	if rootless.IsRootless() {
-		args = append([]string{"--preserve-credentials", "-U", "-t", fmt.Sprintf("%d", c.state.PID), r.path}, args...)
-		// using nsenter might not be correct if the target PID joined a different user namespace.
-		// A better way would be to retrieve the parent ns (NS_GET_PARENT) until it is a child of the current namespace.
+		args = append([]string{"--preserve-credentials", "--user=/proc/self/fd/3", r.path}, args...)
+		f, err := rootless.GetUserNSForPid(uint(c.state.PID))
+		if err != nil {
+			return nil, err
+		}
 		execCmd = exec.Command("nsenter", args...)
+		execCmd.ExtraFiles = append(execCmd.ExtraFiles, f)
 	}
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
+
+	if err := execCmd.Start(); err != nil {
+		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+	}
+
 	return execCmd, nil
 }
 

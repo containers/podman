@@ -9,9 +9,11 @@ import (
 	"os/exec"
 	gosignal "os/signal"
 	"os/user"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"syscall"
+	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
@@ -185,4 +187,87 @@ func BecomeRootInUserNS() (bool, int, error) {
 	}
 
 	return true, int(ret), nil
+}
+
+func readUserNs(path string) (string, error) {
+	b := make([]byte, 256)
+	_, err := syscall.Readlink(path, b)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func readUserNsFd(fd uintptr) (string, error) {
+	return readUserNs(filepath.Join("/proc/self/fd", fmt.Sprintf("%d", fd)))
+}
+
+func getParentUserNs(fd uintptr) (uintptr, error) {
+	const nsGetParent = 0xb702
+	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
+	if errno != 0 {
+		return 0, errno
+	}
+	return (uintptr)(unsafe.Pointer(ret)), nil
+}
+
+// GetUserNSForPid returns an open FD for the first direct child user namespace that created the process
+// Each container creates a new user namespace where the runtime runs.  The current process in the container
+// might have created new user namespaces that are child of the initial namespace we created.
+// This function finds the initial namespace created for the container that is a child of the current namespace.
+//
+//                                     current ns
+//                                       /     \
+//                           TARGET ->  a   [other containers]
+//                                     /
+//                                    b
+//                                   /
+//        NS READ USING THE PID ->  c
+func GetUserNSForPid(pid uint) (*os.File, error) {
+	currentNS, err := readUserNs("/proc/self/ns/user")
+	if err != nil {
+		return nil, err
+	}
+
+	path := filepath.Join("/proc", fmt.Sprintf("%d", pid), "ns/user")
+	u, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open %s", path)
+	}
+
+	fd := u.Fd()
+	ns, err := readUserNsFd(fd)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot read user namespace")
+	}
+	if ns == currentNS {
+		return nil, errors.New("process running in the same user namespace")
+	}
+
+	for {
+		nextFd, err := getParentUserNs(fd)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get parent user namespace")
+		}
+
+		ns, err = readUserNsFd(nextFd)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot read user namespace")
+		}
+
+		if ns == currentNS {
+			syscall.Close(int(nextFd))
+
+			// Drop O_CLOEXEC for the fd.
+			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
+			if errno != 0 {
+				syscall.Close(int(fd))
+				return nil, errno
+			}
+
+			return os.NewFile(fd, "userns child"), nil
+		}
+		syscall.Close(int(fd))
+		fd = nextFd
+	}
 }
