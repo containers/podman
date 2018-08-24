@@ -385,8 +385,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.ConnectedContainer())
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
-	} else if IsPod(string(c.NetMode)) {
-		options = append(options, libpod.WithNetNSFromPod(pod))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		isRootless := rootless.IsRootless()
 		postConfigureNetNS := isRootless || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
@@ -404,9 +402,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 		options = append(options, libpod.WithPIDNSFrom(connectedCtr))
 	}
-	if IsPod(string(c.PidMode)) {
-		options = append(options, libpod.WithPIDNSFromPod(pod))
-	}
 
 	if c.IpcMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.IpcMode.Container())
@@ -415,9 +410,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		}
 
 		options = append(options, libpod.WithIPCNSFrom(connectedCtr))
-	}
-	if IsPod(string(c.IpcMode)) {
-		options = append(options, libpod.WithIPCNSFromPod(pod))
 	}
 
 	if IsPod(string(c.UtsMode)) {
