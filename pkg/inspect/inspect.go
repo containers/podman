@@ -161,6 +161,8 @@ type ContainerInspectData struct {
 	MountLabel      string                 `json:"MountLabel"`
 	ProcessLabel    string                 `json:"ProcessLabel"`
 	AppArmorProfile string                 `json:"AppArmorProfile"`
+	EffectiveCaps   []string               `json:"EffectiveCaps"`
+	BoundingCaps    []string               `json:"BoundingCaps"`
 	ExecIDs         []string               `json:"ExecIDs"`
 	GraphDriver     *Data                  `json:"GraphDriver"`
 	SizeRw          int64                  `json:"SizeRw,omitempty"`
