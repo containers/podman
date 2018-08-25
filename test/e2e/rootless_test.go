@@ -117,6 +117,10 @@ var _ = Describe("Podman rootless", func() {
 			Expect(cmd.ExitCode()).To(Equal(0))
 			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
 
+			cmd = podmanTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
 			allArgs = append([]string{"run", "-d"}, args...)
 			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "unshare", "-r", "unshare", "-r", "top")
 			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)

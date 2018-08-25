@@ -591,7 +591,17 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		}
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+	var args []string
+	if rootless.IsRootless() {
+		// we don't use --all for rootless containers as the OCI runtime might use
+		// the cgroups to determine the PIDs, but for rootless containers there is
+		// not any.
+		args = []string{"kill", ctr.ID(), "KILL"}
+	} else {
+		args = []string{"kill", "--all", ctr.ID(), "KILL"}
+	}
+
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, args...); err != nil {
 		// Again, check if the container is gone. If it is, exit cleanly.
 		err := unix.Kill(ctr.state.PID, 0)
 		if err == unix.ESRCH {
