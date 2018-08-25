@@ -591,7 +591,17 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		}
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+	var args []string
+	if rootless.IsRootless() {
+		// we don't use --all for rootless containers as the OCI runtime might use
+		// the cgroups to determine the PIDs, but for rootless containers there is
+		// not any.
+		args = []string{"kill", ctr.ID(), "KILL"}
+	} else {
+		args = []string{"kill", "--all", ctr.ID(), "KILL"}
+	}
+
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, r.path, args...); err != nil {
 		// Again, check if the container is gone. If it is, exit cleanly.
 		err := unix.Kill(ctr.state.PID, 0)
 		if err == unix.ESRCH {
@@ -681,10 +691,24 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 
 	execCmd := exec.Command(r.path, args...)
+	if rootless.IsRootless() {
+		args = append([]string{"--preserve-credentials", "--user=/proc/self/fd/3", r.path}, args...)
+		f, err := rootless.GetUserNSForPid(uint(c.state.PID))
+		if err != nil {
+			return nil, err
+		}
+		execCmd = exec.Command("nsenter", args...)
+		execCmd.ExtraFiles = append(execCmd.ExtraFiles, f)
+	}
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
+
+	if err := execCmd.Start(); err != nil {
+		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+	}
+
 	return execCmd, nil
 }
 

@@ -25,7 +25,7 @@ var (
 	exitCode = 125
 )
 
-var cmdsNotRequiringRootless = map[string]bool{"help": true, "version": true}
+var cmdsNotRequiringRootless = map[string]bool{"help": true, "version": true, "exec": true}
 
 func main() {
 	debug := false

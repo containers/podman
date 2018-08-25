@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -66,6 +67,7 @@ func execCmd(c *cli.Context) error {
 	if c.Bool("latest") {
 		argStart = 0
 	}
+	rootless.SetSkipStorageSetup(true)
 	cmd := args[argStart:]
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
