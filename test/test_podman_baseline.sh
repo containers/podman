@@ -5,11 +5,15 @@
 # on a freshly installed machine with no images or container in
 # play.  This currently needs to be run as root.
 #
+# Please leave the whale-says test as the last test in this script.
+# It makes it easier to identify if the script has finished or not.
+#
 # To run this command:
 #
 # /bin/bash -v test_podman_baseline.sh -d # Install and then deinstall Docker
 # /bin/bash -v test_podman_baseline.sh -e # Stop on error
 # /bin/bash -v test_podman_baseline.sh    # Continue on error
+#
 
 #######
 # See if we want to stop on errors and/or install and then remove Docker.
@@ -346,34 +350,6 @@ podman rmi --all
 rm ./Dockerfile*
 
 ########
-# Build Dockerfile for WhaleSays test
-########
-FILE=./Dockerfile
-/bin/cat <<EOM >$FILE
-FROM docker/whalesay:latest
-RUN apt-get -y update && apt-get install -y fortunes
-CMD /usr/games/fortune -a | cowsay
-EOM
-chmod +x $FILE
-
-########
-# Build with the Dockerfile
-########
-podman build -f Dockerfile -t whale-says
-
-########
-# Run the container to see what the whale says
-########
-podman run whale-says
-
-########
-# Clean up Podman and /tmp
-########
-podman rm --all
-podman rmi --all
-rm ./Dockerfile*
-
-########
 # Run AppArmor rootless tests
 ########
 if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
@@ -446,3 +422,36 @@ EOF
     sudo -u "#1000" podman rmi --all
     rm -f $aaFile
 fi
+
+########
+# Build Dockerfile for WhaleSays test
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM docker/whalesay:latest
+RUN apt-get -y update && apt-get install -y fortunes
+CMD /usr/games/fortune -a | cowsay
+EOM
+chmod +x $FILE
+
+########
+# Build with the Dockerfile
+########
+podman build -f Dockerfile -t whale-says
+
+########
+# Run the container to see what the whale says
+########
+podman run whale-says
+
+########
+# NOTE: Please leave the whale-says as the last test
+# in this script.
+########
+
+########
+# Clean up Podman and /tmp
+########
+podman rm --all
+podman rmi --all
+rm ./Dockerfile*
