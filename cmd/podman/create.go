@@ -403,17 +403,26 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	// Kernel Namespaces
+	// TODO Fix handling of namespace from pod
+	// Instead of integrating here, should be done in libpod
+	// However, that also involves setting up security opts
+	// when the pod's namespace is integrated
 	var pod *libpod.Pod
+	var podInfraID string
 	if c.IsSet("pod") {
 		pod, err = runtime.LookupPod(c.String("pod"))
+		if err != nil {
+			return nil, err
+		}
+		podInfraID, err = pod.InfraContainerID()
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	pidModeStr := c.String("pid")
-	if !c.IsSet("pid") && pod != nil && pod.SharesPID() {
-		pidModeStr = cc.POD
+	if (c.String("pid") == cc.POD || (!c.IsSet("pid") && pod.SharesPID())) && pod != nil {
+		pidModeStr = fmt.Sprintf("container:%s", podInfraID)
 	}
 	pidMode := container.PidMode(pidModeStr)
 	if !cc.Valid(string(pidMode), pidMode) {
@@ -421,14 +430,17 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	usernsModeStr := c.String("userns")
-	if !c.IsSet("userns") && pod != nil && pod.SharesUser() {
-		usernsModeStr = cc.POD
+	if (c.String("userns") == cc.POD || (!c.IsSet("userns") && pod.SharesUser())) && pod != nil {
+		usernsModeStr = fmt.Sprintf("container:%s", podInfraID)
 	}
 	usernsMode := container.UsernsMode(usernsModeStr)
 	if !cc.Valid(string(usernsMode), usernsMode) {
 		return nil, errors.Errorf("--userns %q is not valid", c.String("userns"))
 	}
 
+	// container:<ctrID> not considered valid by
+	// library that implements the namespaces.
+	// Leave based on pod.
 	utsModeStr := c.String("uts")
 	if !c.IsSet("uts") && pod != nil && pod.SharesUTS() {
 		utsModeStr = cc.POD
@@ -439,20 +451,21 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	ipcModeStr := c.String("ipc")
-	if !c.IsSet("ipc") && pod != nil && pod.SharesIPC() {
-		ipcModeStr = cc.POD
+	if (c.String("ipc") == cc.POD || (!c.IsSet("ipc") && pod.SharesIPC())) && pod != nil {
+		ipcModeStr = fmt.Sprintf("container:%s", podInfraID)
 	}
 	ipcMode := container.IpcMode(ipcModeStr)
 	if !cc.Valid(string(ipcMode), ipcMode) {
 		return nil, errors.Errorf("--ipc %q is not valid", ipcMode)
 	}
+
 	netModeStr := c.String("network")
-	if !c.IsSet("network") && pod != nil && pod.SharesNet() {
-		netModeStr = cc.POD
+	if (c.String("network") == cc.POD || (!c.IsSet("network") && pod.SharesNet())) && pod != nil {
+		netModeStr = fmt.Sprintf("container:%s", podInfraID)
 	}
 	// Make sure if network is set to container namespace, port binding is not also being asked for
 	netMode := container.NetworkMode(netModeStr)
-	if netMode.IsContainer() || cc.IsPod(netModeStr) {
+	if netMode.IsContainer() {
 		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
 			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
 		}
