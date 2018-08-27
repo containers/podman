@@ -58,7 +58,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyImageNotFound(err.Error())
 	}
 	labels, err := newImage.Labels(getContext())
 	if err != nil {

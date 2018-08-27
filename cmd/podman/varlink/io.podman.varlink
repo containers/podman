@@ -434,8 +434,7 @@ method ListContainerProcesses(name: string, opts: []string) -> (container: []str
 method GetContainerLogs(name: string) -> (container: []string)
 
 # ListContainerChanges takes a name or ID of a container and returns changes between the container and
-# its base image. It returns a struct of changed, deleted, and added path names. If the
-# container cannot be found, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# its base image. It returns a struct of changed, deleted, and added path names.
 method ListContainerChanges(name: string) -> (container: ContainerChanges)
 
 # ExportContainer creates an image from a container.  It takes the name or ID of a container and a
