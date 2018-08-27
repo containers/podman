@@ -81,7 +81,9 @@ Display namespace information
 
 **--filter, -f**
 
-Filter output based on conditions given
+Filter what containers are shown in the output.
+Multiple filters can be given with multiple uses of the --filter flag.
+If multiple filters are given, only containers which match all of the given filters will be shown.
 
 Valid filters are listed below:
 
