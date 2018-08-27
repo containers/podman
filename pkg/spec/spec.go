@@ -444,13 +444,24 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 		err error
 	)
 
+	nofileSet := false
+
 	for _, u := range config.Resources.Ulimit {
 		if ul, err = units.ParseUlimit(u); err != nil {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
 		}
 
+		if ul.Name == "nofile" {
+			nofileSet = true
+		}
+
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
+
+	if !nofileSet {
+		g.AddProcessRlimits("RLIMIT_NOFILE", 1048576, 1048576)
+	}
+
 	return nil
 }
 
