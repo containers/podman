@@ -159,4 +159,12 @@ var _ = Describe("Podman rootless", func() {
 	It("podman rootless rootfs --net host --privileged", func() {
 		runRootless([]string{"--net", "host", "--privileged"})
 	})
+
+	It("podman rootless rootfs --uts host", func() {
+		runRootless([]string{"--uts", "host"})
+	})
+
+	It("podman rootless rootfs --ipc host", func() {
+		runRootless([]string{"--ipc", "host"})
+	})
 })
