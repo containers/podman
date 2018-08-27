@@ -73,4 +73,13 @@ container:
 tests:
     - sh contrib/build_rpm.sh
 required: true
-context: "RPM regressions"
+context: "Fedora RPM regressions"
+
+---
+
+container:
+    image: registry.centos.org/centos:7
+tests:
+    - sh contrib/build_rpm.sh
+required: true
+context: "CentOS RPM regressions"
