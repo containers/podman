@@ -61,7 +61,7 @@ BuildRequires: pkgconfig
 BuildRequires: make
 Requires: runc
 Requires: skopeo-containers
-Requires: containernetworking-cni >= 0.6.0-3
+Requires: containernetworking-plugins >= 0.6.0-3
 Requires: iptables
 Requires: oci-systemd-hook
 %if 0%{?rhel} <= 7
