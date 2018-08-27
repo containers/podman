@@ -191,7 +191,7 @@ Currently it is not possible to create a network device, so rootless containers 
 then only the loopback device will be available.
 
 ## SEE ALSO
-`oci-hooks(5)`, `registries.conf(5)`, `storage.conf(5)`, `crio(8)`
+`oci-hooks(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
