@@ -316,6 +316,26 @@ func isPortInImagePorts(exposedPorts map[string]struct{}, port string) bool {
 	return false
 }
 
+func configureEntrypoint(c *cli.Context, data *inspect.ImageData) []string {
+	entrypoint := []string{}
+	if c.IsSet("entrypoint") {
+		// Force entrypoint to ""
+		if c.String("entrypoint") == "" {
+			return entrypoint
+		}
+		// Check if entrypoint specified is json
+		if err := json.Unmarshal([]byte(c.String("entrypoint")), &entrypoint); err == nil {
+			return entrypoint
+		}
+		// Return entrypoint as a single command
+		return []string{c.String("entrypoint")}
+	}
+	if data != nil {
+		return data.ContainerConfig.Entrypoint
+	}
+	return entrypoint
+}
+
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
 func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
@@ -555,16 +575,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		workDir = data.ContainerConfig.WorkingDir
 	}
 
-	// ENTRYPOINT
-	// User input entrypoint takes priority over image entrypoint
-	entrypoint := c.StringSlice("entrypoint")
-	if len(entrypoint) == 0 && data != nil {
-		entrypoint = data.ContainerConfig.Entrypoint
-	}
-	// if entrypoint=, we need to clear the entrypoint
-	if len(entrypoint) == 1 && c.IsSet("entrypoint") && strings.Join(c.StringSlice("entrypoint"), "") == "" {
-		entrypoint = []string{}
-	}
+	entrypoint := configureEntrypoint(c, data)
 	// Build the command
 	// If we have an entry point, it goes first
 	if len(entrypoint) > 0 {

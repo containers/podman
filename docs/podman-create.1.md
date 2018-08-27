@@ -213,7 +213,7 @@ Set custom DNS options
 
 Set custom DNS search domains (Use --dns-search=. if you don't wish to set the search domain)
 
-**--entrypoint**=""
+**--entrypoint** *"command"* | *'["command", "arg1", ...]'*
 
 Overwrite the default ENTRYPOINT of the image
 
@@ -227,6 +227,8 @@ pass in more options via the COMMAND. But, sometimes an operator may want to run
 something else inside the container, so you can override the default ENTRYPOINT
 at runtime by using a **--entrypoint** and a string to specify the new
 ENTRYPOINT.
+
+You need to specify multi option commands in the form of a json string.
 
 **-e**, **--env**=[]
 
