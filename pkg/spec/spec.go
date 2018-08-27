@@ -27,7 +27,10 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	addCgroup := true
 	canMountSys := true
 
-	if !config.UsernsMode.IsHost() && config.NetMode.IsHost() {
+	isRootless := rootless.IsRootless()
+	inUserNS := isRootless || (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost()
+
+	if inUserNS && config.NetMode.IsHost() {
 		canMountSys = false
 	}
 
@@ -56,7 +59,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		g.AddMount(sysMnt)
 	}
-	if rootless.IsRootless() {
+	if isRootless {
 		g.RemoveMount("/dev/pts")
 		devPts := spec.Mount{
 			Destination: "/dev/pts",
