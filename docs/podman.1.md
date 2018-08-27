@@ -137,17 +137,7 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.co
 
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
-The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image if you do a `podman commit`.
-
-Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
-
-For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
-
-The format of the mounts.conf is the volume format /SRC:/DEST, one mount per line. Users can create an `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container. Podman by default reads /usr/share/containers/mounts.conf and the /etc/containers/mounts.conf if it exists.
-
-Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
-
-When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used.
+The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
 
 **hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
 
@@ -191,7 +181,7 @@ Currently it is not possible to create a network device, so rootless containers 
 then only the loopback device will be available.
 
 ## SEE ALSO
-`oci-hooks(5)`, `registries.conf(5)`, `storage.conf(5)`, `crio(8)`
+`oci-hooks(5)`, `containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

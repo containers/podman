@@ -597,7 +597,7 @@ podman build --no-cache --rm=false -t imageName .
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), buildah(1), registries.conf(5)
+podman(1), buildah(1), containers-registries.conf(5)
 
 ## HISTORY
 

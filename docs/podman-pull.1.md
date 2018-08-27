@@ -139,7 +139,7 @@ Storing signatures
 	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), registries.conf(5), crio(8)
+podman(1), podman-push(1), podman-login(1), containers-registries.conf(5), crio(8)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
