@@ -243,7 +243,7 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 			Source:      filepath.Join(mountPrefix, ctrDir),
 			Destination: ctrDir,
 			Type:        "bind",
-			Options:     []string{"bind"},
+			Options:     []string{"bind", "private"},
 		}
 
 		mounts = append(mounts, m)
@@ -278,7 +278,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error 
 			Source:      ctrDirOnHost,
 			Destination: secretsDir,
 			Type:        "bind",
-			Options:     []string{"bind"},
+			Options:     []string{"bind", "private"},
 		}
 		*mounts = append(*mounts, m)
 	}
