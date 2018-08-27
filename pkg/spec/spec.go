@@ -458,7 +458,7 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
 
-	if !nofileSet {
+	if !nofileSet && !rootless.IsRootless() {
 		g.AddProcessRlimits("RLIMIT_NOFILE", 1048576, 1048576)
 	}
 
