@@ -72,4 +72,41 @@ var _ = Describe("Podman create", func() {
 		Expect(ok).To(BeTrue())
 		Expect(value).To(Equal("WORLD"))
 	})
+
+	It("podman create --entrypoint command", func() {
+		session := podmanTest.Podman([]string{"create", "--entrypoint", "/bin/foobar", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal("/bin/foobar"))
+	})
+
+	It("podman create --entrypoint \"\"", func() {
+		session := podmanTest.Podman([]string{"create", "--entrypoint", "", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal(""))
+	})
+
+	It("podman create --entrypoint json", func() {
+		jsonString := `[ "/bin/foo", "-c"]`
+		session := podmanTest.Podman([]string{"create", "--entrypoint", jsonString, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{.Config.Entrypoint}}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal("/bin/foo -c"))
+	})
 })
