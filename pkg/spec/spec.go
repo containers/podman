@@ -69,6 +69,16 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		g.AddMount(devPts)
 	}
+	if inUserNS && config.IpcMode.IsHost() {
+		g.RemoveMount("/dev/mqueue")
+		devMqueue := spec.Mount{
+			Destination: "/dev/mqueue",
+			Type:        "bind",
+			Source:      "/dev/mqueue",
+			Options:     []string{"bind", "nosuid", "noexec", "nodev"},
+		}
+		g.AddMount(devMqueue)
+	}
 
 	if addCgroup {
 		cgroupMnt := spec.Mount{
