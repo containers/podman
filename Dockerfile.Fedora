@@ -30,6 +30,7 @@ RUN dnf -y install btrfs-progs-devel \
               procps-ng \
               nmap-ncat \
               xz \
+              slirp4netns \
               iptables && dnf clean all
 
 # Install CNI plugins
