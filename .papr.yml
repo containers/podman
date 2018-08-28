@@ -9,7 +9,7 @@ host:
      ram: 8192
      cpus: 4
 required: true
-timeout: 90m
+timeout: 120m
 
 tests:
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
@@ -35,7 +35,7 @@ extra-repos:
 
 required: true
 
-timeout: 90m
+timeout: 120m
 
 tests:
   - sh .papr_prepare.sh
@@ -63,7 +63,7 @@ tests:
     - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 required: false
 
-timeout: 90m
+timeout: 120m
 context: "Fedora fedora/28/cloud Podman"
 
 ---
