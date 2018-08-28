@@ -8,7 +8,6 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/docker/distribution/reference"
@@ -107,12 +106,6 @@ func searchCmd(c *cli.Context) error {
 	if err := validateFlags(c, searchFlags); err != nil {
 		return err
 	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
-	if err != nil {
-		return errors.Wrapf(err, "could not get runtime")
-	}
-	defer runtime.Shutdown(false)
 
 	format := genSearchFormat(c.String("format"))
 	opts := searchOpts{
