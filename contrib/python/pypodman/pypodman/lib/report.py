@@ -53,17 +53,14 @@ class Report():
         fmt = []
 
         for key in keys:
-            value = max(map(lambda x: len(str(x.get(key, ''))), iterable))
-            # print('key', key, 'value', value)
+            slice_ = [i.get(key, '') for i in iterable]
+            data_len = len(max(slice_, key=len))
 
-            if truncate:
-                row = self._columns.get(
-                    key, ReportColumn(key, key.upper(), len(key)))
-                if value < row.width:
-                    step = row.width if value == 0 else value
-                    value = max(len(key), step)
-                elif value > row.width:
-                    value = row.width if row.width != 0 else value
+            info = self._columns.get(key,
+                                     ReportColumn(key, key.upper(), data_len))
+            display_len = max(data_len, len(info.display))
+            if truncate and info.width != 0:
+                display_len = info.width
 
-            fmt.append('{{{0}:{1}.{1}}}'.format(key, value))
+            fmt.append('{{{0}:{1}.{1}}}'.format(key, display_len))
         self._format = ' '.join(fmt)

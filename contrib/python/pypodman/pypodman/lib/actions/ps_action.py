@@ -3,8 +3,8 @@ import operator
 from collections import OrderedDict
 
 import humanize
-import podman
 
+import podman
 from pypodman.lib import AbstractActionBase, Report, ReportColumn
 
 
@@ -44,7 +44,7 @@ class Ps(AbstractActionBase):
             'status':
             ReportColumn('status', 'STATUS', 10),
             'ports':
-            ReportColumn('ports', 'PORTS', 28),
+            ReportColumn('ports', 'PORTS', 0),
             'names':
             ReportColumn('names', 'NAMES', 18)
         })
@@ -67,6 +67,9 @@ class Ps(AbstractActionBase):
                 'createdat':
                 humanize.naturaldate(podman.datetime_parse(ctnr.createdat)),
             })
+
+            if self._args.truncate:
+                fields.update({'image': ctnr.image[-30:]})
             rows.append(fields)
 
         with Report(self.columns, heading=self._args.heading) as report:

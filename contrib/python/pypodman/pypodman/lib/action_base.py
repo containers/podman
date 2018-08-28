@@ -65,8 +65,7 @@ class AbstractActionBase(abc.ABC):
     def client(self):
         """Podman remote client for communicating."""
         if self._args.host is None:
-            return podman.Client(
-                uri=self.local_uri)
+            return podman.Client(uri=self.local_uri)
         return podman.Client(
             uri=self.local_uri,
             remote_uri=self.remote_uri,

@@ -214,7 +214,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         """Retrieve container logs."""
         with self._client() as podman:
             results = podman.GetContainerLogs(self._id)
-        yield from results
+        yield from results['container']
 
 
 class Containers():
