@@ -75,7 +75,7 @@ func varlinkCmd(c *cli.Context) error {
 	if err = service.Listen(args[0], timeout); err != nil {
 		switch err.(type) {
 		case varlink.ServiceTimeoutError:
-			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms)", c.Int64("timeout"))
+			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms, 0 means never timeout)", c.Int64("timeout"))
 			return nil
 		default:
 			return errors.Errorf("unable to start varlink service")
