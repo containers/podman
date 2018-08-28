@@ -1007,13 +1007,10 @@ type resolvConf struct {
 
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
-	// Copy /etc/resolv.conf to the container's rundir
-	resolvPath := "/etc/resolv.conf"
-
-	// Check if the host system is using system resolve and if so
-	// copy its resolv.conf
-	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
-		resolvPath = "/run/systemd/resolve/resolv.conf"
+	// Determine the endpoint for resolv.conf in case it is a symlink
+	resolvPath, err := filepath.EvalSymlinks("/etc/resolv.conf")
+	if err != nil {
+		return "", err
 	}
 	orig, err := ioutil.ReadFile(resolvPath)
 	if err != nil {
