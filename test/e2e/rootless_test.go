@@ -58,6 +58,13 @@ var _ = Describe("Podman rootless", func() {
 		}
 	})
 
+	chownFunc := func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Lchown(p, 1000, 1000)
+	}
+
 	runRootless := func(args []string) {
 		// Check if we can create an user namespace
 		err := exec.Command("unshare", "-r", "echo", "hello").Run()
@@ -74,13 +81,6 @@ var _ = Describe("Podman rootless", func() {
 		mount.WaitWithDefaultTimeout()
 		Expect(mount.ExitCode()).To(Equal(0))
 		mountPath := mount.OutputToString()
-
-		chownFunc := func(p string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			return os.Lchown(p, 1000, 1000)
-		}
 
 		err = filepath.Walk(tempdir, chownFunc)
 		if err != nil {
@@ -127,6 +127,22 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
+			cmd = podmanTest.PodmanAsUser([]string{"kill", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = podmanTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = podmanTest.PodmanAsUser([]string{"stop", "-l", "-t", "0"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = podmanTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
 			if !canExec() {
 				Skip("ioctl(NS_GET_PARENT) not supported.")
 			}
@@ -143,6 +159,26 @@ var _ = Describe("Podman rootless", func() {
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	}
+
+	It("podman rootless search", func() {
+		xdgRuntimeDir, err := ioutil.TempDir("/run", "")
+		Expect(err).To(BeNil())
+		defer os.RemoveAll(xdgRuntimeDir)
+		err = filepath.Walk(xdgRuntimeDir, chownFunc)
+		Expect(err).To(BeNil())
+
+		home, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		err = filepath.Walk(xdgRuntimeDir, chownFunc)
+		Expect(err).To(BeNil())
+
+		env := os.Environ()
+		env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
+		env = append(env, fmt.Sprintf("HOME=%s", home))
+		cmd := podmanTest.PodmanAsUser([]string{"search", "docker.io/busybox"}, 1000, 1000, env)
+		cmd.WaitWithDefaultTimeout()
+		Expect(cmd.ExitCode()).To(Equal(0))
+	})
 
 	It("podman rootless rootfs", func() {
 		runRootless([]string{})
