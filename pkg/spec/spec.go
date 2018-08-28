@@ -440,17 +440,37 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 
 func addRlimits(config *CreateConfig, g *generate.Generator) error {
 	var (
-		ul  *units.Ulimit
-		err error
+		kernelMax  uint64 = 1048576
+		isRootless        = rootless.IsRootless()
+		nofileSet         = false
+		nprocSet          = false
 	)
 
 	for _, u := range config.Resources.Ulimit {
-		if ul, err = units.ParseUlimit(u); err != nil {
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
 			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
+		}
+
+		if ul.Name == "nofile" {
+			nofileSet = true
+		} else if ul.Name == "nproc" {
+			nprocSet = true
 		}
 
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
+
+	// If not explicitly overridden by the user, default number of open
+	// files and number of processes to the maximum they can be set to
+	// (without overriding a sysctl)
+	if !nofileSet && !isRootless {
+		g.AddProcessRlimits("RLIMIT_NOFILE", kernelMax, kernelMax)
+	}
+	if !nprocSet && !isRootless {
+		g.AddProcessRlimits("RLIMIT_NPROC", kernelMax, kernelMax)
+	}
+
 	return nil
 }
 
