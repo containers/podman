@@ -127,6 +127,14 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
+			cmd = podmanTest.PodmanAsUser([]string{"stop", "-l", "-t", "0"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = podmanTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
 			if !canExec() {
 				Skip("ioctl(NS_GET_PARENT) not supported.")
 			}
