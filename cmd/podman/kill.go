@@ -6,6 +6,7 @@ import (
 
 	"fmt"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -45,6 +46,7 @@ func killCmd(c *cli.Context) error {
 		return err
 	}
 
+	rootless.SetSkipStorageSetup(true)
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
