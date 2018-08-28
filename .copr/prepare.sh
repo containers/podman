@@ -8,7 +8,7 @@ fi
 git fetch --unshallow || :
 
 COMMIT=$(git rev-parse HEAD)
-COMMIT_SHORT=$(git rev-parse --short HEAD)
+COMMIT_SHORT=$(git rev-parse --short=8 HEAD)
 COMMIT_NUM=$(git rev-list HEAD --count)
 COMMIT_DATE=$(date +%s)
 
