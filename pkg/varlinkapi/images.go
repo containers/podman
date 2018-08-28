@@ -133,9 +133,9 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	}
 
 	if strings.HasPrefix(manifestType, "oci") {
-		manifestType = imagebuildah.OCIv1ImageFormat
+		manifestType = buildah.OCIv1ImageManifest
 	} else if strings.HasPrefix(manifestType, "docker") {
-		manifestType = imagebuildah.Dockerv2ImageFormat
+		manifestType = buildah.Dockerv2ImageManifest
 	} else {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image type %q", manifestType))
 	}

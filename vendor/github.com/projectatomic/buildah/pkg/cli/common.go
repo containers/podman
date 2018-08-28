@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/util"
 	"github.com/urfave/cli"
 )
 
 var (
-	runtime     = util.Runtime()
 	usernsFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "userns",
@@ -113,7 +113,8 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "`format` of the built image's manifest and metadata",
+			Usage: "`format` of the built image's manifest and metadata. Use BUILDAH_FORMAT environment variable to override.",
+			Value: DefaultFormat(),
 		},
 		cli.StringFlag{
 			Name:  "iidfile",
@@ -121,7 +122,8 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "isolation",
-			Usage: "`type` of process isolation to use",
+			Usage: "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.",
+			Value: DefaultIsolation(),
 		},
 		cli.StringSliceFlag{
 			Name:  "label",
@@ -129,7 +131,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "layers",
-			Usage: fmt.Sprintf("cache intermediate layers during build (default %t)", UseLayers()),
+			Usage: fmt.Sprintf("cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. (default %t)", UseLayers()),
 		},
 		cli.BoolFlag{
 			Name:  "no-cache",
@@ -161,8 +163,8 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "runtime",
-			Usage: "`path` to an alternate runtime",
-			Value: runtime,
+			Usage: "`path` to an alternate runtime. Use BUILDAH_RUNTIME environment variable to override.",
+			Value: util.Runtime(),
 		},
 		cli.StringSliceFlag{
 			Name:  "runtime-flag",
@@ -259,4 +261,22 @@ func UseLayers() bool {
 		return true
 	}
 	return false
+}
+
+// DefaultFormat returns the default image format
+func DefaultFormat() string {
+	format := os.Getenv("BUILDAH_FORMAT")
+	if format != "" {
+		return format
+	}
+	return buildah.OCI
+}
+
+// DefaultIsolation returns the default image format
+func DefaultIsolation() string {
+	isolation := os.Getenv("BUILDAH_ISOLATION")
+	if isolation != "" {
+		return isolation
+	}
+	return buildah.OCI
 }

@@ -339,6 +339,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		CommonBuildOpts:  options.CommonBuildOpts,
 		TopLayer:         topLayer,
 		Args:             options.Args,
+		Format:           options.Format,
 	}
 
 	if options.Mount {

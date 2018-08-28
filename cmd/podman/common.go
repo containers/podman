@@ -10,6 +10,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
+	"github.com/projectatomic/buildah"
 	"github.com/urfave/cli"
 )
 
@@ -405,4 +406,16 @@ var createFlags = []cli.Flag{
 		Name:  "workdir, w",
 		Usage: "Working `directory inside the container",
 	},
+}
+
+func getFormat(c *cli.Context) (string, error) {
+	format := strings.ToLower(c.String("format"))
+	if strings.HasPrefix(format, buildah.OCI) {
+		return buildah.OCIv1ImageManifest, nil
+	}
+
+	if strings.HasPrefix(format, buildah.DOCKER) {
+		return buildah.Dockerv2ImageManifest, nil
+	}
+	return "", errors.Errorf("unrecognized image type %q", format)
 }

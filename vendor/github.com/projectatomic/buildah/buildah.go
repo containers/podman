@@ -178,6 +178,8 @@ type Builder struct {
 	CommonBuildOpts *CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
+	// Format for the build Image
+	Format string
 }
 
 // BuilderInfo are used as objects to display container information
@@ -360,6 +362,8 @@ type BuilderOptions struct {
 	DropCapabilities []string
 
 	CommonBuildOpts *CommonBuildOptions
+	// Format for the container image
+	Format string
 }
 
 // ImportOptions are used to initialize a Builder from an existing container
