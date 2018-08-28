@@ -34,11 +34,9 @@ import (
 )
 
 const (
-	PullIfMissing       = buildah.PullIfMissing
-	PullAlways          = buildah.PullAlways
-	PullNever           = buildah.PullNever
-	OCIv1ImageFormat    = buildah.OCIv1ImageManifest
-	Dockerv2ImageFormat = buildah.Dockerv2ImageManifest
+	PullIfMissing = buildah.PullIfMissing
+	PullAlways    = buildah.PullAlways
+	PullNever     = buildah.PullNever
 
 	Gzip         = archive.Gzip
 	Bzip2        = archive.Bzip2
@@ -114,7 +112,7 @@ type BuildOptions struct {
 	ReportWriter io.Writer
 	// OutputFormat is the format of the output image's manifest and
 	// configuration data.
-	// Accepted values are OCIv1ImageFormat and Dockerv2ImageFormat.
+	// Accepted values are buildah.OCIv1ImageManifest and buildah.Dockerv2ImageManifest.
 	OutputFormat string
 	// SystemContext holds parameters used for authentication.
 	SystemContext *types.SystemContext
@@ -640,6 +638,7 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 		IDMappingOptions:      b.idmappingOptions,
 		CommonBuildOpts:       b.commonBuildOptions,
 		DefaultMountsFilePath: b.defaultMountsFilePath,
+		Format:                b.outputFormat,
 	}
 	builder, err := buildah.NewBuilder(ctx, b.store, builderOptions)
 	if err != nil {

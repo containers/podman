@@ -194,6 +194,9 @@ Control the format for the built image's manifest and configuration data.
 Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 *docker* (version 2, using schema format 2 for the manifest).
 
+Note: You can also override the default format by setting the BUILDAH\_FORMAT
+environment variable.  `export BUILDAH_FORMAT=docker`
+
 **--iidfile** *ImageIDfile*
 
 Write the image ID to the file.
@@ -229,7 +232,7 @@ Add an image *label* (e.g. label=*value*) to the image metadata. Can be used mul
 
 Cache intermediate images during the build process (Default is `false`).
 
-Note: You can also override the default value of layers by setting the BUILDAH_LAYERS
+Note: You can also override the default value of layers by setting the BUILDAH\_LAYERS
 environment variable. `export BUILDAH_LAYERS=true`
 
 **--logfile** *filename*
@@ -305,11 +308,15 @@ Remove intermediate containers after a successful build (default true).
 The *path* to an alternate OCI-compatible runtime, which will be used to run
 commands specified by the **RUN** instruction.
 
+Note: You can also override the default runtime by setting the BUILDAH\_RUNTIME
+environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
+
 **--runtime-flag** *flag*
 
 Adds global flags for the container rutime. To list the supported flags, please
 consult the manpages of the selected container runtime (`runc` is the default
 runtime, the manpage to consult is `runc(8)`).
+
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given would be `--runtime-flag log-format=json`.
 
@@ -536,13 +543,13 @@ podman build -f Dockerfile.simple .
 
 cat ~/Dockerfile | podman build -f - .
 
-podman build -f Dockerfile.simple -f Dockerfile.notsosimple
+podman build -f Dockerfile.simple -f Dockerfile.notsosimple .
 
 podman build -f Dockerfile.in ~
 
 podman build -t imageName .
 
-podman build --tls-verify=true -t imageName -f Dockerfile.simple
+podman build --tls-verify=true -t imageName -f Dockerfile.simple .
 
 podman build --tls-verify=false -t imageName .
 
@@ -550,7 +557,7 @@ podman build --runtime-flag log-format=json .
 
 podman build --runtime-flag debug .
 
-podman build --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple
+podman build --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
 
 podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
 
