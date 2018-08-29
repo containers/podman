@@ -32,6 +32,8 @@ var cmdsNotRequiringRootless = map[string]bool{
 	"login":   true,
 	"logout":  true,
 	"kill":    true,
+	"pause":   true,
+	"unpause": true,
 	"search":  true,
 	"stop":    true,
 	"top":     true,
