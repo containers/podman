@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
@@ -25,8 +26,21 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 		return nil, err
 	}
 
+	isRootless := rootless.IsRootless()
+
 	g.SetRootReadonly(true)
 	g.SetProcessArgs([]string{r.config.InfraCommand})
+
+	if isRootless {
+		g.RemoveMount("/dev/pts")
+		devPts := spec.Mount{
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Source:      "devpts",
+			Options:     []string{"private", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		}
+		g.AddMount(devPts)
+	}
 
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	var options []CtrCreateOption
@@ -38,7 +52,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	// Since user namespace sharing is not implemented, we only need to check if it's rootless
 	portMappings := make([]ocicni.PortMapping, 0)
 	networks := make([]string, 0)
-	options = append(options, WithNetNS(portMappings, rootless.IsRootless(), networks))
+	options = append(options, WithNetNS(portMappings, isRootless, networks))
 
 	return r.newContainer(ctx, g.Config, options...)
 }
