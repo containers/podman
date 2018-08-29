@@ -1,6 +1,7 @@
 import os
 import signal
 import unittest
+from pathlib import Path
 from test.podman_testcase import PodmanTestCase
 from test.retry_decorator import retry
 
@@ -219,13 +220,19 @@ class TestContainers(PodmanTestCase):
         self.assertTrue(ctnr.status, 'running')
 
     # creating cgoups can be flakey
-    @retry(podman.libs.errors.ErrorOccurred, tries=16, delay=2, print_=print)
+    @retry(podman.libs.errors.ErrorOccurred, tries=4, delay=2, print_=print)
     def test_stats(self):
-        self.assertTrue(self.alpine_ctnr.running)
+        try:
+            self.assertTrue(self.alpine_ctnr.running)
 
-        actual = self.alpine_ctnr.stats()
-        self.assertEqual(self.alpine_ctnr.id, actual.id)
-        self.assertEqual(self.alpine_ctnr.names, actual.name)
+            actual = self.alpine_ctnr.stats()
+            self.assertEqual(self.alpine_ctnr.id, actual.id)
+            self.assertEqual(self.alpine_ctnr.names, actual.name)
+        except Exception:
+            info = Path('/proc/self/mountinfo')
+            with info.open() as fd:
+                print('{} {}'.format(self.alpine_ctnr.id, info))
+                print(fd.read())
 
     def test_logs(self):
         self.assertTrue(self.alpine_ctnr.running)
