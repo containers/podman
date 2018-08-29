@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -82,6 +83,18 @@ func execCmd(c *cli.Context) error {
 	}
 	if err != nil {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])
+	}
+
+	pid, err := ctr.PID()
+	if err != nil {
+		return err
+	}
+	became, ret, err := rootless.JoinNS(uint(pid))
+	if err != nil {
+		return err
+	}
+	if became {
+		os.Exit(ret)
 	}
 
 	// ENVIRONMENT VARIABLES

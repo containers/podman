@@ -691,15 +691,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 
 	execCmd := exec.Command(r.path, args...)
-	if rootless.IsRootless() {
-		args = append([]string{"--preserve-credentials", "--user=/proc/self/fd/3", r.path}, args...)
-		f, err := rootless.GetUserNSForPid(uint(c.state.PID))
-		if err != nil {
-			return nil, err
-		}
-		execCmd = exec.Command("nsenter", args...)
-		execCmd.ExtraFiles = append(execCmd.ExtraFiles, f)
-	}
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	execCmd.Stdin = os.Stdin

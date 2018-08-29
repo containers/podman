@@ -25,6 +25,10 @@ var (
 )
 
 func unpauseCmd(c *cli.Context) error {
+	if os.Getuid() != 0 {
+		return errors.New("unpause is not supported for rootless containers")
+	}
+
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
