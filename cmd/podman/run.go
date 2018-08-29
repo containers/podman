@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -73,6 +74,10 @@ func runCmd(c *cli.Context) error {
 	storageOpts.UIDMap = mappings.UIDMap
 	storageOpts.GIDMap = mappings.GIDMap
 
+	if os.Getuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
+
 	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
@@ -93,7 +98,7 @@ func runCmd(c *cli.Context) error {
 
 	var newImage *image.Image = nil
 	var data *inspect.ImageData = nil
-	if rootfs == "" {
+	if rootfs == "" && !rootless.SkipStorageSetup() {
 		newImage, err = runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 		if err != nil {
 			return errors.Wrapf(err, "unable to find image")
@@ -122,6 +127,14 @@ func runCmd(c *cli.Context) error {
 	options, err := createConfig.GetContainerCreateOptions(runtime)
 	if err != nil {
 		return err
+	}
+
+	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, runtime)
+	if err != nil {
+		return err
+	}
+	if became {
+		os.Exit(ret)
 	}
 
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)

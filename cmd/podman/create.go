@@ -764,3 +764,37 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 	return config, nil
 }
+
+func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *libpod.Runtime) (bool, int, error) {
+	if os.Getuid() == 0 {
+		return false, 0, nil
+	}
+
+	if createConfig.Pod != "" {
+		pod, err := runtime.LookupPod(createConfig.Pod)
+		if err != nil {
+			return false, -1, err
+		}
+		inspect, err := pod.Inspect()
+		for _, ctr := range inspect.Containers {
+			prevCtr, err := runtime.LookupContainer(ctr.ID)
+			if err != nil {
+				return false, -1, err
+			}
+			s, err := prevCtr.State()
+			if err != nil {
+				return false, -1, err
+			}
+			if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
+				continue
+			}
+			pid, err := prevCtr.PID()
+			if err != nil {
+				return false, -1, err
+			}
+			return rootless.JoinNS(uint(pid))
+		}
+	}
+
+	return rootless.BecomeRootInUserNS()
+}
