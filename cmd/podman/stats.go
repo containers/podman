@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -60,6 +61,10 @@ var (
 func statsCmd(c *cli.Context) error {
 	if err := validateFlags(c, statsFlags); err != nil {
 		return err
+	}
+
+	if os.Getuid() != 0 {
+		return errors.New("stats is not supported for rootless containers")
 	}
 
 	all := c.Bool("all")
