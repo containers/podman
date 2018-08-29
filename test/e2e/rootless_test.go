@@ -65,14 +65,14 @@ var _ = Describe("Podman rootless", func() {
 		return os.Lchown(p, 1000, 1000)
 	}
 
-	runRootless := func(args []string) {
+	type rootlessCB func(test PodmanTest, xdgRuntimeDir string, home string, mountPath string)
+
+	runInRootlessContext := func(cb rootlessCB) {
 		// Check if we can create an user namespace
 		err := exec.Command("unshare", "-r", "echo", "hello").Run()
 		if err != nil {
 			Skip("User namespaces not supported.")
 		}
-		canUseExec := canExec()
-
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -84,98 +84,52 @@ var _ = Describe("Podman rootless", func() {
 		mountPath := mount.OutputToString()
 
 		err = filepath.Walk(tempdir, chownFunc)
-		if err != nil {
-			fmt.Printf("cannot chown the directory: %q\n", err)
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 
-		runRootless := func(mountPath string) {
-			tempdir, err := CreateTempDirInTempDir()
-			Expect(err).To(BeNil())
-			podmanTest := PodmanCreate(tempdir)
-			err = filepath.Walk(tempdir, chownFunc)
-			Expect(err).To(BeNil())
+		tempdir, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		rootlessTest := PodmanCreate(tempdir)
+		err = filepath.Walk(tempdir, chownFunc)
+		Expect(err).To(BeNil())
 
-			xdgRuntimeDir, err := ioutil.TempDir("/run", "")
-			Expect(err).To(BeNil())
-			defer os.RemoveAll(xdgRuntimeDir)
-			err = filepath.Walk(xdgRuntimeDir, chownFunc)
-			Expect(err).To(BeNil())
+		xdgRuntimeDir, err := ioutil.TempDir("/run", "")
+		Expect(err).To(BeNil())
+		defer os.RemoveAll(xdgRuntimeDir)
+		err = filepath.Walk(xdgRuntimeDir, chownFunc)
+		Expect(err).To(BeNil())
 
-			home, err := CreateTempDirInTempDir()
-			Expect(err).To(BeNil())
-			err = filepath.Walk(xdgRuntimeDir, chownFunc)
-			Expect(err).To(BeNil())
+		home, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+		err = filepath.Walk(home, chownFunc)
+		Expect(err).To(BeNil())
 
-			env := os.Environ()
-			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
-			env = append(env, fmt.Sprintf("HOME=%s", home))
-			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
-			allArgs := append([]string{"run"}, args...)
-			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
-			cmd := podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
-
-			cmd = podmanTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			allArgs = append([]string{"run", "-d"}, args...)
-			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "top")
-			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			if canUseExec {
-				cmd = podmanTest.PodmanAsUser([]string{"top", "-l"}, 1000, 1000, env)
-				cmd.WaitWithDefaultTimeout()
-				Expect(cmd.ExitCode()).To(Equal(0))
-			}
-
-			cmd = podmanTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			allArgs = append([]string{"run", "-d"}, args...)
-			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "unshare", "-r", "unshare", "-r", "top")
-			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			cmd = podmanTest.PodmanAsUser([]string{"kill", "-l"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			cmd = podmanTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			cmd = podmanTest.PodmanAsUser([]string{"stop", "-l", "-t", "0"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			cmd = podmanTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-
-			if !canUseExec {
-				Skip("ioctl(NS_GET_PARENT) not supported.")
-			}
-
-			cmd = podmanTest.PodmanAsUser([]string{"exec", "-l", "echo", "hello"}, 1000, 1000, env)
-			cmd.WaitWithDefaultTimeout()
-			Expect(cmd.ExitCode()).To(Equal(0))
-			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
-		}
-
-		runRootless(mountPath)
+		cb(rootlessTest, xdgRuntimeDir, home, mountPath)
 
 		umount := podmanTest.Podman([]string{"umount", cid})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	}
+
+	It("podman rootless pod", func() {
+		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+			env := os.Environ()
+			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
+			env = append(env, fmt.Sprintf("HOME=%s", home))
+			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+
+			cmd := rootlessTest.PodmanAsUser([]string{"pod", "create", "--infra=false"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+			podId := cmd.OutputToString()
+
+			args := []string{"run", "--pod", podId, "--rootfs", mountPath, "echo", "hello"}
+			cmd = rootlessTest.PodmanAsUser(args, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
+		}
+		runInRootlessContext(f)
+	})
 
 	It("podman rootless search", func() {
 		xdgRuntimeDir, err := ioutil.TempDir("/run", "")
@@ -186,7 +140,7 @@ var _ = Describe("Podman rootless", func() {
 
 		home, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
-		err = filepath.Walk(xdgRuntimeDir, chownFunc)
+		err = filepath.Walk(home, chownFunc)
 		Expect(err).To(BeNil())
 
 		env := os.Environ()
@@ -197,27 +151,97 @@ var _ = Describe("Podman rootless", func() {
 		Expect(cmd.ExitCode()).To(Equal(0))
 	})
 
+	runRootlessHelper := func(args []string) {
+		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+			env := os.Environ()
+			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
+			env = append(env, fmt.Sprintf("HOME=%s", home))
+			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+
+			allArgs := append([]string{"run"}, args...)
+			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
+			cmd := rootlessTest.PodmanAsUser(allArgs, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
+
+			cmd = rootlessTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			allArgs = append([]string{"run", "-d"}, args...)
+			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "top")
+			cmd = rootlessTest.PodmanAsUser(allArgs, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			canUseExec := canExec()
+
+			if canUseExec {
+				cmd = rootlessTest.PodmanAsUser([]string{"top", "-l"}, 1000, 1000, env)
+				cmd.WaitWithDefaultTimeout()
+				Expect(cmd.ExitCode()).To(Equal(0))
+			}
+
+			cmd = rootlessTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			allArgs = append([]string{"run", "-d"}, args...)
+			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "unshare", "-r", "unshare", "-r", "top")
+			cmd = rootlessTest.PodmanAsUser(allArgs, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = rootlessTest.PodmanAsUser([]string{"kill", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = rootlessTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = rootlessTest.PodmanAsUser([]string{"stop", "-l", "-t", "0"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			cmd = rootlessTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			if !canUseExec {
+				Skip("ioctl(NS_GET_PARENT) not supported.")
+			}
+
+			cmd = rootlessTest.PodmanAsUser([]string{"exec", "-l", "echo", "hello"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
+		}
+		runInRootlessContext(f)
+	}
+
 	It("podman rootless rootfs", func() {
-		runRootless([]string{})
+		runRootlessHelper([]string{})
 	})
 
 	It("podman rootless rootfs --net host", func() {
-		runRootless([]string{"--net", "host"})
+		runRootlessHelper([]string{"--net", "host"})
 	})
 
 	It("podman rootless rootfs --privileged", func() {
-		runRootless([]string{"--privileged"})
+		runRootlessHelper([]string{"--privileged"})
 	})
 
 	It("podman rootless rootfs --net host --privileged", func() {
-		runRootless([]string{"--net", "host", "--privileged"})
+		runRootlessHelper([]string{"--net", "host", "--privileged"})
 	})
 
 	It("podman rootless rootfs --uts host", func() {
-		runRootless([]string{"--uts", "host"})
+		runRootlessHelper([]string{"--uts", "host"})
 	})
 
 	It("podman rootless rootfs --ipc host", func() {
-		runRootless([]string{"--ipc", "host"})
+		runRootlessHelper([]string{"--ipc", "host"})
 	})
 })
