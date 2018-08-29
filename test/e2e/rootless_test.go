@@ -71,6 +71,7 @@ var _ = Describe("Podman rootless", func() {
 		if err != nil {
 			Skip("User namespaces not supported.")
 		}
+		canUseExec := canExec()
 
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
@@ -122,6 +123,22 @@ var _ = Describe("Podman rootless", func() {
 			Expect(cmd.ExitCode()).To(Equal(0))
 
 			allArgs = append([]string{"run", "-d"}, args...)
+			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "top")
+			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			if canUseExec {
+				cmd = podmanTest.PodmanAsUser([]string{"top", "-l"}, 1000, 1000, env)
+				cmd.WaitWithDefaultTimeout()
+				Expect(cmd.ExitCode()).To(Equal(0))
+			}
+
+			cmd = podmanTest.PodmanAsUser([]string{"rm", "-l", "-f"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			allArgs = append([]string{"run", "-d"}, args...)
 			allArgs = append(allArgs, "--security-opt", "seccomp=unconfined", "--rootfs", mountPath, "unshare", "-r", "unshare", "-r", "top")
 			cmd = podmanTest.PodmanAsUser(allArgs, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
@@ -143,7 +160,7 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
-			if !canExec() {
+			if !canUseExec {
 				Skip("ioctl(NS_GET_PARENT) not supported.")
 			}
 

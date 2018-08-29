@@ -34,6 +34,7 @@ var cmdsNotRequiringRootless = map[string]bool{
 	"kill":    true,
 	"search":  true,
 	"stop":    true,
+	"top":     true,
 }
 
 func main() {

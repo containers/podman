@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -69,6 +70,7 @@ func topCmd(c *cli.Context) error {
 		return err
 	}
 
+	rootless.SetSkipStorageSetup(true)
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
@@ -96,6 +98,17 @@ func topCmd(c *cli.Context) error {
 		return errors.Errorf("top can only be used on running containers")
 	}
 
+	pid, err := container.PID()
+	if err != nil {
+		return err
+	}
+	became, ret, err := rootless.JoinNS(uint(pid))
+	if err != nil {
+		return err
+	}
+	if became {
+		os.Exit(ret)
+	}
 	psOutput, err := container.GetContainerPidInformation(descriptors)
 	if err != nil {
 		return err
