@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import time
 import unittest
 from unittest.mock import MagicMock, patch
@@ -66,16 +67,19 @@ class TestTunnel(unittest.TestCase):
         )
         tunnel = Tunnel(context).bore()
 
-        cmd = [
-            'ssh',
-            '-fNT',
-            '-q',
+        cmd = ['ssh', '-fNT']
+        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+            cmd.append('-v')
+        else:
+            cmd.append('-q')
+
+        cmd.extend((
             '-L',
             '{}:{}'.format(context.local_socket, context.remote_socket),
             '-i',
             context.identity_file,
             '{}@{}'.format(context.username, context.hostname),
-        ]
+        ))
 
         mock_finalize.assert_called_once_with(tunnel, tunnel.close)
         mock_exists.assert_called_once_with(context.local_socket)

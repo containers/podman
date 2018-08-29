@@ -11,7 +11,7 @@ lint:
 
 .PHONY: integration
 integration:
-	test/test_runner.sh
+	test/test_runner.sh -v
 
 .PHONY: install
 install:
