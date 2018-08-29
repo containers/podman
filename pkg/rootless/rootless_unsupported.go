@@ -3,8 +3,6 @@
 package rootless
 
 import (
-	"os"
-
 	"github.com/pkg/errors"
 )
 
@@ -37,9 +35,4 @@ func SkipStorageSetup() bool {
 // PID.
 func JoinNS(pid uint) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
-}
-
-// GetUserNSForPid returns an open FD for the first direct child user namespace that created the process
-func GetUserNSForPid(pid uint) (*os.File, error) {
-	return nil, errors.New("this function is not supported on this os")
 }

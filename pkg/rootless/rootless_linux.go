@@ -92,7 +92,7 @@ func JoinNS(pid uint) (bool, int, error) {
 		return false, -1, nil
 	}
 
-	userNS, err := GetUserNSForPid(pid)
+	userNS, err := getUserNSForPid(pid)
 	if err != nil {
 		return false, -1, err
 	}
@@ -238,7 +238,7 @@ func getParentUserNs(fd uintptr) (uintptr, error) {
 	return (uintptr)(unsafe.Pointer(ret)), nil
 }
 
-// GetUserNSForPid returns an open FD for the first direct child user namespace that created the process
+// getUserNSForPid returns an open FD for the first direct child user namespace that created the process
 // Each container creates a new user namespace where the runtime runs.  The current process in the container
 // might have created new user namespaces that are child of the initial namespace we created.
 // This function finds the initial namespace created for the container that is a child of the current namespace.
@@ -250,7 +250,7 @@ func getParentUserNs(fd uintptr) (uintptr, error) {
 //                                    b
 //                                   /
 //        NS READ USING THE PID ->  c
-func GetUserNSForPid(pid uint) (*os.File, error) {
+func getUserNSForPid(pid uint) (*os.File, error) {
 	currentNS, err := readUserNs("/proc/self/ns/user")
 	if err != nil {
 		return nil, err
