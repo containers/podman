@@ -23,6 +23,7 @@ import (
 /*
 extern int reexec_in_user_namespace(int ready);
 extern int reexec_in_user_namespace_wait(int pid);
+extern int reexec_userns_join(int userns);
 */
 import "C"
 
@@ -82,6 +83,32 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 		Args: args,
 	}
 	return cmd.Run()
+}
+
+// JoinNS re-exec podman in a new userNS and join the user namespace of the specified
+// PID.
+func JoinNS(pid uint) (bool, int, error) {
+	if os.Getuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+		return false, -1, nil
+	}
+
+	userNS, err := GetUserNSForPid(pid)
+	if err != nil {
+		return false, -1, err
+	}
+	defer userNS.Close()
+
+	pidC := C.reexec_userns_join(C.int(userNS.Fd()))
+	if int(pidC) < 0 {
+		return false, -1, errors.Errorf("cannot re-exec process")
+	}
+
+	ret := C.reexec_in_user_namespace_wait(pidC)
+	if ret < 0 {
+		return false, -1, errors.New("error waiting for the re-exec process")
+	}
+
+	return true, int(ret), nil
 }
 
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
@@ -183,7 +210,7 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	ret := C.reexec_in_user_namespace_wait(pidC)
 	if ret < 0 {
-		return false, -1, errors.Wrapf(err, "error waiting for the re-exec process")
+		return false, -1, errors.New("error waiting for the re-exec process")
 	}
 
 	return true, int(ret), nil

@@ -83,7 +83,37 @@ get_cmd_line_args (pid_t pid)
 }
 
 int
-reexec_in_user_namespace(int ready)
+reexec_userns_join (int userns)
+{
+  pid_t ppid = getpid ();
+  char uid[16];
+  char **argv;
+  int pid;
+
+  sprintf (uid, "%d", geteuid ());
+
+  argv = get_cmd_line_args (ppid);
+  if (argv == NULL)
+    _exit (EXIT_FAILURE);
+
+  pid = fork ();
+  if (pid)
+    return pid;
+
+  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
+  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+
+  if (setns (userns, 0) < 0)
+    _exit (EXIT_FAILURE);
+  close (userns);
+
+  execvp (argv[0], argv);
+
+  _exit (EXIT_FAILURE);
+}
+
+int
+reexec_in_user_namespace (int ready)
 {
   int ret;
   pid_t pid;

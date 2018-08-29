@@ -33,6 +33,12 @@ func SkipStorageSetup() bool {
 	return false
 }
 
+// JoinNS re-exec podman in a new userNS and join the user namespace of the specified
+// PID.
+func JoinNS(pid uint) (bool, int, error) {
+	return false, -1, errors.New("this function is not supported on this os")
+}
+
 // GetUserNSForPid returns an open FD for the first direct child user namespace that created the process
 func GetUserNSForPid(pid uint) (*os.File, error) {
 	return nil, errors.New("this function is not supported on this os")
