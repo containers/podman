@@ -250,11 +250,12 @@ Read in a line delimited file of environment variables
 Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
 on the host system.
 
-**--gidmap**=map
+**--gidmap**=container_gid:host_gid:amount
+**--gidmap**=0:30000:2000
 
-GID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subgidname` flags.
-
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host.
+Run the container in a new user namespace with the supplied mapping. This option conflicts with the --userns and --subgidname flags.
+This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+The example maps gids 0-2000 in the container to the gids 30000-31999 on the host.
 
 **--group-add**=[]
 
@@ -539,11 +540,14 @@ Signal to stop a container. Default is SIGTERM.
 Timeout (in seconds) to stop a container. Default is 10.
 
 **--subgidname**=name
-
-Name for GID map from the `/etc/subgid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--gidmap`.
+Run the container in a new user namespace from the map with 'name' in the `/etc/subgid` file.
+If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subgid`.
+This flag conflicts with `--userns` and `--gidmap`.
 
 **--subuidname**=name
-Name for UID map from the `/etc/subuid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--uidmap`.
+Run the container in a new user namespace from the map with 'name' in the `/etc/subuid` file.
+If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+This flag conflicts with `--userns` and `--uidmap`.
 
 **--sysctl**=SYSCTL
 
@@ -590,11 +594,12 @@ interactive shell. The default is false.
 **NOTE**: The **-t** option is incompatible with a redirection of the podman client
 standard input.
 
-**--uidmap**=map
+**--uidmap**=container_uid:host_uid:amount
+**--uidmap**=0:30000:2000
 
-UID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subuidname` flags.
-
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host.
+Run the container in a new user namespace with the supplied mapping. This option conflicts with the --userns and --subuidname flags.
+This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+The example maps uids 0-2000 in the container to the uids 30000-31999 on the host.
 
 **--ulimit**=[]
 
@@ -609,12 +614,15 @@ The followings examples are all valid:
 
 Without this argument the command will be run as root in the container.
 
-**--userns**=""
+**--userns**=host
+**--userns**=ns:my_namespace
 
-Set the usernamespace mode for the container. The use of userns is disabled by default.
+Set the user namespace for the container.
 
-`host`: use the host usernamespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
-`ns`: specify the usernamespace to use.
+- `host`: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
+- `ns`: run the container in the given existing user namespace.
+
+This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 
 **--uts**=*host*
 
