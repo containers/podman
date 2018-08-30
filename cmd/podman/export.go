@@ -20,12 +20,13 @@ var (
 	exportDescription = "Exports container's filesystem contents as a tar archive" +
 		" and saves it on the local machine."
 	exportCommand = cli.Command{
-		Name:        "export",
-		Usage:       "Export container's filesystem contents as a tar archive",
-		Description: exportDescription,
-		Flags:       exportFlags,
-		Action:      exportCmd,
-		ArgsUsage:   "CONTAINER",
+		Name:         "export",
+		Usage:        "Export container's filesystem contents as a tar archive",
+		Description:  exportDescription,
+		Flags:        exportFlags,
+		Action:       exportCmd,
+		ArgsUsage:    "CONTAINER",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

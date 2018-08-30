@@ -57,6 +57,7 @@ var (
 		Action:         saveCmd,
 		ArgsUsage:      "",
 		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 

@@ -36,12 +36,13 @@ var (
 	 Optionally tag the image. You can specify the instructions using the --change option.
 	`
 	importCommand = cli.Command{
-		Name:        "import",
-		Usage:       "Import a tarball to create a filesystem image",
-		Description: importDescription,
-		Flags:       importFlags,
-		Action:      importCmd,
-		ArgsUsage:   "TARBALL [REFERENCE]",
+		Name:         "import",
+		Usage:        "Import a tarball to create a filesystem image",
+		Description:  importDescription,
+		Flags:        importFlags,
+		Action:       importCmd,
+		ArgsUsage:    "TARBALL [REFERENCE]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

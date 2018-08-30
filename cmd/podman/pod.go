@@ -29,5 +29,6 @@ Pods are a group of one or more containers sharing the same network, pid and ipc
 		Description:            podDescription,
 		UseShortOptionHandling: true,
 		Subcommands:            podSubCommands,
+		OnUsageError:           usageErrorHandler,
 	}
 )

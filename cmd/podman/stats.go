@@ -49,12 +49,13 @@ var (
 
 	statsDescription = "display a live stream of one or more containers' resource usage statistics"
 	statsCommand     = cli.Command{
-		Name:        "stats",
-		Usage:       "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
-		Description: statsDescription,
-		Flags:       statsFlags,
-		Action:      statsCmd,
-		ArgsUsage:   "",
+		Name:         "stats",
+		Usage:        "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
+		Description:  statsDescription,
+		Flags:        statsFlags,
+		Action:       statsCmd,
+		ArgsUsage:    "",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

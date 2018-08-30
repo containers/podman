@@ -31,6 +31,7 @@ var (
 		Action:                 podStartCmd,
 		ArgsUsage:              "POD-NAME [POD-NAME ...]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

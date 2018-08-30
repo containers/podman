@@ -31,13 +31,14 @@ counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.
 `
 	umountCommand = cli.Command{
-		Name:        "umount",
-		Aliases:     []string{"unmount"},
-		Usage:       "Unmounts working container's root filesystem",
-		Description: description,
-		Flags:       umountFlags,
-		Action:      umountCmd,
-		ArgsUsage:   "CONTAINER-NAME-OR-ID",
+		Name:         "umount",
+		Aliases:      []string{"unmount"},
+		Usage:        "Unmounts working container's root filesystem",
+		Description:  description,
+		Flags:        umountFlags,
+		Action:       umountCmd,
+		ArgsUsage:    "CONTAINER-NAME-OR-ID",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

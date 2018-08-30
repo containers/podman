@@ -38,12 +38,13 @@ var (
 	}
 	inspectDescription = "This displays the low-level information on containers and images identified by name or ID. By default, this will render all results in a JSON array. If the container and image have the same name, this will return container JSON for unspecified type."
 	inspectCommand     = cli.Command{
-		Name:        "inspect",
-		Usage:       "Displays the configuration of a container or image",
-		Description: inspectDescription,
-		Flags:       inspectFlags,
-		Action:      inspectCmd,
-		ArgsUsage:   "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
+		Name:         "inspect",
+		Usage:        "Displays the configuration of a container or image",
+		Description:  inspectDescription,
+		Flags:        inspectFlags,
+		Action:       inspectCmd,
+		ArgsUsage:    "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

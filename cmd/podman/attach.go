@@ -27,12 +27,13 @@ var (
 	}
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
 	attachCommand     = cli.Command{
-		Name:        "attach",
-		Usage:       "Attach to a running container",
-		Description: attachDescription,
-		Flags:       attachFlags,
-		Action:      attachCmd,
-		ArgsUsage:   "",
+		Name:         "attach",
+		Usage:        "Attach to a running container",
+		Description:  attachDescription,
+		Flags:        attachFlags,
+		Action:       attachCmd,
+		ArgsUsage:    "",
+		OnUsageError: usageErrorHandler,
 	}
 )
 
