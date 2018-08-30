@@ -219,6 +219,9 @@ func (r *imageStore) Save() error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the image store at %q", r.imagespath())
 	}
+	if !r.Locked() {
+		return errors.New("image store is not locked")
+	}
 	rpath := r.imagespath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
 		return err
@@ -700,4 +703,8 @@ func (r *imageStore) IsReadWrite() bool {
 
 func (r *imageStore) TouchedSince(when time.Time) bool {
 	return r.lockfile.TouchedSince(when)
+}
+
+func (r *imageStore) Locked() bool {
+	return r.lockfile.Locked()
 }

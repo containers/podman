@@ -9,18 +9,29 @@ import (
 )
 
 func getLockFile(path string, ro bool) (Locker, error) {
-	return &lockfile{}, nil
+	return &lockfile{locked: false}, nil
 }
 
 type lockfile struct {
-	mu   sync.Mutex
-	file string
+	mu     sync.Mutex
+	file   string
+	locked bool
 }
 
 func (l *lockfile) Lock() {
+	l.mu.Lock()
+	l.locked = true
 }
+
 func (l *lockfile) Unlock() {
+	l.locked = false
+	l.mu.Unlock()
 }
+
+func (l *lockfile) Locked() bool {
+	return l.locked
+}
+
 func (l *lockfile) Modified() (bool, error) {
 	return false, nil
 }

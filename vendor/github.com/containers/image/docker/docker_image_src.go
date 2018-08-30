@@ -310,7 +310,14 @@ func (s *dockerImageSource) getSignaturesFromAPIExtension(ctx context.Context, i
 
 // deleteImage deletes the named image from the registry, if supported.
 func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerReference) error {
-	c, err := newDockerClientFromRef(sys, ref, true, "push")
+	// docker/distribution does not document what action should be used for deleting images.
+	//
+	// Current docker/distribution requires "pull" for reading the manifest and "delete" for deleting it.
+	// quay.io requires "push" (an explicit "pull" is unnecessary), does not grant any token (fails parsing the request) if "delete" is included.
+	// OpenShift ignores the action string (both the password and the token is an OpenShift API token identifying a user).
+	//
+	// We have to hard-code a single string, luckily both docker/distribution and quay.io support "*" to mean "everything".
+	c, err := newDockerClientFromRef(sys, ref, true, "*")
 	if err != nil {
 		return err
 	}

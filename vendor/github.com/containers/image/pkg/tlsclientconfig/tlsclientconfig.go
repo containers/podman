@@ -34,11 +34,13 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 	for _, f := range fs {
 		fullPath := filepath.Join(dir, f.Name())
 		if strings.HasSuffix(f.Name(), ".crt") {
-			systemPool, err := tlsconfig.SystemCertPool()
-			if err != nil {
-				return errors.Wrap(err, "unable to get system cert pool")
+			if tlsc.RootCAs == nil {
+				systemPool, err := tlsconfig.SystemCertPool()
+				if err != nil {
+					return errors.Wrap(err, "unable to get system cert pool")
+				}
+				tlsc.RootCAs = systemPool
 			}
-			tlsc.RootCAs = systemPool
 			logrus.Debugf(" crt: %s", fullPath)
 			data, err := ioutil.ReadFile(fullPath)
 			if err != nil {

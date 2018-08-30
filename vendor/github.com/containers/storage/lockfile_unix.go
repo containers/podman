@@ -25,9 +25,9 @@ func getLockFile(path string, ro bool) (Locker, error) {
 	}
 	unix.CloseOnExec(fd)
 	if ro {
-		return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_RDLCK}, nil
+		return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_RDLCK, locked: false}, nil
 	}
-	return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_WRLCK}, nil
+	return &lockfile{file: path, fd: uintptr(fd), lw: stringid.GenerateRandomID(), locktype: unix.F_WRLCK, locked: false}, nil
 }
 
 type lockfile struct {
@@ -36,6 +36,7 @@ type lockfile struct {
 	fd       uintptr
 	lw       string
 	locktype int16
+	locked   bool
 }
 
 // Lock locks the lock file
@@ -48,6 +49,7 @@ func (l *lockfile) Lock() {
 		Pid:    int32(os.Getpid()),
 	}
 	l.mu.Lock()
+	l.locked = true
 	for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -65,7 +67,13 @@ func (l *lockfile) Unlock() {
 	for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
 		time.Sleep(10 * time.Millisecond)
 	}
+	l.locked = false
 	l.mu.Unlock()
+}
+
+// Check if lock is locked
+func (l *lockfile) Locked() bool {
+	return l.locked
 }
 
 // Touch updates the lock file with the UID of the user
