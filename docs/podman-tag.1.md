@@ -20,9 +20,12 @@ Print usage statement
 
 ## EXAMPLES
 
-  podman tag 0e3bbc2 fedora:latest
+```
+$ podman tag 0e3bbc2 fedora:latest
 
-  podman tag httpd myregistryhost:5000/fedora/httpd:v2
+$ podman tag httpd myregistryhost:5000/fedora/httpd:v2
+```
+
 
 ## SEE ALSO
 podman(1), crio(8)

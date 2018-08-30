@@ -24,13 +24,15 @@ to run containers such as CRI-O, the last started container could be from either
 
 ## EXAMPLES
 
-  podman wait mywebserver
+```
+$ podman wait mywebserver
 
-  podman wait --latest
+$ podman wait --latest
 
-  podman wait 860a4b23
+$ podman wait 860a4b23
 
-  podman wait mywebserver myftpserver
+$ podman wait mywebserver myftpserver
+```
 
 ## SEE ALSO
 podman(1), crio(8)

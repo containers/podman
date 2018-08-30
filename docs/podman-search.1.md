@@ -78,7 +78,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman search --limit 3 rhel
+$ podman search --limit 3 rhel
 INDEX        NAME                                 DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
 docker.io    docker.io/richxsl/rhel7              RHEL 7 image with minimal installation            9
 docker.io    docker.io/bluedata/rhel7             RHEL-7.x base container images                    1
@@ -89,7 +89,7 @@ redhat.com   redhat.com/rhel6.5                   This platform image provides a
 ```
 
 ```
-# podman search alpine
+$ podman search alpine
 INDEX       NAME                                             DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
 docker.io   docker.io/library/alpine                         A minimal Docker image based on Alpine Linux...   3009    [OK]
 docker.io   docker.io/mhart/alpine-node                      Minimal Node.js built on Alpine Linux             332
@@ -98,20 +98,20 @@ docker.io   docker.io/tenstartups/alpine                     Alpine linux base d
 ```
 
 ```
-# podman search registry.fedoraproject.org/fedora
+$ podman search registry.fedoraproject.org/fedora
 INDEX               NAME                               DESCRIPTION   STARS   OFFICIAL   AUTOMATED
 fedoraproject.org   fedoraproject.org/fedora                         0
 fedoraproject.org   fedoraproject.org/fedora-minimal                 0
 ```
 
 ```
-# podman search --filter=is-official alpine
+$ podman search --filter=is-official alpine
 INDEX       NAME                       DESCRIPTION                                       STARS   OFFICIAL   AUTOMATED
 docker.io   docker.io/library/alpine   A minimal Docker image based on Alpine Linux...   3009    [OK]
 ```
 
 ```
-# podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora
+$ podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora
 INDEX               NAME
 fedoraproject.org   fedoraproject.org/fedora
 fedoraproject.org   fedoraproject.org/fedora-minimal

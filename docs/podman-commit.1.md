@@ -54,7 +54,7 @@ Suppress output
 ## EXAMPLES
 
 ```
-# podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change LABEL=blue=image reverent_golick image-commited
+$ podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change LABEL=blue=image reverent_golick image-commited
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
  25.80 MB / 25.80 MB [======================================================] 0s
@@ -66,17 +66,17 @@ e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit -q --message "committing container to image" reverent_golick image-commited
+$ podman commit -q --message "committing container to image" reverent_golick image-commited
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit -q --author "firstName lastName" reverent_golick image-commited
+$ podman commit -q --author "firstName lastName" reverent_golick image-commited
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-# podman commit -q --pause=false reverent_golick image-commited
+$ podman commit -q --pause=false reverent_golick image-commited
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 

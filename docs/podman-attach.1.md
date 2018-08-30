@@ -35,19 +35,19 @@ Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and
 ## EXAMPLES ##
 
 ```
-podman attach foobar
+$ podman attach foobar
 [root@localhost /]#
 ```
 ```
-podman attach --latest
+$ podman attach --latest
 [root@localhost /]#
 ```
 ```
-podman attach 1234
+$ podman attach 1234
 [root@localhost /]#
 ```
 ```
-podman attach --no-stdin foobar
+$ podman attach --no-stdin foobar
 ```
 ## SEE ALSO
 podman(1), podman-exec(1), podman-run(1)

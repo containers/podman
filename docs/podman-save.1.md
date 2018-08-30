@@ -50,19 +50,19 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman save --quiet -o alpine.tar alpine:2.6
+$ podman save --quiet -o alpine.tar alpine:2.6
 ```
 
 ```
-# podman save > alpine-all.tar alpine
+$ podman save > alpine-all.tar alpine
 ```
 
 ```
-# podman save -o oci-alpine.tar --format oci-archive alpine
+$ podman save -o oci-alpine.tar --format oci-archive alpine
 ```
 
 ```
-# podman save --compress --format oci-dir -o alp-dir alpine
+$ podman save --compress --format oci-dir -o alp-dir alpine
 Getting image source signatures
 Copying blob sha256:2fdfe1cd78c20d05774f0919be19bc1a3e4729bce219968e4188e7e0f1af679d
  1.97 MB / 1.97 MB [========================================================] 0s
@@ -73,7 +73,7 @@ Storing signatures
 ```
 
 ```
-# podman save --format docker-dir -o ubuntu-dir ubuntu
+$ podman save --format docker-dir -o ubuntu-dir ubuntu
 Getting image source signatures
 Copying blob sha256:660c48dd555dcbfdfe19c80a30f557ac57a15f595250e67bfad1e5663c1725bb
  45.55 MB / 45.55 MB [======================================================] 8s

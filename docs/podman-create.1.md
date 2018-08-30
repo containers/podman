@@ -713,7 +713,9 @@ can override the working directory by using the **-w** option.
 If you want to run the container in a new user namespace and define the mapping of
 the uid and gid from the host.
 
-    # podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
+$ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
 
 ## FILES
 

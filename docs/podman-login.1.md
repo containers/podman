@@ -49,19 +49,19 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman login docker.io
+$ podman login docker.io
 Username: umohnani
 Password:
 Login Succeeded!
 ```
 
 ```
-# podman login -u testuser -p testpassword localhost:5000
+$ podman login -u testuser -p testpassword localhost:5000
 Login Succeeded!
 ```
 
 ```
-# podman login --authfile authdir/myauths.json docker.io
+$ podman login --authfile authdir/myauths.json docker.io
 Username: umohnani
 Password:
 Login Succeeded!
