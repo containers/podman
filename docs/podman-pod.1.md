@@ -6,7 +6,7 @@ podman\-pod - Simple management tool for groups of containers, called pods.
 ## SYNOPSIS
 **podman pod** *subcommand*
 
-# DESCRIPTION
+## DESCRIPTION
 podman pod is a set of subcommands that manage pods, or groups of containers.
 
 ## SUBCOMMANDS

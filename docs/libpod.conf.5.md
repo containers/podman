@@ -1,13 +1,13 @@
 % libpod.conf(5)
 
-# NAME
+## NAME
 libpod.conf - libpod configuration file
 
-# DESCRIPTION
+## DESCRIPTION
 The libpod.conf file is the default configuration file for all tools using
 libpod to manage containers.
 
-# OPTIONS
+## OPTIONS
 
 **image_default_transport**=""
   Default transport method for pulling and pushing images
@@ -45,7 +45,7 @@ libpod to manage containers.
 **cni_plugin_dir**=""
   Directories where CNI plugin binaries may be located
 
-# FILES
+## FILES
 /etc/containers/libpod.conf, default libpod configuration path
 
 ## HISTORY

@@ -89,9 +89,6 @@ b676ca55e4f2c   9 weeks ago
 ]
 ```
 
-## history
-Show the history of an image
-
 ## SEE ALSO
 podman(1), crio(8)
 
