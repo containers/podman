@@ -28,6 +28,9 @@ type Locker interface {
 
 	// IsReadWrite() checks if the lock file is read-write
 	IsReadWrite() bool
+
+	// Locked() checks if lock is locked
+	Locked() bool
 }
 
 var (

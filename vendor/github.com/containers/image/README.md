@@ -25,7 +25,7 @@ them as necessary, and to sign and verify images.
 The containers/image project is only a library with no user interface;
 you can either incorporate it into your Go programs, or use the `skopeo` tool:
 
-The [skopeo](https://github.com/projectatomic/skopeo) tool uses the
+The [skopeo](https://github.com/containers/skopeo) tool uses the
 containers/image library and takes advantage of many of its features,
 e.g. `skopeo copy` exposes the `containers/image/copy.Image` functionality.
 
@@ -42,7 +42,7 @@ What this project tests against dependencies-wise is located
 ## Building
 
 If you want to see what the library can do, or an example of how it is called,
-consider starting with the [skopeo](https://github.com/projectatomic/skopeo) tool
+consider starting with the [skopeo](https://github.com/containers/skopeo) tool
 instead.
 
 To integrate this library into your project, put it into `$GOPATH` or use
@@ -73,7 +73,9 @@ When developing this library, please use `make` (or `make … BUILDTAGS=…`) to
 
 ## License
 
-ASL 2.0
+Apache License 2.0
+
+SPDX-License-Identifier: Apache-2.0
 
 ## Contact
 
