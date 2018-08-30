@@ -978,9 +978,12 @@ the uid and gid from the host.
 SUBGID(5), SUBUID(5),
 
 ## HISTORY
-April 2014, Originally compiled by William Henry (whenry at redhat dot com)
-based on docker.com source material and internal work.
-June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
-July 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
-November 2015, updated by Sally O'Malley <somalley@redhat.com>
 October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
+
+November 2015, updated by Sally O'Malley <somalley@redhat.com>
+
+July 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+
+June 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
+
+April 2014, Originally compiled by William Henry <whenry@redhat.com> based on docker.com source material and internal work.

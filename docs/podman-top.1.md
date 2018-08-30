@@ -91,6 +91,6 @@ PID   SECCOMP   COMMAND     %CPU
 podman(1), ps(1), seccomp(2), proc(5), capabilities(7)
 
 ## HISTORY
-December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>
-
 July 2018, Introduce format descriptors by Valentin Rothberg <vrothberg@suse.com>
+
+December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>

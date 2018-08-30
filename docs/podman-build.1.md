@@ -607,6 +607,6 @@ registries.conf is the configuration file which specifies which container regist
 podman(1), buildah(1), containers-registries.conf(5)
 
 ## HISTORY
+May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
 
-* December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
-* May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
+December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>

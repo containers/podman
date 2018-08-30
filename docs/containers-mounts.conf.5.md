@@ -12,5 +12,5 @@ The format of the mounts.conf is the volume format `/SRC:/DEST`, one mount per l
 # FILES
 Some distributions may provide a `/usr/share/containers/mounts.conf` file to provide default mounts, but users can create a `/etc/containers/mounts.conf`, to specify their own special volumes to mount in the container.
 
-# HISTORY
+## HISTORY
 Aug 2018, Originally compiled by Valentin Rothberg <vrothberg@suse.com>

@@ -48,5 +48,5 @@ libpod to manage containers.
 # FILES
 /etc/containers/libpod.conf, default libpod configuration path
 
-# HISTORY
+## HISTORY
 Apr 2018, Originally compiled by Nathan Williams <nath.e.will@gmail.com>
