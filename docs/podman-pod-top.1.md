@@ -1,4 +1,4 @@
-% podman-pod-top "1"
+% podman-pod-top(1)
 
 ## NAME
 podman\-pod\-top - Display the running processes of containers in a pod
@@ -70,7 +70,7 @@ The following descriptors are supported in addition to the AIX format descriptor
 By default, `podman-top` prints data similar to `ps -ef`:
 
 ```
- # podman pod top b031293491cc
+$ podman pod top b031293491cc
 USER   PID   PPID   %CPU    ELAPSED             TTY   TIME   COMMAND
 root   1     0      0.000   2h5m38.737137571s   ?     0s     top
 root   8     0      0.000   2h5m15.737228361s   ?     0s     top
@@ -79,7 +79,7 @@ root   8     0      0.000   2h5m15.737228361s   ?     0s     top
 The output can be controlled by specifying format descriptors as arguments after the pod:
 
 ```
- # podman pod top -l pid seccomp args %C
+$ podman pod top -l pid seccomp args %C
 PID   SECCOMP   COMMAND   %CPU
 1     filter    top       0.000
 1     filter    /bin/sh   0.000

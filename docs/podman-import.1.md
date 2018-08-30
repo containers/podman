@@ -1,4 +1,4 @@
-% podman-import "1"
+% podman-import(1)
 
 ## NAME
 podman\-import - Import a tarball and save it as a filesystem image
@@ -40,7 +40,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman import --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change LABEL=blue=image ctr.tar image-imported
+$ podman import --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change LABEL=blue=image ctr.tar image-imported
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
  25.80 MB / 25.80 MB [======================================================] 0s
@@ -52,12 +52,12 @@ db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ```
-# cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
+$ cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
 db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ```
-# cat ctr.tar | podman import -
+$ cat ctr.tar | podman import -
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
  25.80 MB / 25.80 MB [======================================================] 0s
@@ -69,7 +69,7 @@ db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ```
-podman import http://example.com/ctr.tar url-image
+$ podman import http://example.com/ctr.tar url-image
 Downloading from "http://example.com/ctr.tar"
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86

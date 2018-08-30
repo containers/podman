@@ -1,4 +1,4 @@
-% podman-exec "1"
+% podman-exec(1)
 
 ## NAME
 podman\-exec - Execute a command in a running container
@@ -37,9 +37,6 @@ Allocate a pseudo-TTY.
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
-
-## EXAMPLES
-
 
 ## SEE ALSO
 podman(1), podman-run(1)

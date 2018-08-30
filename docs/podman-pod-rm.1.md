@@ -1,4 +1,4 @@
-% podman-pod-rm "1"
+% podman-pod-rm(1)
 
 ## NAME
 podman\-pod\-rm - Remove one or more pods

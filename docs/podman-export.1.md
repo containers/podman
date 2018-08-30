@@ -1,4 +1,4 @@
-% podman-export "1"
+% podman-export(1)
 
 ## NAME
 podman\-export - Export container's filesystem contents as a tar archive
@@ -31,11 +31,9 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman export -o redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57
-```
+$ podman export -o redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57
 
-```
-# podman export > redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57
+$ podman export > redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8d7b233748918664ea90e57
 ```
 
 ## SEE ALSO

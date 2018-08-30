@@ -1,4 +1,4 @@
-% podman-container-refresh '1'
+% podman-container-refresh(1)
 
 ## NAME
 podman\-container\-refresh - Refresh all containers
@@ -17,7 +17,7 @@ As part of refresh, all running containers will be restarted.
 ## EXAMPLES ##
 
 ```
-podman container refresh
+$ podman container refresh
 [root@localhost /]#
 ```
 

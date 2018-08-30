@@ -1,4 +1,4 @@
-% podman-pull "1"
+% podman-pull(1)
 
 ## NAME
 podman\-pull - Pull an image from a registry
@@ -84,7 +84,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman pull --signature-policy /etc/containers/policy.json alpine:latest
+$ podman pull --signature-policy /etc/containers/policy.json alpine:latest
 Trying to pull registry.access.redhat.com/alpine:latest... Failed
 Trying to pull registry.fedoraproject.org/alpine:latest... Failed
 Trying to pull docker.io/library/alpine:latest...Getting image source signatures
@@ -98,7 +98,7 @@ Storing signatures
 ```
 
 ```
-# podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
+$ podman pull --authfile temp-auths/myauths.json docker://docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
 Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
  1.90 MB / 1.90 MB [========================================================] 0s
@@ -110,7 +110,7 @@ Storing signatures
 ```
 
 ```
-# podman pull --creds testuser:testpassword docker.io/umohnani/finaltest
+$ podman pull --creds testuser:testpassword docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
 Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
  1.90 MB / 1.90 MB [========================================================] 0s
@@ -122,7 +122,7 @@ Storing signatures
 ```
 
 ```
-# podman pull --tls-verify=false --cert-dir image/certs docker.io/umohnani/finaltest
+$ podman pull --tls-verify=false --cert-dir image/certs docker.io/umohnani/finaltest
 Trying to pull docker.io/umohnani/finaltest:latest...Getting image source signatures
 Copying blob sha256:6d987f6f42797d81a318c40d442369ba3dc124883a0964d40b0c8f4f7561d913
  1.90 MB / 1.90 MB [========================================================] 0s

@@ -1,4 +1,4 @@
-% podman-container "1"
+% podman-container(1)
 
 ## NAME
 podman\-container - Manage containers

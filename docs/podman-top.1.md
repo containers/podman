@@ -71,7 +71,7 @@ The following descriptors are supported in addition to the AIX format descriptor
 By default, `podman-top` prints data similar to `ps -ef`:
 
 ```
-# podman top f5a62a71b07
+$ podman top f5a62a71b07
 USER   PID   PPID   %CPU    ELAPSED         TTY     TIME   COMMAND
 root   1     0      0.000   20.386825206s   pts/0   0s     sh
 root   7     1      0.000   16.386882887s   pts/0   0s     sleep
@@ -81,7 +81,7 @@ root   8     1      0.000   11.386886562s   pts/0   0s     vi
 The output can be controlled by specifying format descriptors as arguments after the container:
 
 ```
-# sudo ./bin/podman top -l pid seccomp args %C
+$ sudo ./bin/podman top -l pid seccomp args %C
 PID   SECCOMP   COMMAND     %CPU
 1     filter    sh          0.000
 8     filter    vi /etc/    0.000
@@ -91,6 +91,6 @@ PID   SECCOMP   COMMAND     %CPU
 podman(1), ps(1), seccomp(2), proc(5), capabilities(7)
 
 ## HISTORY
-December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>
-
 July 2018, Introduce format descriptors by Valentin Rothberg <vrothberg@suse.com>
+
+December 2017, Originally compiled by Brent Baude <bbaude@redhat.com>

@@ -1,4 +1,4 @@
-% podman "1"
+% podman(1)
 
 ## NAME
 podman - Simple management tool for containers and images
@@ -6,7 +6,7 @@ podman - Simple management tool for containers and images
 ## SYNOPSIS
 **podman** [*options*] *command*
 
-# DESCRIPTION
+## DESCRIPTION
 podman is a simple client only tool to help with debugging issues when daemons
 such as CRI runtime and the kubelet are not responding or failing. A shared API
 layer could be created to share code between the daemon and podman. podman does not

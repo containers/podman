@@ -1,4 +1,4 @@
-% podman-build "1"
+% podman-build(1)
 
 ## NAME
 podman\-build - Build a container image using a Dockerfile.
@@ -537,41 +537,43 @@ mount can be changed directly. For instance if `/` is the source mount for
 
 ### Build an image using local Dockerfiles
 
-podman build .
+```
+$ podman build .
 
-podman build -f Dockerfile.simple .
+$ podman build -f Dockerfile.simple .
 
-cat ~/Dockerfile | podman build -f - .
+$ cat ~/Dockerfile | podman build -f - .
 
-podman build -f Dockerfile.simple -f Dockerfile.notsosimple .
+$ podman build -f Dockerfile.simple -f Dockerfile.notsosimple .
 
-podman build -f Dockerfile.in ~
+$ podman build -f Dockerfile.in ~
 
-podman build -t imageName .
+$ podman build -t imageName .
 
-podman build --tls-verify=true -t imageName -f Dockerfile.simple .
+$ podman build --tls-verify=true -t imageName -f Dockerfile.simple .
 
-podman build --tls-verify=false -t imageName .
+$ podman build --tls-verify=false -t imageName .
 
-podman build --runtime-flag log-format=json .
+$ podman build --runtime-flag log-format=json .
 
-podman build --runtime-flag debug .
+$ podman build --runtime-flag debug .
 
-podman build --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
+$ podman build --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
 
-podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
+$ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
 
-podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cgroup/parent -t imageName .
+$ podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/cgroup/parent -t imageName .
 
-podman build --volume /home/test:/myvol:ro,Z -t imageName .
+$ podman build --volume /home/test:/myvol:ro,Z -t imageName .
 
-podman build --layers -t imageName .
+$ podman build --layers -t imageName .
 
-podman build --no-cache -t imageName .
+$ podman build --no-cache -t imageName .
 
-podman build --layers --force-rm -t imageName .
+$ podman build --layers --force-rm -t imageName .
 
-podman build --no-cache --rm=false -t imageName .
+$ podman build --no-cache --rm=false -t imageName .
+```
 
 ### Building an image using a URL, Git repo, or archive
 
@@ -581,19 +583,25 @@ podman build --no-cache --rm=false -t imageName .
 
   Podman will download the Dockerfile to a temporary location and then use it as the build context.
 
-  `podman build https://10.10.10.1/podman/Dockerfile`
+```
+$ podman build https://10.10.10.1/podman/Dockerfile
+```
 
 #### Building an image using a Git repository
 
   Podman will clone the specified GitHub repository to a temporary location and use it as the context. The Dockerfile at the root of the repository will be used and it only works if the GitHub repository is a dedicated repository.
 
- `podman build git://github.com/scollier/purpletest`
+```
+$ podman build git://github.com/scollier/purpletest
+```
 
 #### Building an image using a URL to an archive
 
   Podman will fetch the archive file, decompress it, and use its contents as the build context. The Dockerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass `-f PATH/Dockerfile` option as well, the system will look for that file inside the contents of the archive.
 
- `podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz`
+```
+$ podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz
+```
 
   Note: supported compression formats are 'xz', 'bzip2', 'gzip' and 'identity' (no compression).
 
@@ -607,6 +615,6 @@ registries.conf is the configuration file which specifies which container regist
 podman(1), buildah(1), containers-registries.conf(5)
 
 ## HISTORY
+May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
 
-* December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>
-* May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
+December 2017, Originally compiled by Tom Sweeney <tsweeney@redhat.com>

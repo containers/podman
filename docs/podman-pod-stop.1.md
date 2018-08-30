@@ -1,4 +1,4 @@
-% podman-pod-stop "1"
+% podman-pod-stop(1)
 
 ## NAME
 podman\-pod\-stop - Stop one or more pods

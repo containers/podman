@@ -1,4 +1,4 @@
-% podman-logs "1"
+% podman-logs(1)
 
 ## NAME
 podman\-logs - Fetch the logs of a container
@@ -82,5 +82,6 @@ podman logs 224c375f27cd --since 10m myserver
 podman(1)
 
 ## HISTORY
-August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>
 February 2018, Updated by Brent Baude <bbaude@redhat.com>
+
+August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

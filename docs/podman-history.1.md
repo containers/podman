@@ -1,4 +1,4 @@
-% podman-history "1"
+% podman-history(1)
 
 ## NAME
 podman\-history - Shows the history of an image
@@ -50,27 +50,27 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman history debian
+$ podman history debian
 ID              CREATED       CREATED BY                                      SIZE       COMMENT
 b676ca55e4f2c   9 weeks ago   /bin/sh -c #(nop) CMD ["bash"]                  0 B
 <missing>       9 weeks ago   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45.14 MB
 ```
 
 ```
-# podman history --no-trunc=true --human=false debian
+$ podman history --no-trunc=true --human=false debian
 ID              CREATED                CREATED BY                                      SIZE       COMMENT
 b676ca55e4f2c   2017-07-24T16:52:55Z   /bin/sh -c #(nop) CMD ["bash"]                  0
 <missing>       2017-07-24T16:52:54Z   /bin/sh -c #(nop) ADD file:ebba725fb97cea4...   45142935
 ```
 
 ```
-# podman history --format "{{.ID}} {{.Created}}" debian
+$ podman history --format "{{.ID}} {{.Created}}" debian
 b676ca55e4f2c   9 weeks ago
 <missing>       9 weeks ago
 ```
 
 ```
-# podman history --format json debian
+$ podman history --format json debian
 [
     {
 	"id": "b676ca55e4f2c0ce53d0636438c5372d3efeb5ae99b676fa5a5d1581bad46060",
@@ -88,9 +88,6 @@ b676ca55e4f2c   9 weeks ago
     }
 ]
 ```
-
-## history
-Show the history of an image
 
 ## SEE ALSO
 podman(1), crio(8)
