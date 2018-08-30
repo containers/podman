@@ -783,24 +783,32 @@ This protects the containers image from modification. Read only containers may
 still need to write temporary data.  The best way to handle this is to mount
 tmpfs directories on /run and /tmp.
 
-    # podman run --read-only --tmpfs /run --tmpfs /tmp -i -t fedora /bin/bash
+```
+$ podman run --read-only --tmpfs /run --tmpfs /tmp -i -t fedora /bin/bash
+```
 
 ### Exposing log messages from the container to the host's log
 
 If you want messages that are logged in your container to show up in the host's
 syslog/journal then you should bind mount the /dev/log directory as follows.
 
-    # podman run -v /dev/log:/dev/log -i -t fedora /bin/bash
+```
+$ podman run -v /dev/log:/dev/log -i -t fedora /bin/bash
+```
 
 From inside the container you can test this by sending a message to the log.
 
-    (bash)# logger "Hello from my container"
+```
+(bash)# logger "Hello from my container"
+```
 
 Then exit and check the journal.
 
-    # exit
+```
+(bash)# exit
 
-    # journalctl -b | grep Hello
+$ journalctl -b | grep Hello
+```
 
 This should list the message sent to logger.
 
@@ -810,7 +818,9 @@ If you do not specify -a then podman will attach everything (stdin,stdout,stderr
 You can specify to which of the three standard streams (stdin, stdout, stderr)
 you'd like to connect instead, as in:
 
-    # podman run -a stdin -a stdout -i -t fedora /bin/bash
+```
+$ podman run -a stdin -a stdout -i -t fedora /bin/bash
+```
 
 ## Sharing IPC between containers
 
@@ -821,60 +831,60 @@ Testing `--ipc=host` mode:
 Host shows a shared memory segment with 7 pids attached, happens to be from httpd:
 
 ```
- $ sudo ipcs -m
+$ sudo ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
- 0x01128e25 0          root       600        1000       7
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
+0x01128e25 0          root       600        1000       7
 ```
 
 Now run a regular container, and it correctly does NOT see the shared memory segment from the host:
 
 ```
- $ podman run -it shm ipcs -m
+$ podman run -it shm ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
 ```
 
 Run a container with the new `--ipc=host` option, and it now sees the shared memory segment from the host httpd:
 
- ```
- $ podman run -it --ipc=host shm ipcs -m
+```
+$ podman run -it --ipc=host shm ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
- 0x01128e25 0          root       600        1000       7
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
+0x01128e25 0          root       600        1000       7
 ```
 Testing `--ipc=container:CONTAINERID` mode:
 
 Start a container with a program to create a shared memory segment:
 ```
- $ podman run -it shm bash
- $ sudo shm/shm_server &
- $ sudo ipcs -m
+$ podman run -it shm bash
+$ sudo shm/shm_server &
+$ sudo ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
- 0x0000162e 0          root       666        27         1
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
+0x0000162e 0          root       666        27         1
 ```
 Create a 2nd container correctly shows no shared memory segment from 1st container:
 ```
- $ podman run shm ipcs -m
+$ podman run shm ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
 ```
 
 Create a 3rd container using the new --ipc=container:CONTAINERID option, now it shows the shared memory segment from the first:
 
 ```
- $ podman run -it --ipc=container:ed735b2264ac shm ipcs -m
- $ sudo ipcs -m
+$ podman run -it --ipc=container:ed735b2264ac shm ipcs -m
+$ sudo ipcs -m
 
- ------ Shared Memory Segments --------
- key        shmid      owner      perms      bytes      nattch     status
- 0x0000162e 0          root       666        27         1
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
+0x0000162e 0          root       666        27         1
 ```
 
 ### Mapping Ports for External Usage
@@ -883,7 +893,9 @@ The exposed port of an application can be mapped to a host port using the **-p**
 flag. For example, an httpd port 80 can be mapped to the host port 8080 using the
 following:
 
-    # podman run -p 8080:80 -d -i -t fedora/httpd
+```
+$ podman run -p 8080:80 -d -i -t fedora/httpd
+```
 
 ### Mounting External Volumes
 
@@ -891,20 +903,22 @@ To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
 colon:
 
-    # podman run -v /var/db:/data1 -i -t fedora bash
+```
+$ podman run -v /var/db:/data1 -i -t fedora bash
+```
 
 When using SELinux, be aware that the host has no knowledge of container SELinux
 policy. Therefore, in the above example, if SELinux policy is enforced, the
 `/var/db` directory is not writable to the container. A "Permission Denied"
 message will occur and an avc: message in the host's syslog.
 
-
 To work around this, at time of writing this man page, the following command
 needs to be run in order for the proper SELinux policy type label to be attached
 to the host directory:
 
-    # chcon -Rt svirt_sandbox_file_t /var/db
-
+```
+$ chcon -Rt svirt_sandbox_file_t /var/db
+```
 
 Now, writing to the /data1 volume in the container will be allowed and the
 changes will also be reflected on the host in /var/db.
@@ -916,23 +930,31 @@ the `--security-opt` flag. For example, you can specify the MCS/MLS level, a
 requirement for MLS systems. Specifying the level in the following command
 allows you to share the same content between containers.
 
-    # podman run --security-opt label=level:s0:c100,c200 -i -t fedora bash
+```
+podman run --security-opt label=level:s0:c100,c200 -i -t fedora bash
+```
 
 An MLS example might be:
 
-    # podman run --security-opt label=level:TopSecret -i -t rhel7 bash
+```
+$ podman run --security-opt label=level:TopSecret -i -t rhel7 bash
+```
 
 To disable the security labeling for this container versus running with the
 `--permissive` flag, use the following command:
 
-    # podman run --security-opt label=disable -i -t fedora bash
+```
+$ podman run --security-opt label=disable -i -t fedora bash
+```
 
 If you want a tighter security policy on the processes within a container,
 you can specify an alternate type for the container. You could run a container
 that is only allowed to listen on Apache ports by executing the following
 command:
 
-    # podman run --security-opt label=type:svirt_apache_t -i -t centos bash
+```
+$ podman run --security-opt label=type:svirt_apache_t -i -t centos bash
+```
 
 Note:
 
@@ -943,7 +965,9 @@ You would have to write policy defining a `svirt_apache_t` type.
 If you want to set `/dev/sda` device weight to `200`, you can specify the device
 weight by `--blkio-weight-device` flag. Use the following command:
 
-    # podman run -it --blkio-weight-device "/dev/sda:200" ubuntu
+```
+$ podman run -it --blkio-weight-device "/dev/sda:200" ubuntu
+```
 
 ### Setting Namespaced Kernel Parameters (Sysctls)
 
@@ -951,7 +975,9 @@ The `--sysctl` sets namespaced kernel parameters (sysctls) in the
 container. For example, to turn on IP forwarding in the containers
 network namespace, run this command:
 
-    $ podman run --sysctl net.ipv4.ip_forward=1 someimage
+```
+$ podman run --sysctl net.ipv4.ip_forward=1 someimage
+```
 
 Note:
 
@@ -967,7 +993,9 @@ supported sysctls.
 If you want to run the container in a new user namespace and define the mapping of
 the uid and gid from the host.
 
-    # podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
+$ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
+```
 
 ## FILES
 

@@ -41,15 +41,15 @@ Print usage statement
 ## EXAMPLES
 
 ```
-# podman load --quiet -i fedora.tar
+$ podman load --quiet -i fedora.tar
 ```
 
 ```
-# podman load -q --signature-policy /etc/containers/policy.json -i fedora.tar
+$ podman load -q --signature-policy /etc/containers/policy.json -i fedora.tar
 ```
 
 ```
-# podman load < fedora.tar
+$ podman load < fedora.tar
 Getting image source signatures
 Copying blob sha256:5bef08742407efd622d243692b79ba0055383bbce12900324f75e56f589aedb0
  0 B / 4.03 MB [---------------------------------------------------------------]
@@ -61,7 +61,7 @@ Loaded image:  registry.fedoraproject.org/fedora:latest
 ```
 
 ```
-# cat fedora.tar | podman load
+$ cat fedora.tar | podman load
 Getting image source signatures
 Copying blob sha256:5bef08742407efd622d243692b79ba0055383bbce12900324f75e56f589aedb0
  0 B / 4.03 MB [---------------------------------------------------------------]

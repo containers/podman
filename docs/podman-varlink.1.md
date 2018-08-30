@@ -43,7 +43,7 @@ This is the preferred method for running the varlink service.
 You can do this via systemctl.
 
 ```
-systemctl enable --now io.podman.socket
+$ systemctl enable --now io.podman.socket
 ```
 
 ## SEE ALSO

@@ -24,17 +24,17 @@ to run containers such as CRI-O, the last started container could be from either
 ## EXAMPLES ##
 
 ```
-podman restart -l
+$ podman restart -l
 ec588fc80b05e19d3006bf2e8aa325f0a2e2ff1f609b7afb39176ca8e3e13467
 ```
 
 ```
-podman restart ff6cf1
+$ podman restart ff6cf1
 ff6cf1e5e77e6dba1efc7f3fcdb20e8b89ad8947bc0518be1fcb2c78681f226f
 ```
 
 ```
-podman restart --timeout 4 test1 test2
+$ podman restart --timeout 4 test1 test2
 c3bb026838c30e5097f079fa365c9a4769d52e1017588278fa00d5c68ebc1502
 17e13a63081a995136f907024bcfe50ff532917988a152da229db9d894c5a9ec
 ```

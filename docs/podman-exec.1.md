@@ -38,9 +38,6 @@ Sets the username or UID used and optionally the groupname or GID for the specif
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
 
-## EXAMPLES
-
-
 ## SEE ALSO
 podman(1), podman-run(1)
 

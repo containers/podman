@@ -17,7 +17,7 @@ As part of refresh, all running containers will be restarted.
 ## EXAMPLES ##
 
 ```
-podman container refresh
+$ podman container refresh
 [root@localhost /]#
 ```
 
