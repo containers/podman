@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -547,7 +548,12 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// TODO: we can't close the FD in this lock, so we should keep it around
 	// and use it to lock important operations
 	aliveLock.Lock()
-	defer aliveLock.Unlock()
+	locked := true
+	defer func() {
+		if locked {
+			aliveLock.Unlock()
+		}
+	}()
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
 		// If the file doesn't exist, we need to refresh the state
@@ -555,8 +561,16 @@ func makeRuntime(runtime *Runtime) (err error) {
 		// empty state only creates a single file
 		// As such, it's not really a performance concern
 		if os.IsNotExist(err) {
-			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-				return err2
+			if os.Getuid() != 0 {
+				aliveLock.Unlock()
+				locked = false
+				if err2 := runtime.refreshRootless(); err2 != nil {
+					return err2
+				}
+			} else {
+				if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+					return err2
+				}
 			}
 		} else {
 			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
@@ -629,6 +643,14 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	return lastError
+}
+
+// Reconfigures the runtime after a reboot for a rootless process
+func (r *Runtime) refreshRootless() error {
+	// Take advantage of a command that requires a new userns
+	// so that we are running as the root user and able to use refresh()
+	cmd := exec.Command(os.Args[0], "info")
+	return cmd.Run()
 }
 
 // Reconfigures the runtime after a reboot

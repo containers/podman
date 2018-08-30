@@ -29,6 +29,8 @@ var cmdsNotRequiringRootless = map[string]bool{
 	"help":    true,
 	"version": true,
 	"exec":    true,
+	// `info` must be executed in an user namespace.
+	// If this change, please also update libpod.refreshRootless()
 	"login":   true,
 	"logout":  true,
 	"kill":    true,
