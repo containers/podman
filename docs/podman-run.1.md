@@ -738,7 +738,7 @@ The default working directory for running binaries within a container is the roo
 The image developer can set a different default with the WORKDIR instruction. The operator
 can override the working directory by using the **-w** option.
 
-# Exit Status
+## Exit Status
 
 The exit code from `podman run` gives information about why the container
 failed to run or why it exited.  When `podman run` exits with a non-zero code,
