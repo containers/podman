@@ -34,12 +34,20 @@ var runCommand = cli.Command{
 	Flags:                  runFlags,
 	Action:                 runCmd,
 	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
+	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
 }
 
 func runCmd(c *cli.Context) error {
 	var imageName string
+
+	// Docker-compatibility: the "-h" flag for run/create is reserved for
+	// the hostname (see https://github.com/containers/libpod/issues/1367).
+	if c.Bool("help") {
+		cli.ShowCommandHelpAndExit(c, "run", 0)
+	}
+
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
 	}

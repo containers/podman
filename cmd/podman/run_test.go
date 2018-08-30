@@ -17,9 +17,10 @@ var (
 	cmd         = []string{"podman", "test", "alpine"}
 	CLI         *cli.Context
 	testCommand = cli.Command{
-		Name:   "test",
-		Flags:  createFlags,
-		Action: testCmd,
+		Name:     "test",
+		Flags:    createFlags,
+		Action:   testCmd,
+		HideHelp: true,
 	}
 )
 

@@ -49,6 +49,7 @@ var createCommand = cli.Command{
 	Flags:                  createFlags,
 	Action:                 createCmd,
 	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
+	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
 }
@@ -56,6 +57,12 @@ var createCommand = cli.Command{
 func createCmd(c *cli.Context) error {
 	// TODO should allow user to create based off a directory on the host not just image
 	// Need CLI support for this
+
+	// Docker-compatibility: the "-h" flag for run/create is reserved for
+	// the hostname (see https://github.com/containers/libpod/issues/1367).
+	if c.Bool("help") {
+		cli.ShowCommandHelpAndExit(c, "run", 0)
+	}
 
 	if err := validateFlags(c, createFlags); err != nil {
 		return err
