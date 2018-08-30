@@ -1,4 +1,4 @@
-% libpod.conf "5"
+% libpod.conf(5)
 
 # NAME
 libpod.conf - libpod configuration file

@@ -1,4 +1,4 @@
-% podman-images "1"
+% podman-images(1)
 
 ## NAME
 podman\-images - List images in local storage

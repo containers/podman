@@ -1,4 +1,4 @@
-% podman-rm "1"
+% podman-rm(1)
 
 ## NAME
 podman\-rm - Remove one or more containers

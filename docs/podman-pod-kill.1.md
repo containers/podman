@@ -1,4 +1,4 @@
-% podman-pod-kill "1"
+% podman-pod-kill(1)
 
 ## NAME
 podman\-pod\-kill - Kills all containers in one or more pods with a signal

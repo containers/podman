@@ -1,4 +1,4 @@
-% podman-build "1"
+% podman-build(1)
 
 ## NAME
 podman\-build - Build a container image using a Dockerfile.

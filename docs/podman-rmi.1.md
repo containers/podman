@@ -1,4 +1,4 @@
-% podman-rmi "1"
+% podman-rmi(1)
 
 ## NAME
 podman\-rmi - Removes one or more images

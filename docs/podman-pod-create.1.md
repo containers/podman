@@ -1,4 +1,4 @@
-% podman-pod-create "1"
+% podman-pod-create(1)
 
 ## NAME
 podman\-pod\-create - Create a new pod

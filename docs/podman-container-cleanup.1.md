@@ -1,4 +1,4 @@
-% podman-container-cleanup "1"
+% podman-container-cleanup(1)
 
 ## NAME
 podman\-container\-cleanup - Cleanup Container storage and networks

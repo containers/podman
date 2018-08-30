@@ -1,4 +1,4 @@
-% podman-create "1"
+% podman-create(1)
 
 ## NAME
 podman\-create - Create a new container

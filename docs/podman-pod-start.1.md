@@ -1,4 +1,4 @@
-% podman-pod-start "1"
+% podman-pod-start(1)
 
 ## NAME
 podman\-pod\-start - Start one or more pods

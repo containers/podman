@@ -1,4 +1,4 @@
-% podman-pod-inspect "1"
+% podman-pod-inspect(1)
 
 ## NAME
 podman\-pod\-inspect - Displays information describing a pod

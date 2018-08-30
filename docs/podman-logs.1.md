@@ -1,4 +1,4 @@
-% podman-logs "1"
+% podman-logs(1)
 
 ## NAME
 podman\-logs - Fetch the logs of a container
