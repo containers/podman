@@ -1,4 +1,4 @@
-% podman-login "1"
+% podman-login(1)
 
 ## NAME
 podman\-login - Login to a container registry

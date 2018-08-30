@@ -1,4 +1,4 @@
-% podman-push "1"
+% podman-push(1)
 
 ## NAME
 podman\-push - Push an image from local storage to elsewhere

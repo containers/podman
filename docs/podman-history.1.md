@@ -1,4 +1,4 @@
-% podman-history "1"
+% podman-history(1)
 
 ## NAME
 podman\-history - Shows the history of an image

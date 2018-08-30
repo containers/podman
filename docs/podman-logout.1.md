@@ -1,4 +1,4 @@
-% podman-logout "1"
+% podman-logout(1)
 
 ## NAME
 podman\-logout - Logout of a container registry

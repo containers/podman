@@ -1,4 +1,4 @@
-% podman-search "1"
+% podman-search(1)
 
 ## NAME
 podman\-search - Search a registry for an image

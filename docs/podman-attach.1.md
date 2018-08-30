@@ -1,4 +1,4 @@
-% podman-attach "1"
+% podman-attach(1)
 
 ## NAME
 podman\-attach - Attach to a running container

@@ -1,4 +1,4 @@
-% podman-load  "1"
+% podman-load(1)
 
 ## NAME
 podman\-load - Load an image from docker archive

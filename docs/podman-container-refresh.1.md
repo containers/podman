@@ -1,4 +1,4 @@
-% podman-container-refresh '1'
+% podman-container-refresh(1)
 
 ## NAME
 podman\-container\-refresh - Refresh all containers

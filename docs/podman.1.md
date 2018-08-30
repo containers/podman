@@ -1,4 +1,4 @@
-% podman "1"
+% podman(1)
 
 ## NAME
 podman - Simple management tool for containers and images

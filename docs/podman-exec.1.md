@@ -1,4 +1,4 @@
-% podman-exec "1"
+% podman-exec(1)
 
 ## NAME
 podman\-exec - Execute a command in a running container

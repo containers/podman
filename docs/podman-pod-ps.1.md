@@ -1,4 +1,4 @@
-% podman-pod-ps "1"
+% podman-pod-ps(1)
 
 ## NAME
 podman\-pod\-ps - Prints out information about pods
