@@ -186,6 +186,7 @@ var (
 		Action:                 psCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 	lsCommand = cli.Command{
 		Name:                   "ls",
@@ -195,6 +196,7 @@ var (
 		Action:                 psCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

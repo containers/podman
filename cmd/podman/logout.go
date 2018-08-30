@@ -22,12 +22,13 @@ var (
 	}
 	logoutDescription = "Remove the cached username and password for the registry."
 	logoutCommand     = cli.Command{
-		Name:        "logout",
-		Usage:       "Logout of a container registry",
-		Description: logoutDescription,
-		Flags:       logoutFlags,
-		Action:      logoutCmd,
-		ArgsUsage:   "REGISTRY",
+		Name:         "logout",
+		Usage:        "Logout of a container registry",
+		Description:  logoutDescription,
+		Flags:        logoutFlags,
+		Action:       logoutCmd,
+		ArgsUsage:    "REGISTRY",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

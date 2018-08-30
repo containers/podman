@@ -33,6 +33,7 @@ var (
 		Action:                 podKillCmd,
 		ArgsUsage:              "[POD_NAME_OR_ID]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

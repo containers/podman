@@ -29,12 +29,13 @@ var (
 		},
 	}
 	varlinkCommand = &cli.Command{
-		Name:        "varlink",
-		Usage:       "Run varlink interface",
-		Description: varlinkDescription,
-		Flags:       varlinkFlags,
-		Action:      varlinkCmd,
-		ArgsUsage:   "VARLINK_URI",
+		Name:         "varlink",
+		Usage:        "Run varlink interface",
+		Description:  varlinkDescription,
+		Flags:        varlinkFlags,
+		Action:       varlinkCmd,
+		ArgsUsage:    "VARLINK_URI",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

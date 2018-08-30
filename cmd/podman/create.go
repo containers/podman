@@ -52,6 +52,7 @@ var createCommand = cli.Command{
 	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
+	OnUsageError:           usageErrorHandler,
 }
 
 func createCmd(c *cli.Context) error {

@@ -63,6 +63,7 @@ var (
 		Action:                 historyCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

@@ -48,12 +48,13 @@ var (
 	container or image will be compared to its parent layer`)
 
 	diffCommand = cli.Command{
-		Name:        "diff",
-		Usage:       "Inspect changes on container's file systems",
-		Description: diffDescription,
-		Flags:       diffFlags,
-		Action:      diffCmd,
-		ArgsUsage:   "ID-NAME",
+		Name:         "diff",
+		Usage:        "Inspect changes on container's file systems",
+		Description:  diffDescription,
+		Flags:        diffFlags,
+		Action:       diffCmd,
+		ArgsUsage:    "ID-NAME",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

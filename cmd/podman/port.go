@@ -26,12 +26,13 @@ var (
 `
 
 	portCommand = cli.Command{
-		Name:        "port",
-		Usage:       "List port mappings or a specific mapping for the container",
-		Description: portDescription,
-		Flags:       portFlags,
-		Action:      portCmd,
-		ArgsUsage:   "CONTAINER-NAME [mapping]",
+		Name:         "port",
+		Usage:        "List port mappings or a specific mapping for the container",
+		Description:  portDescription,
+		Flags:        portFlags,
+		Action:       portCmd,
+		ArgsUsage:    "CONTAINER-NAME [mapping]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

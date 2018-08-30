@@ -51,6 +51,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "podman"
 	app.Usage = "manage pods and images"
+	app.OnUsageError = usageErrorHandler
 
 	app.Version = version.Version
 

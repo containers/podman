@@ -74,6 +74,7 @@ var podCreateCommand = cli.Command{
 	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
+	OnUsageError:           usageErrorHandler,
 }
 
 func podCreateCmd(c *cli.Context) error {

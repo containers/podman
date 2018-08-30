@@ -21,6 +21,7 @@ var (
 		Flags:                  refreshFlags,
 		Action:                 refreshCmd,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

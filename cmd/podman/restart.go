@@ -30,6 +30,7 @@ var (
 		Action:                 restartCmd,
 		ArgsUsage:              "CONTAINER [CONTAINER ...]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

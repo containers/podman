@@ -36,6 +36,7 @@ the latest pod.
 		Action:         podTopCmd,
 		ArgsUsage:      "POD-NAME [format descriptors]",
 		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 

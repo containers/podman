@@ -13,12 +13,13 @@ import (
 var (
 	infoDescription = "Display podman system information"
 	infoCommand     = cli.Command{
-		Name:        "info",
-		Usage:       infoDescription,
-		Description: `Information display here pertain to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
-		Flags:       infoFlags,
-		Action:      infoCmd,
-		ArgsUsage:   "",
+		Name:         "info",
+		Usage:        infoDescription,
+		Description:  `Information display here pertain to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
+		Flags:        infoFlags,
+		Action:       infoCmd,
+		ArgsUsage:    "",
+		OnUsageError: usageErrorHandler,
 	}
 	infoFlags = []cli.Flag{
 		cli.BoolFlag{

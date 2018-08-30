@@ -30,6 +30,7 @@ var (
 		Action:                 killCmd,
 		ArgsUsage:              "[CONTAINER_NAME_OR_ID]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

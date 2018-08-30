@@ -49,12 +49,13 @@ var (
 	 set the commit message with the --message flag,
 	 and make changes to the instructions with the --change flag.`
 	commitCommand = cli.Command{
-		Name:        "commit",
-		Usage:       "Create new image based on the changed container",
-		Description: commitDescription,
-		Flags:       commitFlags,
-		Action:      commitCmd,
-		ArgsUsage:   "CONTAINER [REPOSITORY[:TAG]]",
+		Name:         "commit",
+		Usage:        "Create new image based on the changed container",
+		Description:  commitDescription,
+		Flags:        commitFlags,
+		Action:       commitCmd,
+		ArgsUsage:    "CONTAINER [REPOSITORY[:TAG]]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

@@ -164,6 +164,7 @@ var (
 		Flags:                  podPsFlags,
 		Action:                 podPsCmd,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

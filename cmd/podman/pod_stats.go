@@ -43,6 +43,7 @@ var (
 		Action:                 podStatsCmd,
 		ArgsUsage:              "[POD_NAME_OR_ID]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

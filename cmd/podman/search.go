@@ -52,12 +52,13 @@ var (
 	Search registries for a given image. Can search all the default registries or a specific registry.
 	Can limit the number of results, and filter the output based on certain conditions.`
 	searchCommand = cli.Command{
-		Name:        "search",
-		Usage:       "Search registry for image",
-		Description: searchDescription,
-		Flags:       searchFlags,
-		Action:      searchCmd,
-		ArgsUsage:   "TERM",
+		Name:         "search",
+		Usage:        "Search registry for image",
+		Description:  searchDescription,
+		Flags:        searchFlags,
+		Action:       searchCmd,
+		ArgsUsage:    "TERM",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

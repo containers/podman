@@ -35,6 +35,7 @@ Running containers will not be removed without the -f option.
 		Action:                 rmCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 
