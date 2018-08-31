@@ -1,3 +1,60 @@
+- Changelog for v0.8.5 (2018-08-31)
+  * Add proper support for systemd inside of podman
+  * We are mistakenly seeing repos as registries.
+  * container: resolve rootfs symlinks
+  * Up time between checks for podman wait
+  * Turn on test debugging
+  * Add support for remote commands
+  * fixup A few language changes and subuid(5)
+  * Make the documentation of user namespace options in podman-run clearer
+  * pod create: restore help flag
+  * catch command-not-found errors
+  * don't print help message for usage errors
+  * Vendor in latest containers/storage and containers/image
+  * add conmon to copr spec
+  * docs: consistent format for example
+  * docs: consistent headings
+  * docs: make HISTORY consistent
+  * docs: fix headers
+  * varlink: fix --timeout usage
+  * run/create: reserve `-h` flag for hostname
+  * podman,varlink: inform user about --timeout 0
+  * rootless: show an error when stats is used
+  * rootless: show an error when pause/unpause are used
+  * rootless: unexport GetUserNSForPid
+  * rootless, exec: use the new function to join the userns
+  * rootless: fix top
+  * rootless: add new function to join existing namespace
+  * Vendor in latest projectatomic/buildah
+  * Set nproc in containers unless explicitly overridden
+  * Do not set max open files by default if we are rootless
+  * Set default max open files in spec
+  * Resolve /etc/resolv.conf before reading
+  * document `--rm` semantics
+  * allow specification of entrypoint in the form of a slice
+  * Test RPM build and install for regressions
+  * rootless, search: do not create a new userns
+  * rootless, login, logout: do not create a new userns
+  * rootless, kill: do not create a new userns
+  * rootless, stop: do not create a new userns
+  * Ensure return errors match API docs
+  * Fix manpage to note how multiple filters are combined
+  * Fix handling of multiple filters in podman ps
+  * Fix Mount Propagation
+  * docs: add containers-mounts.conf(5)
+  * docs: use "containers-" prefix for registries and storage
+  * rootless: fix --pid=host
+  * rootless: fix --ipc=host
+  * spec: bind mount /sys only when userNS are enabled
+  * rootless, tests: add test for --uts=host
+  * Dockerfile.Fedora: install slirp4netns
+  * rootless: don't use kill --all
+  * rootless: exec handle processes that create an user namespace
+  * rootless: fix exec
+  * Move whale-says test to end of baseline
+  * Bump gitvalidation epoch
+  * Bump to v0.8.5-dev
+
 - Changelog for v0.8.4 (2018-08-24)
   * Add release notes
   * Regenerate easyjson after rebase
