@@ -1,11 +1,27 @@
 # Release Notes
 
+## 0.8.5
+### Features
+- Added the ability to add a multipart entrypoint with `podman run --entrypoint`
+- Improved help text when invalid commands are specified
+- Greatly improved support for containers which use systemd as init
+
+### Bugfixes
+- Fixed several bugs with rootless `podman exec`
+- Fixed rootless `podman` with a symlinked storage directory crashing
+- Fixed bug with `podman ps` and multiple filters where the interface did not match Docker
+- Fixed handling of `resolv.conf` on the host to handle symlinks
+- Increased open file descriptor and process limits to match Docker and Buildah
+- Fixed `podman run -h` to specify the container's hostname (as it does in Docker) instead of printing help text
+- Fixed a bug with image shortname handling where repositories were incorrectly being treated as registries
+- Fixed a bug where `podman wait` was busywaiting and consuming large amounts of CPU
+
 ## 0.8.4
 ### Features
 - Added the `podman pod top` command
 - Added the ability to easily share namespaces within a pod
 - Added a pod statistics endpoint to the Varlink API
-- Add information on container capabilities to the output of `podman inspect`
+- Added information on container capabilities to the output of `podman inspect`
 
 ### Bugfixes
 - Fixed a bug with the --device flag in `podman run` and `podman create`
