@@ -1295,6 +1295,10 @@ func (c *Container) mount() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "error mounting storage for container %s", c.ID())
 	}
+	mountPoint, err = filepath.EvalSymlinks(mountPoint)
+	if err != nil {
+		return "", errors.Wrapf(err, "error resolving storage path for container %s", c.ID())
+	}
 	return mountPoint, nil
 }
 
