@@ -98,9 +98,8 @@ func TestGetPullRefPair(t *testing.T) {
 			"example.com/from-directory" + digestSuffix, "example.com/from-directory" + digestSuffix,
 		},
 		{ // ns/name:tag, no registry:
-			// FIXME: This is interpreted as "registry == ns"
 			"dir:/dev/this-does-not-exist", "ns/from-directory:notlatest",
-			"ns/from-directory:notlatest", "docker.io/ns/from-directory:notlatest",
+			"localhost/ns/from-directory:notlatest", "localhost/ns/from-directory:notlatest",
 		},
 		{ // containers-storage image ID
 			"dir:/dev/this-does-not-exist", imageID,
@@ -218,9 +217,8 @@ func TestPullGoalFromImageReference(t *testing.T) {
 			false,
 		},
 		{ // Relative path, multiple elements.
-			// FIXME: This does not add localhost/, so dstName is normalized to docker.io/testdata.
 			"dir:testdata/this-does-not-exist",
-			[]expected{{"testdata/this-does-not-exist", "docker.io/testdata/this-does-not-exist:latest"}},
+			[]expected{{"localhost/testdata/this-does-not-exist:latest", "localhost/testdata/this-does-not-exist:latest"}},
 			false,
 		},
 
@@ -343,12 +341,10 @@ func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 		},
 		{ // Unqualified, namespaced, name-only
 			"ns/busybox",
-			// FIXME: This is interpreted as "registry == ns", and actual pull happens from docker.io/ns/busybox:latest;
-			// example.com should be first in the list but isn't used at all.
 			[]pullRefStrings{
-				{"ns/busybox", "docker://ns/busybox:latest", "docker.io/ns/busybox:latest"},
+				{"example.com/ns/busybox:latest", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox:latest"},
 			},
-			false,
+			true,
 		},
 		{ // Unqualified, name:tag
 			"busybox:notlatest",
