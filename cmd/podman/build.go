@@ -188,11 +188,11 @@ func buildCmd(c *cli.Context) error {
 	namespaceOptions.AddOrReplace(usernsOption...)
 
 	layers := buildahcli.UseLayers()
-        if c.IsSet("layers") {
-                layers = c.Bool("layers")
-        } else {
-			layers = true
-		}
+	if c.IsSet("layers") {
+		layers = c.Bool("layers")
+	} else {
+		layers = true
+	}
 
 	options := imagebuildah.BuildOptions{
 		ContextDirectory:        contextDir,
