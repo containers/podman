@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -40,6 +41,18 @@ func shortID(id string) string {
 		return id[:idTruncLength]
 	}
 	return id
+}
+
+func usageErrorHandler(context *cli.Context, err error, _ bool) error {
+	cmd := context.App.Name
+	if len(context.Command.Name) > 0 {
+		cmd = cmd + " " + context.Command.Name
+	}
+	return fmt.Errorf("%s\nSee '%s --help'.", err, cmd)
+}
+
+func commandNotFoundHandler(context *cli.Context, command string) {
+	fmt.Fprintf(context.App.Writer, "Command %q not found.\nSee `%s --help`.\n", command, context.App.Name)
 }
 
 // validateFlags searches for StringFlags or StringSlice flags that never had

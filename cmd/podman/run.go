@@ -37,6 +37,7 @@ var runCommand = cli.Command{
 	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
+	OnUsageError:           usageErrorHandler,
 }
 
 func runCmd(c *cli.Context) error {

@@ -32,12 +32,13 @@ var (
 `
 
 	stopCommand = cli.Command{
-		Name:        "stop",
-		Usage:       "Stop one or more containers",
-		Description: stopDescription,
-		Flags:       stopFlags,
-		Action:      stopCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:         "stop",
+		Usage:        "Stop one or more containers",
+		Description:  stopDescription,
+		Flags:        stopFlags,
+		Action:       stopCmd,
+		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

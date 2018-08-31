@@ -31,6 +31,7 @@ var (
 		ArgsUsage:   "IMAGE-NAME-OR-ID [...]",
 		Flags:       rmiFlags,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 	rmImageCommand = cli.Command{
 		Name:        "rm",
@@ -40,6 +41,7 @@ var (
 		ArgsUsage:   "IMAGE-NAME-OR-ID [...]",
 		Flags:       rmiFlags,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

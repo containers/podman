@@ -29,6 +29,7 @@ var (
 		Action:                 podPauseCmd,
 		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

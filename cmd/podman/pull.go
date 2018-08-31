@@ -51,12 +51,13 @@ An image can be pulled using its tag or digest. If a tag is not
 specified, the image with the 'latest' tag (if it exists) is pulled
 `
 	pullCommand = cli.Command{
-		Name:        "pull",
-		Usage:       "Pull an image from a registry",
-		Description: pullDescription,
-		Flags:       pullFlags,
-		Action:      pullCmd,
-		ArgsUsage:   "",
+		Name:         "pull",
+		Usage:        "Pull an image from a registry",
+		Description:  pullDescription,
+		Flags:        pullFlags,
+		Action:       pullCmd,
+		ArgsUsage:    "",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

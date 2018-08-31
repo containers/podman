@@ -28,5 +28,6 @@ var (
 		ArgsUsage:              "",
 		Subcommands:            imageSubCommands,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )

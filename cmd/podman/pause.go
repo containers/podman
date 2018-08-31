@@ -16,11 +16,12 @@ var (
    Pauses one or more running containers.  The container name or ID can be used.
 `
 	pauseCommand = cli.Command{
-		Name:        "pause",
-		Usage:       "Pauses all the processes in one or more containers",
-		Description: pauseDescription,
-		Action:      pauseCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:         "pause",
+		Usage:        "Pauses all the processes in one or more containers",
+		Description:  pauseDescription,
+		Action:       pauseCmd,
+		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

@@ -17,12 +17,13 @@ var (
 `
 	waitFlags   = []cli.Flag{LatestFlag}
 	waitCommand = cli.Command{
-		Name:        "wait",
-		Usage:       "Block on one or more containers",
-		Description: waitDescription,
-		Flags:       waitFlags,
-		Action:      waitCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:         "wait",
+		Usage:        "Block on one or more containers",
+		Description:  waitDescription,
+		Flags:        waitFlags,
+		Action:       waitCmd,
+		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

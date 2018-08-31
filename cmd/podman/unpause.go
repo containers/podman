@@ -16,11 +16,12 @@ var (
    Unpauses one or more running containers.  The container name or ID can be used.
 `
 	unpauseCommand = cli.Command{
-		Name:        "unpause",
-		Usage:       "Unpause the processes in one or more containers",
-		Description: unpauseDescription,
-		Action:      unpauseCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:         "unpause",
+		Usage:        "Unpause the processes in one or more containers",
+		Description:  unpauseDescription,
+		Action:       unpauseCmd,
+		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

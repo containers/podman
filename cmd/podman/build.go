@@ -28,6 +28,7 @@ var (
 		Action:         buildCmd,
 		ArgsUsage:      "CONTEXT-DIRECTORY | URL",
 		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 

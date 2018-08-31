@@ -58,6 +58,7 @@ var (
 		Action:         logsCmd,
 		ArgsUsage:      "CONTAINER",
 		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 

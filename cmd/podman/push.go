@@ -67,12 +67,13 @@ var (
    See podman-push(1) section "DESTINATION" for the expected format`)
 
 	pushCommand = cli.Command{
-		Name:        "push",
-		Usage:       "Push an image to a specified destination",
-		Description: pushDescription,
-		Flags:       pushFlags,
-		Action:      pushCmd,
-		ArgsUsage:   "IMAGE DESTINATION",
+		Name:         "push",
+		Usage:        "Push an image to a specified destination",
+		Description:  pushDescription,
+		Flags:        pushFlags,
+		Action:       pushCmd,
+		ArgsUsage:    "IMAGE DESTINATION",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

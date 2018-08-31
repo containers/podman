@@ -45,6 +45,7 @@ var (
 		Action:                 startCmd,
 		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

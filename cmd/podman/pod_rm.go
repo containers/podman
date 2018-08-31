@@ -34,6 +34,7 @@ If --force is specified, all containers will be stopped, then removed.
 		Action:                 podRmCmd,
 		ArgsUsage:              "[POD ...]",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

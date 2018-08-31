@@ -23,6 +23,7 @@ var (
 		Action:                 podInspectCmd,
 		UseShortOptionHandling: true,
 		ArgsUsage:              "[POD_NAME_OR_ID]",
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

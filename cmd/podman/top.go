@@ -46,6 +46,7 @@ the latest container.
 		Action:         topCmd,
 		ArgsUsage:      "CONTAINER-NAME [format descriptors]",
 		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 

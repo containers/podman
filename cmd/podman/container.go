@@ -43,5 +43,6 @@ var (
 		ArgsUsage:              "",
 		Subcommands:            subCommands,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )

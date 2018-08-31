@@ -128,6 +128,7 @@ var (
 		Action:                 imagesCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 	lsImagesCommand = cli.Command{
 		Name:                   "ls",
@@ -137,6 +138,7 @@ var (
 		Action:                 imagesCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

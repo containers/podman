@@ -51,6 +51,7 @@ var (
 		ArgsUsage:              "CONTAINER-NAME",
 		SkipArgReorder:         true,
 		UseShortOptionHandling: true,
+		OnUsageError:           usageErrorHandler,
 	}
 )
 

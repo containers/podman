@@ -24,12 +24,13 @@ var (
 `
 
 	podStopCommand = cli.Command{
-		Name:        "stop",
-		Usage:       "Stop one or more pods",
-		Description: podStopDescription,
-		Flags:       podStopFlags,
-		Action:      podStopCmd,
-		ArgsUsage:   "POD-NAME [POD-NAME ...]",
+		Name:         "stop",
+		Usage:        "Stop one or more pods",
+		Description:  podStopDescription,
+		Flags:        podStopFlags,
+		Action:       podStopCmd,
+		ArgsUsage:    "POD-NAME [POD-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 

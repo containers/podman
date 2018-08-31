@@ -24,12 +24,13 @@ var (
    Cleans up mount points and network stacks on one or more containers from the host. The container name or ID can be used. This command is used internally when running containers, but can also be used if container cleanup has failed when a container exits.
 `
 	cleanupCommand = cli.Command{
-		Name:        "cleanup",
-		Usage:       "Cleanup network and mountpoints of one or more containers",
-		Description: cleanupDescription,
-		Flags:       cleanupFlags,
-		Action:      cleanupCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Name:         "cleanup",
+		Usage:        "Cleanup network and mountpoints of one or more containers",
+		Description:  cleanupDescription,
+		Flags:        cleanupFlags,
+		Action:       cleanupCmd,
+		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
+		OnUsageError: usageErrorHandler,
 	}
 )
 
