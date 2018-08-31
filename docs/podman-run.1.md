@@ -578,6 +578,19 @@ Network Namespace - current sysctls allowed:
 
 Note: if you use the `--network=host` option these sysctls will not be allowed.
 
+**--systemd**=*true*|*false*
+
+Run container in systemd mode. The default is *true*.
+
+If the command you running inside of the container is systemd or init, podman
+will setup tmpfs mount points in the following directories:
+
+/run, /run/lock, /tmp, /sys/fs/cgroup/systemd, /var/lib/journal
+
+It will also set the default stop signal to SIGRTMIN+3.
+
+This allow systemd to run in a confined container without any modifications.
+
 **--tmpfs**=[] Create a tmpfs mount
 
 Mount a temporary filesystem (`tmpfs`) mount into a container, for example:

@@ -383,6 +383,10 @@ var createFlags = []cli.Flag{
 		Name:  "sysctl",
 		Usage: "Sysctl options (default [])",
 	},
+	cli.BoolTFlag{
+		Name:  "systemd",
+		Usage: "Run container in systemd mode if the command executable is systemd or init",
+	},
 	cli.StringSliceFlag{
 		Name:  "tmpfs",
 		Usage: "Mount a temporary filesystem (`tmpfs`) into a container (default [])",

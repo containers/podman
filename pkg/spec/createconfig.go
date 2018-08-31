@@ -115,9 +115,10 @@ type CreateConfig struct {
 	Resources          CreateResourceConfig
 	Rm                 bool //rm
 	ShmDir             string
-	StopSignal         syscall.Signal       // stop-signal
-	StopTimeout        uint                 // stop-timeout
-	Sysctl             map[string]string    //sysctl
+	StopSignal         syscall.Signal    // stop-signal
+	StopTimeout        uint              // stop-timeout
+	Sysctl             map[string]string //sysctl
+	Systemd            bool
 	Tmpfs              []string             // tmpfs
 	Tty                bool                 //tty
 	UsernsMode         container.UsernsMode //userns
