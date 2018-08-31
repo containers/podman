@@ -51,6 +51,10 @@ func usageErrorHandler(context *cli.Context, err error, _ bool) error {
 	return fmt.Errorf("%s\nSee '%s --help'.", err, cmd)
 }
 
+func commandNotFoundHandler(context *cli.Context, command string) {
+	fmt.Fprintf(context.App.Writer, "Command %q not found.\nSee `%s --help`.\n", command, context.App.Name)
+}
+
 // validateFlags searches for StringFlags or StringSlice flags that never had
 // a value set.  This commonly occurs when the CLI mistakenly takes the next
 // option and uses it as a value.
