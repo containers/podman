@@ -26,7 +26,7 @@ var (
 )
 
 func unpauseCmd(c *cli.Context) error {
-	if os.Getuid() != 0 {
+	if os.Geteuid() != 0 {
 		return errors.New("unpause is not supported for rootless containers")
 	}
 

@@ -26,7 +26,7 @@ var (
 )
 
 func pauseCmd(c *cli.Context) error {
-	if os.Getuid() != 0 {
+	if os.Geteuid() != 0 {
 		return errors.New("pause is not supported for rootless containers")
 	}
 

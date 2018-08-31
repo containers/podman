@@ -20,7 +20,7 @@ import (
 )
 
 func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd *exec.Cmd) error {
-	if os.Getuid() == 0 {
+	if os.Geteuid() == 0 {
 		if r.cgroupManager == SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 

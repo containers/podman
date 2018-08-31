@@ -64,7 +64,7 @@ func statsCmd(c *cli.Context) error {
 		return err
 	}
 
-	if os.Getuid() != 0 {
+	if os.Geteuid() != 0 {
 		return errors.New("stats is not supported for rootless containers")
 	}
 

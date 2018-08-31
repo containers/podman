@@ -74,7 +74,7 @@ func runCmd(c *cli.Context) error {
 	storageOpts.UIDMap = mappings.UIDMap
 	storageOpts.GIDMap = mappings.GIDMap
 
-	if os.Getuid() != 0 {
+	if os.Geteuid() != 0 {
 		rootless.SetSkipStorageSetup(true)
 	}
 
