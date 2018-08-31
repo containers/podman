@@ -34,7 +34,7 @@ func runInUser() error {
 
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
-	return os.Getuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
+	return os.Geteuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
 }
 
 var (
@@ -88,7 +88,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
 func JoinNS(pid uint) (bool, int, error) {
-	if os.Getuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -116,7 +116,7 @@ func JoinNS(pid uint) (bool, int, error) {
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNS() (bool, int, error) {
-	if os.Getuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
@@ -142,7 +142,7 @@ func BecomeRootInUserNS() (bool, int, error) {
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
-		user, err := user.LookupId(fmt.Sprintf("%d", os.Geteuid()))
+		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
 		if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
 			return false, 0, errors.Wrapf(err, "could not find user by UID nor USER env was set")
 		}

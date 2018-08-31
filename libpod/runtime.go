@@ -561,7 +561,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 		// empty state only creates a single file
 		// As such, it's not really a performance concern
 		if os.IsNotExist(err) {
-			if os.Getuid() != 0 {
+			if os.Geteuid() != 0 {
 				aliveLock.Unlock()
 				locked = false
 				if err2 := runtime.refreshRootless(); err2 != nil {

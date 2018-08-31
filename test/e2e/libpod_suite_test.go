@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -190,11 +189,13 @@ func (p *PodmanTest) PodmanAsUser(args []string, uid, gid uint32, env []string) 
 	} else {
 		fmt.Printf("Running: (env: %v) %s %s\n", env, p.PodmanBinary, strings.Join(podmanOptions, " "))
 	}
-	command := exec.Command(p.PodmanBinary, podmanOptions...)
+	var command *exec.Cmd
 
 	if uid != 0 || gid != 0 {
-		command.SysProcAttr = &syscall.SysProcAttr{}
-		command.SysProcAttr.Credential = &syscall.Credential{Uid: uid, Gid: gid}
+		nsEnterOpts := append([]string{"--userspec", fmt.Sprintf("%d:%d", uid, gid), "/", p.PodmanBinary}, podmanOptions...)
+		command = exec.Command("chroot", nsEnterOpts...)
+	} else {
+		command = exec.Command(p.PodmanBinary, podmanOptions...)
 	}
 	if env != nil {
 		command.Env = env

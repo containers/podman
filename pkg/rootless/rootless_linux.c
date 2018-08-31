@@ -107,6 +107,10 @@ reexec_userns_join (int userns)
     _exit (EXIT_FAILURE);
   close (userns);
 
+  if (setresgid (0, 0, 0) < 0 ||
+      setresuid (0, 0, 0) < 0)
+    _exit (EXIT_FAILURE);
+
   execvp (argv[0], argv);
 
   _exit (EXIT_FAILURE);

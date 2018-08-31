@@ -99,7 +99,7 @@ func createCmd(c *cli.Context) error {
 	storageOpts.UIDMap = mappings.UIDMap
 	storageOpts.GIDMap = mappings.GIDMap
 
-	if os.Getuid() != 0 {
+	if os.Geteuid() != 0 {
 		rootless.SetSkipStorageSetup(true)
 	}
 
@@ -778,7 +778,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 }
 
 func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *libpod.Runtime) (bool, int, error) {
-	if os.Getuid() == 0 {
+	if os.Geteuid() == 0 {
 		return false, 0, nil
 	}
 
