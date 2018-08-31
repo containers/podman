@@ -221,7 +221,7 @@ func TestNormalizeTag(t *testing.T) {
 		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix + ":none"},           // Qualified name@digest; FIXME: The result is not even syntactically valid!
 		{"example.com/busybox:notlatest" + digestSuffix, "example.com/busybox:notlatest" + digestSuffix}, // Qualified name:tag@digest
 		{"busybox:latest", "localhost/busybox:latest"},                                                   // Unqualified name-only
-		{"ns/busybox:latest", "ns/busybox:latest"},                                                       // Unqualified with a dot-less namespace FIXME: "ns" is treated as a registry
+		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace
 	} {
 		res, err := normalizeTag(c.input)
 		if c.expected == "" {

@@ -27,12 +27,10 @@ func TestDecompose(t *testing.T) {
 		},
 		{ // Unqualified single-name input
 			"busybox", "docker://", "", "busybox", "latest", false, false,
-			// FIXME? The [empty]/busybox syntax is surprising.
-			"/busybox:latest", "docker:///busybox:latest",
+			"busybox:latest", "docker://busybox:latest",
 		},
 		{ // Unqualified namespaced input
-			// FIXME: .registry == "ns" !!
-			"ns/busybox", "docker://", "ns", "busybox", "latest", false, true,
+			"ns/busybox", "docker://", "", "ns/busybox", "latest", false, false,
 			"ns/busybox:latest", "docker://ns/busybox:latest",
 		},
 		{ // name:tag
