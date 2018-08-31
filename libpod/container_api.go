@@ -597,7 +597,7 @@ func (c *Container) Wait() (int32, error) {
 		return -1, ErrCtrRemoved
 	}
 
-	err := wait.PollImmediateInfinite(1,
+	err := wait.PollImmediateInfinite(100*time.Millisecond,
 		func() (bool, error) {
 			stopped, err := c.isStopped()
 			if err != nil {
