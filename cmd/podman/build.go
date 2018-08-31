@@ -187,6 +187,13 @@ func buildCmd(c *cli.Context) error {
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
+	layers := buildahcli.UseLayers()
+        if c.IsSet("layers") {
+                layers = c.Bool("layers")
+        } else {
+			layers = true
+		}
+
 	options := imagebuildah.BuildOptions{
 		ContextDirectory:        contextDir,
 		PullPolicy:              pullPolicy,
@@ -214,7 +221,7 @@ func buildCmd(c *cli.Context) error {
 		Squash:                  c.Bool("squash"),
 		Labels:                  c.StringSlice("label"),
 		Annotations:             c.StringSlice("annotation"),
-		Layers:                  c.Bool("layers"),
+		Layers:                  layers,
 		NoCache:                 c.Bool("no-cache"),
 		RemoveIntermediateCtrs:  c.BoolT("rm"),
 		ForceRmIntermediateCtrs: c.Bool("force-rm"),
