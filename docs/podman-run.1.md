@@ -253,8 +253,8 @@ on the host system.
 **--gidmap**=container_gid:host_gid:amount
 **--gidmap**=0:30000:2000
 
-Run the container in a new user namespace with the supplied mapping. This option conflicts with the --userns and --subgidname flags.
-This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subgidname flags.
+This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
 The example maps gids 0-2000 in the container to the gids 30000-31999 on the host.
 
 **--group-add**=[]
@@ -540,13 +540,13 @@ Signal to stop a container. Default is SIGTERM.
 Timeout (in seconds) to stop a container. Default is 10.
 
 **--subgidname**=name
-Run the container in a new user namespace from the map with 'name' in the `/etc/subgid` file.
-If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subgid`.
+Run the container in a new user namespace using the map with 'name' in the `/etc/subgid` file.
+If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subgid(5)`.
 This flag conflicts with `--userns` and `--gidmap`.
 
 **--subuidname**=name
-Run the container in a new user namespace from the map with 'name' in the `/etc/subuid` file.
-If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+Run the container in a new user namespace using the map with 'name' in the `/etc/subuid` file.
+If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
 This flag conflicts with `--userns` and `--uidmap`.
 
 **--sysctl**=SYSCTL
@@ -597,8 +597,8 @@ standard input.
 **--uidmap**=container_uid:host_uid:amount
 **--uidmap**=0:30000:2000
 
-Run the container in a new user namespace with the supplied mapping. This option conflicts with the --userns and --subuidname flags.
-This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `man subuid`.
+Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subuidname flags.
+This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
 The example maps uids 0-2000 in the container to the uids 30000-31999 on the host.
 
 **--ulimit**=[]
