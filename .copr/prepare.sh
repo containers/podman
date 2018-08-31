@@ -20,3 +20,5 @@ sed "s,#COMMIT#,${COMMIT},;
 
 mkdir build/
 git archive --prefix "libpod-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/libpod-${COMMIT_SHORT}.tar.gz"
+git clone https://github.com/kubernetes-incubator/cri-o
+cd cri-o && git checkout 4e7f71b714932dafc6a70e9b6dc09112da478be1 && git archive --prefix "crio/" --format "tar.gz" HEAD -o "../build/crio.tar.gz"

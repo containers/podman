@@ -32,6 +32,12 @@
 %global commit0 #COMMIT#
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
 
+# People want conmon packaged with the copr rpm
+%global import_path_conmon      github.com/kubernetes-incubator/cri-o
+%global git_conmon      https://%{import_path_conmon}
+%global commit_conmon   4e7f71b714932dafc6a70e9b6dc09112da478be1
+%global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
+
 Name: podman
 Version: 0.8.5
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
@@ -39,6 +45,7 @@ Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
 URL: %{git_podman}
 Source0: %{git0}/archive/%{commit0}/%{repo}-%{shortcommit0}.tar.gz
+Source1: crio.tar.gz
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
 ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
@@ -376,6 +383,9 @@ sed -i 's/0.0.0/%{version}/' contrib/python/%{name}/setup.py
 sed -i 's/0.0.0/%{version}/' contrib/python/py%{name}/setup.py
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
+# untar cri-o
+tar zxf %{SOURCE1}
+
 %build
 mkdir _build
 pushd _build
@@ -388,6 +398,21 @@ export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 BUILDTAGS=$BUILDTAGS make binaries docs
+
+# build conmon
+pushd crio
+
+mkdir _output
+pushd _output
+mkdir -p src/%{provider}.%{provider_tld}/{kubernetes-incubator,opencontainers}
+ln -s $(dirs +1 -l) src/%{import_path_conmon}
+popd
+
+ln -s vendor src
+export GOPATH=$(pwd)/_output:$(pwd):%{gopath}
+export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) containers_image_ostree_stub"
+BUILDTAGS=$BUILDTAGS make -C conmon
+popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
@@ -405,6 +430,10 @@ install -dp %{buildroot}%{_unitdir}
 # install libpod.conf
 install -dp %{buildroot}%{_datadir}/containers
 install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
+
+# install conmon
+install -dp %{buildroot}%{_libexecdir}/%{name}
+install -p -m 755 crio/bin/conmon %{buildroot}%{_libexecdir}/%{name}
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -480,6 +509,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
+%{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.podman.service
