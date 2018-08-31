@@ -71,7 +71,6 @@ var podCreateCommand = cli.Command{
 	Description:            podCreateDescription,
 	Flags:                  podCreateFlags,
 	Action:                 podCreateCmd,
-	HideHelp:               true,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,
 	OnUsageError:           usageErrorHandler,
@@ -80,12 +79,6 @@ var podCreateCommand = cli.Command{
 func podCreateCmd(c *cli.Context) error {
 	var options []libpod.PodCreateOption
 	var err error
-
-	// Docker-compatibility: the "-h" flag for run/create is reserved for
-	// the hostname (see https://github.com/containers/libpod/issues/1367).
-	if c.Bool("help") {
-		cli.ShowCommandHelpAndExit(c, "run", 0)
-	}
 
 	if err = validateFlags(c, createFlags); err != nil {
 		return err
