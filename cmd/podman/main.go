@@ -52,6 +52,7 @@ func main() {
 	app.Name = "podman"
 	app.Usage = "manage pods and images"
 	app.OnUsageError = usageErrorHandler
+	app.CommandNotFound = commandNotFoundHandler
 
 	app.Version = version.Version
 
