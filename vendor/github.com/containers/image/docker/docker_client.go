@@ -462,6 +462,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	if c.username != "" && c.password != "" {
 		authReq.SetBasicAuth(c.username, c.password)
 	}
+	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
 	tr := tlsclientconfig.NewTransport()
 	// TODO(runcom): insecure for now to contact the external token service
 	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -497,8 +498,8 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 	ping := func(scheme string) error {
 		url := fmt.Sprintf(resolvedPingV2URL, scheme, c.registry)
 		resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, true)
-		logrus.Debugf("Ping %s err %#v", url, err)
 		if err != nil {
+			logrus.Debugf("Ping %s err %#v", url, err)
 			return err
 		}
 		defer resp.Body.Close()

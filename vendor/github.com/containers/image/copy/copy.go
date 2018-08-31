@@ -71,7 +71,6 @@ func (d *digestingReader) Read(p []byte) (int, error) {
 // copier allows us to keep track of diffID values for blobs, and other
 // data shared across one or more images in a possible manifest list.
 type copier struct {
-	copiedBlobs      map[digest.Digest]digest.Digest
 	cachedDiffIDs    map[digest.Digest]digest.Digest
 	dest             types.ImageDestination
 	rawSource        types.ImageSource
@@ -141,7 +140,6 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	}()
 
 	c := &copier{
-		copiedBlobs:      make(map[digest.Digest]digest.Digest),
 		cachedDiffIDs:    make(map[digest.Digest]digest.Digest),
 		dest:             dest,
 		rawSource:        rawSource,

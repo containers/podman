@@ -371,6 +371,9 @@ func (r *layerStore) Save() error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the layer store at %q", r.layerspath())
 	}
+	if !r.Locked() {
+		return errors.New("layer store is not locked")
+	}
 	rpath := r.layerspath()
 	if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
 		return err
@@ -1180,4 +1183,8 @@ func (r *layerStore) IsReadWrite() bool {
 
 func (r *layerStore) TouchedSince(when time.Time) bool {
 	return r.lockfile.TouchedSince(when)
+}
+
+func (r *layerStore) Locked() bool {
+	return r.lockfile.Locked()
 }

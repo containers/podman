@@ -57,8 +57,9 @@ type Schema2HealthConfig struct {
 	Test []string `json:",omitempty"`
 
 	// Zero means to inherit. Durations are expressed as integer nanoseconds.
-	Interval time.Duration `json:",omitempty"` // Interval is the time to wait between checks.
-	Timeout  time.Duration `json:",omitempty"` // Timeout is the time to wait before considering the check to have hung.
+	StartPeriod time.Duration `json:",omitempty"` // StartPeriod is the time to wait after starting before running the first check.
+	Interval    time.Duration `json:",omitempty"` // Interval is the time to wait between checks.
+	Timeout     time.Duration `json:",omitempty"` // Timeout is the time to wait before considering the check to have hung.
 
 	// Retries is the number of consecutive failures needed to consider a container as unhealthy.
 	// Zero means inherit.
