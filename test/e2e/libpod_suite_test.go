@@ -368,6 +368,7 @@ func (s *PodmanSession) InspectImageJSON() []inspect.ImageData {
 
 func (s *PodmanSession) WaitWithDefaultTimeout() {
 	s.Wait(defaultWaitTimeout)
+	fmt.Println("output:", s.OutputToString())
 }
 
 // SystemExec is used to exec a system command to check its exit code or output
