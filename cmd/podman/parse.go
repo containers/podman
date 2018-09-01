@@ -239,50 +239,6 @@ func parseEnvFile(env map[string]string, filename string) error {
 	return scanner.Err()
 }
 
-// NsIpc represents the container ipc stack.
-// for ipc flag
-type NsIpc string
-
-// IsPrivate indicates whether the container uses its private ipc stack.
-func (n NsIpc) IsPrivate() bool {
-	return !(n.IsHost() || n.IsContainer())
-}
-
-// IsHost indicates whether the container uses the host's ipc stack.
-func (n NsIpc) IsHost() bool {
-	return n == "host"
-}
-
-// IsContainer indicates whether the container uses a container's ipc stack.
-func (n NsIpc) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == "container"
-}
-
-// Valid indicates whether the ipc stack is valid.
-func (n NsIpc) Valid() bool {
-	parts := strings.Split(string(n), ":")
-	switch mode := parts[0]; mode {
-	case "", "host":
-	case "container":
-		if len(parts) != 2 || parts[1] == "" {
-			return false
-		}
-	default:
-		return false
-	}
-	return true
-}
-
-// Container returns the name of the container ipc stack is going to be used.
-func (n NsIpc) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
-}
-
 // validateLabel validates that the specified string is a valid label, and returns it.
 // Labels are in the form on key=value.
 // for label flag
@@ -311,50 +267,6 @@ func parseLoggingOpts(logDriver string, logDriverOpt []string) (map[string]strin
 		return map[string]string{}, errors.Errorf("invalid logging opts for driver %s", logDriver)
 	}
 	return logOptsMap, nil
-}
-
-// NsPid represents the pid namespace of the container.
-//for pid flag
-type NsPid string
-
-// IsPrivate indicates whether the container uses its own new pid namespace.
-func (n NsPid) IsPrivate() bool {
-	return !(n.IsHost() || n.IsContainer())
-}
-
-// IsHost indicates whether the container uses the host's pid namespace.
-func (n NsPid) IsHost() bool {
-	return n == "host"
-}
-
-// IsContainer indicates whether the container uses a container's pid namespace.
-func (n NsPid) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == "container"
-}
-
-// Valid indicates whether the pid namespace is valid.
-func (n NsPid) Valid() bool {
-	parts := strings.Split(string(n), ":")
-	switch mode := parts[0]; mode {
-	case "", "host":
-	case "container":
-		if len(parts) != 2 || parts[1] == "" {
-			return false
-		}
-	default:
-		return false
-	}
-	return true
-}
-
-// Container returns the name of the container whose pid namespace is going to be used.
-func (n NsPid) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
 }
 
 // parsePortSpecs receives port specs in the format of ip:public:private/proto and parses
@@ -565,56 +477,6 @@ func convertKVStringsToMap(values []string) map[string]string {
 	}
 
 	return result
-}
-
-// NsUser represents userns mode in the container.
-// for userns flag
-type NsUser string
-
-// IsHost indicates whether the container uses the host's userns.
-func (n NsUser) IsHost() bool {
-	return n == "host"
-}
-
-// IsPrivate indicates whether the container uses the a private userns.
-func (n NsUser) IsPrivate() bool {
-	return !(n.IsHost())
-}
-
-// Valid indicates whether the userns is valid.
-func (n NsUser) Valid() bool {
-	parts := strings.Split(string(n), ":")
-	switch mode := parts[0]; mode {
-	case "", "host":
-	default:
-		return false
-	}
-	return true
-}
-
-// NsUts represents the UTS namespace of the container.
-// for uts flag
-type NsUts string
-
-// IsPrivate indicates whether the container uses its private UTS namespace.
-func (n NsUts) IsPrivate() bool {
-	return !(n.IsHost())
-}
-
-// IsHost indicates whether the container uses the host's UTS namespace.
-func (n NsUts) IsHost() bool {
-	return n == "host"
-}
-
-// Valid indicates whether the UTS namespace is valid.
-func (n NsUts) Valid() bool {
-	parts := strings.Split(string(n), ":")
-	switch mode := parts[0]; mode {
-	case "", "host":
-	default:
-		return false
-	}
-	return true
 }
 
 // Takes a stringslice and converts to a uint32slice
