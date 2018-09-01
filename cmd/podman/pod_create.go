@@ -15,7 +15,7 @@ import (
 
 var (
 	// Kernel namespaces shared by default within a pod
-	DefaultKernelNamespaces = "ipc,net,uts"
+	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
 )
 
 var podCreateDescription = "Creates a new empty pod. The pod ID is then" +

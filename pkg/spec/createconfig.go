@@ -8,10 +8,10 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -90,22 +90,22 @@ type CreateConfig struct {
 	ImageID            string
 	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config
 	IDMappings         *storage.IDMappingOptions
-	ImageVolumeType    string                // how to handle the image volume, either bind, tmpfs, or ignore
-	Interactive        bool                  //interactive
-	IpcMode            container.IpcMode     //ipc
-	IP6Address         string                //ipv6
-	IPAddress          string                //ip
-	Labels             map[string]string     //label
-	LinkLocalIP        []string              // link-local-ip
-	LogDriver          string                // log-driver
-	LogDriverOpt       []string              // log-opt
-	MacAddress         string                //mac-address
-	Name               string                //name
-	NetMode            container.NetworkMode //net
-	Network            string                //network
-	NetworkAlias       []string              //network-alias
-	PidMode            container.PidMode     //pid
-	Pod                string                //pod
+	ImageVolumeType    string                 // how to handle the image volume, either bind, tmpfs, or ignore
+	Interactive        bool                   //interactive
+	IpcMode            namespaces.IpcMode     //ipc
+	IP6Address         string                 //ipv6
+	IPAddress          string                 //ip
+	Labels             map[string]string      //label
+	LinkLocalIP        []string               // link-local-ip
+	LogDriver          string                 // log-driver
+	LogDriverOpt       []string               // log-opt
+	MacAddress         string                 //mac-address
+	Name               string                 //name
+	NetMode            namespaces.NetworkMode //net
+	Network            string                 //network
+	NetworkAlias       []string               //network-alias
+	PidMode            namespaces.PidMode     //pid
+	Pod                string                 //pod
 	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
@@ -119,12 +119,12 @@ type CreateConfig struct {
 	StopTimeout        uint              // stop-timeout
 	Sysctl             map[string]string //sysctl
 	Systemd            bool
-	Tmpfs              []string             // tmpfs
-	Tty                bool                 //tty
-	UsernsMode         container.UsernsMode //userns
-	User               string               //user
-	UtsMode            container.UTSMode    //uts
-	Volumes            []string             //volume
+	Tmpfs              []string              // tmpfs
+	Tty                bool                  //tty
+	UsernsMode         namespaces.UsernsMode //userns
+	User               string                //user
+	UtsMode            namespaces.UTSMode    //uts
+	Volumes            []string              //volume
 	VolumesFrom        []string
 	WorkDir            string //workdir
 	MountLabel         string //SecurityOpts
@@ -222,7 +222,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 }
 
 // GetVolumesFrom reads the create-config artifact of the container to get volumes from
-// and adds it to c.Volumes of the curent container.
+// and adds it to c.Volumes of the current container.
 func (c *CreateConfig) GetVolumesFrom() error {
 	var options string
 	for _, vol := range c.VolumesFrom {
@@ -422,6 +422,14 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 	if IsPod(string(c.UtsMode)) {
 		options = append(options, libpod.WithUTSNSFromPod(pod))
+	}
+	if c.UtsMode.IsContainer() {
+		connectedCtr, err := c.Runtime.LookupContainer(c.UtsMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.UtsMode.Container())
+		}
+
+		options = append(options, libpod.WithUTSNSFrom(connectedCtr))
 	}
 
 	// TODO: MNT, USER, CGROUP

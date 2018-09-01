@@ -70,6 +70,8 @@ func GetNamespaceOptions(ns []string) ([]libpod.PodCreateOption, error) {
 	var erroredOptions []libpod.PodCreateOption
 	for _, toShare := range ns {
 		switch toShare {
+		case "cgroup":
+			options = append(options, libpod.WithPodCgroups())
 		case "net":
 			options = append(options, libpod.WithPodNet())
 		case "mnt":
