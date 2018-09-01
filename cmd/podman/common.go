@@ -250,7 +250,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "ipc",
-		Usage: "IPC Namespace to use",
+		Usage: "IPC namespace to use",
 	},
 	cli.StringFlag{
 		Name:  "kernel-memory",
@@ -312,7 +312,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "pid",
-		Usage: "PID Namespace to use",
+		Usage: "PID namespace to use",
 	},
 	cli.Int64Flag{
 		Name:  "pids-limit",
