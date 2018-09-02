@@ -54,7 +54,7 @@ func usageErrorHandler(context *cli.Context, err error, _ bool) error {
 
 func commandNotFoundHandler(context *cli.Context, command string) {
 	fmt.Fprintf(os.Stderr, "Command %q not found.\nSee `%s --help`.\n", command, context.App.Name)
-	os.Exit(1)
+	os.Exit(exitCode)
 }
 
 // validateFlags searches for StringFlags or StringSlice flags that never had
