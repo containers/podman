@@ -111,6 +111,13 @@ func rmiCmd(c *cli.Context) error {
 		}
 	}
 
+	// If the user calls remove all and there are none, it should not be a
+	// non-zero exit
+	if !deleted && removeAll {
+		return nil
+	}
+	// the user tries to remove images that do not exist, that should be a
+	// non-zero exit
 	if !deleted {
 		return errors.Errorf("no valid images to delete")
 	}

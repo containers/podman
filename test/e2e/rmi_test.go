@@ -238,4 +238,14 @@ var _ = Describe("Podman rmi", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToString())).To(Equal(0))
 	})
+
+	It("podman rmi -a with no images should be exit 0", func() {
+		session := podmanTest.Podman([]string{"rmi", "-fa"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"rmi", "-fa"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+	})
 })
