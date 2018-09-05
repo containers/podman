@@ -1,3 +1,19 @@
+/*
+   Copyright The containerd Authors.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package cgroups
 
 import (
@@ -14,6 +30,11 @@ import (
 const (
 	SystemdDbus  Name = "systemd"
 	defaultSlice      = "system.slice"
+)
+
+var (
+	canDelegate bool
+	once sync.Once
 )
 
 func Systemd() ([]Subsystem, error) {
@@ -38,7 +59,7 @@ func Slice(slice, name string) Path {
 		slice = defaultSlice
 	}
 	return func(subsystem Name) (string, error) {
-		return filepath.Join(slice, unitName(name)), nil
+		return filepath.Join(slice, name), nil
 	}
 }
 
@@ -64,15 +85,39 @@ func (s *SystemdController) Create(path string, resources *specs.LinuxResources)
 	}
 	defer conn.Close()
 	slice, name := splitName(path)
+	// We need to see if systemd can handle the delegate property
+	// Systemd will return an error if it cannot handle delegate regardless
+	// of its bool setting.
+	checkDelegate := func() {
+		canDelegate = true
+		dlSlice := newProperty("Delegate", true)
+		if _, err := conn.StartTransientUnit(slice, "testdelegate", []systemdDbus.Property{dlSlice}, nil); err != nil {
+			if dbusError, ok := err.(dbus.Error); ok {
+				// Starting with systemd v237, Delegate is not even a property of slices anymore,
+				// so the D-Bus call fails with "InvalidArgs" error.
+				if strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.PropertyReadOnly") || strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.InvalidArgs") {
+					canDelegate = false
+				}
+			}
+		}
+
+		conn.StopUnit(slice, "testDelegate", nil)
+	}
+	once.Do(checkDelegate)
 	properties := []systemdDbus.Property{
 		systemdDbus.PropDescription(fmt.Sprintf("cgroup %s", name)),
 		systemdDbus.PropWants(slice),
 		newProperty("DefaultDependencies", false),
-		newProperty("Delegate", true),
 		newProperty("MemoryAccounting", true),
 		newProperty("CPUAccounting", true),
 		newProperty("BlockIOAccounting", true),
 	}
+
+	// If we can delegate, we add the property back in
+	if canDelegate {
+		properties = append(properties, newProperty("Delegate", true))
+	}
+
 	ch := make(chan string)
 	_, err = conn.StartTransientUnit(name, "replace", properties, ch)
 	if err != nil {
