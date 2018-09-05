@@ -110,11 +110,13 @@ GOPATH
 	    └── libpod
 ```
 
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`).
+First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`)
+and then add $GOPATH/bin to your $PATH environment variable.
 
 ```bash
 export GOPATH=~/go
 mkdir -p $GOPATH
+export PATH=$PATH:$GOPATH/bin
 ```
 
 Next, clone the source code using:
