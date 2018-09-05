@@ -254,6 +254,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
 		}
 		if err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
+			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
 				io.WriteString(writer, "Failed\n")
 			}
