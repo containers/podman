@@ -242,7 +242,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: spliti[0],
 			Type:        "tmpfs",
 			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
+			Options:     options,
 		}
 		g.AddMount(tmpfsMnt)
 	}
