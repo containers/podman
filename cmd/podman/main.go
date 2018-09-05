@@ -170,8 +170,9 @@ func main() {
 			Usage: "path of the configuration directory for CNI networks",
 		},
 		cli.StringFlag{
-			Name:  "config, c",
-			Usage: "path of a config file detailing container server configuration options",
+			Name:   "config, c",
+			Usage:  "path of a libpod config file detailing container server configuration options",
+			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "conmon",

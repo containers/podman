@@ -45,8 +45,24 @@ libpod to manage containers.
 **cni_plugin_dir**=""
   Directories where CNI plugin binaries may be located
 
+**pause_image** = ""
+  Pause container image name for pod pause containers.  When running a pod, we
+  start a `pause` processes in a container to hold open the namespaces associated with the
+  pod.  This container and process, basically sleep/pause for the lifetime of the pod.
+
+**pause_command**=""
+  Command to run the pause container
+
+**namespace**=""
+  Default libpod namespace. If libpod is joined to a namespace, it will see only containers and pods
+  that were created in the same namespace, and will create new containers and pods in that namespace.
+  The default namespace is "", which corresponds to no namespace. When no namespace is set, all
+  containers and pods are visible.
+
 ## FILES
-/etc/containers/libpod.conf, default libpod configuration path
+  `/usr/share/containers/libpod.conf`, default libpod configuration path
+
+  `/etc/containers/libpod.conf`, override libpod configuration path
 
 ## HISTORY
 Apr 2018, Originally compiled by Nathan Williams <nath.e.will@gmail.com>

@@ -27,10 +27,6 @@ Print usage statement
 
 CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd (default). Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
 
-**--config value, -c**=**"config.file"**
-
-Path of a config file detailing container server configuration options
-
 **--cpu-profile**
 
 Path to where the cpu performance results should be written
@@ -213,7 +209,7 @@ Currently it is not possible to create a network device, so rootless containers 
 then only the loopback device will be available.
 
 ## SEE ALSO
-`oci-hooks(5)`, `containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`
+`oci-hooks(5)`, `containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

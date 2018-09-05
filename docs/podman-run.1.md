@@ -514,18 +514,19 @@ of the container is assumed to be managed externally.
 
 Security Options
 
+- `apparmor=unconfined` : Turn off apparmor confinement for the container
+- `apparmor=your-profile` : Set the apparmor confinement profile for the container
+
 - `label=user:USER`   : Set the label user for the container
 - `label=role:ROLE`   : Set the label role for the container
 - `label=type:TYPE`   : Set the label type for the container
 - `label=level:LEVEL` : Set the label level for the container
 - `label=disable`     : Turn off label confinement for the container
+
 - `no-new-privileges` : Disable container processes from gaining additional privileges
 
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
-
-- `apparmor=unconfined` : Turn off apparmor confinement for the container
-- `apparmor=your-profile` : Set the apparmor confinement profile for the container
 
 **--shm-size**=""
 
@@ -1024,7 +1025,7 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 **/etc/subgid**
 
 ## SEE ALSO
-SUBGID(5), SUBUID(5),
+subgid(5), subuid(5)
 
 ## HISTORY
 October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
