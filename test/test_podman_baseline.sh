@@ -11,6 +11,7 @@
 # To run this command:
 #
 # /bin/bash -v test_podman_baseline.sh -d # Install and then deinstall Docker
+# /bin/bash -v test_podman_baseline.sh -n # Do not perform docker test
 # /bin/bash -v test_podman_baseline.sh -e # Stop on error
 # /bin/bash -v test_podman_baseline.sh    # Continue on error
 #
@@ -20,16 +21,19 @@
 #######
 showerror=0
 installdocker=0
-while getopts "de" opt; do
+usedocker=1
+while getopts "den" opt; do
     case "$opt" in
     d) installdocker=1
        ;;
     e) showerror=1
        ;;
+    n) usedocker=0
+       ;;
     esac
 done
 
-if [ "$installdocker" -eq 1 ]
+if [ "$installdocker" -eq 1 ] && [ "usedocker" -ne 0 ]
 then
     echo "Script will install and then deinstall Docker."
 fi
@@ -37,7 +41,7 @@ fi
 if [ "$showerror" -eq 1 ]
 then
     echo "Script will stop on unexpected errors."
-    set -eu
+    set -e
 fi
 
 pkg_manager=`command -v dnf`
@@ -92,7 +96,7 @@ podman rm --all
 podman run --net=host $image dnf -y install java
 javaimage=$(podman ps --all -q)
 podman commit $javaimage javaimage
-podman run javaimage java
+podman run javaimage java -version
 
 ########
 # Cleanup containers and images
@@ -151,31 +155,33 @@ podman images
 ########
 podman rm -a
 
-if [ "$installdocker" -eq 1 ]
-then
-    ########
-    # Install Docker, but not for long!
-    ########
-    $package_manager -y install docker
-fi
-systemctl restart docker
+if [ "$usedocker" -ne 0 ]; then
+    if [ "$installdocker" -eq 1 ]
+    then
+        ########
+        # Install Docker, but not for long!
+        ########
+        $package_manager -y install docker
+    fi
+    systemctl restart docker
 
-########
-# Push fedora-bashecho to the Docker daemon
-########
-podman push runecho docker-daemon:fedora-bashecho:latest
-
-########
-# Run fedora-bashecho pull Docker
-########
-docker run fedora-bashecho ./tmp/runecho.sh
-
-if [ "$installdocker" -eq 1 ]
-then
     ########
-    # Time to remove Docker
+    # Push fedora-bashecho to the Docker daemon
     ########
-    $package_manager -y remove docker
+    podman push runecho docker-daemon:fedora-bashecho:latest
+
+    ########
+    # Run fedora-bashecho pull Docker
+    ########
+    docker run fedora-bashecho ./tmp/runecho.sh
+
+    if [ "$installdocker" -eq 1 ]
+    then
+        ########
+        # Time to remove Docker
+        ########
+        $package_manager -y remove docker
+    fi
 fi
 
 ########
@@ -213,13 +219,16 @@ fi
 ########
 # Expected to fail
 ########
-podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
-rc=$?
-if [ $rc != 0 ];
-then
-    echo "Overlay test outside limits passed"
-else
-    echo "Overlay test outside limits failed"
+
+if [ "$showerror" -ne 1 ]; then
+    podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
+    rc=$?
+    if [ $rc != 0 ];
+    then
+        echo "Overlay test outside limits passed"
+    else
+        echo "Overlay test outside limits failed"
+    fi
 fi
 
 ########
