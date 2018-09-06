@@ -284,8 +284,11 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 		for repo, tags := range image.ReposToMap(img.Names()) {
 			for _, tag := range tags {
 				size, err := img.Size(ctx)
+				var sizeStr string
 				if err != nil {
-					size = nil
+					sizeStr = err.Error()
+				} else {
+					sizeStr = units.HumanSizeWithPrecision(float64(*size), 3)
 				}
 				params := imagesTemplateParams{
 					Repository:  repo,
@@ -294,7 +297,7 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 					Digest:      img.Digest(),
 					CreatedTime: createdTime,
 					Created:     units.HumanDuration(time.Since((createdTime))) + " ago",
-					Size:        units.HumanSizeWithPrecision(float64(*size), 3),
+					Size:        sizeStr,
 				}
 				imagesOutput = append(imagesOutput, params)
 			}
