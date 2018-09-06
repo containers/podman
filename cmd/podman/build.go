@@ -1,11 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -15,16 +10,26 @@ import (
 	"github.com/projectatomic/buildah/pkg/parse"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var (
+	layerFlags = []cli.Flag{
+		cli.BoolTFlag{
+			Name:  "layers",
+			Usage: "cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. ",
+		},
+	}
 	buildDescription = "Builds an OCI or Docker image using instructions from one\n" +
 		"or more Dockerfiles and a specified build context directory."
 	buildCommand = cli.Command{
 		Name:           "build",
 		Usage:          "Build an image using instructions from Dockerfiles",
 		Description:    buildDescription,
-		Flags:          append(buildahcli.BudFlags, buildahcli.FromAndBudFlags...),
+		Flags:          append(append(buildahcli.BudFlags, layerFlags...), buildahcli.FromAndBudFlags...),
 		Action:         buildCmd,
 		ArgsUsage:      "CONTEXT-DIRECTORY | URL",
 		SkipArgReorder: true,
@@ -84,6 +89,13 @@ func buildCmd(c *cli.Context) error {
 	}
 	contextDir := ""
 	cliArgs := c.Args()
+
+	layers := c.BoolT("layers") // layers for podman defaults to true
+	// Check to see if the BUILDAH_LAYERS environment variable is set and override command-line
+	if _, ok := os.LookupEnv("BUILDAH_LAYERS"); ok {
+		layers = buildahcli.UseLayers()
+	}
+
 	if len(cliArgs) > 0 {
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := imagebuildah.TempDirForURL("", "buildah", cliArgs[0])
@@ -215,7 +227,7 @@ func buildCmd(c *cli.Context) error {
 		Squash:                  c.Bool("squash"),
 		Labels:                  c.StringSlice("label"),
 		Annotations:             c.StringSlice("annotation"),
-		Layers:                  c.Bool("layers"),
+		Layers:                  layers,
 		NoCache:                 c.Bool("no-cache"),
 		RemoveIntermediateCtrs:  c.BoolT("rm"),
 		ForceRmIntermediateCtrs: c.Bool("force-rm"),

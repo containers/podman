@@ -98,6 +98,7 @@ func RunUsingChroot(spec *specs.Spec, bundlePath string, stdin io.Reader, stdout
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
 		return errors.Wrapf(err, "error storing runtime configuration")
 	}
+	logrus.Debugf("config = %v", string(specbytes))
 
 	// Run the grandparent subprocess in a user namespace that reuses the mappings that we have.
 	uidmap, gidmap, err := util.GetHostIDMappings("")
@@ -381,9 +382,13 @@ func runUsingChrootMain() {
 		logrus.Error(what)
 		return false
 	}
-	for readFd := range relays {
+	for readFd, writeFd := range relays {
 		if err := unix.SetNonblock(readFd, true); err != nil {
 			logrus.Errorf("error setting descriptor %d (%s) non-blocking: %v", readFd, fdDesc[readFd], err)
+			return
+		}
+		if err := unix.SetNonblock(writeFd, false); err != nil {
+			logrus.Errorf("error setting descriptor %d (%s) blocking: %v", relays[writeFd], fdDesc[writeFd], err)
 			return
 		}
 	}
@@ -427,6 +432,26 @@ func runUsingChrootMain() {
 						if nwritten != nread {
 							logrus.Debugf("buffer: expected to buffer %d bytes, wrote %d", nread, nwritten)
 							continue
+						}
+					}
+					// If this is the last of the data we'll be able to read
+					// from this descriptor, read as much as there is to read.
+					for rfd.Revents&unix.POLLHUP == unix.POLLHUP {
+						nr, err := unix.Read(int(rfd.Fd), b)
+						logIfNotRetryable(err, fmt.Sprintf("read %s: %v", fdDesc[int(rfd.Fd)], err))
+						if nr <= 0 {
+							break
+						}
+						if wfd, ok := relays[int(rfd.Fd)]; ok {
+							nwritten, err := buffers[wfd].Write(b[:nr])
+							if err != nil {
+								logrus.Debugf("buffer: %v", err)
+								break
+							}
+							if nwritten != nr {
+								logrus.Debugf("buffer: expected to buffer %d bytes, wrote %d", nr, nwritten)
+								break
+							}
 						}
 					}
 				}
@@ -592,8 +617,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 
 // main() for parent subprocess.  Its main job is to try to make our
 // environment look like the one described by the runtime configuration blob,
-// and then launch the intended command as a child, since we can't exec()
-// directly.
+// and then launch the intended command as a child.
 func runUsingChrootExecMain() {
 	args := os.Args[1:]
 	var options runUsingChrootExecSubprocOptions
@@ -630,6 +654,31 @@ func runUsingChrootExecMain() {
 		}
 	}
 
+	// Try to chroot into the root.  Do this before we potentially block the syscall via the
+	// seccomp profile.
+	var oldst, newst unix.Stat_t
+	if err := unix.Stat(options.Spec.Root.Path, &oldst); err != nil {
+		fmt.Fprintf(os.Stderr, "error stat()ing intended root directory %q: %v\n", options.Spec.Root.Path, err)
+		os.Exit(1)
+	}
+	if err := unix.Chdir(options.Spec.Root.Path); err != nil {
+		fmt.Fprintf(os.Stderr, "error chdir()ing to intended root directory %q: %v\n", options.Spec.Root.Path, err)
+		os.Exit(1)
+	}
+	if err := unix.Chroot(options.Spec.Root.Path); err != nil {
+		fmt.Fprintf(os.Stderr, "error chroot()ing into directory %q: %v\n", options.Spec.Root.Path, err)
+		os.Exit(1)
+	}
+	if err := unix.Stat("/", &newst); err != nil {
+		fmt.Fprintf(os.Stderr, "error stat()ing current root directory: %v\n", err)
+		os.Exit(1)
+	}
+	if oldst.Dev != newst.Dev || oldst.Ino != newst.Ino {
+		fmt.Fprintf(os.Stderr, "unknown error chroot()ing into directory %q: %v\n", options.Spec.Root.Path, err)
+		os.Exit(1)
+	}
+	logrus.Debugf("chrooted into %q", options.Spec.Root.Path)
+
 	// not doing because it's still shared: creating devices
 	// not doing because it's not applicable: setting annotations
 	// not doing because it's still shared: setting sysctl settings
@@ -663,20 +712,21 @@ func runUsingChrootExecMain() {
 		os.Exit(1)
 	}
 
-	// Try to chroot into the root.
-	if err := unix.Chroot(options.Spec.Root.Path); err != nil {
-		fmt.Fprintf(os.Stderr, "error chroot()ing into directory %q: %v\n", options.Spec.Root.Path, err)
-		os.Exit(1)
-	}
+	// Try to change to the directory.
 	cwd := options.Spec.Process.Cwd
 	if !filepath.IsAbs(cwd) {
 		cwd = "/" + cwd
 	}
-	if err := unix.Chdir(cwd); err != nil {
-		fmt.Fprintf(os.Stderr, "error chdir()ing into directory %q: %v\n", cwd, err)
+	cwd = filepath.Clean(cwd)
+	if err := unix.Chdir("/"); err != nil {
+		fmt.Fprintf(os.Stderr, "error chdir()ing into new root directory %q: %v\n", options.Spec.Root.Path, err)
 		os.Exit(1)
 	}
-	logrus.Debugf("chrooted into %q, changed working directory to %q", options.Spec.Root.Path, cwd)
+	if err := unix.Chdir(cwd); err != nil {
+		fmt.Fprintf(os.Stderr, "error chdir()ing into directory %q under root %q: %v\n", cwd, options.Spec.Root.Path, err)
+		os.Exit(1)
+	}
+	logrus.Debugf("changed working directory to %q", cwd)
 
 	// Drop privileges.
 	user := options.Spec.Process.User

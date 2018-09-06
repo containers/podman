@@ -133,6 +133,7 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 	if err = unix.Mount(rootPath, rootfs, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
 		return unmountAll, errors.Wrapf(err, "error bind mounting root filesystem from %q to %q", rootPath, rootfs)
 	}
+	logrus.Debugf("bind mounted %q to %q", rootPath, rootfs)
 	unmount = append([]string{rootfs}, unmount...)
 	spec.Root.Path = rootfs
 

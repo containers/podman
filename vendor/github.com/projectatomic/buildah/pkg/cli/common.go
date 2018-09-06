@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/projectatomic/buildah"
 	"github.com/projectatomic/buildah/util"
 	"github.com/urfave/cli"
@@ -65,6 +66,13 @@ var (
 		cli.StringFlag{
 			Name:  string(specs.UTSNamespace),
 			Usage: "'container', `path` of UTS namespace to join, or 'host'",
+		},
+	}
+
+	LayerFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "layers",
+			Usage: fmt.Sprintf("cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. (default %t)", UseLayers()),
 		},
 	}
 
@@ -128,10 +136,6 @@ var (
 		cli.StringSliceFlag{
 			Name:  "label",
 			Usage: "Set metadata for an image (default [])",
-		},
-		cli.BoolFlag{
-			Name:  "layers",
-			Usage: fmt.Sprintf("cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. (default %t)", UseLayers()),
 		},
 		cli.BoolFlag{
 			Name:  "no-cache",
@@ -279,4 +283,13 @@ func DefaultIsolation() string {
 		return isolation
 	}
 	return buildah.OCI
+}
+
+func VerifyFlagsArgsOrder(args []string) error {
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			return errors.Errorf("No options (%s) can be specified after the image or container name", arg)
+		}
+	}
+	return nil
 }
