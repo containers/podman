@@ -2,7 +2,7 @@
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase
+from pypodman.lib import AbstractActionBase, BooleanAction
 
 
 class Commit(AbstractActionBase):
@@ -47,14 +47,14 @@ class Commit(AbstractActionBase):
         parser.add_argument(
             '--pause',
             '-p',
-            choices=('True', 'False'),
+            action=BooleanAction,
             default=True,
-            type=bool,
             help='Pause the container when creating an image',
         )
         parser.add_argument(
             '--quiet',
             '-q',
+            action='store_true',
             help='Suppress output',
         )
         parser.add_argument(
@@ -71,20 +71,24 @@ class Commit(AbstractActionBase):
 
     def __init__(self, args):
         """Construct Commit class."""
-        super().__init__(args)
         if not args.container:
             raise ValueError('You must supply one container id'
                              ' or name to be used as source.')
         if not args.image:
             raise ValueError('You must supply one image id'
                              ' or name to be created.')
+        super().__init__(args)
+
+        # used only on client
+        del self.opts['image']
+        del self.opts['container']
 
     def commit(self):
         """Create image from container."""
         try:
             try:
                 ctnr = self.client.containers.get(self._args.container[0])
-                ident = ctnr.commit(**self._args)
+                ident = ctnr.commit(**self.opts)
                 print(ident)
             except podman.ContainerNotFound as e:
                 sys.stdout.flush()

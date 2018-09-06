@@ -19,15 +19,12 @@ class Rm(AbstractActionBase):
             help=('force delete of running container(s).'
                   ' (default: %(default)s)'))
         parser.add_argument(
-            'targets', nargs='*', help='container id(s) to delete')
+            'targets', nargs='+', help='container id(s) to delete')
         parser.set_defaults(class_=cls, method='remove')
 
     def __init__(self, args):
         """Construct Rm class."""
         super().__init__(args)
-        if not args.targets:
-            raise ValueError('You must supply at least one container id'
-                             ' or name to be deleted.')
 
     def remove(self):
         """Remove container(s)."""
