@@ -36,12 +36,12 @@ type psTemplateParams struct {
 	Labels        string
 	Mounts        string
 	PID           int
-	Cgroup        string
+	CGROUPNS      string
 	IPC           string
 	MNT           string
 	NET           string
 	PIDNS         string
-	User          string
+	USERNS        string
 	UTS           string
 	Pod           string
 	IsInfra       bool
@@ -435,7 +435,7 @@ func genPsFormat(format string, quiet, size, namespace, pod, infra bool) string 
 		podappend = "{{.Pod}}\t"
 	}
 	if namespace {
-		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.Cgroup}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.User}}\t{{.UTS}}", podappend)
+		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.CGROUPNS}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.USERNS}}\t{{.UTS}}", podappend)
 	}
 	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Created}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
 	format += podappend
@@ -583,12 +583,12 @@ func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemp
 		}
 
 		if opts.Namespace {
-			params.Cgroup = ns.Cgroup
+			params.CGROUPNS = ns.Cgroup
 			params.IPC = ns.IPC
 			params.MNT = ns.MNT
 			params.NET = ns.NET
 			params.PIDNS = ns.PIDNS
-			params.User = ns.User
+			params.USERNS = ns.User
 			params.UTS = ns.UTS
 		}
 		psOutput = append(psOutput, params)
