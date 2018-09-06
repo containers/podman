@@ -43,7 +43,12 @@ class AbstractActionBase(abc.ABC):
 
     def __init__(self, args):
         """Construct class."""
+        # Dump all unset arguments before transmitting to service
         self._args = args
+        self.opts = {
+            k: v
+            for k, v in vars(self._args).items() if v is not None
+        }
 
     @property
     def remote_uri(self):

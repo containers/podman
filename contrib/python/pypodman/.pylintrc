@@ -1,0 +1,4 @@
+[VARIABLES]
+
+# Enforce only pep8 variable names
+variable-rgx=[a-z0-9_]{1,30}$

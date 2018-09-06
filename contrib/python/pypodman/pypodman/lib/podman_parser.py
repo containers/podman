@@ -7,9 +7,12 @@ import logging
 import os
 import sys
 from contextlib import suppress
+from pathlib import Path
 
 import pkg_resources
 import pytoml
+
+from .parser_actions import PathAction, PositiveIntAction
 
 # TODO: setup.py and obtain __version__ from rpm.spec
 try:
@@ -33,35 +36,14 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
         super().__init__(*args, **kwargs)
 
 
-class PortAction(argparse.Action):
-    """Validate port number given is positive integer."""
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Validate input."""
-        if values > 0:
-            setattr(namespace, self.dest, values)
-            return
-
-        msg = 'port numbers must be a positive integer.'
-        raise argparse.ArgumentError(self, msg)
-
-
-class PathAction(argparse.Action):
-    """Expand user- and relative-paths."""
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Resolve full path value."""
-        setattr(namespace, self.dest,
-                os.path.abspath(os.path.expanduser(values)))
-
-
 class PodmanArgumentParser(argparse.ArgumentParser):
     """Default remote podman configuration."""
 
     def __init__(self, **kwargs):
         """Construct the parser."""
         kwargs['add_help'] = True
-        kwargs['description'] = __doc__
+        kwargs['description'] = ('Portable and simple management'
+                                 ' tool for containers and images')
         kwargs['formatter_class'] = HelpFormatter
 
         super().__init__(**kwargs)
@@ -83,9 +65,9 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             '--run-dir',
             metavar='DIRECTORY',
             help=('directory to place local socket bindings.'
-                  ' (default: XDG_RUNTIME_DIR/pypodman'))
+                  ' (default: XDG_RUNTIME_DIR/pypodman)'))
         self.add_argument(
-            '--user',
+            '--username',
             '-l',
             default=getpass.getuser(),
             help='Authenicating user on remote host. (default: %(default)s)')
@@ -94,8 +76,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             '--port',
             '-p',
-            type=int,
-            action=PortAction,
+            action=PositiveIntAction,
             help='port for ssh tunnel to remote host. (default: 22)')
         self.add_argument(
             '--remote-socket-path',
@@ -105,18 +86,17 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             '--identity-file',
             '-i',
-            metavar='PATH',
             action=PathAction,
-            help=('path to ssh identity file. (default: ~user/.ssh/id_dsa)'))
+            help='path to ssh identity file. (default: ~user/.ssh/id_dsa)')
         self.add_argument(
             '--config-home',
             metavar='DIRECTORY',
             action=PathAction,
             help=('home of configuration "pypodman.conf".'
-                  ' (default: XDG_CONFIG_HOME/pypodman'))
+                  ' (default: XDG_CONFIG_HOME/pypodman)'))
 
         actions_parser = self.add_subparsers(
-            dest='subparser_name', help='actions')
+            dest='subparser_name', help='commands')
 
         # import buried here to prevent import loops
         import pypodman.lib.actions  # pylint: disable=cyclic-import
@@ -157,11 +137,12 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             if dir_ is None:
                 continue
             with suppress(OSError):
-                with open(os.path.join(dir_,
-                                       'pypodman/pypodman.conf')) as stream:
+                cnf = Path(dir_, 'pypodman', 'pypodman.conf')
+                with cnf.open() as stream:
                     config.update(pytoml.load(stream))
 
         def reqattr(name, value):
+            """Raise an error if value is unset."""
             if value:
                 setattr(args, name, value)
                 return value
@@ -173,7 +154,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             getattr(args, 'run_dir')
             or os.environ.get('RUN_DIR')
             or config['default'].get('run_dir')
-            or os.path.join(args.xdg_runtime_dir, 'pypodman')
+            or Path(args.xdg_runtime_dir, 'pypodman')
         )   # yapf: disable
 
         setattr(
@@ -185,11 +166,11 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         )   # yapf:disable
 
         reqattr(
-            'user',
-            getattr(args, 'user')
+            'username',
+            getattr(args, 'username')
             or os.environ.get('USER')
             or os.environ.get('LOGNAME')
-            or config['default'].get('user')
+            or config['default'].get('username')
             or getpass.getuser()
         )   # yapf:disable
 
@@ -215,22 +196,21 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             getattr(args, 'identity_file')
             or os.environ.get('IDENTITY_FILE')
             or config['default'].get('identity_file')
-            or os.path.expanduser('~{}/.ssh/id_dsa'.format(args.user))
+            or os.path.expanduser('~{}/.ssh/id_dsa'.format(args.username))
         )   # yapf:disable
 
         if not os.path.isfile(args.identity_file):
             args.identity_file = None
 
         if args.host:
-            args.local_socket_path = os.path.join(args.run_dir,
-                                                  "podman.socket")
+            args.local_socket_path = Path(args.run_dir, 'podman.socket')
         else:
             args.local_socket_path = args.remote_socket_path
 
-        args.local_uri = "unix:{}".format(args.local_socket_path)
+        args.local_uri = 'unix:{}'.format(args.local_socket_path)
 
         if args.host:
-            components = ['ssh://', args.user, '@', args.host]
+            components = ['ssh://', args.username, '@', args.host]
             if args.port:
                 components.extend((':', str(args.port)))
             components.append(args.remote_socket_path)

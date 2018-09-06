@@ -1,5 +1,6 @@
 PYTHON ?= /usr/bin/python3
 DESTDIR := /
+PODMAN_VERSION ?= '0.0.4'
 
 .PHONY: python-pypodman
 python-pypodman:
@@ -16,6 +17,11 @@ integration:
 .PHONY: install
 install:
 	$(PYTHON) setup.py install --root ${DESTDIR}
+
+.PHONY: upload
+upload:
+	$(PODMAN_VERSION) $(PYTHON) setup.py sdist bdist_wheel
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 .PHONY: clobber
 clobber: uninstall clean

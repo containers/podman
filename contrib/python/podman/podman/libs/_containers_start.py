@@ -20,6 +20,7 @@ class Mixin:
         Will block if container has been detached.
         """
         with self._client() as podman:
+            logging.debug('Starting Container "%s"', self._id)
             results = podman.StartContainer(self._id)
             logging.debug('Started Container "%s"', results['container'])
 

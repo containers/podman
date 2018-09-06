@@ -18,10 +18,8 @@ class Ps(AbstractActionBase):
         super().subparser(parser)
         parser.add_argument(
             '--sort',
-            choices=[
-                'createdat', 'id', 'image', 'names', 'runningfor', 'size',
-                'status'
-            ],
+            choices=('createdat', 'id', 'image', 'names', 'runningfor', 'size',
+                     'status'),
             default='createdat',
             type=str.lower,
             help=('Change sort ordered of displayed containers.'

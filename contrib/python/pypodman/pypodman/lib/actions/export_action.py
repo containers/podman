@@ -29,7 +29,6 @@ class Export(AbstractActionBase):
 
     def __init__(self, args):
         """Construct Export class."""
-        super().__init__(args)
         if not args.container:
             raise ValueError('You must supply one container id'
                              ' or name to be used as source.')
@@ -37,6 +36,7 @@ class Export(AbstractActionBase):
         if not args.output:
             raise ValueError('You must supply one filename'
                              ' to be created as tarball using --output.')
+        super().__init__(args)
 
     def export(self):
         """Create tarball from container filesystem."""

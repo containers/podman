@@ -5,20 +5,7 @@ import sys
 from collections import deque
 
 import podman
-from pypodman.lib import AbstractActionBase
-
-
-class PositiveIntAction(argparse.Action):
-    """Validate number given is positive integer."""
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Validate input."""
-        if values > 0:
-            setattr(namespace, self.dest, values)
-            return
-
-        msg = 'Must be a positive integer.'
-        raise argparse.ArgumentError(self, msg)
+from pypodman.lib import AbstractActionBase, PositiveIntAction
 
 
 class Logs(AbstractActionBase):
@@ -32,7 +19,6 @@ class Logs(AbstractActionBase):
             '--tail',
             metavar='LINES',
             action=PositiveIntAction,
-            type=int,
             help='Output the specified number of LINES at the end of the logs')
         parser.add_argument(
             'container',
