@@ -109,6 +109,15 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		if err := pod.save(); err != nil {
 			return nil, err
 		}
+
+		// Once the pod infra container has been created, we start it
+		if err := ctr.Start(ctx); err != nil {
+			// If the infra container does not start, we need to tear the pod down.
+			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
+				logrus.Errorf("Error removing pod after infra container failed to start: %v", err2)
+			}
+			return nil, errors.Wrapf(err, "error starting Infra Container")
+		}
 	}
 
 	return pod, nil
