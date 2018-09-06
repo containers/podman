@@ -305,11 +305,24 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	if err := config.GetVolumesFrom(); err != nil {
 		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
 	}
+
 	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
-	configSpec.Mounts = append(configSpec.Mounts, mounts...)
+	// If we have overlappings mounts, remove them from the spec in favor of
+	// the user-added volume mounts
+	destinations := make(map[string]bool)
+	for _, mount := range mounts {
+		destinations[mount.Destination] = true
+	}
+	for _, mount := range configSpec.Mounts {
+		if _, ok := destinations[mount.Destination]; !ok {
+			mounts = append(mounts, mount)
+		}
+	}
+	configSpec.Mounts = mounts
+
 	if err := g.SetLinuxRootPropagation("shared"); err != nil {
 		return nil, errors.Wrapf(err, "failed to set propagation to rslave")
 	}
