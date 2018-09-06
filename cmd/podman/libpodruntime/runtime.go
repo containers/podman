@@ -132,6 +132,8 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	if c.IsSet("infra-command") {
 		options = append(options, libpod.WithDefaultInfraCommand(c.String("infra-command")))
 	}
-
+	if c.IsSet("config") {
+		return libpod.NewRuntimeFromConfig(c.String("config"), options...)
+	}
 	return libpod.NewRuntime(options...)
 }
