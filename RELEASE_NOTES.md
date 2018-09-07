@@ -1,5 +1,21 @@
 # Release Notes
 
+## 0.9.1
+### Features
+- Added initial support for the `podman pod` command as non-root
+
+### Bugfixes
+- Fixed regression where invalid Podman commands would still cause a clean exit
+- Fixed `podman rmi --all` to not error if no images are present on the system
+- Fixed parsing of container logs with `podman logs` to properly handle CRI logging, fixing some issues with blank lines in logs
+- Fixed a bug creating pod cgroups using the systemd cgroup driver with systemd versions 239 and higher
+- Fixed handling of volume mounts that overlapped with default container mounts (for example, `podman run -v /dev/:/dev`)
+- Fixed sharing of UTS namespace in pods
+
+### Misc
+- Added additional debug information when pulling images if `--log-level=debug` is specified
+- `podman build` now defaults to caching intermediate layers while building
+
 ## 0.8.5
 ### Features
 - Added the ability to add a multipart entrypoint with `podman run --entrypoint`
