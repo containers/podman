@@ -1,3 +1,35 @@
+- Changelog for v0.9.1 (2018-09-07)
+  * Update RELEASE_NOTES for 0.9.1 release
+  * Fix pod sharing for utsmode
+  * Respect user-added mounts over default spec mounts
+  * Ensure we do not overlap mounts in the spec
+  * Change references to cri-o to point at new repository
+  * fix docs for podman build
+  * use layer cache when building images
+  * Add first pass for baseline pod tests
+  * Change shm test to be less flaky.
+  * Update WaitForTimeOut to output OutputString to help with debugging.
+  * Fixups for baseline test script
+  * Fix nameing of Namespaces to be more consistent
+  * Start pod infra container when pod is created
+  * vendor containerd/cgroups
+  * Fix up libpod.conf man pages and referencese to it.
+  * Print errors from individual pull attempts
+  * Added GOPATH/bin to PATH install.md
+  * We should fail Podman with ExitCode 125 by default
+  * Add CRI logs parsing to podman logs
+  * rmi remove all not error when no images are present
+  * rootless: check uid with Geteuid() instead of Getuid()
+  * rootless, tests: add tests for the pod command
+  * rootless, create: support --pod
+  * rootless, run: support --pod
+  * rootless: create compatible pod infra container
+  * rootless: be in an userns to initialize the runtime
+  * commandNotFoundHandler: use stderr and exit code 1
+  * Bump gitvalidation epoch
+  * Bump to v0.9.1-dev
+  * Update release notes for 0.8.5
+
 - Changelog for v0.8.5 (2018-08-31)
   * Add proper support for systemd inside of podman
   * We are mistakenly seeing repos as registries.
