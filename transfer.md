@@ -88,7 +88,7 @@ Those Docker commands currently do not have equivalents in `podman`:
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||
-| `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/kubernetes-incubator/cri-o).|
+| `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/kubernetes-sigs/cri-o).|
 | `docker system`   ||
 | `docker volume`   | podman does not support volumes.  Volumes should be built on the host operating system and then volume mounted into the containers.|
 
