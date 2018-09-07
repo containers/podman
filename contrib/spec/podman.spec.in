@@ -33,9 +33,9 @@
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
 
 # People want conmon packaged with the copr rpm
-%global import_path_conmon      github.com/kubernetes-incubator/cri-o
+%global import_path_conmon      github.com/kubernetes-sigs/cri-o
 %global git_conmon      https://%{import_path_conmon}
-%global commit_conmon   4e7f71b714932dafc6a70e9b6dc09112da478be1
+%global commit_conmon   4cd5a7c60349be0678d9f1b0657683324c1a2726
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
@@ -404,7 +404,7 @@ pushd crio
 
 mkdir _output
 pushd _output
-mkdir -p src/%{provider}.%{provider_tld}/{kubernetes-incubator,opencontainers}
+mkdir -p src/%{provider}.%{provider_tld}/{kubernetes-sigs,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 

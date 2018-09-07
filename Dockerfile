@@ -65,8 +65,8 @@ RUN set -x \
 ENV CRIO_COMMIT 662dbb31b5d4f5ed54511a47cde7190c61c28677
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/kubernetes-incubator/cri-o.git "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
-	&& cd "$GOPATH/src/github.com/kubernetes-incubator/cri-o.git" \
+	&& git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
+	&& cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
 	&& git fetch origin --tags \
 	&& git checkout -q "$CRIO_COMMIT" \
 	&& make \

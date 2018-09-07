@@ -61,8 +61,8 @@ and make libpod.
 ```console
 $ export GOPATH=~/go
 $ mkdir -p $GOPATH
-$ git clone https://github.com/kubernetes-incubator/cri-o $GOPATH/src/github.com/kubernetes-incubator/cri-o
-$ cd $GOPATH/src/github.com/kubernetes-incubator/cri-o
+$ git clone https://github.com/kubernetes-sigs/cri-o $GOPATH/src/github.com/kubernetes-sigs/cri-o
+$ cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
 $ mkdir bin
 $ make bin/conmon
 $ sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon

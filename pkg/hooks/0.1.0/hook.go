@@ -19,7 +19,7 @@ type Hook struct {
 	Hook      *string  `json:"hook"`
 	Arguments []string `json:"arguments,omitempty"`
 
-	// https://github.com/kubernetes-incubator/cri-o/pull/1235
+	// https://github.com/kubernetes-sigs/cri-o/pull/1235
 	Stages []string `json:"stages"`
 	Stage  []string `json:"stage"`
 
