@@ -160,9 +160,6 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		if libpod.MountExists(specMounts, spliti[1]) {
-			continue
-		}
 		options = append(options, "rbind")
 		for _, opt := range options {
 			switch opt {
@@ -201,6 +198,8 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			Source:      spliti[0],
 			Options:     options,
 		})
+
+		logrus.Debugf("User mount %s:%s options %v", spliti[0], spliti[1], options)
 	}
 
 	// volumes from image config
