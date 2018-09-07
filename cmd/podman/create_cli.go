@@ -114,8 +114,12 @@ func validateVolumeHostDir(hostDir string) error {
 	if !filepath.IsAbs(hostDir) {
 		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
 	}
+	// If the hostDir does not exist, create it for the user
 	if _, err := os.Stat(hostDir); err != nil {
-		return errors.Wrapf(err, "error checking path %q", hostDir)
+		if err2 := os.MkdirAll(hostDir, 0755); err2 != nil {
+			return err
+		}
+		logrus.Debugf("%s does not exist. creating %s", hostDir, hostDir)
 	}
 	return nil
 }
