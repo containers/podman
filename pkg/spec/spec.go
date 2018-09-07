@@ -2,6 +2,7 @@ package createconfig
 
 import (
 	"os"
+	"path"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
@@ -305,11 +306,27 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	if err := config.GetVolumesFrom(); err != nil {
 		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
 	}
+
 	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
-	configSpec.Mounts = append(configSpec.Mounts, mounts...)
+	if len(mounts) > 0 {
+		// If we have overlappings mounts, remove them from the spec in favor of
+		// the user-added volume mounts
+		destinations := make(map[string]bool)
+		for _, mount := range mounts {
+			destinations[path.Clean(mount.Destination)] = true
+		}
+		for _, mount := range configSpec.Mounts {
+			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
+				logrus.Debugf("Adding mount %s", mount.Destination)
+				mounts = append(mounts, mount)
+			}
+		}
+		configSpec.Mounts = mounts
+	}
+
 	if err := g.SetLinuxRootPropagation("shared"); err != nil {
 		return nil, errors.Wrapf(err, "failed to set propagation to rslave")
 	}
