@@ -12,9 +12,9 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/namespaces"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/sirupsen/logrus"
 )
@@ -164,10 +164,10 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 		LogDriverOpt:      create.Log_driver_opt,
 		Name:              create.Name,
 		Network:           networkMode,
-		IpcMode:           container.IpcMode(create.Ipc_mode),
-		NetMode:           container.NetworkMode(networkMode),
-		UtsMode:           container.UTSMode(create.Uts_mode),
-		PidMode:           container.PidMode(create.Pid_mode),
+		IpcMode:           namespaces.IpcMode(create.Ipc_mode),
+		NetMode:           namespaces.NetworkMode(networkMode),
+		UtsMode:           namespaces.UTSMode(create.Uts_mode),
+		PidMode:           namespaces.PidMode(create.Pid_mode),
 		Pod:               create.Pod,
 		Privileged:        create.Privileged,
 		Publish:           create.Publish,
@@ -209,7 +209,7 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 		Tmpfs:       create.Tmpfs,
 		Tty:         create.Tty,
 		User:        user,
-		UsernsMode:  container.UsernsMode(create.Userns_mode),
+		UsernsMode:  namespaces.UsernsMode(create.Userns_mode),
 		Volumes:     create.Volumes,
 		WorkDir:     workDir,
 	}

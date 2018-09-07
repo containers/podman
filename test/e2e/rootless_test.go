@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"syscall"
 
 	. "github.com/onsi/ginkgo"
@@ -153,6 +154,8 @@ var _ = Describe("Podman rootless", func() {
 
 	runRootlessHelper := func(args []string) {
 		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
