@@ -105,7 +105,7 @@ func setSeccomp(spec *specs.Spec) error {
 		for _, name := range rule.Names {
 			scnum, err := libseccomp.GetSyscallFromName(name)
 			if err != nil {
-				logrus.Debugf("error mapping syscall %q to a syscall, ignoring %q rule for %q", name, rule.Action)
+				logrus.Debugf("error mapping syscall %q to a syscall, ignoring %q rule for %q", name, rule.Action, name)
 				continue
 			}
 			scnames[scnum] = name
