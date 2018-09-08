@@ -113,6 +113,30 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 
+	It("podman pod correctly sets up IPCNS", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--share", "ipc"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "start", podID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		podmanTest.RestoreArtifact(fedoraMinimal)
+		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'touch /dev/shm/hi'"})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() != 0 {
+			Skip("ShmDir not initialized, skipping...")
+		}
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'ls /dev/shm'"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("hi"))
+	})
+
 	It("podman pod correctly sets up PIDNS", func() {
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "pid", "--name", "test-pod"})
 		session.WaitWithDefaultTimeout()
