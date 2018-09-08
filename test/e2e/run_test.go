@@ -235,10 +235,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with cidfile", func() {
-		session := podmanTest.Podman([]string{"run", "--cidfile", "/tmp/cidfile", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--cidfile", tempdir + "cidfile", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		err := os.Remove("/tmp/cidfile")
+		err := os.Remove(tempdir + "cidfile")
 		Expect(err).To(BeNil())
 	})
 
@@ -317,7 +317,7 @@ var _ = Describe("Podman run", func() {
 
 	It("podman test hooks", func() {
 		hcheck := "/run/hookscheck"
-		hooksDir := "/tmp/hooks"
+		hooksDir := tempdir + "/hooks"
 		os.Mkdir(hooksDir, 0755)
 		fileutils.CopyFile("hooks/hooks.json", hooksDir)
 		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir-path=%s", hooksDir))
@@ -347,7 +347,7 @@ var _ = Describe("Podman run", func() {
 		err = ioutil.WriteFile(secretsFile, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
-		targetDir := "/tmp/symlink/target"
+		targetDir := tempdir + "/symlink/target"
 		err = os.MkdirAll(targetDir, 0755)
 		Expect(err).To(BeNil())
 		keyFile := filepath.Join(targetDir, "key.pem")
