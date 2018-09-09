@@ -14,9 +14,9 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/netns"
-	"github.com/containers/libpod/utils"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -63,14 +63,15 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 		ctr.state.NetworkStatus = append(ctr.state.NetworkStatus, resultCurrent)
 	}
 
-	for _, r := range ctr.state.NetworkStatus {
-		// We need to temporarily use iptables to allow the container
-		// to resolve DNS until this issue is fixed upstream.
-		// https://github.com/containernetworking/plugins/pull/75
-		for _, ip := range r.IPs {
-			if ip.Address.IP.To4() != nil {
-				iptablesDNS("-I", ip.Address.IP.String())
-			}
+	// Add firewall rules to ensure the container has network access.
+	// Will not be necessary once CNI firewall plugin merges upstream.
+	// https://github.com/containernetworking/plugins/pull/75
+	for _, netStatus := range ctr.state.NetworkStatus {
+		firewallConf := &firewall.FirewallNetConf{
+			PrevResult: netStatus,
+		}
+		if err := r.firewallBackend.Add(firewallConf); err != nil {
+			return errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
 		}
 	}
 
@@ -164,18 +165,6 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 	return r.configureNetNS(ctr, netNS)
 }
 
-// iptablesDNS accepts an arg (-I|-D) and IP address of the container and then
-// generates an iptables command to either add or subtract the needed rule
-func iptablesDNS(arg, ip string) error {
-	iptablesCmd := []string{"-t", "filter", arg, "FORWARD", "-s", ip, "!", "-o", ip, "-j", "ACCEPT"}
-	logrus.Debug("Running iptables command: ", strings.Join(iptablesCmd, " "))
-	_, err := utils.ExecCmd("iptables", iptablesCmd...)
-	if err != nil {
-		logrus.Error(err)
-	}
-	return err
-}
-
 // Join an existing network namespace
 func joinNetNS(path string) (ns.NetNS, error) {
 	ns, err := ns.GetNS(path)
@@ -213,15 +202,15 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		return nil
 	}
 
-	// Because we are using iptables to allow the container to resolve DNS
-	// on per IP address, we also need to try to remove the iptables rule
-	// on cleanup. Remove when https://github.com/containernetworking/plugins/pull/75
-	// is merged.
-	for _, r := range ctr.state.NetworkStatus {
-		for _, ip := range r.IPs {
-			if ip.Address.IP.To4() != nil {
-				iptablesDNS("-D", ip.Address.IP.String())
-			}
+	// Remove firewall rules we added on configuring the container.
+	// Will not be necessary once CNI firewall plugin merges upstream.
+	// https://github.com/containernetworking/plugins/pull/75
+	for _, netStatus := range ctr.state.NetworkStatus {
+		firewallConf := &firewall.FirewallNetConf{
+			PrevResult: netStatus,
+		}
+		if err := r.firewallBackend.Del(firewallConf); err != nil {
+			return errors.Wrapf(err, "error removing firewall rules for container %s", ctr.ID())
 		}
 	}
 

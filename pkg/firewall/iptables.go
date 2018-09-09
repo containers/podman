@@ -51,10 +51,6 @@ func generateFilterRule(privChainName string) []string {
 	return []string{"-m", "comment", "--comment", "CNI firewall plugin rules", "-j", privChainName}
 }
 
-func generateAdminRule(adminChainName string) []string {
-	return []string{"-m", "comment", "--comment", "CNI firewall plugin admin overrides", "-j", adminChainName}
-}
-
 func cleanupRules(ipt *iptables.IPTables, privChainName string, rules [][]string) {
 	for _, rule := range rules {
 		ipt.Delete("filter", privChainName, rule...)
@@ -146,23 +142,6 @@ func (ib *iptablesBackend) delRules(conf *FirewallNetConf, ipt *iptables.IPTable
 	}
 
 	return nil
-}
-
-func findProtos(conf *FirewallNetConf) []iptables.Protocol {
-	protos := []iptables.Protocol{iptables.ProtocolIPv4, iptables.ProtocolIPv6}
-	if conf.PrevResult != nil {
-		// If PrevResult is given, scan all IP addresses to figure out
-		// which IP versions to use
-		protos = []iptables.Protocol{}
-		for _, addr := range conf.PrevResult.IPs {
-			if addr.Address.IP.To4() != nil {
-				protos = append(protos, iptables.ProtocolIPv4)
-			} else {
-				protos = append(protos, iptables.ProtocolIPv6)
-			}
-		}
-	}
-	return protos
 }
 
 type iptablesBackend struct {
