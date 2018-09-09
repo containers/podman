@@ -13,6 +13,7 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/hooks"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
@@ -70,19 +71,20 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config         *RuntimeConfig
-	state          State
-	store          storage.Store
-	storageService *storageService
-	imageContext   *types.SystemContext
-	ociRuntime     *OCIRuntime
-	lockDir        string
-	netPlugin      ocicni.CNIPlugin
-	ociRuntimePath string
-	conmonPath     string
-	valid          bool
-	lock           sync.RWMutex
-	imageRuntime   *image.Runtime
+	config          *RuntimeConfig
+	state           State
+	store           storage.Store
+	storageService  *storageService
+	imageContext    *types.SystemContext
+	ociRuntime      *OCIRuntime
+	lockDir         string
+	netPlugin       ocicni.CNIPlugin
+	ociRuntimePath  string
+	conmonPath      string
+	valid           bool
+	lock            sync.RWMutex
+	imageRuntime    *image.Runtime
+	firewallBackend firewall.FirewallBackend
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -506,6 +508,17 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return errors.Wrapf(err, "error configuring CNI network plugin")
 	}
 	runtime.netPlugin = netPlugin
+
+	// Set up a firewall backend
+	backendType := ""
+	if os.Geteuid() != 0 {
+		backendType = "none"
+	}
+	fwBackend, err := firewall.GetBackend(backendType)
+	if err != nil {
+		return err
+	}
+	runtime.firewallBackend = fwBackend
 
 	// Set up the state
 	switch runtime.config.StateType {
