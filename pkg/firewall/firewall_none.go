@@ -19,8 +19,10 @@ import (
 )
 
 // FirewallNone is a firewall backend for environments where manipulating the
-// system firewall is unsupported (for example, when running without root)
-type FirewallNone struct {}
+// system firewall is unsupported (for example, when running without root).
+// Nolint applied to avoid firewall.FirewallNone name duplication notes.
+//nolint
+type FirewallNone struct{}
 
 func newNoneBackend() (FirewallBackend, error) {
 	return &FirewallNone{}, nil

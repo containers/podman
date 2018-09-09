@@ -21,6 +21,8 @@ import (
 )
 
 // FirewallNetConf represents the firewall configuration.
+// Nolint applied for firewall.Firewall... name duplication notice.
+//nolint
 type FirewallNetConf struct {
 	//types.NetConf
 
@@ -33,11 +35,13 @@ type FirewallNetConf struct {
 	// to 'trusted'
 	FirewalldZone string
 
-	PrevResult    *current.Result
+	PrevResult *current.Result
 }
 
 // FirewallBackend is an interface to the system firewall, allowing addition and
 // removal of firewall rules.
+// Nolint applied for firewall.Firewall... name duplication notice.
+//nolint
 type FirewallBackend interface {
 	Add(*FirewallNetConf) error
 	Del(*FirewallNetConf) error
