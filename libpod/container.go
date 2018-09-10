@@ -36,6 +36,8 @@ const (
 	ContainerStateStopped ContainerStatus = iota
 	// ContainerStatePaused indicates that the container has been paused
 	ContainerStatePaused ContainerStatus = iota
+	// WaitTimeout is the wait timeout before checking for container exit
+	WaitTimeout = time.Second / time.Millisecond
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
