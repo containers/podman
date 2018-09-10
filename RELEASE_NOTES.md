@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.9.1.1
+### Bugfixes
+- Added support for configuring iptables and firewalld firewalls to allow container traffic. This should resolve numerous issues with network access in containers.
+
+### Note
+It is recommended that you restart your system firewall after installing this release to clear any firewall rules created by older Podman versions. If port forwarding to containers does not work, it is recommended that you restart your system.
+
 ## 0.9.1
 ### Features
 - Added initial support for the `podman pod` command as non-root
