@@ -1,3 +1,11 @@
+- Changelog for v0.9.1.1 (2018-09-10)
+  * Update release notes for 0.9.1.1
+  * Replace existing iptables handler with firewall code
+  * Vendor CNI plugins firewall code
+  * Fix displaying size on size calculation error
+  * Bump gitvalidation epoch
+  * Bump to v0.9.2-dev
+
 - Changelog for v0.9.1 (2018-09-07)
   * Update RELEASE_NOTES for 0.9.1 release
   * Fix pod sharing for utsmode
