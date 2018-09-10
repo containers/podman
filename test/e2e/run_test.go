@@ -234,6 +234,37 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime, shared"))
 	})
 
+	It("podman run with mount flag", func() {
+		Skip("Skip until we diagnose the regression of volume mounts")
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		session := podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime"))
+
+		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test,ro", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test ro,relatime"))
+
+		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test,shared", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime, shared"))
+
+		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
+		os.Mkdir(mountPath, 0755)
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=tmpfs,target=/run/test", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime - tmpfs"))
+	})
+
 	It("podman run with cidfile", func() {
 		session := podmanTest.Podman([]string{"run", "--cidfile", tempdir + "cidfile", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -561,6 +592,19 @@ USER mail`
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", ALPINE, "touch", "/myvol2/foo.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run --mount flag with multiple mounts", func() {
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).To(BeNil())
+		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
+		err = os.MkdirAll(vol2, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,src=" + vol1 + ",target=/myvol1,z", "--mount", "type=bind,src=" + vol2 + ",target=/myvol2,z", ALPINE, "touch", "/myvol2/foo.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
