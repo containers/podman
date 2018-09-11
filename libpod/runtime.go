@@ -139,11 +139,11 @@ type RuntimeConfig struct {
 	// CNIPluginDir sets a number of directories where the CNI network
 	// plugins can be located
 	CNIPluginDir []string `toml:"cni_plugin_dir"`
-	// HooksDir Path to the directory containing hooks configuration files
-	HooksDir string `toml:"hooks_dir"`
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
+	// HooksDir Path to the directory containing hooks configuration files
+	HooksDir string `toml:"hooks_dir"`
 	// HooksDirNotExistFatal switches between fatal errors and non-fatal
 	// warnings if the configured HooksDir does not exist.
 	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
