@@ -66,7 +66,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	tags := make([]string, 0)
 
 	for {
-		res, err := client.makeRequest(ctx, "GET", path, nil, nil)
+		res, err := client.makeRequest(ctx, "GET", path, nil, nil, v2Auth)
 		if err != nil {
 			return nil, err
 		}

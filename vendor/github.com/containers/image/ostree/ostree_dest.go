@@ -467,7 +467,9 @@ func (d *ostreeImageDestination) Commit(ctx context.Context) error {
 	metadata := []string{fmt.Sprintf("docker.manifest=%s", string(d.manifest)),
 		fmt.Sprintf("signatures=%d", d.signaturesLen),
 		fmt.Sprintf("docker.digest=%s", string(d.digest))}
-	err = d.ostreeCommit(repo, fmt.Sprintf("ociimage/%s", d.ref.branchName), manifestPath, metadata)
+	if err := d.ostreeCommit(repo, fmt.Sprintf("ociimage/%s", d.ref.branchName), manifestPath, metadata); err != nil {
+		return err
+	}
 
 	_, err = repo.CommitTransaction()
 	return err

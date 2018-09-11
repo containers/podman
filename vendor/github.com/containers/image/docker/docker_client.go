@@ -100,6 +100,19 @@ type authScope struct {
 	actions    string
 }
 
+// sendAuth determines whether we need authentication for v2 or v1 endpoint.
+type sendAuth int
+
+const (
+	// v2 endpoint with authentication.
+	v2Auth sendAuth = iota
+	// v1 endpoint with authentication.
+	// TODO: Get v1Auth working
+	// v1Auth
+	// no authentication, works for both v1 and v2.
+	noAuth
+)
+
 func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
 	token := new(bearerToken)
 	if err := json.Unmarshal(blob, &token); err != nil {
@@ -234,7 +247,7 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 		return errors.Wrapf(err, "error creating new docker client")
 	}
 
-	resp, err := newLoginClient.makeRequest(ctx, "GET", "/v2/", nil, nil)
+	resp, err := newLoginClient.makeRequest(ctx, "GET", "/v2/", nil, nil, v2Auth)
 	if err != nil {
 		return err
 	}
@@ -297,14 +310,43 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		return nil, errors.Wrapf(err, "error creating new docker client")
 	}
 
+	// Only try the v1 search endpoint if the search query is not empty. If it is
+	// empty skip to the v2 endpoint.
+	if image != "" {
+		// set up the query values for the v1 endpoint
+		u := url.URL{
+			Path: "/v1/search",
+		}
+		q := u.Query()
+		q.Set("q", image)
+		q.Set("n", strconv.Itoa(limit))
+		u.RawQuery = q.Encode()
+
+		logrus.Debugf("trying to talk to v1 search endpoint\n")
+		resp, err := client.makeRequest(ctx, "GET", u.String(), nil, nil, noAuth)
+		if err != nil {
+			logrus.Debugf("error getting search results from v1 endpoint %q: %v", registry, err)
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				logrus.Debugf("error getting search results from v1 endpoint %q, status code %d", registry, resp.StatusCode)
+			} else {
+				if err := json.NewDecoder(resp.Body).Decode(v1Res); err != nil {
+					return nil, err
+				}
+				return v1Res.Results, nil
+			}
+		}
+	}
+
 	logrus.Debugf("trying to talk to v2 search endpoint\n")
-	resp, err := client.makeRequest(ctx, "GET", "/v2/_catalog", nil, nil)
+	resp, err := client.makeRequest(ctx, "GET", "/v2/_catalog", nil, nil, v2Auth)
 	if err != nil {
 		logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
 	} else {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			logrus.Debugf("error getting search results from v2 endpoint %q, status code %q", registry, resp.StatusCode)
+			logrus.Errorf("error getting search results from v2 endpoint %q, status code %d", registry, resp.StatusCode)
 		} else {
 			if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
 				return nil, err
@@ -322,50 +364,25 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		}
 	}
 
-	// set up the query values for the v1 endpoint
-	u := url.URL{
-		Path: "/v1/search",
-	}
-	q := u.Query()
-	q.Set("q", image)
-	q.Set("n", strconv.Itoa(limit))
-	u.RawQuery = q.Encode()
-
-	logrus.Debugf("trying to talk to v1 search endpoint\n")
-	resp, err = client.makeRequest(ctx, "GET", u.String(), nil, nil)
-	if err != nil {
-		logrus.Debugf("error getting search results from v1 endpoint %q: %v", registry, err)
-	} else {
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			logrus.Debugf("error getting search results from v1 endpoint %q, status code %q", registry, resp.StatusCode)
-		} else {
-			if err := json.NewDecoder(resp.Body).Decode(v1Res); err != nil {
-				return nil, err
-			}
-			return v1Res.Results, nil
-		}
-	}
-
 	return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
 }
 
 // makeRequest creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
 // The host name and schema is taken from the client or autodetected, and the path is relative to it, i.e. the path usually starts with /v2/.
-func (c *dockerClient) makeRequest(ctx context.Context, method, path string, headers map[string][]string, stream io.Reader) (*http.Response, error) {
+func (c *dockerClient) makeRequest(ctx context.Context, method, path string, headers map[string][]string, stream io.Reader, auth sendAuth) (*http.Response, error) {
 	if err := c.detectProperties(ctx); err != nil {
 		return nil, err
 	}
 
 	url := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
-	return c.makeRequestToResolvedURL(ctx, method, url, headers, stream, -1, true)
+	return c.makeRequestToResolvedURL(ctx, method, url, headers, stream, -1, auth)
 }
 
 // makeRequestToResolvedURL creates and executes a http.Request with the specified parameters, adding authentication and TLS options for the Docker client.
 // streamLen, if not -1, specifies the length of the data expected on stream.
 // makeRequest should generally be preferred.
 // TODO(runcom): too many arguments here, use a struct
-func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, sendAuth bool) (*http.Response, error) {
+func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url string, headers map[string][]string, stream io.Reader, streamLen int64, auth sendAuth) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, stream)
 	if err != nil {
 		return nil, err
@@ -383,7 +400,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 	if c.sys != nil && c.sys.DockerRegistryUserAgent != "" {
 		req.Header.Add("User-Agent", c.sys.DockerRegistryUserAgent)
 	}
-	if sendAuth {
+	if auth == v2Auth {
 		if err := c.setupRequestAuth(req); err != nil {
 			return nil, err
 		}
@@ -497,7 +514,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 
 	ping := func(scheme string) error {
 		url := fmt.Sprintf(resolvedPingV2URL, scheme, c.registry)
-		resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, true)
+		resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
 		if err != nil {
 			logrus.Debugf("Ping %s err %#v", url, err)
 			return err
@@ -524,7 +541,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		// best effort to understand if we're talking to a V1 registry
 		pingV1 := func(scheme string) bool {
 			url := fmt.Sprintf(resolvedPingV1URL, scheme, c.registry)
-			resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, true)
+			resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
 			logrus.Debugf("Ping %s err %#v", url, err)
 			if err != nil {
 				return false
@@ -551,7 +568,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 // using the original data structures.
 func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
 	path := fmt.Sprintf(extensionsSignaturePath, reference.Path(ref.ref), manifestDigest)
-	res, err := c.makeRequest(ctx, "GET", path, nil, nil)
+	res, err := c.makeRequest(ctx, "GET", path, nil, nil, v2Auth)
 	if err != nil {
 		return nil, err
 	}
