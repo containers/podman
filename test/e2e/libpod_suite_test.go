@@ -727,3 +727,19 @@ func WriteJsonFile(data []byte, filePath string) error {
 func getTestContext() context.Context {
 	return context.Background()
 }
+
+func containerized() bool {
+	container := os.Getenv("container")
+	if container != "" {
+		return true
+	}
+	b, err := ioutil.ReadFile("/proc/1/cgroup")
+	if err != nil {
+		// shrug, if we cannot read that file, return false
+		return false
+	}
+	if strings.Index(string(b), "docker") > -1 {
+		return true
+	}
+	return false
+}
