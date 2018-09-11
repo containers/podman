@@ -84,7 +84,7 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search limit flag", func() {
-		search := podmanTest.Podman([]string{"search", "--limit", "3", "alpine"})
+		search := podmanTest.Podman([]string{"search", "--limit", "3", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(Equal(4))
@@ -118,6 +118,13 @@ var _ = Describe("Podman search", func() {
 		for i := 0; i < len(output); i++ {
 			Expect(output[i]).To(Equal(""))
 		}
+	})
+
+	It("podman search v2 registry with empty query", func() {
+		search := podmanTest.Podman([]string{"search", "registry.fedoraproject.org/"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(BeNumerically(">=", 1))
 	})
 
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {

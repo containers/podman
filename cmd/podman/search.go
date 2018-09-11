@@ -345,6 +345,11 @@ func matchesOfficialFilter(filter searchFilterParams, result docker.SearchResult
 }
 
 func getRegistry(image string) (string, error) {
+	// It is possible to only have the registry name in the format "myregistry/"
+	// if so, just trim the "/" from the end and return the registry name
+	if strings.HasSuffix(image, "/") {
+		return strings.TrimSuffix(image, "/"), nil
+	}
 	imgRef, err := reference.Parse(image)
 	if err != nil {
 		return "", err

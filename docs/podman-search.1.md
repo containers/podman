@@ -10,10 +10,12 @@ podman\-search - Search a registry for an image
 **podman search** searches a registry or a list of registries for a matching image.
 The user can specify which registry to search by prefixing the registry in the search term
 (example **registry.fedoraproject.org/fedora**), default is the registries in the
-**registires.search** table in the config file - **/etc/containers/registries.conf**.
+**registries.search** table in the config file - **/etc/containers/registries.conf**.
 The number of results can be limited using the **--limit** flag. If more than one registry
 is being searched, the limit will be applied to each registry. The output can be filtered
-using the **--filter** flag.
+using the **--filter** flag. To get all available images in a registry without a specific
+search term, the user can just enter the registry name with a trailing "/" (example **registry.fedoraproject.org/**).
+Note, searching without a search term will only work for registries that implement the v2 API.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -116,6 +118,27 @@ INDEX               NAME
 fedoraproject.org   fedoraproject.org/fedora
 fedoraproject.org   fedoraproject.org/fedora-minimal
 ```
+
+```
+$ podman search registry.fedoraproject.org/
+INDEX               NAME                                                           DESCRIPTION   STARS   OFFICIAL   AUTOMATED
+fedoraproject.org   registry.fedoraproject.org/f25/cockpit                                       0
+fedoraproject.org   registry.fedoraproject.org/f25/container-engine                              0
+fedoraproject.org   registry.fedoraproject.org/f25/docker                                        0
+fedoraproject.org   registry.fedoraproject.org/f25/etcd                                          0
+fedoraproject.org   registry.fedoraproject.org/f25/flannel                                       0
+fedoraproject.org   registry.fedoraproject.org/f25/httpd                                         0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-apiserver                          0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-controller-manager                 0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-kubelet                            0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-master                             0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-node                               0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-proxy                              0
+fedoraproject.org   registry.fedoraproject.org/f25/kubernetes-scheduler                          0
+fedoraproject.org   registry.fedoraproject.org/f25/mariadb                                       0
+```
+Note: This works only with registries that implement the v2 API. If tried with a v1 registry an error will be returned.
+
 ## FILES
 
 **registries.conf** (`/etc/containers/registries.conf`)
