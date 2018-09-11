@@ -16,6 +16,7 @@ tests:
 
 artifacts:
   - build.log
+  - journal.log
 
 context: "FAH28"
 ---
@@ -42,6 +43,7 @@ tests:
 
 artifacts:
   - build.log
+  - journal.log
 
 context: "CAH smoketested"
 
