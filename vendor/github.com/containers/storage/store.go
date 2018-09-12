@@ -1091,11 +1091,6 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if err != nil {
 		return nil, err
 	}
-	rlstore.Lock()
-	defer rlstore.Unlock()
-	if modified, err := rlstore.Modified(); modified || err != nil {
-		rlstore.Load()
-	}
 	if id == "" {
 		id = stringid.GenerateRandomID()
 	}
@@ -1108,6 +1103,10 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	idMappingsOptions := options.IDMappingOptions
 	if image != "" {
 		var imageHomeStore ROImageStore
+		lstores, err := s.ROLayerStores()
+		if err != nil {
+			return nil, err
+		}
 		istore, err := s.ImageStore()
 		if err != nil {
 			return nil, err
@@ -1115,6 +1114,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		istores, err := s.ROImageStores()
 		if err != nil {
 			return nil, err
+		}
+		rlstore.Lock()
+		defer rlstore.Unlock()
+		if modified, err := rlstore.Modified(); modified || err != nil {
+			rlstore.Load()
 		}
 		var cimage *Image
 		for _, store := range append([]ROImageStore{istore}, istores...) {
@@ -1134,10 +1138,6 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 		imageID = cimage.ID
 
-		lstores, err := s.ROLayerStores()
-		if err != nil {
-			return nil, err
-		}
 		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, imageHomeStore == istore, rlstore, lstores, idMappingsOptions)
 		if err != nil {
 			return nil, err
@@ -1150,6 +1150,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			gidMap = ilayer.GIDMap
 		}
 	} else {
+		rlstore.Lock()
+		defer rlstore.Unlock()
+		if modified, err := rlstore.Modified(); modified || err != nil {
+			rlstore.Load()
+		}
 		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
 			uidMap = s.uidMap
 		}
