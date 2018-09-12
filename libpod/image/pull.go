@@ -20,6 +20,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -234,6 +235,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		return nil, err
 	}
 	var images []string
+	var pullErrors *multierror.Error
 	for _, imageInfo := range goal.refPairs {
 		copyOptions := getCopyOptions(sc, writer, dockerOptions, nil, signingOptions, "", nil)
 		if imageInfo.srcRef.Transport().Name() == DockerTransport {
@@ -254,6 +256,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
 		}
 		if err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions); err != nil {
+			pullErrors = multierror.Append(pullErrors, err)
 			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
 				io.WriteString(writer, "Failed\n")
@@ -273,10 +276,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		}
 		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
 		if !goal.usedSearchRegistries {
+			if pullErrors != nil && len(pullErrors.Errors) > 0 { // this should always be true
+				return nil, errors.Wrap(pullErrors.Errors[0], "unable to pull image")
+			}
 			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
 		}
-		return nil, errors.Errorf("unable to find image on registries defined in %s, or you do not have pull access", registryPath)
-
+		return nil, pullErrors
 	}
 	return images, nil
 }
