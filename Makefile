@@ -149,7 +149,7 @@ libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
 
 dbuild: libpodimage
-	docker run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} ${ENTRYPOINT} make binaries
+	docker run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} ${ENTRYPOINT} make all
 
 test: libpodimage
 	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localunit localintegration
@@ -185,7 +185,7 @@ clientintegration:
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate easyjson_generate podman python
+binaries: varlink_generate easyjson_generate podman
 
 test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
 
