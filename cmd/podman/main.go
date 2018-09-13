@@ -138,6 +138,17 @@ func main() {
 			logrus.SetLevel(level)
 		}
 
+		// Only if not rootless, set rlimits for open files.
+		// We open numerous FDs for ports opened
+		if !rootless.IsRootless() {
+			rlimits := new(syscall.Rlimit)
+			rlimits.Cur = 1048576
+			rlimits.Max = 1048576
+			if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+				return errors.Wrapf(err, "error setting new rlimits")
+			}
+		}
+
 		if logLevel == "debug" {
 			debug = true
 
