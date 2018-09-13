@@ -112,8 +112,7 @@ type CreateConfig struct {
 	Quiet              bool     //quiet
 	ReadOnlyRootfs     bool     //read-only
 	Resources          CreateResourceConfig
-	Rm                 bool //rm
-	ShmDir             string
+	Rm                 bool              //rm
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
 	Sysctl             map[string]string //sysctl
@@ -447,7 +446,16 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithUser(c.User))
-	options = append(options, libpod.WithShmDir(c.ShmDir))
+	if c.IpcMode.IsHost() {
+		options = append(options, libpod.WithShmDir("/dev/shm"))
+
+	} else if c.IpcMode.IsContainer() {
+		ctr, err := runtime.LookupContainer(c.IpcMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.IpcMode.Container())
+		}
+		options = append(options, libpod.WithShmDir(ctr.ShmDir()))
+	}
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(c.GroupAdd))
 	options = append(options, libpod.WithIDMappings(*c.IDMappings))

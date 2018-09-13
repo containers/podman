@@ -202,7 +202,6 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 			Ulimit:            create.Resources.Ulimit,
 		},
 		Rm:          create.Rm,
-		ShmDir:      create.Shm_dir,
 		StopSignal:  stopSignal,
 		StopTimeout: uint(create.Stop_timeout),
 		Sysctl:      create.Sys_ctl,
