@@ -528,17 +528,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		}
 	}
 
-	shmDir := ""
-	if ipcMode.IsHost() {
-		shmDir = "/dev/shm"
-	} else if ipcMode.IsContainer() {
-		ctr, err := runtime.LookupContainer(ipcMode.Container())
-		if err != nil {
-			return nil, errors.Wrapf(err, "container %q not found", ipcMode.Container())
-		}
-		shmDir = ctr.ShmDir()
-	}
-
 	// USER
 	user := c.String("user")
 	if user == "" {
@@ -775,7 +764,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 			Ulimit:    c.StringSlice("ulimit"),
 		},
 		Rm:          c.Bool("rm"),
-		ShmDir:      shmDir,
 		StopSignal:  stopSignal,
 		StopTimeout: c.Uint("stop-timeout"),
 		Sysctl:      sysctl,
