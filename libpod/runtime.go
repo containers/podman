@@ -164,6 +164,14 @@ type RuntimeConfig struct {
 	InfraImage string `toml:"infra_image"`
 	// InfraCommand is the command run to start up a pod infra container
 	InfraCommand string `toml:"infra_command"`
+	// EnablePortReservation determines whether libpod will reserve ports on
+	// the host when they are forwarded to containers.
+	// When enabled, when ports are forwarded to containers, they are
+	// held open by conmon as long as the container is running, ensuring
+	// that they cannot be reused by other programs on the host.
+	// However, this can cause significant memory usage if a container has
+	// many ports forwarded to it. Disabling this can save memory.
+	EnablePortReservation bool `toml:"enable_port_reservation"`
 }
 
 var (
@@ -190,16 +198,17 @@ var (
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		CgroupManager: SystemdCgroupsManager,
-		HooksDir:      hooks.DefaultDir,
-		StaticDir:     filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
-		TmpDir:        "",
-		MaxLogSize:    -1,
-		NoPivotRoot:   false,
-		CNIConfigDir:  "/etc/cni/net.d/",
-		CNIPluginDir:  []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
-		InfraCommand:  DefaultInfraCommand,
-		InfraImage:    DefaultInfraImage,
+		CgroupManager:         SystemdCgroupsManager,
+		HooksDir:              hooks.DefaultDir,
+		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
+		TmpDir:                "",
+		MaxLogSize:            -1,
+		NoPivotRoot:           false,
+		CNIConfigDir:          "/etc/cni/net.d/",
+		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
+		InfraCommand:          DefaultInfraCommand,
+		InfraImage:            DefaultInfraImage,
+		EnablePortReservation: true,
 	}
 )
 
@@ -467,7 +476,8 @@ func makeRuntime(runtime *Runtime) (err error) {
 	ociRuntime, err := newOCIRuntime("runc", runtime.ociRuntimePath,
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
-		runtime.config.MaxLogSize, runtime.config.NoPivotRoot)
+		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
+		runtime.config.EnablePortReservation)
 	if err != nil {
 		return err
 	}

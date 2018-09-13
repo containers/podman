@@ -66,6 +66,7 @@ type OCIRuntime struct {
 	socketsDir    string
 	logSizeMax    int64
 	noPivot       bool
+	reservePorts  bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -75,7 +76,7 @@ type syncInfo struct {
 }
 
 // Make a new OCI runtime with provided options
-func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool) (*OCIRuntime, error) {
+func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
 	runtime.name = name
 	runtime.path = path
@@ -85,6 +86,7 @@ func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []stri
 	runtime.tmpDir = tmpDir
 	runtime.logSizeMax = logSizeMax
 	runtime.noPivot = noPivotRoot
+	runtime.reservePorts = reservePorts
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
@@ -311,15 +313,17 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
-	ports, err := bindPorts(ctr.config.PortMappings)
-	if err != nil {
-		return err
-	}
+	if r.reservePorts {
+		ports, err := bindPorts(ctr.config.PortMappings)
+		if err != nil {
+			return err
+		}
 
-	// Leak the port we bound in the conmon process.  These fd's won't be used
-	// by the container and conmon will keep the ports busy so that another
-	// process cannot use them.
-	cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+		// Leak the port we bound in the conmon process.  These fd's won't be used
+		// by the container and conmon will keep the ports busy so that another
+		// process cannot use them.
+		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+	}
 
 	if rootless.IsRootless() {
 		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
