@@ -5,7 +5,18 @@
 ## A list of common issues and solutions for Podman
 
 ---
-### 1) No such image or Bare keys cannot contain ':'
+### 1) Variety of issues - Validate Version
+
+A large number of issues reported against Podman are often found to already be fixed
+in more current versions of the project.  Before reporting an issue, please verify the
+version you are running with `podman version` and compare it to the lastest release
+documented on the top of Podman's [README.md](README.md). 
+
+If they differ, please update your version of PODMAN to the latest possible
+and retry your command before reporting the issue.
+
+---
+### 2) No such image or Bare keys cannot contain ':'
 
 When doing a `podman pull` or `podman build` command and a "common" image can not be pulled,
 it is likely that the `/etc/containers/registries.conf` file is either not installed or possibly
@@ -33,7 +44,7 @@ error pulling image "fedora": unable to pull fedora: error getting default regis
     *  i.e. `registries = ['registry.fedoraproject.org', 'quay.io', 'registry.access.redhat.com']`
 
 ---
-### 2) http: server gave HTTP response to HTTPS client
+### 3) http: server gave HTTP response to HTTPS client
 
 When doing a Podman command such as `build`, `commit`, `pull`, or `push` to a registry,
 tls verification is turned on by default.  If authentication is not used with
