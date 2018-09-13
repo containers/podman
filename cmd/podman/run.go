@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,11 +10,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/inspect"
-	"github.com/containers/libpod/pkg/rootless"
-	cc "github.com/containers/libpod/pkg/spec"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -42,107 +36,20 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
-	var imageName string
-
-	// Docker-compatibility: the "-h" flag for run/create is reserved for
-	// the hostname (see https://github.com/containers/libpod/issues/1367).
-	if c.Bool("help") {
-		cli.ShowCommandHelpAndExit(c, "run", 0)
-	}
-
-	if err := validateFlags(c, createFlags); err != nil {
+	if err := createInit(c); err != nil {
 		return err
 	}
 
-	if c.String("cidfile") != "" {
-		if _, err := os.Stat(c.String("cidfile")); err == nil {
-			return errors.Errorf("container id file exists. ensure another container is not using it or delete %s", c.String("cidfile"))
-		}
-		if err := libpod.WriteFile("", c.String("cidfile")); err != nil {
-			return errors.Wrapf(err, "unable to write cidfile %s", c.String("cidfile"))
-		}
-	}
-
-	storageOpts, err := libpodruntime.GetDefaultStoreOptions()
-	if err != nil {
-		return err
-	}
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return err
-	}
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
-
-	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
+	runtime, err := libpodruntime.GetContainerRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if len(c.Args()) < 1 {
-		return errors.Errorf("image name or ID is required")
-	}
-
-	rootfs := ""
-	if c.Bool("rootfs") {
-		rootfs = c.Args()[0]
-	}
-
-	ctx := getContext()
-	rtc := runtime.GetConfig()
-
-	var newImage *image.Image = nil
-	var data *inspect.ImageData = nil
-	if rootfs == "" && !rootless.SkipStorageSetup() {
-		newImage, err = runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
-		if err != nil {
-			return errors.Wrapf(err, "unable to find image")
-		}
-
-		data, err = newImage.Inspect(ctx)
-		if err != nil {
-			return err
-		}
-		if len(newImage.Names()) < 1 {
-			imageName = newImage.ID()
-		} else {
-			imageName = newImage.Names()[0]
-		}
-	}
-	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
+	ctr, createConfig, err := createContainer(c, runtime)
 	if err != nil {
 		return err
 	}
-
-	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
-	if err != nil {
-		return err
-	}
-
-	options, err := createConfig.GetContainerCreateOptions(runtime)
-	if err != nil {
-		return err
-	}
-
-	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, runtime)
-	if err != nil {
-		return err
-	}
-	if became {
-		os.Exit(ret)
-	}
-
-	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
-	if err != nil {
-		return err
-	}
-
-	logrus.Debugf("New container created %q", ctr.ID())
 
 	if logrus.GetLevel() == logrus.DebugLevel {
 		cgroupPath, err := ctr.CGroupPath()
@@ -151,20 +58,7 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	createConfigJSON, err := json.Marshal(createConfig)
-	if err != nil {
-		return err
-	}
-	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
-		return err
-	}
-
-	if c.String("cidfile") != "" {
-		if err := libpod.WriteFile(ctr.ID(), c.String("cidfile")); err != nil {
-			logrus.Error(err)
-		}
-	}
-
+	ctx := getContext()
 	// Handle detached start
 	if createConfig.Detach {
 		if err := ctr.Start(ctx); err != nil {

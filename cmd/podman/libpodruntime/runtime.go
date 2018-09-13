@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -18,6 +19,21 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
+	return GetRuntimeWithStorageOpts(c, &storageOpts)
+}
+
+// GetContainerRuntime generates a new libpod runtime configured by command line options for containers
+func GetContainerRuntime(c *cli.Context) (*libpod.Runtime, error) {
+	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+	if err != nil {
+		return nil, err
+	}
+	storageOpts, err := GetDefaultStoreOptions()
+	if err != nil {
+		return nil, err
+	}
+	storageOpts.UIDMap = mappings.UIDMap
+	storageOpts.GIDMap = mappings.GIDMap
 	return GetRuntimeWithStorageOpts(c, &storageOpts)
 }
 
