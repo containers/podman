@@ -43,7 +43,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/sys",
 			Type:        "sysfs",
 			Source:      "sysfs",
-			Options:     []string{"private", "nosuid", "noexec", "nodev", "rw"},
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", "rw"},
 		}
 		g.AddMount(sysMnt)
 	} else if !canMountSys {
@@ -57,7 +57,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/sys",
 			Type:        "bind",
 			Source:      "/sys",
-			Options:     []string{"nosuid", "noexec", "nodev", r, "rbind"},
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
 	}
@@ -67,7 +67,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/dev/pts",
 			Type:        "devpts",
 			Source:      "devpts",
-			Options:     []string{"private", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
 		}
 		g.AddMount(devPts)
 	}
@@ -97,7 +97,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Destination: "/sys/fs/cgroup",
 			Type:        "cgroup",
 			Source:      "cgroup",
-			Options:     []string{"private", "nosuid", "noexec", "nodev", "relatime", cgroupPerm},
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", "relatime", cgroupPerm},
 		}
 		g.AddMount(cgroupMnt)
 	}
@@ -231,7 +231,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	for _, i := range config.Tmpfs {
 		// Default options if nothing passed
-		options := []string{"rw", "private", "noexec", "nosuid", "nodev", "size=65536k"}
+		options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
 			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
@@ -385,7 +385,7 @@ func setupSystemd(config *CreateConfig, g *generate.Generator) error {
 	if err != nil {
 		return err
 	}
-	options := []string{"rw", "private", "noexec", "nosuid", "nodev"}
+	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock", "/sys/fs/cgroup/systemd"} {
 		if libpod.MountExists(mounts, dest) {
 			continue
