@@ -189,7 +189,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			}
 		}
 		if rootProp == "" {
-			options = append(options, "private")
+			options = append(options, "rprivate")
 		}
 
 		m = append(m, spec.Mount{
@@ -214,7 +214,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			Destination: vol,
 			Type:        string(TypeTmpfs),
 			Source:      string(TypeTmpfs),
-			Options:     []string{"private", "rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
+			Options:     []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
 		}
 		m = append(m, mount)
 	}
@@ -272,7 +272,7 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	var m []spec.Mount
 	for _, i := range c.Tmpfs {
 		// Default options if nothing passed
-		options := []string{"private", "rw", "noexec", "nosuid", "nodev", "size=65536k"}
+		options := []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "size=65536k"}
 		spliti := strings.Split(i, ":")
 		destPath := spliti[0]
 		if len(spliti) > 1 {
