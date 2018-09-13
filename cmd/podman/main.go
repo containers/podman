@@ -140,7 +140,7 @@ func main() {
 
 		// Only if not rootless, set rlimits for open files.
 		// We open numerous FDs for ports opened
-		if os.Geteuid() == 0 {
+		if !rootless.IsRootless() {
 			rlimits := new(syscall.Rlimit)
 			rlimits.Cur = 1048576
 			rlimits.Max = 1048576
