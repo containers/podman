@@ -3,12 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
 
+	dockerarchive "github.com/containers/image/docker/archive"
+	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
@@ -441,4 +447,48 @@ func getFormat(c *cli.Context) (string, error) {
 		return buildah.Dockerv2ImageManifest, nil
 	}
 	return "", errors.Errorf("unrecognized image type %q", format)
+}
+
+func getImage(c *cli.Context, runtime *libpod.Runtime, name string) (*image.Image, error) {
+	var (
+		writer        io.Writer
+		registryCreds *types.DockerAuthConfig
+	)
+
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err == nil {
+		return newImage, nil
+	}
+
+	if !c.Bool("quiet") {
+		writer = os.Stderr
+	}
+	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
+	if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
+		srcRef, err := alltransports.ParseImageName(name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing %q", name)
+		}
+		newImages, err := runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, c.String("signature-policy"), writer)
+		if err != nil {
+			return nil, err
+		}
+		return newImages[0], nil
+
+	}
+
+	if c.IsSet("creds") {
+		creds, err := util.ParseRegistryCreds(c.String("creds"))
+		if err != nil {
+			return nil, err
+		}
+		registryCreds = creds
+	}
+
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds:         registryCreds,
+		DockerCertPath:              c.String("cert-dir"),
+		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
+	}
+	return runtime.ImageRuntime().New(getContext(), name, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, true, c.Bool("tls-verify"))
 }
