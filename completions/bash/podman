@@ -1744,6 +1744,8 @@ _podman_rm() {
     -f
     --latest
     -l
+    --volumes
+    -v
     "
 
     local options_with_args="

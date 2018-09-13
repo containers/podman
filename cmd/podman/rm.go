@@ -13,14 +13,18 @@ import (
 var (
 	rmFlags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "force, f",
-			Usage: "Force removal of a running container.  The default is false",
-		},
-		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "Remove all containers",
 		},
+		cli.BoolFlag{
+			Name:  "force, f",
+			Usage: "Force removal of a running container.  The default is false",
+		},
 		LatestFlag,
+		cli.BoolFlag{
+			Name:  "volumes, v",
+			Usage: "Remove the volumes associated with the container (Not implemented yet)",
+		},
 	}
 	rmDescription = fmt.Sprintf(`
 Podman rm will remove one or more containers from the host.

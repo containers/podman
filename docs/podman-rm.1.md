@@ -23,6 +23,11 @@ Remove all containers.  Can be used in conjunction with -f as well.
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+**--volumes, -v**
+
+Remove the volumes associated with the container. (Not yet implemented)
+
 ## EXAMPLE
 
 podman rm mywebserver
