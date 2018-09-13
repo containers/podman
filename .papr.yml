@@ -17,11 +17,39 @@ tests:
 artifacts:
   - build.log
 
-context: "FAH28"
+context: "FAH28 - Containerized (Podman in Podman)"
+
+---
+
+ host:
+   distro: centos/7/atomic/smoketested
+   specs:
+      ram: 8192
+      cpus: 4
+ extra-repos:
+     - name: epel
+       metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+       gpgcheck: 0
+     - name: cri-o
+       baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
+       gpgcheck: 0
+
+ required: true
+
+ timeout: 90m
+
+ tests:
+   - CONTAINER_RUNTIME="docker" sh .papr_prepare.sh
+
+ artifacts:
+   - build.log
+
+ context: "CAH 7-smoketested - Containerized (Podman in Docker)"
+
 ---
 
 host:
-  distro: centos/7/atomic/smoketested
+  distro: centos/7/cloud
   specs:
      ram: 8192
      cpus: 4
@@ -33,53 +61,112 @@ extra-repos:
       baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
       gpgcheck: 0
 
+packages:
+    - btrfs-progs-devel
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - git
+    - go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libgpg-error-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - ostree-devel
+    - pkgconfig
+    - make
+    - nc
+    - go-compilers-golang-compiler
+    - podman
+
 required: true
 
 timeout: 90m
 
 tests:
-  - sh .papr_prepare.sh
+    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+    - sh .papr.sh -b -i -t
 
 artifacts:
   - build.log
 
-context: "CAH smoketested"
-
+context: "CentOS 7 Cloud"
 
 ---
 
-inherit: true
 host:
     distro: fedora/28/cloud
     specs:
         ram: 8192
         cpus: 4
 packages:
+    - btrfs-progs-devel
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - git
+    - go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libgpg-error-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - ostree-devel
+    - pkgconfig
+    - make
+    - nc
+    - go-compilers-golang-compiler
     - podman
-    - buildah
+    - python3-varlink
+    - python3-dateutil
+    - python3-psutil
+
 tests:
     - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
     - yum -y reinstall container-selinux
-    - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
+    - sh .papr.sh -b -i -t -p
+
 required: false
 
 timeout: 90m
-context: "Fedora fedora/28/cloud Podman"
+context: "Fedora 28 Cloud"
 
 ---
 
-container:
-    image: registry.fedoraproject.org/fedora:28
-tests:
-    - sh contrib/build_rpm.sh
-required: true
-context: "Fedora RPM regressions"
+host:
+    distro: fedora/29/cloud/pungi
+    specs:
+        ram: 8192
+        cpus: 4
+packages:
+    - btrfs-progs-devel
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - git
+    - go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libgpg-error-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - ostree-devel
+    - pkgconfig
+    - make
+    - nc
+    - go-compilers-golang-compiler
+    - podman
+    - python3-varlink
+    - python3-dateutil
+    - python3-psutil
 
----
-
-container:
-    image: registry.centos.org/centos:7
 tests:
-    - sh contrib/build_rpm.sh
-required: true
-context: "CentOS RPM regressions"
+    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+    - yum -y reinstall container-selinux
+    - sh .papr.sh -b -i -t
+
+required: false
+
+timeout: 90m
+context: "Fedora 29 Cloud"
