@@ -1,3 +1,32 @@
+- Changelog for v0.9.2 (2018-09-14)
+  * Update release notes for 0.9.2
+  * change search test to look for fedora and not fedora-minimal
+  * Don't mount /dev/* if user mounted /dev
+  * add registry information to varlink info
+  * libpod/image/pull: Return image-pulling errors from doPullImage
+  * Update gitvalidation epoch to avoid a bad commit
+  * Update README to reflect current development efforts
+  * rootless: do not raise an error if the entrypoint is specified
+  * Add Buildah Podman relationship to README.md
+  * Swap default mount propagation from private to rprivate
+  * Add a way to disable port reservation
+  * Add notes to check version on problem
+  * Do not set rlimits if we are rootless
+  * Up default Podman rlimits to avoid max open files
+  * Search registries with an empty query
+  * Vendor in latest containers/image
+  * Remove duplicate code between create.go and run.go
+  * Add --interval flag to podman wait
+  * Add `podman rm --volumes` flag
+  * Vendor in latest containers/storage to eliminage deadlock
+  * do not build with devicemapper
+  * run different cgroup tests depending on conditions
+  * dont make python when running make
+  * Explicitly set default CNI network name in libpod.conf
+  * Pass on securityOpts from podInfraContainer to container added to pod.
+  * Bump gitvalidation epoch
+  * Bump to v0.9.2-dev
+
 - Changelog for v0.9.1.1 (2018-09-10)
   * Update release notes for 0.9.1.1
   * Replace existing iptables handler with firewall code
