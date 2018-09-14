@@ -286,7 +286,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	fi
 
 .install.easyjson: .gopathok
-	if [ ! -x "$(GOBIN)/ffjson" ]; then\
+	if [ ! -x "$(GOBIN)/easyffjson" ]; then\
 		  $(GO) get -u github.com/mailru/easyjson/...; \
 	fi
 

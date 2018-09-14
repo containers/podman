@@ -2012,7 +2012,9 @@ _podman_wait() {
      local boolean_options="
         --help
         -h
-        -l
+        -i
+	-l
+        --interval
         --latest"
     case "$cur" in
         -*)

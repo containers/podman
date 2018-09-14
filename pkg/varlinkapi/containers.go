@@ -341,7 +341,7 @@ func (i *LibpodAPI) WaitContainer(call iopodman.VarlinkCall, name string) error 
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	exitCode, err := ctr.Wait()
+	exitCode, err := ctr.Wait(libpod.WaitTimeout)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

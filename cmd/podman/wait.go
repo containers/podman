@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -15,7 +17,14 @@ var (
 
 	Block until one or more containers stop and then print their exit codes
 `
-	waitFlags   = []cli.Flag{LatestFlag}
+	waitFlags = []cli.Flag{
+		cli.UintFlag{
+			Name:  "interval, i",
+			Usage: "Milliseconds to wait before polling for completion",
+			Value: uint(libpod.WaitTimeout),
+		},
+		LatestFlag,
+	}
 	waitCommand = cli.Command{
 		Name:         "wait",
 		Usage:        "Block on one or more containers",
@@ -57,7 +66,10 @@ func waitCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to find container %s", container)
 		}
-		returnCode, err := ctr.Wait()
+		if c.Uint("interval") == 0 {
+			return errors.Errorf("interval must be greater then 0")
+		}
+		returnCode, err := ctr.Wait(time.Duration(c.Uint("interval")))
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)

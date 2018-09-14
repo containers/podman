@@ -17,6 +17,9 @@ After the container stops, the container's return code is printed.
 
   Print usage statement
 
+**--interval, i**"
+  Microseconds to wait before polling for completion
+
 **--latest, -l**
 
   Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
