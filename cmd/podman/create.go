@@ -629,7 +629,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		command = append(command, data.ContainerConfig.Cmd...)
 	}
 
-	if len(command) == 0 {
+	if data != nil && len(command) == 0 {
 		return nil, errors.Errorf("No command specified on command line or as CMD or ENTRYPOINT in this image")
 	}
 
@@ -681,7 +681,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	var systemd bool
-	if c.BoolT("systemd") && ((filepath.Base(command[0]) == "init") || (filepath.Base(command[0]) == "systemd")) {
+	if command != nil && c.BoolT("systemd") && ((filepath.Base(command[0]) == "init") || (filepath.Base(command[0]) == "systemd")) {
 		systemd = true
 		if signalString == "" {
 			stopSignal, err = signal.ParseSignal("RTMIN+3")
