@@ -1,5 +1,23 @@
 # Release Notes
 
+## 0.9.2
+### Features
+- Added `--interval` flag to `podman wait` to determine the interval between checks for container status
+- Added a switch in `libpod.conf` to disable reserving ports for running containers. This lowers the safety of port allocations, but can significantly reduce memory usage.
+- Added ability to search all the contents of a registry if no image name is specified when using `podman search`
+
+### Bugfixes
+- Further fixes for sharing of UTS namespaces within pods
+- Fixed a deadlock in containers/storage that could be caused by numerous parallel Podman processes.
+- Fixed Podman running into open file limits when many ports are forwarded
+- Fixed default mount propagation on volume mounts
+- Fixed default mounts under /dev remaining if /dev is bind-mounted into the container
+- Fixed rootless `podman create` with no command specified throwing an error
+
+### Misc
+- Added `podman rm --volumes` flag for compatability with Docker. As Podman does not presently support named volumes, this does nothing for now, but provides improved compatability with the Docker command line.
+- Improved error messages from `podman pull`
+
 ## 0.9.1.1
 ### Bugfixes
 - Added support for configuring iptables and firewalld firewalls to allow container traffic. This should resolve numerous issues with network access in containers.
