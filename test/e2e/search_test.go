@@ -60,10 +60,10 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search single registry flag", func() {
-		search := podmanTest.Podman([]string{"search", "registry.fedoraproject.org/fedora-minimal"})
+		search := podmanTest.Podman([]string{"search", "registry.fedoraproject.org/fedora"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
-		Expect(search.LineInOutputContains("fedoraproject.org/fedora-minimal")).To(BeTrue())
+		Expect(search.LineInOutputContains("fedoraproject.org/fedora")).To(BeTrue())
 	})
 
 	It("podman search format flag", func() {
