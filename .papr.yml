@@ -38,7 +38,7 @@ required: true
 timeout: 90m
 
 tests:
-  - sh .papr_prepare.sh
+  - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 
 artifacts:
   - build.log

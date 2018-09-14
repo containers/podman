@@ -2,7 +2,7 @@
 set -xeuo pipefail
 
 DIST=${DIST:=Fedora}
-CONTAINER_RUNTIME=${CONTAINER_RUNTIME:=docker}
+CONTAINER_RUNTIME=${CONTAINER_RUNTIME:=podman}
 IMAGE=fedorapodmanbuild
 PYTHON=python3
 if [[ ${DIST} != "Fedora" ]]; then
