@@ -1,7 +1,7 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
 # libpod - library for running OCI-based containers in Pods
 
-### Latest Version: 0.9.1
+### Latest Version: 0.9.2
 ### Status: Active Development
 
 ## What is the scope of this project?
