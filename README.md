@@ -66,11 +66,11 @@ Information about contributing to this project.
 
 ## Current Roadmap
 
-1. Varlink API for Podman
+1. Python frontend for Varlink API
 1. Integrate libpod into CRI-O to replace its existing container management backend
-1. Pod commands for Podman
-1. Rootless containers
-1. Support for cleaning up containers via post-run hooks
+1. Further work on the podman pod command
+1. Further improvements on rootless containers
+1. In-memory locking to replace file locks
 
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v2.0.1/config.md#posix-platform-hooks
 
@@ -103,5 +103,5 @@ storage differences, you can not see Podman containers from within Buildah or vi
 
 In short Buildah is an efficient way to create OCI images  while Podman allows
 you to manage and maintain those images and containers in a production environment using
-familiar container cli commands.  For more details, see the 
+familiar container cli commands.  For more details, see the
 [Container Tools Guide](https://github.com/projectatomic/buildah/tree/master/docs/containertools).
