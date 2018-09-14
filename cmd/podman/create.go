@@ -57,6 +57,26 @@ var createCommand = cli.Command{
 }
 
 func createCmd(c *cli.Context) error {
+	if err := createInit(c); err != nil {
+		return err
+	}
+
+	runtime, err := libpodruntime.GetContainerRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "error creating libpod runtime")
+	}
+	defer runtime.Shutdown(false)
+
+	ctr, _, err := createContainer(c, runtime)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s\n", ctr.ID())
+	return nil
+}
+
+func createInit(c *cli.Context) error {
 	// TODO should allow user to create based off a directory on the host not just image
 	// Need CLI support for this
 
@@ -83,63 +103,46 @@ func createCmd(c *cli.Context) error {
 		return errors.Errorf("image name or ID is required")
 	}
 
+	return nil
+}
+
+func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
+	rtc := runtime.GetConfig()
+	ctx := getContext()
 	rootfs := ""
 	if c.Bool("rootfs") {
 		rootfs = c.Args()[0]
 	}
 
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return err
-	}
-	storageOpts, err := libpodruntime.GetDefaultStoreOptions()
-	if err != nil {
-		return err
-	}
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
-
-	runtime, err := libpodruntime.GetRuntimeWithStorageOpts(c, &storageOpts)
-	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
-	}
-	defer runtime.Shutdown(false)
-
-	rtc := runtime.GetConfig()
-	ctx := getContext()
-
 	imageName := ""
 	var data *inspect.ImageData = nil
+
 	if rootfs == "" && !rootless.SkipStorageSetup() {
 		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 		data, err = newImage.Inspect(ctx)
 		imageName = newImage.Names()[0]
 	}
 	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	options, err := createConfig.GetContainerCreateOptions(runtime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, runtime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	if became {
 		os.Exit(ret)
@@ -147,18 +150,16 @@ func createCmd(c *cli.Context) error {
 
 	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	createConfigJSON, err := json.Marshal(createConfig)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
-		return err
+		return nil, nil, err
 	}
-
-	logrus.Debug("new container created ", ctr.ID())
 
 	if c.String("cidfile") != "" {
 		err := libpod.WriteFile(ctr.ID(), c.String("cidfile"))
@@ -166,8 +167,8 @@ func createCmd(c *cli.Context) error {
 			logrus.Error(err)
 		}
 	}
-	fmt.Printf("%s\n", ctr.ID())
-	return nil
+	logrus.Debugf("New container created %q", ctr.ID())
+	return ctr, createConfig, nil
 }
 
 // Checks if a user-specified AppArmor profile is loaded, or loads the default profile if
