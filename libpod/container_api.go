@@ -592,12 +592,11 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 }
 
 // Wait blocks on a container to exit and returns its exit code
-func (c *Container) Wait() (int32, error) {
+func (c *Container) Wait(waitTimeout time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, ErrCtrRemoved
 	}
-
-	err := wait.PollImmediateInfinite(100*time.Millisecond,
+	err := wait.PollImmediateInfinite(waitTimeout*time.Millisecond,
 		func() (bool, error) {
 			stopped, err := c.isStopped()
 			if err != nil {
