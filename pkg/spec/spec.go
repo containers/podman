@@ -403,7 +403,7 @@ func setupSystemd(config *CreateConfig, g *generate.Generator) error {
 		return err
 	}
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run", "/run/lock", "/sys/fs/cgroup/systemd"} {
+	for _, dest := range []string{"/run", "/run/lock"} {
 		if libpod.MountExists(mounts, dest) {
 			continue
 		}
@@ -427,6 +427,13 @@ func setupSystemd(config *CreateConfig, g *generate.Generator) error {
 		}
 		g.AddMount(tmpfsMnt)
 	}
+	tmpfsMnt := spec.Mount{
+		Destination: "/sys/fs/cgroup/systemd",
+		Type:        "tmpfs",
+		Source:      "tmpfs",
+		Options:     append(options, "size=65536k"),
+	}
+	g.AddMount(tmpfsMnt)
 	return nil
 }
 
