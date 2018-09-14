@@ -34,6 +34,9 @@ func (i *LibpodAPI) Ping(call iopodman.VarlinkCall) error {
 
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
+	var (
+		registries, insecureRegistries []string
+	)
 	podmanInfo := iopodman.PodmanInfo{}
 	info, err := i.Runtime.Info()
 	if err != nil {
@@ -76,7 +79,19 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Graph_status:         graphStatus,
 	}
 
+	registriesInterface := info[2].Data["registries"]
+	insecureRegistriesInterface := info[3].Data["registries"]
+	if registriesInterface != nil {
+		registries = registriesInterface.([]string)
+	}
+	if insecureRegistriesInterface != nil {
+		insecureRegistries = insecureRegistriesInterface.([]string)
+	}
+
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo
+	podmanInfo.Registries = registries
+	podmanInfo.Insecure_registries = insecureRegistries
+
 	return call.ReplyGetInfo(podmanInfo)
 }
