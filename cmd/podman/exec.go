@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -56,6 +57,14 @@ var (
 )
 
 func execCmd(c *cli.Context) error {
+	// Until conmon can handle interactive exec console
+	// sessions, we need to inform the user when there is not
+	// a tty available.  This is not to be confused with the
+	// container's tty.
+	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+		return errors.Errorf("no tty exists where podman was run. if using ssh, try passing -t")
+	}
+
 	args := c.Args()
 	var ctr *libpod.Container
 	var err error
