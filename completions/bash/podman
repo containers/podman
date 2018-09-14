@@ -945,6 +945,7 @@ _podman_build() {
      --userns-uid-map-user
      --userns-gid-map-group
      --uts
+     --mount
      --volume
      -v
   "

@@ -24,6 +24,7 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -450,6 +451,10 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		}
 		blkioWeight = uint16(u)
 	}
+	var mountList []spec.Mount
+	if mountList, err = parseMounts(c.StringSlice("mount")); err != nil {
+		return nil, err
+	}
 
 	if err = parseVolumes(c.StringSlice("volume")); err != nil {
 		return nil, err
@@ -775,6 +780,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		Tty:         tty,
 		User:        user,
 		UsernsMode:  usernsMode,
+		Mounts:      mountList,
 		Volumes:     c.StringSlice("volume"),
 		WorkDir:     workDir,
 		Rootfs:      rootfs,

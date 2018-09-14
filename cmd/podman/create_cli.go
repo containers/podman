@@ -8,6 +8,7 @@ import (
 
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/docker/pkg/sysinfo"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -74,6 +75,77 @@ func addWarning(warnings []string, msg string) []string {
 	return append(warnings, msg)
 }
 
+// Format supported.
+// podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
+// podman run --mount type=tmpfs,target=/dev/shm ..
+func parseMounts(mounts []string) ([]spec.Mount, error) {
+	var mountList []spec.Mount
+	errInvalidSyntax := errors.Errorf("incorrect mount format : should be --mount type=<bind|tmpfs>,src=<host-dir>,target=<ctr-dir>,[options]")
+	for _, mount := range mounts {
+		var tokenCount int
+		var mountInfo spec.Mount
+
+		arr := strings.SplitN(mount, ",", 2)
+		if len(arr) < 2 {
+			return nil, errInvalidSyntax
+		}
+		kv := strings.Split(arr[0], "=")
+		if err := validateFSType(kv[1]); err != nil {
+			return nil, err
+		}
+
+		if kv[1] == "bind" {
+			mountInfo.Type = string(cc.TypeBind)
+			tokenCount = 3
+		} else if kv[1] == "tmpfs" {
+			mountInfo.Type = string(cc.TypeTmpfs)
+			tokenCount = 2
+		}
+
+		tokens := strings.SplitN(arr[1], ",", tokenCount)
+		if len(tokens) < (tokenCount - 1) {
+			return nil, errInvalidSyntax
+		}
+		for i, val := range tokens {
+			if i == (tokenCount - 1) {
+				//Parse tokens before options.
+				break
+			}
+			kv := strings.Split(val, "=")
+			if len(kv) != 2 {
+				return nil, errInvalidSyntax
+			}
+
+			switch kv[0] {
+			case "src", "source":
+				if mountInfo.Type == "tmpfs" {
+					return nil, errInvalidSyntax
+				}
+				if err := validateVolumeHostDir(kv[1]); err != nil {
+					return nil, err
+				}
+				mountInfo.Source = kv[1]
+			case "target", "dst", "destination":
+				if err := validateVolumeCtrDir(kv[1]); err != nil {
+					return nil, err
+				}
+				mountInfo.Destination = kv[1]
+			default:
+				return nil, errors.Errorf("incorrect mount option : %s", kv[0])
+			}
+		}
+
+		if len(tokens) > (tokenCount - 1) {
+			if err := validateVolumeOpts(tokens[tokenCount-1]); err != nil {
+				return nil, err
+			}
+			mountInfo.Options = strings.Split(tokens[tokenCount-1], ",")
+		}
+		mountList = append(mountList, mountInfo)
+	}
+	return mountList, nil
+}
+
 func parseVolumes(volumes []string) error {
 	for _, volume := range volumes {
 		arr := strings.SplitN(volume, ":", 3)
@@ -106,6 +178,13 @@ func parseVolumesFrom(volumesFrom []string) error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+func validateFSType(fstype string) error {
+	if fstype != "bind" && fstype != "tmpfs" {
+		return errors.Errorf("invalid filesystem type %q", fstype)
 	}
 	return nil
 }

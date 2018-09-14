@@ -653,6 +653,22 @@ Set the UTS mode for the container
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
+**−−mount**[=*type=<bind|tmpfs>,<src|source>=HOST−DIR,<target|dst,destination>=CONTAINER−DIR[:OPTIONS]*]
+The --mount flag allows you to mount host-directories and tmpfs mounts in a container.
+The --mount flag supports most options that are supported by the -v|--volume flag, but uses a different syntax.
+
+The type must be bind or tmpfs. *Note: the tmpfs mounted directory will not be retained after the container stops.*
+
+The source can be specified as "source" or "src" & target can be specified as "target","dst" or "destination".
+The CONTAINER−DIR must be an absolute path such as /src/docs. The HOST−DIR must be an absolute path as well.
+podman bind −mounts the HOST−DIR to the path that is specified.
+For example, if src=/foo,target=/foo is provided, podman creates a bind −mount. Multiple --mount options can be
+specified to mount one or more mounts to a container.
+
+The ",ro" or ",rw" suffix can be added to a volume to mount it read−only or read−write mode, respectively.
+By default, the volumes are mounted read−write. See examples.
+
+
 **-v**|**--volume**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
@@ -929,6 +945,12 @@ colon:
 $ podman run -v /var/db:/data1 -i -t fedora bash
 ```
 
+Using --mount flags, To mount a host directory as a container folder, specify
+the absolute path to the directory and the absolute path for the container
+directory:
+
+$ podman run --mount type=bind,src=/var/db,target=/data1 busybox sh
+
 When using SELinux, be aware that the host has no knowledge of container SELinux
 policy. Therefore, in the above example, if SELinux policy is enforced, the
 `/var/db` directory is not writable to the container. A "Permission Denied"
@@ -1028,6 +1050,8 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 subgid(5), subuid(5)
 
 ## HISTORY
+September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
+
 October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
 
 November 2015, updated by Sally O'Malley <somalley@redhat.com>

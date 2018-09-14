@@ -124,6 +124,7 @@ type CreateConfig struct {
 	UsernsMode         namespaces.UsernsMode //userns
 	User               string                //user
 	UtsMode            namespaces.UTSMode    //uts
+	Mounts             []spec.Mount          //mounts
 	Volumes            []string              //volume
 	VolumesFrom        []string
 	WorkDir            string //workdir
@@ -215,6 +216,53 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			Type:        string(TypeTmpfs),
 			Source:      string(TypeTmpfs),
 			Options:     []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
+		}
+		m = append(m, mount)
+	}
+	return m, nil
+}
+
+//GetFSMounts takes user provided input for bind mounts and creates Mount structs
+func (c *CreateConfig) GetFSMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
+	var m []spec.Mount
+	for _, mount := range c.Mounts {
+		var (
+			foundrw, foundro, foundz, foundZ bool
+			rootProp                         string
+		)
+
+		//update options
+		mount.Options = append(mount.Options, "rbind")
+		for _, opt := range mount.Options {
+			switch opt {
+			case "rw":
+				foundrw = true
+			case "ro":
+				foundro = true
+			case "z":
+				foundz = true
+			case "Z":
+				foundZ = true
+			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+				rootProp = opt
+			}
+		}
+		if !foundrw && !foundro {
+			mount.Options = append(mount.Options, "rw")
+		}
+
+		if foundz {
+			if err := label.Relabel(mount.Source, c.MountLabel, true); err != nil {
+				return nil, errors.Wrapf(err, "relabel failed %q", mount.Source)
+			}
+		}
+		if foundZ {
+			if err := label.Relabel(mount.Source, c.MountLabel, false); err != nil {
+				return nil, errors.Wrapf(err, "relabel failed %q", mount.Source)
+			}
+		}
+		if rootProp == "" {
+			mount.Options = append(mount.Options, "rprivate")
 		}
 		m = append(m, mount)
 	}
