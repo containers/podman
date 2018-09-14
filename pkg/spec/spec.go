@@ -318,8 +318,18 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		for _, mount := range mounts {
 			destinations[path.Clean(mount.Destination)] = true
 		}
+
+		// Copy all mounts from spec to defaultMounts, except for
+		//  - mounts overridden by a user supplied mount;
+		//  - all mounts under /dev if a user supplied /dev is present;
+		mountDev := destinations["/dev"]
 		for _, mount := range configSpec.Mounts {
 			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
+				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
+					// filter out everything under /dev if /dev is user-mounted
+					continue
+				}
+
 				logrus.Debugf("Adding mount %s", mount.Destination)
 				mounts = append(mounts, mount)
 			}
