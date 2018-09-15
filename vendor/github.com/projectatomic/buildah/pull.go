@@ -190,8 +190,8 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	}()
 
 	logrus.Debugf("copying %q to %q", spec, destName)
-	err = cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, sc, nil, ""))
-	if err == nil {
+	pullError := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, sc, nil, ""))
+	if pullError == nil {
 		return destRef, nil
 	}
 
@@ -206,9 +206,9 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 		return nil, err
 	}
 	if !hasRegistryInName && len(searchRegistries) == 0 {
-		return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
+		return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s: %s", registryPath, pullError)
 	}
-	return nil, errors.Errorf("unable to find image in the registries defined in %q", registryPath)
+	return nil, pullError
 }
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID

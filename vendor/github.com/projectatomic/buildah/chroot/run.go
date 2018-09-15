@@ -1075,11 +1075,14 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// The target isn't there yet, so create it, and make a
 			// note to remove it later.
 			if srcinfo.IsDir() {
-				if err = os.Mkdir(target, 0111); err != nil {
+				if err = os.MkdirAll(target, 0111); err != nil {
 					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
 				}
 				removes = append(removes, target)
 			} else {
+				if err = os.MkdirAll(filepath.Dir(target), 0111); err != nil {
+					return undoBinds, errors.Wrapf(err, "error ensuring parent of mountpoint %q (%q) is present in mount namespace", target, filepath.Dir(target))
+				}
 				var file *os.File
 				if file, err = os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0); err != nil {
 					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
