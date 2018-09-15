@@ -533,20 +533,21 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo) (t
 	if err != nil {
 		return types.BlobInfo{}, "", err
 	}
-	var diffIDResult diffIDResult // = {digest:""}
 	if diffIDIsNeeded {
 		select {
 		case <-ctx.Done():
 			return types.BlobInfo{}, "", ctx.Err()
-		case diffIDResult = <-diffIDChan:
+		case diffIDResult := <-diffIDChan:
 			if diffIDResult.err != nil {
 				return types.BlobInfo{}, "", errors.Wrap(diffIDResult.err, "Error computing layer DiffID")
 			}
 			logrus.Debugf("Computed DiffID %s for layer %s", diffIDResult.digest, srcInfo.Digest)
 			ic.c.cachedDiffIDs[srcInfo.Digest] = diffIDResult.digest
+			return blobInfo, diffIDResult.digest, nil
 		}
+	} else {
+		return blobInfo, ic.c.cachedDiffIDs[srcInfo.Digest], nil
 	}
-	return blobInfo, diffIDResult.digest, nil
 }
 
 // copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.
