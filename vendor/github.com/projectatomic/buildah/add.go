@@ -168,9 +168,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			return errors.Wrapf(syscall.ENOENT, "no files found matching %q", src)
 		}
 		for _, gsrc := range glob {
-			srcfi, err := os.Stat(gsrc)
+			esrc, err := filepath.EvalSymlinks(gsrc)
 			if err != nil {
-				return errors.Wrapf(err, "error reading %q", gsrc)
+				return errors.Wrapf(err, "error evaluating symlinks %q", gsrc)
+			}
+			srcfi, err := os.Stat(esrc)
+			if err != nil {
+				return errors.Wrapf(err, "error reading %q", esrc)
 			}
 			if srcfi.IsDir() {
 				// The source is a directory, so copy the contents of
@@ -180,13 +184,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
 					return err
 				}
-				logrus.Debugf("copying %q to %q", gsrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if err := copyWithTar(gsrc, dest); err != nil {
-					return errors.Wrapf(err, "error copying %q to %q", gsrc, dest)
+				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
+				if err := copyWithTar(esrc, dest); err != nil {
+					return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 				}
 				continue
 			}
-			if !extract || !archive.IsArchivePath(gsrc) {
+			if !extract || !archive.IsArchivePath(esrc) {
 				// This source is a file, and either it's not an
 				// archive, or we don't care whether or not it's an
 				// archive.
@@ -195,16 +199,16 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					d = filepath.Join(dest, filepath.Base(gsrc))
 				}
 				// Copy the file, preserving attributes.
-				logrus.Debugf("copying %q to %q", gsrc, d)
-				if err := copyFileWithTar(gsrc, d); err != nil {
-					return errors.Wrapf(err, "error copying %q to %q", gsrc, d)
+				logrus.Debugf("copying %q to %q", esrc, d)
+				if err := copyFileWithTar(esrc, d); err != nil {
+					return errors.Wrapf(err, "error copying %q to %q", esrc, d)
 				}
 				continue
 			}
 			// We're extracting an archive into the destination directory.
-			logrus.Debugf("extracting contents of %q into %q", gsrc, dest)
-			if err := untarPath(gsrc, dest); err != nil {
-				return errors.Wrapf(err, "error extracting %q into %q", gsrc, dest)
+			logrus.Debugf("extracting contents of %q into %q", esrc, dest)
+			if err := untarPath(esrc, dest); err != nil {
+				return errors.Wrapf(err, "error extracting %q into %q", esrc, dest)
 			}
 		}
 	}
