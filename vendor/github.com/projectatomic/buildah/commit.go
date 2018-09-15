@@ -171,7 +171,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		return errors.Wrapf(err, "error creating new signature policy context")
 	}
 	// Look up the image.
-	src, _, err := util.FindImage(options.Store, "", systemContext, image)
+	src, img, err := util.FindImage(options.Store, "", systemContext, image)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,9 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		return errors.Wrapf(err, "error copying layers and metadata")
 	}
 	if options.ReportWriter != nil {
-		fmt.Fprintf(options.ReportWriter, "\n")
+		fmt.Fprintf(options.ReportWriter, "")
 	}
+	digest := "@" + img.Digest.Hex()
+	fmt.Printf("Successfully pushed %s%s\n", dest.StringWithinTransport(), digest)
 	return nil
 }
