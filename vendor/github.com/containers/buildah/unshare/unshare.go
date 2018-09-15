@@ -84,11 +84,6 @@ func (c *Cmd) Start() error {
 		c.Env = append(c.Env, fmt.Sprintf("_Buildah-ctty=%d", len(c.ExtraFiles)+3))
 		c.ExtraFiles = append(c.ExtraFiles, c.Ctty)
 	}
-	if c.GidMappingsEnableSetgroups {
-		c.Env = append(c.Env, "_Buildah-allow-setgroups=1")
-	} else {
-		c.Env = append(c.Env, "_Buildah-allow-setgroups=0")
-	}
 
 	// Make sure we clean up our pipes.
 	defer func() {

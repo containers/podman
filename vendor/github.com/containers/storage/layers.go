@@ -558,13 +558,22 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		StorageOpt: options,
 	}
 	if writeable {
-		err = r.driver.CreateReadWrite(id, parent, &opts)
+		if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+			if id != "" {
+				return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
+			}
+			return nil, -1, errors.Wrapf(err, "error creating read-write layer")
+		}
 	} else {
-		err = r.driver.Create(id, parent, &opts)
+		if err = r.driver.Create(id, parent, &opts); err != nil {
+			if id != "" {
+				return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
+			}
+			return nil, -1, errors.Wrapf(err, "error creating layer")
+		}
 	}
 	if !reflect.DeepEqual(parentMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(parentMappings.GIDs(), idMappings.GIDs()) {
-		err = r.driver.UpdateLayerIDMap(id, parentMappings, idMappings, mountLabel)
-		if err != nil {
+		if err = r.driver.UpdateLayerIDMap(id, parentMappings, idMappings, mountLabel); err != nil {
 			// We don't have a record of this layer, but at least
 			// try to clean it up underneath us.
 			r.driver.Remove(id)
