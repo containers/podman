@@ -181,7 +181,7 @@ func WithStaticDir(dir string) RuntimeOption {
 // WithHooksDir sets the directory to look for OCI runtime hooks config.
 // Note we are not saving this in database, since this is really just for used
 // for testing.
-func WithHooksDir(hooksDir string, dirNotExistFatal bool) RuntimeOption {
+func WithHooksDir(hooksDir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
@@ -191,8 +191,8 @@ func WithHooksDir(hooksDir string, dirNotExistFatal bool) RuntimeOption {
 			return errors.Wrap(ErrInvalidArg, "empty-string hook directories are not supported")
 		}
 
-		rt.config.HooksDir = hooksDir
-		rt.config.HooksDirNotExistFatal = dirNotExistFatal
+		rt.config.HooksDir = []string{hooksDir}
+		rt.config.HooksDirNotExistFatal = true
 		return nil
 	}
 }

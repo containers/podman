@@ -54,14 +54,14 @@ Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
 
-Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf, and is *vfs* for other users.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for other users.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
 Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
 
 **--storage-opt**=**value**
 
-Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
+Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
 
 **--syslog**
 
@@ -153,37 +153,41 @@ the exit codes follow the `chroot` standard, see below:
 
 **libpod.conf** (`/etc/containers/libpod.conf`)
 
-libpod.conf is the configuration file for all tools using libpod to manage containers.  When Podman runs in rootless mode, then the file `$HOME/.config/containers/libpod.conf` is used.
-
-**storage.conf** (`/etc/containers/storage.conf`)
-
-storage.conf is the storage configuration file for all tools using containers/storage
-
-The storage configuration file specifies all of the available container storage options for tools using shared container storage.
-
-When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
+    libpod.conf is the configuration file for all tools using libpod to manage containers.  When Podman runs in rootless mode, then the file `$HOME/.config/containers/libpod.conf` is used.
 
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
-The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
+    The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
 
-**hook JSON** (`/usr/share/containers/oci/hooks.d/*.json`)
+**OCI hooks JSON** (`/etc/containers/oci/hooks.d/*.json`, `/usr/share/containers/oci/hooks.d/*.json`)
 
-Each `*.json` file in `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
+    Each `*.json` file in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers, with `/etc/containers/oci/hooks.d` having higher precedence.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
 
-Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+    Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
-For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+    For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
 
-For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+    For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
 
-Hooks are not used when running in rootless mode.
+    Hooks are not used when running in rootless mode.
+
+**policy.json** (`/etc/containers/policy.json`)
+
+    Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
 
 **registries.conf** (`/etc/containers/registries.conf`)
 
-registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
+    registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
-When Podman runs in rootless mode, the file `$HOME/.config/containers/registries.conf` is used.
+    When Podman runs in rootless mode, the file `$HOME/.config/containers/registries.conf` is used.
+
+**storage.conf** (`/etc/containers/storage.conf`)
+
+    storage.conf is the storage configuration file for all tools using containers/storage
+
+    The storage configuration file specifies all of the available container storage options for tools using shared container storage.
+
+    When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
 
 ## Rootless mode
 Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.
@@ -209,7 +213,7 @@ Currently it is not possible to create a network device, so rootless containers 
 then only the loopback device will be available.
 
 ## SEE ALSO
-`oci-hooks(5)`, `containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
