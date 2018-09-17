@@ -31,7 +31,7 @@ static int _buildah_unshare_parse_envint(const char *envname) {
 
 void _buildah_unshare(void)
 {
-	int flags, pidfd, continuefd, n, pgrp, sid, ctty, allow_setgroups;
+	int flags, pidfd, continuefd, n, pgrp, sid, ctty;
 	char buf[2048];
 
 	flags = _buildah_unshare_parse_envint("_Buildah-unshare");
@@ -83,14 +83,7 @@ void _buildah_unshare(void)
 			_exit(1);
 		}
 	}
-	allow_setgroups = _buildah_unshare_parse_envint("_Buildah-allow-setgroups");
 	if ((flags & CLONE_NEWUSER) != 0) {
-		if (allow_setgroups == 1) {
-			if (setgroups(0, NULL) != 0) {
-				fprintf(stderr, "Error during setgroups(0, NULL): %m\n");
-				_exit(1);
-			}
-		}
 		if (setresgid(0, 0, 0) != 0) {
 			fprintf(stderr, "Error during setresgid(0): %m\n");
 			_exit(1);
