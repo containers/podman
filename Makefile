@@ -213,7 +213,8 @@ changelog:
 install: .gopathok install.bin install.man install.cni install.systemd install.python
 
 install.bin:
-	install ${SELINUXOPT} -D -m 755 bin/podman $(BINDIR)/podman
+	install ${SELINUXOPT} -d -m 755 $(BINDIR)
+	install ${SELINUXOPT} -m 755 bin/podman $(BINDIR)/podman
 
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
@@ -223,26 +224,29 @@ install.man: docs
 	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(MANDIR)/man1
 
 install.config:
-	install ${SELINUXOPT} -D -m 644 libpod.conf ${SHAREDIR_CONTAINERS}/libpod.conf
-	install ${SELINUXOPT} -D -m 644 seccomp.json $(ETCDIR_LIBPOD)/seccomp.json
-	install ${SELINUXOPT} -D -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
+	install ${SELINUXOPT} -d -m 755 $(SHAREDIR_CONTAINERS) $(ETCDIR_LIBPOD) $(OCIUMOUNTINSTALLDIR)
+	install ${SELINUXOPT} -m 644 libpod.conf $(SHAREDIR_CONTAINERS)/libpod.conf
+	install ${SELINUXOPT} -m 644 seccomp.json $(ETCDIR_LIBPOD)/seccomp.json
+	install ${SELINUXOPT} -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 -D completions/bash/podman ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman ${BASHINSTALLDIR}
 
 install.cni:
-	install ${SELINUXOPT} -D -m 644 cni/87-podman-bridge.conflist ${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	install ${SELINUXOPT} -d -m 755 ${ETCDIR}/cni/net.d/
+	install ${SELINUXOPT} -m 644 cni/87-podman-bridge.conflist ${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 
 install.docker: docker-docs
-	install ${SELINUXOPT} -D -m 755 docker $(BINDIR)/docker
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(BINDIR) $(MANDIR)/man1
+	install ${SELINUXOPT} -m 755 docker $(BINDIR)/docker
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
 
 install.systemd:
-	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.podman.socket ${SYSTEMDDIR}/io.podman.socket
-	install ${SELINUXOPT} -m 644 -D contrib/varlink/io.podman.service ${SYSTEMDDIR}/io.podman.service
-	install ${SELINUXOPT} -m 644 -D contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
+	install ${SELINUXOPT} -m 755 -d ${SYSTEMDDIR} ${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${SYSTEMDDIR}/io.podman.socket
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${SYSTEMDDIR}/io.podman.service
+	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
 install.python:
 	$(MAKE) DESTDIR=${DESTDIR} -C contrib/python/podman install
