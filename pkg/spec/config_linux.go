@@ -60,6 +60,9 @@ func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
 	for _, d := range hostDevices {
 		g.AddDevice(Device(d))
 	}
+
+	// Add resources device - need to clear the existing one first.
+	g.Spec().Linux.Resources.Devices = nil
 	g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
 	return nil
 }

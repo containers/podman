@@ -337,9 +337,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		configSpec.Mounts = mounts
 	}
 
-	if err := g.SetLinuxRootPropagation("shared"); err != nil {
-		return nil, errors.Wrapf(err, "failed to set propagation to rslave")
-	}
 	if canAddResources {
 		// BLOCK IO
 		blkio, err := config.CreateBlockIO()
