@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.9.2.1
+### Bugfixes
+- Updated Buildah dependency to fix several bugs in `podman build`
+
+### Misc
+- Small performance improvement in image handling code to not recalculate digests
+
 ## 0.9.2
 ### Features
 - Added `--interval` flag to `podman wait` to determine the interval between checks for container status
@@ -17,6 +24,9 @@
 ### Misc
 - Added `podman rm --volumes` flag for compatability with Docker. As Podman does not presently support named volumes, this does nothing for now, but provides improved compatability with the Docker command line.
 - Improved error messages from `podman pull`
+
+### Compatability
+- Podman is no longer being built by default with support for the Devicemapper storage driver. If you are using this storage driver, you should investigate switching to overlayfs.
 
 ## 0.9.1.1
 ### Bugfixes
