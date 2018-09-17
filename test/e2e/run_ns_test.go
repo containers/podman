@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -57,6 +58,36 @@ var _ = Describe("Podman run ns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal(hostShm))
+	})
+
+	It("podman run ipcns ipcmk host test", func() {
+		setup := podmanTest.SystemExec("ipcmk", []string{"-M", "1024"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		output := strings.Split(setup.OutputToString(), " ")
+		ipc := output[len(output)-1]
+		session := podmanTest.Podman([]string{"run", "--ipc=host", fedoraMinimal, "ipcs", "-m", "-i", ipc})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		setup = podmanTest.SystemExec("ipcrm", []string{"-m", ipc})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run ipcns ipcmk container test", func() {
+		setup := podmanTest.Podman([]string{"run", "-d", "--name", "test1", fedoraMinimal, "sleep", "999"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "test1", "ipcmk", "-M", "1024"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := strings.Split(session.OutputToString(), " ")
+		ipc := output[len(output)-1]
+		session = podmanTest.Podman([]string{"run", "--ipc=container:test1", fedoraMinimal, "ipcs", "-m", "-i", ipc})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run bad ipc pid test", func() {
