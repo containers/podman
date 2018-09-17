@@ -339,7 +339,9 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	}
 
 	pidFile := c.execPidPath(sessionID)
-	const pidWaitTimeout = 250
+	// 1 second seems a reasonable time to wait
+	// See https://github.com/containers/libpod/issues/1495
+	const pidWaitTimeout = 1000
 
 	// Wait until the runtime makes the pidfile
 	// TODO: If runtime errors before the PID file is created, we have to
