@@ -1,3 +1,10 @@
+- Changelog for v0.9.2.1 (2018-09-17)
+  * Update release notes for 0.9.2.1
+  * Vendor in latest projectatomic/buildah
+  * Vndr latest containers/image
+  * Bump gitvalidation epoch
+  * Bump to v0.9.3-dev
+
 - Changelog for v0.9.2 (2018-09-14)
   * Update release notes for 0.9.2
   * change search test to look for fedora and not fedora-minimal
