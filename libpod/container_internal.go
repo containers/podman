@@ -1246,7 +1246,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 }
 
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
-	if c.runtime.config.HooksDir == "" {
+	if len(c.runtime.config.HooksDir) == 0 {
 		return nil, nil
 	}
 
@@ -1277,16 +1277,25 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
-	manager, err := hooks.New(ctx, []string{c.runtime.config.HooksDir}, []string{"poststop"}, lang)
-	if err != nil {
-		if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
+	var allHooks map[string][]spec.Hook
+	for _, hDir := range c.runtime.config.HooksDir {
+		manager, err := hooks.New(ctx, []string{hDir}, []string{"poststop"}, lang)
+		if err != nil {
+			if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
+				return nil, err
+			}
+			logrus.Warnf("failed to load hooks: {}", err)
+			return nil, nil
+		}
+		hooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+		if err != nil {
 			return nil, err
 		}
-		logrus.Warnf("failed to load hooks: {}", err)
-		return nil, nil
+		for i, hook := range hooks {
+			allHooks[i] = hook
+		}
 	}
-
-	return manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+	return allHooks, nil
 }
 
 // mount mounts the container's root filesystem

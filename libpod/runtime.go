@@ -143,7 +143,7 @@ type RuntimeConfig struct {
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
 	// HooksDir Path to the directory containing hooks configuration files
-	HooksDir string `toml:"hooks_dir"`
+	HooksDir []string `toml:"hooks_dir"`
 	// HooksDirNotExistFatal switches between fatal errors and non-fatal
 	// warnings if the configured HooksDir does not exist.
 	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
@@ -199,7 +199,7 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:         SystemdCgroupsManager,
-		HooksDir:              hooks.DefaultDir,
+		HooksDir:              []string{hooks.DefaultDir, hooks.OverrideDir},
 		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,
