@@ -1,0 +1,28 @@
+FROM registry.fedoraproject.org/fedora:28
+
+# This Dockerfile is only for building libpod and running
+# validation and gofmt tests.
+
+RUN dnf -y install btrfs-progs-devel \
+              bzip2 \
+              findutils \
+              git \
+              glib2-devel \
+              glibc-static \
+              gnupg \
+              golang \
+              golang-github-cpuguy83-go-md2man \
+              gpgme-devel \
+              libassuan-devel \
+              libseccomp-devel \
+              libselinux-devel \
+              skopeo-containers \
+              make \
+              ostree-devel \
+              python \
+              python3-dateutil \
+              python3-psutil \
+              python3-pytoml \
+              golang-github-cpuguy83-go-md2man \
+              slirp4netns \
+              iptables && dnf -y clean all
