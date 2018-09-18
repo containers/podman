@@ -45,8 +45,8 @@ RUN set -x \
 # Install buildah
 RUN set -x \
        && export GOPATH=/go \
-       && git clone https://github.com/projectatomic/buildah "$GOPATH/src/github.com/projectatomic/buildah" \
-       && cd "$GOPATH/src/github.com/projectatomic/buildah" \
+       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
+       && cd "$GOPATH/src/github.com/containers/buildah" \
        && make \
        && make install
 
