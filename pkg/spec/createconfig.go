@@ -15,7 +15,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -126,12 +125,11 @@ type CreateConfig struct {
 	UtsMode            namespaces.UTSMode    //uts
 	Volumes            []string              //volume
 	VolumesFrom        []string
-	WorkDir            string //workdir
-	MountLabel         string //SecurityOpts
-	ProcessLabel       string //SecurityOpts
-	NoNewPrivs         bool   //SecurityOpts
-	ApparmorProfile    string //SecurityOpts
-	SeccompProfilePath string //SecurityOpts
+	WorkDir            string   //workdir
+	LabelOpts          []string //SecurityOpts
+	NoNewPrivs         bool     //SecurityOpts
+	ApparmorProfile    string   //SecurityOpts
+	SeccompProfilePath string   //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
 	LocalVolumes       []string //Keeps track of the built-in volumes of container used in the --volumes-from flag
@@ -179,14 +177,10 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			options = append(options, "rw")
 		}
 		if foundz {
-			if err := label.Relabel(spliti[0], c.MountLabel, true); err != nil {
-				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
-			}
+			options = append(options, "z")
 		}
 		if foundZ {
-			if err := label.Relabel(spliti[0], c.MountLabel, false); err != nil {
-				return nil, errors.Wrapf(err, "relabel failed %q", spliti[0])
-			}
+			options = append(options, "Z")
 		}
 		if rootProp == "" {
 			options = append(options, "rprivate")
@@ -449,7 +443,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	useImageVolumes := c.ImageVolumeType == "bind"
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
-	options = append(options, libpod.WithSELinuxLabels(c.ProcessLabel, c.MountLabel))
+	options = append(options, libpod.WithSecLabels(c.LabelOpts))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithUser(c.User))

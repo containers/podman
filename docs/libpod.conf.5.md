@@ -59,6 +59,9 @@ libpod to manage containers.
   The default namespace is "", which corresponds to no namespace. When no namespace is set, all
   containers and pods are visible.
 
+**label**="true|false"
+  Indicates whether the containers should use label separation.
+
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path
 

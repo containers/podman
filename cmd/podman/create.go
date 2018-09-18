@@ -317,7 +317,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			}
 		}
 	}
-	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
+	config.LabelOpts = labelOpts
 	return err
 }
 
