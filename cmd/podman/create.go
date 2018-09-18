@@ -249,18 +249,15 @@ func loadAppArmor(config *cc.CreateConfig) error {
 	return nil
 }
 
-func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
-	var (
-		labelOpts []string
-		err       error
-	)
+func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) ([]string, error) {
+	var labelOpts []string
 
 	if config.PidMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
 	} else if config.PidMode.IsContainer() {
 		ctr, err := config.Runtime.LookupContainer(config.PidMode.Container())
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
+			return nil, errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
 		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
 	}
@@ -270,7 +267,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	} else if config.IpcMode.IsContainer() {
 		ctr, err := config.Runtime.LookupContainer(config.IpcMode.Container())
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
+			return nil, errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
 		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
 	}
@@ -281,7 +278,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		} else {
 			con := strings.SplitN(opt, "=", 2)
 			if len(con) != 2 {
-				return fmt.Errorf("Invalid --security-opt 1: %q", opt)
+				return nil, fmt.Errorf("Invalid --security-opt 1: %q", opt)
 			}
 
 			switch con[0] {
@@ -292,13 +289,13 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			case "seccomp":
 				config.SeccompProfilePath = con[1]
 			default:
-				return fmt.Errorf("Invalid --security-opt 2: %q", opt)
+				return nil, fmt.Errorf("Invalid --security-opt 2: %q", opt)
 			}
 		}
 	}
 
 	if err := loadAppArmor(config); err != nil {
-		return err
+		return nil, err
 	}
 
 	if config.SeccompProfilePath == "" {
@@ -306,19 +303,18 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			config.SeccompProfilePath = libpod.SeccompOverridePath
 		} else {
 			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
+				return nil, errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
 			}
 			if _, err := os.Stat(libpod.SeccompDefaultPath); err != nil {
 				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
+					return nil, errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
 				}
 			} else {
 				config.SeccompProfilePath = libpod.SeccompDefaultPath
 			}
 		}
 	}
-	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
-	return err
+	return labelOpts, nil
 }
 
 // isPortInPortBindings determines if an exposed host port is in user
@@ -786,11 +782,21 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		VolumesFrom: c.StringSlice("volumes-from"),
 	}
 
+	labelOpts := []string{}
 	if !config.Privileged {
-		if err := parseSecurityOpt(config, c.StringSlice("security-opt")); err != nil {
+		labelOpts, err = parseSecurityOpt(config, c.StringSlice("security-opt"))
+		if err != nil {
 			return nil, err
 		}
 	}
+	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error initializing mount and process labels")
+	}
+	if config.Privileged {
+		config.ProcessLabel = ""
+	}
+
 	config.SecurityOpts = c.StringSlice("security-opt")
 	warnings, err := verifyContainerResources(config, false)
 	if err != nil {

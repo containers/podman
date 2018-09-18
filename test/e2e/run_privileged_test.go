@@ -85,6 +85,18 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 20))
 	})
 
+	It("podman run privileged container check mount label and process label", func() {
+		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("system_r:spc_t"))
+
+		session = podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "cat", "/proc/1/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("object_r:container_file_t"))
+	})
+
 	It("run no-new-privileges test", func() {
 		// Check if our kernel is new enough
 		k, err := IsKernelNewThan("4.14")
