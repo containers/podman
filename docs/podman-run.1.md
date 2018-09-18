@@ -528,6 +528,8 @@ Security Options
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
+Note: Labelling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
+
 **--shm-size**=""
 
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
@@ -1025,7 +1027,7 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 **/etc/subgid**
 
 ## SEE ALSO
-subgid(5), subuid(5)
+subgid(5), subuid(5), libpod.conf(5)
 
 ## HISTORY
 October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>

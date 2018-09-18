@@ -211,8 +211,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
-	g.SetProcessSelinuxLabel(config.ProcessLabel)
-	g.SetLinuxMountLabel(config.MountLabel)
 
 	if canAddResources {
 		blockAccessToKernelFilesystems(config, &g)

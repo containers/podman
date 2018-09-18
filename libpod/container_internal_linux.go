@@ -98,6 +98,28 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	// Check if the spec file mounts contain the label Relabel flags z or Z.
+	// If they do, relabel the source directory and then remove the option.
+	for _, m := range g.Mounts() {
+		var options []string
+		for _, o := range m.Options {
+			switch o {
+			case "z":
+				fallthrough
+			case "Z":
+				if err := label.Relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
+					return nil, errors.Wrapf(err, "relabel failed %q", m.Source)
+				}
+
+			default:
+				options = append(options, o)
+			}
+		}
+		m.Options = options
+	}
+
+	g.SetProcessSelinuxLabel(c.ProcessLabel())
+	g.SetLinuxMountLabel(c.MountLabel())
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
 
