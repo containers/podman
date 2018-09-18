@@ -4,12 +4,18 @@ package libpod
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/rootless"
@@ -306,4 +312,156 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	}
 
 	return nil
+}
+
+func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
+
+	if c.state.State != ContainerStateRunning {
+		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
+	}
+	if err := c.runtime.ociRuntime.checkpointContainer(c); err != nil {
+		return err
+	}
+
+	// Save network.status. This is needed to restore the container with
+	// the same IP. Currently limited to one IP address in a container
+	// with one interface.
+	formatJSON, err := json.MarshalIndent(c.state.NetworkStatus, "", "	")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join(c.bundlePath(), "network.status"), formatJSON, 0644); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Checkpointed container %s", c.ID())
+
+	c.state.State = ContainerStateStopped
+
+	// Cleanup Storage and Network
+	if err := c.cleanup(ctx); err != nil {
+		return err
+	}
+
+	if !keep {
+		// Remove log file
+		os.Remove(filepath.Join(c.bundlePath(), "dump.log"))
+		// Remove statistic file
+		os.Remove(filepath.Join(c.bundlePath(), "stats-dump"))
+	}
+
+	return c.save()
+}
+
+func (c *Container) restore(ctx context.Context, keep bool) (err error) {
+
+	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
+	}
+
+	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
+	// no sense to try a restore. This is a minimal check if a checkpoint exist.
+	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
+		return errors.Wrapf(err, "A complete checkpoint for this container cannot be found, cannot restore")
+	}
+
+	// Read network configuration from checkpoint
+	// Currently only one interface with one IP is supported.
+	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
+	if err == nil {
+		// The file with the network.status does exist. Let's restore the
+		// container with the same IP address as during checkpointing.
+		defer networkStatusFile.Close()
+		var networkStatus []*cnitypes.Result
+		networkJSON, err := ioutil.ReadAll(networkStatusFile)
+		if err != nil {
+			return err
+		}
+		json.Unmarshal(networkJSON, &networkStatus)
+		// Take the first IP address
+		var IP net.IP
+		if len(networkStatus) > 0 {
+			if len(networkStatus[0].IPs) > 0 {
+				IP = networkStatus[0].IPs[0].Address.IP
+			}
+		}
+		if IP != nil {
+			env := fmt.Sprintf("IP=%s", IP)
+			// Tell CNI which IP address we want.
+			os.Setenv("CNI_ARGS", env)
+			logrus.Debugf("Restoring container with %s", env)
+		}
+	}
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	// TODO: use existing way to request static IPs, once it is merged in ocicni
+	// https://github.com/cri-o/ocicni/pull/23/
+
+	// CNI_ARGS was used to request a certain IP address. Unconditionally remove it.
+	os.Unsetenv("CNI_ARGS")
+
+	// Read config
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	logrus.Debugf("generate.NewFromFile at %v", jsonPath)
+	g, err := generate.NewFromFile(jsonPath)
+	if err != nil {
+		logrus.Debugf("generate.NewFromFile failed with %v", err)
+		return err
+	}
+
+	// We want to have the same network namespace as before.
+	if c.config.CreateNetNS {
+		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+	}
+
+	// Save the OCI spec to disk
+	if err := c.saveSpec(g.Spec()); err != nil {
+		return err
+	}
+
+	if err := c.makeBindMounts(); err != nil {
+		return err
+	}
+
+	// Cleanup for a working restore.
+	c.removeConmonFiles()
+
+	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, true); err != nil {
+		return err
+	}
+
+	logrus.Debugf("Restored container %s", c.ID())
+
+	c.state.State = ContainerStateRunning
+
+	if !keep {
+		// Delete all checkpoint related files. At this point, in theory, all files
+		// should exist. Still ignoring errors for now as the container should be
+		// restored and running. Not erroring out just because some cleanup operation
+		// failed. Starting with the checkpoint directory
+		err = os.RemoveAll(c.CheckpointPath())
+		if err != nil {
+			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
+		}
+		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status"}
+		for _, delete := range cleanup {
+			file := filepath.Join(c.bundlePath(), delete)
+			err = os.Remove(file)
+			if err != nil {
+				logrus.Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
+			}
+		}
+	}
+
+	return c.save()
 }

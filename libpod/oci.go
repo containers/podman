@@ -227,7 +227,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	return files, nil
 }
 
-func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (err error) {
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreContainer bool) (err error) {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := GetRootlessRuntimeDir()
@@ -287,6 +287,10 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 	if logLevel == logrus.DebugLevel {
 		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
 		args = append(args, "--syslog")
+	}
+
+	if restoreContainer {
+		args = append(args, "--restore", ctr.CheckpointPath())
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -765,4 +769,16 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 	}
 
 	return nil
+}
+
+// checkpointContainer checkpoints the given container
+func (r *OCIRuntime) checkpointContainer(ctr *Container) error {
+	// imagePath is used by CRIU to store the actual checkpoint files
+	imagePath := ctr.CheckpointPath()
+	// workPath will be used to store dump.log and stats-dump
+	workPath := ctr.bundlePath()
+	logrus.Debugf("Writing checkpoint to %s", imagePath)
+	logrus.Debugf("Writing checkpoint logs to %s", workPath)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "checkpoint",
+		"--image-path", imagePath, "--work-path", workPath, ctr.ID())
 }

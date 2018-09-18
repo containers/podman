@@ -15,7 +15,7 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	return nil, nil, ErrNotImplemented
 }
 
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreContainer bool) (err error) {
 	return ErrNotImplemented
 }
 

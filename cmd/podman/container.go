@@ -7,6 +7,7 @@ import (
 var (
 	subCommands = []cli.Command{
 		attachCommand,
+		checkpointCommand,
 		cleanupCommand,
 		commitCommand,
 		createCommand,
@@ -23,6 +24,7 @@ var (
 		//		pruneCommand,
 		refreshCommand,
 		restartCommand,
+		restoreCommand,
 		rmCommand,
 		runCommand,
 		runlabelCommand,
