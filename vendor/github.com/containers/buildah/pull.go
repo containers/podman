@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
 	tarfile "github.com/containers/image/docker/tarfile"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 

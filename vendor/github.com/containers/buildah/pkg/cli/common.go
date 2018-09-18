@@ -9,10 +9,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/util"
 	"github.com/urfave/cli"
 )
 

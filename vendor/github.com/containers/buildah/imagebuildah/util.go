@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/sirupsen/logrus"
 )
 

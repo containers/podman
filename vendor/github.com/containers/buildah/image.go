@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/buildah/docker"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/manifest"
@@ -23,7 +24,6 @@ import (
 	specs "github.com/opencontainers/image-spec/specs-go"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/docker"
 	"github.com/sirupsen/logrus"
 )
 

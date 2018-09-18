@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/util"
 	is "github.com/containers/image/storage"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 

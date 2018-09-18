@@ -1,8 +1,8 @@
 package bind
 
 import (
+	"github.com/containers/buildah/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/projectatomic/buildah/util"
 )
 
 const (

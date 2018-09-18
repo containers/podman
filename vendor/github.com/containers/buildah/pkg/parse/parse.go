@@ -15,12 +15,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/containers/buildah"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"

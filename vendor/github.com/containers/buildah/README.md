@@ -1,9 +1,9 @@
-![buildah logo](https://cdn.rawgit.com/projectatomic/buildah/master/logos/buildah-logo_large.png)
+![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
 
 # [Buildah](https://www.youtube.com/embed/YVk5NgSiUw8) - a tool that facilitates building [Open Container Initiative (OCI)](https://www.opencontainers.org/) container images
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/projectatomic/buildah)](https://goreportcard.com/report/github.com/projectatomic/buildah)
-[![Travis](https://travis-ci.org/projectatomic/buildah.svg?branch=master)](https://travis-ci.org/projectatomic/buildah)
+[![Go Report Card](https://goreportcard.com/badge/github.com/containers/buildah)](https://goreportcard.com/report/github.com/containers/buildah)
+[![Travis](https://travis-ci.org/containers/buildah.svg?branch=master)](https://travis-ci.org/containers/buildah)
 
 The Buildah package provides a command line tool that can be used to
 * create a working container, either from scratch or using an image as a starting point
@@ -35,7 +35,7 @@ The Buildah package provides a command line tool that can be used to
 
 Buildah and Podman are two complementary Open-source projects that are available on
 most Linux platforms and both projects reside at [GitHub.com](https://github.com)
-with Buildah [here](https://github.com/projectatomic/buildah) and
+with Buildah [here](https://github.com/containers/buildah) and
 Podman [here](https://github.com/containers/libpod).  Both Buildah and Podman are
 command line tools that work on OCI images and containers.  The two projects
 differentiate in their specialization.
@@ -61,7 +61,7 @@ storage differences, you can not see Podman containers from within Buildah or vi
 In short Buildah is an efficient way to create OCI images  while Podman allows
 you to manage and maintain those images and containers in a production environment using
 familiar container cli commands.  For more details, see the 
-[Container Tools Guide](https://github.com/projectatomic/buildah/tree/master/docs/containertools).
+[Container Tools Guide](https://github.com/containers/buildah/tree/master/docs/containertools).
 
 ## Example
 

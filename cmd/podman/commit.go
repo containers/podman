@@ -6,13 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/urfave/cli"
 )
 

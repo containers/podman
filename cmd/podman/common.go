@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
 	"github.com/urfave/cli"
 )
 
