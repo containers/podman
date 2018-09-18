@@ -123,7 +123,12 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 			return nil, nil, err
 		}
 		data, err = newImage.Inspect(ctx)
-		imageName = newImage.Names()[0]
+		names := newImage.Names()
+		if len(names) > 0 {
+			imageName = names[0]
+		} else {
+			imageName = newImage.ID()
+		}
 	}
 	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
