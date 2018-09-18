@@ -67,6 +67,7 @@ type OCIRuntime struct {
 	logSizeMax    int64
 	noPivot       bool
 	reservePorts  bool
+	enableSELinux bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -76,7 +77,7 @@ type syncInfo struct {
 }
 
 // Make a new OCI runtime with provided options
-func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
+func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool, enableSELinux bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
 	runtime.name = name
 	runtime.path = path
@@ -87,6 +88,7 @@ func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []stri
 	runtime.logSizeMax = logSizeMax
 	runtime.noPivot = noPivotRoot
 	runtime.reservePorts = reservePorts
+	runtime.enableSELinux = enableSELinux
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
@@ -342,7 +344,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string) (er
 		fds := activation.Files(false)
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
 	}
-	if selinux.GetEnabled() {
+	if r.enableSELinux && selinux.GetEnabled() {
 		// Set the label of the conmon process to be level :s0
 		// This will allow the container processes to talk to fifo-files
 		// passed into the container by conmon

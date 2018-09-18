@@ -244,7 +244,7 @@ func loadAppArmor(config *cc.CreateConfig) error {
 	return nil
 }
 
-func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
+func parseSecurityOpt(config *cc.CreateConfig, enableSELinux bool, securityOpts []string) error {
 	var (
 		labelOpts []string
 		err       error
@@ -312,7 +312,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 			}
 		}
 	}
-	config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
+
+	if enableSELinux {
+		config.ProcessLabel, config.MountLabel, err = label.InitLabels(labelOpts)
+	}
+
 	return err
 }
 
@@ -782,7 +786,8 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 
 	if !config.Privileged {
-		if err := parseSecurityOpt(config, c.StringSlice("security-opt")); err != nil {
+		rtc := runtime.GetConfig()
+		if err := parseSecurityOpt(config, rtc.EnableSELinux, c.StringSlice("security-opt")); err != nil {
 			return nil, err
 		}
 	}

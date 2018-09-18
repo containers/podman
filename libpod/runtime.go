@@ -172,6 +172,8 @@ type RuntimeConfig struct {
 	// However, this can cause significant memory usage if a container has
 	// many ports forwarded to it. Disabling this can save memory.
 	EnablePortReservation bool `toml:"enable_port_reservation"`
+	// EnableSELinux sets whether to use SELinux for labeling container processes
+	EnableSELinux bool `toml:"enable_selinux"`
 }
 
 var (
@@ -209,6 +211,7 @@ var (
 		InfraCommand:          DefaultInfraCommand,
 		InfraImage:            DefaultInfraImage,
 		EnablePortReservation: true,
+		EnableSELinux:         true,
 	}
 )
 
@@ -477,7 +480,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
-		runtime.config.EnablePortReservation)
+		runtime.config.EnablePortReservation, runtime.config.EnableSELinux)
 	if err != nil {
 		return err
 	}
