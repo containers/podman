@@ -27,3 +27,5 @@ RUN dnf -y install btrfs-progs-devel \
               golang-github-cpuguy83-go-md2man \
               slirp4netns \
               iptables && dnf -y clean all
+
+ENV GOPATH=/go
