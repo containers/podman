@@ -28,6 +28,16 @@ func (n UsernsMode) Valid() bool {
 	return true
 }
 
+// IsContainer indicates whether container uses a container userns.
+func (n UsernsMode) IsContainer() bool {
+	return false
+}
+
+// Container is the id of the container which network this container is connected to.
+func (n UsernsMode) Container() string {
+	return ""
+}
+
 // UTSMode represents the UTS namespace of the container.
 type UTSMode string
 
@@ -191,8 +201,8 @@ func (n NetworkMode) IsContainer() bool {
 	return len(parts) > 1 && parts[0] == "container"
 }
 
-// ConnectedContainer is the id of the container which network this container is connected to.
-func (n NetworkMode) ConnectedContainer() string {
+// Container is the id of the container which network this container is connected to.
+func (n NetworkMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
 	if len(parts) > 1 {
 		return parts[1]
