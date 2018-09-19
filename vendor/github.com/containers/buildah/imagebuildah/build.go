@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -28,8 +30,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 

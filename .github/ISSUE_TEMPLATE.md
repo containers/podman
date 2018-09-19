@@ -13,7 +13,7 @@ update your version of Podman to the latest possible and retry your command befo
 an issue.
 
 If you are filing a bug against `podman build`, please instead file a bug
-against Buildah (https://github.com/projectatomic/buildah/issues). Podman build
+against Buildah (https://github.com/containers/buildah/issues). Podman build
 executes Buildah to perform container builds, and as such the Buildah
 maintainers are best equipped to handle these bugs.
 -->

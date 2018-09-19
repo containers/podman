@@ -1,13 +1,13 @@
 package main
 
 import (
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/imagebuildah"
+	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/imagebuildah"
-	buildahcli "github.com/projectatomic/buildah/pkg/cli"
-	"github.com/projectatomic/buildah/pkg/parse"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -50,7 +50,7 @@ func getDockerfiles(files []string) []string {
 }
 
 func buildCmd(c *cli.Context) error {
-	// The following was taken directly from projectatomic/buildah/cmd/bud.go
+	// The following was taken directly from containers/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
 
 	output := ""

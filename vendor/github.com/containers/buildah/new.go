@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/buildah/util"
 	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -17,7 +18,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 

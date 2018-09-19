@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 )
 

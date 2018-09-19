@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/docker"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/stringid"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/docker"
 	"github.com/sirupsen/logrus"
 )
 

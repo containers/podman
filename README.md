@@ -30,7 +30,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 - Images: Image management using [containers/image](https://github.com/containers/image)
 - Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
-- Builds: Builds are supported via [Buildah](https://github.com/projectatomic/buildah).
+- Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
 - Conmon: [Conmon](https://github.com/kubernetes-sigs/cri-o) is a tool for monitoring OCI runtimes. It is part of the CRI-O package
 
 ## Podman Information for Developers
@@ -78,7 +78,7 @@ Information about contributing to this project.
 
 Buildah and Podman are two complementary Open-source projects that are available on
 most Linux platforms and both projects reside at [GitHub.com](https://github.com)
-with Buildah [here](https://github.com/projectatomic/buildah) and
+with Buildah [here](https://github.com/containers/buildah) and
 Podman [here](https://github.com/containers/libpod).  Both Buildah and Podman are
 command line tools that work on OCI images and containers.  The two projects
 differentiate in their specialization.
@@ -104,4 +104,4 @@ storage differences, you can not see Podman containers from within Buildah or vi
 In short Buildah is an efficient way to create OCI images  while Podman allows
 you to manage and maintain those images and containers in a production environment using
 familiar container cli commands.  For more details, see the
-[Container Tools Guide](https://github.com/projectatomic/buildah/tree/master/docs/containertools).
+[Container Tools Guide](https://github.com/containers/buildah/tree/master/docs/containertools).

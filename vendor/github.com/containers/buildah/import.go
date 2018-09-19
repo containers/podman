@@ -3,13 +3,13 @@ package buildah
 import (
 	"context"
 
+	"github.com/containers/buildah/docker"
+	"github.com/containers/buildah/util"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/docker"
-	"github.com/projectatomic/buildah/util"
 )
 
 func importBuilderDataFromImage(ctx context.Context, store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {

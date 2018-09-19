@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/util"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
