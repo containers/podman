@@ -107,7 +107,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			Type:        "bind",
 			Source:      srcPath,
 			Destination: dstPath,
-			Options:     []string{"rw", "bind", "private"},
+			Options:     []string{"bind", "private"},
+		}
+		if c.IsReadOnly() {
+			newMount.Options = append(newMount.Options, "ro")
 		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)

@@ -970,3 +970,8 @@ func (c *Container) RootGID() int {
 func (c *Container) IsInfra() bool {
 	return c.config.IsInfra
 }
+
+// IsReadOnly returns whether the container is running in read only mode
+func (c *Container) IsReadOnly() bool {
+	return c.config.Spec.Root.Readonly
+}
