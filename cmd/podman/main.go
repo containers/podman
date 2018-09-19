@@ -147,6 +147,8 @@ func main() {
 			if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
 				return errors.Wrapf(err, "error setting new rlimits")
 			}
+		} else {
+			logrus.Info("running as rootless")
 		}
 
 		if logLevel == "debug" {
