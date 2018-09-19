@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	gosignal "os/signal"
 	"os/user"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -252,7 +251,7 @@ func readUserNs(path string) (string, error) {
 }
 
 func readUserNsFd(fd uintptr) (string, error) {
-	return readUserNs(filepath.Join("/proc/self/fd", fmt.Sprintf("%d", fd)))
+	return readUserNs(fmt.Sprintf("/proc/self/fd/%d", fd))
 }
 
 func getOwner(fd uintptr) (uintptr, error) {
@@ -288,7 +287,7 @@ func getUserNSForPath(path string) (*os.File, error) {
 }
 
 func getUserNSForPid(pid uint) (*os.File, error) {
-	path := filepath.Join("/proc", fmt.Sprintf("%d", pid), "ns/user")
+	path := fmt.Sprintf("/proc/%d/ns/user", pid)
 	u, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", path)
