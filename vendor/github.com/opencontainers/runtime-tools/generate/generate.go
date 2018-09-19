@@ -162,7 +162,7 @@ func New(os string) (generator Generator, err error) {
 				Destination: "/proc",
 				Type:        "proc",
 				Source:      "proc",
-				Options:     nil,
+				Options:     []string{"nosuid", "noexec", "nodev"},
 			},
 			{
 				Destination: "/dev",
