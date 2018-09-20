@@ -25,6 +25,7 @@ RUN dnf -y install btrfs-progs-devel \
               python3-pytoml \
               python3-varlink \
               golang-github-cpuguy83-go-md2man \
+              rpm-build \
               slirp4netns \
               iptables && dnf -y clean all
 
