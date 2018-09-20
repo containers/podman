@@ -39,6 +39,7 @@ var _ = Describe("Podman rootless", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanCreate(tempdir)
+		podmanTest.CgroupManager = "cgroupfs"
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -90,6 +91,7 @@ var _ = Describe("Podman rootless", func() {
 		tempdir, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 		rootlessTest := PodmanCreate(tempdir)
+		rootlessTest.CgroupManager = "cgroupfs"
 		err = filepath.Walk(tempdir, chownFunc)
 		Expect(err).To(BeNil())
 
