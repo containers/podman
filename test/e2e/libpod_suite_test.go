@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -64,6 +65,7 @@ type PodmanTest struct {
 	TempDir             string
 	CgroupManager       string
 	Host                HostOS
+	CriuBinary          string
 }
 
 // HostOS is a simple struct for the test os
@@ -164,6 +166,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 		runCBinary = "/usr/bin/runc"
 	}
 
+	criuBinary := "/usr/sbin/criu"
 	CNIConfigDir := "/etc/cni/net.d"
 
 	p := PodmanTest{
@@ -179,6 +182,7 @@ func PodmanCreate(tempDir string) PodmanTest {
 		TempDir:             tempDir,
 		CgroupManager:       cgroupManager,
 		Host:                host,
+		CriuBinary:          criuBinary,
 	}
 
 	// Setup registries.conf ENV variable
@@ -676,6 +680,39 @@ func (p *PodmanTest) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
 	os.Setenv("REGISTRIES_CONFIG_PATH", outfile)
 	ioutil.WriteFile(outfile, b, 0644)
+}
+
+func (p *PodmanTest) isCriuAtLeast(version int) (bool, error) {
+	cmd := exec.Command(p.CriuBinary, "-V")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, err
+	}
+
+	var x int
+	var y int
+	var z int
+
+	fmt.Sscanf(out.String(), "Version: %d.%d.%d", &x, &y, &z)
+
+	if strings.Contains(out.String(), "GitID") {
+		// If CRIU is built from git it contains a git ID.
+		// If that is the case, increase minor by one as this
+		// could mean we are running a development version.
+		y = y + 1
+	}
+
+	parsed_version := x*10000 + y*100 + z
+
+	fmt.Println(parsed_version)
+
+	if parsed_version >= version {
+		return false, nil
+	} else {
+		return true, nil
+	}
 }
 
 func resetRegistriesConfigEnv() {
