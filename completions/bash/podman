@@ -87,6 +87,10 @@ __podman_complete_containers_all() {
 	__podman_complete_containers "$@" --all
 }
 
+__podman_complete_containers_created() {
+	__podman_complete_containers "$@" --all --filter status=created
+}
+
 __podman_complete_containers_running() {
 	__podman_complete_containers "$@" --filter status=running
 }
@@ -710,6 +714,24 @@ _podman_container_attach() {
      _podman_attach
 }
 
+_podman_container_checkpoint() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options="
+     --keep
+     -k
+     "
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_running
+            ;;
+     esac
+}
+
 _podman_container_commit() {
      _podman_commit
 }
@@ -770,6 +792,24 @@ _podman_container_restart() {
      _podman_restart
 }
 
+_podman_container_restore() {
+     local options_with_args="
+     --help -h
+     "
+     local boolean_options="
+     --keep
+     -k
+     "
+     case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_created
+            ;;
+     esac
+}
+
 _podman_container_rm() {
      _podman_rm
 }
@@ -817,6 +857,7 @@ _podman_container() {
 	"
      subcommands="
 	 attach
+	 checkpoint
 	 commit
 	 create
 	 diff
@@ -831,6 +872,7 @@ _podman_container() {
 	 port
 	 refresh
 	 restart
+	 restore
 	 rm
 	 run
 	 start
