@@ -172,6 +172,8 @@ type RuntimeConfig struct {
 	// However, this can cause significant memory usage if a container has
 	// many ports forwarded to it. Disabling this can save memory.
 	EnablePortReservation bool `toml:"enable_port_reservation"`
+	// EnableLabeling indicates wether libpod will support container labeling
+	EnableLabeling bool `toml:"label"`
 }
 
 var (
@@ -209,6 +211,7 @@ var (
 		InfraCommand:          DefaultInfraCommand,
 		InfraImage:            DefaultInfraImage,
 		EnablePortReservation: true,
+		EnableLabeling:        true,
 	}
 )
 

@@ -373,15 +373,17 @@ func WithPrivileged(privileged bool) CtrCreateOption {
 	}
 }
 
-// WithSELinuxLabels sets the mount label for SELinux.
-func WithSELinuxLabels(processLabel, mountLabel string) CtrCreateOption {
+// WithSecLabels sets the labels for SELinux.
+func WithSecLabels(labelOpts []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-
-		ctr.config.ProcessLabel = processLabel
-		ctr.config.MountLabel = mountLabel
+		var err error
+		ctr.config.ProcessLabel, ctr.config.MountLabel, err = ctr.runtime.initLabels(labelOpts)
+		if err != nil {
+			return errors.Wrapf(err, "failed to init labels")
+		}
 		return nil
 	}
 }
