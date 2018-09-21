@@ -30,8 +30,8 @@ class Port(AbstractActionBase):
     def __init__(self, args):
         """Construct Port class."""
         if not args.all and not args.containers:
-            ValueError('You must supply at least one'
-                       ' container id or name, or --all.')
+            raise ValueError('You must supply at least one'
+                             ' container id or name, or --all.')
         super().__init__(args)
 
     def port(self):

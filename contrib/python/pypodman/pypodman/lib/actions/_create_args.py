@@ -1,4 +1,5 @@
 """Implement common create container arguments together."""
+
 from pypodman.lib import BooleanAction, UnitAction
 
 
@@ -14,13 +15,13 @@ class CreateArguments():
             metavar='HOST',
             help='Add a line to /etc/hosts.'
             ' The option can be set multiple times.'
-            ' (Format: hostname:ip)')
+            ' (format: hostname:ip)')
         parser.add_argument(
             '--annotation',
             action='append',
             help='Add an annotation to the container.'
             'The option can be set multiple times.'
-            '(Format: key=value)')
+            '(format: key=value)')
         parser.add_argument(
             '--attach',
             '-a',
@@ -28,7 +29,6 @@ class CreateArguments():
             metavar='FD',
             help=('Attach to STDIN, STDOUT or STDERR. The option can be set'
                   ' for each of stdin, stdout, and stderr.'))
-
         parser.add_argument(
             '--blkio-weight',
             choices=range(10, 1000),
@@ -40,7 +40,7 @@ class CreateArguments():
             action='append',
             metavar='WEIGHT',
             help='Block IO weight, relative device weight.'
-            ' (Format: DEVICE_NAME:WEIGHT)')
+            ' (format: DEVICE_NAME:WEIGHT)')
         parser.add_argument(
             '--cap-add',
             action='append',
@@ -114,13 +114,13 @@ class CreateArguments():
             action=BooleanAction,
             default=False,
             help='Detached mode: run the container in the background and'
-            ' print the new container ID. (Default: False)')
+            ' print the new container ID. (default: False)')
         parser.add_argument(
             '--detach-keys',
             metavar='KEY(s)',
             default=4,
             help='Override the key sequence for detaching a container.'
-            ' (Format: a single character [a-Z] or ctrl-<value> where'
+            ' (format: a single character [a-Z] or ctrl-<value> where'
             ' <value> is one of: a-z, @, ^, [, , or _)')
         parser.add_argument(
             '--device',
@@ -198,6 +198,7 @@ class CreateArguments():
         )
         parser.add_argument(
             '--expose',
+            action='append',
             metavar='RANGE',
             help=('Expose a port, or a range of ports'
                   ' (e.g. --expose=3300-3310) to set up port redirection.'),
@@ -205,6 +206,7 @@ class CreateArguments():
         parser.add_argument(
             '--gidmap',
             metavar='MAP',
+            action='append',
             help=('GID map for the user namespace'),
         )
         parser.add_argument(
@@ -214,38 +216,41 @@ class CreateArguments():
             help=('Add additional groups to run as'))
         parser.add_argument('--hostname', help='Container host name')
 
+        # only way for argparse to handle these options.
+        vol_args = {
+            'choices': ['bind', 'tmpfs', 'ignore'],
+            'metavar': 'MODE',
+            'type': str.lower,
+            'help': 'Tells podman how to handle the builtin image volumes',
+        }
+
         volume_group = parser.add_mutually_exclusive_group()
-        volume_group.add_argument(
-            '--image-volume',
-            choices=['bind', 'tmpfs', 'ignore'],
-            metavar='MODE',
-            help='Tells podman how to handle the builtin image volumes')
-        volume_group.add_argument(
-            '--builtin-volume',
-            choices=['bind', 'tmpfs', 'ignore'],
-            metavar='MODE',
-            help='Tells podman how to handle the builtin image volumes')
+        volume_group.add_argument('--image-volume', **vol_args)
+        volume_group.add_argument('--builtin-volume', **vol_args)
 
         parser.add_argument(
             '--interactive',
             '-i',
             action=BooleanAction,
             default=False,
-            help='Keep STDIN open even if not attached. (Default: False)')
+            help='Keep STDIN open even if not attached. (default: False)')
         parser.add_argument('--ipc', help='Create namespace')
         parser.add_argument(
             '--kernel-memory', action=UnitAction, help='Kernel memory limit')
         parser.add_argument(
             '--label',
             '-l',
+            action='append',
             help=('Add metadata to a container'
                   ' (e.g., --label com.example.key=value)'))
         parser.add_argument(
             '--label-file', help='Read in a line delimited file of labels')
         parser.add_argument(
             '--log-driver',
-            choices=['json-file', 'journald'],
-            help='Logging driver for the container.')
+            choices='json-file',
+            metavar='json-file',
+            default='json-file',
+            help='Logging driver for the container. (default: %(default)s)')
         parser.add_argument(
             '--log-opt',
             action='append',
@@ -269,8 +274,10 @@ class CreateArguments():
         parser.add_argument('--name', help='Assign a name to the container')
         parser.add_argument(
             '--network',
+            '--net',
             metavar='BRIDGE',
-            help=('Set the Network mode for the container.'))
+            help='Set the Network mode for the container.'
+            ' (format: bridge, host, container:UUID, ns:PATH, none)')
         parser.add_argument(
             '--oom-kill-disable',
             action=BooleanAction,
@@ -280,7 +287,10 @@ class CreateArguments():
             choices=range(-1000, 1000),
             metavar='[-1000-1000]',
             help="Tune the host's OOM preferences for containers")
-        parser.add_argument('--pid', help='Set the PID mode for the container')
+        parser.add_argument(
+            '--pid',
+            help='Set the PID Namespace mode for the container.'
+            '(format: host, container:UUID, ns:PATH)')
         parser.add_argument(
             '--pids-limit',
             type=int,
@@ -303,7 +313,7 @@ class CreateArguments():
             action=BooleanAction,
             help='Publish all exposed ports to random'
             ' ports on the host interfaces'
-            '(Default: False)')
+            '(default: False)')
         parser.add_argument(
             '--quiet',
             '-q',
@@ -359,7 +369,11 @@ class CreateArguments():
             action='append',
             help='Configure namespaced kernel parameters at runtime')
         parser.add_argument(
-            '--tmpfs', metavar='MOUNT', help='Create a tmpfs mount')
+            '--tmpfs',
+            action='append',
+            metavar='MOUNT',
+            help='Create a tmpfs mount.'
+            ' (default: rw,noexec,nosuid,nodev,size=65536k.)')
         parser.add_argument(
             '--tty',
             '-t',
@@ -367,8 +381,16 @@ class CreateArguments():
             default=False,
             help='Allocate a pseudo-TTY for standard input of container.')
         parser.add_argument(
-            '--uidmap', metavar='MAP', help='UID map for the user namespace')
-        parser.add_argument('--ulimit', metavar='OPT', help='Ulimit options')
+            '--uidmap',
+            action='append',
+            metavar='MAP',
+            help='UID map for the user namespace')
+        parser.add_argument(
+            '--ulimit',
+            action='append',
+            metavar='OPT',
+            help='Ulimit options',
+        )
         parser.add_argument(
             '--user',
             '-u',
@@ -376,8 +398,8 @@ class CreateArguments():
                   ' the groupname or GID for the specified command.'))
         parser.add_argument(
             '--userns',
-            choices=['host', 'ns'],
-            help='Set the usernamespace mode for the container')
+            metavar='NAMESPACE',
+            help='Set the user namespace mode for the container')
         parser.add_argument(
             '--uts',
             choices=['host', 'ns'],
