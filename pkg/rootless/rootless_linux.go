@@ -11,12 +11,14 @@ import (
 	"os/user"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 /*
@@ -136,6 +138,22 @@ func JoinNSPath(path string) (bool, int, error) {
 	return true, int(ret), nil
 }
 
+const defaultMinimumMappings = 65536
+
+func getMinimumIDs(p string) int {
+	content, err := ioutil.ReadFile(p)
+	if err != nil {
+		logrus.Debugf("error reading data from %q, use a default value of %d", p, defaultMinimumMappings)
+		return defaultMinimumMappings
+	}
+	ret, err := strconv.Atoi(strings.TrimSuffix(string(content), "\n"))
+	if err != nil {
+		logrus.Debugf("error reading data from %q, use a default value of %d", p, defaultMinimumMappings)
+		return defaultMinimumMappings
+	}
+	return ret + 1
+}
+
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
@@ -176,8 +194,28 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
-	if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
-		return false, -1, err
+	if os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+		if err != nil {
+			return false, -1, err
+		}
+
+		availableGIDs, availableUIDs := 0, 0
+		for _, i := range mappings.UIDs() {
+			availableUIDs += i.Size
+		}
+
+		minUIDs := getMinimumIDs("/proc/sys/kernel/overflowuid")
+		if availableUIDs < minUIDs {
+			return false, 0, fmt.Errorf("not enough UIDs available for the user, at least %d are needed", minUIDs)
+		}
+
+		for _, i := range mappings.GIDs() {
+			availableGIDs += i.Size
+		}
+		minGIDs := getMinimumIDs("/proc/sys/kernel/overflowgid")
+		if availableGIDs < minGIDs {
+			return false, 0, fmt.Errorf("not enough GIDs available for the user, at least %d are needed", minGIDs)
+		}
 	}
 	if err == nil {
 		uids = mappings.UIDs()
