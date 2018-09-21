@@ -50,6 +50,7 @@
 | [podman-rm(1)](/docs/podman-rm.1.md)                     | Removes one or more containers                                            |[![...](/docs/play.png)](https://asciinema.org/a/7EMk22WrfGtKWmgHJX9Nze1Qp)|
 | [podman-rmi(1)](/docs/podman-rmi.1.md)                   | Removes one or more images                                                |[![...](/docs/play.png)](https://asciinema.org/a/133799)|
 | [podman-run(1)](/docs/podman-run.1.md)                   | Run a command in a container                                              ||
+| [podman-runlabel(1)](/docs/podman-container-runlabel.1.md)                   | Executes the command of a container image's label                                              ||
 | [podman-save(1)](/docs/podman-save.1.md)                 | Saves an image to an archive                                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [podman-search(1)](/docs/podman-search.1.md)             | Search a registry for an image                                            ||
 | [podman-start(1)](/docs/podman-start.1.md)               | Starts one or more containers

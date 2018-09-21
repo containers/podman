@@ -744,6 +744,20 @@ func (i *Image) Labels(ctx context.Context) (map[string]string, error) {
 	return imgInspect.Labels, nil
 }
 
+// GetLabel Returns a case-insensitive match of a given label
+func (i *Image) GetLabel(ctx context.Context, label string) (string, error) {
+	imageLabels, err := i.Labels(ctx)
+	if err != nil {
+		return "", err
+	}
+	for k, v := range imageLabels {
+		if strings.ToLower(k) == strings.ToLower(label) {
+			return v, nil
+		}
+	}
+	return "", nil
+}
+
 // Annotations returns the annotations of an image
 func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 	manifest, manifestType, err := i.Manifest(ctx)
