@@ -418,7 +418,7 @@ __podman_complete_capabilities() {
 		KILL
 		LEASE
 		LINUX_IMMUTABLE
-		MAC_ADMIN
+		AC_ADMIN
 		MAC_OVERRIDE
 		MKNOD
 		NET_ADMIN
@@ -2324,6 +2324,50 @@ _podman_pod() {
      esac
 }
 
+_podman_install() {
+     local options_with_args="
+     --authfile
+     --creds
+     --cert-dir
+     --name
+     --opt1
+     --opt2
+     --opt3
+     --signature-policy
+     "
+     local boolean_options="
+     --display
+     -h
+     --help
+     -q
+     --quiet
+     --tls-verify
+     "
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
+
+_podman_uninstall() {
+     local options_with_args="
+     --name
+     -n
+     "
+     local boolean_options="
+     --help
+     -h
+     --display
+     --force
+     -f
+     "
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+    esac
+}
 _podman_podman() {
      local options_with_args="
            --config -c

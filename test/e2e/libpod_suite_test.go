@@ -31,7 +31,7 @@ var (
 	CGROUP_MANAGER     = "systemd"
 	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, infra}
+	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, infra, labels}
 	RESTORE_IMAGES     = []string{ALPINE, BB}
 	ALPINE             = "docker.io/library/alpine:latest"
 	BB                 = "docker.io/library/busybox:latest"
@@ -41,6 +41,7 @@ var (
 	redis              = "docker.io/library/redis:alpine"
 	registry           = "docker.io/library/registry:2"
 	infra              = "k8s.gcr.io/pause:3.1"
+	labels             = "quay.io/baude/alpine_labels:latest"
 	defaultWaitTimeout = 90
 )
 

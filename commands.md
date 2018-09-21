@@ -22,6 +22,7 @@
 | [podman-import(1)](/docs/podman-import.1.md)             | Import a tarball and save it as a filesystem image                        ||
 | [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                |[![...](/docs/play.png)](https://asciinema.org/a/yKbi5fQ89y5TJ8e1RfJd4ivTD)|
 | [podman-inspect(1)](/docs/podman-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
+| [podman-install(1)](/docs/podman-install.1.md)           | Execute the INSTALL label of a container image                         ||
 | [podman-kill(1)](/docs/podman-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
 | [podman-load(1)](/docs/podman-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [podman-login(1)](/docs/podman-login.1.md)               | Login to a container registry						   |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
@@ -58,6 +59,7 @@
 | [podman-tag(1)](/docs/podman-tag.1.md)                   | Add an additional name to a local image                                   |[![...](/docs/play.png)](https://asciinema.org/a/133803)|
 | [podman-top(1)](/docs/podman-top.1.md)                   | Display the running processes of a container              |[![...](/docs/play.png)](https://asciinema.org/a/5WCCi1LXwSuRbvaO9cBUYf3fk)|
 | [podman-umount(1)](/docs/podman-umount.1.md)             | Unmount a working container's root filesystem                             |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
+| [podman-uninstall(1)](/docs/podman-uninstall.1.md)       | Execute the UNINSTALL LABEL of a container image                          ||
 | [podman-unpause(1)](/docs/podman-unpause.1.md)           | Unpause one or more running containers                                    |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-varlink(1)](/docs/podman-varlink.1.md)           | Run the varlink backend                                           ||
 | [podman-version(1)](/docs/podman-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
