@@ -36,3 +36,9 @@ func SkipStorageSetup() bool {
 func JoinNS(pid uint) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
+
+// JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
+// specified path.
+func JoinNSPath(path string) (bool, int, error) {
+	return false, -1, errors.New("this function is not supported on this os")
+}

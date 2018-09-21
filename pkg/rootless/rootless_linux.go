@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	gosignal "os/signal"
 	"os/user"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -93,6 +92,32 @@ func JoinNS(pid uint) (bool, int, error) {
 	}
 
 	userNS, err := getUserNSForPid(pid)
+	if err != nil {
+		return false, -1, err
+	}
+	defer userNS.Close()
+
+	pidC := C.reexec_userns_join(C.int(userNS.Fd()))
+	if int(pidC) < 0 {
+		return false, -1, errors.Errorf("cannot re-exec process")
+	}
+
+	ret := C.reexec_in_user_namespace_wait(pidC)
+	if ret < 0 {
+		return false, -1, errors.New("error waiting for the re-exec process")
+	}
+
+	return true, int(ret), nil
+}
+
+// JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
+// specified path.
+func JoinNSPath(path string) (bool, int, error) {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+		return false, -1, nil
+	}
+
+	userNS, err := getUserNSForPath(path)
 	if err != nil {
 		return false, -1, err
 	}
@@ -226,7 +251,16 @@ func readUserNs(path string) (string, error) {
 }
 
 func readUserNsFd(fd uintptr) (string, error) {
-	return readUserNs(filepath.Join("/proc/self/fd", fmt.Sprintf("%d", fd)))
+	return readUserNs(fmt.Sprintf("/proc/self/fd/%d", fd))
+}
+
+func getOwner(fd uintptr) (uintptr, error) {
+	const nsGetUserns = 0xb701
+	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetUserns), 0)
+	if errno != 0 {
+		return 0, errno
+	}
+	return (uintptr)(unsafe.Pointer(ret)), nil
 }
 
 func getParentUserNs(fd uintptr) (uintptr, error) {
@@ -238,7 +272,31 @@ func getParentUserNs(fd uintptr) (uintptr, error) {
 	return (uintptr)(unsafe.Pointer(ret)), nil
 }
 
-// getUserNSForPid returns an open FD for the first direct child user namespace that created the process
+func getUserNSForPath(path string) (*os.File, error) {
+	u, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open %s", path)
+	}
+	defer u.Close()
+	fd, err := getOwner(u.Fd())
+	if err != nil {
+		return nil, err
+	}
+
+	return getUserNSFirstChild(fd)
+}
+
+func getUserNSForPid(pid uint) (*os.File, error) {
+	path := fmt.Sprintf("/proc/%d/ns/user", pid)
+	u, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open %s", path)
+	}
+
+	return getUserNSFirstChild(u.Fd())
+}
+
+// getUserNSFirstChild returns an open FD for the first direct child user namespace that created the process
 // Each container creates a new user namespace where the runtime runs.  The current process in the container
 // might have created new user namespaces that are child of the initial namespace we created.
 // This function finds the initial namespace created for the container that is a child of the current namespace.
@@ -250,19 +308,12 @@ func getParentUserNs(fd uintptr) (uintptr, error) {
 //                                    b
 //                                   /
 //        NS READ USING THE PID ->  c
-func getUserNSForPid(pid uint) (*os.File, error) {
+func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	currentNS, err := readUserNs("/proc/self/ns/user")
 	if err != nil {
 		return nil, err
 	}
 
-	path := filepath.Join("/proc", fmt.Sprintf("%d", pid), "ns/user")
-	u, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", path)
-	}
-
-	fd := u.Fd()
 	ns, err := readUserNsFd(fd)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot read user namespace")

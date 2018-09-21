@@ -802,6 +802,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	return config, nil
 }
 
+type namespace interface {
+	IsContainer() bool
+	Container() string
+}
+
 func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *libpod.Runtime) (bool, int, error) {
 	if os.Geteuid() == 0 {
 		return false, 0, nil
@@ -833,5 +838,26 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 		}
 	}
 
+	namespacesStr := []string{string(createConfig.IpcMode), string(createConfig.NetMode), string(createConfig.UsernsMode), string(createConfig.PidMode), string(createConfig.UtsMode)}
+	for _, i := range namespacesStr {
+		if cc.IsNS(i) {
+			return rootless.JoinNSPath(cc.NS(i))
+		}
+	}
+
+	namespaces := []namespace{createConfig.IpcMode, createConfig.NetMode, createConfig.UsernsMode, createConfig.PidMode, createConfig.UtsMode}
+	for _, i := range namespaces {
+		if i.IsContainer() {
+			ctr, err := runtime.LookupContainer(i.Container())
+			if err != nil {
+				return false, -1, err
+			}
+			pid, err := ctr.PID()
+			if err != nil {
+				return false, -1, err
+			}
+			return rootless.JoinNS(uint(pid))
+		}
+	}
 	return rootless.BecomeRootInUserNS()
 }
