@@ -115,7 +115,7 @@ func startCmd(c *cli.Context) error {
 				return errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
 
-			if ecode, err := ctr.Wait(libpod.WaitTimeout); err != nil {
+			if ecode, err := ctr.Wait(); err != nil {
 				logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
 			} else {
 				exitCode = int(ecode)
