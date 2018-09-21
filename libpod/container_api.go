@@ -648,6 +648,30 @@ func (c *Container) Cleanup() error {
 	return c.cleanup()
 }
 
+// Delete asks the OCI runtime to release this container resources
+// It also runs the post-stop hooks
+func (c *Container) Delete(ctx context.Context) error {
+       if !c.batched {
+               c.lock.Lock()
+               defer c.lock.Unlock()
+               if err := c.syncContainer(); err != nil {
+                       return err
+               }
+       }
+
+       // Check if state is good
+       if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+               return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to delete", c.ID())
+       }
+
+       // Check if we have active exec sessions
+       if len(c.state.ExecSessions) != 0 {
+               return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to delete", c.ID())
+       }
+
+       return c.delete(ctx)
+}
+
 // Batch starts a batch operation on the given container
 // All commands in the passed function will execute under the same lock and
 // without syncronyzing state after each operation

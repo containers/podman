@@ -136,6 +136,13 @@ func runCmd(c *cli.Context) error {
 		exitCode = int(ecode)
 	}
 
+	// Release container's resources and run post-stop hooks
+	if err := ctr.Delete(ctx); err != nil {
+		if errors.Cause(err) != libpod.ErrCtrStateInvalid {
+			return err
+		}
+	}
+
 	if createConfig.Rm {
 		return runtime.RemoveContainer(ctx, ctr, true)
 	}
