@@ -1,3 +1,37 @@
+- Changelog for v0.9.3 (2018-09-21)
+  * Update release notes for 0.9.3
+  * Add --mount option for `create` & `run` command
+  * Refactor Wait() to not require a timeout
+  * Updates from reviews
+  * Implement new subcommands
+  * Don't mount /dev/shm if the user told you --ipc=none
+  * rootless: error out if there are not enough UIDs/GIDs available
+  * Vendor in latest containers/buildah
+  * rootless: fix create with images not in the storage
+  * rootless: skip usage of filepath.Join
+  * create, rootless: join the userns of ns:PATH
+  * create, rootless: join the userns of container:CONTAINER
+  * spec: refactor ns modes to a common interface
+  * Don't output inodes created to run a container
+  * Add rpmbuild to the openshift fedora test image
+  * Add new field to libpod to indicate whether or not to use labelling
+  * Bind Mounts should be mounted read-only when in read-only mode
+  * test, rootless: enforce cgroupfs manager
+  * report when rootless
+  * add the gopath environment variable to the openshift dockerfile
+  * Vendor in latest opencontainers/runtime-tools
+  * Add python-varlink to the Fedora openshift image
+  * Add Dockerfile for openshift lint, gofmt, and validate testing
+  * Vendor in latest containers/buildah
+  * Don't crash if an image has no names
+  * Replace all usages of "install -D" with "install -d"
+  * Increase pidWaitTimeout to 1000ms
+  * Small updates to OCI spec generation
+  * Add new tests for ipc namespace sharing
+  * Hooks supports two directories, process default and override
+  * Bump gitvalidation epoch
+  * Bump to v0.9.3-dev
+
 - Changelog for v0.9.2.1 (2018-09-17)
   * Update release notes for 0.9.2.1
   * Vendor in latest projectatomic/buildah
