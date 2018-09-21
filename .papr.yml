@@ -17,6 +17,10 @@ tests:
 artifacts:
   - build.log
 
+packages:
+    - podman
+    - containernetworking-cni
+
 context: "FAH28"
 ---
 
