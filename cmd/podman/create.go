@@ -61,6 +61,10 @@ func createCmd(c *cli.Context) error {
 		return err
 	}
 
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
+
 	runtime, err := libpodruntime.GetContainerRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
