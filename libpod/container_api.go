@@ -593,13 +593,20 @@ func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
 	return c.getContainerInspectData(size, driverData)
 }
 
-// Wait blocks on a container to exit and returns its exit code
-func (c *Container) Wait(waitTimeout time.Duration) (int32, error) {
+// Wait blocks until the container exits and returns its exit code.
+func (c *Container) Wait() (int32, error) {
+	return c.WaitWithInterval(DefaultWaitInterval)
+}
+
+// WaitWithInterval blocks until the container to exit and returns its exit
+// code. The argument is the interval at which checks the container's status.
+func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, ErrCtrRemoved
 	}
-	err := wait.PollImmediateInfinite(waitTimeout*time.Millisecond,
+	err := wait.PollImmediateInfinite(waitTimeout,
 		func() (bool, error) {
+			logrus.Debugf("Checking container %s status...", c.ID())
 			stopped, err := c.isStopped()
 			if err != nil {
 				return false, err

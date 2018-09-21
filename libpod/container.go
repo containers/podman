@@ -36,8 +36,6 @@ const (
 	ContainerStateStopped ContainerStatus = iota
 	// ContainerStatePaused indicates that the container has been paused
 	ContainerStatePaused ContainerStatus = iota
-	// WaitTimeout is the wait timeout before checking for container exit
-	WaitTimeout = time.Second / time.Millisecond
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -46,6 +44,10 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
 // manager in libpod
 const SystemdDefaultCgroupParent = "machine.slice"
+
+// DefaultWaitInterval is the default interval between container status checks
+// while waiting.
+const DefaultWaitInterval = 250 * time.Millisecond
 
 // LinuxNS represents a Linux namespace
 type LinuxNS int

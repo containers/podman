@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -21,7 +20,7 @@ var (
 		cli.UintFlag{
 			Name:  "interval, i",
 			Usage: "Milliseconds to wait before polling for completion",
-			Value: uint(libpod.WaitTimeout),
+			Value: 250,
 		},
 		LatestFlag,
 	}
@@ -69,7 +68,7 @@ func waitCmd(c *cli.Context) error {
 		if c.Uint("interval") == 0 {
 			return errors.Errorf("interval must be greater then 0")
 		}
-		returnCode, err := ctr.Wait(time.Duration(c.Uint("interval")))
+		returnCode, err := ctr.WaitWithInterval(time.Duration(c.Uint("interval")) * time.Millisecond)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
