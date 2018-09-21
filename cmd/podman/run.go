@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -38,6 +39,9 @@ var runCommand = cli.Command{
 func runCmd(c *cli.Context) error {
 	if err := createInit(c); err != nil {
 		return err
+	}
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
 	}
 
 	runtime, err := libpodruntime.GetContainerRuntime(c)
