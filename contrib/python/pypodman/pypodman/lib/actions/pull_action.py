@@ -17,7 +17,7 @@ class Pull(AbstractActionBase):
         )
         parser.add_argument(
             'targets',
-            nargs='*',
+            nargs='+',
             help='image id(s) to retrieve.',
         )
         parser.set_defaults(class_=cls, method='pull')
@@ -25,9 +25,6 @@ class Pull(AbstractActionBase):
     def __init__(self, args):
         """Construct Pull class."""
         super().__init__(args)
-        if not args.targets:
-            raise ValueError('You must supply at least one container id'
-                             ' or name to be retrieved.')
 
     def pull(self):
         """Retrieve image."""

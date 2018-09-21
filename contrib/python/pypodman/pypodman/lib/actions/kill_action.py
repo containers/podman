@@ -19,7 +19,7 @@ class Kill(AbstractActionBase):
             choices=range(1, signal.NSIG),
             metavar='[1,{}]'.format(signal.NSIG),
             default=9,
-            help='Signal to send to the container. (Default: 9)')
+            help='Signal to send to the container. (default: 9)')
         parser.add_argument(
             'containers',
             nargs='+',

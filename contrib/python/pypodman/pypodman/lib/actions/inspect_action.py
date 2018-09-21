@@ -41,7 +41,7 @@ class Inspect(AbstractActionBase):
 
     def _get_container(self, ident):
         try:
-            logging.debug("Get container %s", ident)
+            logging.debug("Getting container %s", ident)
             ctnr = self.client.containers.get(ident)
         except podman.ContainerNotFound:
             pass
@@ -50,7 +50,7 @@ class Inspect(AbstractActionBase):
 
     def _get_image(self, ident):
         try:
-            logging.debug("Get image %s", ident)
+            logging.debug("Getting image %s", ident)
             img = self.client.images.get(ident)
         except podman.ImageNotFound:
             pass

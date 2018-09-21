@@ -18,15 +18,12 @@ class Rmi(AbstractActionBase):
             action='store_true',
             help=('force delete of image(s) and associated containers.'
                   ' (default: %(default)s)'))
-        parser.add_argument('targets', nargs='*', help='image id(s) to delete')
+        parser.add_argument('targets', nargs='+', help='image id(s) to delete')
         parser.set_defaults(class_=cls, method='remove')
 
     def __init__(self, args):
         """Construct Rmi class."""
         super().__init__(args)
-        if not args.targets:
-            raise ValueError('You must supply at least one image id'
-                             ' or name to be deleted.')
 
     def remove(self):
         """Remove image(s)."""

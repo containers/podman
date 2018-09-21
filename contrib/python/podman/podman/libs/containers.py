@@ -3,6 +3,7 @@ import collections
 import functools
 import getpass
 import json
+import logging
 import signal
 import time
 
@@ -32,17 +33,26 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
         """Get items from parent dict."""
         return super().__getitem__(key)
 
-    def _refresh(self, podman):
-        ctnr = podman.GetContainer(self._id)
-        super().update(ctnr['container'])
+    def _refresh(self, podman, tries=1):
+        try:
+            ctnr = podman.GetContainer(self._id)
+        except BrokenPipeError:
+            logging.debug('Failed GetContainer(%s) try %d/3', self._id, tries)
+            if tries > 3:
+                raise
+            else:
+                with self._client() as pman:
+                    self._refresh(pman, tries + 1)
+        else:
+            super().update(ctnr['container'])
 
-        for k, v in self.data.items():
-            setattr(self, k, v)
-        if 'containerrunning' in self.data:
-            setattr(self, 'running', self.data['containerrunning'])
-            self.data['running'] = self.data['containerrunning']
+            for k, v in self.data.items():
+                setattr(self, k, v)
+            if 'containerrunning' in self.data:
+                setattr(self, 'running', self.data['containerrunning'])
+                self.data['running'] = self.data['containerrunning']
 
-        return self
+            return self
 
     def refresh(self):
         """Refresh status fields for this container."""

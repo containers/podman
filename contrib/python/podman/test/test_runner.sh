@@ -97,11 +97,12 @@ EOT
 
 cat >$TMPDIR/ctnr/hello.sh <<-EOT
 echo 'Hello, World'
+exit 0
 EOT
 
 cat >$TMPDIR/ctnr/Dockerfile <<-EOT
 FROM alpine:latest
-COPY ./hello.sh /tmp/hello.sh
+COPY ./hello.sh /tmp/
 RUN chmod 755 /tmp/hello.sh
 ENTRYPOINT ["/tmp/hello.sh"]
 EOT

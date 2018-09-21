@@ -53,7 +53,7 @@ class Report():
         fmt = []
 
         for key in keys:
-            slice_ = [i.get(key, '') for i in iterable]
+            slice_ = [str(i.get(key, '')) for i in iterable]
             data_len = len(max(slice_, key=len))
 
             info = self._columns.get(key,
