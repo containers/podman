@@ -506,10 +506,19 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 				return nil, errors.Wrapf(err, "error relabeling directory %q for volume %q", volumePath, volume)
 			}
 			srcPath := filepath.Join(mountPoint, volume)
+			stat, err := os.Stat(srcPath)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+			}
+			if err = os.Chmod(volumePath, stat.Mode().Perm()); err != nil {
+				return nil, errors.Wrapf(err, "failed to chmod %q for volume %q", volumePath, volume)
+			}
+			if err = os.Chown(volumePath, int(stat.Sys().(*syscall.Stat_t).Uid), int(stat.Sys().(*syscall.Stat_t).Gid)); err != nil {
+				return nil, errors.Wrapf(err, "error chowning directory %q for volume %q", volumePath, volume)
+			}
 			if err = copyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
 				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
 			}
-
 		}
 		// Add the bind mount.
 		mounts = append(mounts, specs.Mount{
