@@ -121,7 +121,7 @@ func runCmd(c *cli.Context) error {
 		return err
 	}
 
-	if ecode, err := ctr.Wait(libpod.WaitTimeout); err != nil {
+	if ecode, err := ctr.Wait(); err != nil {
 		if errors.Cause(err) == libpod.ErrNoSuchCtr {
 			// The container may have been removed
 			// Go looking for an exit file
