@@ -122,6 +122,7 @@ type CreateConfig struct {
 	UsernsMode         namespaces.UsernsMode //userns
 	User               string                //user
 	UtsMode            namespaces.UTSMode    //uts
+	Mounts             []spec.Mount          //mounts
 	Volumes            []string              //volume
 	VolumesFrom        []string
 	WorkDir            string   //workdir
@@ -142,54 +143,59 @@ func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 	return c.createBlockIO()
 }
 
+func processOptions(options []string) []string {
+	var (
+		foundrw, foundro bool
+		rootProp         string
+	)
+	options = append(options, "rbind")
+	for _, opt := range options {
+		switch opt {
+		case "rw":
+			foundrw = true
+		case "ro":
+			foundro = true
+		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+			rootProp = opt
+		}
+	}
+	if !foundrw && !foundro {
+		options = append(options, "rw")
+	}
+	if rootProp == "" {
+		options = append(options, "rprivate")
+	}
+	return options
+}
+
+func (c *CreateConfig) initFSMounts() []spec.Mount {
+	var mounts []spec.Mount
+	for _, m := range c.Mounts {
+		m.Options = processOptions(m.Options)
+		if m.Type == "tmpfs" {
+			m.Options = append(m.Options, "tmpcopyup")
+		} else {
+			mounts = append(mounts, m)
+		}
+	}
+	return mounts
+}
+
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
 	var m []spec.Mount
 	for _, i := range c.Volumes {
-		var (
-			options                          []string
-			foundrw, foundro, foundz, foundZ bool
-			rootProp                         string
-		)
-
-		// We need to handle SELinux options better here, specifically :Z
+		var options []string
 		spliti := strings.Split(i, ":")
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
-		}
-		options = append(options, "rbind")
-		for _, opt := range options {
-			switch opt {
-			case "rw":
-				foundrw = true
-			case "ro":
-				foundro = true
-			case "z":
-				foundz = true
-			case "Z":
-				foundZ = true
-			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-				rootProp = opt
-			}
-		}
-		if !foundrw && !foundro {
-			options = append(options, "rw")
-		}
-		if foundz {
-			options = append(options, "z")
-		}
-		if foundZ {
-			options = append(options, "Z")
-		}
-		if rootProp == "" {
-			options = append(options, "rprivate")
 		}
 
 		m = append(m, spec.Mount{
 			Destination: spliti[1],
 			Type:        string(TypeBind),
 			Source:      spliti[0],
-			Options:     options,
+			Options:     processOptions(options),
 		})
 
 		logrus.Debugf("User mount %s:%s options %v", spliti[0], spliti[1], options)

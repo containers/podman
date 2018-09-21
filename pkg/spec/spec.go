@@ -18,6 +18,34 @@ import (
 
 const cpuPeriod = 100000
 
+func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
+	if len(mounts) > 0 {
+		// If we have overlappings mounts, remove them from the spec in favor of
+		// the user-added volume mounts
+		destinations := make(map[string]bool)
+		for _, mount := range mounts {
+			destinations[path.Clean(mount.Destination)] = true
+		}
+		// Copy all mounts from spec to defaultMounts, except for
+		//  - mounts overridden by a user supplied mount;
+		//  - all mounts under /dev if a user supplied /dev is present;
+		mountDev := destinations["/dev"]
+		for _, mount := range configMount {
+			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
+				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
+					// filter out everything under /dev if /dev is user-mounted
+					continue
+				}
+
+				logrus.Debugf("Adding mount %s", mount.Destination)
+				mounts = append(mounts, mount)
+			}
+		}
+		return mounts
+	}
+	return configMount
+}
+
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
 func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	cgroupPerm := "ro"
@@ -246,6 +274,12 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.AddMount(tmpfsMnt)
 	}
 
+	for _, m := range config.Mounts {
+		if m.Type == "tmpfs" {
+			g.AddMount(m)
+		}
+	}
+
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
@@ -305,36 +339,14 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
 	}
 
-	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
+	volumeMounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting volume mounts")
 	}
-	if len(mounts) > 0 {
-		// If we have overlappings mounts, remove them from the spec in favor of
-		// the user-added volume mounts
-		destinations := make(map[string]bool)
-		for _, mount := range mounts {
-			destinations[path.Clean(mount.Destination)] = true
-		}
 
-		// Copy all mounts from spec to defaultMounts, except for
-		//  - mounts overridden by a user supplied mount;
-		//  - all mounts under /dev if a user supplied /dev is present;
-		mountDev := destinations["/dev"]
-		for _, mount := range configSpec.Mounts {
-			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
-				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
-					// filter out everything under /dev if /dev is user-mounted
-					continue
-				}
-
-				logrus.Debugf("Adding mount %s", mount.Destination)
-				mounts = append(mounts, mount)
-			}
-		}
-		configSpec.Mounts = mounts
-	}
-
+	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
+	//--mount
+	configSpec.Mounts = supercedeUserMounts(config.initFSMounts(), configSpec.Mounts)
 	if canAddResources {
 		// BLOCK IO
 		blkio, err := config.CreateBlockIO()
