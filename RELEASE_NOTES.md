@@ -1,5 +1,20 @@
 # Release Notes
 
+## 0.9.3
+### Features
+- Added a flag to `libpod.conf`, `label`, to globally enable/disable SELinux labelling for libpod
+- Added `--mount` flag to `podman create` and `podman run` as a new, more explicit way of specifying volume mounts
+
+### Bugfixes
+- Fixed a crash during container creation when an image had no names
+- Fixed default rootfs mount propagation to for containers to match Docker
+- Fixed permissions of `/proc` in containers
+- Fixed permissions of some default bind mounts (for example, `/etc/hosts`) in read-only containers
+- Fixed `/dev/shm` in `--ipc=container` and `--ipc=host` containers to use the correct SHM
+- Fixed rootless Podman to properly join the namespaces of other containers
+- Fixed the output of `podman diff` to not display some default changes that will not be committed
+- Fixed rootless to better handle cases where insufficient UIDs/GIDs are mapped into the container
+
 ## 0.9.2.1
 ### Bugfixes
 - Updated Buildah dependency to fix several bugs in `podman build`
