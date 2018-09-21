@@ -418,6 +418,10 @@ var createFlags = []cli.Flag{
 		Usage: "UTS namespace to use",
 	},
 	cli.StringSliceFlag{
+		Name:  "mount",
+		Usage: "Attach a filesystem mount to the container (default [])",
+	},
+	cli.StringSliceFlag{
 		Name:  "volume, v",
 		Usage: "Bind mount a volume into the container (default [])",
 	},
