@@ -8,6 +8,8 @@ import (
 
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/docker/pkg/sysinfo"
+	"github.com/docker/go-units"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -72,6 +74,94 @@ func validateSysctl(strSlice []string) (map[string]string, error) {
 func addWarning(warnings []string, msg string) []string {
 	logrus.Warn(msg)
 	return append(warnings, msg)
+}
+
+// Format supported.
+// podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
+// podman run --mount type=tmpfs,target=/dev/shm ..
+func parseMounts(mounts []string) ([]spec.Mount, error) {
+	var mountList []spec.Mount
+	errInvalidSyntax := errors.Errorf("incorrect mount format : should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>,[options]")
+	for _, mount := range mounts {
+		var tokenCount int
+		var mountInfo spec.Mount
+
+		arr := strings.SplitN(mount, ",", 2)
+		if len(arr) < 2 {
+			return nil, errInvalidSyntax
+		}
+		kv := strings.Split(arr[0], "=")
+		if kv[0] != "type" {
+			return nil, errInvalidSyntax
+		}
+		switch kv[1] {
+		case "bind":
+			mountInfo.Type = string(cc.TypeBind)
+		case "tmpfs":
+			mountInfo.Type = string(cc.TypeTmpfs)
+			mountInfo.Source = string(cc.TypeTmpfs)
+			mountInfo.Options = append(mountInfo.Options, []string{"rprivate", "noexec", "nosuid", "nodev", "size=65536k"}...)
+
+		default:
+			return nil, errors.Errorf("invalid filesystem type %q", kv[1])
+		}
+
+		tokens := strings.Split(arr[1], ",")
+		for i, val := range tokens {
+			if i == (tokenCount - 1) {
+				//Parse tokens before options.
+				break
+			}
+			kv := strings.Split(val, "=")
+			switch kv[0] {
+			case "ro", "nosuid", "nodev", "noexec":
+				mountInfo.Options = append(mountInfo.Options, kv[0])
+			case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
+				if mountInfo.Type != "bind" {
+					return nil, errors.Errorf("%s can only be used with bind mounts", kv[0])
+				}
+				mountInfo.Options = append(mountInfo.Options, kv[0])
+			case "tmpfs-mode":
+				if mountInfo.Type != "tmpfs" {
+					return nil, errors.Errorf("%s can only be used with tmpfs mounts", kv[0])
+				}
+				mountInfo.Options = append(mountInfo.Options, fmt.Sprintf("mode=%s", kv[1]))
+			case "tmpfs-size":
+				if mountInfo.Type != "tmpfs" {
+					return nil, errors.Errorf("%s can only be used with tmpfs mounts", kv[0])
+				}
+				shmSize, err := units.FromHumanSize(kv[1])
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to translate tmpfs-size")
+				}
+
+				mountInfo.Options = append(mountInfo.Options, fmt.Sprintf("size=%d", shmSize))
+
+			case "bind-propagation":
+				if mountInfo.Type != "bind" {
+					return nil, errors.Errorf("%s can only be used with bind mounts", kv[0])
+				}
+				mountInfo.Options = append(mountInfo.Options, kv[1])
+			case "src", "source":
+				if mountInfo.Type == "tmpfs" {
+					return nil, errors.Errorf("can not use src= on a tmpfs file system")
+				}
+				if err := validateVolumeHostDir(kv[1]); err != nil {
+					return nil, err
+				}
+				mountInfo.Source = kv[1]
+			case "target", "dst", "destination":
+				if err := validateVolumeCtrDir(kv[1]); err != nil {
+					return nil, err
+				}
+				mountInfo.Destination = kv[1]
+			default:
+				return nil, errors.Errorf("incorrect mount option : %s", kv[0])
+			}
+		}
+		mountList = append(mountList, mountInfo)
+	}
+	return mountList, nil
 }
 
 func parseVolumes(volumes []string) error {

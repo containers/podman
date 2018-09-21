@@ -926,6 +926,9 @@ func (c *Container) makeBindMounts() error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
 	}
+	if err = label.Relabel(newResolv, c.config.MountLabel, false); err != nil {
+		return errors.Wrapf(err, "error relabeling %q for container %q", newResolv, c.ID)
+	}
 	c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
 	// Make /etc/hosts
@@ -937,6 +940,9 @@ func (c *Container) makeBindMounts() error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 	}
+	if err = label.Relabel(newHosts, c.config.MountLabel, false); err != nil {
+		return errors.Wrapf(err, "error relabeling %q for container %q", newHosts, c.ID)
+	}
 	c.state.BindMounts["/etc/hosts"] = newHosts
 
 	// Make /etc/hostname
@@ -945,6 +951,9 @@ func (c *Container) makeBindMounts() error {
 		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
 		if err != nil {
 			return errors.Wrapf(err, "error creating hostname file for container %s", c.ID())
+		}
+		if err = label.Relabel(hostnamePath, c.config.MountLabel, false); err != nil {
+			return errors.Wrapf(err, "error relabeling %q for container %q", hostnamePath, c.ID)
 		}
 		c.state.BindMounts["/etc/hostname"] = hostnamePath
 	}
