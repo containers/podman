@@ -23,7 +23,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r.lockDir, r)
+	pod, err := newPod(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}

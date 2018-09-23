@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -68,14 +67,12 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	volume.config.MountPoint = fullVolPath
 
-	// Path our lock file will reside at
-	lockPath := filepath.Join(r.lockDir, volume.config.Name)
-	// Grab a lockfile at the given path
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating lockfile for new volume")
+		return nil, errors.Wrapf(err, "error allocating lock for new volume")
 	}
 	volume.lock = lock
+	volume.config.LockID = volume.lock.ID()
 
 	volume.valid = true
 

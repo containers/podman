@@ -13,7 +13,7 @@ import (
 )
 
 // Creates a new, empty pod
-func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
+func newPod(runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()

@@ -84,7 +84,6 @@ type Runtime struct {
 	storageService  *storageService
 	imageContext    *types.SystemContext
 	ociRuntime      *OCIRuntime
-	lockDir         string
 	netPlugin       ocicni.CNIPlugin
 	ociRuntimePath  string
 	conmonPath      string
@@ -679,17 +678,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	runtime.ociRuntime = ociRuntime
 
-	// Make a directory to hold container lockfiles
-	lockDir := filepath.Join(runtime.config.TmpDir, "lock")
-	if err := os.MkdirAll(lockDir, 0755); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime lockfiles directory %s",
-				lockDir)
-		}
-	}
-	runtime.lockDir = lockDir
-
 	// Make the per-boot files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
@@ -732,6 +720,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
 				return err2
 			}
+
 		}
 	}
 

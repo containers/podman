@@ -3,7 +3,6 @@ package libpod
 import (
 	"bytes"
 	"encoding/json"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -351,8 +350,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(name))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(volume.config.LockID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for volume %s", string(name))
 	}

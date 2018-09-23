@@ -12,6 +12,8 @@ type SHMLockManager struct {
 }
 
 // NewSHMLockManager makes a new SHMLockManager with the given number of locks.
+// Due to the underlying implementation, the exact number of locks created may
+// be greater than the number given here.
 func NewSHMLockManager(path string, numLocks uint32) (Manager, error) {
 	locks, err := shm.CreateSHMLock(path, numLocks)
 	if err != nil {
