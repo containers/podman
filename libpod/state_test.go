@@ -8,16 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Returns state, tmp directory containing all state files, locks directory
-// (subdirectory of tmp dir), and error
+// Returns state, tmp directory containing all state files, lock manager, and
+// error.
 // Closing the state and removing the given tmp directory should be sufficient
-// to clean up
-type emptyStateFunc func() (State, string, string, error)
+// to clean up.
+type emptyStateFunc func() (State, string, lock.Manager, error)
 
 const (
 	tmpDirPrefix = "libpod_state_test_"
@@ -31,10 +32,10 @@ var (
 )
 
 // Get an empty BoltDB state for use in tests
-func getEmptyBoltState() (s State, p string, p2 string, err error) {
+func getEmptyBoltState() (s State, p string, m lock.Manager, err error) {
 	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", nil, err
 	}
 	defer func() {
 		if err != nil {
@@ -43,30 +44,30 @@ func getEmptyBoltState() (s State, p string, p2 string, err error) {
 	}()
 
 	dbPath := filepath.Join(tmpDir, "db.sql")
-	lockDir := filepath.Join(tmpDir, "locks")
 
-	if err := os.Mkdir(lockDir, 0755); err != nil {
-		return nil, "", "", err
+	lockManager, err := lock.NewInMemoryManager(16)
+	if err != nil {
+		return nil, "", nil, err
 	}
 
 	runtime := new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.config.StorageConfig = storage.StoreOptions{}
-	runtime.lockDir = lockDir
+	runtime.lockManager = lockManager
 
 	state, err := NewBoltState(dbPath, runtime)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", nil, err
 	}
 
-	return state, tmpDir, lockDir, nil
+	return state, tmpDir, lockManager, nil
 }
 
 // Get an empty in-memory state for use in tests
-func getEmptyInMemoryState() (s State, p string, p2 string, err error) {
+func getEmptyInMemoryState() (s State, p string, m lock.Manager, err error) {
 	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", nil, err
 	}
 	defer func() {
 		if err != nil {
@@ -76,17 +77,20 @@ func getEmptyInMemoryState() (s State, p string, p2 string, err error) {
 
 	state, err := NewInMemoryState()
 	if err != nil {
-		return nil, "", "", err
+		return nil, "", nil, err
 	}
 
-	// Don't need a separate locks dir as InMemoryState stores nothing on
-	// disk
-	return state, tmpDir, tmpDir, nil
+	lockManager, err := lock.NewInMemoryManager(16)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	return state, tmpDir, lockManager, nil
 }
 
-func runForAllStates(t *testing.T, testFunc func(*testing.T, State, string)) {
+func runForAllStates(t *testing.T, testFunc func(*testing.T, State, lock.Manager)) {
 	for stateName, stateFunc := range testedStates {
-		state, path, lockPath, err := stateFunc()
+		state, path, manager, err := stateFunc()
 		if err != nil {
 			t.Fatalf("Error initializing state %s: %v", stateName, err)
 		}
@@ -94,7 +98,7 @@ func runForAllStates(t *testing.T, testFunc func(*testing.T, State, string)) {
 		defer state.Close()
 
 		success := t.Run(stateName, func(t *testing.T) {
-			testFunc(t, state, lockPath)
+			testFunc(t, state, manager)
 		})
 		if !success {
 			t.Fail()
@@ -103,8 +107,8 @@ func runForAllStates(t *testing.T, testFunc func(*testing.T, State, string)) {
 }
 
 func TestAddAndGetContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -118,10 +122,10 @@ func TestAddAndGetContainer(t *testing.T) {
 }
 
 func TestAddAndGetContainerFromMultiple(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -138,8 +142,8 @@ func TestAddAndGetContainerFromMultiple(t *testing.T) {
 }
 
 func TestGetContainerPodSameIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -151,17 +155,17 @@ func TestGetContainerPodSameIDFails(t *testing.T) {
 }
 
 func TestAddInvalidContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.AddContainer(&Container{config: &Config{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
 
 func TestAddDuplicateCtrIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestContainer(testCtr1.ID(), "test2", lockPath)
+		testCtr2, err := getTestContainer(testCtr1.ID(), "test2", manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -177,10 +181,10 @@ func TestAddDuplicateCtrIDFails(t *testing.T) {
 }
 
 func TestAddDuplicateCtrNameFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestContainer(strings.Repeat("2", 32), testCtr1.Name(), lockPath)
+		testCtr2, err := getTestContainer(strings.Repeat("2", 32), testCtr1.Name(), manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -196,10 +200,10 @@ func TestAddDuplicateCtrNameFails(t *testing.T) {
 }
 
 func TestAddCtrPodDupIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
-		testCtr, err := getTestContainer(testPod.ID(), "testCtr", lockPath)
+		testCtr, err := getTestContainer(testPod.ID(), "testCtr", manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -215,10 +219,10 @@ func TestAddCtrPodDupIDFails(t *testing.T) {
 }
 
 func TestAddCtrPodDupNameFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
-		testCtr, err := getTestContainer(strings.Repeat("2", 32), testPod.Name(), lockPath)
+		testCtr, err := getTestContainer(strings.Repeat("2", 32), testPod.Name(), manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -234,11 +238,11 @@ func TestAddCtrPodDupNameFails(t *testing.T) {
 }
 
 func TestAddCtrInPodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Pod = testPod.ID()
@@ -256,16 +260,16 @@ func TestAddCtrInPodFails(t *testing.T) {
 }
 
 func TestAddCtrDepInPodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.ID()
@@ -288,10 +292,10 @@ func TestAddCtrDepInPodFails(t *testing.T) {
 }
 
 func TestAddCtrDepInSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -312,10 +316,10 @@ func TestAddCtrDepInSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddCtrDepInDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -338,8 +342,8 @@ func TestAddCtrDepInDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestAddCtrSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -357,8 +361,8 @@ func TestAddCtrSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddCtrDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -377,22 +381,22 @@ func TestAddCtrDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestGetNonexistentContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Container("does not exist")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetContainerWithEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Container("")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetContainerInDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test2"
@@ -408,8 +412,8 @@ func TestGetContainerInDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestGetContainerInSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -427,8 +431,8 @@ func TestGetContainerInSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestGetContainerInNamespaceWhileNotInNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -444,22 +448,22 @@ func TestGetContainerInNamespaceWhileNotInNamespaceSucceeds(t *testing.T) {
 }
 
 func TestLookupContainerWithEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupNonexistentContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("does not exist")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupContainerByFullID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -473,8 +477,8 @@ func TestLookupContainerByFullID(t *testing.T) {
 }
 
 func TestLookupContainerByUniquePartialID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -488,10 +492,10 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 }
 
 func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestContainer(strings.Repeat("0", 32), "test1", lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestContainer(strings.Repeat("0", 32), "test1", manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestContainer(strings.Repeat("0", 31)+"1", "test2", lockPath)
+		testCtr2, err := getTestContainer(strings.Repeat("0", 31)+"1", "test2", manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -506,8 +510,8 @@ func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
 }
 
 func TestLookupContainerByName(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -521,8 +525,8 @@ func TestLookupContainerByName(t *testing.T) {
 }
 
 func TestLookupCtrByPodNameFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -534,8 +538,8 @@ func TestLookupCtrByPodNameFails(t *testing.T) {
 }
 
 func TestLookupCtrByPodIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -547,8 +551,8 @@ func TestLookupCtrByPodIDFails(t *testing.T) {
 }
 
 func TestLookupCtrInSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -566,8 +570,8 @@ func TestLookupCtrInSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestLookupCtrInDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -583,11 +587,11 @@ func TestLookupCtrInDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestLookupContainerMatchInDifferentNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestContainer(strings.Repeat("0", 32), "test1", lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestContainer(strings.Repeat("0", 32), "test1", manager)
 		assert.NoError(t, err)
 		testCtr1.config.Namespace = "test2"
-		testCtr2, err := getTestContainer(strings.Repeat("0", 31)+"1", "test2", lockPath)
+		testCtr2, err := getTestContainer(strings.Repeat("0", 31)+"1", "test2", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Namespace = "test1"
 
@@ -607,14 +611,14 @@ func TestLookupContainerMatchInDifferentNamespaceSucceeds(t *testing.T) {
 }
 
 func TestHasContainerEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.HasContainer("")
 		assert.Error(t, err)
 	})
 }
 
 func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		exists, err := state.HasContainer("does not exist")
 		assert.NoError(t, err)
 		assert.False(t, exists)
@@ -622,8 +626,8 @@ func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
 }
 
 func TestHasContainerFindsContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -636,8 +640,8 @@ func TestHasContainerFindsContainer(t *testing.T) {
 }
 
 func TestHasContainerPodIDIsFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -650,8 +654,8 @@ func TestHasContainerPodIDIsFalse(t *testing.T) {
 }
 
 func TestHasContainerSameNamespaceIsTrue(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -668,8 +672,8 @@ func TestHasContainerSameNamespaceIsTrue(t *testing.T) {
 }
 
 func TestHasContainerDifferentNamespaceIsFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -686,8 +690,8 @@ func TestHasContainerDifferentNamespaceIsFalse(t *testing.T) {
 }
 
 func TestSaveAndUpdateContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -711,8 +715,8 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 }
 
 func TestSaveAndUpdateContainerSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -740,8 +744,8 @@ func TestSaveAndUpdateContainerSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.UpdateContainer(testCtr)
@@ -751,15 +755,15 @@ func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
 }
 
 func TestUpdateInvalidContainerReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.UpdateContainer(&Container{config: &Config{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
 
 func TestUpdateContainerNotInNamespaceReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -775,15 +779,15 @@ func TestUpdateContainerNotInNamespaceReturnsError(t *testing.T) {
 }
 
 func TestSaveInvalidContainerReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.SaveContainer(&Container{config: &Config{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
 
 func TestSaveContainerNotInStateReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.SaveContainer(testCtr)
@@ -793,8 +797,8 @@ func TestSaveContainerNotInStateReturnsError(t *testing.T) {
 }
 
 func TestSaveContainerNotInNamespaceReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -810,8 +814,8 @@ func TestSaveContainerNotInNamespaceReturnsError(t *testing.T) {
 }
 
 func TestRemoveContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -831,8 +835,8 @@ func TestRemoveContainer(t *testing.T) {
 }
 
 func TestRemoveNonexistantContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.RemoveContainer(testCtr)
@@ -842,8 +846,8 @@ func TestRemoveNonexistantContainerFails(t *testing.T) {
 }
 
 func TestRemoveContainerNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -869,7 +873,7 @@ func TestRemoveContainerNotInNamespaceFails(t *testing.T) {
 }
 
 func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(ctrs))
@@ -877,8 +881,8 @@ func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
 }
 
 func TestGetAllContainersWithOneContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -893,10 +897,10 @@ func TestGetAllContainersWithOneContainer(t *testing.T) {
 }
 
 func TestGetAllContainersTwoContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -912,8 +916,8 @@ func TestGetAllContainersTwoContainers(t *testing.T) {
 }
 
 func TestGetAllContainersNoContainerInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -930,13 +934,13 @@ func TestGetAllContainersNoContainerInNamespace(t *testing.T) {
 }
 
 func TestGetContainerOneContainerInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr1.config.Namespace = "test1"
 
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr1)
@@ -956,15 +960,15 @@ func TestGetContainerOneContainerInNamespace(t *testing.T) {
 }
 
 func TestContainerInUseInvalidContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.ContainerInUse(&Container{})
 		assert.Error(t, err)
 	})
 }
 
 func TestContainerInUseCtrNotInState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 		_, err = state.ContainerInUse(testCtr)
 		assert.Error(t, err)
@@ -972,8 +976,8 @@ func TestContainerInUseCtrNotInState(t *testing.T) {
 }
 
 func TestContainerInUseCtrNotInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -989,10 +993,10 @@ func TestContainerInUseCtrNotInNamespace(t *testing.T) {
 }
 
 func TestContainerInUseOneContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -1011,12 +1015,12 @@ func TestContainerInUseOneContainer(t *testing.T) {
 }
 
 func TestContainerInUseTwoContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
-		testCtr3, err := getTestCtrN("3", lockPath)
+		testCtr3, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -1038,10 +1042,10 @@ func TestContainerInUseTwoContainers(t *testing.T) {
 }
 
 func TestContainerInUseOneContainerMultipleDependencies(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -1061,10 +1065,10 @@ func TestContainerInUseOneContainerMultipleDependencies(t *testing.T) {
 }
 
 func TestContainerInUseGenericDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
@@ -1083,12 +1087,12 @@ func TestContainerInUseGenericDependency(t *testing.T) {
 }
 
 func TestContainerInUseMultipleGenericDependencies(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
-		testCtr3, err := getTestCtrN("3", lockPath)
+		testCtr3, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 
 		testCtr3.config.Dependencies = []string{testCtr1.config.ID, testCtr2.config.ID}
@@ -1115,10 +1119,10 @@ func TestContainerInUseMultipleGenericDependencies(t *testing.T) {
 }
 
 func TestContainerInUseGenericAndNamespaceDependencies(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
@@ -1138,10 +1142,10 @@ func TestContainerInUseGenericAndNamespaceDependencies(t *testing.T) {
 }
 
 func TestCannotRemoveContainerWithDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.config.ID
@@ -1162,10 +1166,10 @@ func TestCannotRemoveContainerWithDependency(t *testing.T) {
 }
 
 func TestCannotRemoveContainerWithGenericDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.Dependencies = []string{testCtr1.config.ID}
@@ -1186,10 +1190,10 @@ func TestCannotRemoveContainerWithGenericDependency(t *testing.T) {
 }
 
 func TestCanRemoveContainerAfterDependencyRemoved(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.ID()
@@ -1213,10 +1217,10 @@ func TestCanRemoveContainerAfterDependencyRemoved(t *testing.T) {
 }
 
 func TestCanRemoveContainerAfterDependencyRemovedDuplicate(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr1, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr1, err := getTestCtr1(manager)
 		assert.NoError(t, err)
-		testCtr2, err := getTestCtr2(lockPath)
+		testCtr2, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr2.config.UserNsCtr = testCtr1.ID()
@@ -1241,11 +1245,11 @@ func TestCanRemoveContainerAfterDependencyRemovedDuplicate(t *testing.T) {
 }
 
 func TestCannotUsePodAsDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
-		testPod, err := getTestPod2(lockPath)
+		testPod, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.UserNsCtr = testPod.ID()
@@ -1263,8 +1267,8 @@ func TestCannotUsePodAsDependency(t *testing.T) {
 }
 
 func TestCannotUseBadIDAsDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.UserNsCtr = strings.Repeat("5", 32)
@@ -1279,8 +1283,8 @@ func TestCannotUseBadIDAsDependency(t *testing.T) {
 }
 
 func TestCannotUseBadIDAsGenericDependency(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Dependencies = []string{strings.Repeat("5", 32)}
@@ -1295,22 +1299,22 @@ func TestCannotUseBadIDAsGenericDependency(t *testing.T) {
 }
 
 func TestGetPodDoesNotExist(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Pod("doesnotexist")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetPodEmptyID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Pod("")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetPodOnePod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1324,11 +1328,11 @@ func TestGetPodOnePod(t *testing.T) {
 }
 
 func TestGetOnePodFromTwo(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1345,11 +1349,11 @@ func TestGetOnePodFromTwo(t *testing.T) {
 }
 
 func TestGetNotExistPodWithPods(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1364,8 +1368,8 @@ func TestGetNotExistPodWithPods(t *testing.T) {
 }
 
 func TestGetPodByCtrID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1377,8 +1381,8 @@ func TestGetPodByCtrID(t *testing.T) {
 }
 
 func TestGetPodInNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1396,8 +1400,8 @@ func TestGetPodInNamespaceSucceeds(t *testing.T) {
 }
 
 func TestGetPodPodNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1413,22 +1417,22 @@ func TestGetPodPodNotInNamespaceFails(t *testing.T) {
 }
 
 func TestLookupPodEmptyID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupPod("")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupNotExistPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupPod("doesnotexist")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupPodFullID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1442,8 +1446,8 @@ func TestLookupPodFullID(t *testing.T) {
 }
 
 func TestLookupPodUniquePartialID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1457,11 +1461,11 @@ func TestLookupPodUniquePartialID(t *testing.T) {
 }
 
 func TestLookupPodNonUniquePartialID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod(strings.Repeat("1", 32), "test1", lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod(strings.Repeat("1", 32), "test1", manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod(strings.Repeat("1", 31)+"2", "test2", lockPath)
+		testPod2, err := getTestPod(strings.Repeat("1", 31)+"2", "test2", manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1476,8 +1480,8 @@ func TestLookupPodNonUniquePartialID(t *testing.T) {
 }
 
 func TestLookupPodByName(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1491,8 +1495,8 @@ func TestLookupPodByName(t *testing.T) {
 }
 
 func TestLookupPodByCtrID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1504,8 +1508,8 @@ func TestLookupPodByCtrID(t *testing.T) {
 }
 
 func TestLookupPodByCtrName(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1517,8 +1521,8 @@ func TestLookupPodByCtrName(t *testing.T) {
 }
 
 func TestLookupPodInSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1536,8 +1540,8 @@ func TestLookupPodInSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestLookupPodInDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1553,13 +1557,13 @@ func TestLookupPodInDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestLookupPodOneInDifferentNamespaceFindsRightPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod(strings.Repeat("1", 32), "test1", lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod(strings.Repeat("1", 32), "test1", manager)
 		assert.NoError(t, err)
 
 		testPod1.config.Namespace = "test1"
 
-		testPod2, err := getTestPod(strings.Repeat("1", 31)+"2", "test2", lockPath)
+		testPod2, err := getTestPod(strings.Repeat("1", 31)+"2", "test2", manager)
 		assert.NoError(t, err)
 
 		testPod2.config.Namespace = "test2"
@@ -1580,14 +1584,14 @@ func TestLookupPodOneInDifferentNamespaceFindsRightPod(t *testing.T) {
 }
 
 func TestHasPodEmptyIDErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.HasPod("")
 		assert.Error(t, err)
 	})
 }
 
 func TestHasPodNoSuchPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		exist, err := state.HasPod("notexist")
 		assert.NoError(t, err)
 		assert.False(t, exist)
@@ -1595,8 +1599,8 @@ func TestHasPodNoSuchPod(t *testing.T) {
 }
 
 func TestHasPodWrongIDFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1609,8 +1613,8 @@ func TestHasPodWrongIDFalse(t *testing.T) {
 }
 
 func TestHasPodRightIDTrue(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1623,8 +1627,8 @@ func TestHasPodRightIDTrue(t *testing.T) {
 }
 
 func TestHasPodCtrIDFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1637,8 +1641,8 @@ func TestHasPodCtrIDFalse(t *testing.T) {
 }
 
 func TestHasPodSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1655,8 +1659,8 @@ func TestHasPodSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestHasPodDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1673,15 +1677,15 @@ func TestHasPodDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestAddPodInvalidPodErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.AddPod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestAddPodValidPodSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1696,11 +1700,11 @@ func TestAddPodValidPodSucceeds(t *testing.T) {
 }
 
 func TestAddPodDuplicateIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod(testPod1.ID(), "testpod2", lockPath)
+		testPod2, err := getTestPod(testPod1.ID(), "testpod2", manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1716,11 +1720,11 @@ func TestAddPodDuplicateIDFails(t *testing.T) {
 }
 
 func TestAddPodDuplicateNameFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod(strings.Repeat("2", 32), testPod1.Name(), lockPath)
+		testPod2, err := getTestPod(strings.Repeat("2", 32), testPod1.Name(), manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1736,11 +1740,11 @@ func TestAddPodDuplicateNameFails(t *testing.T) {
 }
 
 func TestAddPodNonDuplicateSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1756,11 +1760,11 @@ func TestAddPodNonDuplicateSucceeds(t *testing.T) {
 }
 
 func TestAddPodCtrIDConflictFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
-		testPod, err := getTestPod(testCtr.ID(), "testpod1", lockPath)
+		testPod, err := getTestPod(testCtr.ID(), "testpod1", manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1776,11 +1780,11 @@ func TestAddPodCtrIDConflictFails(t *testing.T) {
 }
 
 func TestAddPodCtrNameConflictFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
-		testPod, err := getTestPod(strings.Repeat("3", 32), testCtr.Name(), lockPath)
+		testPod, err := getTestPod(strings.Repeat("3", 32), testCtr.Name(), manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
@@ -1796,8 +1800,8 @@ func TestAddPodCtrNameConflictFails(t *testing.T) {
 }
 
 func TestAddPodSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1816,8 +1820,8 @@ func TestAddPodSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddPodDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1836,15 +1840,15 @@ func TestAddPodDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestRemovePodInvalidPodErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.RemovePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestRemovePodNotInStateFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.RemovePod(testPod)
@@ -1854,8 +1858,8 @@ func TestRemovePodNotInStateFails(t *testing.T) {
 }
 
 func TestRemovePodSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1871,11 +1875,11 @@ func TestRemovePodSucceeds(t *testing.T) {
 }
 
 func TestRemovePodFromPods(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod1)
@@ -1896,11 +1900,11 @@ func TestRemovePodFromPods(t *testing.T) {
 }
 
 func TestRemovePodNotEmptyFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -1920,11 +1924,11 @@ func TestRemovePodNotEmptyFails(t *testing.T) {
 }
 
 func TestRemovePodAfterEmptySucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -1947,8 +1951,8 @@ func TestRemovePodAfterEmptySucceeds(t *testing.T) {
 }
 
 func TestRemovePodNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -1970,7 +1974,7 @@ func TestRemovePodNotInNamespaceFails(t *testing.T) {
 }
 
 func TestAllPodsEmptyOnEmptyState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(allPods))
@@ -1978,8 +1982,8 @@ func TestAllPodsEmptyOnEmptyState(t *testing.T) {
 }
 
 func TestAllPodsFindsPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -1994,14 +1998,14 @@ func TestAllPodsFindsPod(t *testing.T) {
 }
 
 func TestAllPodsMultiplePods(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
-		testPod3, err := getTestPodN("3", lockPath)
+		testPod3, err := getTestPodN("3", manager)
 		assert.NoError(t, err)
 
 		allPods1, err := state.AllPods()
@@ -2032,8 +2036,8 @@ func TestAllPodsMultiplePods(t *testing.T) {
 }
 
 func TestAllPodsPodInDifferentNamespaces(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -2050,13 +2054,13 @@ func TestAllPodsPodInDifferentNamespaces(t *testing.T) {
 }
 
 func TestAllPodsOnePodInDifferentNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod1, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod1, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod1.config.Namespace = "test1"
 
-		testPod2, err := getTestPod2(lockPath)
+		testPod2, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		testPod2.config.Namespace = "test2"
@@ -2078,15 +2082,15 @@ func TestAllPodsOnePodInDifferentNamespace(t *testing.T) {
 }
 
 func TestPodHasContainerNoSuchPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.PodHasContainer(&Pod{config: &PodConfig{}}, strings.Repeat("0", 32))
 		assert.Error(t, err)
 	})
 }
 
 func TestPodHasContainerEmptyCtrID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2098,8 +2102,8 @@ func TestPodHasContainerEmptyCtrID(t *testing.T) {
 }
 
 func TestPodHasContainerNoSuchCtr(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2112,11 +2116,11 @@ func TestPodHasContainerNoSuchCtr(t *testing.T) {
 }
 
 func TestPodHasContainerCtrNotInPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2132,11 +2136,11 @@ func TestPodHasContainerCtrNotInPod(t *testing.T) {
 }
 
 func TestPodHasContainerSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Pod = testPod.ID()
@@ -2154,8 +2158,8 @@ func TestPodHasContainerSucceeds(t *testing.T) {
 }
 
 func TestPodHasContainerPodNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -2171,15 +2175,15 @@ func TestPodHasContainerPodNotInNamespaceFails(t *testing.T) {
 }
 
 func TestPodContainersByIDInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.PodContainersByID(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestPodContainerdByIDPodNotInState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		_, err = state.PodContainersByID(testPod)
@@ -2189,8 +2193,8 @@ func TestPodContainerdByIDPodNotInState(t *testing.T) {
 }
 
 func TestPodContainersByIDEmptyPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2203,11 +2207,11 @@ func TestPodContainersByIDEmptyPod(t *testing.T) {
 }
 
 func TestPodContainersByIDOneContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Pod = testPod.ID()
@@ -2226,19 +2230,19 @@ func TestPodContainersByIDOneContainer(t *testing.T) {
 }
 
 func TestPodContainersByIDMultipleContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
-		testCtr3, err := getTestCtrN("4", lockPath)
+		testCtr3, err := getTestCtrN("4", manager)
 		assert.NoError(t, err)
 		testCtr3.config.Pod = testPod.ID()
 
@@ -2273,8 +2277,8 @@ func TestPodContainersByIDMultipleContainers(t *testing.T) {
 }
 
 func TestPodContainerByIDPodNotInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -2290,15 +2294,15 @@ func TestPodContainerByIDPodNotInNamespace(t *testing.T) {
 }
 
 func TestPodContainersInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.PodContainers(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestPodContainersPodNotInState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		_, err = state.PodContainers(testPod)
@@ -2308,8 +2312,8 @@ func TestPodContainersPodNotInState(t *testing.T) {
 }
 
 func TestPodContainersEmptyPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2322,11 +2326,11 @@ func TestPodContainersEmptyPod(t *testing.T) {
 }
 
 func TestPodContainersOneContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Pod = testPod.ID()
@@ -2346,19 +2350,19 @@ func TestPodContainersOneContainer(t *testing.T) {
 }
 
 func TestPodContainersMultipleContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
-		testCtr3, err := getTestCtrN("4", lockPath)
+		testCtr3, err := getTestCtrN("4", manager)
 		assert.NoError(t, err)
 		testCtr3.config.Pod = testPod.ID()
 
@@ -2393,8 +2397,8 @@ func TestPodContainersMultipleContainers(t *testing.T) {
 }
 
 func TestPodContainersPodNotInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -2410,15 +2414,15 @@ func TestPodContainersPodNotInNamespace(t *testing.T) {
 }
 
 func TestRemovePodContainersInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.RemovePodContainers(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestRemovePodContainersPodNotInState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.RemovePodContainers(testPod)
@@ -2428,8 +2432,8 @@ func TestRemovePodContainersPodNotInState(t *testing.T) {
 }
 
 func TestRemovePodContainersNoContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2445,11 +2449,11 @@ func TestRemovePodContainersNoContainers(t *testing.T) {
 }
 
 func TestRemovePodContainersOneContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -2469,15 +2473,15 @@ func TestRemovePodContainersOneContainer(t *testing.T) {
 }
 
 func TestRemovePodContainersPreservesCtrOutsidePod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2503,15 +2507,15 @@ func TestRemovePodContainersPreservesCtrOutsidePod(t *testing.T) {
 }
 
 func TestRemovePodContainersTwoContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
@@ -2534,15 +2538,15 @@ func TestRemovePodContainersTwoContainers(t *testing.T) {
 }
 
 func TestRemovePodContainerDependencyInPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -2566,8 +2570,8 @@ func TestRemovePodContainerDependencyInPod(t *testing.T) {
 }
 
 func TestRemoveContainersNotInNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -2583,8 +2587,8 @@ func TestRemoveContainersNotInNamespace(t *testing.T) {
 }
 
 func TestAddContainerToPodInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddContainerToPod(&Pod{config: &PodConfig{}}, testCtr)
@@ -2593,8 +2597,8 @@ func TestAddContainerToPodInvalidPod(t *testing.T) {
 }
 
 func TestAddContainerToPodInvalidCtr(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2610,11 +2614,11 @@ func TestAddContainerToPodInvalidCtr(t *testing.T) {
 }
 
 func TestAddContainerToPodPodNotInState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -2625,11 +2629,11 @@ func TestAddContainerToPodPodNotInState(t *testing.T) {
 }
 
 func TestAddContainerToPodSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -2653,15 +2657,15 @@ func TestAddContainerToPodSucceeds(t *testing.T) {
 }
 
 func TestAddContainerToPodTwoContainers(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
@@ -2685,15 +2689,15 @@ func TestAddContainerToPodTwoContainers(t *testing.T) {
 }
 
 func TestAddContainerToPodWithAddContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -2718,14 +2722,14 @@ func TestAddContainerToPodWithAddContainer(t *testing.T) {
 }
 
 func TestAddContainerToPodCtrIDConflict(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
-		testCtr2, err := getTestContainer(testCtr1.ID(), "testCtr3", lockPath)
+		testCtr2, err := getTestContainer(testCtr1.ID(), "testCtr3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
@@ -2749,14 +2753,14 @@ func TestAddContainerToPodCtrIDConflict(t *testing.T) {
 }
 
 func TestAddContainerToPodCtrNameConflict(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
-		testCtr2, err := getTestContainer(strings.Repeat("4", 32), testCtr1.Name(), lockPath)
+		testCtr2, err := getTestContainer(strings.Repeat("4", 32), testCtr1.Name(), manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 
@@ -2780,11 +2784,11 @@ func TestAddContainerToPodCtrNameConflict(t *testing.T) {
 }
 
 func TestAddContainerToPodPodIDConflict(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestContainer(testPod.ID(), "testCtr", lockPath)
+		testCtr, err := getTestContainer(testPod.ID(), "testCtr", manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -2805,11 +2809,11 @@ func TestAddContainerToPodPodIDConflict(t *testing.T) {
 }
 
 func TestAddContainerToPodPodNameConflict(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestContainer(strings.Repeat("2", 32), testPod.Name(), lockPath)
+		testCtr, err := getTestContainer(strings.Repeat("2", 32), testPod.Name(), manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -2830,15 +2834,15 @@ func TestAddContainerToPodPodNameConflict(t *testing.T) {
 }
 
 func TestAddContainerToPodAddsDependencies(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -2860,11 +2864,11 @@ func TestAddContainerToPodAddsDependencies(t *testing.T) {
 }
 
 func TestAddContainerToPodPodDependencyFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 		testCtr.config.IPCNsCtr = testPod.ID()
@@ -2882,11 +2886,11 @@ func TestAddContainerToPodPodDependencyFails(t *testing.T) {
 }
 
 func TestAddContainerToPodBadDependencyFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 		testCtr.config.IPCNsCtr = strings.Repeat("8", 32)
@@ -2904,14 +2908,14 @@ func TestAddContainerToPodBadDependencyFails(t *testing.T) {
 }
 
 func TestAddContainerToPodDependencyOutsidePodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -2940,17 +2944,17 @@ func TestAddContainerToPodDependencyOutsidePodFails(t *testing.T) {
 }
 
 func TestAddContainerToPodDependencyInSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 		testPod.config.Namespace = "test1"
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 		testCtr1.config.Namespace = "test1"
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -2973,17 +2977,17 @@ func TestAddContainerToPodDependencyInSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddContainerToPodDependencyInSeparateNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 		testPod.config.Namespace = "test1"
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 		testCtr1.config.Namespace = "test1"
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -3013,12 +3017,12 @@ func TestAddContainerToPodDependencyInSeparateNamespaceFails(t *testing.T) {
 }
 
 func TestAddContainerToPodSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 		testPod.config.Namespace = "test1"
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Namespace = "test1"
 		testCtr.config.Pod = testPod.ID()
@@ -3037,12 +3041,12 @@ func TestAddContainerToPodSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddContainerToPodDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 		testPod.config.Namespace = "test1"
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Namespace = "test2"
 		testCtr.config.Pod = testPod.ID()
@@ -3060,11 +3064,11 @@ func TestAddContainerToPodDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestAddContainerToPodNamespaceOnCtrFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Namespace = "test1"
 		testCtr.config.Pod = testPod.ID()
@@ -3082,12 +3086,12 @@ func TestAddContainerToPodNamespaceOnCtrFails(t *testing.T) {
 }
 
 func TestAddContainerToPodNamespaceOnPodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 		testPod.config.Namespace = "test1"
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3104,11 +3108,11 @@ func TestAddContainerToPodNamespaceOnPodFails(t *testing.T) {
 }
 
 func TestAddCtrToPodSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
-		testPod, err := getTestPod2(lockPath)
+		testPod, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -3131,11 +3135,11 @@ func TestAddCtrToPodSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestAddCtrToPodDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
-		testPod, err := getTestPod2(lockPath)
+		testPod, err := getTestPod2(manager)
 		assert.NoError(t, err)
 
 		testCtr.config.Namespace = "test1"
@@ -3159,8 +3163,8 @@ func TestAddCtrToPodDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodBadPodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testCtr, err := getTestCtr1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
 		assert.NoError(t, err)
 
 		err = state.RemoveContainerFromPod(&Pod{config: &PodConfig{}}, testCtr)
@@ -3169,11 +3173,11 @@ func TestRemoveContainerFromPodBadPodFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodPodNotInStateFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3185,11 +3189,11 @@ func TestRemoveContainerFromPodPodNotInStateFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodCtrNotInStateFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3204,11 +3208,11 @@ func TestRemoveContainerFromPodCtrNotInStateFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodCtrNotInPodFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -3229,11 +3233,11 @@ func TestRemoveContainerFromPodCtrNotInPodFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3257,15 +3261,15 @@ func TestRemoveContainerFromPodSucceeds(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodWithDependencyFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -3293,15 +3297,15 @@ func TestRemoveContainerFromPodWithDependencyFails(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodWithDependencySucceedsAfterDepRemoved(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
-		testCtr1, err := getTestCtr2(lockPath)
+		testCtr1, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr1.config.Pod = testPod.ID()
 
-		testCtr2, err := getTestCtrN("3", lockPath)
+		testCtr2, err := getTestCtrN("3", manager)
 		assert.NoError(t, err)
 		testCtr2.config.Pod = testPod.ID()
 		testCtr2.config.IPCNsCtr = testCtr1.ID()
@@ -3332,13 +3336,13 @@ func TestRemoveContainerFromPodWithDependencySucceedsAfterDepRemoved(t *testing.
 }
 
 func TestRemoveContainerFromPodSameNamespaceSucceeds(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3366,13 +3370,13 @@ func TestRemoveContainerFromPodSameNamespaceSucceeds(t *testing.T) {
 }
 
 func TestRemoveContainerFromPodDifferentNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
 
-		testCtr, err := getTestCtr2(lockPath)
+		testCtr, err := getTestCtr2(manager)
 		assert.NoError(t, err)
 		testCtr.config.Pod = testPod.ID()
 
@@ -3402,15 +3406,15 @@ func TestRemoveContainerFromPodDifferentNamespaceFails(t *testing.T) {
 }
 
 func TestUpdatePodInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.UpdatePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestUpdatePodPodNotInStateFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.UpdatePod(testPod)
@@ -3419,8 +3423,8 @@ func TestUpdatePodPodNotInStateFails(t *testing.T) {
 }
 
 func TestUpdatePodNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -3436,15 +3440,15 @@ func TestUpdatePodNotInNamespaceFails(t *testing.T) {
 }
 
 func TestSavePodInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		err := state.SavePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
 }
 
 func TestSavePodPodNotInStateFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.SavePod(testPod)
@@ -3453,8 +3457,8 @@ func TestSavePodPodNotInStateFails(t *testing.T) {
 }
 
 func TestSavePodNotInNamespaceFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"
@@ -3470,8 +3474,8 @@ func TestSavePodNotInNamespaceFails(t *testing.T) {
 }
 
 func TestSaveAndUpdatePod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
@@ -3495,8 +3499,8 @@ func TestSaveAndUpdatePod(t *testing.T) {
 }
 
 func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, lockPath string) {
-		testPod, err := getTestPod1(lockPath)
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
 		assert.NoError(t, err)
 
 		testPod.config.Namespace = "test1"

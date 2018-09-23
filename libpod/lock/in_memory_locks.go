@@ -84,7 +84,7 @@ func (m *InMemoryManager) AllocateLock() (Locker, error) {
 // RetrieveLock retrieves a lock from the manager.
 func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 	if id >= m.numLocks {
-		return nil, errors.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks - 1)
+		return nil, errors.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks-1)
 	}
 
 	return m.locks[id], nil
