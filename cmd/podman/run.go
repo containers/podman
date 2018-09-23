@@ -140,7 +140,7 @@ func runCmd(c *cli.Context) error {
 		return runtime.RemoveContainer(ctx, ctr, true)
 	}
 
-	if err := ctr.Cleanup(); err != nil {
+	if err := ctr.Cleanup(ctx); err != nil {
 		// If the container has been removed already, no need to error on cleanup
 		// Also, if it was restarted, don't error either
 		if errors.Cause(err) == libpod.ErrNoSuchCtr ||

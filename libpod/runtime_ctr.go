@@ -311,7 +311,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	c.valid = false
 
 	// Clean up network namespace, cgroups, mounts
-	if err := c.cleanup(); err != nil {
+	if err := c.cleanup(ctx); err != nil {
 		if cleanupErr == nil {
 			cleanupErr = err
 		} else {
@@ -335,7 +335,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	// Delete the container
 	// Only do this if we're not ContainerStateConfigured - if we are,
 	// we haven't been created in the runtime yet
-	if c.state.State != ContainerStateConfigured {
+	if c.state.State != ContainerStateConfigured &&
+		c.state.State != ContainerStateExited {
 		if err := c.delete(ctx); err != nil {
 			if cleanupErr == nil {
 				cleanupErr = err

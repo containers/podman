@@ -77,7 +77,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrCtrExists
 // If both error and the map are nil, all containers were stopped without error
-func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
+func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -118,7 +118,7 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 		}
 
 		if cleanup {
-			if err := ctr.cleanup(); err != nil {
+			if err := ctr.cleanup(ctx); err != nil {
 				ctrErrors[ctr.ID()] = err
 			}
 		}

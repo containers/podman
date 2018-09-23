@@ -46,6 +46,8 @@ func cleanupCmd(c *cli.Context) error {
 
 	args := c.Args()
 
+	ctx := getContext()
+
 	var lastError error
 	var cleanupContainers []*libpod.Container
 	if c.Bool("all") {
@@ -80,7 +82,7 @@ func cleanupCmd(c *cli.Context) error {
 		}
 	}
 	for _, ctr := range cleanupContainers {
-		if err = ctr.Cleanup(); err != nil {
+		if err = ctr.Cleanup(ctx); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

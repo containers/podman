@@ -36,6 +36,9 @@ const (
 	ContainerStateStopped ContainerStatus = iota
 	// ContainerStatePaused indicates that the container has been paused
 	ContainerStatePaused ContainerStatus = iota
+	// ContainerStateExited indicates the the container has stopped and been
+	// cleaned up
+	ContainerStateExited ContainerStatus = iota
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -354,9 +357,11 @@ func (t ContainerStatus) String() string {
 	case ContainerStateRunning:
 		return "running"
 	case ContainerStateStopped:
-		return "exited"
+		return "stopped"
 	case ContainerStatePaused:
 		return "paused"
+	case ContainerStateExited:
+		return "exited"
 	}
 	return "bad state"
 }

@@ -125,7 +125,7 @@ func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return call.ReplyPodNotFound(name)
 	}
-	ctrErrs, err := pod.Stop(true)
+	ctrErrs, err := pod.Stop(getContext(), true)
 	callErr := handlePodCall(call, pod, ctrErrs, err)
 	if callErr != nil {
 		return err
