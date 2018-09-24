@@ -548,6 +548,8 @@ func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemp
 		labels := formatLabels(psParam.Labels)
 
 		switch psParam.Status {
+		case libpod.ContainerStateExited.String():
+			fallthrough
 		case libpod.ContainerStateStopped.String():
 			exitedSince := units.HumanDuration(time.Since(psParam.ExitedAt))
 			status = fmt.Sprintf("Exited (%d) %s ago", psParam.ExitCode, exitedSince)
