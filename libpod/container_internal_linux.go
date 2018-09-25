@@ -283,13 +283,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	mounts := sortMounts(g.Mounts())
 	g.ClearMounts()
 	for _, m := range mounts {
-		switch m.Type {
-		case "tmpfs", "devpts":
-			o := label.FormatMountLabel("", c.config.MountLabel)
-			if o != "" {
-				m.Options = append(m.Options, o)
-			}
-		}
 		g.AddMount(m)
 	}
 	return g.Config, nil
