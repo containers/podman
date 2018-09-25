@@ -45,9 +45,19 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 			uid, gid = mappedPair.UID, mappedPair.GID
 		}
 		if uid != int(st.Uid) || gid != int(st.Gid) {
+			stat, err := os.Lstat(path)
+			if err != nil {
+				return fmt.Errorf("%s: lstat(%q): %v", os.Args[0], path, err)
+			}
 			// Make the change.
 			if err := syscall.Lchown(path, uid, gid); err != nil {
 				return fmt.Errorf("%s: chown(%q): %v", os.Args[0], path, err)
+			}
+			// Restore the SUID and SGID bits if they were originally set.
+			if (stat.Mode()&os.ModeSymlink == 0) && stat.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 {
+				if err := os.Chmod(path, stat.Mode()); err != nil {
+					return fmt.Errorf("%s: chmod(%q): %v", os.Args[0], path, err)
+				}
 			}
 		}
 	}
