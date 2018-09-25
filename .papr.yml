@@ -83,3 +83,30 @@ tests:
     - sh contrib/build_rpm.sh
 required: true
 context: "CentOS RPM regressions"
+
+---
+
+container:
+    image: registry.fedoraproject.org/fedora:28
+
+packages:
+    - btrfs-progs-devel
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - git
+    - go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libgpg-error-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - ostree-devel
+    - pkgconfig
+    - make
+    - go-compilers-golang-compiler
+    
+tests:
+    - sh .papr.sh -v -b
+required: true
+context: "gofmt, lint, and build test"
