@@ -69,8 +69,8 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         self.add_argument(
             '--username',
             '-l',
-            default=getpass.getuser(),
-            help='Authenicating user on remote host. (default: %(default)s)')
+            help='Authenicating user on remote host. (default: {})'.format(
+                getpass.getuser()))
         self.add_argument(
             '--host', help='name of remote host. (default: None)')
         self.add_argument(
@@ -172,6 +172,13 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             or os.environ.get('LOGNAME')
             or config['default'].get('username')
             or getpass.getuser()
+        )   # yapf:disable
+
+        reqattr(
+            'port',
+            getattr(args, 'port')
+            or os.environ.get('PORT')
+            or config['default'].get('port', None)
         )   # yapf:disable
 
         reqattr(

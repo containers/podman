@@ -25,13 +25,25 @@ class VarlinkErrorProxy(VarlinkError):
 class ContainerNotFound(VarlinkErrorProxy):
     """Raised when Client can not find requested container."""
 
-    pass
-
 
 class ImageNotFound(VarlinkErrorProxy):
     """Raised when Client can not find requested image."""
 
-    pass
+
+class PodNotFound(VarlinkErrorProxy):
+    """Raised when Client can not find requested image."""
+
+
+class PodContainerError(VarlinkErrorProxy):
+    """Raised when a container fails requested pod operation."""
+
+
+class NoContainerRunning(VarlinkErrorProxy):
+    """Raised when no container is running in pod."""
+
+
+class NoContainersInPod(VarlinkErrorProxy):
+    """Raised when Client fails to connect to runtime."""
 
 
 class ErrorOccurred(VarlinkErrorProxy):
@@ -40,19 +52,19 @@ class ErrorOccurred(VarlinkErrorProxy):
     See error() to see actual error text.
     """
 
-    pass
-
 
 class PodmanError(VarlinkErrorProxy):
     """Raised when Client fails to connect to runtime."""
-
-    pass
 
 
 ERROR_MAP = {
     'io.podman.ContainerNotFound': ContainerNotFound,
     'io.podman.ErrorOccurred': ErrorOccurred,
     'io.podman.ImageNotFound': ImageNotFound,
+    'io.podman.NoContainerRunning': NoContainerRunning,
+    'io.podman.NoContainersInPod': NoContainersInPod,
+    'io.podman.PodContainerError': PodContainerError,
+    'io.podman.PodNotFound': PodNotFound,
     'io.podman.RuntimeError': PodmanError,
 }
 

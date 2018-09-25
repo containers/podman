@@ -14,7 +14,7 @@ fi
 export PATH=../../../bin:$PATH
 
 function usage {
-  echo 1>&2 $0 [-v] [-h] [test.TestCase|test.TestCase.step]
+  echo 1>&2 $0 '[-v] [-h] [test.<TestCase>|test.<TestCase>.<step>]'
 }
 
 while getopts "vh" arg; do
