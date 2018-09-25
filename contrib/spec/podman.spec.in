@@ -39,7 +39,7 @@
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
-Version: 0.9.4
+Version: 0.9.3.1
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
