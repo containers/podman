@@ -1,6 +1,6 @@
 # libnetwork - networking for containers
 
-[![Circle CI](https://circleci.com/gh/docker/libnetwork/tree/master.svg?style=svg)](https://circleci.com/gh/docker/libnetwork/tree/master) [![Coverage Status](https://coveralls.io/repos/docker/libnetwork/badge.svg)](https://coveralls.io/r/docker/libnetwork) [![GoDoc](https://godoc.org/github.com/docker/libnetwork?status.svg)](https://godoc.org/github.com/docker/libnetwork)
+[![Circle CI](https://circleci.com/gh/docker/libnetwork/tree/master.svg?style=svg)](https://circleci.com/gh/docker/libnetwork/tree/master) [![Coverage Status](https://coveralls.io/repos/docker/libnetwork/badge.svg)](https://coveralls.io/r/docker/libnetwork) [![GoDoc](https://godoc.org/github.com/docker/libnetwork?status.svg)](https://godoc.org/github.com/docker/libnetwork) [![Go Report Card](https://goreportcard.com/badge/github.com/docker/libnetwork)](https://goreportcard.com/report/github.com/docker/libnetwork)
 
 Libnetwork provides a native Go implementation for connecting containers
 
@@ -15,6 +15,17 @@ There are many networking solutions available to suit a broad range of use-cases
 
 
 ```go
+import (
+	"fmt"
+	"log"
+
+	"github.com/docker/docker/pkg/reexec"
+	"github.com/docker/libnetwork"
+	"github.com/docker/libnetwork/config"
+	"github.com/docker/libnetwork/netlabel"
+	"github.com/docker/libnetwork/options"
+)
+
 func main() {
 	if reexec.Init() {
 		return
@@ -34,7 +45,7 @@ func main() {
 
 	// Create a network for containers to join.
 	// NewNetwork accepts Variadic optional arguments that libnetwork and Drivers can use.
-	network, err := controller.NewNetwork(networkType, "network1")
+	network, err := controller.NewNetwork(networkType, "network1", "")
 	if err != nil {
 		log.Fatalf("controller.NewNetwork: %s", err)
 	}

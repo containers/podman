@@ -8,10 +8,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/docker/libnetwork/netutils"
 	"github.com/docker/libnetwork/resolvconf/dns"
+	"github.com/docker/libnetwork/types"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	// DefaultResolvConf points to the default file used for dns configuration on a linux machine
+	DefaultResolvConf = "/etc/resolv.conf"
 )
 
 var (
@@ -25,7 +30,7 @@ var (
 	// -- e.g. other link-local types -- either won't work in containers or are unnecessary.
 	// For readability and sufficiency for Docker purposes this seemed more reasonable than a
 	// 1000+ character regexp with exact and complete IPv6 validation
-	ipv6Address = `([0-9A-Fa-f]{0,4}:){2,7}([0-9A-Fa-f]{0,4})`
+	ipv6Address = `([0-9A-Fa-f]{0,4}:){2,7}([0-9A-Fa-f]{0,4})(%\w+)?`
 
 	localhostNSRegexp = regexp.MustCompile(`(?m)^nameserver\s+` + dns.IPLocalhost + `\s*\n*`)
 	nsIPv6Regexp      = regexp.MustCompile(`(?m)^nameserver\s+` + ipv6Address + `\s*\n*`)
@@ -50,15 +55,7 @@ type File struct {
 
 // Get returns the contents of /etc/resolv.conf and its hash
 func Get() (*File, error) {
-	resolv, err := ioutil.ReadFile("/etc/resolv.conf")
-	if err != nil {
-		return nil, err
-	}
-	hash, err := ioutils.HashData(bytes.NewReader(resolv))
-	if err != nil {
-		return nil, err
-	}
-	return &File{Content: resolv, Hash: hash}, nil
+	return GetSpecific(DefaultResolvConf)
 }
 
 // GetSpecific returns the contents of the user specified resolv.conf file and its hash
@@ -122,11 +119,11 @@ func FilterResolvDNS(resolvConf []byte, ipv6Enabled bool) (*File, error) {
 	}
 	// if the resulting resolvConf has no more nameservers defined, add appropriate
 	// default DNS servers for IPv4 and (optionally) IPv6
-	if len(GetNameservers(cleanedResolvConf, netutils.IP)) == 0 {
-		logrus.Infof("No non-localhost DNS nameservers are left in resolv.conf. Using default external servers : %v", defaultIPv4Dns)
+	if len(GetNameservers(cleanedResolvConf, types.IP)) == 0 {
+		logrus.Infof("No non-localhost DNS nameservers are left in resolv.conf. Using default external servers: %v", defaultIPv4Dns)
 		dns := defaultIPv4Dns
 		if ipv6Enabled {
-			logrus.Infof("IPv6 enabled; Adding default IPv6 external servers : %v", defaultIPv6Dns)
+			logrus.Infof("IPv6 enabled; Adding default IPv6 external servers: %v", defaultIPv6Dns)
 			dns = append(dns, defaultIPv6Dns...)
 		}
 		cleanedResolvConf = append(cleanedResolvConf, []byte("\n"+strings.Join(dns, "\n"))...)
@@ -158,11 +155,11 @@ func GetNameservers(resolvConf []byte, kind int) []string {
 	nameservers := []string{}
 	for _, line := range getLines(resolvConf, []byte("#")) {
 		var ns [][]byte
-		if kind == netutils.IP {
+		if kind == types.IP {
 			ns = nsRegexp.FindSubmatch(line)
-		} else if kind == netutils.IPv4 {
+		} else if kind == types.IPv4 {
 			ns = nsIPv4Regexpmatch.FindSubmatch(line)
-		} else if kind == netutils.IPv6 {
+		} else if kind == types.IPv6 {
 			ns = nsIPv6Regexpmatch.FindSubmatch(line)
 		}
 		if len(ns) > 0 {
@@ -177,8 +174,15 @@ func GetNameservers(resolvConf []byte, kind int) []string {
 // This function's output is intended for net.ParseCIDR
 func GetNameserversAsCIDR(resolvConf []byte) []string {
 	nameservers := []string{}
-	for _, nameserver := range GetNameservers(resolvConf, netutils.IP) {
-		nameservers = append(nameservers, nameserver+"/32")
+	for _, nameserver := range GetNameservers(resolvConf, types.IP) {
+		var address string
+		// If IPv6, strip zone if present
+		if strings.Contains(nameserver, ":") {
+			address = strings.Split(nameserver, "%")[0] + "/128"
+		} else {
+			address = nameserver + "/32"
+		}
+		nameservers = append(nameservers, address)
 	}
 	return nameservers
 }
