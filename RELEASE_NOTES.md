@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.9.3.1
+### Bugfixes
+- Fixed a critical issue where SELinux contexts set on tmpfs volumes were causing runc crashes
+
 ## 0.9.3
 ### Features
 - Added a flag to `libpod.conf`, `label`, to globally enable/disable SELinux labelling for libpod
