@@ -15,14 +15,13 @@ import (
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
+	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/docker/libnetwork/netutils"
-	"github.com/docker/libnetwork/resolvconf"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1039,7 +1038,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	// Make a new resolv.conf
-	nameservers := resolvconf.GetNameservers(resolv.Content, netutils.IP)
+	nameservers := resolvconf.GetNameservers(resolv.Content)
 	if len(c.config.DNSServer) > 0 {
 		// We store DNS servers as net.IP, so need to convert to string
 		nameservers = []string{}

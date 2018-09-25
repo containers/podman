@@ -1,3 +1,5 @@
+// Originally from github.com/docker/libnetwork/resolvconf/dns
+
 package dns
 
 import (

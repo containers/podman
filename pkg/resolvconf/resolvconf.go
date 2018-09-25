@@ -1,4 +1,5 @@
-// Package resolvconf provides utility code to query and update DNS configuration in /etc/resolv.conf
+// Package resolvconf provides utility code to query and update DNS configuration in /etc/resolv.conf.
+// Originally from github.com/docker/libnetwork/resolvconf.
 package resolvconf
 
 import (
@@ -8,9 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/libpod/pkg/resolvconf/dns"
 	"github.com/docker/docker/pkg/ioutils"
-	"github.com/docker/libnetwork/resolvconf/dns"
-	"github.com/docker/libnetwork/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -119,7 +119,7 @@ func FilterResolvDNS(resolvConf []byte, ipv6Enabled bool) (*File, error) {
 	}
 	// if the resulting resolvConf has no more nameservers defined, add appropriate
 	// default DNS servers for IPv4 and (optionally) IPv6
-	if len(GetNameservers(cleanedResolvConf, types.IP)) == 0 {
+	if len(GetNameservers(cleanedResolvConf)) == 0 {
 		logrus.Infof("No non-localhost DNS nameservers are left in resolv.conf. Using default external servers: %v", defaultIPv4Dns)
 		dns := defaultIPv4Dns
 		if ipv6Enabled {
@@ -151,17 +151,10 @@ func getLines(input []byte, commentMarker []byte) [][]byte {
 }
 
 // GetNameservers returns nameservers (if any) listed in /etc/resolv.conf
-func GetNameservers(resolvConf []byte, kind int) []string {
+func GetNameservers(resolvConf []byte) []string {
 	nameservers := []string{}
 	for _, line := range getLines(resolvConf, []byte("#")) {
-		var ns [][]byte
-		if kind == types.IP {
-			ns = nsRegexp.FindSubmatch(line)
-		} else if kind == types.IPv4 {
-			ns = nsIPv4Regexpmatch.FindSubmatch(line)
-		} else if kind == types.IPv6 {
-			ns = nsIPv6Regexpmatch.FindSubmatch(line)
-		}
+		ns := nsRegexp.FindSubmatch(line)
 		if len(ns) > 0 {
 			nameservers = append(nameservers, string(ns[1]))
 		}
@@ -174,7 +167,7 @@ func GetNameservers(resolvConf []byte, kind int) []string {
 // This function's output is intended for net.ParseCIDR
 func GetNameserversAsCIDR(resolvConf []byte) []string {
 	nameservers := []string{}
-	for _, nameserver := range GetNameservers(resolvConf, types.IP) {
+	for _, nameserver := range GetNameservers(resolvConf) {
 		var address string
 		// If IPv6, strip zone if present
 		if strings.Contains(nameserver, ":") {
