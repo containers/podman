@@ -541,11 +541,14 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	if doRefresh {
 		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+		if err != nil {
+			return errors.Wrapf(err, "error creating SHM locks for libpod")
+		}
 	} else {
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
-	}
-	if err != nil {
-		return errors.Wrapf(err, "error initializing SHM locking")
+		if err != nil {
+			return errors.Wrapf(err, "error opening libpod SHM locks")
+		}
 	}
 	runtime.lockManager = manager
 
@@ -720,7 +723,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
 				return err2
 			}
-
 		}
 	}
 
