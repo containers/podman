@@ -1,3 +1,9 @@
+- Changelog for v0.9.3.1 (2018-09-25)
+  * Update release notes for 0.9.3.1
+  * Disable problematic SELinux code causing runc issues
+  * Bump gitvalidation epoch
+  * Bump to v0.9.4-dev
+
 - Changelog for v0.9.3 (2018-09-21)
   * Update release notes for 0.9.3
   * Add --mount option for `create` & `run` command
