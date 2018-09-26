@@ -145,8 +145,8 @@ func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 
 func processOptions(options []string) []string {
 	var (
-		foundrw, foundro bool
-		rootProp         string
+		foundrw, foundro, foundz, foundZ bool
+		rootProp                         string
 	)
 	options = append(options, "rbind")
 	for _, opt := range options {
@@ -157,10 +157,20 @@ func processOptions(options []string) []string {
 			foundro = true
 		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 			rootProp = opt
+		case "z":
+			foundz = true
+		case "Z":
+			foundZ = true
 		}
 	}
 	if !foundrw && !foundro {
 		options = append(options, "rw")
+	}
+	if foundz {
+		options = append(options, "z")
+	}
+	if foundZ {
+		options = append(options, "Z")
 	}
 	if rootProp == "" {
 		options = append(options, "rprivate")
