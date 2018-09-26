@@ -239,6 +239,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// the inputname isn't tagged, so we assume latest and try again
 	if !decomposedImage.isTagged {
 		taggedName = fmt.Sprintf("%s:latest", i.InputName)
@@ -247,15 +248,14 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 			return img.image, nil
 		}
 	}
-	hasReg, err := i.hasRegistry()
-	if err != nil {
-		return nil, errors.Wrapf(err, imageError)
+
+	// The image has a registry name in it and we made sure we looked for it locally
+	// with a tag.  It cannot be local.
+	if decomposedImage.hasRegistry {
+		return nil, errors.Errorf("%s", imageError)
+
 	}
 
-	// if the input name has a registry in it, the image isnt here
-	if hasReg {
-		return nil, errors.Errorf("%s", imageError)
-	}
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
 	img, err = i.imageruntime.getImage(fmt.Sprintf("%s/%s", DefaultLocalRegistry, i.InputName))
@@ -274,21 +274,8 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if err == nil {
 		return repoImage, nil
 	}
-	return nil, errors.Wrapf(err, imageError)
-}
 
-// hasRegistry returns a bool/err response if the image has a registry in its
-// name
-func (i *Image) hasRegistry() (bool, error) {
-	imgRef, err := reference.Parse(i.InputName)
-	if err != nil {
-		return false, err
-	}
-	registry := reference.Domain(imgRef.(reference.Named))
-	if registry != "" {
-		return true, nil
-	}
-	return false, nil
+	return nil, errors.Wrapf(err, imageError)
 }
 
 // ID returns the image ID as a string
