@@ -159,73 +159,86 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.AddProcessEnv("container", "podman")
 
-	canAddResources := !rootless.IsRootless()
+	addedResources := false
 
-	if canAddResources {
-		// RESOURCES - MEMORY
-		if config.Resources.Memory != 0 {
-			g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
-			// If a swap limit is not explicitly set, also set a swap limit
-			// Default to double the memory limit
-			if config.Resources.MemorySwap == 0 {
-				g.SetLinuxResourcesMemorySwap(2 * config.Resources.Memory)
-			}
+	// RESOURCES - MEMORY
+	if config.Resources.Memory != 0 {
+		g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
+		// If a swap limit is not explicitly set, also set a swap limit
+		// Default to double the memory limit
+		if config.Resources.MemorySwap == 0 {
+			g.SetLinuxResourcesMemorySwap(2 * config.Resources.Memory)
 		}
-		if config.Resources.MemoryReservation != 0 {
-			g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
-		}
-		if config.Resources.MemorySwap != 0 {
-			g.SetLinuxResourcesMemorySwap(config.Resources.MemorySwap)
-		}
-		if config.Resources.KernelMemory != 0 {
-			g.SetLinuxResourcesMemoryKernel(config.Resources.KernelMemory)
-		}
-		if config.Resources.MemorySwappiness != -1 {
-			g.SetLinuxResourcesMemorySwappiness(uint64(config.Resources.MemorySwappiness))
-		}
-		g.SetLinuxResourcesMemoryDisableOOMKiller(config.Resources.DisableOomKiller)
-		g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
+		addedResources = true
+	}
+	if config.Resources.MemoryReservation != 0 {
+		g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
+		addedResources = true
+	}
+	if config.Resources.MemorySwap != 0 {
+		g.SetLinuxResourcesMemorySwap(config.Resources.MemorySwap)
+		addedResources = true
+	}
+	if config.Resources.KernelMemory != 0 {
+		g.SetLinuxResourcesMemoryKernel(config.Resources.KernelMemory)
+		addedResources = true
+	}
+	if config.Resources.MemorySwappiness != -1 {
+		g.SetLinuxResourcesMemorySwappiness(uint64(config.Resources.MemorySwappiness))
+		addedResources = true
+	}
+	g.SetLinuxResourcesMemoryDisableOOMKiller(config.Resources.DisableOomKiller)
+	g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
 
-		// RESOURCES - CPU
-		if config.Resources.CPUShares != 0 {
-			g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
-		}
-		if config.Resources.CPUQuota != 0 {
-			g.SetLinuxResourcesCPUQuota(config.Resources.CPUQuota)
-		}
-		if config.Resources.CPUPeriod != 0 {
-			g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
-		}
-		if config.Resources.CPUs != 0 {
-			g.SetLinuxResourcesCPUPeriod(cpuPeriod)
-			g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
-		}
-		if config.Resources.CPURtRuntime != 0 {
-			g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
-		}
-		if config.Resources.CPURtPeriod != 0 {
-			g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
-		}
-		if config.Resources.CPUsetCPUs != "" {
-			g.SetLinuxResourcesCPUCpus(config.Resources.CPUsetCPUs)
-		}
-		if config.Resources.CPUsetMems != "" {
-			g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
-		}
+	// RESOURCES - CPU
+	if config.Resources.CPUShares != 0 {
+		g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
+		addedResources = true
+	}
+	if config.Resources.CPUQuota != 0 {
+		g.SetLinuxResourcesCPUQuota(config.Resources.CPUQuota)
+		addedResources = true
+	}
+	if config.Resources.CPUPeriod != 0 {
+		g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
+		addedResources = true
+	}
+	if config.Resources.CPUs != 0 {
+		g.SetLinuxResourcesCPUPeriod(cpuPeriod)
+		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
+		addedResources = true
+	}
+	if config.Resources.CPURtRuntime != 0 {
+		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
+		addedResources = true
+	}
+	if config.Resources.CPURtPeriod != 0 {
+		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
+		addedResources = true
+	}
+	if config.Resources.CPUsetCPUs != "" {
+		g.SetLinuxResourcesCPUCpus(config.Resources.CPUsetCPUs)
+		addedResources = true
+	}
+	if config.Resources.CPUsetMems != "" {
+		g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
+		addedResources = true
+	}
 
-		// Devices
-		if config.Privileged {
-			// If privileged, we need to add all the host devices to the
-			// spec.  We do not add the user provided ones because we are
-			// already adding them all.
+	// Devices
+	if config.Privileged {
+		// If privileged, we need to add all the host devices to the
+		// spec.  We do not add the user provided ones because we are
+		// already adding them all.
+		if !rootless.IsRootless() {
 			if err := config.AddPrivilegedDevices(&g); err != nil {
 				return nil, err
 			}
-		} else {
-			for _, device := range config.Devices {
-				if err := addDevice(&g, device); err != nil {
-					return nil, err
-				}
+		}
+	} else {
+		for _, device := range config.Devices {
+			if err := addDevice(&g, device); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -240,13 +253,12 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 	g.SetProcessApparmorProfile(config.ApparmorProfile)
 
-	if canAddResources {
-		blockAccessToKernelFilesystems(config, &g)
+	blockAccessToKernelFilesystems(config, &g)
 
-		// RESOURCES - PIDS
-		if config.Resources.PidsLimit != 0 {
-			g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
-		}
+	// RESOURCES - PIDS
+	if config.Resources.PidsLimit != 0 {
+		g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
+		addedResources = true
 	}
 
 	if config.Systemd && (strings.HasSuffix(config.Command[0], "init") ||
@@ -347,21 +359,23 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
 	//--mount
 	configSpec.Mounts = supercedeUserMounts(config.initFSMounts(), configSpec.Mounts)
-	if canAddResources {
-		// BLOCK IO
-		blkio, err := config.CreateBlockIO()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error creating block io")
-		}
-		if blkio != nil {
-			configSpec.Linux.Resources.BlockIO = blkio
-		}
+	// BLOCK IO
+	blkio, err := config.CreateBlockIO()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating block io")
+	}
+	if blkio != nil {
+		configSpec.Linux.Resources.BlockIO = blkio
+		addedResources = true
 	}
 
-	// If we cannot add resources be sure everything is cleared out
-	if !canAddResources {
+	if rootless.IsRootless() {
+		if addedResources {
+			return nil, errors.New("invalid configuration, cannot set resources with rootless containers")
+		}
 		configSpec.Linux.Resources = &spec.LinuxResources{}
 	}
+
 	return configSpec, nil
 }
 
