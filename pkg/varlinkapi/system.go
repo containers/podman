@@ -42,17 +42,24 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+
 	host := info[0].Data
+	distribution := iopodman.InfoDistribution{
+		Distribution: host["Distribution"].(map[string]interface{})["distribution"].(string),
+		Version:      host["Distribution"].(map[string]interface{})["version"].(string),
+	}
 	infoHost := iopodman.InfoHost{
-		Mem_free:  host["MemFree"].(int64),
-		Mem_total: host["MemTotal"].(int64),
-		Swap_free: host["SwapFree"].(int64),
-		Arch:      host["arch"].(string),
-		Cpus:      int64(host["cpus"].(int)),
-		Hostname:  host["hostname"].(string),
-		Kernel:    host["kernel"].(string),
-		Os:        host["os"].(string),
-		Uptime:    host["uptime"].(string),
+		Buildah_version: host["BuildahVersion"].(string),
+		Distribution:    distribution,
+		Mem_free:        host["MemFree"].(int64),
+		Mem_total:       host["MemTotal"].(int64),
+		Swap_free:       host["SwapFree"].(int64),
+		Arch:            host["arch"].(string),
+		Cpus:            int64(host["cpus"].(int)),
+		Hostname:        host["hostname"].(string),
+		Kernel:          host["kernel"].(string),
+		Os:              host["os"].(string),
+		Uptime:          host["uptime"].(string),
 	}
 	podmanInfo.Host = infoHost
 	store := info[1].Data

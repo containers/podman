@@ -141,6 +141,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type ImageSearch](#ImageSearch)
 
+[type InfoDistribution](#InfoDistribution)
+
 [type InfoGraphStatus](#InfoGraphStatus)
 
 [type InfoHost](#InfoHost)
@@ -1115,6 +1117,13 @@ is_automated [bool](https://godoc.org/builtin#bool)
 name [string](https://godoc.org/builtin#string)
 
 star_count [int](https://godoc.org/builtin#int)
+### <a name="InfoDistribution"></a>type InfoDistribution
+
+InfoDistribution describes the the host's distribution
+
+distribution [string](https://godoc.org/builtin#string)
+
+version [string](https://godoc.org/builtin#string)
 ### <a name="InfoGraphStatus"></a>type InfoGraphStatus
 
 InfoGraphStatus describes the detailed status of the storage driver
@@ -1127,6 +1136,10 @@ supports_d_type [string](https://godoc.org/builtin#string)
 ### <a name="InfoHost"></a>type InfoHost
 
 InfoHost describes the host stats portion of PodmanInfo
+
+buildah_version [string](https://godoc.org/builtin#string)
+
+distribution [InfoDistribution](#InfoDistribution)
 
 mem_free [int](https://godoc.org/builtin#int)
 

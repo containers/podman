@@ -124,8 +124,16 @@ type ContainerNameSpace (
     ipc: string
 )
 
+# InfoDistribution describes the the host's distribution
+type InfoDistribution (
+    distribution: string,
+    version: string
+)
+
 # InfoHost describes the host stats portion of PodmanInfo
 type InfoHost (
+    buildah_version: string,
+    distribution: InfoDistribution,
     mem_free: int,
     mem_total: int,
     swap_free: int,
