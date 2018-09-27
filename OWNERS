@@ -4,10 +4,10 @@ approvers:
   - mrunalp
   - rhatdan
 reviewers:
-  - mtrmac
-  - jwhonce
-  - runcom
-  - nalind
-  - wking
+  - mheon
+  - baude
+  - rhatdan
   - TomSweeneyRedHat
   - umohnani8
+  - giuseppe
+  - vrothberg
