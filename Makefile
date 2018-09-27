@@ -24,7 +24,6 @@ ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
 
-PYTHON ?= /usr/bin/python3
 HAS_PYTHON3 := $(shell command -v python3 2>/dev/null)
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
@@ -138,12 +137,10 @@ clean:
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
 		$(MANPAGES) ||:
-ifdef HAS_PYTHON3
-		$(MAKE) -C contrib/python/podman clean
-		$(MAKE) -C contrib/python/pypodman clean
-endif
 	find . -name \*~ -delete
 	find . -name \#\* -delete
+	$(MAKE) -C contrib/python/podman clean
+	$(MAKE) -C contrib/python/pypodman clean
 
 libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
