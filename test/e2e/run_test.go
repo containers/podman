@@ -81,7 +81,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=disable", ALPINE, "cat", "/proc/self/attr/current"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("unconfined_t")
+		match, _ := session.GrepString("spc_t")
 		Expect(match).Should(BeTrue())
 	})
 
