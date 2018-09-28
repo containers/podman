@@ -30,111 +30,116 @@ Run podman info with plain text response:
 ```
 $ podman info
 host:
+  BuildahVersion: 1.4-dev
   Conmon:
-    package: conmon-1.10.3-1.gite558bd5.fc28.x86_64
-    path: /usr/libexec/crio/conmon
-    version: 'conmon version 1.10.3, commit: 55022fb3be4382a61599b7024a677f9a642ae0a7'
-  MemFree: 2428579840
-  MemTotal: 16679260160
+    package: Unknown
+    path: /usr/libexec/podman/conmon
+    version: 'conmon version 1.12.0-dev, commit: d724f3d54ad2d95b6de741085d4990190ebfd7ff'
+  Distribution:
+    distribution: fedora
+    version: "28"
+  MemFree: 1271083008
+  MemTotal: 33074233344
   OCIRuntime:
-    package: runc-1.0.0-46.dev.gitb4e2ecb.fc28.x86_64
+    package: runc-1.0.0-51.dev.gitfdd8055.fc28.x86_64
     path: /usr/bin/runc
     version: 'runc version spec: 1.0.0'
-  SwapFree: 0
-  SwapTotal: 0
+  SwapFree: 34309664768
+  SwapTotal: 34359734272
   arch: amd64
-  cpus: 4
+  cpus: 8
   hostname: localhost.localdomain
-  kernel: 4.17.11-200.fc28.x86_64
+  kernel: 4.18.7-200.fc28.x86_64
   os: linux
-  uptime: 23h 16m 57.86s (Approximately 0.96 days)
+  uptime: 218h 49m 33.66s (Approximately 9.08 days)
 insecure registries:
   registries: []
 registries:
   registries:
-  - docker.io
   - quay.io
   - registry.fedoraproject.org
+  - docker.io
   - registry.access.redhat.com
 store:
   ContainerStore:
-    number: 3
+    number: 37
   GraphDriverName: overlay
   GraphOptions:
   - overlay.mountopt=nodev
+  - overlay.override_kernel_check=true
   GraphRoot: /var/lib/containers/storage
   GraphStatus:
-    Backing Filesystem: xfs
+    Backing Filesystem: extfs
     Native Overlay Diff: "true"
     Supports d_type: "true"
   ImageStore:
-    number: 2
+    number: 17
   RunRoot: /var/run/containers/storage
+
 ```
 Run podman info with JSON formatted response:
 ```
-$ podman info --debug --format json
 {
-    "debug": {
-        "compiler": "gc",
-        "git commit": "",
-        "go version": "go1.10",
-        "podman version": "0.8.2-dev"
-    },
     "host": {
+        "BuildahVersion": "1.4-dev",
         "Conmon": {
-            "package": "conmon-1.10.3-1.gite558bd5.fc28.x86_64",
-            "path": "/usr/libexec/crio/conmon",
-            "version": "conmon version 1.10.3, commit: 55022fb3be4382a61599b7024a677f9a642ae0a7"
+            "package": "Unknown",
+            "path": "/usr/libexec/podman/conmon",
+            "version": "conmon version 1.12.0-dev, commit: d724f3d54ad2d95b6de741085d4990190ebfd7ff"
         },
-        "MemFree": 2484420608,
-        "MemTotal": 16679260160,
+        "Distribution": {
+            "distribution": "fedora",
+            "version": "28"
+        },
+        "MemFree": 1204109312,
+        "MemTotal": 33074233344,
         "OCIRuntime": {
-            "package": "runc-1.0.0-46.dev.gitb4e2ecb.fc28.x86_64",
+            "package": "runc-1.0.0-51.dev.gitfdd8055.fc28.x86_64",
             "path": "/usr/bin/runc",
             "version": "runc version spec: 1.0.0"
         },
-        "SwapFree": 0,
-        "SwapTotal": 0,
+        "SwapFree": 34309664768,
+        "SwapTotal": 34359734272,
         "arch": "amd64",
-        "cpus": 4,
+        "cpus": 8,
         "hostname": "localhost.localdomain",
-        "kernel": "4.17.11-200.fc28.x86_64",
+        "kernel": "4.18.7-200.fc28.x86_64",
         "os": "linux",
-        "uptime": "23h 14m 45.48s (Approximately 0.96 days)"
+        "uptime": "218h 50m 35.02s (Approximately 9.08 days)"
     },
     "insecure registries": {
         "registries": []
     },
     "registries": {
         "registries": [
-            "docker.io",
             "quay.io",
             "registry.fedoraproject.org",
+            "docker.io",
             "registry.access.redhat.com"
         ]
     },
     "store": {
         "ContainerStore": {
-            "number": 3
+            "number": 37
         },
         "GraphDriverName": "overlay",
         "GraphOptions": [
-            "overlay.mountopt=nodev"
+            "overlay.mountopt=nodev",
+            "overlay.override_kernel_check=true"
         ],
         "GraphRoot": "/var/lib/containers/storage",
         "GraphStatus": {
-            "Backing Filesystem": "xfs",
+            "Backing Filesystem": "extfs",
             "Native Overlay Diff": "true",
             "Supports d_type": "true"
         },
         "ImageStore": {
-            "number": 2
+            "number": 17
         },
         "RunRoot": "/var/run/containers/storage"
     }
 }
-	```
+```
 Run podman info and only get the registries information.
 ```
 $ podman info --format={{".registries"}}

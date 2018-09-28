@@ -1,8 +1,10 @@
 package libpod
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/containers/buildah"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -39,6 +41,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["SwapFree"] = mi.SwapFree
 	conmonVersion, _ := r.GetConmonVersion()
 	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
+	hostDistributionInfo := r.GetHostDistributionInfo()
 	info["Conmon"] = map[string]interface{}{
 		"path":    r.conmonPath,
 		"package": r.ociRuntime.conmonPackage(),
@@ -49,7 +52,12 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		"package": r.ociRuntime.pathPackage(),
 		"version": ociruntimeVersion,
 	}
+	info["Distribution"] = map[string]interface{}{
+		"distribution": hostDistributionInfo["Distribution"],
+		"version":      hostDistributionInfo["Version"],
+	}
 
+	info["BuildahVersion"] = buildah.Version
 	kv, err := readKernelVersion()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading kernel version")
@@ -177,4 +185,31 @@ func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// GetHostDistributionInfo returns a map containing the host's distribution and version
+func (r *Runtime) GetHostDistributionInfo() map[string]string {
+	dist := make(map[string]string)
+
+	// Populate values in case we cannot find the values
+	// or the file
+	dist["Distribution"] = "unknown"
+	dist["Version"] = "unknown"
+
+	f, err := os.Open("/etc/os-release")
+	if err != nil {
+		return dist
+	}
+	defer f.Close()
+
+	l := bufio.NewScanner(f)
+	for l.Scan() {
+		if strings.HasPrefix(l.Text(), "ID=") {
+			dist["Distribution"] = strings.TrimPrefix(l.Text(), "ID=")
+		}
+		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
+			dist["Version"] = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		}
+	}
+	return dist
 }
