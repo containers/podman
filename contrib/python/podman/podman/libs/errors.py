@@ -23,15 +23,15 @@ class VarlinkErrorProxy(VarlinkError):
 
 
 class ContainerNotFound(VarlinkErrorProxy):
-    """Raised when Client can not find requested container."""
+    """Raised when Client cannot find requested container."""
 
 
 class ImageNotFound(VarlinkErrorProxy):
-    """Raised when Client can not find requested image."""
+    """Raised when Client cannot find requested image."""
 
 
 class PodNotFound(VarlinkErrorProxy):
-    """Raised when Client can not find requested image."""
+    """Raised when Client cannot find requested image."""
 
 
 class PodContainerError(VarlinkErrorProxy):

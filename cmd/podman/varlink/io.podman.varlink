@@ -820,7 +820,7 @@ error PodNotFound (name: string)
 # a container ID of the container that failed.
 error PodContainerError (podname: string, errors: []PodContainerErrorData)
 
-# NoContainersInPod means a pod has no containers on which to perform operation. It contains
+# NoContainersInPod means a pod has no containers on which to perform the operation. It contains
 # the pod ID.
 error NoContainersInPod (name: string)
 

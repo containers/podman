@@ -71,7 +71,7 @@ class Pod(collections.UserDict):
             return self._refresh(podman)
 
     def remove(self, force=False):
-        """Remove all containers in the pod, the pod, return pod ident.
+        """Remove pod and its containers returning pod ident.
 
         force=True, stop any running container.
         """
@@ -105,7 +105,7 @@ class Pod(collections.UserDict):
             return self._refresh(podman)
 
     def top(self):
-        """Display stats for all containers exit."""
+        """Display stats for all containers."""
         with self._client() as podman:
             results = podman.TopPod(self._ident)
         return results['pod']
