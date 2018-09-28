@@ -163,10 +163,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	}
 	candidates, err := util.ResolveName(destImage, "", sc, c.runtime.store)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error resolving name %q", destImage)
+		return nil, errors.Wrapf(err, "error resolving target image name %q", destImage)
 	}
 	if len(candidates) == 0 {
-		return nil, errors.Errorf("error parsing target image name %q", destImage)
+		return nil, errors.Errorf("error resolving target image name %q", destImage)
 	}
 	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, candidates[0])
 	if err != nil {

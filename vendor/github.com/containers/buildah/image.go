@@ -329,20 +329,19 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			if err != nil {
 				return nil, err
 			}
-			defer rc.Close()
 		} else {
 			// Extract this layer, one of possibly many.
 			rc, err = i.store.Diff("", layerID, diffOptions)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error extracting %s", what)
 			}
-			defer rc.Close()
 		}
 		srcHasher := digest.Canonical.Digester()
 		reader := io.TeeReader(rc, srcHasher.Hash())
 		// Set up to write the possibly-recompressed blob.
 		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
+			rc.Close()
 			return nil, errors.Wrapf(err, "error opening file for %s", what)
 		}
 		destHasher := digest.Canonical.Digester()
@@ -351,14 +350,17 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		// Compress the layer, if we're recompressing it.
 		writer, err := archive.CompressStream(multiWriter, i.compression)
 		if err != nil {
+			layerFile.Close()
+			rc.Close()
 			return nil, errors.Wrapf(err, "error compressing %s", what)
 		}
 		size, err := io.Copy(writer, reader)
+		writer.Close()
+		layerFile.Close()
+		rc.Close()
 		if err != nil {
 			return nil, errors.Wrapf(err, "error storing %s to file", what)
 		}
-		writer.Close()
-		layerFile.Close()
 		if i.compression == archive.Uncompressed {
 			if size != counter.Count {
 				return nil, errors.Errorf("error storing %s to file: inconsistent layer size (copied %d, wrote %d)", what, size, counter.Count)

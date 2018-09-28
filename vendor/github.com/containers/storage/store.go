@@ -2369,13 +2369,23 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	}
 	for _, store := range append([]ROLayerStore{lstore}, lstores...) {
 		store.Lock()
-		defer store.Unlock()
 		if modified, err := store.Modified(); modified || err != nil {
 			store.Load()
 		}
 		if store.Exists(to) {
-			return store.Diff(from, to, options)
+			rc, err := store.Diff(from, to, options)
+			if rc != nil && err == nil {
+				wrapped := ioutils.NewReadCloserWrapper(rc, func() error {
+					err := rc.Close()
+					store.Unlock()
+					return err
+				})
+				return wrapped, nil
+			}
+			store.Unlock()
+			return rc, err
 		}
+		store.Unlock()
 	}
 	return nil, ErrLayerUnknown
 }

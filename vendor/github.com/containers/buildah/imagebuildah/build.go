@@ -648,20 +648,25 @@ func (b *Executor) Prepare(ctx context.Context, ib *imagebuilder.Builder, node *
 	for _, v := range builder.Volumes() {
 		volumes[v] = struct{}{}
 	}
+	ports := map[docker.Port]struct{}{}
+	for _, p := range builder.Ports() {
+		ports[docker.Port(p)] = struct{}{}
+	}
 	dConfig := docker.Config{
-		Hostname:   builder.Hostname(),
-		Domainname: builder.Domainname(),
-		User:       builder.User(),
-		Env:        builder.Env(),
-		Cmd:        builder.Cmd(),
-		Image:      from,
-		Volumes:    volumes,
-		WorkingDir: builder.WorkDir(),
-		Entrypoint: builder.Entrypoint(),
-		Labels:     builder.Labels(),
-		Shell:      builder.Shell(),
-		StopSignal: builder.StopSignal(),
-		OnBuild:    builder.OnBuild(),
+		Hostname:     builder.Hostname(),
+		Domainname:   builder.Domainname(),
+		User:         builder.User(),
+		Env:          builder.Env(),
+		Cmd:          builder.Cmd(),
+		Image:        from,
+		Volumes:      volumes,
+		WorkingDir:   builder.WorkDir(),
+		Entrypoint:   builder.Entrypoint(),
+		Labels:       builder.Labels(),
+		Shell:        builder.Shell(),
+		StopSignal:   builder.StopSignal(),
+		OnBuild:      builder.OnBuild(),
+		ExposedPorts: ports,
 	}
 	var rootfs *docker.RootFS
 	if builder.Docker.RootFS != nil {
@@ -751,6 +756,7 @@ func (b *Executor) Execute(ctx context.Context, ib *imagebuilder.Builder, node *
 	checkForLayers := true
 	children := node.Children
 	commitName := b.output
+	b.containerIDs = nil
 	for i, node := range node.Children {
 		step := ib.Step()
 		if err := step.Resolve(node); err != nil {
