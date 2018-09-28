@@ -48,52 +48,52 @@ context: "FAH28 - Containerized (Podman in Podman)"
 
 ---
 
-host:
-  distro: centos/7/cloud
-  specs:
-     ram: 8192
-     cpus: 4
-extra-repos:
-    - name: epel
-      metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
-      gpgcheck: 0
-    - name: cri-o
-      baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
-      gpgcheck: 0
-
-packages:
-    - btrfs-progs-devel
-    - glib2-devel
-    - glibc-devel
-    - glibc-static
-    - git
-    - go-md2man
-    - gpgme-devel
-    - libassuan-devel
-    - libgpg-error-devel
-    - libseccomp-devel
-    - libselinux-devel
-    - ostree-devel
-    - pkgconfig
-    - make
-    - nc
-    - go-compilers-golang-compiler
-    - podman
-
-required: true
-
-timeout: 90m
-
-tests:
-    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
-    - sh .papr.sh -b -i -t
-
-artifacts:
-  - build.log
-
-context: "CentOS 7 Cloud"
-
----
+#host:
+#  distro: centos/7/cloud
+#  specs:
+#     ram: 8192
+#     cpus: 4
+#extra-repos:
+#    - name: epel
+#      metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+#      gpgcheck: 0
+#    - name: cri-o
+#      baseurl: https://cbs.centos.org/repos/virt7-container-common-candidate/$basearch/os
+#      gpgcheck: 0
+#
+#packages:
+#    - btrfs-progs-devel
+#    - glib2-devel
+#    - glibc-devel
+#    - glibc-static
+#    - git
+#    - go-md2man
+#    - gpgme-devel
+#    - libassuan-devel
+#    - libgpg-error-devel
+#    - libseccomp-devel
+#    - libselinux-devel
+#    - ostree-devel
+#    - pkgconfig
+#    - make
+#    - nc
+#    - go-compilers-golang-compiler
+#    - podman
+#
+#required: true
+#
+#timeout: 90m
+#
+#tests:
+#    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+#    - sh .papr.sh -b -i -t
+#
+#artifacts:
+#  - build.log
+#
+#context: "CentOS 7 Cloud"
+#
+#---
 
 host:
     distro: fedora/28/cloud
@@ -132,41 +132,42 @@ required: false
 timeout: 90m
 context: "Fedora 28 Cloud"
 
----
-
-host:
-    distro: fedora/29/cloud/pungi
-    specs:
-        ram: 8192
-        cpus: 4
-packages:
-    - btrfs-progs-devel
-    - glib2-devel
-    - glibc-devel
-    - glibc-static
-    - git
-    - go-md2man
-    - gpgme-devel
-    - libassuan-devel
-    - libgpg-error-devel
-    - libseccomp-devel
-    - libselinux-devel
-    - ostree-devel
-    - pkgconfig
-    - make
-    - nc
-    - go-compilers-golang-compiler
-    - podman
-    - python3-varlink
-    - python3-dateutil
-    - python3-psutil
-
-tests:
-    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
-    - yum -y reinstall container-selinux
-    - sh .papr.sh -b -i -t
-
-required: false
-
-timeout: 90m
-context: "Fedora 29 Cloud"
+#---
+#
+#host:
+#    distro: fedora/29/cloud/pungi
+#    specs:
+#        ram: 8192
+#        cpus: 4
+#packages:
+#    - btrfs-progs-devel
+#    - glib2-devel
+#    - glibc-devel
+#    - glibc-static
+#    - git
+#    - go-md2man
+#    - gpgme-devel
+#    - libassuan-devel
+#    - libgpg-error-devel
+#    - libseccomp-devel
+#    - libselinux-devel
+#    - ostree-devel
+#    - pkgconfig
+#    - make
+#    - nc
+#    - go-compilers-golang-compiler
+#    - podman
+#    - python3-varlink
+#    - python3-dateutil
+#    - python3-psutil
+#    - container-selinux
+#
+#tests:
+#    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+#    - dnf -y reinstall container-selinux
+#    - sh .papr.sh -b -i -t
+#
+#required: false
+#
+#timeout: 90m
+#context: "Fedora 29 Cloud"
