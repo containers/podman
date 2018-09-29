@@ -35,6 +35,8 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 
 ## Podman Information for Developers
 
+For blogs, release announcements and more, please checkout the [podman.io](https://podman.io) website!
+
 **[Installation notes](install.md)**
 Information on how to install Podman in your environment.
 
