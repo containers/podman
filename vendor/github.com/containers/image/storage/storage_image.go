@@ -313,6 +313,10 @@ func (s storageImageDestination) DesiredLayerCompression() types.LayerCompressio
 	return types.PreserveOriginal
 }
 
+func (s *storageImageDestination) computeNextBlobCacheFile() string {
+	return filepath.Join(s.directory, fmt.Sprintf("%d", atomic.AddInt32(&s.nextTempFileID, 1)))
+}
+
 // PutBlob stores a layer or data blob in our temporary directory, checking that any information
 // in the blobinfo matches the incoming data.
 func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
@@ -328,7 +332,7 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 		}
 	}
 	diffID := digest.Canonical.Digester()
-	filename := filepath.Join(s.directory, fmt.Sprintf("%d", atomic.AddInt32(&s.nextTempFileID, 1)))
+	filename := s.computeNextBlobCacheFile()
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
 	if err != nil {
 		return errorBlobInfo, errors.Wrapf(err, "error creating temporary file %q", filename)
@@ -504,7 +508,6 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 			continue
 		}
 
-		var diff io.ReadCloser
 		// Check if there's already a layer with the ID that we'd give to the result of applying
 		// this layer blob to its parent, if it has one, or the blob's hex value otherwise.
 		diffID, haveDiffID := s.blobDiffIDs[blob.Digest]
@@ -533,19 +536,11 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 			lastLayer = layer.ID
 			continue
 		}
-		// Check if we cached a file with that blobsum.  If we didn't already have a layer with
-		// the blob's contents, we should have gotten a copy.
-		if filename, ok := s.filenames[blob.Digest]; ok {
-			// Use the file's contents to initialize the layer.
-			file, err2 := os.Open(filename)
-			if err2 != nil {
-				return errors.Wrapf(err2, "error opening file %q", filename)
-			}
-			defer file.Close()
-			diff = file
-		}
-		if diff == nil {
-			// Try to find a layer with contents matching that blobsum.
+		// Check if we previously cached a file with that blob's contents.  If we didn't,
+		// then we need to read the desired contents from a layer.
+		filename, ok := s.filenames[blob.Digest]
+		if !ok {
+			// Try to find the layer with contents matching that blobsum.
 			layer := ""
 			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(blob.Digest)
 			if err2 == nil && len(layers) > 0 {
@@ -559,25 +554,48 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 			if layer == "" {
 				return errors.Wrapf(err2, "error locating layer for blob %q", blob.Digest)
 			}
-			// Use the layer's contents to initialize the new layer.
+			// Read the layer's contents.
 			noCompression := archive.Uncompressed
 			diffOptions := &storage.DiffOptions{
 				Compression: &noCompression,
 			}
-			diff, err2 = s.imageRef.transport.store.Diff("", layer, diffOptions)
+			diff, err2 := s.imageRef.transport.store.Diff("", layer, diffOptions)
 			if err2 != nil {
 				return errors.Wrapf(err2, "error reading layer %q for blob %q", layer, blob.Digest)
 			}
-			defer diff.Close()
+			// Copy the layer diff to a file.  Diff() takes a lock that it holds
+			// until the ReadCloser that it returns is closed, and PutLayer() wants
+			// the same lock, so the diff can't just be directly streamed from one
+			// to the other.
+			filename = s.computeNextBlobCacheFile()
+			file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+			if err != nil {
+				diff.Close()
+				return errors.Wrapf(err, "error creating temporary file %q", filename)
+			}
+			// Copy the data to the file.
+			// TODO: This can take quite some time, and should ideally be cancellable using
+			// ctx.Done().
+			_, err = io.Copy(file, diff)
+			diff.Close()
+			file.Close()
+			if err != nil {
+				return errors.Wrapf(err, "error storing blob to file %q", filename)
+			}
+			// Make sure that we can find this file later, should we need the layer's
+			// contents again.
+			s.filenames[blob.Digest] = filename
 		}
-		if diff == nil {
-			// This shouldn't have happened.
-			return errors.Errorf("error applying blob %q: content not found", blob.Digest)
+		// Read the cached blob and use it as a diff.
+		file, err := os.Open(filename)
+		if err != nil {
+			return errors.Wrapf(err, "error opening file %q", filename)
 		}
+		defer file.Close()
 		// Build the new layer using the diff, regardless of where it came from.
 		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, diff)
-		if err != nil {
+		layer, _, err := s.imageRef.transport.store.PutLayer(id, lastLayer, nil, "", false, nil, file)
+		if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
 			return errors.Wrapf(err, "error adding layer with blob %q", blob.Digest)
 		}
 		lastLayer = layer.ID
