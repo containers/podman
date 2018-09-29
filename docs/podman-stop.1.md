@@ -15,10 +15,6 @@ container and also via command line when creating the container.
 
 ## OPTIONS
 
-**--timeout, --time, t**
-
-Timeout to wait before forcibly stopping the container
-
 **--all, -a**
 
 Stop all running containers.  This does not include paused containers.
@@ -27,6 +23,10 @@ Stop all running containers.  This does not include paused containers.
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+**--timeout, --time, t**
+
+Timeout to wait before forcibly stopping the container
 
 ## EXAMPLE
 

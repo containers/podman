@@ -6,6 +6,7 @@ import (
 
 	"fmt"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
@@ -14,6 +15,10 @@ import (
 
 var (
 	killFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "Signal all running containers",
+		},
 		cli.StringFlag{
 			Name:  "signal, s",
 			Usage: "Signal to send to the container",
@@ -28,7 +33,7 @@ var (
 		Description:            killDescription,
 		Flags:                  killFlags,
 		Action:                 killCmd,
-		ArgsUsage:              "[CONTAINER_NAME_OR_ID]",
+		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
 	}
@@ -37,11 +42,17 @@ var (
 // killCmd kills one or more containers with a signal
 func killCmd(c *cli.Context) error {
 	args := c.Args()
-	if len(args) == 0 && !c.Bool("latest") {
-		return errors.Errorf("specify one or more containers to kill")
+	if (!c.Bool("all") && !c.Bool("latest")) && len(args) == 0 {
+		return errors.Errorf("you must specify one or more containers to kill")
 	}
-	if len(args) > 0 && c.Bool("latest") {
-		return errors.Errorf("you cannot specific any containers to kill with --latest")
+	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
+		return errors.Errorf("you cannot specify any containers to kill with --latest or --all")
+	}
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
+		return errors.Errorf("you must provide at least one container name or id")
 	}
 	if err := validateFlags(c, killFlags); err != nil {
 		return err
@@ -65,30 +76,45 @@ func killCmd(c *cli.Context) error {
 		killSignal = uint(sysSignal)
 	}
 
-	if c.Bool("latest") {
-		latestCtr, err := runtime.GetLatestContainer()
+	var filterFuncs []libpod.ContainerFilter
+	var containers []*libpod.Container
+	var lastError error
+	if c.Bool("all") {
+		// only get running containers
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == libpod.ContainerStateRunning
+		})
+		containers, err = runtime.GetContainers(filterFuncs...)
 		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
+			return errors.Wrapf(err, "unable to get running containers")
 		}
-		args = append(args, latestCtr.ID())
+	} else if c.Bool("latest") {
+		lastCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get last created container")
+		}
+		containers = append(containers, lastCtr)
+	} else {
+		for _, i := range args {
+			container, err := runtime.LookupContainer(i)
+			if err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = errors.Wrapf(err, "unable to find container %s", i)
+				continue
+			}
+			containers = append(containers, container)
+		}
 	}
 
-	var lastError error
-	for _, container := range args {
-		ctr, err := runtime.LookupContainer(container)
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find container %v", container)
-			continue
-		}
-
+	for _, ctr := range containers {
 		if err := ctr.Kill(killSignal); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "unable to find container %v", container)
+			lastError = errors.Wrapf(err, "unable to find container %v", ctr.ID())
 		} else {
 			fmt.Println(ctr.ID())
 		}

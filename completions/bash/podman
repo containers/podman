@@ -1282,6 +1282,8 @@ _podman_kill() {
      --signal -s
      "
      local boolean_options="
+     --all
+     -a
      --help
      -h
      --latest
