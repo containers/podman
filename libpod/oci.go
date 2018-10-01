@@ -452,15 +452,32 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 
 	cmd := exec.Command(r.path, "state", ctr.ID())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-
-	out, err := cmd.CombinedOutput()
+	outPipe, err := cmd.StdoutPipe()
 	if err != nil {
+		return errors.Wrapf(err, "getting stdout pipe")
+	}
+	errPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return errors.Wrapf(err, "getting stderr pipe")
+	}
+
+	if err := cmd.Start(); err != nil {
+		out, err2 := ioutil.ReadAll(errPipe)
+		if err2 != nil {
+			return errors.Wrapf(err, "error getting container %s state", ctr.ID())
+		}
 		if strings.Contains(string(out), "does not exist") {
 			ctr.removeConmonFiles()
 			ctr.state.State = ContainerStateExited
 			return nil
 		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
+	}
+
+	errPipe.Close()
+	out, err := ioutil.ReadAll(outPipe)
+	if err != nil {
+		return errors.Wrapf(err, "error reading stdout: %s", ctr.ID())
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
 		return errors.Wrapf(err, "error decoding container status for container %s", ctr.ID())
