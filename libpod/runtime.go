@@ -395,7 +395,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	if !foundRuntime {
 		return errors.Wrapf(ErrInvalidArg,
-			"could not find a working runc binary (configured options: %v)",
+			"could not find a working binary (configured options: %v)",
 			runtime.config.RuntimePath)
 	}
 
