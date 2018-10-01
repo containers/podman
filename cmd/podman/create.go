@@ -784,7 +784,9 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		VolumesFrom: c.StringSlice("volumes-from"),
 	}
 
-	if !config.Privileged {
+	if config.Privileged {
+		config.LabelOpts = label.DisableSecOpt()
+	} else {
 		if err := parseSecurityOpt(config, c.StringSlice("security-opt")); err != nil {
 			return nil, err
 		}
