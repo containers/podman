@@ -1,12 +1,11 @@
 package libpod
 
 import (
-	"github.com/containers/libpod/pkg/inspect"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/containers/libpod/libpod/driver"
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data) (*inspect.ContainerInspectData, error) {
+func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*ContainerInspectData, error) {
 	config := c.config
 	runtimeInfo := c.state
 	spec := c.config.Spec
@@ -48,12 +47,12 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		hostnamePath = getPath
 	}
 
-	data := &inspect.ContainerInspectData{
+	data := &ContainerInspectData{
 		ID:      config.ID,
 		Created: config.CreatedTime,
 		Path:    path,
 		Args:    args,
-		State: &inspect.ContainerInspectState{
+		State: &ContainerInspectState{
 			OciVersion: spec.Version,
 			Status:     runtimeInfo.State.String(),
 			Running:    runtimeInfo.State == ContainerStateRunning,
@@ -87,18 +86,18 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		GraphDriver:     driverData,
 		Mounts:          spec.Mounts,
 		Dependencies:    c.Dependencies(),
-		NetworkSettings: &inspect.NetworkSettings{
+		NetworkSettings: &NetworkSettings{
 			Bridge:                 "",    // TODO
 			SandboxID:              "",    // TODO - is this even relevant?
 			HairpinMode:            false, // TODO
 			LinkLocalIPv6Address:   "",    // TODO - do we even support IPv6?
 			LinkLocalIPv6PrefixLen: 0,     // TODO - do we even support IPv6?
-			Ports:                  []ocicni.PortMapping{}, // TODO - maybe worth it to put this in Docker format?
-			SandboxKey:             "",                     // Network namespace path
-			SecondaryIPAddresses:   nil,                    // TODO - do we support this?
-			SecondaryIPv6Addresses: nil,                    // TODO - do we support this?
-			EndpointID:             "",                     // TODO - is this even relevant?
-			Gateway:                "",                     // TODO
+			Ports:                  []PortMapping{},
+			SandboxKey:             "",  // Network namespace path
+			SecondaryIPAddresses:   nil, // TODO - do we support this?
+			SecondaryIPv6Addresses: nil, // TODO - do we support this?
+			EndpointID:             "",  // TODO - is this even relevant?
+			Gateway:                "",  // TODO
 			GlobalIPv6Address:      "",
 			GlobalIPv6PrefixLen:    0,
 			IPAddress:              "",

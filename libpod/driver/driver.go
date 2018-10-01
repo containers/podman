@@ -1,9 +1,14 @@
 package driver
 
 import (
-	"github.com/containers/libpod/pkg/inspect"
 	cstorage "github.com/containers/storage"
 )
+
+// Data handles the data for a storage driver
+type Data struct {
+	Name string            `json:"Name"`
+	Data map[string]string `json:"Data"`
+}
 
 // GetDriverName returns the name of the driver for the given store
 func GetDriverName(store cstorage.Store) (string, error) {
@@ -24,7 +29,7 @@ func GetDriverMetadata(store cstorage.Store, layerID string) (map[string]string,
 }
 
 // GetDriverData returns the Data struct with information of the driver used by the store
-func GetDriverData(store cstorage.Store, layerID string) (*inspect.Data, error) {
+func GetDriverData(store cstorage.Store, layerID string) (*Data, error) {
 	name, err := GetDriverName(store)
 	if err != nil {
 		return nil, err
@@ -33,7 +38,7 @@ func GetDriverData(store cstorage.Store, layerID string) (*inspect.Data, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &inspect.Data{
+	return &Data{
 		Name: name,
 		Data: metaData,
 	}, nil

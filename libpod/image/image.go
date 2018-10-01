@@ -20,7 +20,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/driver"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -43,8 +42,8 @@ type Image struct {
 	// Adding these two structs for now but will cull when we near
 	// completion of this library.
 	imageConversions
-	inspect.ImageData
-	inspect.ImageResult
+	ImageData
+	ImageResult
 	inspectInfo *types.ImageInspectInfo
 	InputName   string
 	Local       bool
@@ -52,6 +51,51 @@ type Image struct {
 	image        *storage.Image
 	imageruntime *Runtime
 	repotagsMap  map[string][]string
+}
+
+// ImageData holds the inspect information of an image
+type ImageData struct {
+	ID              string             `json:"Id"`
+	Digest          digest.Digest      `json:"Digest"`
+	RepoTags        []string           `json:"RepoTags"`
+	RepoDigests     []string           `json:"RepoDigests"`
+	Parent          string             `json:"Parent"`
+	Comment         string             `json:"Comment"`
+	Created         *time.Time         `json:"Created"`
+	ContainerConfig *ociv1.ImageConfig `json:"ContainerConfig"`
+	Version         string             `json:"Version"`
+	Author          string             `json:"Author"`
+	Architecture    string             `json:"Architecture"`
+	Os              string             `json:"Os"`
+	Size            int64              `json:"Size"`
+	VirtualSize     int64              `json:"VirtualSize"`
+	GraphDriver     *driver.Data       `json:"GraphDriver"`
+	RootFS          *RootFS            `json:"RootFS"`
+	Labels          map[string]string  `json:"Labels"`
+	Annotations     map[string]string  `json:"Annotations"`
+	ManifestType    string             `json:"ManifestType"`
+	User            string             `json:"User"`
+}
+
+// RootFS holds the root fs information of an image
+type RootFS struct {
+	Type   string          `json:"Type"`
+	Layers []digest.Digest `json:"Layers"`
+}
+
+// ImageResult is used for podman images for collection and output
+type ImageResult struct {
+	Tag          string
+	Repository   string
+	RepoDigests  []string
+	RepoTags     []string
+	ID           string
+	Digest       digest.Digest
+	ConfigDigest digest.Digest
+	Created      time.Time
+	Size         *uint64
+	Labels       map[string]string
+	Dangling     bool
 }
 
 // Runtime contains the store
@@ -634,7 +678,7 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 }
 
 // DriverData gets the driver data from the store on a layer
-func (i *Image) DriverData() (*inspect.Data, error) {
+func (i *Image) DriverData() (*driver.Data, error) {
 	topLayer, err := i.Layer()
 	if err != nil {
 		return nil, err
@@ -808,7 +852,7 @@ func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, 
 }
 
 // Inspect returns an image's inspect data
-func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+func (i *Image) Inspect(ctx context.Context) (*ImageData, error) {
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err
@@ -846,7 +890,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		return nil, err
 	}
 
-	data := &inspect.ImageData{
+	data := &ImageData{
 		ID:              i.ID(),
 		RepoTags:        i.Names(),
 		RepoDigests:     repoDigests,
@@ -862,7 +906,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		Annotations:     annotations,
 		Digest:          i.Digest(),
 		Labels:          info.Labels,
-		RootFS: &inspect.RootFS{
+		RootFS: &RootFS{
 			Type:   ociv1Img.RootFS.Type,
 			Layers: ociv1Img.RootFS.DiffIDs,
 		},

@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/namespaces"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
@@ -64,7 +63,7 @@ func (i *LibpodAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.C
 
 // varlinkCreateToCreateConfig takes  the varlink input struct and maps it to a pointer
 // of a CreateConfig, which eventually can be used to create the OCI spec.
-func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
+func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, runtime *libpod.Runtime, imageName string, data *image.ImageData) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64

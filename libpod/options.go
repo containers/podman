@@ -9,7 +9,6 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
 
@@ -809,7 +808,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []PortMapping, postConfigureNetNS bool, networks []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
@@ -821,8 +820,18 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netwo
 
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
 		ctr.config.CreateNetNS = true
-		ctr.config.PortMappings = portMappings
 		ctr.config.Networks = networks
+
+		// Deduplicate port mappings
+		finalPorts := make([]PortMapping, 0, len(portMappings))
+		var err error
+		for _, port := range portMappings {
+			finalPorts, err = addPortToMapping(port, finalPorts)
+			if err != nil {
+				return err
+			}
+		}
+		ctr.config.PortMappings = finalPorts
 
 		return nil
 	}

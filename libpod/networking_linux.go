@@ -15,7 +15,6 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/libpod/pkg/firewall"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -25,20 +24,48 @@ import (
 )
 
 // Get an OCICNI network config
-func getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping) ocicni.PodNetwork {
+func getPodNetwork(id, name, nsPath string, networks []string, ports []PortMapping, oldPorts []ocicni.PortMapping) ocicni.PodNetwork {
+	// If we have old-style port mappings from the DB, use those
+	// Otherwise turn new PortMapping structs into a version CNI understands
+	var cniPorts []ocicni.PortMapping
+	if len(oldPorts) > 0 {
+		cniPorts = oldPorts
+	} else {
+		for _, port := range ports {
+			// Each libpod struct is a range of ports, while each CNI struct
+			// is just one - so we have to make multiple CNI structs per
+			// libpod struct.
+			var i uint16
+			for i = 0; i < port.Length; i++ {
+				cniPort := ocicni.PortMapping{
+					HostPort:      port.HostPort + int32(i),
+					ContainerPort: port.ContainerPort + int32(i),
+					Protocol:      port.Protocol,
+					HostIP:        port.HostIP,
+				}
+				cniPorts = append(cniPorts, cniPort)
+			}
+		}
+	}
+
+	// If we have old-style ports from the
+	if len(oldPorts) > 0 {
+		cniPorts = append(cniPorts, oldPorts...)
+	}
+
 	return ocicni.PodNetwork{
 		Name:         name,
 		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:           id,
 		NetNS:        nsPath,
-		PortMappings: ports,
+		PortMappings: cniPorts,
 		Networks:     networks,
 	}
 }
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.LegacyPortMappings)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -216,7 +243,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
+	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.LegacyPortMappings)
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
@@ -277,7 +304,7 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) getContainerNetworkInfo(data *inspect.ContainerInspectData) *inspect.ContainerInspectData {
+func (c *Container) getContainerNetworkInfo(data *ContainerInspectData) *ContainerInspectData {
 	if c.state.NetNS != nil && len(c.state.NetworkStatus) > 0 {
 		// Report network settings from the first pod network
 		result := c.state.NetworkStatus[0]

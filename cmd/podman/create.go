@@ -15,7 +15,6 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
-	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
@@ -120,7 +119,7 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	}
 
 	imageName := ""
-	var data *inspect.ImageData = nil
+	var data *image.ImageData = nil
 
 	if rootfs == "" && !rootless.SkipStorageSetup() {
 		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
@@ -348,7 +347,7 @@ func isPortInImagePorts(exposedPorts map[string]struct{}, port string) bool {
 	return false
 }
 
-func configureEntrypoint(c *cli.Context, data *inspect.ImageData) []string {
+func configureEntrypoint(c *cli.Context, data *image.ImageData) []string {
 	entrypoint := []string{}
 	if c.IsSet("entrypoint") {
 		// Force entrypoint to ""
@@ -397,7 +396,7 @@ func configurePod(c *cli.Context, runtime *libpod.Runtime, namespaces map[string
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
+func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *image.ImageData) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64

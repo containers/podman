@@ -4,17 +4,10 @@ import (
 	"context"
 	"strings"
 	"time"
-
-	"github.com/containers/libpod/pkg/inspect"
 )
 
 // ResultFilter is a mock function for image filtering
 type ResultFilter func(*Image) bool
-
-// Filter is a function to determine whether an image is included in
-// command output. Images to be outputted are tested using the function. A true
-// return will include the image, a false return will exclude it.
-type Filter func(*Image, *inspect.ImageData) bool
 
 // CreatedBeforeFilter allows you to filter on images created before
 // the given time.Time

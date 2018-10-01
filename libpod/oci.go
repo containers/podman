@@ -18,7 +18,6 @@ import (
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/coreos/go-systemd/activation"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -182,42 +181,48 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 	}
 }
 
-func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
+func bindPorts(ports []PortMapping) ([]*os.File, error) {
 	var files []*os.File
 	for _, i := range ports {
 		switch i.Protocol {
 		case "udp":
-			addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot resolve the UDP address")
-			}
+			var j uint16
+			for j = 0; j < i.Length; j++ {
+				addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort + int32(j))))
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot resolve the UDP address")
+				}
 
-			server, err := net.ListenUDP("udp", addr)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot listen on the UDP port")
+				server, err := net.ListenUDP("udp", addr)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot listen on the UDP port")
+				}
+				f, err := server.File()
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot get file for UDP socket")
+				}
+				files = append(files, f)
 			}
-			f, err := server.File()
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot get file for UDP socket")
-			}
-			files = append(files, f)
 			break
 
 		case "tcp":
-			addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot resolve the TCP address")
-			}
+			var j uint16
+			for j = 0; j < i.Length; j++ {
+				addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort + int32(j))))
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot resolve the TCP address")
+				}
 
-			server, err := net.ListenTCP("tcp4", addr)
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot listen on the TCP port")
+				server, err := net.ListenTCP("tcp4", addr)
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot listen on the TCP port")
+				}
+				f, err := server.File()
+				if err != nil {
+					return nil, errors.Wrapf(err, "cannot get file for TCP socket")
+				}
+				files = append(files, f)
 			}
-			f, err := server.File()
-			if err != nil {
-				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
-			}
-			files = append(files, f)
 			break
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)

@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/pkg/chrootuser"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/pkg/errors"
@@ -556,7 +555,7 @@ func (c *Container) RemoveArtifact(name string) error {
 }
 
 // Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
+func (c *Container) Inspect(size bool) (*ContainerInspectData, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

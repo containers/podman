@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/inspect"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -62,6 +61,100 @@ type Namespace struct {
 type ContainerSize struct {
 	RootFsSize int64 `json:"rootFsSize"`
 	RwSize     int64 `json:"rwSize"`
+}
+
+// ContainerData holds the podman inspect data for a container
+type ContainerData struct {
+	*ContainerInspectData
+	HostConfig *HostConfig `json:"HostConfig"`
+	Config     *CtrConfig  `json:"Config"`
+}
+
+// HostConfig represents the host configuration for the container
+type HostConfig struct {
+	ContainerIDFile      string                      `json:"ContainerIDFile"`
+	LogConfig            *LogConfig                  `json:"LogConfig"` //TODO
+	NetworkMode          string                      `json:"NetworkMode"`
+	PortBindings         nat.PortMap                 `json:"PortBindings"` //TODO
+	AutoRemove           bool                        `json:"AutoRemove"`
+	CapAdd               []string                    `json:"CapAdd"`
+	CapDrop              []string                    `json:"CapDrop"`
+	DNS                  []string                    `json:"DNS"`
+	DNSOptions           []string                    `json:"DNSOptions"`
+	DNSSearch            []string                    `json:"DNSSearch"`
+	ExtraHosts           []string                    `json:"ExtraHosts"`
+	GroupAdd             []uint32                    `json:"GroupAdd"`
+	IpcMode              string                      `json:"IpcMode"`
+	Cgroup               string                      `json:"Cgroup"`
+	OomScoreAdj          *int                        `json:"OomScoreAdj"`
+	PidMode              string                      `json:"PidMode"`
+	Privileged           bool                        `json:"Privileged"`
+	PublishAllPorts      bool                        `json:"PublishAllPorts"` //TODO
+	ReadonlyRootfs       bool                        `json:"ReadonlyRootfs"`
+	SecurityOpt          []string                    `json:"SecurityOpt"`
+	UTSMode              string                      `json:"UTSMode"`
+	UsernsMode           string                      `json:"UsernsMode"`
+	ShmSize              int64                       `json:"ShmSize"`
+	Runtime              string                      `json:"Runtime"`
+	ConsoleSize          *specs.Box                  `json:"ConsoleSize"`
+	CPUShares            *uint64                     `json:"CpuShares"`
+	Memory               int64                       `json:"Memory"`
+	NanoCPUs             int                         `json:"NanoCpus"`
+	CgroupParent         string                      `json:"CgroupParent"`
+	BlkioWeight          *uint16                     `json:"BlkioWeight"`
+	BlkioWeightDevice    []specs.LinuxWeightDevice   `json:"BlkioWeightDevice"`
+	BlkioDeviceReadBps   []specs.LinuxThrottleDevice `json:"BlkioDeviceReadBps"`
+	BlkioDeviceWriteBps  []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteBps"`
+	BlkioDeviceReadIOps  []specs.LinuxThrottleDevice `json:"BlkioDeviceReadIOps"`
+	BlkioDeviceWriteIOps []specs.LinuxThrottleDevice `json:"BlkioDeviceWriteIOps"`
+	CPUPeriod            *uint64                     `json:"CpuPeriod"`
+	CPUQuota             *int64                      `json:"CpuQuota"`
+	CPURealtimePeriod    *uint64                     `json:"CpuRealtimePeriod"`
+	CPURealtimeRuntime   *int64                      `json:"CpuRealtimeRuntime"`
+	CPUSetCPUs           string                      `json:"CpuSetCpus"`
+	CPUSetMems           string                      `json:"CpuSetMems"`
+	Devices              []specs.LinuxDevice         `json:"Devices"`
+	DiskQuota            int                         `json:"DiskQuota"` //check type, TODO
+	KernelMemory         *int64                      `json:"KernelMemory"`
+	MemoryReservation    *int64                      `json:"MemoryReservation"`
+	MemorySwap           *int64                      `json:"MemorySwap"`
+	MemorySwappiness     *uint64                     `json:"MemorySwappiness"`
+	OomKillDisable       *bool                       `json:"OomKillDisable"`
+	PidsLimit            *int64                      `json:"PidsLimit"`
+	Ulimits              []string                    `json:"Ulimits"`
+	CPUCount             int                         `json:"CpuCount"`
+	CPUPercent           int                         `json:"CpuPercent"`
+	IOMaximumIOps        int                         `json:"IOMaximumIOps"`      //check type, TODO
+	IOMaximumBandwidth   int                         `json:"IOMaximumBandwidth"` //check type, TODO
+	Tmpfs                []string                    `json:"Tmpfs"`
+}
+
+// CtrConfig holds information about the container configuration
+type CtrConfig struct {
+	Hostname     string              `json:"Hostname"`
+	DomainName   string              `json:"Domainname"` //TODO
+	User         specs.User          `json:"User"`
+	AttachStdin  bool                `json:"AttachStdin"`  //TODO
+	AttachStdout bool                `json:"AttachStdout"` //TODO
+	AttachStderr bool                `json:"AttachStderr"` //TODO
+	Tty          bool                `json:"Tty"`
+	OpenStdin    bool                `json:"OpenStdin"`
+	StdinOnce    bool                `json:"StdinOnce"` //TODO
+	Env          []string            `json:"Env"`
+	Cmd          []string            `json:"Cmd"`
+	Image        string              `json:"Image"`
+	Volumes      map[string]struct{} `json:"Volumes"`
+	WorkingDir   string              `json:"WorkingDir"`
+	Entrypoint   string              `json:"Entrypoint"`
+	Labels       map[string]string   `json:"Labels"`
+	Annotations  map[string]string   `json:"Annotations"`
+	StopSignal   uint                `json:"StopSignal"`
+}
+
+// LogConfig holds the log information for a container
+type LogConfig struct {
+	Type   string            `json:"Type"`   // TODO
+	Config map[string]string `json:"Config"` //idk type, TODO
 }
 
 // BatchContainer is used in ps to reduce performance hits by "batching"
@@ -185,7 +278,7 @@ func getStrFromSquareBrackets(cmd string) string {
 
 // GetCtrInspectInfo takes container inspect data and collects all its info into a ContainerData
 // structure for inspection related methods
-func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerInspectData) (*inspect.ContainerData, error) {
+func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *libpod.ContainerInspectData) (*ContainerData, error) {
 	config := ctr.Config()
 	spec := config.Spec
 
@@ -205,9 +298,9 @@ func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 		logrus.Errorf("couldn't get some inspect information, error getting artifact %q: %v", ctr.ID(), err)
 	}
 
-	data := &inspect.ContainerData{
+	data := &ContainerData{
 		ctrInspectData,
-		&inspect.HostConfig{
+		&HostConfig{
 			ConsoleSize:          spec.Process.ConsoleSize,
 			OomScoreAdj:          spec.Process.OOMScoreAdj,
 			CPUShares:            shares,
@@ -254,7 +347,7 @@ func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			SecurityOpt:          createArtifact.SecurityOpts,
 			Tmpfs:                createArtifact.Tmpfs,
 		},
-		&inspect.CtrConfig{
+		&CtrConfig{
 			Hostname:    spec.Hostname,
 			User:        spec.Process.User,
 			Env:         spec.Process.Env,
