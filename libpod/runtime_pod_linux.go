@@ -265,7 +265,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			}
 		case CgroupfsCgroupsManager:
 			// Delete the cgroupfs cgroup
-			cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(p.state.CgroupPath))
+			v1CGroups := GetV1CGroups(getExcludedCGroups())
+			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				return err
 			} else if err == nil {

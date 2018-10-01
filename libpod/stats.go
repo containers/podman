@@ -33,13 +33,14 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	if err != nil {
 		return nil, err
 	}
-
-	cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(cgroupPath))
+	v1CGroups := GetV1CGroups(getExcludedCGroups())
+	cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(cgroupPath))
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
-	cgroupStats, err := cgroup.Stat()
+	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
+	cgroupStats, err := cgroup.Stat(cgroups.IgnoreNotExist)
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}

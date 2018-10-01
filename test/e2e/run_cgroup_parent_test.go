@@ -45,7 +45,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 
 	Specify("no --cgroup-parent", func() {
 		cgroup := "/libpod_parent"
-		if !containerized() {
+		if !containerized() && podmanTest.CgroupManager != "cgroupfs" {
 			cgroup = "/machine.slice"
 		}
 		run := podmanTest.Podman([]string{"run", fedoraMinimal, "cat", "/proc/self/cgroup"})
@@ -56,7 +56,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("valid --cgroup-parent using slice", func() {
-		if containerized() {
+		if containerized() || podmanTest.CgroupManager == "cgroupfs" {
 			Skip("Requires Systemd cgroup manager support")
 		}
 		cgroup := "aaaa.slice"

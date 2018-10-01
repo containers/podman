@@ -39,6 +39,9 @@ var _ = Describe("Podman run memory", func() {
 	})
 
 	It("podman run memory-reservation test", func() {
+		if podmanTest.Host.Distribution == "ubuntu" {
+			Skip("Unable to perform test on Ubuntu distributions due to memory management")
+		}
 		session := podmanTest.Podman([]string{"run", "--memory-reservation=40m", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.soft_limit_in_bytes"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
