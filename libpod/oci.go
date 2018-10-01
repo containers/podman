@@ -535,7 +535,12 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 // Sets time the container was started, but does not save it.
 func (r *OCIRuntime) startContainer(ctr *Container) error {
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "start", ctr.ID()); err != nil {
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "start", ctr.ID()); err != nil {
 		return err
 	}
 
@@ -547,7 +552,12 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 // killContainer sends the given signal to the given container
 func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "kill", ctr.ID(), fmt.Sprintf("%d", signal)); err != nil {
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "kill", ctr.ID(), fmt.Sprintf("%d", signal)); err != nil {
 		return errors.Wrapf(err, "error sending signal to container %s", ctr.ID())
 	}
 
@@ -605,7 +615,12 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		args = []string{"kill", "--all", ctr.ID(), "KILL"}
 	}
 
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...); err != nil {
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
 		// Again, check if the container is gone. If it is, exit cleanly.
 		err := unix.Kill(ctr.state.PID, 0)
 		if err == unix.ESRCH {
@@ -631,12 +646,22 @@ func (r *OCIRuntime) deleteContainer(ctr *Container) error {
 
 // pauseContainer pauses the given container
 func (r *OCIRuntime) pauseContainer(ctr *Container) error {
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "pause", ctr.ID())
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "pause", ctr.ID())
 }
 
 // unpauseContainer unpauses the given container
 func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "resume", ctr.ID())
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "resume", ctr.ID())
 }
 
 // execContainer executes a command in a running container
@@ -734,13 +759,18 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 	if len(execSessions) == 0 {
 		return nil
 	}
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
 
 	// If timeout is 0, just use SIGKILL
 	if timeout > 0 {
 		// Stop using SIGTERM by default
 		// Use SIGSTOP after a timeout
 		logrus.Debugf("Killing all processes in container %s with SIGTERM", ctr.ID())
-		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "kill", "--all", ctr.ID(), "TERM"); err != nil {
+		if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "kill", "--all", ctr.ID(), "TERM"); err != nil {
 			return errors.Wrapf(err, "error sending SIGTERM to container %s processes", ctr.ID())
 		}
 
@@ -755,7 +785,7 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 
 	// Send SIGKILL
 	logrus.Debugf("Killing all processes in container %s with SIGKILL", ctr.ID())
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
+	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "kill", "--all", ctr.ID(), "KILL"); err != nil {
 		return errors.Wrapf(err, "error sending SIGKILL to container %s processes", ctr.ID())
 	}
 
