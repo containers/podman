@@ -72,7 +72,7 @@ apt-get install -y \
 
 Debian, Ubuntu, and related distributions will also need to do the following setup:
 
- * A copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)).
+ * A copy of the development libraries for `ostree`, either in the form of the `libostree-dev` package from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA, or built [from source](https://github.com/ostreedev/ostree) (more on that [here](https://ostree.readthedocs.io/en/latest/#building)). As of Ubuntu 18.04, `libostree-dev` is available in the main repositories, and the PPA is no longer required.
  * [Add required configuration files](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#adding-required-configuration-files)
  * Install conmon, CNI plugins and runc
    * [Install conmon](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#building-and-installing-conmon)

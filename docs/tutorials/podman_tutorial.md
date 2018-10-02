@@ -85,7 +85,7 @@ $ sudo cp bin/* /usr/libexec/cni
 ```console
 $ git clone https://github.com/opencontainers/runc.git $GOPATH/src/github.com/opencontainers/runc
 $ cd $GOPATH/src/github.com/opencontainers/runc
-$ make static BUILDTAGS="seccomp selinux"
+$ make BUILDTAGS="seccomp"
 $ sudo cp runc /usr/bin/runc
 ```
 
