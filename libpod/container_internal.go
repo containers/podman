@@ -423,7 +423,7 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return c.state.State == ContainerStateStopped, nil
+	return (c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited), nil
 }
 
 // save container state to the database
