@@ -561,8 +561,11 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 	// Our state is now Exited, as we've removed ourself from
 	// the runtime.
 	c.state.State = ContainerStateExited
-	if err := c.save(); err != nil {
-		return err
+
+	if c.valid {
+		if err := c.save(); err != nil {
+			return err
+		}
 	}
 
 	logrus.Debugf("Successfully cleaned up container %s", c.ID())
