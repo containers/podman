@@ -5,6 +5,7 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,8 +26,8 @@ import (
 )
 
 // Get an OCICNI network config
-func getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping) ocicni.PodNetwork {
-	return ocicni.PodNetwork{
+func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
+	network := ocicni.PodNetwork{
 		Name:         name,
 		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:           id,
@@ -34,11 +35,21 @@ func getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.Po
 		PortMappings: ports,
 		Networks:     networks,
 	}
+
+	if staticIP != nil {
+		defaultNetwork := r.netPlugin.GetDefaultNetworkName()
+
+		network.Networks = []string{defaultNetwork}
+		network.NetworkConfig = make(map[string]ocicni.NetworkConfig)
+		network.NetworkConfig[defaultNetwork] = ocicni.NetworkConfig{IP: staticIP.String()}
+	}
+
+	return network
 }
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -216,7 +227,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	podNetwork := getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings)
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {

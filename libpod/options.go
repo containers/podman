@@ -828,6 +828,31 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netwo
 	}
 }
 
+// WithStaticIP indicates that the container should request a static IP from
+// the CNI plugins.
+// It cannot be set unless WithNetNS has already been passed.
+// Further, it cannot be set if additional CNI networks to join have been
+// specified.
+func WithStaticIP(ip net.IP) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid  {
+			return ErrCtrFinalized
+		}
+
+		if !ctr.config.CreateNetNS {
+			return errors.Wrapf(ErrInvalidArg, "cannot set a static IP if the container is not creating a network namespace")
+		}
+
+		if len(ctr.config.Networks) != 0 {
+			return errors.Wrapf(ErrInvalidArg, "cannot set a static IP if joining additional CNI networks")
+		}
+
+		ctr.config.StaticIP = ip
+
+		return nil
+	}
+}
+
 // WithLogPath sets the path to the log file.
 func WithLogPath(path string) CtrCreateOption {
 	return func(ctr *Container) error {
