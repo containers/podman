@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/pkg/criu"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -22,10 +23,8 @@ var _ = Describe("Podman checkpoint", func() {
 		}
 		podmanTest = PodmanCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
-		// At least CRIU 3.11 is needed
-		skip, err := podmanTest.isCriuAtLeast(31100)
-		if err != nil || skip {
-			Skip("CRIU missing or too old.")
+		if !criu.CheckForCriu() {
+			Skip("CRIU is missing or too old.")
 		}
 	})
 
