@@ -1286,7 +1286,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
-	var allHooks map[string][]spec.Hook
+	allHooks := make(map[string][]spec.Hook)
 	for _, hDir := range c.runtime.config.HooksDir {
 		manager, err := hooks.New(ctx, []string{hDir}, []string{"poststop"}, lang)
 		if err != nil {
