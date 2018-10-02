@@ -18,6 +18,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/chrootuser"
+	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -368,6 +369,10 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 
 func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
 
+	if !criu.CheckForCriu() {
+		return errors.Errorf("checkpointing a container requires at least CRIU %d", criu.MinCriuVersion)
+	}
+
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
@@ -406,6 +411,10 @@ func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
 }
 
 func (c *Container) restore(ctx context.Context, keep bool) (err error) {
+
+	if !criu.CheckForCriu() {
+		return errors.Errorf("restoring a container requires at least CRIU %d", criu.MinCriuVersion)
+	}
 
 	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
