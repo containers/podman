@@ -7,8 +7,9 @@ from dateutil.parser import parse as dateutil_parse
 
 __all__ = [
     'cached_property',
-    'datetime_parse',
     'datetime_format',
+    'datetime_parse',
+    'fold_keys',
 ]
 
 
@@ -17,12 +18,12 @@ def cached_property(fn):
     return property(functools.lru_cache(maxsize=8)(fn))
 
 
-class Config(collections.UserDict):
+class ConfigDict(collections.UserDict):
     """Silently ignore None values, only take key once."""
 
     def __init__(self, **kwargs):
         """Construct dictionary."""
-        super(Config, self).__init__(kwargs)
+        super().__init__(kwargs)
 
     def __setitem__(self, key, value):
         """Store unique, not None values."""
@@ -33,6 +34,25 @@ class Config(collections.UserDict):
             return
 
         super().__setitem__(key, value)
+
+
+class FoldedString(collections.UserString):
+    """Foldcase sequences value."""
+
+    def __init__(self, seq):
+        super().__init__(seq)
+        self.data.casefold()
+
+
+def fold_keys():  # noqa: D202
+    """Fold case of dictionary keys."""
+
+    @functools.wraps(fold_keys)
+    def wrapped(mapping):
+        """Fold case of dictionary keys."""
+        return {k.casefold(): v for (k, v) in mapping.items()}
+
+    return wrapped
 
 
 def datetime_parse(string):

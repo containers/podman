@@ -13,6 +13,7 @@ from .libs.errors import error_factory
 from .libs.images import Images
 from .libs.system import System
 from .libs.tunnel import Context, Portal, Tunnel
+from .libs.pods import Pods
 
 
 class BaseClient():
@@ -204,3 +205,8 @@ class Client():
     def containers(self):
         """Manage containers model for libpod."""
         return Containers(self._client)
+
+    @cached_property
+    def pods(self):
+        """Manage pods model for libpod."""
+        return Pods(self._client)

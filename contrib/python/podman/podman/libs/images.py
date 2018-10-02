@@ -5,7 +5,7 @@ import functools
 import json
 import logging
 
-from . import Config
+from . import ConfigDict
 from .containers import Container
 
 
@@ -40,7 +40,7 @@ class Image(collections.UserDict):
         """
         details = self.inspect()
 
-        config = Config(image_id=self._id, **kwargs)
+        config = ConfigDict(image_id=self._id, **kwargs)
         config['command'] = details.containerconfig['cmd']
         config['env'] = self._split_token(details.containerconfig['env'])
         config['image'] = copy.deepcopy(details.repotags[0])
@@ -134,7 +134,7 @@ class Images():
         elif not hasattr(tags, '__iter__'):
             raise ValueError('"tags" is required to be an iter.')
 
-        config = Config(dockerfile=dockerfile, tags=tags, **kwargs)
+        config = ConfigDict(dockerfile=dockerfile, tags=tags, **kwargs)
         with self._client() as podman:
             result = podman.BuildImage(config)
         return self.get(result['image']['id']), \

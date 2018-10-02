@@ -179,6 +179,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [error NoContainerRunning](#NoContainerRunning)
 
+[error NoContainersInPod](#NoContainersInPod)
+
 [error PodContainerError](#PodContainerError)
 
 [error PodNotFound](#PodNotFound)
@@ -1332,6 +1334,10 @@ ImageNotFound means the image could not be found by the provided name or ID in l
 ### <a name="NoContainerRunning"></a>type NoContainerRunning
 
 NoContainerRunning means none of the containers requested are running in a command that requires a running container.
+### <a name="NoContainersInPod"></a>type NoContainersInPod
+
+NoContainersInPod means a pod has no containers on which to perform operation. It contains
+the pod ID.
 ### <a name="PodContainerError"></a>type PodContainerError
 
 PodContainerError means a container associated with a pod failed to preform an operation. It contains
