@@ -262,7 +262,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 	} else if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped) {
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
