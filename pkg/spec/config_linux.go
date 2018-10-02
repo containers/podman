@@ -91,18 +91,23 @@ func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxS
 }
 
 func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
+	var ret *spec.LinuxBlockIO
 	bio := &spec.LinuxBlockIO{}
-	bio.Weight = &c.Resources.BlkioWeight
+	if c.Resources.BlkioWeight > 0 {
+		ret = bio
+		bio.Weight = &c.Resources.BlkioWeight
+	}
 	if len(c.Resources.BlkioWeightDevice) > 0 {
 		var lwds []spec.LinuxWeightDevice
+		ret = bio
 		for _, i := range c.Resources.BlkioWeightDevice {
 			wd, err := validateweightDevice(i)
 			if err != nil {
-				return bio, errors.Wrapf(err, "invalid values for blkio-weight-device")
+				return ret, errors.Wrapf(err, "invalid values for blkio-weight-device")
 			}
 			wdStat, err := getStatFromPath(wd.path)
 			if err != nil {
-				return bio, errors.Wrapf(err, "error getting stat from path %q", wd.path)
+				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.path)
 			}
 			lwd := spec.LinuxWeightDevice{
 				Weight: &wd.weight,
@@ -114,34 +119,38 @@ func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 		bio.WeightDevice = lwds
 	}
 	if len(c.Resources.DeviceReadBps) > 0 {
+		ret = bio
 		readBps, err := makeThrottleArray(c.Resources.DeviceReadBps, bps)
 		if err != nil {
-			return bio, err
+			return ret, err
 		}
 		bio.ThrottleReadBpsDevice = readBps
 	}
 	if len(c.Resources.DeviceWriteBps) > 0 {
+		ret = bio
 		writeBpds, err := makeThrottleArray(c.Resources.DeviceWriteBps, bps)
 		if err != nil {
-			return bio, err
+			return ret, err
 		}
 		bio.ThrottleWriteBpsDevice = writeBpds
 	}
 	if len(c.Resources.DeviceReadIOps) > 0 {
+		ret = bio
 		readIOps, err := makeThrottleArray(c.Resources.DeviceReadIOps, iops)
 		if err != nil {
-			return bio, err
+			return ret, err
 		}
 		bio.ThrottleReadIOPSDevice = readIOps
 	}
 	if len(c.Resources.DeviceWriteIOps) > 0 {
+		ret = bio
 		writeIOps, err := makeThrottleArray(c.Resources.DeviceWriteIOps, iops)
 		if err != nil {
-			return bio, err
+			return ret, err
 		}
 		bio.ThrottleWriteIOPSDevice = writeIOps
 	}
-	return bio, nil
+	return ret, nil
 }
 
 func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrottleDevice, error) {
