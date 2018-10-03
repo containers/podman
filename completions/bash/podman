@@ -2086,6 +2086,36 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_container_runlabel() {
+    local options_with_args="
+     --authfile
+     --cert-dir
+     --creds
+     --name
+     --signature-policy
+    "
+
+    local boolean_options="
+     --display
+     --help
+     -h
+     -p
+     --pull
+     -q
+     --quiet
+     --tls-verify
+  "
+
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_images --id
+            ;;
+    esac
+}
+
 _podman_pod_create() {
   local options_with_args="
       --cgroup-parent

@@ -25,6 +25,7 @@ var (
 		restartCommand,
 		rmCommand,
 		runCommand,
+		runlabelCommand,
 		startCommand,
 		statsCommand,
 		stopCommand,

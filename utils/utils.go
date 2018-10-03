@@ -29,11 +29,14 @@ func ExecCmd(name string, args ...string) (string, error) {
 }
 
 // ExecCmdWithStdStreams execute a command with the specified standard streams.
-func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
+func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	if env != nil {
+		cmd.Env = env
+	}
 
 	err := cmd.Run()
 	if err != nil {
