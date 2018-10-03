@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -65,7 +66,7 @@ type ContainerSize struct {
 
 // ContainerData holds the podman inspect data for a container
 type ContainerData struct {
-	*ContainerInspectData
+	*libpod.ContainerInspectData
 	HostConfig *HostConfig `json:"HostConfig"`
 	Config     *CtrConfig  `json:"Config"`
 }

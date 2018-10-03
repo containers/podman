@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/ctime"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/coreos/go-systemd/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -181,14 +182,14 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 	}
 }
 
-func bindPorts(ports []PortMapping) ([]*os.File, error) {
+func bindPorts(ports []port.PortMapping) ([]*os.File, error) {
 	var files []*os.File
 	for _, i := range ports {
 		switch i.Protocol {
 		case "udp":
 			var j uint16
 			for j = 0; j < i.Length; j++ {
-				addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort + int32(j))))
+				addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort+int32(j))))
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot resolve the UDP address")
 				}
@@ -208,7 +209,7 @@ func bindPorts(ports []PortMapping) ([]*os.File, error) {
 		case "tcp":
 			var j uint16
 			for j = 0; j < i.Length; j++ {
-				addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort + int32(j))))
+				addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, (i.HostPort+int32(j))))
 				if err != nil {
 					return nil, errors.Wrapf(err, "cannot resolve the TCP address")
 				}

@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/libpod/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -49,7 +50,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	options = append(options, withIsInfra())
 
 	// Since user namespace sharing is not implemented, we only need to check if it's rootless
-	portMappings := make([]PortMapping, 0)
+	portMappings := make([]port.PortMapping, 0)
 	networks := make([]string, 0)
 	options = append(options, WithNetNS(portMappings, isRootless, networks))
 

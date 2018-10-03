@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -198,28 +199,6 @@ type ExecSession struct {
 	PID     int      `json:"pid"`
 }
 
-// PortMapping contains a set of ports that will be mapped into the container.
-type PortMapping struct {
-	// ContainerPort is the port in the container.
-	// Must be a positive integer between 0 and 65535.
-	ContainerPort int32 `json:"ctr"`
-	// HostPort is the port on the host that will be forwarded to the container.
-	// Must be a positive integer between 0 and 65535.
-	HostPort int32 `json:"host"`
-	// HostIP is the IP on the host that will have the port forwarded to
-	// the container.
-	HostIP string `json:"hostIP"`
-	// Length is the number of ports that will be mapped.
-	// Must be nonzero.
-	// HostPort + Length and ContainerPort + Length must both be less than
-	// 65536 to ensure that we do not try to map more ports than are
-	// available.
-	Length uint16 `json:"length"`
-	// Protocol is the protocol that will be forwarded.
-	// Valid protocols are "tcp" and "udp"
-	Protocol string `json:"proto"`
-}
-
 // ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
@@ -297,7 +276,7 @@ type ContainerConfig struct {
 	// PortMappings are the ports forwarded to the container's network
 	// namespace.
 	// These are not used unless CreateNetNS is true.
-	PortMappings []PortMapping `json:"ports,omitempty"`
+	PortMappings []port.PortMapping `json:"ports,omitempty"`
 	// Legacy port mappings from prior versions of libpod.
 	// These can no longer be set by the API, and are considered deprecated.
 	// They may be removed at a later date.
@@ -534,7 +513,7 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() []PortMapping {
+func (c *Container) PortMappings() []port.PortMapping {
 	return c.config.PortMappings
 }
 

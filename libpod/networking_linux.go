@@ -16,6 +16,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/netns"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ import (
 )
 
 // Get an OCICNI network config
-func getPodNetwork(id, name, nsPath string, networks []string, ports []PortMapping, oldPorts []ocicni.PortMapping) ocicni.PodNetwork {
+func getPodNetwork(id, name, nsPath string, networks []string, ports []port.PortMapping, oldPorts []ocicni.PortMapping) ocicni.PodNetwork {
 	// If we have old-style port mappings from the DB, use those
 	// Otherwise turn new PortMapping structs into a version CNI understands
 	var cniPorts []ocicni.PortMapping

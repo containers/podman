@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/pkg/port"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -60,21 +61,21 @@ type ContainerInspectState struct {
 
 // NetworkSettings holds information about the newtwork settings of the container
 type NetworkSettings struct {
-	Bridge                 string        `json:"Bridge"`
-	SandboxID              string        `json:"SandboxID"`
-	HairpinMode            bool          `json:"HairpinMode"`
-	LinkLocalIPv6Address   string        `json:"LinkLocalIPv6Address"`
-	LinkLocalIPv6PrefixLen int           `json:"LinkLocalIPv6PrefixLen"`
-	Ports                  []PortMapping `json:"Ports"`
-	SandboxKey             string        `json:"SandboxKey"`
-	SecondaryIPAddresses   []string      `json:"SecondaryIPAddresses"`
-	SecondaryIPv6Addresses []string      `json:"SecondaryIPv6Addresses"`
-	EndpointID             string        `json:"EndpointID"`
-	Gateway                string        `json:"Gateway"`
-	GlobalIPv6Address      string        `json:"GlobalIPv6Address"`
-	GlobalIPv6PrefixLen    int           `json:"GlobalIPv6PrefixLen"`
-	IPAddress              string        `json:"IPAddress"`
-	IPPrefixLen            int           `json:"IPPrefixLen"`
-	IPv6Gateway            string        `json:"IPv6Gateway"`
-	MacAddress             string        `json:"MacAddress"`
+	Bridge                 string             `json:"Bridge"`
+	SandboxID              string             `json:"SandboxID"`
+	HairpinMode            bool               `json:"HairpinMode"`
+	LinkLocalIPv6Address   string             `json:"LinkLocalIPv6Address"`
+	LinkLocalIPv6PrefixLen int                `json:"LinkLocalIPv6PrefixLen"`
+	Ports                  []port.PortMapping `json:"Ports"`
+	SandboxKey             string             `json:"SandboxKey"`
+	SecondaryIPAddresses   []string           `json:"SecondaryIPAddresses"`
+	SecondaryIPv6Addresses []string           `json:"SecondaryIPv6Addresses"`
+	EndpointID             string             `json:"EndpointID"`
+	Gateway                string             `json:"Gateway"`
+	GlobalIPv6Address      string             `json:"GlobalIPv6Address"`
+	GlobalIPv6PrefixLen    int                `json:"GlobalIPv6PrefixLen"`
+	IPAddress              string             `json:"IPAddress"`
+	IPPrefixLen            int                `json:"IPPrefixLen"`
+	IPv6Gateway            string             `json:"IPv6Gateway"`
+	MacAddress             string             `json:"MacAddress"`
 }

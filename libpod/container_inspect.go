@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/sirupsen/logrus"
 )
 
@@ -92,7 +93,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 			HairpinMode:            false, // TODO
 			LinkLocalIPv6Address:   "",    // TODO - do we even support IPv6?
 			LinkLocalIPv6PrefixLen: 0,     // TODO - do we even support IPv6?
-			Ports:                  []PortMapping{},
+			Ports:                  []port.PortMapping{},
 			SandboxKey:             "",  // Network namespace path
 			SecondaryIPAddresses:   nil, // TODO - do we support this?
 			SecondaryIPv6Addresses: nil, // TODO - do we support this?

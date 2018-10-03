@@ -8,6 +8,7 @@ import (
 	json "encoding/json"
 	types "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
+	port "github.com/containers/libpod/pkg/port"
 	storage "github.com/containers/storage"
 	idtools "github.com/containers/storage/pkg/idtools"
 	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
@@ -1391,16 +1392,16 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				in.Delim('[')
 				if out.PortMappings == nil {
 					if !in.IsDelim(']') {
-						out.PortMappings = make([]PortMapping, 0, 1)
+						out.PortMappings = make([]port.PortMapping, 0, 1)
 					} else {
-						out.PortMappings = []PortMapping{}
+						out.PortMappings = []port.PortMapping{}
 					}
 				} else {
 					out.PortMappings = (out.PortMappings)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v43 PortMapping
-					easyjson1dbef17bDecodeGithubComContainersLibpodLibpod3(in, &v43)
+					var v43 port.PortMapping
+					easyjson1dbef17bDecodeGithubComContainersLibpodPkgPort(in, &v43)
 					out.PortMappings = append(out.PortMappings, v43)
 					in.WantComma()
 				}
@@ -2042,7 +2043,7 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 				if v62 > 0 {
 					out.RawByte(',')
 				}
-				easyjson1dbef17bEncodeGithubComContainersLibpodLibpod3(out, v63)
+				easyjson1dbef17bEncodeGithubComContainersLibpodPkgPort(out, v63)
 			}
 			out.RawByte(']')
 		}
@@ -2481,7 +2482,7 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodVendorGithubComCriOOcicniPkg
 	}
 	out.RawByte('}')
 }
-func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod3(in *jlexer.Lexer, out *PortMapping) {
+func easyjson1dbef17bDecodeGithubComContainersLibpodPkgPort(in *jlexer.Lexer, out *port.PortMapping) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2520,7 +2521,7 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod3(in *jlexer.Lexer, ou
 		in.Consumed()
 	}
 }
-func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod3(out *jwriter.Writer, in PortMapping) {
+func easyjson1dbef17bEncodeGithubComContainersLibpodPkgPort(out *jwriter.Writer, in port.PortMapping) {
 	out.RawByte('{')
 	first := true
 	_ = first

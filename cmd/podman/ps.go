@@ -12,8 +12,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -64,7 +64,7 @@ type psJSONParams struct {
 	ExitedAt         time.Time             `json:"exitedAt"`
 	Status           string                `json:"status"`
 	PID              int                   `json:"PID"`
-	Ports            []ocicni.PortMapping  `json:"ports"`
+	Ports            []port.PortMapping    `json:"ports"`
 	Size             *shared.ContainerSize `json:"size,omitempty"`
 	Names            string                `json:"names"`
 	Labels           fields.Set            `json:"labels"`
@@ -709,7 +709,7 @@ func getMountsArray(mounts []string, noTrunc bool) []string {
 }
 
 // portsToString converts the ports used to a string of the from "port1, port2"
-func portsToString(ports []ocicni.PortMapping) string {
+func portsToString(ports []port.PortMapping) string {
 	var portDisplay []string
 	if len(ports) == 0 {
 		return ""
@@ -719,7 +719,15 @@ func portsToString(ports []ocicni.PortMapping) string {
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+		if v.Length == 1 {
+			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+		} else {
+			endPortHost := v.HostPort + int32(v.Length-1)
+			endPortCtr := v.ContainerPort + int32(v.Length-1)
+
+			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d-%d->%d-%d/%s",
+				hostIP, v.HostPort, endPortHost, v.ContainerPort, endPortCtr, v.Protocol))
+		}
 	}
 	return strings.Join(portDisplay, ", ")
 }

@@ -9,9 +9,9 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -307,7 +307,7 @@ func createExitCommand(runtime *libpod.Runtime) []string {
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
 func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
-	var portBindings []ocicni.PortMapping
+	var portBindings []port.PortMapping
 	var pod *libpod.Pod
 	var err error
 
@@ -480,12 +480,14 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	return options, nil
 }
 
-// CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
-func (c *CreateConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
-	var portBindings []ocicni.PortMapping
+// CreatePortBindings turns CLI ports mappings and exposed ports into a format
+// Libpod understands.
+func (c *CreateConfig) CreatePortBindings() ([]port.PortMapping, error) {
+	var portBindings []port.PortMapping
 	for containerPb, hostPb := range c.PortBindings {
-		var pm ocicni.PortMapping
+		var pm port.PortMapping
 		pm.ContainerPort = int32(containerPb.Int())
+		pm.Length = 1
 		for _, i := range hostPb {
 			var hostPort int
 			var err error
