@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 	"syscall"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/hooks"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
@@ -109,6 +110,10 @@ func main() {
 	}
 
 	app.Before = func(c *cli.Context) error {
+		if err := libpod.SetXdgRuntimeDir(""); err != nil {
+			logrus.Errorf(err.Error())
+			os.Exit(1)
+		}
 		args := c.Args()
 		if args.Present() {
 			if _, notRequireRootless := cmdsNotRequiringRootless[args.First()]; !notRequireRootless {
