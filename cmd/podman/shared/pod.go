@@ -35,6 +35,8 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 	}
 	for _, ctrStatus := range ctrStatuses {
 		switch ctrStatus {
+		case libpod.ContainerStateExited:
+			fallthrough
 		case libpod.ContainerStateStopped:
 			statuses[stopped]++
 		case libpod.ContainerStateRunning:
