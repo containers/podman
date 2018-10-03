@@ -1333,3 +1333,10 @@ func (c *Container) unmount(force bool) error {
 
 	return nil
 }
+
+// getExcludedCGroups returns a string slice of cgroups we want to exclude
+// because runc or other components are unaware of them.
+func getExcludedCGroups() (excludes []string) {
+	excludes = []string{"rdma"}
+	return
+}
