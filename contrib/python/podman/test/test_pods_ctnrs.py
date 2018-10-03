@@ -46,11 +46,11 @@ class TestPodsCtnrs(PodmanTestCase):
         pod = pod.start()
         status = FoldedString(pod.containersinfo[0]['status'])
         # Race on whether container is still running or finished
-        self.assertIn(status, ('exited', 'running'))
+        self.assertIn(status, ('stopped', 'exited', 'running'))
 
         pod = pod.restart()
         status = FoldedString(pod.containersinfo[0]['status'])
-        self.assertIn(status, ('exited', 'running'))
+        self.assertIn(status, ('stopped', 'exited', 'running'))
 
         killed = pod.kill()
         self.assertEqual(pod, killed)

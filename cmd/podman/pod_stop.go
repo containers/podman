@@ -50,9 +50,11 @@ func podStopCmd(c *cli.Context) error {
 	// in which case the following loop will be skipped.
 	pods, lastError := getPodsFromContext(c, runtime)
 
+	ctx := getContext()
+
 	for _, pod := range pods {
 		// set cleanup to true to clean mounts and namespaces
-		ctr_errs, err := pod.Stop(true)
+		ctr_errs, err := pod.Stop(ctx, true)
 		if ctr_errs != nil {
 			for ctr, err := range ctr_errs {
 				if lastError != nil {

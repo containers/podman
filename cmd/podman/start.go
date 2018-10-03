@@ -81,6 +81,9 @@ func startCmd(c *cli.Context) error {
 		}
 		args = append(args, lastCtr.ID())
 	}
+
+	ctx := getContext()
+
 	var lastError error
 	for _, container := range args {
 		ctr, err := runtime.LookupContainer(container)
@@ -121,14 +124,14 @@ func startCmd(c *cli.Context) error {
 				exitCode = int(ecode)
 			}
 
-			return ctr.Cleanup()
+			return ctr.Cleanup(ctx)
 		}
 		if ctrRunning {
 			fmt.Println(ctr.ID())
 			continue
 		}
 		// Handle non-attach start
-		if err := ctr.Start(getContext()); err != nil {
+		if err := ctr.Start(ctx); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

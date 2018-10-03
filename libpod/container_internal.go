@@ -150,7 +150,8 @@ func (c *Container) syncContainer() error {
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
-		(c.state.State != ContainerStateConfigured) {
+		(c.state.State != ContainerStateConfigured) &&
+		(c.state.State != ContainerStateExited) {
 		oldState := c.state.State
 		// TODO: optionally replace this with a stat for the exit file
 		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
@@ -422,7 +423,7 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return c.state.State == ContainerStateStopped, nil
+	return (c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited), nil
 }
 
 // save container state to the database
@@ -528,6 +529,8 @@ func (c *Container) init(ctx context.Context) error {
 
 	logrus.Debugf("Created container %s in OCI runtime", c.ID())
 
+	c.state.ExitCode = 0
+	c.state.Exited = false
 	c.state.State = ContainerStateCreated
 
 	if err := c.save(); err != nil {
@@ -537,11 +540,14 @@ func (c *Container) init(ctx context.Context) error {
 	return c.completeNetworkSetup()
 }
 
-// Reinitialize a container
-// Deletes and recreates a container in the runtime
-// Should only be done on ContainerStateStopped containers
-func (c *Container) reinit(ctx context.Context) error {
-	logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
+// Clean up a container in the OCI runtime.
+// Deletes the container in the runtime, and resets its state to Exited.
+// The container can be restarted cleanly after this.
+func (c *Container) cleanupRuntime(ctx context.Context) error {
+	// If the container is not ContainerStateStopped, do nothing
+	if c.state.State != ContainerStateStopped {
+		return nil
+	}
 
 	// If necessary, delete attach and ctl files
 	if err := c.removeConmonFiles(); err != nil {
@@ -552,18 +558,32 @@ func (c *Container) reinit(ctx context.Context) error {
 		return err
 	}
 
-	// Our state is now Configured, as we've removed ourself from
-	// the runtime
-	// Set and save now to make sure that, if the init() below fails
-	// we still have a valid state
-	c.state.State = ContainerStateConfigured
-	c.state.ExitCode = 0
-	c.state.Exited = false
-	if err := c.save(); err != nil {
-		return err
+	// Our state is now Exited, as we've removed ourself from
+	// the runtime.
+	c.state.State = ContainerStateExited
+
+	if c.valid {
+		if err := c.save(); err != nil {
+			return err
+		}
 	}
 
 	logrus.Debugf("Successfully cleaned up container %s", c.ID())
+
+	return nil
+}
+
+// Reinitialize a container.
+// Deletes and recreates a container in the runtime.
+// Should only be done on ContainerStateStopped containers.
+// Not necessary for ContainerStateExited - the container has already been
+// removed from the runtime, so init() can proceed freely.
+func (c *Container) reinit(ctx context.Context) error {
+	logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
+
+	if err := c.cleanupRuntime(ctx); err != nil {
+		return err
+	}
 
 	// Initialize the container again
 	return c.init(ctx)
@@ -592,7 +612,7 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanup(); err2 != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
 				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
@@ -603,28 +623,11 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	if c.state.State == ContainerStateStopped {
 		logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
 
-		// If necessary, delete attach and ctl files
-		if err := c.removeConmonFiles(); err != nil {
+		if err := c.reinit(ctx); err != nil {
 			return err
 		}
-
-		// Delete the container in the runtime
-		if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
-			return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
-		}
-
-		// Our state is now Configured, as we've removed ourself from
-		// the runtime
-		// Set and save now to make sure that, if the init() below fails
-		// we still have a valid state
-		c.state.State = ContainerStateConfigured
-		if err := c.save(); err != nil {
-			return err
-		}
-	}
-
-	// If we are ContainerStateConfigured we need to init()
-	if c.state.State == ContainerStateConfigured {
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
 		if err := c.init(ctx); err != nil {
 			return err
 		}
@@ -705,7 +708,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanup(); err2 != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
 				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
@@ -716,8 +719,9 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 		if err := c.reinit(ctx); err != nil {
 			return err
 		}
-	} else if c.state.State == ContainerStateConfigured {
-		// Initialize the container if it has never been initialized
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Initialize the container
 		if err := c.init(ctx); err != nil {
 			return err
 		}
@@ -826,7 +830,7 @@ func (c *Container) cleanupStorage() error {
 }
 
 // Unmount the a container and free its resources
-func (c *Container) cleanup() error {
+func (c *Container) cleanup(ctx context.Context) error {
 	var lastError error
 
 	logrus.Debugf("Cleaning up container %s", c.ID())
@@ -840,6 +844,15 @@ func (c *Container) cleanup() error {
 	if err := c.cleanupStorage(); err != nil {
 		if lastError != nil {
 			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
+		} else {
+			lastError = err
+		}
+	}
+
+	// Remove the container from the runtime, if necessary
+	if err := c.cleanupRuntime(ctx); err != nil {
+		if lastError != nil {
+			logrus.Errorf("Error removing container %s from OCI runtime: %v", c.ID(), err)
 		} else {
 			lastError = err
 		}

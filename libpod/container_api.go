@@ -32,7 +32,8 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	}
 
 	if !(c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateStopped) {
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
@@ -50,7 +51,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanup(); err2 != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
 				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
@@ -84,7 +85,8 @@ func (c *Container) Start(ctx context.Context) (err error) {
 	// Container must be created or stopped to be started
 	if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped) {
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -102,7 +104,7 @@ func (c *Container) Start(ctx context.Context) (err error) {
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanup(); err2 != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
 				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
@@ -113,8 +115,9 @@ func (c *Container) Start(ctx context.Context) (err error) {
 		if err := c.reinit(ctx); err != nil {
 			return err
 		}
-	} else if c.state.State == ContainerStateConfigured {
-		// Or initialize it for the first time if necessary
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Or initialize it if necessary
 		if err := c.init(ctx); err != nil {
 			return err
 		}
@@ -147,7 +150,8 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	// Container must be created or stopped to be started
 	if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped) {
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
 		return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -165,7 +169,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	}
 	defer func() {
 		if err != nil {
-			if err2 := c.cleanup(); err2 != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
 				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
 			}
 		}
@@ -176,8 +180,9 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 		if err := c.reinit(ctx); err != nil {
 			return nil, err
 		}
-	} else if c.state.State == ContainerStateConfigured {
-		// Or initialize it for the first time if necessary
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Or initialize it if necessary
 		if err := c.init(ctx); err != nil {
 			return nil, err
 		}
@@ -202,26 +207,8 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 // Default stop timeout is 10 seconds, but can be overridden when the container
 // is created
 func (c *Container) Stop() error {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return err
-		}
-	}
-
-	if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
-	}
-
-	if c.state.State == ContainerStateStopped {
-		return ErrCtrStopped
-	}
-
-	return c.stop(c.config.StopTimeout)
+	// Stop with the container's given timeout
+	return c.StopWithTimeout(c.config.StopTimeout)
 }
 
 // StopWithTimeout is a version of Stop that allows a timeout to be specified
@@ -243,7 +230,8 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
 	}
 
-	if c.state.State == ContainerStateStopped {
+	if c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited {
 		return ErrCtrStopped
 	}
 
@@ -431,7 +419,8 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 	}
 
 	if c.state.State != ContainerStateCreated &&
-		c.state.State != ContainerStateRunning {
+		c.state.State != ContainerStateRunning &&
+		c.state.State != ContainerStateExited {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
@@ -626,7 +615,7 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
-func (c *Container) Cleanup() error {
+func (c *Container) Cleanup(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -645,7 +634,7 @@ func (c *Container) Cleanup() error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}
 
-	return c.cleanup()
+	return c.cleanup(ctx)
 }
 
 // Batch starts a batch operation on the given container
@@ -800,7 +789,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// Fire cleanup code one more time unconditionally to ensure we are good
 	// to refresh
-	if err := c.cleanup(); err != nil {
+	if err := c.cleanup(ctx); err != nil {
 		return err
 	}
 

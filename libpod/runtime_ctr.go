@@ -262,7 +262,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 	} else if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped) {
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
@@ -311,7 +312,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	c.valid = false
 
 	// Clean up network namespace, cgroups, mounts
-	if err := c.cleanup(); err != nil {
+	if err := c.cleanup(ctx); err != nil {
 		if cleanupErr == nil {
 			cleanupErr = err
 		} else {
@@ -332,10 +333,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		label.ReleaseLabel(c.ProcessLabel())
 		r.reserveLabels()
 	}
-	// Delete the container
-	// Only do this if we're not ContainerStateConfigured - if we are,
-	// we haven't been created in the runtime yet
-	if c.state.State != ContainerStateConfigured {
+	// Delete the container.
+	// Not needed in Configured and Exited states, where the container
+	// doesn't exist in the runtime
+	if c.state.State != ContainerStateConfigured &&
+		c.state.State != ContainerStateExited {
 		if err := c.delete(ctx); err != nil {
 			if cleanupErr == nil {
 				cleanupErr = err

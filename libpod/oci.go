@@ -457,7 +457,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 	if err != nil {
 		if strings.Contains(string(out), "does not exist") {
 			ctr.removeConmonFiles()
-			ctr.state.State = ContainerStateConfigured
+			ctr.state.State = ContainerStateExited
 			return nil
 		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
