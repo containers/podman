@@ -261,6 +261,25 @@ func getDefaultTmpDir() (string, error) {
 	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp"), nil
 }
 
+// SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
+// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
+func SetXdgRuntimeDir(val string) error {
+	if !rootless.IsRootless() {
+		return nil
+	}
+	if val == "" {
+		var err error
+		val, err = GetRootlessRuntimeDir()
+		if err != nil {
+			return err
+		}
+	}
+	if err := os.Setenv("XDG_RUNTIME_DIR", val); err != nil {
+		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+	return nil
+}
+
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
@@ -297,7 +316,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
 		// So make sure the env variable is set.
-		err = os.Setenv("XDG_RUNTIME_DIR", runtimeDir)
+		err = SetXdgRuntimeDir(runtimeDir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 		}
