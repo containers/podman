@@ -344,3 +344,124 @@ func TestAddPortToMappingThreeAdjacentMappingsCombine(t *testing.T) {
 	assert.Equal(t, 1, len(ports3))
 	assert.EqualValues(t, expectedPort, ports3[0])
 }
+
+func TestAddPortToMappingTwoAdjOneNot(t *testing.T) {
+	testPort1 := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        1,
+		Protocol:      "tcp",
+	}
+
+	testPort2 := PortMapping{
+		ContainerPort: 1,
+		HostPort:      1,
+		Length:        1,
+		Protocol:      "tcp",
+	}
+
+	testPort3 := PortMapping{
+		ContainerPort: 3,
+		HostPort:      3,
+		Length:        1,
+		Protocol:      "tcp",
+	}
+
+	ports1, err := AddPortToMapping(testPort1, []PortMapping{})
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports1))
+	assert.EqualValues(t, testPort1, ports1[0])
+
+	ports2, err := AddPortToMapping(testPort2, ports1)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ports2))
+
+	ports3, err := AddPortToMapping(testPort3, ports2)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(ports3))
+}
+
+func TestAddPortRangeCompleteOverlapWithExisting(t *testing.T) {
+	testPort1 := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        10,
+		Protocol:      "tcp",
+	}
+
+	testPort2 := PortMapping{
+		ContainerPort: 5,
+		HostPort:      5,
+		Length:        2,
+		Protocol:      "tcp",
+	}
+
+	ports1, err := AddPortToMapping(testPort1, []PortMapping{})
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports1))
+	assert.EqualValues(t, testPort1, ports1[0])
+
+	ports2, err := AddPortToMapping(testPort2, ports1)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports2))
+	assert.EqualValues(t, testPort1, ports1[0])
+}
+
+func TestAddPortRangeCompletelyConsumesExisting(t *testing.T) {
+	testPort1 := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        2,
+		Protocol:      "tcp",
+	}
+
+	testPort2 := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        20,
+		Protocol:      "tcp",
+	}
+
+	ports1, err := AddPortToMapping(testPort1, []PortMapping{})
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports1))
+	assert.EqualValues(t, testPort1, ports1[0])
+
+	ports2, err := AddPortToMapping(testPort2, ports1)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports2))
+	assert.EqualValues(t, testPort2, ports2[0])
+}
+
+func TestAddPortRangesOverlapping(t *testing.T) {
+	testPort1 := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        5,
+		Protocol:      "tcp",
+	}
+
+	testPort2 := PortMapping{
+		ContainerPort: 4,
+		HostPort:      4,
+		Length:        4,
+		Protocol:      "tcp",
+	}
+
+	expectedPort := PortMapping{
+		ContainerPort: 0,
+		HostPort:      0,
+		Length:        8,
+		Protocol:      "tcp",
+	}
+
+	ports1, err := AddPortToMapping(testPort1, []PortMapping{})
+	require.NoError(t, err)
+	require.Equal(t, 1, len(ports1))
+	assert.EqualValues(t, testPort1, ports1[0])
+
+	ports2, err := AddPortToMapping(testPort2, ports1)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ports2))
+	assert.EqualValues(t, expectedPort, ports2[0])
+}
