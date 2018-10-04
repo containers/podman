@@ -129,6 +129,11 @@ func (c *Container) ControlSocketPath() string {
 	return filepath.Join(c.bundlePath(), "ctl")
 }
 
+// CheckpointPath returns the path to the directory containing the checkpoint
+func (c *Container) CheckpointPath() string {
+	return filepath.Join(c.bundlePath(), "checkpoint")
+}
+
 // AttachSocketPath retrieves the path of the container's attach socket
 func (c *Container) AttachSocketPath() string {
 	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
@@ -523,7 +528,7 @@ func (c *Container) init(ctx context.Context) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent); err != nil {
+	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, false); err != nil {
 		return err
 	}
 

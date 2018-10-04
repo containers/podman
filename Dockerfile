@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y \
     libaio-dev \
     libcap-dev \
     libfuse-dev \
+    libnet-dev \
+    libnl-3-dev \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
@@ -109,6 +111,16 @@ RUN set -x \
       && export GOPATH=/go \
       && go get -u github.com/mailru/easyjson/... \
       && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
+
+# Install criu
+ENV CRIU_COMMIT 584cbe4643c3fc7dc901ff08bf923ca0fe7326f9
+RUN set -x \
+      && cd /tmp \
+      && git clone https://github.com/checkpoint-restore/criu.git \
+      && cd criu \
+      && make \
+      && install -D -m 755  criu/criu /usr/sbin/ \
+      && rm -rf /tmp/criu
 
 # Install cni config
 #RUN make install.cni

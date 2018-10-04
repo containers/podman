@@ -157,6 +157,28 @@ $ sudo podman top <container_id>
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
 ```
 
+### Checkpointing the container
+Checkpointing a container stops the container while writing the state of all processes in the container to disk.
+With this a container can later be restored and continue running at exactly the same point in time as the
+checkpoint. This capability requires CRIU 3.11 or later installed on the system.
+To checkpoint the container use:
+```console
+$ sudo podman container checkpoint <container_id>
+```
+
+### Restoring the container
+Restoring a container is only possible for a previously checkpointed container. The restored container will
+continue to run at exactly the same point in time it was checkpointed.
+To restore the container use:
+```console
+$ sudo podman container restore <container_id>
+```
+
+After being restored, the container will answer requests again as it did before checkpointing.
+```console
+# curl http://<IP_address>:8080
+```
+
 ### Stopping the container
 To stop the httpd container:
 ```console

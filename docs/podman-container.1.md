@@ -14,6 +14,7 @@ The container command allows you to manage containers
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | attach   | [podman-attach(1)](podman-attach.1.md)              | Attach to a running container.                                               |
+| checkpoint | [podman-container-checkpoint(1)](podman-container-checkpoint.1.md)  | Checkpoints one or more containers.                        |
 | cleanup  | [podman-container-cleanup(1)](podman-container-cleanup.1.md)    | Cleanup containers network and mountpoints.                               |
 | commit   | [podman-commit(1)](podman-commit.1.md)              | Create new image based on the changed container.                             |
 | create   | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |
@@ -29,6 +30,7 @@ The container command allows you to manage containers
 | port     | [podman-port(1)](podman-port.1.md)                  | List port mappings for the container.                                        |
 | refresh  | [podman-refresh(1)](podman-container-refresh.1.md)  | Refresh the state of all containers                                          |
 | restart  | [podman-restart(1)](podman-restart.1.md)            | Restart one or more containers.                                              |
+| restore  | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
 | rm       | [podman-rm(1)](podman-rm.1.md)                      | Remove one or more containers.                                               |
 | run      | [podman-run(1)](podman-run.1.md)                    | Run a command in a container.                                                |
 | start    | [podman-start(1)](podman-start.1.md)                | Starts one or more containers.                                               |
