@@ -1,6 +1,8 @@
 package port
 
 // PortMapping contains a set of ports that will be mapped into the container.
+// Nolint applied for naming warning
+// nolint
 type PortMapping struct {
 	// ContainerPort is the port in the container.
 	// Must be a positive integer between 0 and 65535.

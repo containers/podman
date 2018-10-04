@@ -54,6 +54,8 @@ type Image struct {
 }
 
 // ImageData holds the inspect information of an image
+// Nolint applied for naming
+// nolint
 type ImageData struct {
 	ID              string             `json:"Id"`
 	Digest          digest.Digest      `json:"Digest"`
@@ -84,6 +86,8 @@ type RootFS struct {
 }
 
 // ImageResult is used for podman images for collection and output
+// Nolint applied for naming
+// nolint
 type ImageResult struct {
 	Tag          string
 	Repository   string
