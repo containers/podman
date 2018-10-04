@@ -165,7 +165,7 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 			length := endPort - startPortHost + 1
 			if length < 0 || length > 65535 {
 				// Something has gone seriously wrong
-				return nil, errors.Wrapf(ErrInternal, "attemped to create port range of length %d from start %d", length, startPortCtr)
+				return nil, errors.Wrapf(ErrInternal, "attempted to create port range of length %d from start %d", length, startPortCtr)
 			}
 
 			portStruct := PortMapping{
