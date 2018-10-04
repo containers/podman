@@ -1068,7 +1068,12 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "error building resolv.conf for container %s")
 	}
 
-	return destPath, nil
+	// Relabel resolv.conf for the container
+	if err := label.Relabel(destPath, c.config.MountLabel, false); err != nil {
+		return "", err
+	}
+
+	return filepath.Join(c.state.DestinationRunDir, "resolv.conf"), nil
 }
 
 // generateHosts creates a containers hosts file
