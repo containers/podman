@@ -6,6 +6,18 @@ export PATH=$HOME/gopath/bin:$PATH:$GOPATH/bin
 export GOSRC=$GOPATH/src/github.com/containers/libpod
 
 DIST=${DIST:=""}
+CONTAINER_RUNTIME=${DIST:=""}
+
+source /etc/os-release
+
+INTEGRATION_TEST_ENVS=""
+
+# For all distributions not Fedora, we need to skip USERNS tests
+# for now.
+if [ "${ID}" != "fedora" ] || [ "${CONTAINER_RUNTIME}" != "" ]; then
+    INTEGRATION_TEST_ENVS="SKIP_USERNS=1"
+fi
+
 pwd
 
 # -i install
@@ -121,11 +133,11 @@ fi
 # Run integration tests
 if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
-    SKIP_USERNS=1 make varlink_generate GOPATH=/go
+    make varlink_generate GOPATH=/go
     if [ $runpython -eq 1 ]; then
-        SKIP_USERNS=1 make clientintegration GOPATH=/go
+        make clientintegration GOPATH=/go
     fi
-    SKIP_USERNS=1 make ginkgo GOPATH=/go
+    make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
 fi
 
 
