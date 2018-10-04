@@ -5,25 +5,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/libpod/image"
 )
 
 func TestSetJSONFormatEncoder(t *testing.T) {
 	tt := []struct {
 		name       string
-		imageData  *inspect.ImageData
+		imageData  *image.ImageData
 		expected   string
 		isTerminal bool
 	}{
 		{
 			name:       "HTML tags are not escaped",
-			imageData:  &inspect.ImageData{Author: "dave <dave@corp.io>"},
+			imageData:  &image.ImageData{Author: "dave <dave@corp.io>"},
 			expected:   `"Author": "dave <dave@corp.io>"`,
 			isTerminal: true,
 		},
 		{
 			name:       "HTML tags are escaped",
-			imageData:  &inspect.ImageData{Author: "dave <dave@corp.io>"},
+			imageData:  &image.ImageData{Author: "dave <dave@corp.io>"},
 			expected:   `"Author": "dave \u003cdave@corp.io\u003e"`,
 			isTerminal: false,
 		},

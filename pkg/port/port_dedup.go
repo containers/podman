@@ -1,6 +1,8 @@
 package port
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -58,6 +60,7 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 		// does forwarding the same port to 0.0.0.0 and another IP make
 		// sense?
 		if newPort.Protocol != port.Protocol || newPort.HostIP != port.HostIP {
+			newPorts = append(newPorts, port)
 			continue
 		}
 
@@ -69,16 +72,25 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 			// container port to make sure the mappings match.
 			if checkInRange(newPort.HostPort, newPort.Length, port.HostPort, port.Length) &&
 				(newPort.ContainerPort-newPort.HostPort) == (port.ContainerPort-port.HostPort) {
-				logrus.Debugf("Port range (protocol %s) starting at %d with length %d contained entirely within port range starting at %d length %d, ignoring",
-					port.Protocol, newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length)
+				logrus.Debugf("Port range %s contained entirely in port range %s, ignoring",
+					prettyPrintPort(newPort), prettyPrintPort(port))
 
 				// We're done - no changes need to be made to the old mappings
 				return ports, nil
 			}
 
 			// There's a mismatch in the mappings - error out
-			return nil, errors.Wrapf(ErrRangeConflict, "port range (protocol %s) starting at %d with length %d has host port mismatch with port range starting at %d with length %d",
-				port.Protocol, newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length)
+			return nil, errors.Wrapf(ErrRangeConflict, "port range %s has host port mismatch with port range %s",
+				prettyPrintPort(newPort), prettyPrintPort(port))
+		}
+
+		// Is the new port's host port range entirely within the range
+		// of the old port?
+		// We already know the same isn't true for container port, so
+		// this has to be an error.
+		if checkInRange(newPort.HostPort, newPort.Length, port.HostPort, port.Length) {
+			return nil, errors.Wrapf(ErrRangeConflict, "port range %s has host port mismatch with port range %s",
+				prettyPrintPort(newPort), prettyPrintPort(port))
 		}
 
 		// Does the new port's container port entirely contain the range
@@ -89,8 +101,8 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 			// container port to make sure the mappings match.
 			if checkInRange(port.HostPort, port.Length, newPort.HostPort, newPort.Length) &&
 				(newPort.ContainerPort-newPort.HostPort) == (port.ContainerPort-port.HostPort) {
-				logrus.Debugf("Port range (protocol %s) starting at %d with length %d contained entirely within port range starting at %d length %d, updating old mapping",
-					port.Protocol, port.ContainerPort, port.Length, newPort.ContainerPort, newPort.Length)
+				logrus.Debugf("Port range %s entirely within port range %s, removing",
+					prettyPrintPort(port), prettyPrintPort(newPort))
 
 				// Decline to include the old port as it is
 				// entirely within the new port's range.
@@ -100,17 +112,37 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 			}
 
 			// There's a mismatch in the mappings, error out
-			return nil, errors.Wrapf(ErrRangeConflict, "port range (protocol %s) starting at %d with length %d has host port mismatch with port range starting at %d with length %d",
-				port.Protocol, port.ContainerPort, port.Length, newPort.ContainerPort, newPort.Length)
+			return nil, errors.Wrapf(ErrRangeConflict, "port range %s has host port mismatch with port range %s",
+				prettyPrintPort(newPort), prettyPrintPort(port))
+		}
+
+		// Is the old port's host port range entirely within the range
+		// of the new port?
+		// We already know the same isn't true for container port, so
+		// this has to be an error.
+		if checkInRange(port.HostPort, port.Length, newPort.HostPort, newPort.Length) {
+			return nil, errors.Wrapf(ErrRangeConflict, "port range %s has host port mismatch with port range %s",
+				prettyPrintPort(newPort), prettyPrintPort(port))
 		}
 
 		// Is there an overlap in the port ranges?
-		if checkRangeOverlap(newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length) {
+		if checkRangeOverlap(newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length) ||
+			checkRangeAdjacent(newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length) {
 			// If the host port ranges don't match, we have a problem
-			if !(checkRangeOverlap(newPort.HostPort, newPort.Length, port.HostPort, port.Length) &&
-				(newPort.ContainerPort-newPort.HostPort) == (port.ContainerPort-port.HostPort)) {
-				return nil, errors.Wrapf(ErrRangeConflict, "port range (protocol %s) starting at %d with length %d has host port mismatch with port range starting at %d with length %d",
-					port.Protocol, newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length)
+			if !(checkRangeOverlap(newPort.HostPort, newPort.Length, port.HostPort, port.Length) ||
+				checkRangeAdjacent(newPort.HostPort, newPort.Length, port.HostPort, port.Length)) ||
+				(newPort.ContainerPort-newPort.HostPort) != (port.ContainerPort-port.HostPort) {
+				// If the ranges are only adjacent, it's OK if
+				// the container-host port mappings don't match
+				if checkRangeAdjacent(newPort.ContainerPort, newPort.Length, port.ContainerPort, port.Length) &&
+					!checkRangeOverlap(newPort.HostPort, newPort.Length, port.HostPort, port.Length) {
+					// Both are just adjacent, add the old mapping and continue
+					newPorts = append(newPorts, port)
+					continue
+				}
+
+				return nil, errors.Wrapf(ErrRangeConflict, "port range %s has host port mismatch with port range %s",
+					prettyPrintPort(newPort), prettyPrintPort(port))
 			}
 
 			// Build one port mapping out of the two overlapping mappings
@@ -124,8 +156,8 @@ func AddPortToMapping(newPort PortMapping, ports []PortMapping) ([]PortMapping, 
 				startPortHost = newPort.HostPort
 			}
 
-			endPort := port.HostPort + int32(port.Length)
-			endPortNew := newPort.HostPort + int32(newPort.Length)
+			endPort := port.HostPort + int32(port.Length-1)
+			endPortNew := newPort.HostPort + int32(newPort.Length-1)
 			if endPortNew > endPort {
 				endPort = endPortNew
 			}
@@ -173,15 +205,9 @@ func checkInRange(toCheck int32, checkRange uint16, rangeStart int32, rangeLengt
 }
 
 // Check if there is a range overlap.
-// Allows for ranges that are directly adjacent but do not overlap - that is,
-// ranges 80-82 and 83-84 will still match
 func checkRangeOverlap(toCheck int32, checkRange uint16, rangeStart int32, rangeLength uint16) bool {
-	// Normally we would subtract 1 here, because range lengths begin at 1
-	// for a single port, and the end of that range would be the same port.
-	// However, because we allow directly adjacent but not overlapping
-	// ranges, we allow the ranges to end 1 higher than they normally would.
-	toCheckEnd := toCheck + int32(checkRange)
-	rangeEnd := rangeStart + int32(rangeLength)
+	toCheckEnd := toCheck + int32(checkRange-1)
+	rangeEnd := rangeStart + int32(rangeLength-1)
 
 	if toCheck <= rangeEnd && toCheck >= rangeStart {
 		return true
@@ -197,4 +223,41 @@ func checkRangeOverlap(toCheck int32, checkRange uint16, rangeStart int32, range
 	}
 
 	return false
+}
+
+// Check if ranges are adjacent.
+// checkRangeOverlap will not match, say, 20-22 and 23-25, but this will.
+func checkRangeAdjacent(toCheck int32, checkRange uint16, rangeStart int32, rangeLength uint16) bool {
+	// Note the lack of -1 as these "ends" are actually one past the actual
+	// end of the range - we'll compare these against the start of the other
+	// range to see if they are equal.
+	toCheckEnd := toCheck + int32(checkRange)
+	rangeEnd := rangeStart + int32(rangeLength)
+
+	if toCheckEnd == rangeStart {
+		return true
+	}
+
+	if rangeEnd == toCheck {
+		return true
+	}
+
+	return false
+}
+
+// Prettyprint a port range for errors
+func prettyPrintPort(p PortMapping) string {
+	hostIP := p.HostIP
+	if hostIP != "" {
+		hostIP = hostIP + ":"
+	}
+
+	if p.Length == 1 {
+		return fmt.Sprintf("%s%d->%d/%s", hostIP, p.HostPort, p.ContainerPort, p.Protocol)
+	}
+
+	ctrEnd := p.ContainerPort + int32(p.Length-1)
+	hostEnd := p.HostPort + int32(p.Length-1)
+
+	return fmt.Sprintf("%s%d-%d->%d->%d/%s", hostIP, p.HostPort, hostEnd, p.ContainerPort, ctrEnd, p.Protocol)
 }

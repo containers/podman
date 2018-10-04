@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/pkg/port"
 	"github.com/containers/storage"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,16 +35,18 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 			Mounts:          []string{"/does/not/exist"},
 			DNSServer:       []net.IP{net.ParseIP("192.168.1.1"), net.ParseIP("192.168.2.2")},
 			DNSSearch:       []string{"example.com", "example.example.com"},
-			PortMappings: []ocicni.PortMapping{
+			PortMappings: []port.PortMapping{
 				{
 					HostPort:      80,
 					ContainerPort: 90,
+					Length:        10,
 					Protocol:      "tcp",
 					HostIP:        "192.168.3.3",
 				},
 				{
 					HostPort:      100,
 					ContainerPort: 110,
+					Length:        10,
 					Protocol:      "udp",
 					HostIP:        "192.168.4.4",
 				},

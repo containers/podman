@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/libpod/image"
 	cc "github.com/containers/libpod/pkg/spec"
 	units "github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -25,7 +25,7 @@ var (
 )
 
 // generates a mocked ImageData structure based on alpine
-func generateAlpineImageData() *inspect.ImageData {
+func generateAlpineImageData() *image.ImageData {
 	config := &ociv1.ImageConfig{
 		User:         "",
 		ExposedPorts: nil,
@@ -38,7 +38,7 @@ func generateAlpineImageData() *inspect.ImageData {
 		StopSignal:   "",
 	}
 
-	data := &inspect.ImageData{
+	data := &image.ImageData{
 		ID:              "e21c333399e0aeedfd70e8827c9fba3f8e9b170ef8a48a29945eb7702bf6aa5f",
 		RepoTags:        []string{"docker.io/library/alpine:latest"},
 		RepoDigests:     []string{"docker.io/library/alpine@sha256:5cb04fce748f576d7b72a37850641de8bd725365519673c643ef2d14819b42c6"},
