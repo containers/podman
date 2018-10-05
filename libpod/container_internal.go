@@ -15,9 +15,9 @@ import (
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
+	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/secrets"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -1017,12 +1017,6 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
-type resolvConf struct {
-	nameServers   []string
-	searchDomains []string
-	options       []string
-}
-
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
 	// Determine the endpoint for resolv.conf in case it is a symlink
@@ -1030,86 +1024,56 @@ func (c *Container) generateResolvConf() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	orig, err := ioutil.ReadFile(resolvPath)
+
+	contents, err := ioutil.ReadFile(resolvPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
 	}
-	if len(c.config.DNSServer) == 0 && len(c.config.DNSSearch) == 0 && len(c.config.DNSOption) == 0 {
-		return c.writeStringToRundir("resolv.conf", fmt.Sprintf("%s", orig))
+
+	// Process the file to remove localhost nameservers
+	// TODO: set ipv6 enable bool more sanely
+	resolv, err := resolvconf.FilterResolvDNS(contents, true)
+	if err != nil {
+		return "", errors.Wrapf(err, "error parsing host resolv.conf")
 	}
 
-	// Read and organize the hosts /etc/resolv.conf
-	resolv := createResolv(string(orig[:]))
-
-	// Populate the resolv struct with user's dns search domains
-	if len(c.config.DNSSearch) > 0 {
-		resolv.searchDomains = nil
-		// The . character means the user doesnt want any search domains in the container
-		if !util.StringInSlice(".", c.config.DNSSearch) {
-			resolv.searchDomains = append(resolv.searchDomains, c.Config().DNSSearch...)
-		}
-	}
-
-	// Populate the resolv struct with user's dns servers
+	// Make a new resolv.conf
+	nameservers := resolvconf.GetNameservers(resolv.Content)
 	if len(c.config.DNSServer) > 0 {
-		resolv.nameServers = nil
-		for _, i := range c.config.DNSServer {
-			resolv.nameServers = append(resolv.nameServers, i.String())
+		// We store DNS servers as net.IP, so need to convert to string
+		nameservers = []string{}
+		for _, server := range c.config.DNSServer {
+			nameservers = append(nameservers, server.String())
 		}
 	}
 
-	// Populate the resolve struct with the users dns options
+	search := resolvconf.GetSearchDomains(resolv.Content)
+	if len(c.config.DNSSearch) > 0 {
+		search = c.config.DNSSearch
+	}
+
+	options := resolvconf.GetOptions(resolv.Content)
 	if len(c.config.DNSOption) > 0 {
-		resolv.options = nil
-		resolv.options = append(resolv.options, c.Config().DNSOption...)
+		options = c.config.DNSOption
 	}
-	return c.writeStringToRundir("resolv.conf", resolv.ToString())
-}
 
-// createResolv creates a resolv struct from an input string
-func createResolv(input string) resolvConf {
-	var resolv resolvConf
-	for _, line := range strings.Split(input, "\n") {
-		if strings.HasPrefix(line, "search") {
-			fields := strings.Fields(line)
-			if len(fields) < 2 {
-				logrus.Debugf("invalid resolv.conf line %s", line)
-				continue
-			}
-			resolv.searchDomains = append(resolv.searchDomains, fields[1:]...)
-		} else if strings.HasPrefix(line, "nameserver") {
-			fields := strings.Fields(line)
-			if len(fields) < 2 {
-				logrus.Debugf("invalid resolv.conf line %s", line)
-				continue
-			}
-			resolv.nameServers = append(resolv.nameServers, fields[1])
-		} else if strings.HasPrefix(line, "options") {
-			fields := strings.Fields(line)
-			if len(fields) < 2 {
-				logrus.Debugf("invalid resolv.conf line %s", line)
-				continue
-			}
-			resolv.options = append(resolv.options, fields[1:]...)
-		}
-	}
-	return resolv
-}
+	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
-//ToString returns a resolv struct in the form of a resolv.conf
-func (r resolvConf) ToString() string {
-	var result string
-	// Populate the output string with search domains
-	result += fmt.Sprintf("search %s\n", strings.Join(r.searchDomains, " "))
-	// Populate the output string with name servers
-	for _, i := range r.nameServers {
-		result += fmt.Sprintf("nameserver %s\n", i)
+	if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "error removing resolv.conf for container %s", c.ID())
 	}
-	// Populate the output string with dns options
-	for _, i := range r.options {
-		result += fmt.Sprintf("options %s\n", i)
+
+	// Build resolv.conf
+	if _, err = resolvconf.Build(destPath, nameservers, search, options); err != nil {
+		return "", errors.Wrapf(err, "error building resolv.conf for container %s")
 	}
-	return result
+
+	// Relabel resolv.conf for the container
+	if err := label.Relabel(destPath, c.config.MountLabel, false); err != nil {
+		return "", err
+	}
+
+	return filepath.Join(c.state.DestinationRunDir, "resolv.conf"), nil
 }
 
 // generateHosts creates a containers hosts file
