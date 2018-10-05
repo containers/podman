@@ -9,8 +9,8 @@ gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830
 gce_instance:
     image_project: "libpod-218412"
     zone: "us-central1-a"  # Required by Cirrus for the time being
-    cpu: 4
-    memory: "8Gb"
+    cpu: 2
+    memory: "4Gb"
     disk: 40
 
 # Main collection of env. varss to set for all scripts. All others
@@ -52,9 +52,11 @@ full_vm_testing_task:
     setup_environment_script: $SCRIPT_BASE/setup_environment.sh
 
     # ...or lists of strings
-    unit_test_script:
+    verify_source_script:
         - whoami  # root!
-        - $SCRIPT_BASE/unit_test.sh
+        - $SCRIPT_BASE/verify_source.sh
+
+    unit_test_script: $SCRIPT_BASE/unit_test.sh
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
