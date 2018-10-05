@@ -15,35 +15,35 @@ var (
 
 func TestGenerateCommand(t *testing.T) {
 	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "podman run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
+	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
 	newCommand := GenerateCommand(inputCommand, "foo", "bar")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
 func TestGenerateCommandPath(t *testing.T) {
 	inputCommand := "/usr/bin/docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "podman run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
+	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
 	newCommand := GenerateCommand(inputCommand, "foo", "bar")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
 func TestGenerateCommandNoSetName(t *testing.T) {
 	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "podman run -it --name foo -e NAME=foo -e IMAGE=foo foo echo install"
+	correctCommand := "/proc/self/exe run -it --name foo -e NAME=foo -e IMAGE=foo foo echo install"
 	newCommand := GenerateCommand(inputCommand, "foo", "")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
 func TestGenerateCommandNoName(t *testing.T) {
 	inputCommand := "docker run -it  -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "podman run -it  -e IMAGE=foo foo echo install"
+	correctCommand := "/proc/self/exe run -it  -e IMAGE=foo foo echo install"
 	newCommand := GenerateCommand(inputCommand, "foo", "")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
 func TestGenerateCommandAlreadyPodman(t *testing.T) {
 	inputCommand := "podman run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "podman run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
+	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
 	newCommand := GenerateCommand(inputCommand, "foo", "bar")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }

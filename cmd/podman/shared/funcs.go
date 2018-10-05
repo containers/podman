@@ -15,9 +15,8 @@ func GenerateCommand(command, imageName, name string) []string {
 		name = imageName
 	}
 	cmd := strings.Split(command, " ")
-	// Replace the first position of cmd with podman whether
-	// it is docker, /usr/bin/docker, or podman
-	newCommand = append(newCommand, "podman")
+	// Replace the first element of cmd with "/proc/self/exe"
+	newCommand = append(newCommand, "/proc/self/exe")
 	for _, arg := range cmd[1:] {
 		var newArg string
 		switch arg {
