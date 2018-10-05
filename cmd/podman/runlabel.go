@@ -94,6 +94,14 @@ func runlabelCmd(c *cli.Context) error {
 		newImage       *image.Image
 	)
 
+	// Evil images could trick into recursively executing the runlabel
+	// command.  Avoid this by setting the "PODMAN_RUNLABEL_NESTED" env
+	// variable when executing a label first.
+	nested := os.Getenv("PODMAN_RUNLABEL_NESTED")
+	if nested == "1" {
+		return fmt.Errorf("nested runlabel calls: runlabels cannot execute the runlabel command")
+	}
+
 	opts := make(map[string]string)
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
@@ -177,6 +185,7 @@ func runlabelCmd(c *cli.Context) error {
 
 	cmd := shared.GenerateCommand(runLabel, imageName, c.String("name"))
 	env := shared.GenerateRunEnvironment(c.String("name"), imageName, opts)
+	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
 
 	if !c.Bool("quiet") {
 		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
