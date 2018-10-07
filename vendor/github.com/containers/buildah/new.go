@@ -3,7 +3,6 @@ package buildah
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -14,7 +13,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
@@ -35,36 +33,6 @@ const (
 	// we'll accept as possibly being a truncated image ID.
 	minimumTruncatedIDLength = 3
 )
-
-func reserveSELinuxLabels(store storage.Store, id string) error {
-	if selinux.GetEnabled() {
-		containers, err := store.Containers()
-		if err != nil {
-			return err
-		}
-
-		for _, c := range containers {
-			if id == c.ID {
-				continue
-			} else {
-				b, err := OpenBuilder(store, c.ID)
-				if err != nil {
-					if os.IsNotExist(err) {
-						// Ignore not exist errors since containers probably created by other tool
-						// TODO, we need to read other containers json data to reserve their SELinux labels
-						continue
-					}
-					return err
-				}
-				// Prevent different containers from using same MCS label
-				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
 
 func pullAndFindImage(ctx context.Context, store storage.Store, imageName string, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
 	pullOptions := PullOptions{
@@ -303,7 +271,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		}
 	}()
 
-	if err = reserveSELinuxLabels(store, container.ID); err != nil {
+	if err = ReserveSELinuxLabels(store, container.ID); err != nil {
 		return nil, err
 	}
 	processLabel, mountLabel, err := label.InitLabels(options.CommonBuildOpts.LabelOpts)

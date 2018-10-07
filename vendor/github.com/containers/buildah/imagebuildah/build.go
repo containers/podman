@@ -325,6 +325,9 @@ func (b *Executor) Preserve(path string) error {
 		archivedPath := filepath.Join(b.mountPoint, cachedPath)
 		logrus.Debugf("no longer need cache of %q in %q", archivedPath, b.volumeCache[cachedPath])
 		if err := os.Remove(b.volumeCache[cachedPath]); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
 			return errors.Wrapf(err, "error removing %q", b.volumeCache[cachedPath])
 		}
 		delete(b.volumeCache, cachedPath)
@@ -343,6 +346,9 @@ func (b *Executor) volumeCacheInvalidate(path string) error {
 	}
 	for _, cachedPath := range invalidated {
 		if err := os.Remove(b.volumeCache[cachedPath]); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
 			return errors.Wrapf(err, "error removing volume cache %q", b.volumeCache[cachedPath])
 		}
 		archivedPath := filepath.Join(b.mountPoint, cachedPath)
@@ -1125,6 +1131,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, created
 		AdditionalTags:        b.additionalTags,
 		ReportWriter:          writer,
 		PreferredManifestType: b.outputFormat,
+		SystemContext:         b.systemContext,
 		IIDFile:               b.iidfile,
 		Squash:                b.squash,
 		Parent:                b.builder.FromImageID,

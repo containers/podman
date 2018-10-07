@@ -191,8 +191,8 @@ func (c *Cmd) Start() error {
 				}
 				defer gidmap.Close()
 				if _, err := fmt.Fprintf(gidmap, "%s", g.String()); err != nil {
-					fmt.Fprintf(continueWrite, "error writing /proc/%s/gid_map: %v", pidString, err)
-					return errors.Wrapf(err, "error writing /proc/%s/gid_map", pidString)
+					fmt.Fprintf(continueWrite, "error writing %q to /proc/%s/gid_map: %v", g.String(), pidString, err)
+					return errors.Wrapf(err, "error writing %q to /proc/%s/gid_map", g.String(), pidString)
 				}
 			}
 		}
@@ -222,8 +222,8 @@ func (c *Cmd) Start() error {
 				}
 				defer uidmap.Close()
 				if _, err := fmt.Fprintf(uidmap, "%s", u.String()); err != nil {
-					fmt.Fprintf(continueWrite, "error writing /proc/%s/uid_map: %v", pidString, err)
-					return errors.Wrapf(err, "error writing /proc/%s/uid_map", pidString)
+					fmt.Fprintf(continueWrite, "error writing %q to /proc/%s/uid_map: %v", u.String(), pidString, err)
+					return errors.Wrapf(err, "error writing %q to /proc/%s/uid_map", u.String(), pidString)
 				}
 			}
 		}

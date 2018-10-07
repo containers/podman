@@ -128,11 +128,6 @@ var (
 			Name:  "iidfile",
 			Usage: "`file` to write the image ID to",
 		},
-		cli.StringFlag{
-			Name:  "isolation",
-			Usage: "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.",
-			Value: DefaultIsolation(),
-		},
 		cli.StringSliceFlag{
 			Name:  "label",
 			Usage: "Set metadata for an image (default [])",
@@ -228,6 +223,11 @@ var (
 		cli.StringFlag{
 			Name:  "cpuset-mems",
 			Usage: "memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
+		},
+		cli.StringFlag{
+			Name:  "isolation",
+			Usage: "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.",
+			Value: DefaultIsolation(),
 		},
 		cli.StringFlag{
 			Name:  "memory, m",

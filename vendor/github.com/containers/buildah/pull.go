@@ -160,6 +160,14 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 		srcRef = srcRef2
 	}
 
+	blocked, err := isReferenceBlocked(srcRef, sc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking if pulling from registry for %q is blocked", transports.ImageName(srcRef))
+	}
+	if blocked {
+		return nil, errors.Errorf("pull access to registry for %q is blocked by configuration", transports.ImageName(srcRef))
+	}
+
 	destName, err := localImageNameForReference(ctx, store, srcRef, spec)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error computing local image name for %q", transports.ImageName(srcRef))
@@ -190,7 +198,7 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	}()
 
 	logrus.Debugf("copying %q to %q", spec, destName)
-	pullError := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, sc, nil, ""))
+	pullError := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, srcRef, sc, destRef, nil, ""))
 	if pullError == nil {
 		return destRef, nil
 	}

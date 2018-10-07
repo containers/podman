@@ -100,18 +100,6 @@ func RunUsingChroot(spec *specs.Spec, bundlePath string, stdin io.Reader, stdout
 	}
 	logrus.Debugf("config = %v", string(specbytes))
 
-	// Run the grandparent subprocess in a user namespace that reuses the mappings that we have.
-	uidmap, gidmap, err := util.GetHostIDMappings("")
-	if err != nil {
-		return err
-	}
-	for i := range uidmap {
-		uidmap[i].HostID = uidmap[i].ContainerID
-	}
-	for i := range gidmap {
-		gidmap[i].HostID = gidmap[i].ContainerID
-	}
-
 	// Default to using stdin/stdout/stderr if we weren't passed objects to use.
 	if stdin == nil {
 		stdin = os.Stdin
@@ -162,10 +150,6 @@ func RunUsingChroot(spec *specs.Spec, bundlePath string, stdin io.Reader, stdout
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = append([]string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}, os.Environ()...)
-	cmd.UnshareFlags = syscall.CLONE_NEWUSER
-	cmd.UidMappings = uidmap
-	cmd.GidMappings = gidmap
-	cmd.GidMappingsEnableSetgroups = true
 
 	logrus.Debugf("Running %#v in %#v", cmd.Cmd, cmd)
 	confwg.Add(1)
@@ -568,10 +552,19 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	cmd.Dir = "/"
 	cmd.Env = append([]string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())}, os.Environ()...)
-	cmd.UnshareFlags = syscall.CLONE_NEWUSER | syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS
-	cmd.UidMappings = uidmap
-	cmd.GidMappings = gidmap
-	cmd.GidMappingsEnableSetgroups = true
+	cmd.UnshareFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS
+	requestedUserNS := false
+	for _, ns := range spec.Linux.Namespaces {
+		if ns.Type == specs.LinuxNamespaceType(specs.UserNamespace) {
+			requestedUserNS = true
+		}
+	}
+	if len(spec.Linux.UIDMappings) > 0 || len(spec.Linux.GIDMappings) > 0 || requestedUserNS {
+		cmd.UnshareFlags = cmd.UnshareFlags | syscall.CLONE_NEWUSER
+		cmd.UidMappings = uidmap
+		cmd.GidMappings = gidmap
+		cmd.GidMappingsEnableSetgroups = true
+	}
 	if ctty != nil {
 		cmd.Setsid = true
 		cmd.Ctty = ctty
@@ -697,15 +690,7 @@ func runUsingChrootExecMain() {
 		fmt.Fprintf(os.Stderr, "error setting SELinux label for process: %v\n", err)
 		os.Exit(1)
 	}
-	logrus.Debugf("setting capabilities")
-	if err := setCapabilities(options.Spec); err != nil {
-		fmt.Fprintf(os.Stderr, "error setting capabilities for process %v\n", err)
-		os.Exit(1)
-	}
-	if err = setSeccomp(options.Spec); err != nil {
-		fmt.Fprintf(os.Stderr, "error setting seccomp filter for process: %v\n", err)
-		os.Exit(1)
-	}
+
 	logrus.Debugf("setting resource limits")
 	if err = setRlimits(options.Spec, false, false); err != nil {
 		fmt.Fprintf(os.Stderr, "error setting process resource limits for process: %v\n", err)
@@ -747,11 +732,28 @@ func runUsingChrootExecMain() {
 			os.Exit(1)
 		}
 	}
+
 	logrus.Debugf("setting gid")
 	if err = syscall.Setresgid(int(user.GID), int(user.GID), int(user.GID)); err != nil {
 		fmt.Fprintf(os.Stderr, "error setting GID: %v", err)
 		os.Exit(1)
 	}
+
+	if err = setSeccomp(options.Spec); err != nil {
+		fmt.Fprintf(os.Stderr, "error setting seccomp filter for process: %v\n", err)
+		os.Exit(1)
+	}
+
+	logrus.Debugf("setting capabilities")
+	var keepCaps []string
+	if user.UID != 0 {
+		keepCaps = []string{"CAP_SETUID"}
+	}
+	if err := setCapabilities(options.Spec, keepCaps...); err != nil {
+		fmt.Fprintf(os.Stderr, "error setting capabilities for process: %v\n", err)
+		os.Exit(1)
+	}
+
 	logrus.Debugf("setting uid")
 	if err = syscall.Setresuid(int(user.UID), int(user.UID), int(user.UID)); err != nil {
 		fmt.Fprintf(os.Stderr, "error setting UID: %v", err)
@@ -855,7 +857,11 @@ func setApparmorProfile(spec *specs.Spec) error {
 }
 
 // setCapabilities sets capabilities for ourselves, to be more or less inherited by any processes that we'll start.
-func setCapabilities(spec *specs.Spec) error {
+func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
+	currentCaps, err := capability.NewPid(0)
+	if err != nil {
+		return errors.Wrapf(err, "error reading capabilities of current process")
+	}
 	caps, err := capability.NewPid(0)
 	if err != nil {
 		return errors.Wrapf(err, "error reading capabilities of current process")
@@ -868,8 +874,8 @@ func setCapabilities(spec *specs.Spec) error {
 		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
 	}
 	knownCaps := capability.List()
+	caps.Clear(capability.CAPS | capability.BOUNDS | capability.AMBS)
 	for capType, capList := range capMap {
-		caps.Clear(capType)
 		for _, capToSet := range capList {
 			cap := capability.CAP_LAST_CAP
 			for _, c := range knownCaps {
@@ -883,11 +889,24 @@ func setCapabilities(spec *specs.Spec) error {
 			}
 			caps.Set(capType, cap)
 		}
-	}
-	for capType := range capMap {
-		if err = caps.Apply(capType); err != nil {
-			return errors.Wrapf(err, "error setting %s capabilities to %#v", capType.String(), capMap[capType])
+		for _, capToSet := range keepCaps {
+			cap := capability.CAP_LAST_CAP
+			for _, c := range knownCaps {
+				if strings.EqualFold("CAP_"+c.String(), capToSet) {
+					cap = c
+					break
+				}
+			}
+			if cap == capability.CAP_LAST_CAP {
+				return errors.Errorf("error mapping capability %q to a number", capToSet)
+			}
+			if currentCaps.Get(capType, cap) {
+				caps.Set(capType, cap)
+			}
 		}
+	}
+	if err = caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBS); err != nil {
+		return errors.Wrapf(err, "error setting capabilities")
 	}
 	return nil
 }

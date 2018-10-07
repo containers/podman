@@ -7,14 +7,19 @@ import (
 	"sync"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // InitReexec is a wrapper for reexec.Init().  It should be called at
@@ -181,6 +186,70 @@ func getRegistries(sc *types.SystemContext) ([]string, error) {
 	return searchRegistries, nil
 }
 
+// isRegistryInsecure checks if the named registry is marked as not secure
+func isRegistryInsecure(registry string, sc *types.SystemContext) (bool, error) {
+	registries, err := sysregistriesv2.GetRegistries(sc)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
+	}
+	if reginfo := sysregistriesv2.FindRegistry(registry, registries); reginfo != nil {
+		if reginfo.Insecure {
+			logrus.Debugf("registry %q is marked insecure in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+		} else {
+			logrus.Debugf("registry %q is not marked insecure in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+		}
+		return reginfo.Insecure, nil
+	}
+	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's secure", registry, sysregistries.RegistriesConfPath(sc))
+	return false, nil
+}
+
+// isRegistryBlocked checks if the named registry is marked as blocked
+func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
+	registries, err := sysregistriesv2.GetRegistries(sc)
+	if err != nil {
+		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
+	}
+	if reginfo := sysregistriesv2.FindRegistry(registry, registries); reginfo != nil {
+		if reginfo.Blocked {
+			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+		} else {
+			logrus.Debugf("registry %q is not marked as blocked in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
+		}
+		return reginfo.Blocked, nil
+	}
+	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's not blocked", registry, sysregistries.RegistriesConfPath(sc))
+	return false, nil
+}
+
+// isReferenceSomething checks if the registry part of a reference is insecure or blocked
+func isReferenceSomething(ref types.ImageReference, sc *types.SystemContext, what func(string, *types.SystemContext) (bool, error)) (bool, error) {
+	if ref != nil && ref.DockerReference() != nil {
+		if named, ok := ref.DockerReference().(reference.Named); ok {
+			if domain := reference.Domain(named); domain != "" {
+				return what(domain, sc)
+			}
+		}
+	}
+	return false, nil
+}
+
+// isReferenceInsecure checks if the registry part of a reference is insecure
+func isReferenceInsecure(ref types.ImageReference, sc *types.SystemContext) (bool, error) {
+	return isReferenceSomething(ref, sc, isRegistryInsecure)
+}
+
+// isReferenceBlocked checks if the registry part of a reference is blocked
+func isReferenceBlocked(ref types.ImageReference, sc *types.SystemContext) (bool, error) {
+	if ref != nil && ref.Transport() != nil {
+		switch ref.Transport().Name() {
+		case "docker":
+			return isReferenceSomething(ref, sc, isRegistryBlocked)
+		}
+	}
+	return false, nil
+}
+
 // hasRegistry returns a bool/err response if the image has a registry in its
 // name
 func hasRegistry(imageName string) (bool, error) {
@@ -193,4 +262,36 @@ func hasRegistry(imageName string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// ReserveSELinuxLabels reads containers storage and reserves SELinux containers
+// fall all existing buildah containers
+func ReserveSELinuxLabels(store storage.Store, id string) error {
+	if selinux.GetEnabled() {
+		containers, err := store.Containers()
+		if err != nil {
+			return err
+		}
+
+		for _, c := range containers {
+			if id == c.ID {
+				continue
+			} else {
+				b, err := OpenBuilder(store, c.ID)
+				if err != nil {
+					if os.IsNotExist(err) {
+						// Ignore not exist errors since containers probably created by other tool
+						// TODO, we need to read other containers json data to reserve their SELinux labels
+						continue
+					}
+					return err
+				}
+				// Prevent different containers from using same MCS label
+				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
