@@ -82,19 +82,21 @@ build_vm_images_task:
         PACKER_BUILDS: "ubuntu-18"
         # TODO: Make these work (also full_vm_testing_task above)
         # PACKER_BUILDS: "rhel-7,centos-7,fedora-28,ubuntu-18"
-        # Command to register a RHEL VM
-        RHSM_COMMAND: ENCRYPTED[fec01433222af1ed0b8e40e89e7d18f6ee2fa9f49a1e721dc72f7eed3c740661215d1bd05cb54ac66a1a62116b92bdce]
-        # Additional environment variables needed to build GCE images, within a GCE VM
-        SERVICE_ACCOUNT: ENCRYPTED[02e03838b1156eb9516c7cc1e888e287910759842275f3c7bc2b4d56075cc6740e29ffa0ab71ebdbbd079673361dd8c9]
-        GCE_SSH_USERNAME: ENCRYPTED[a19a4ec62423e3e0fe4e7d1a5c9f11eda8fde321b9047ab5ed5590c2b1d7a2d12091c2be1531f949eae927059c2ae531]
-        GCP_PROJECT_ID: ENCRYPTED[77cb2d392bbc8d17412547d7d91f8d190089bf6e6b96eab9927994bbff6ab2c691ba0329ac7a650ba6182fbbab9fb68d]
-        # Existing base values to use, output images get epoc stamped names
-        PACKER_VER: "1.3.1"
-        # low-level base VM image name inputs to packer
         CENTOS_BASE_IMAGE: "centos-7-v20180911"
         RHEL_BASE_IMAGE: "rhel-server-ec2-7-5-165-1"
         FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-7"
         UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20180911"
+        # low-level base VM image name inputs to packer
+
+        # Command to register a RHEL VM
+        RHSM_COMMAND: ENCRYPTED[5caa5ff8c5370c3d25c7a1a28168501ab0fa2e5e3b627926f6eaba02b3fed965a7638a6151657809661f8c905c7dc187]
+        # Additional environment variables needed to build GCE images, within a GCE VM
+        SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
+        GCE_SSH_USERNAME: ENCRYPTED[a7706b9e4b8bbb47f76358df7407f4fffa2e8552531190cc0b3315180c4b50588f560c4f85731e99cb5f43a396778277]
+        GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+        # Version of packer to use
+        PACKER_VER: "1.3.1"
+
 
     gce_instance:
         image_name: "image-builder-image"  # Simply CentOS 7 + packer dependencies

@@ -41,6 +41,7 @@ then
         "export OS_RELEASE_ID=\"$(os_release_id)\"" \
         "export OS_RELEASE_VER=\"$(os_release_ver)\"" \
         "export OS_REL_VER=\"${OS_RELEASE_ID}-${OS_RELEASE_VER}\"" \
+        "export BUILT_IMAGE_SUFFIX=\"-$CIRRUS_REPO_NAME-${CIRRUS_CHANGE_IN_REPO:0:8}\"" \
         "export GOPATH=\"/go\"" \
         'export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"' \
         'export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"'
