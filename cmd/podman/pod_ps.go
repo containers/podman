@@ -528,6 +528,8 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			}
 			var status string
 			switch batchInfo.ConState {
+			case libpod.ContainerStateExited:
+				fallthrough
 			case libpod.ContainerStateStopped:
 				status = EXITED
 			case libpod.ContainerStateRunning:
