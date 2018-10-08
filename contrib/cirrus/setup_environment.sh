@@ -55,8 +55,12 @@ then
         ubuntu-18)
             envstr='export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) varlink exclude_graphdriver_devicemapper"'
             ;;
-        fedora-28) ;&  # Continue to the next item
-        centos-7) ;&
+        fedora-28)
+            # Because papr does it this way
+            sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+            yum -y reinstall container-selinux
+            ;;
+        centos-7) ;&  # Continue to the next item
         rhel-7)
             envstr='unset BUILDTAGS'  # Use default from Makefile
             ;;

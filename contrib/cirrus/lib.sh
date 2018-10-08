@@ -4,8 +4,8 @@
 # to be sourced by other scripts, not called directly.
 
 # Under some contexts these values are not set, make sure they are.
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
+export USER="$(whoami)"
+export HOME="$(getent passwd $USER | cut -d : -f 6)"
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
     export PATH="$PATH:/usr/local/bin"

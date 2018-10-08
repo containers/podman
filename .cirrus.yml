@@ -43,10 +43,11 @@ full_vm_testing_task:
         matrix:
             # Images are generated separetly, from build_images_task (below)
             image_name: "ubuntu-1804-bionic-v20180911-libpod-63a86a18"
+            image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
-            #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
+
     timeout_in: 120m
 
     # Every *_script runs in sequence, for each task. The name prefix is for
@@ -81,7 +82,7 @@ build_vm_images_task:
 
     env:
         # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
-        PACKER_BUILDS: "ubuntu-18"
+        PACKER_BUILDS: "ubuntu-18,fedora-28"
         # TODO: Make these work (also full_vm_testing_task above)
         # PACKER_BUILDS: "rhel-7,centos-7,fedora-28,ubuntu-18"
         CENTOS_BASE_IMAGE: "centos-7-v20180911"
