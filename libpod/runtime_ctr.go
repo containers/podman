@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -331,7 +332,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 
 	if r.config.EnableLabeling {
 		label.ReleaseLabel(c.ProcessLabel())
-		r.reserveLabels()
+		r.ReserveLabels()
 	}
 	// Delete the container.
 	// Not needed in Configured and Exited states, where the container
@@ -468,17 +469,22 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	return ctrs[lastCreatedIndex], nil
 }
 
-// reserveLabels walks the list o fcontainers and reserves the label, so new containers will not
+// ReserveLabels walks the list of containers and reserves the label, so new containers will not
 // get them.
 // TODO Performance wise this should only run if the state has changed since the last time it was run.
-func (r *Runtime) reserveLabels() error {
+func (r *Runtime) ReserveLabels() error {
 	containers, err := r.state.AllContainers()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error getting containers to reserving labels")
 	}
 	for _, ctr := range containers {
 		label.ReserveLabel(ctr.ProcessLabel())
 	}
+
+	if err := buildah.ReserveSELinuxLabels(r.store, ""); err != nil {
+		return errors.Wrapf(err, "error reserving Buildah container labels")
+	}
+
 	return nil
 }
 
@@ -487,7 +493,7 @@ func (r *Runtime) initLabels(labelOpts []string) (string, string, error) {
 	if !r.config.EnableLabeling {
 		return "", "", nil
 	}
-	if err := r.reserveLabels(); err != nil {
+	if err := r.ReserveLabels(); err != nil {
 		return "", "", errors.Wrapf(err, "unable to reserve labels")
 	}
 	return label.InitLabels(labelOpts)
