@@ -11,6 +11,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
+
 static int _buildah_unshare_parse_envint(const char *envname) {
 	char *p, *q;
 	long l;
@@ -31,7 +33,10 @@ static int _buildah_unshare_parse_envint(const char *envname) {
 
 void _buildah_unshare(void)
 {
+	FILE *fp;
 	int flags, pidfd, continuefd, n, pgrp, sid, ctty;
+	long max_userns;
+	size_t n_read;
 	char buf[2048];
 
 	flags = _buildah_unshare_parse_envint("_Buildah-unshare");
@@ -41,6 +46,22 @@ void _buildah_unshare(void)
 	if ((flags & CLONE_NEWUSER) != 0) {
 		if (unshare(CLONE_NEWUSER) == -1) {
 			fprintf(stderr, "Error during unshare(CLONE_NEWUSER): %m\n");
+			fp = fopen(_max_user_namespaces, "r");
+			if (fp != NULL) {
+				memset(buf, 0, sizeof(buf));
+				n_read = fread(buf, 1, sizeof(buf) - 1, fp);
+				if (n_read > 0) {
+					max_userns = atoi(buf);
+					if (max_userns == 0) {
+						fprintf(stderr, "User namespaces are not enabled in %s.\n", _max_user_namespaces);
+					}
+				} else {
+					fprintf(stderr, "Error reading %s: no contents, should contain a number greater than 0.\n", _max_user_namespaces);
+				}
+				fclose(fp);
+			} else {
+				fprintf(stderr, "Error reading %s: %m\n", _max_user_namespaces);
+			}
 			_exit(1);
 		}
 	}
