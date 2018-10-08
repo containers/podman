@@ -22,9 +22,7 @@ SCRIPT_BASE $SCRIPT_BASE
 PACKER_BASE $PACKER_BASE
 "
 
-# TODO: Skip building images if $CIRRUS_BRANCH =~ "master" and
-# commit message of $CIRRUS_CHANGE_IN_REPO contains a magic word
-# produced by 'commit_and_create_upstream_pr.sh' script (see .cirrus.yml)
+require_regex '\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*' 'Not re-building VM images'
 
 show_env_vars
 
