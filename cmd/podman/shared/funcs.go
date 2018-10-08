@@ -24,9 +24,13 @@ func GenerateCommand(command, imageName, name string) []string {
 			newArg = imageName
 		case "IMAGE=IMAGE":
 			newArg = fmt.Sprintf("IMAGE=%s", imageName)
+		case "IMAGE=$IMAGE":
+			newArg = fmt.Sprintf("IMAGE=%s", imageName)
 		case "NAME":
 			newArg = name
 		case "NAME=NAME":
+			newArg = fmt.Sprintf("NAME=%s", name)
+		case "NAME=$NAME":
 			newArg = fmt.Sprintf("NAME=%s", name)
 		default:
 			newArg = arg

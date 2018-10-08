@@ -28,8 +28,8 @@ If the container image has a LABEL INSTALL instruction like the following:
 
 Note: Podman will always ensure that `podman` is the first argument of the command being executed.
 
-**NAME**
-The name specified via the command.  NAME will be replaced with IMAGE if it is not specified.
+**LABEL**
+The label name specified via the command.
 
 **IMAGE**
 Image name specified via the command.
@@ -94,6 +94,23 @@ option be used, as the default behavior of using the system-wide default policy
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then tls verification will be used, If set to false then tls verification will not be used. If not specified
 tls verification will be used unless the target registry is listed as an insecure registry in registries.conf
+
+## Examples ##
+
+Execute the run label of an image called foobar.
+```
+$ sudo podman container runlabel run foobar
+```
+
+Execute the install label of an image called foobar with additional arguments.
+```
+$ sudo podman container runlabel install foobar apples oranges
+```
+
+Display the command that would be executed by runlabel.
+```
+$ sudo podman container runlabel --display run foobar
+```
 
 ## SEE ALSO
 podman(1)
