@@ -21,3 +21,7 @@ func lookupGroupForUIDInContainer(rootdir string, userid uint64) (string, uint64
 func lookupAdditionalGroupsForUIDInContainer(rootdir string, userid uint64) (gid []uint32, err error) {
 	return nil, errors.New("supplemental groups list lookup by uid not supported")
 }
+
+func lookupUIDInContainer(rootdir string, uid uint64) (string, uint64, error) {
+	return "", 0, errors.New("UID lookup not supported")
+}

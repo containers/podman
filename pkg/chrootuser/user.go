@@ -99,3 +99,10 @@ func GetAdditionalGroupsForUser(rootdir string, userid uint64) ([]uint32, error)
 	}
 	return gids, nil
 }
+
+// LookupUIDInContainer returns username and gid associated with a UID in a container
+// it will use the /etc/passwd files inside of the rootdir
+// to return this information.
+func LookupUIDInContainer(rootdir string, uid uint64) (user string, gid uint64, err error) {
+	return lookupUIDInContainer(rootdir, uid)
+}

@@ -401,7 +401,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=1234", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("uid=1234 gid=0(root)"))
+		Expect(session.OutputToString()).To(Equal("uid=1234(1234) gid=0(root)"))
 	})
 
 	It("podman run with user (integer, in /etc/passwd)", func() {
