@@ -69,7 +69,7 @@ var podCreateCommand = cli.Command{
 	Name:                   "create",
 	Usage:                  "Create a new empty pod",
 	Description:            podCreateDescription,
-	Flags:                  podCreateFlags,
+	Flags:                  sortFlags(podCreateFlags),
 	Action:                 podCreateCmd,
 	SkipArgReorder:         true,
 	UseShortOptionHandling: true,

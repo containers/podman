@@ -29,7 +29,7 @@ var (
 		Name:                   "kill",
 		Usage:                  "Send the specified signal or SIGKILL to containers in pod",
 		Description:            podKillDescription,
-		Flags:                  podKillFlags,
+		Flags:                  sortFlags(podKillFlags),
 		Action:                 podKillCmd,
 		ArgsUsage:              "[POD_NAME_OR_ID]",
 		UseShortOptionHandling: true,

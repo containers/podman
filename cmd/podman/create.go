@@ -48,7 +48,7 @@ var createCommand = cli.Command{
 	Name:                   "create",
 	Usage:                  "Create but do not start a container",
 	Description:            createDescription,
-	Flags:                  createFlags,
+	Flags:                  sortFlags(createFlags),
 	Action:                 createCmd,
 	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
 	HideHelp:               true,

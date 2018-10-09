@@ -23,7 +23,7 @@ var (
 		Name:         "export",
 		Usage:        "Export container's filesystem contents as a tar archive",
 		Description:  exportDescription,
-		Flags:        exportFlags,
+		Flags:        sortFlags(exportFlags),
 		Action:       exportCmd,
 		ArgsUsage:    "CONTAINER",
 		OnUsageError: usageErrorHandler,

@@ -25,7 +25,7 @@ var (
 		Name:                   "unpause",
 		Usage:                  "Unpause one or more pods",
 		Description:            podUnpauseDescription,
-		Flags:                  podUnpauseFlags,
+		Flags:                  sortFlags(podUnpauseFlags),
 		Action:                 podUnpauseCmd,
 		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
 		UseShortOptionHandling: true,

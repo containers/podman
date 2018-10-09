@@ -29,7 +29,7 @@ var (
 		Name:         "port",
 		Usage:        "List port mappings or a specific mapping for the container",
 		Description:  portDescription,
-		Flags:        portFlags,
+		Flags:        sortFlags(portFlags),
 		Action:       portCmd,
 		ArgsUsage:    "CONTAINER-NAME [mapping]",
 		OnUsageError: usageErrorHandler,

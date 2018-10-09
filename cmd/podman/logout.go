@@ -25,7 +25,7 @@ var (
 		Name:         "logout",
 		Usage:        "Logout of a container registry",
 		Description:  logoutDescription,
-		Flags:        logoutFlags,
+		Flags:        sortFlags(logoutFlags),
 		Action:       logoutCmd,
 		ArgsUsage:    "REGISTRY",
 		OnUsageError: usageErrorHandler,

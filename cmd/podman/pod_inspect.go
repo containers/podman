@@ -19,7 +19,7 @@ var (
 		Name:                   "inspect",
 		Usage:                  "displays a pod configuration",
 		Description:            podInspectDescription,
-		Flags:                  podInspectFlags,
+		Flags:                  sortFlags(podInspectFlags),
 		Action:                 podInspectCmd,
 		UseShortOptionHandling: true,
 		ArgsUsage:              "[POD_NAME_OR_ID]",

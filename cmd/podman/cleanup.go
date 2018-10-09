@@ -27,7 +27,7 @@ var (
 		Name:         "cleanup",
 		Usage:        "Cleanup network and mountpoints of one or more containers",
 		Description:  cleanupDescription,
-		Flags:        cleanupFlags,
+		Flags:        sortFlags(cleanupFlags),
 		Action:       cleanupCmd,
 		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
 		OnUsageError: usageErrorHandler,

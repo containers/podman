@@ -29,7 +29,7 @@ var (
 		Name:           "build",
 		Usage:          "Build an image using instructions from Dockerfiles",
 		Description:    buildDescription,
-		Flags:          append(append(buildahcli.BudFlags, layerFlags...), buildahcli.FromAndBudFlags...),
+		Flags:          sortFlags(append(append(buildahcli.BudFlags, layerFlags...), buildahcli.FromAndBudFlags...)),
 		Action:         buildCmd,
 		ArgsUsage:      "CONTEXT-DIRECTORY | URL",
 		SkipArgReorder: true,

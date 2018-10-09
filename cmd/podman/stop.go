@@ -35,7 +35,7 @@ var (
 		Name:         "stop",
 		Usage:        "Stop one or more containers",
 		Description:  stopDescription,
-		Flags:        stopFlags,
+		Flags:        sortFlags(stopFlags),
 		Action:       stopCmd,
 		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
 		OnUsageError: usageErrorHandler,

@@ -52,7 +52,7 @@ var (
 		Name:         "stats",
 		Usage:        "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
 		Description:  statsDescription,
-		Flags:        statsFlags,
+		Flags:        sortFlags(statsFlags),
 		Action:       statsCmd,
 		ArgsUsage:    "",
 		OnUsageError: usageErrorHandler,

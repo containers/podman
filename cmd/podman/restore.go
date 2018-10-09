@@ -27,7 +27,7 @@ var (
 		Name:        "restore",
 		Usage:       "Restores one or more containers from a checkpoint",
 		Description: restoreDescription,
-		Flags:       restoreFlags,
+		Flags:       sortFlags(restoreFlags),
 		Action:      restoreCmd,
 		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}

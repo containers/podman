@@ -27,7 +27,7 @@ var runCommand = cli.Command{
 	Name:                   "run",
 	Usage:                  "Run a command in a new container",
 	Description:            runDescription,
-	Flags:                  runFlags,
+	Flags:                  sortFlags(runFlags),
 	Action:                 runCmd,
 	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
 	HideHelp:               true,

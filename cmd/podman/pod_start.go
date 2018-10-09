@@ -27,7 +27,7 @@ var (
 		Name:                   "start",
 		Usage:                  "Start one or more pods",
 		Description:            podStartDescription,
-		Flags:                  podStartFlags,
+		Flags:                  sortFlags(podStartFlags),
 		Action:                 podStartCmd,
 		ArgsUsage:              "POD-NAME [POD-NAME ...]",
 		UseShortOptionHandling: true,

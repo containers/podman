@@ -55,7 +55,7 @@ var (
 		Name:         "search",
 		Usage:        "Search registry for image",
 		Description:  searchDescription,
-		Flags:        searchFlags,
+		Flags:        sortFlags(searchFlags),
 		Action:       searchCmd,
 		ArgsUsage:    "TERM",
 		OnUsageError: usageErrorHandler,

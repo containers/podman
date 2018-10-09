@@ -32,7 +32,7 @@ the latest pod.
 		Name:           "top",
 		Usage:          "Display the running processes of containers in a pod",
 		Description:    podTopDescription,
-		Flags:          podTopFlags,
+		Flags:          sortFlags(podTopFlags),
 		Action:         podTopCmd,
 		ArgsUsage:      "POD-NAME [format descriptors]",
 		SkipArgReorder: true,

@@ -28,7 +28,7 @@ var (
 		Name:         "wait",
 		Usage:        "Block on one or more containers",
 		Description:  waitDescription,
-		Flags:        waitFlags,
+		Flags:        sortFlags(waitFlags),
 		Action:       waitCmd,
 		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
 		OnUsageError: usageErrorHandler,

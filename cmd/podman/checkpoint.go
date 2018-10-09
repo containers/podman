@@ -27,7 +27,7 @@ var (
 		Name:        "checkpoint",
 		Usage:       "Checkpoints one or more containers",
 		Description: checkpointDescription,
-		Flags:       checkpointFlags,
+		Flags:       sortFlags(checkpointFlags),
 		Action:      checkpointCmd,
 		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}

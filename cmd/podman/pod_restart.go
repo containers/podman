@@ -23,7 +23,7 @@ var (
 		Name:                   "restart",
 		Usage:                  "Restart one or more pods",
 		Description:            podRestartDescription,
-		Flags:                  podRestartFlags,
+		Flags:                  sortFlags(podRestartFlags),
 		Action:                 podRestartCmd,
 		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
 		UseShortOptionHandling: true,

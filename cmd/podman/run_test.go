@@ -18,7 +18,7 @@ var (
 	CLI         *cli.Context
 	testCommand = cli.Command{
 		Name:     "test",
-		Flags:    createFlags,
+		Flags:    sortFlags(createFlags),
 		Action:   testCmd,
 		HideHelp: true,
 	}

@@ -41,7 +41,7 @@ var (
 		Name:                   "start",
 		Usage:                  "Start one or more containers",
 		Description:            startDescription,
-		Flags:                  startFlags,
+		Flags:                  sortFlags(startFlags),
 		Action:                 startCmd,
 		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
 		UseShortOptionHandling: true,

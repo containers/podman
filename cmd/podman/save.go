@@ -53,7 +53,7 @@ var (
 		Name:           "save",
 		Usage:          "Save image to an archive",
 		Description:    saveDescription,
-		Flags:          saveFlags,
+		Flags:          sortFlags(saveFlags),
 		Action:         saveCmd,
 		ArgsUsage:      "",
 		SkipArgReorder: true,

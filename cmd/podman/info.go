@@ -16,7 +16,7 @@ var (
 		Name:         "info",
 		Usage:        infoDescription,
 		Description:  `Information display here pertain to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
-		Flags:        infoFlags,
+		Flags:        sortFlags(infoFlags),
 		Action:       infoCmd,
 		ArgsUsage:    "",
 		OnUsageError: usageErrorHandler,

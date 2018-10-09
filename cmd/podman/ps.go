@@ -182,7 +182,7 @@ var (
 		Name:                   "ps",
 		Usage:                  "List containers",
 		Description:            psDescription,
-		Flags:                  psFlags,
+		Flags:                  sortFlags(psFlags),
 		Action:                 psCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,

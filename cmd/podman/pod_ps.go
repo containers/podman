@@ -161,7 +161,7 @@ var (
 		Aliases:                []string{"ls", "list"},
 		Usage:                  "List pods",
 		Description:            podPsDescription,
-		Flags:                  podPsFlags,
+		Flags:                  sortFlags(podPsFlags),
 		Action:                 podPsCmd,
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
