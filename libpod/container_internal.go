@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -1193,8 +1194,6 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 			continue
 		}
 		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-		srcPath := filepath.Join(mountPoint, k)
-
 		var (
 			uid uint32
 			gid uint32
@@ -1207,6 +1206,18 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 			if err != nil {
 				return err
 			}
+		}
+
+		// Ensure the symlinks are resolved
+		resolvedSymlink, err := imagebuildah.ResolveSymLink(mountPoint, k)
+		if err != nil {
+			return errors.Wrapf(ErrCtrStateInvalid, "cannot resolve %s in %s for container %s", k, mountPoint, c.ID())
+		}
+		var srcPath string
+		if resolvedSymlink != "" {
+			srcPath = filepath.Join(mountPoint, resolvedSymlink)
+		} else {
+			srcPath = filepath.Join(mountPoint, k)
 		}
 
 		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
