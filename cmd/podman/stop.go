@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	rt "runtime"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
@@ -98,21 +99,33 @@ func stopCmd(c *cli.Context) error {
 		}
 	}
 
+	var stopFuncs []workerInput
 	for _, ctr := range containers {
+		con := ctr
 		var stopTimeout uint
 		if c.IsSet("timeout") {
 			stopTimeout = c.Uint("timeout")
 		} else {
 			stopTimeout = ctr.StopTimeout()
 		}
-		if err := ctr.StopWithTimeout(stopTimeout); err != nil && err != libpod.ErrCtrStopped {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to stop container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
+		f := func() error {
+			return con.StopWithTimeout(stopTimeout)
 		}
+		stopFuncs = append(stopFuncs, workerInput{
+			containerID:  con.ID(),
+			parallelFunc: f,
+		})
+	}
+
+	stopErrors := parallelExecuteWorkerPool(rt.NumCPU()*3, stopFuncs)
+
+	for cid, result := range stopErrors {
+		if result != nil && result != libpod.ErrCtrStopped {
+			fmt.Println(result.Error())
+			lastError = result
+			continue
+		}
+		fmt.Println(cid)
 	}
 	return lastError
 }

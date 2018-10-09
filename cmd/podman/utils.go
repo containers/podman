@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	gosignal "os/signal"
+	"sync"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
@@ -214,4 +215,51 @@ func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error
 		pods = append(pods, pod)
 	}
 	return pods, lastError
+}
+
+type pFunc func() error
+
+type workerInput struct {
+	containerID  string
+	parallelFunc pFunc
+}
+
+// worker is a "threaded" worker that takes jobs from the channel "queue"
+func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results map[string]error) {
+	for j := range jobs {
+		err := j.parallelFunc()
+		results[j.containerID] = err
+		wg.Done()
+	}
+}
+
+// parallelExecuteWorkerPool takes container jobs and performs them in parallel.  The worker
+// int is determines how many workers/threads should be premade.
+func parallelExecuteWorkerPool(workers int, functions []workerInput) map[string]error {
+	var (
+		wg sync.WaitGroup
+	)
+	results := make(map[string]error)
+	paraJobs := make(chan workerInput, len(functions))
+
+	// If we have more workers than functions, match up the number of workers and functions
+	if workers > len(functions) {
+		workers = len(functions)
+	}
+
+	// Create the workers
+	for w := 1; w <= workers; w++ {
+		go worker(&wg, paraJobs, results)
+	}
+
+	// Add jobs to the workers
+	for _, j := range functions {
+		j := j
+		wg.Add(1)
+		paraJobs <- j
+	}
+
+	close(paraJobs)
+	wg.Wait()
+	return results
 }
