@@ -58,7 +58,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 	}
 	pushDescription = fmt.Sprintf(`
@@ -165,5 +165,7 @@ func pushCmd(c *cli.Context) error {
 		return err
 	}
 
-	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, c.String("authfile"), c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure, nil)
+	authfile := getAuthFile(c.String("authfile"))
+
+	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, authfile, c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure, nil)
 }

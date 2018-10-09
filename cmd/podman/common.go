@@ -458,3 +458,10 @@ func sortFlags(flags []cli.Flag) []cli.Flag {
 	})
 	return flags
 }
+
+func getAuthFile(authfile string) string {
+	if authfile != "" {
+		return authfile
+	}
+	return os.Getenv("REGISTRY_AUTH_FILE")
+}

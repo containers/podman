@@ -33,6 +33,9 @@ Username for registry
 
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
 
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
