@@ -297,7 +297,9 @@ Not implemented
 
 **--ip**=""
 
-Not implemented
+Specify a static IP address for the container, for example '10.88.64.128'.
+Can only be used if no additional CNI networks to join were specified via '--network=<network-name>', and if the container is not joining another container's network namespace via '--network=container:<name|id>'.
+The address must be within the default CNI network's pool (default 10.88.0.0/16).
 
 **--ipc**=""
 
