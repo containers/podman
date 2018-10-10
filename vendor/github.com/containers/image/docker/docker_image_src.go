@@ -140,7 +140,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
-				err = errors.Errorf("error fetching external blob from %q: %d", url, resp.StatusCode)
+				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
 				logrus.Debug(err)
 				continue
 			}
@@ -175,7 +175,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (i
 	}
 	if res.StatusCode != http.StatusOK {
 		// print url also
-		return nil, 0, errors.Errorf("Invalid status code returned when fetching blob %d", res.StatusCode)
+		return nil, 0, errors.Errorf("Invalid status code returned when fetching blob %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
 	}
 	return res.Body, getBlobSize(res), nil
 }
@@ -274,7 +274,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		if res.StatusCode == http.StatusNotFound {
 			return nil, true, nil
 		} else if res.StatusCode != http.StatusOK {
-			return nil, false, errors.Errorf("Error reading signature from %s: status %d", url.String(), res.StatusCode)
+			return nil, false, errors.Errorf("Error reading signature from %s: status %d (%s)", url.String(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
 		sig, err := ioutil.ReadAll(res.Body)
 		if err != nil {
