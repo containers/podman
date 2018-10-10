@@ -249,6 +249,10 @@ var createFlags = []cli.Flag{
 		Usage: "Keep STDIN open even if not attached",
 	},
 	cli.StringFlag{
+		Name:  "ip",
+		Usage: "Specify a static IPv4 address for the container",
+	},
+	cli.StringFlag{
 		Name:  "ipc",
 		Usage: "IPC namespace to use",
 	},
