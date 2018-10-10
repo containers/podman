@@ -835,7 +835,7 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netwo
 // specified.
 func WithStaticIP(ip net.IP) CtrCreateOption {
 	return func(ctr *Container) error {
-		if ctr.valid  {
+		if ctr.valid {
 			return ErrCtrFinalized
 		}
 
