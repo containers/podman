@@ -416,7 +416,7 @@ to the container with **--name** then the daemon will also generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
-**--network**="*bridge*"
+**--net**, **--network**="*bridge*"
 
 Set the Network mode for the container
                 'bridge': create a network stack on the default bridge
