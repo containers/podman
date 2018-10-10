@@ -61,6 +61,10 @@ type CNIPlugin interface {
 	// for a plugin by name, e.g.
 	Name() string
 
+	// GetDefaultNetworkName returns the name of the plugin's default
+	// network.
+	GetDefaultNetworkName() string
+
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
