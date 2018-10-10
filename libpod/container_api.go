@@ -666,14 +666,10 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	newCtr.valid = true
 
 	newCtr.batched = true
-
-	if err := batchFunc(newCtr); err != nil {
-		return err
-	}
-
+	err := batchFunc(newCtr)
 	newCtr.batched = false
 
-	return c.save()
+	return err
 }
 
 // Sync updates the current state of the container, checking whether its state

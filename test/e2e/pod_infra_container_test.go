@@ -155,7 +155,7 @@ var _ = Describe("Podman pod create", func() {
 		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 		PIDs := check.OutputToStringArray()
-		Expect(len(PIDs)).To(Equal(4))
+		Expect(len(PIDs)).To(Equal(3))
 
 		ctrPID, _ := strconv.Atoi(PIDs[1])
 		infraPID, _ := strconv.Atoi(PIDs[2])

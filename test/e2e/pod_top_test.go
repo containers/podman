@@ -109,7 +109,7 @@ var _ = Describe("Podman top", func() {
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(4))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman pod top on pod with containers in different namespace", func() {
@@ -127,6 +127,6 @@ var _ = Describe("Podman top", func() {
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(4))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
 	})
 })
