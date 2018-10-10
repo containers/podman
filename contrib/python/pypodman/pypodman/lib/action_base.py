@@ -10,33 +10,33 @@ class AbstractActionBase(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def subparser(cls, parser):
+    def subparser(cls, parent):
         """Define parser for this action.  Subclasses must implement.
 
         API:
         Use set_defaults() to set attributes "class_" and "method". These will
         be invoked as class_(parsed_args).method()
         """
-        parser.add_argument(
+        parent.add_argument(
             '--all',
             action='store_true',
             help=('list all items.'
                   ' (default: no-op, included for compatibility.)'))
-        parser.add_argument(
+        parent.add_argument(
             '--no-trunc',
             '--notruncate',
             action='store_false',
             dest='truncate',
             default=True,
             help='Display extended information. (default: False)')
-        parser.add_argument(
+        parent.add_argument(
             '--noheading',
             action='store_false',
             dest='heading',
             default=True,
             help=('Omit the table headings from the output.'
                   ' (default: False)'))
-        parser.add_argument(
+        parent.add_argument(
             '--quiet',
             action='store_true',
             help='List only the IDs. (default: %(default)s)')

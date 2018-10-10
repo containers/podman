@@ -119,15 +119,18 @@ if [[ -n $VERBOSE ]]; then
 fi
 PODMAN="podman $PODMAN_ARGS"
 
-cat >/tmp/test_podman.output <<-EOT
+cat <<-EOT |tee /tmp/test_podman.output
 $($PODMAN --version)
 $PODMAN varlink --timeout=0 ${PODMAN_HOST}
 ==========================================
 EOT
 
 # Run podman in background without systemd for test purposes
-set -x
 $PODMAN varlink --timeout=0 ${PODMAN_HOST} >>/tmp/test_podman.output 2>&1 &
+if [[ $? != 0 ]]; then
+  echo 1>&2 Failed to start podman
+  showlog /tmp/test_podman.output
+fi
 
 if [[ -z $1 ]]; then
   export PYTHONPATH=.
@@ -139,7 +142,6 @@ else
   RETURNCODE=$?
 fi
 
-set +x
 pkill -9 podman
 pkill -9 conmon
 

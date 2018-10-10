@@ -12,7 +12,7 @@ class Port(AbstractActionBase):
     def subparser(cls, parent):
         """Add Port command to parent parser."""
         parser = parent.add_parser(
-            'port', help='retrieve ports from containers.')
+            'port', help='retrieve ports from containers')
         parser.add_argument(
             '--all',
             '-a',

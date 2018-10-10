@@ -1,6 +1,5 @@
 """Remote client command for creating container from image."""
 import sys
-from builtins import vars
 
 import podman
 from pypodman.lib import AbstractActionBase
