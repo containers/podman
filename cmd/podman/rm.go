@@ -35,7 +35,7 @@ Running containers will not be removed without the -f option.
 		Name:                   "rm",
 		Usage:                  "Remove one or more containers",
 		Description:            rmDescription,
-		Flags:                  rmFlags,
+		Flags:                  sortFlags(rmFlags),
 		Action:                 rmCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,

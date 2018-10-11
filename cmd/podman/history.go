@@ -59,7 +59,7 @@ var (
 		Name:                   "history",
 		Usage:                  "Show history of a specified image",
 		Description:            historyDescription,
-		Flags:                  historyFlags,
+		Flags:                  sortFlags(historyFlags),
 		Action:                 historyCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,

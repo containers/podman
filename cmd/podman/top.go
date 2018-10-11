@@ -42,7 +42,7 @@ the latest container.
 		Name:           "top",
 		Usage:          "Display the running processes of a container",
 		Description:    topDescription,
-		Flags:          topFlags,
+		Flags:          sortFlags(topFlags),
 		Action:         topCmd,
 		ArgsUsage:      "CONTAINER-NAME [format descriptors]",
 		SkipArgReorder: true,

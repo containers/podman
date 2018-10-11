@@ -51,7 +51,7 @@ var (
 		Name:         "diff",
 		Usage:        "Inspect changes on container's file systems",
 		Description:  diffDescription,
-		Flags:        diffFlags,
+		Flags:        sortFlags(diffFlags),
 		Action:       diffCmd,
 		ArgsUsage:    "ID-NAME",
 		OnUsageError: usageErrorHandler,

@@ -25,7 +25,7 @@ var (
 		Name:                   "pause",
 		Usage:                  "Pause one or more pods",
 		Description:            podPauseDescription,
-		Flags:                  podPauseFlags,
+		Flags:                  sortFlags(podPauseFlags),
 		Action:                 podPauseCmd,
 		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
 		UseShortOptionHandling: true,

@@ -70,7 +70,7 @@ var (
 		Name:         "push",
 		Usage:        "Push an image to a specified destination",
 		Description:  pushDescription,
-		Flags:        pushFlags,
+		Flags:        sortFlags(pushFlags),
 		Action:       pushCmd,
 		ArgsUsage:    "IMAGE DESTINATION",
 		OnUsageError: usageErrorHandler,

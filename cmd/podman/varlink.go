@@ -32,7 +32,7 @@ var (
 		Name:         "varlink",
 		Usage:        "Run varlink interface",
 		Description:  varlinkDescription,
-		Flags:        varlinkFlags,
+		Flags:        sortFlags(varlinkFlags),
 		Action:       varlinkCmd,
 		ArgsUsage:    "VARLINK_URI",
 		OnUsageError: usageErrorHandler,

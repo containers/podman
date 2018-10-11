@@ -79,7 +79,7 @@ Executes a command as described by a container image label.
 		Name:           "runlabel",
 		Usage:          "Execute the command described by an image label",
 		Description:    runlabelDescription,
-		Flags:          runlabelFlags,
+		Flags:          sortFlags(runlabelFlags),
 		Action:         runlabelCmd,
 		ArgsUsage:      "",
 		SkipArgReorder: true,

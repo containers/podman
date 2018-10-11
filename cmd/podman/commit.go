@@ -52,7 +52,7 @@ var (
 		Name:         "commit",
 		Usage:        "Create new image based on the changed container",
 		Description:  commitDescription,
-		Flags:        commitFlags,
+		Flags:        sortFlags(commitFlags),
 		Action:       commitCmd,
 		ArgsUsage:    "CONTAINER [REPOSITORY[:TAG]]",
 		OnUsageError: usageErrorHandler,

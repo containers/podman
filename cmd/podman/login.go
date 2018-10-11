@@ -43,7 +43,7 @@ var (
 		Name:         "login",
 		Usage:        "Login to a container registry",
 		Description:  loginDescription,
-		Flags:        loginFlags,
+		Flags:        sortFlags(loginFlags),
 		Action:       loginCmd,
 		ArgsUsage:    "REGISTRY",
 		OnUsageError: usageErrorHandler,

@@ -18,7 +18,7 @@ var (
 		Name:                   "refresh",
 		Usage:                  "Refresh container state",
 		Description:            refreshDescription,
-		Flags:                  refreshFlags,
+		Flags:                  sortFlags(refreshFlags),
 		Action:                 refreshCmd,
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,

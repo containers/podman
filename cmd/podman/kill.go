@@ -31,7 +31,7 @@ var (
 		Name:                   "kill",
 		Usage:                  "Kill one or more running containers with a specific signal",
 		Description:            killDescription,
-		Flags:                  killFlags,
+		Flags:                  sortFlags(killFlags),
 		Action:                 killCmd,
 		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
 		UseShortOptionHandling: true,

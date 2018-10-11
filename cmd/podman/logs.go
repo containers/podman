@@ -43,7 +43,7 @@ var (
 		Name:           "logs",
 		Usage:          "Fetch the logs of a container",
 		Description:    logsDescription,
-		Flags:          logsFlags,
+		Flags:          sortFlags(logsFlags),
 		Action:         logsCmd,
 		ArgsUsage:      "CONTAINER",
 		SkipArgReorder: true,

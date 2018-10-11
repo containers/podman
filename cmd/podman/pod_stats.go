@@ -39,7 +39,7 @@ var (
 		Name:                   "stats",
 		Usage:                  "Display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one or more pods",
 		Description:            podStatsDescription,
-		Flags:                  podStatsFlags,
+		Flags:                  sortFlags(podStatsFlags),
 		Action:                 podStatsCmd,
 		ArgsUsage:              "[POD_NAME_OR_ID]",
 		UseShortOptionHandling: true,

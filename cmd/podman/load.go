@@ -36,7 +36,7 @@ var (
 		Name:         "load",
 		Usage:        "Load an image from docker archive",
 		Description:  loadDescription,
-		Flags:        loadFlags,
+		Flags:        sortFlags(loadFlags),
 		Action:       loadCmd,
 		ArgsUsage:    "",
 		OnUsageError: usageErrorHandler,

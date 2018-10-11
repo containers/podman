@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -449,4 +450,11 @@ func getFormat(c *cli.Context) (string, error) {
 		return buildah.Dockerv2ImageManifest, nil
 	}
 	return "", errors.Errorf("unrecognized image type %q", format)
+}
+
+func sortFlags(flags []cli.Flag) []cli.Flag {
+	sort.Slice(flags, func(i, j int) bool {
+		return strings.Compare(flags[i].GetName(), flags[j].GetName()) < 0
+	})
+	return flags
 }

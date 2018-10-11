@@ -30,7 +30,7 @@ var (
 		Name:         "attach",
 		Usage:        "Attach to a running container",
 		Description:  attachDescription,
-		Flags:        attachFlags,
+		Flags:        sortFlags(attachFlags),
 		Action:       attachCmd,
 		ArgsUsage:    "",
 		OnUsageError: usageErrorHandler,

@@ -26,7 +26,7 @@ var (
 		Name:                   "restart",
 		Usage:                  "Restart one or more containers",
 		Description:            restartDescription,
-		Flags:                  restartFlags,
+		Flags:                  sortFlags(restartFlags),
 		Action:                 restartCmd,
 		ArgsUsage:              "CONTAINER [CONTAINER ...]",
 		UseShortOptionHandling: true,

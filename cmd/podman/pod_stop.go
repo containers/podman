@@ -27,7 +27,7 @@ var (
 		Name:         "stop",
 		Usage:        "Stop one or more pods",
 		Description:  podStopDescription,
-		Flags:        podStopFlags,
+		Flags:        sortFlags(podStopFlags),
 		Action:       podStopCmd,
 		ArgsUsage:    "POD-NAME [POD-NAME ...]",
 		OnUsageError: usageErrorHandler,

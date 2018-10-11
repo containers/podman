@@ -39,7 +39,7 @@ var (
 		Name:         "import",
 		Usage:        "Import a tarball to create a filesystem image",
 		Description:  importDescription,
-		Flags:        importFlags,
+		Flags:        sortFlags(importFlags),
 		Action:       importCmd,
 		ArgsUsage:    "TARBALL [REFERENCE]",
 		OnUsageError: usageErrorHandler,

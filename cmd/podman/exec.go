@@ -46,7 +46,7 @@ var (
 		Name:                   "exec",
 		Usage:                  "Run a process in a running container",
 		Description:            execDescription,
-		Flags:                  execFlags,
+		Flags:                  sortFlags(execFlags),
 		Action:                 execCmd,
 		ArgsUsage:              "CONTAINER-NAME",
 		SkipArgReorder:         true,

@@ -54,7 +54,7 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 		Name:         "pull",
 		Usage:        "Pull an image from a registry",
 		Description:  pullDescription,
-		Flags:        pullFlags,
+		Flags:        sortFlags(pullFlags),
 		Action:       pullCmd,
 		ArgsUsage:    "",
 		OnUsageError: usageErrorHandler,

@@ -35,7 +35,7 @@ An unmount can be forced with the --force flag.
 		Aliases:      []string{"unmount"},
 		Usage:        "Unmounts working container's root filesystem",
 		Description:  description,
-		Flags:        umountFlags,
+		Flags:        sortFlags(umountFlags),
 		Action:       umountCmd,
 		ArgsUsage:    "CONTAINER-NAME-OR-ID",
 		OnUsageError: usageErrorHandler,

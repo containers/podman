@@ -30,7 +30,7 @@ If --force is specified, all containers will be stopped, then removed.
 		Name:                   "rm",
 		Usage:                  "Remove one or more pods",
 		Description:            podRmDescription,
-		Flags:                  podRmFlags,
+		Flags:                  sortFlags(podRmFlags),
 		Action:                 podRmCmd,
 		ArgsUsage:              "[POD ...]",
 		UseShortOptionHandling: true,
