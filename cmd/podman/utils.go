@@ -224,11 +224,16 @@ type workerInput struct {
 	parallelFunc pFunc
 }
 
+type containerError struct {
+	containerID string
+	err         error
+}
+
 // worker is a "threaded" worker that takes jobs from the channel "queue"
-func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results map[string]error) {
+func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results chan<- containerError) {
 	for j := range jobs {
 		err := j.parallelFunc()
-		results[j.containerID] = err
+		results <- containerError{containerID: j.containerID, err: err}
 		wg.Done()
 	}
 }
@@ -239,6 +244,8 @@ func parallelExecuteWorkerPool(workers int, functions []workerInput) map[string]
 	var (
 		wg sync.WaitGroup
 	)
+
+	resultChan := make(chan containerError, len(functions))
 	results := make(map[string]error)
 	paraJobs := make(chan workerInput, len(functions))
 
@@ -249,7 +256,7 @@ func parallelExecuteWorkerPool(workers int, functions []workerInput) map[string]
 
 	// Create the workers
 	for w := 1; w <= workers; w++ {
-		go worker(&wg, paraJobs, results)
+		go worker(&wg, paraJobs, resultChan)
 	}
 
 	// Add jobs to the workers
@@ -261,5 +268,11 @@ func parallelExecuteWorkerPool(workers int, functions []workerInput) map[string]
 
 	close(paraJobs)
 	wg.Wait()
+
+	close(resultChan)
+	for ctrError := range resultChan {
+		results[ctrError.containerID] = ctrError.err
+	}
+
 	return results
 }
