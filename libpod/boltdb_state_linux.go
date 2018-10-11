@@ -25,7 +25,7 @@ func replaceNetNS(netNSPath string, ctr *Container, newState *containerState) er
 			if err == nil {
 				newState.NetNS = ns
 			} else {
-				logrus.Errorf("error joining network namespace for container %s", ctr.ID())
+				logrus.Errorf("error joining network namespace for container %s: %v", ctr.ID(), err)
 				ctr.valid = false
 			}
 		}
