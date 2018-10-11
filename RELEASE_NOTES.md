@@ -1,5 +1,34 @@
 # Release Notes
 
+## 0.10.1
+### Features
+- Added the `podman container checkpoint` and `podman container restore` commands to checkpoint and restore containers
+- Added the `podman container runlabel` command to run containers based on commands contained in their images
+- Added the `podman create --ip` and `podman run --ip` flags to allow setting static IPs for containers
+- Added the `podman kill --all` flag to send a signal to all running containers
+
+### Bugfixes
+- Fixed Podman cleanup processes for detached containers to properly print debug information when `--syslog` flag is specified
+- Fixed manpages for `podman create` and `podman run` to document existing `--net` flag as an alias for `--network`
+- Fixed issues with rootless Podman where specifying a single user mapping container was causing all Podman commands to hang
+- Fixed an issue with rootless Podman not properly detecting when user namespaces were not enabled
+- Fixed an issue where Podman user namespaces were not preserving file capabilities
+- Fixed an issue where `resolv.conf` in container would unconditionally forward nameservers into the container, even localhost
+- Fixed containers to release resources in the OCI runtime immediately after exiting, improving compatability with Kata containers
+- Fixed OCI runtime handling to fix several issues when using gVisor as an OCI runtime
+- Fixed SELinux relabel errors when starting containers after a system restart
+- Fixed a crash when initializing hooks on containers running systemd as init
+- Fixed an SELinux labelling issue with privileged containers
+- Fixed rootless Podman to raise better errors when using CGroup resource limits, which are not currently compatible with rootless
+- Fixed a crash when runc was used as the OCI runtime for containers running systemd as init
+- Fixed SELinux labelling for containers run with `--security-opt label=disable` to assign the correct label
+
+### Misc
+- Changed flag ordering on all Podman commands to ensure flags are alphabetized
+- Changed `podman stop` to work in parallel when multiple containers are specified, greatly speeding up stop for containers that do not stop after SIGINT
+- Updated vendored version of Buildah used to power `podman build`
+- Added version of vendored Buildah to `podman info` to better debug issues
+
 ## 0.9.3.1
 ### Bugfixes
 - Fixed a critical issue where SELinux contexts set on tmpfs volumes were causing runc crashes
