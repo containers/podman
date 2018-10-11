@@ -1,3 +1,84 @@
+- Changelog for v0.10.1 (2018-10-11)
+  * Swap from map to channels for podman stop workers
+  * Add release notes for 0.10.1
+  * Pass along syslog variable to podman cleanup processes
+  * Sort all command flags
+  * rootless: detect when user namespaces are not enabled
+  * Log an otherwise ignored error from joining a net ns
+  * Fix gofmt
+  * Add tests for --ip flag
+  * Update manpages for --ip flag
+  * Add --ip flag and plumbing into libpod
+  * Document --net as an alias of --network in podman run & create
+  * Update OCICNI vendor to 2d2983e4
+  * Temporary commit to swap branches
+  * rootless: report more error messages from the startup phase
+  * rootless: fix an hang on older versions of setresuid/setresgid
+  * Update OCICNI vendor to e617a611
+  * fix runlabel functions based on QA feedback
+  * Vendor latest containers/image
+  * Stop containers in parallel fashion
+  * wip
+  * remove hack/dind
+  * Vendor in latest github.com/containers/storage,image, buildah
+  * runlabel: execute /proc/self/exe and avoid recursion
+  * Re-add source-verify in cirrus-ci
+  * added links to buildah.io and podman.io to README.md
+  * Lower CPU/Memory usage by cirrus VMs
+  * skip userns tests on non-fedora distributions for now
+  * Remove Travis
+  * docker: Double quote array expansions to avoid re-splitting elements
+  * Ensure resolv.conf has the right label and path
+  * Remove no longer used libnetwork from vendor.conf
+  * Fix lint
+  * Drop libnetwork vendor and move the code into pkg/
+  * Update libnetwork vendor to current master to fix CI
+  * Switch to using libnetwork's resolvconf package
+  * Add configuration for Cirrus-CI
+  * disable gce building of images
+  * re-add BR for golang compiler to contrib/spec/podman.spec.in
+  * completions: add checkpoint/restore completions
+  * tests: add checkpoint/restore test
+  * tutorial: add checkpoint/restore to tutorial
+  * docs: add checkpoint and restore man pages
+  * Add support to checkpoint/restore containers
+  * oci: split the stdout and stderr pipes
+  * oci: always set XDG_RUNTIME_DIR
+  * Fix pod status reporting for new Exited state
+  * Add ability for ubuntu to be tested
+  * selinux: drop superflous relabel
+  * rootless: always set XDG_RUNTIME_DIR
+  * Fix python tests
+  * Fix Wait() to allow Exited state as well as Stopped
+  * Fix cleanupRuntime to only save if container is valid
+  * Fix bug with exited state and container remove
+  * Address review comments and fix ps output
+  * Add ContainerStateExited and OCI delete() in cleanup()
+  * Need to allocate memory for hook struct
+  * Disable SELinux labeling if --privileged
+  * * Update documenation
+  * Implement pod varlink bindings
+  * Update docs to build a runc that works with systemd
+  * runtime: fix message which assumes the runtime is runc
+  * rootless: raise an error when trying to use cgroups
+  * Add --all flag to podman kill
+  * Add podman.io to README.md
+  * Vendor in the latest containers/storage, image and buildah
+  * Don't tmpcopyup on systemd cgroup
+  * Add container runlabel command
+  * run complex image names with short names
+  * Add buildah version and distribution to info
+  * Disable Fedora 29 and CentOS7 VM testing
+  * podman runs disabled containers and privileged containers as spc_t
+  * Update the OWNERS file so bot assigns sane reviewers
+  * rework CI tests to test on VMs
+  * Put openshift dockerfiles in test/install
+  * Bump gitvalidation epoch
+  * Bump to v0.9.4-dev
+  * contrib/python/*/Makefile: Fallback to unversioned 'python'
+  * Makefile: Drop PYTHON
+  * Makefile: Call contrib/python's clean regardless of HAS_PYTHON3
+
 - Changelog for v0.9.3.1 (2018-09-25)
   * Update release notes for 0.9.3.1
   * Disable problematic SELinux code causing runc issues
