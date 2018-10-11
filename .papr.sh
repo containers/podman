@@ -72,7 +72,7 @@ fi
 make_install_tools () {
     # Only make the install tools once
     if [ $install_tools_made -eq 0 ]; then
-        make install.tools TAGS="${TAGS}"
+        make install.tools BUILDTAGS="${BUILDTAGS}"
     fi
     install_tools_made=1
 }
@@ -87,7 +87,7 @@ if [ "${CONTAINER_RUNTIME}" == "none" ]; then
 fi
 
 
-export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
+export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
 
 # Validate
 if [ $validate -eq 1 ]; then
@@ -96,43 +96,43 @@ if [ $validate -eq 1 ]; then
     # short-commit-subject validation test, so tell git-validate.sh to only check
     # up to, but not including, the merge commit.
     export GITVALIDATE_TIP=$(cd $GOSRC; git log -2 --pretty='%H' | tail -n 1)
-    make gofmt TAGS="${TAGS}"
+    make gofmt BUILDTAGS="${BUILDTAGS}"
 
     # Only check lint and gitvalidation on more recent
     # distros with updated git and tooling
     if [[ ${DIST} == "Fedora" ]]; then
-        HEAD=$GITVALIDATE_TIP make -C $GOSRC .gitvalidation TAGS="${TAGS}"
+        HEAD=$GITVALIDATE_TIP make -C $GOSRC .gitvalidation BUILDTAGS="${BUILDTAGS}"
         make lint
     fi
 fi
 
 # Unit tests
 if [ $unittest -eq 1 ]; then
-    make localunit TAGS="${TAGS}"
+    make localunit BUILDTAGS="${BUILDTAGS}"
 fi
 
 # Make Podman
 if [ $build -eq 1 ]; then
     make_install_tools
-    make TAGS="${TAGS}" GOPATH=$GOPATH
+    make BUILDTAGS="${BUILDTAGS}" GOPATH=$GOPATH
 fi
 
 # Install Podman
 if [ $install -eq 1 ]; then
     make_install_tools
-    make TAGS="${TAGS}" install.bin PREFIX=/usr ETCDIR=/etc
-    make TAGS="${TAGS}" install.man PREFIX=/usr ETCDIR=/etc
-    make TAGS="${TAGS}" install.cni PREFIX=/usr ETCDIR=/etc
-    make TAGS="${TAGS}" install.systemd PREFIX=/usr ETCDIR=/etc
+    make BUILDTAGS="${BUILDTAGS}" install.bin PREFIX=/usr ETCDIR=/etc
+    make BUILDTAGS="${BUILDTAGS}" install.man PREFIX=/usr ETCDIR=/etc
+    make BUILDTAGS="${BUILDTAGS}" install.cni PREFIX=/usr ETCDIR=/etc
+    make BUILDTAGS="${BUILDTAGS}" install.systemd PREFIX=/usr ETCDIR=/etc
     if [ $runpython -eq 1 ]; then
-        make TAGS="${TAGS}" install.python PREFIX=/usr ETCDIR=/etc
+        make BUILDTAGS="${BUILDTAGS}" install.python PREFIX=/usr ETCDIR=/etc
     fi
 
 fi
 
 # Run integration tests
 if [ $integrationtest -eq 1 ]; then
-    make TAGS="${TAGS}" test-binaries
+    make BUILDTAGS="${BUILDTAGS}" test-binaries
     make varlink_generate GOPATH=/go
     if [ $runpython -eq 1 ]; then
         make clientintegration GOPATH=/go
