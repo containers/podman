@@ -13,6 +13,9 @@
 #include <sys/wait.h>
 #include <string.h>
 
+static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
+static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
+
 static int
 syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
 {
@@ -145,6 +148,25 @@ reexec_userns_join (int userns)
   _exit (EXIT_FAILURE);
 }
 
+static void
+check_proc_sys_userns_file (const char *path)
+{
+  FILE *fp;
+  fp = fopen (path, "r");
+  if (fp)
+    {
+      char buf[32];
+      size_t n_read = fread (buf, 1, sizeof(buf) - 1, fp);
+      if (n_read > 0)
+        {
+          buf[n_read] = '\0';
+          if (strtol (buf, NULL, 10) == 0)
+            fprintf (stderr, "user namespaces are not enabled in %s\n", path);
+        }
+      fclose (fp);
+    }
+}
+
 int
 reexec_in_user_namespace (int ready)
 {
@@ -159,7 +181,12 @@ reexec_in_user_namespace (int ready)
 
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid < 0)
-    fprintf (stderr, "cannot clone: %s\n", strerror (errno));
+    {
+      FILE *fp;
+      fprintf (stderr, "cannot clone: %s\n", strerror (errno));
+      check_proc_sys_userns_file (_max_user_namespaces);
+      check_proc_sys_userns_file (_unprivileged_user_namespaces);
+    }
   if (pid)
     return pid;
 
