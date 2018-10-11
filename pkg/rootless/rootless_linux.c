@@ -13,6 +13,18 @@
 #include <sys/wait.h>
 
 static int
+syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
+{
+  return (int) syscall (__NR_setresuid, ruid, euid, suid);
+}
+
+static int
+syscall_setresgid (gid_t rgid, gid_t egid, gid_t sgid)
+{
+  return (int) syscall (__NR_setresgid, rgid, egid, sgid);
+}
+
+static int
 syscall_clone (unsigned long flags, void *child_stack)
 {
   return (int) syscall (__NR_clone, flags, child_stack);
@@ -107,8 +119,8 @@ reexec_userns_join (int userns)
     _exit (EXIT_FAILURE);
   close (userns);
 
-  if (setresgid (0, 0, 0) < 0 ||
-      setresuid (0, 0, 0) < 0)
+  if (syscall_setresgid (0, 0, 0) < 0 ||
+      syscall_setresuid (0, 0, 0) < 0)
     _exit (EXIT_FAILURE);
 
   execvp (argv[0], argv);
@@ -146,8 +158,10 @@ reexec_in_user_namespace (int ready)
     _exit (EXIT_FAILURE);
   close (ready);
 
-  if (setresgid (0, 0, 0) < 0 ||
-      setresuid (0, 0, 0) < 0)
+  if (syscall_setresgid (0, 0, 0) < 0)
+    _exit (EXIT_FAILURE);
+
+  if (syscall_setresuid (0, 0, 0) < 0)
     _exit (EXIT_FAILURE);
 
   execvp (argv[0], argv);
