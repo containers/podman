@@ -134,6 +134,7 @@ type CreateConfig struct {
 	SecurityOpts       []string
 	Rootfs             string
 	LocalVolumes       []string //Keeps track of the built-in volumes of container used in the --volumes-from flag
+	Syslog             bool     // Whether to enable syslog on exit commands
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
@@ -288,8 +289,8 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func createExitCommand(runtime *libpod.Runtime) []string {
-	config := runtime.GetConfig()
+func (c *CreateConfig) createExitCommand() []string {
+	config := c.Runtime.GetConfig()
 
 	cmd, _ := os.Executable()
 	command := []string{cmd,
@@ -301,6 +302,9 @@ func createExitCommand(runtime *libpod.Runtime) []string {
 	}
 	if config.StorageConfig.GraphDriverName != "" {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
+	}
+	if c.Syslog {
+		command = append(command, "--syslog")
 	}
 	return append(command, []string{"container", "cleanup"}...)
 }
@@ -481,7 +485,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
 	if c.Detach {
-		options = append(options, libpod.WithExitCommand(createExitCommand(runtime)))
+		options = append(options, libpod.WithExitCommand(c.createExitCommand()))
 	}
 
 	return options, nil

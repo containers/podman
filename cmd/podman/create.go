@@ -782,6 +782,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		WorkDir:     workDir,
 		Rootfs:      rootfs,
 		VolumesFrom: c.StringSlice("volumes-from"),
+		Syslog:      c.GlobalBool("syslog"),
 	}
 
 	if config.Privileged {
