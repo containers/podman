@@ -97,7 +97,8 @@ func stopCmd(c *cli.Context) error {
 			containers = append(containers, container)
 		}
 	}
-
+	size := len(containers)
+	errs := make(chan error, size)
 	for _, ctr := range containers {
 		var stopTimeout uint
 		if c.IsSet("timeout") {
@@ -105,13 +106,21 @@ func stopCmd(c *cli.Context) error {
 		} else {
 			stopTimeout = ctr.StopTimeout()
 		}
-		if err := ctr.StopWithTimeout(stopTimeout); err != nil && err != libpod.ErrCtrStopped {
+		go func(c *libpod.Container, timeout uint) {
+			err := c.StopWithTimeout(stopTimeout)
+			if err == nil {
+				fmt.Println(c.ID())
+			}
+			errs <- err
+		}(ctr, stopTimeout)
+	}
+	for i := 0; i < size; i++ {
+		err := <-errs
+		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = errors.Wrapf(err, "failed to stop container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
+			lastError = err
 		}
 	}
 	return lastError

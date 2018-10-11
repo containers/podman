@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -96,36 +97,39 @@ func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) 
 	// dependencies. Should we bother with this?
 
 	// Stop to all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
 
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
-			ctr.lock.Unlock()
-			continue
-		}
-
-		if err := ctr.stop(ctr.config.StopTimeout); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		if cleanup {
-			if err := ctr.cleanup(ctx); err != nil {
+	var wg sync.WaitGroup
+	for _, c := range allCtrs {
+		go func(ctr *Container) {
+			wg.Add(1)
+			defer wg.Done()
+			ctr.lock.Lock()
+			defer ctr.lock.Unlock()
+			if err := ctr.syncContainer(); err != nil {
 				ctrErrors[ctr.ID()] = err
+				return
 			}
-		}
 
-		ctr.lock.Unlock()
+			// Ignore containers that are not running
+			if ctr.state.State != ContainerStateRunning {
+				return
+			}
+
+			if err := ctr.stop(ctr.config.StopTimeout); err != nil {
+				ctrErrors[ctr.ID()] = err
+				return
+			}
+
+			if cleanup {
+				if err := ctr.cleanup(ctx); err != nil {
+					ctrErrors[ctr.ID()] = err
+					return
+				}
+			}
+			return
+		}(c)
 	}
-
+	wg.Wait()
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
 	}
