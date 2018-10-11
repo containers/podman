@@ -6,9 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -23,7 +25,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "display",
-			Usage: "preview the command that `podman install` would execute",
+			Usage: "preview the command that the label would run",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
@@ -74,13 +76,14 @@ var (
 Executes a command as described by a container image label.
 `
 	runlabelCommand = cli.Command{
-		Name:         "runlabel",
-		Usage:        "Execute the command described by an image label",
-		Description:  runlabelDescription,
-		Flags:        runlabelFlags,
-		Action:       runlabelCmd,
-		ArgsUsage:    "",
-		OnUsageError: usageErrorHandler,
+		Name:           "runlabel",
+		Usage:          "Execute the command described by an image label",
+		Description:    runlabelDescription,
+		Flags:          runlabelFlags,
+		Action:         runlabelCmd,
+		ArgsUsage:      "",
+		SkipArgReorder: true,
+		OnUsageError:   usageErrorHandler,
 	}
 )
 
@@ -110,12 +113,8 @@ func runlabelCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) == 0 {
-		logrus.Errorf("an image name must be specified")
-		return nil
-	}
 	if len(args) < 2 {
-		logrus.Errorf("the runlabel command requires at least 2 arguments")
+		logrus.Errorf("the runlabel command requires at least 2 arguments: LABEL IMAGE")
 		return nil
 	}
 	if err := validateFlags(c, runlabelFlags); err != nil {
@@ -130,18 +129,17 @@ func runlabelCmd(c *cli.Context) error {
 
 	runlabelImage := args[1]
 
-	if c.IsSet("opts1") {
-		opts["opts1"] = c.String("opts1")
+	if c.IsSet("opt1") {
+		opts["opt1"] = c.String("opt1")
 	}
-	if c.IsSet("opts2") {
-		opts["opts2"] = c.String("opts2")
+	if c.IsSet("opt2") {
+		opts["opt2"] = c.String("opt2")
 	}
-	if c.IsSet("opts3") {
-		opts["opts3"] = c.String("opts3")
+	if c.IsSet("opt3") {
+		opts["opt3"] = c.String("opt3")
 	}
 
 	ctx := getContext()
-	rtc := runtime.GetConfig()
 
 	stdErr = os.Stderr
 	stdOut = os.Stdout
@@ -154,7 +152,21 @@ func runlabelCmd(c *cli.Context) error {
 	}
 
 	if pull {
-		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, rtc.SignaturePolicyPath, "", stdOut, nil, image.SigningOptions{}, false, false)
+		var registryCreds *types.DockerAuthConfig
+		if c.IsSet("creds") {
+			creds, err := util.ParseRegistryCreds(c.String("creds"))
+			if err != nil {
+				return err
+			}
+			registryCreds = creds
+		}
+		dockerRegistryOptions := image.DockerRegistryOptions{
+			DockerRegistryCreds:         registryCreds,
+			DockerCertPath:              c.String("cert-dir"),
+			DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
+		}
+
+		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, c.String("signature-policy"), c.String("authfile"), stdOut, &dockerRegistryOptions, image.SigningOptions{}, false, false)
 	} else {
 		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
 	}
@@ -187,6 +199,23 @@ func runlabelCmd(c *cli.Context) error {
 	env := shared.GenerateRunEnvironment(c.String("name"), imageName, opts)
 	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
 
+	envmap := envSliceToMap(env)
+
+	envmapper := func(k string) string {
+		switch k {
+		case "OPT1":
+			return envmap["OPT1"]
+		case "OPT2":
+			return envmap["OPT2"]
+		case "OPT3":
+			return envmap["OPT3"]
+		}
+		return ""
+	}
+
+	newS := os.Expand(strings.Join(cmd, " "), envmapper)
+	cmd = strings.Split(newS, " ")
+
 	if !c.Bool("quiet") {
 		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
 		if c.Bool("display") {
@@ -194,4 +223,13 @@ func runlabelCmd(c *cli.Context) error {
 		}
 	}
 	return utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...)
+}
+
+func envSliceToMap(env []string) map[string]string {
+	m := make(map[string]string)
+	for _, i := range env {
+		split := strings.Split(i, "=")
+		m[split[0]] = strings.Join(split[1:], " ")
+	}
+	return m
 }
