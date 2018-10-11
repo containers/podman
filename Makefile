@@ -38,8 +38,6 @@ BUILD_INFO ?= $(shell date +%s)
 LDFLAGS_PODMAN ?= $(LDFLAGS) -X main.gitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO)
 ISODATE ?= $(shell date --iso-8601)
 LIBSECCOMP_COMMIT := release-2.3
-# Wrapper to setup mounts required by AppArmor
-ENTRYPOINT := ./hack/dind
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -146,13 +144,13 @@ libpodimage:
 	docker build -t ${LIBPOD_IMAGE} .
 
 dbuild: libpodimage
-	docker run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} ${ENTRYPOINT} make all
+	docker run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} make all
 
 test: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localunit localintegration
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localunit localintegration
 
 integration: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make clean all localintegration
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localintegration
 
 integration.fedora:
 	DIST=Fedora sh .papr_prepare.sh
@@ -161,10 +159,10 @@ integration.centos:
 	DIST=CentOS sh .papr_prepare.sh
 
 shell: libpodimage
-	docker run --tmpfs -e STORAGE_OPTIONS="--storage-driver=vfs" -e CGROUP_MANAGER=cgroupfs -e TESTFLAGS -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} sh
+	docker run --tmpfs -e STORAGE_OPTIONS="--storage-driver=vfs" -e CGROUP_MANAGER=cgroupfs -e TESTFLAGS -e TRAVIS -it --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} sh
 
 testunit: libpodimage
-	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} ${ENTRYPOINT} make localunit
+	docker run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
 localunit: varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
