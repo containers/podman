@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <string.h>
 
 static int
 syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
@@ -106,9 +107,14 @@ reexec_userns_join (int userns)
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   pid = fork ();
+  if (pid < 0)
+    fprintf (stderr, "cannot fork: %s\n", strerror (errno));
   if (pid)
     return pid;
 
@@ -116,12 +122,23 @@ reexec_userns_join (int userns)
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
 
   if (setns (userns, 0) < 0)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
   close (userns);
 
-  if (syscall_setresgid (0, 0, 0) < 0 ||
-      syscall_setresuid (0, 0, 0) < 0)
-    _exit (EXIT_FAILURE);
+  if (syscall_setresgid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (syscall_setresuid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   execvp (argv[0], argv);
 
@@ -141,12 +158,17 @@ reexec_in_user_namespace (int ready)
   sprintf (uid, "%d", geteuid ());
 
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
+  if (pid < 0)
+    fprintf (stderr, "cannot clone: %s\n", strerror (errno));
   if (pid)
     return pid;
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
@@ -155,14 +177,23 @@ reexec_in_user_namespace (int ready)
     ret = read (ready, &b, 1) < 0;
   while (ret < 0 && errno == EINTR);
   if (ret < 0)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
   close (ready);
 
   if (syscall_setresgid (0, 0, 0) < 0)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   if (syscall_setresuid (0, 0, 0) < 0)
-    _exit (EXIT_FAILURE);
+    {
+      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   execvp (argv[0], argv);
 
