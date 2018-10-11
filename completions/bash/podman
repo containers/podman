@@ -1512,6 +1512,7 @@ _podman_container_run() {
 		--hostname -h
 		--image-volume
 		--init-path
+		--ip
 		--ipc
 		--kernel-memory
 		--label-file

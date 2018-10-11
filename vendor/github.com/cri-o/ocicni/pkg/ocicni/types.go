@@ -24,6 +24,14 @@ type PortMapping struct {
 	HostIP string `json:"hostIP"`
 }
 
+// NetworkConfig is additional configuration for a single CNI network.
+type NetworkConfig struct {
+	// IP is a static IP to be specified in the network. Can only be used
+	// with the hostlocal IP allocator. If left unset, an IP will be
+	// dynamically allocated.
+	IP string
+}
+
 // PodNetwork configures the network of a pod sandbox.
 type PodNetwork struct {
 	// Name is the name of the sandbox.
@@ -40,6 +48,11 @@ type PodNetwork struct {
 	// Networks is a list of CNI network names to attach to the sandbox
 	// Leave this list empty to attach the default network to the sandbox
 	Networks []string
+
+	// NetworkConfig is configuration specific to a single CNI network.
+	// It is optional, and can be omitted for some or all specified networks
+	// without issue.
+	NetworkConfig map[string]NetworkConfig
 }
 
 // CNIPlugin is the interface that needs to be implemented by a plugin
@@ -47,6 +60,10 @@ type CNIPlugin interface {
 	// Name returns the plugin's name. This will be used when searching
 	// for a plugin by name, e.g.
 	Name() string
+
+	// GetDefaultNetworkName returns the name of the plugin's default
+	// network.
+	GetDefaultNetworkName() string
 
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the

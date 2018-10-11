@@ -1383,6 +1383,10 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 			}
 		case "createNetNS":
 			out.CreateNetNS = bool(in.Bool())
+		case "staticIP":
+			if data := in.UnsafeBytes(); in.Ok() {
+				in.AddError((out.StaticIP).UnmarshalText(data))
+			}
 		case "portMappings":
 			if in.IsNull() {
 				in.Skip()
@@ -2004,6 +2008,16 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Bool(bool(in.CreateNetNS))
+	}
+	{
+		const prefix string = ",\"staticIP\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.RawText((in.StaticIP).MarshalText())
 	}
 	if len(in.PortMappings) != 0 {
 		const prefix string = ",\"portMappings\":"

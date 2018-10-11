@@ -269,9 +269,13 @@ type ContainerConfig struct {
 	// Network Config
 
 	// CreateNetNS indicates that libpod should create and configure a new
-	// network namespace for the container
-	// This cannot be set if NetNsCtr is also set
+	// network namespace for the container.
+	// This cannot be set if NetNsCtr is also set.
 	CreateNetNS bool `json:"createNetNS"`
+	// StaticIP is a static IP to request for the container.
+	// This cannot be set unless CreateNetNS is set.
+	// If not set, the container will be dynamically assigned an IP by CNI.
+	StaticIP net.IP `json:"staticIP"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true

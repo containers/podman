@@ -2,6 +2,7 @@ package createconfig
 
 import (
 	"encoding/json"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -311,9 +312,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	var pod *libpod.Pod
 	var err error
 
-	// Uncomment after talking to mheon about unimplemented funcs
-	// options = append(options, libpod.WithLabels(c.labels))
-
 	if c.Interactive {
 		options = append(options, libpod.WithStdin())
 	}
@@ -441,6 +439,15 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	logPath := getLoggingPath(c.LogDriverOpt)
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
+	}
+	if c.IPAddress != "" {
+		ip := net.ParseIP(c.IPAddress)
+		if ip == nil {
+			return nil, errors.Wrapf(libpod.ErrInvalidArg, "cannot parse %s as IP address", c.IPAddress)
+		} else if ip.To4() == nil {
+			return nil, errors.Wrapf(libpod.ErrInvalidArg, "%s is not an IPv4 address", c.IPAddress)
+		}
+		options = append(options, libpod.WithStaticIP(ip))
 	}
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
