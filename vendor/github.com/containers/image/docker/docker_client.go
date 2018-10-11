@@ -259,7 +259,7 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 	case http.StatusUnauthorized:
 		return ErrUnauthorizedForCredentials
 	default:
-		return errors.Errorf("error occured with status code %q", resp.StatusCode)
+		return errors.Errorf("error occured with status code %d (%s)", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 }
 
@@ -329,7 +329,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		} else {
 			defer resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
-				logrus.Debugf("error getting search results from v1 endpoint %q, status code %d", registry, resp.StatusCode)
+				logrus.Debugf("error getting search results from v1 endpoint %q, status code %d (%s)", registry, resp.StatusCode, http.StatusText(resp.StatusCode))
 			} else {
 				if err := json.NewDecoder(resp.Body).Decode(v1Res); err != nil {
 					return nil, err
@@ -346,7 +346,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	} else {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			logrus.Errorf("error getting search results from v2 endpoint %q, status code %d", registry, resp.StatusCode)
+			logrus.Errorf("error getting search results from v2 endpoint %q, status code %d (%s)", registry, resp.StatusCode, http.StatusText(resp.StatusCode))
 		} else {
 			if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
 				return nil, err
@@ -495,7 +495,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, realm, service, scope
 	case http.StatusOK:
 		break
 	default:
-		return nil, errors.Errorf("unexpected http code: %d, URL: %s", res.StatusCode, authReq.URL)
+		return nil, errors.Errorf("unexpected http code: %d (%s), URL: %s", res.StatusCode, http.StatusText(res.StatusCode), authReq.URL)
 	}
 	tokenBlob, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -522,7 +522,7 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		defer resp.Body.Close()
 		logrus.Debugf("Ping %s status %d", url, resp.StatusCode)
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
-			return errors.Errorf("error pinging registry %s, response code %d", c.registry, resp.StatusCode)
+			return errors.Errorf("error pinging registry %s, response code %d (%s)", c.registry, resp.StatusCode, http.StatusText(resp.StatusCode))
 		}
 		c.challenges = parseAuthHeader(resp.Header)
 		c.scheme = scheme
@@ -542,8 +542,8 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		pingV1 := func(scheme string) bool {
 			url := fmt.Sprintf(resolvedPingV1URL, scheme, c.registry)
 			resp, err := c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
-			logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
 			if err != nil {
+				logrus.Debugf("Ping %s err %s (%#v)", url, err.Error(), err)
 				return false
 			}
 			defer resp.Body.Close()

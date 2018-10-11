@@ -73,7 +73,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		defer res.Body.Close()
 		if res.StatusCode != http.StatusOK {
 			// print url also
-			return nil, errors.Errorf("Invalid status code returned when fetching tags list %d", res.StatusCode)
+			return nil, errors.Errorf("Invalid status code returned when fetching tags list %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
 		}
 
 		var tagsHolder struct {

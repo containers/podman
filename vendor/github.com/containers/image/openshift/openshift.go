@@ -127,7 +127,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		if statusValid {
 			return nil, errors.New(status.Message)
 		}
-		return nil, errors.Errorf("HTTP error: status code: %d, body: %s", res.StatusCode, string(body))
+		return nil, errors.Errorf("HTTP error: status code: %d (%s), body: %s", res.StatusCode, http.StatusText(res.StatusCode), string(body))
 	}
 
 	return body, nil

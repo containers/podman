@@ -165,9 +165,12 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 	var auths dockerConfigFile
 
 	raw, err := ioutil.ReadFile(path)
-	if os.IsNotExist(err) {
-		auths.AuthConfigs = map[string]dockerAuthConfig{}
-		return auths, nil
+	if err != nil {
+		if os.IsNotExist(err) {
+			auths.AuthConfigs = map[string]dockerAuthConfig{}
+			return auths, nil
+		}
+		return dockerConfigFile{}, err
 	}
 
 	if legacyFormat {
