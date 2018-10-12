@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	rt "runtime"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
@@ -45,6 +46,12 @@ Running containers will not be removed without the -f option.
 
 // saveCmd saves the image to either docker-archive or oci
 func rmCmd(c *cli.Context) error {
+	var (
+		delContainers []*libpod.Container
+		lastError     error
+		deleteFuncs   []workerInput
+	)
+
 	ctx := getContext()
 	if err := validateFlags(c, rmFlags); err != nil {
 		return err
@@ -65,8 +72,6 @@ func rmCmd(c *cli.Context) error {
 		return errors.Errorf("specify one or more containers to remove")
 	}
 
-	var delContainers []*libpod.Container
-	var lastError error
 	if c.Bool("all") {
 		delContainers, err = runtime.GetContainers()
 		if err != nil {
@@ -89,16 +94,26 @@ func rmCmd(c *cli.Context) error {
 			delContainers = append(delContainers, container)
 		}
 	}
+
 	for _, container := range delContainers {
-		err = runtime.RemoveContainer(ctx, container, c.Bool("force"))
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to delete container %v", container.ID())
-		} else {
-			fmt.Println(container.ID())
+		f := func() error {
+			return runtime.RemoveContainer(ctx, container, c.Bool("force"))
 		}
+
+		deleteFuncs = append(deleteFuncs, workerInput{
+			containerID:  container.ID(),
+			parallelFunc: f,
+		})
+	}
+
+	deleteErrors := parallelExecuteWorkerPool(rt.NumCPU()*3, deleteFuncs)
+	for cid, result := range deleteErrors {
+		if result != nil {
+			fmt.Println(result.Error())
+			lastError = result
+			continue
+		}
+		fmt.Println(cid)
 	}
 	return lastError
 }
