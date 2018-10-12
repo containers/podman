@@ -196,7 +196,10 @@ func runlabelCmd(c *cli.Context) error {
 		runLabel = fmt.Sprintf("%s %s", runLabel, strings.Join(args[2:], " "))
 	}
 
-	cmd := shared.GenerateCommand(runLabel, imageName, c.String("name"))
+	cmd, err := shared.GenerateCommand(runLabel, imageName, c.String("name"))
+	if err != nil {
+		return errors.Wrapf(err, "unable to generate command")
+	}
 	env := shared.GenerateRunEnvironment(c.String("name"), imageName, opts)
 	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
 
