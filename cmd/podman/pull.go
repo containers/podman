@@ -21,7 +21,7 @@ var (
 	pullFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
@@ -124,7 +124,8 @@ func pullCmd(c *cli.Context) error {
 		}
 		imgID = newImage[0].ID()
 	} else {
-		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
+		authfile := getAuthFile(c.String("authfile"))
+		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", image)
 		}

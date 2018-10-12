@@ -83,7 +83,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 		cli.StringSliceFlag{
 			Name:  "build-arg",

@@ -13,7 +13,7 @@ var (
 	logoutFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 		cli.BoolFlag{
 			Name:  "all, a",
@@ -46,8 +46,9 @@ func logoutCmd(c *cli.Context) error {
 	if len(args) == 1 {
 		server = args[0]
 	}
+	authfile := getAuthFile(c.String("authfile"))
 
-	sc := common.GetSystemContext("", c.String("authfile"), false)
+	sc := common.GetSystemContext("", authfile, false)
 
 	if c.Bool("all") {
 		if err := config.RemoveAllAuthentication(sc); err != nil {

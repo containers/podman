@@ -21,7 +21,7 @@ var (
 	runlabelFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 		cli.BoolFlag{
 			Name:  "display",
@@ -165,8 +165,9 @@ func runlabelCmd(c *cli.Context) error {
 			DockerCertPath:              c.String("cert-dir"),
 			DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 		}
+		authfile := getAuthFile(c.String("authfile"))
 
-		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, c.String("signature-policy"), c.String("authfile"), stdOut, &dockerRegistryOptions, image.SigningOptions{}, false, false)
+		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, c.String("signature-policy"), authfile, stdOut, &dockerRegistryOptions, image.SigningOptions{}, false, false)
 	} else {
 		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
 	}

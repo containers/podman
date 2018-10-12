@@ -27,7 +27,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
@@ -64,8 +64,9 @@ func loginCmd(c *cli.Context) error {
 	if len(args) == 1 {
 		server = args[0]
 	}
+	authfile := getAuthFile(c.String("authfile"))
 
-	sc := common.GetSystemContext("", c.String("authfile"), false)
+	sc := common.GetSystemContext("", authfile, false)
 
 	// username of user logged in to server (if one exists)
 	userFromAuthFile, err := config.GetUserLoggedIn(sc, server)
