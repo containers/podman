@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -946,6 +947,19 @@ func (c *Container) makeBindMounts() error {
 	}
 	c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
+	newPasswd, err := c.generatePasswd()
+	if err != nil {
+		return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
+	}
+	if newPasswd != "" {
+		// Make /etc/passwd
+		if _, ok := c.state.BindMounts["/etc/passwd"]; ok {
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/passwd")
+		}
+		logrus.Debugf("adding entry to /etc/passwd for non existent default user")
+		c.state.BindMounts["/etc/passwd"] = newPasswd
+	}
 	// Make /etc/hosts
 	if _, ok := c.state.BindMounts["/etc/hosts"]; ok {
 		// If it already exists, delete so we can recreate
@@ -1015,6 +1029,58 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	}
 
 	return filepath.Join(c.state.DestinationRunDir, destFile), nil
+}
+
+// generatePasswd generates a container specific passwd file,
+// iff g.config.User is a number
+func (c *Container) generatePasswd() (string, error) {
+	var (
+		groupspec string
+		gid       uint32
+	)
+	if c.config.User == "" {
+		return "", nil
+	}
+	spec := strings.SplitN(c.config.User, ":", 2)
+	userspec := spec[0]
+	if len(spec) > 1 {
+		groupspec = spec[1]
+	}
+	// If a non numeric User, then don't generate passwd
+	uid, err := strconv.ParseUint(userspec, 10, 32)
+	if err != nil {
+		return "", nil
+	}
+	// if UID exists inside of container rootfs /etc/passwd then
+	// don't generate passwd
+	if _, _, err := chrootuser.LookupUIDInContainer(c.state.Mountpoint, uid); err == nil {
+		return "", nil
+	}
+	if err == nil && groupspec != "" {
+		if !c.state.Mounted {
+			return "", errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate group field for passwd record", c.ID())
+		}
+		gid, err = chrootuser.GetGroup(c.state.Mountpoint, groupspec)
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to get gid from %s formporary passwd file")
+		}
+	}
+
+	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
+	orig, err := ioutil.ReadFile(originPasswdFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
+	}
+
+	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, c.WorkingDir())
+	passwdFile, err := c.writeStringToRundir("passwd", pwd)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to create temporary passwd fileo")
+	}
+	if os.Chmod(passwdFile, 0644); err != nil {
+		return "", err
+	}
+	return passwdFile, nil
 }
 
 // generateResolvConf generates a containers resolv.conf

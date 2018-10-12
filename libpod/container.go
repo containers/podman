@@ -642,6 +642,11 @@ func (c *Container) Hostname() string {
 	return c.ID()[:12]
 }
 
+// WorkingDir returns the containers working dir
+func (c *Container) WorkingDir() string {
+	return c.config.Spec.Process.Cwd
+}
+
 // State Accessors
 // Require locking
 

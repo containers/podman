@@ -265,3 +265,29 @@ func lookupGroupInContainer(rootdir, groupname string) (gid uint64, err error) {
 
 	return 0, user.UnknownGroupError(fmt.Sprintf("error looking up group %q", groupname))
 }
+
+func lookupUIDInContainer(rootdir string, uid uint64) (string, uint64, error) {
+	cmd, f, err := openChrootedFile(rootdir, "/etc/passwd")
+	if err != nil {
+		return "", 0, err
+	}
+	defer func() {
+		_ = cmd.Wait()
+	}()
+	rc := bufio.NewReader(f)
+	defer f.Close()
+
+	lookupUser.Lock()
+	defer lookupUser.Unlock()
+
+	pwd := parseNextPasswd(rc)
+	for pwd != nil {
+		if pwd.uid != uid {
+			pwd = parseNextPasswd(rc)
+			continue
+		}
+		return pwd.name, pwd.gid, nil
+	}
+
+	return "", 0, user.UnknownUserError(fmt.Sprintf("error looking up uid %q", uid))
+}
