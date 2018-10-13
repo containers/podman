@@ -1,11 +1,10 @@
 """Models for manipulating images in/to/from storage."""
 import collections
 import copy
-import functools
 import json
 import logging
 
-from . import ConfigDict
+from . import ConfigDict, fold_keys
 from .containers import Container
 
 
@@ -14,7 +13,7 @@ class Image(collections.UserDict):
 
     def __init__(self, client, id, data):
         """Construct Image Model."""
-        super(Image, self).__init__(data)
+        super().__init__(data)
         for k, v in data.items():
             setattr(self, k, v)
 
@@ -26,12 +25,12 @@ class Image(collections.UserDict):
                 self._id, data['id']
             )
 
-    def __getitem__(self, key):
-        """Get items from parent dict."""
-        return super().__getitem__(key)
-
-    def _split_token(self, values=None, sep='='):
-        return dict([v.split(sep, 1) for v in values if values])
+    @staticmethod
+    def _split_token(values=None, sep='='):
+        return {
+            k: v1
+            for k, v1 in (v0.split(sep, 1) for v0 in values if values)
+        }
 
     def create(self, *args, **kwargs):
         """Create container from image.
@@ -41,8 +40,8 @@ class Image(collections.UserDict):
         details = self.inspect()
 
         config = ConfigDict(image_id=self._id, **kwargs)
-        config['command'] = details.containerconfig['cmd']
-        config['env'] = self._split_token(details.containerconfig['env'])
+        config['command'] = details.containerconfig.get('cmd')
+        config['env'] = self._split_token(details.containerconfig.get('env'))
         config['image'] = copy.deepcopy(details.repotags[0])
         config['labels'] = copy.deepcopy(details.labels)
         config['net_mode'] = 'bridge'
@@ -68,19 +67,11 @@ class Image(collections.UserDict):
             for r in podman.HistoryImage(self._id)['history']:
                 yield collections.namedtuple('HistoryDetail', r.keys())(**r)
 
-    # Convert all keys to lowercase.
-    def _lower_hook(self):
-        @functools.wraps(self._lower_hook)
-        def wrapped(input_):
-            return {k.lower(): v for (k, v) in input_.items()}
-
-        return wrapped
-
     def inspect(self):
         """Retrieve details about image."""
         with self._client() as podman:
             results = podman.InspectImage(self._id)
-        obj = json.loads(results['image'], object_hook=self._lower_hook())
+        obj = json.loads(results['image'], object_hook=fold_keys())
         return collections.namedtuple('ImageInspect', obj.keys())(**obj)
 
     def push(self, target, tlsverify=False):

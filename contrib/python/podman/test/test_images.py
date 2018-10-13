@@ -64,7 +64,7 @@ class TestImages(PodmanTestCase):
         self.assertEqual(actual.status, 'configured')
 
         ctnr = actual.start()
-        self.assertIn(ctnr.status, ['running', 'exited'])
+        self.assertIn(ctnr.status, ['running', 'stopped', 'exited'])
 
         ctnr_details = ctnr.inspect()
         for e in img_details.containerconfig['env']:

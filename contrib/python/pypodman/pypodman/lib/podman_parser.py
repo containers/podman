@@ -1,10 +1,10 @@
 """Parse configuration while building subcommands."""
 import argparse
-import curses
 import getpass
 import inspect
 import logging
 import os
+import shutil
 import sys
 from contextlib import suppress
 from pathlib import Path
@@ -27,12 +27,12 @@ class HelpFormatter(argparse.RawDescriptionHelpFormatter):
     def __init__(self, *args, **kwargs):
         """Construct HelpFormatter using screen width."""
         if 'width' not in kwargs:
-            kwargs['width'] = 80
             try:
-                _, width = curses.initscr().getmaxyx()
-                kwargs['width'] = width
-            finally:
-                curses.endwin()
+                size = shutil.get_terminal_size()
+                kwargs['width'] = size.columns
+            except Exception:  # pylint: disable=broad-except
+                kwargs['width'] = 80
+
         super().__init__(*args, **kwargs)
 
 
@@ -105,7 +105,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         # pull in plugin(s) code for each subcommand
         for name, obj in inspect.getmembers(
                 sys.modules['pypodman.lib.actions'],
-                lambda member: inspect.isclass(member)):
+                predicate=inspect.isclass):
             if hasattr(obj, 'subparser'):
                 try:
                     obj.subparser(actions_parser)
@@ -179,6 +179,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             getattr(args, 'port')
             or os.environ.get('PORT')
             or config['default'].get('port', None)
+            or 22
         )   # yapf:disable
 
         reqattr(

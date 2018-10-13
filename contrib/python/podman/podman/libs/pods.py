@@ -42,16 +42,15 @@ class Pod(collections.UserDict):
         default signal is signal.SIGTERM.
         wait n of seconds, 0 waits forever.
         """
-        running = FoldedString(self.status)
-
         with self._client() as podman:
             podman.KillPod(self._ident, signal_)
             timeout = time.time() + wait
             while True:
                 # pylint: disable=maybe-no-member
                 self._refresh(podman)
+                running = FoldedString(self.status)
                 if running != 'running':
-                    return self
+                    break
 
                 if wait and timeout < time.time():
                     raise TimeoutError()
@@ -131,7 +130,7 @@ class Pods():
         self._client = client
 
     def create(self,
-               ident,
+               ident=None,
                cgroupparent=None,
                labels=None,
                share=None,

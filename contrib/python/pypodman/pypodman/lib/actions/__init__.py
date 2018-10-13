@@ -12,6 +12,7 @@ from pypodman.lib.actions.kill_action import Kill
 from pypodman.lib.actions.logs_action import Logs
 from pypodman.lib.actions.mount_action import Mount
 from pypodman.lib.actions.pause_action import Pause
+from pypodman.lib.actions.pod_action import Pod
 from pypodman.lib.actions.port_action import Port
 from pypodman.lib.actions.ps_action import Ps
 from pypodman.lib.actions.pull_action import Pull
@@ -36,6 +37,7 @@ __all__ = [
     'Logs',
     'Mount',
     'Pause',
+    'Pod',
     'Port',
     'Ps',
     'Pull',
