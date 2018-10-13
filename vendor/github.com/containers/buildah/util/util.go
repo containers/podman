@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -472,11 +473,31 @@ func UnsharedRunrootPath(uid string) (string, error) {
 	if envRuntimeDir, haveRuntimeDir := os.LookupEnv("XDG_RUNTIME_DIR"); haveRuntimeDir {
 		return filepath.Join(envRuntimeDir, "run"), nil
 	}
+	var runtimeDir string
 	// If $XDG_RUNTIME_DIR is not defined, but we know our UID...
 	if uid != "" {
-		return filepath.Join("/var/run/user", uid, "run"), nil
+		tmpDir := filepath.Join("/var/run/user", uid)
+		os.MkdirAll(tmpDir, 0700)
+		st, err := os.Stat(tmpDir)
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+			runtimeDir = tmpDir
+		}
 	}
-	return "", errors.New("unable to determine a --runroot location: $XDG_RUNTIME_DIR is not set, and we don't know our UID")
+	if runtimeDir == "" {
+		home := os.Getenv("HOME")
+		if home == "" {
+			return "", errors.New("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+		}
+		resolvedHome, err := filepath.EvalSymlinks(home)
+		if err != nil {
+			return "", errors.Wrapf(err, "cannot resolve %s", home)
+		}
+		runtimeDir = filepath.Join(resolvedHome, "rundir")
+	}
+	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
+		return "", errors.New("could not set XDG_RUNTIME_DIR")
+	}
+	return runtimeDir, nil
 }
 
 // GetPolicyContext sets up, initializes and returns a new context for the specified policy

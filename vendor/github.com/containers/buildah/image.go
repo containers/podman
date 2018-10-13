@@ -134,15 +134,14 @@ func (i *containerImageRef) computeLayerMIMEType(what string) (omediaType, dmedi
 func (i *containerImageRef) extractRootfs() (io.ReadCloser, error) {
 	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
+		return nil, errors.Wrapf(err, "error mounting container %q", i.containerID)
 	}
 	rc, err := i.tarPath(mountPoint)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error extracting container %q", i.containerID)
+		return nil, errors.Wrapf(err, "error extracting rootfs from container %q", i.containerID)
 	}
 	return ioutils.NewReadCloserWrapper(rc, func() error {
-		err := rc.Close()
-		if err != nil {
+		if err = rc.Close(); err != nil {
 			err = errors.Wrapf(err, "error closing tar archive of container %q", i.containerID)
 		}
 		if _, err2 := i.store.Unmount(i.containerID, false); err == nil {
@@ -254,14 +253,14 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Make a temporary directory to hold blobs.
 	path, err := ioutil.TempDir(os.TempDir(), Package)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error creating temporary directory to hold layer blobs")
 	}
 	logrus.Debugf("using %q to hold temporary data", path)
 	defer func() {
 		if src == nil {
 			err2 := os.RemoveAll(path)
 			if err2 != nil {
-				logrus.Errorf("error removing %q: %v", path, err)
+				logrus.Errorf("error removing layer blob directory %q: %v", path, err)
 			}
 		}
 	}()
@@ -370,9 +369,8 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 		logrus.Debugf("%s size is %d bytes", what, size)
 		// Rename the layer so that we can more easily find it by digest later.
-		err = os.Rename(filepath.Join(path, "layer"), filepath.Join(path, destHasher.Digest().String()))
-		if err != nil {
-			return nil, errors.Wrapf(err, "error storing %s to file", what)
+		if err = os.Rename(filepath.Join(path, "layer"), filepath.Join(path, destHasher.Digest().String())); err != nil {
+			return nil, errors.Wrapf(err, "error storing %s to file while renaming %q to %q", what, filepath.Join(path, "layer"), filepath.Join(path, destHasher.Digest().String()))
 		}
 		// Add a note in the manifest about the layer.  The blobs are identified by their possibly-
 		// compressed blob digests.
@@ -426,7 +424,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the image configuration blob.
 	oconfig, err := json.Marshal(&oimage)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error encoding %#v as json", oimage)
 	}
 	logrus.Debugf("OCIv1 config = %s", oconfig)
 
@@ -438,14 +436,14 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the manifest.
 	omanifestbytes, err := json.Marshal(&omanifest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error encoding %#v as json", omanifest)
 	}
 	logrus.Debugf("OCIv1 manifest = %s", omanifestbytes)
 
 	// Encode the image configuration blob.
 	dconfig, err := json.Marshal(&dimage)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error encoding %#v as json", dimage)
 	}
 	logrus.Debugf("Docker v2s2 config = %s", dconfig)
 
@@ -457,7 +455,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the manifest.
 	dmanifestbytes, err := json.Marshal(&dmanifest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error encoding %#v as json", dmanifest)
 	}
 	logrus.Debugf("Docker v2s2 manifest = %s", dmanifestbytes)
 
@@ -527,9 +525,9 @@ func (i *containerImageRef) Transport() types.ImageTransport {
 func (i *containerImageSource) Close() error {
 	err := os.RemoveAll(i.path)
 	if err != nil {
-		logrus.Errorf("error removing %q: %v", i.path, err)
+		return errors.Wrapf(err, "error removing layer blob directory %q", i.path)
 	}
-	return err
+	return nil
 }
 
 func (i *containerImageSource) Reference() types.ImageReference {
@@ -567,7 +565,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo)
 	layerFile, err := os.OpenFile(filepath.Join(i.path, blob.Digest.String()), os.O_RDONLY, 0600)
 	if err != nil {
 		logrus.Debugf("error reading layer %q: %v", blob.Digest.String(), err)
-		return nil, -1, err
+		return nil, -1, errors.Wrapf(err, "error opening file %q to buffer layer blob", filepath.Join(i.path, blob.Digest.String()))
 	}
 	size = -1
 	st, err := layerFile.Stat()
@@ -578,8 +576,10 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo)
 	}
 	logrus.Debugf("reading layer %q", blob.Digest.String())
 	closer := func() error {
-		layerFile.Close()
 		logrus.Debugf("finished reading layer %q", blob.Digest.String())
+		if err := layerFile.Close(); err != nil {
+			return errors.Wrapf(err, "error closing layer %q after reading", blob.Digest.String())
+		}
 		return nil
 	}
 	return ioutils.NewReadCloserWrapper(layerFile, closer), size, nil
@@ -601,11 +601,11 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 	}
 	oconfig, err := json.Marshal(&b.OCIv1)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding OCI-format image configuration")
+		return nil, errors.Wrapf(err, "error encoding OCI-format image configuration %#v", b.OCIv1)
 	}
 	dconfig, err := json.Marshal(&b.Docker)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding docker-format image configuration")
+		return nil, errors.Wrapf(err, "error encoding docker-format image configuration %#v", b.Docker)
 	}
 	created := time.Now().UTC()
 	if historyTimestamp != nil {

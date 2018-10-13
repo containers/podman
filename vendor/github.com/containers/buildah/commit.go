@@ -120,18 +120,18 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if transport, destIsStorage := dest.Transport().(is.StoreTransport); destIsStorage && b.FromImageID != "" {
 		if baseref, err := transport.ParseReference(b.FromImageID); baseref != nil && err == nil {
 			if img, err := transport.GetImage(baseref); img != nil && err == nil {
+				logrus.Debugf("base image %q is already present in local storage, no need to copy its layers", b.FromImageID)
 				exportBaseLayers = false
 			}
 		}
 	}
 	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.Compression, options.HistoryTimestamp)
 	if err != nil {
-		return imgID, errors.Wrapf(err, "error computing layer digests and building metadata")
+		return imgID, errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}
 	// "Copy" our image to where it needs to be.
-	err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, ""))
-	if err != nil {
-		return imgID, errors.Wrapf(err, "error copying layers and metadata")
+	if err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, "")); err != nil {
+		return imgID, errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
 	if len(options.AdditionalTags) > 0 {
 		switch dest.Transport().Name() {
@@ -140,8 +140,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			if err != nil {
 				return imgID, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
 			}
-			err = util.AddImageNames(b.store, "", systemContext, img, options.AdditionalTags)
-			if err != nil {
+			if err = util.AddImageNames(b.store, "", systemContext, img, options.AdditionalTags); err != nil {
 				return imgID, errors.Wrapf(err, "error setting image names to %v", append(img.Names, options.AdditionalTags...))
 			}
 			logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
@@ -152,15 +151,15 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 	img, err := is.Transport.GetStoreImage(b.store, dest)
 	if err != nil && err != storage.ErrImageUnknown {
-		return imgID, err
+		return imgID, errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(dest))
 	}
 
 	if err == nil {
 		imgID = img.ID
 
 		if options.IIDFile != "" {
-			if err := ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
-				return imgID, errors.Wrapf(err, "failed to write Image ID File %q", options.IIDFile)
+			if err = ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
+				return imgID, errors.Wrapf(err, "failed to write image ID to file %q", options.IIDFile)
 			}
 		}
 	}
@@ -194,9 +193,8 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		return err
 	}
 	// Copy everything.
-	err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, options.ManifestType))
-	if err != nil {
-		return errors.Wrapf(err, "error copying layers and metadata")
+	if err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, options.ManifestType)); err != nil {
+		return errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(src), transports.ImageName(dest))
 	}
 	if options.ReportWriter != nil {
 		fmt.Fprintf(options.ReportWriter, "")

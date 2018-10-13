@@ -49,7 +49,7 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 		return errors.Wrapf(err, "error creating %q", destination)
 	}
 	if err = f.Chown(owner.UID, owner.GID); err != nil {
-		return errors.Wrapf(err, "error setting owner of %q", destination)
+		return errors.Wrapf(err, "error setting owner of %q to %d:%d", destination, owner.UID, owner.GID)
 	}
 	if last := resp.Header.Get("Last-Modified"); last != "" {
 		if mtime, err2 := time.Parse(time.RFC1123, last); err2 != nil {
@@ -57,7 +57,7 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 		} else {
 			defer func() {
 				if err3 := os.Chtimes(destination, time.Now(), mtime); err3 != nil {
-					logrus.Debugf("error setting mtime to Last-Modified time %q: %v", last, err3)
+					logrus.Debugf("error setting mtime on %q to Last-Modified time %q: %v", destination, last, err3)
 				}
 			}()
 		}
@@ -69,10 +69,10 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 	}
 	n, err := io.Copy(f, bodyReader)
 	if err != nil {
-		return errors.Wrapf(err, "error reading contents for %q", destination)
+		return errors.Wrapf(err, "error reading contents for %q from %q", destination, srcurl)
 	}
 	if resp.ContentLength >= 0 && n != resp.ContentLength {
-		return errors.Errorf("error reading contents for %q: wrong length (%d != %d)", destination, n, resp.ContentLength)
+		return errors.Errorf("error reading contents for %q from %q: wrong length (%d != %d)", destination, srcurl, n, resp.ContentLength)
 	}
 	if err := f.Chmod(0600); err != nil {
 		return errors.Wrapf(err, "error setting permissions on %q", destination)
@@ -109,7 +109,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		dest = filepath.Join(dest, destination)
 	} else {
 		if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
-			return err
+			return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, b.WorkDir()))
 		}
 		dest = filepath.Join(dest, b.WorkDir(), destination)
 	}
@@ -118,7 +118,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	// and any files we're copying will be placed in the directory.
 	if len(destination) > 0 && destination[len(destination)-1] == os.PathSeparator {
 		if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-			return err
+			return errors.Wrapf(err, "error creating directory %q", dest)
 		}
 	}
 	// Make sure the destination's parent directory is usable.
@@ -154,7 +154,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if destfi != nil && destfi.IsDir() {
 				d = filepath.Join(dest, path.Base(url.Path))
 			}
-			if err := addURL(d, src, hostOwner, options.Hasher); err != nil {
+			if err = addURL(d, src, hostOwner, options.Hasher); err != nil {
 				return err
 			}
 			continue
@@ -182,10 +182,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				// to create it first, so that if there's a problem,
 				// we'll discover why that won't work.
 				if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-					return err
+					return errors.Wrapf(err, "error creating directory %q", dest)
 				}
 				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if err := copyWithTar(esrc, dest); err != nil {
+				if err = copyWithTar(esrc, dest); err != nil {
 					return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 				}
 				continue
@@ -200,14 +200,14 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				}
 				// Copy the file, preserving attributes.
 				logrus.Debugf("copying %q to %q", esrc, d)
-				if err := copyFileWithTar(esrc, d); err != nil {
+				if err = copyFileWithTar(esrc, d); err != nil {
 					return errors.Wrapf(err, "error copying %q to %q", esrc, d)
 				}
 				continue
 			}
 			// We're extracting an archive into the destination directory.
 			logrus.Debugf("extracting contents of %q into %q", esrc, dest)
-			if err := untarPath(esrc, dest); err != nil {
+			if err = untarPath(esrc, dest); err != nil {
 				return errors.Wrapf(err, "error extracting %q into %q", esrc, dest)
 			}
 		}

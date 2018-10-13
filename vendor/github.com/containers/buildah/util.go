@@ -95,7 +95,7 @@ func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair, hasher io.Writer) f
 		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
 			contentReader, contentWriter, err := os.Pipe()
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "error creating pipe extract data to %q", dest)
 			}
 			defer contentReader.Close()
 			defer contentWriter.Close()
@@ -113,10 +113,12 @@ func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair, hasher io.Writer) f
 				}
 				hashWorker.Done()
 			}()
-			err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options)
+			if err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options); err != nil {
+				err = errors.Wrapf(err, "error extracting data to %q while copying", dest)
+			}
 			hashWorker.Wait()
 			if err == nil {
-				err = hashError
+				err = errors.Wrapf(hashError, "error calculating digest of data for %q while copying", dest)
 			}
 			return err
 		}
@@ -255,7 +257,7 @@ func isReferenceBlocked(ref types.ImageReference, sc *types.SystemContext) (bool
 func hasRegistry(imageName string) (bool, error) {
 	imgRef, err := reference.Parse(imageName)
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, "error parsing image name %q", imageName)
 	}
 	registry := reference.Domain(imgRef.(reference.Named))
 	if registry != "" {
@@ -270,7 +272,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 	if selinux.GetEnabled() {
 		containers, err := store.Containers()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "error getting list of containers")
 		}
 
 		for _, c := range containers {
@@ -288,7 +290,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 				}
 				// Prevent different containers from using same MCS label
 				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
-					return err
+					return errors.Wrapf(err, "error reserving SELinux label %q", b.ProcessLabel)
 				}
 			}
 		}
