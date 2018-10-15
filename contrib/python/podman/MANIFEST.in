@@ -1,2 +1,3 @@
 prune test/
 include README.md
+include requirements.txt

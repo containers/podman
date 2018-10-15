@@ -154,7 +154,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             getattr(args, 'run_dir')
             or os.environ.get('RUN_DIR')
             or config['default'].get('run_dir')
-            or Path(args.xdg_runtime_dir, 'pypodman')
+            or str(Path(args.xdg_runtime_dir, 'pypodman'))
         )   # yapf: disable
 
         setattr(
@@ -211,7 +211,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             args.identity_file = None
 
         if args.host:
-            args.local_socket_path = Path(args.run_dir, 'podman.socket')
+            args.local_socket_path = str(Path(args.run_dir, 'podman.socket'))
         else:
             args.local_socket_path = args.remote_socket_path
 

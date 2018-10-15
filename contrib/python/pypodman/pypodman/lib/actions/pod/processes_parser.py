@@ -10,7 +10,7 @@ class ProcessesPod(AbstractActionBase):
 
     @classmethod
     def subparser(cls, parent):
-        """Add Images command to parent parser."""
+        """Add Pod Ps command to parent parser."""
         parser = parent.add_parser('ps', help='list processes of pod')
         super().subparser(parser)
 
@@ -40,7 +40,7 @@ class ProcessesPod(AbstractActionBase):
         parser.set_defaults(class_=cls, method='processes')
 
     def __init__(self, args):
-        """Contstruct ProcessesPod class."""
+        """Construct ProcessesPod class."""
         if args.sort == 'created':
             args.sort = 'createdat'
         elif args.sort == 'count':
