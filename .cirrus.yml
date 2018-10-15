@@ -19,6 +19,8 @@ env:
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "662dbb31b5d4f5ed54511a47cde7190c61c28677"
     RUNC_COMMIT: "ad0f5255060d36872be04de22f8731f38ef2d7b1"
+    # Enable debugging delay on test-failure if non-empty.
+    FLAKE_DEBUG_DELAY: 1
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
