@@ -63,6 +63,8 @@ full_vm_testing_task:
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
+    success_script: $SCRIPT_BASE/success.sh
+
 
 # This task build new images for future PR testing, but only after a PR merge.
 # These images save needing to install/setup the same environment to test every
