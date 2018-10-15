@@ -1682,6 +1682,8 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 			}
 		case "pause":
 			out.IsInfra = bool(in.Bool())
+		case "systemd":
+			out.Systemd = bool(in.Bool())
 		default:
 			in.SkipRecursive()
 		}
@@ -2343,6 +2345,16 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Bool(bool(in.IsInfra))
+	}
+	{
+		const prefix string = ",\"systemd\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.Systemd))
 	}
 	out.RawByte('}')
 }

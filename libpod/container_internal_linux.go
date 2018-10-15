@@ -188,6 +188,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	if c.config.Systemd {
+		c.setupSystemd(g.Mounts(), g)
+	}
+
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
 	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
 		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Config.Process.User.UID))
@@ -292,6 +296,43 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddMount(m)
 	}
 	return g.Config, nil
+}
+
+// systemd expects to have /run, /run/lock and /tmp on tmpfs
+// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
+func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) {
+	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
+	for _, dest := range []string{"/run", "/run/lock"} {
+		if MountExists(mounts, dest) {
+			continue
+		}
+		tmpfsMnt := spec.Mount{
+			Destination: dest,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, "tmpcopyup", "size=65536k"),
+		}
+		g.AddMount(tmpfsMnt)
+	}
+	for _, dest := range []string{"/tmp", "/var/log/journal"} {
+		if MountExists(mounts, dest) {
+			continue
+		}
+		tmpfsMnt := spec.Mount{
+			Destination: dest,
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     append(options, "tmpcopyup"),
+		}
+		g.AddMount(tmpfsMnt)
+	}
+	systemdMnt := spec.Mount{
+		Destination: "/sys/fs/cgroup/systemd",
+		Type:        "bind",
+		Source:      fmt.Sprintf("/sys/fs/cgroup/systemd%s/libpod-%s", CgroupfsDefaultCgroupParent, c.ID()),
+		Options:     []string{"bind", "private"},
+	}
+	g.AddMount(systemdMnt)
 }
 
 // Add an existing container's namespace to the spec
