@@ -27,6 +27,7 @@ done
 shift $((OPTIND -1))
 
 function cleanup {
+  set +xeuo pipefail
   # aggressive cleanup as tests may crash leaving crap around
   umount '^(shm|nsfs)'
   umount '\/run\/netns'
