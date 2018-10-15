@@ -1075,7 +1075,7 @@ func (c *Container) generatePasswd() (string, error) {
 	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, c.WorkingDir())
 	passwdFile, err := c.writeStringToRundir("passwd", pwd)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to create temporary passwd fileo")
+		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
 	if os.Chmod(passwdFile, 0644); err != nil {
 		return "", err
