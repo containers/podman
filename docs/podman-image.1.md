@@ -28,6 +28,7 @@ The image command allows you to manage images
 | sign     | [podman-image-sign(1)](podman-image-sign.1.md)  | Sign an image.                                                              |
 | tag      | [podman-tag(1)](podman-tag.1.md)                | Add an additional name to a local image.                                    |
 | trust    | [podman-image-trust(1)](podman-image-trust.1.md)| Manage container image trust policy.                                        |
+| tree     | [podman-image-tree(1)](podman-image-tree.1.md)  | Prints layer hierarchy of an image in a tree format                          |
 
 ## SEE ALSO
 podman

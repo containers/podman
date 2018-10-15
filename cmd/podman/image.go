@@ -60,6 +60,7 @@ var imageSubCommands = []*cobra.Command{
 	_rmSubCommand,
 	_saveCommand,
 	_tagCommand,
+	_treeCommand,
 }
 
 func init() {

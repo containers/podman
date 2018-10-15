@@ -66,6 +66,11 @@ type TagValues struct {
 	PodmanCommand
 }
 
+type TreeValues struct {
+	PodmanCommand
+	WhatRequires bool
+}
+
 type WaitValues struct {
 	PodmanCommand
 	Interval uint
