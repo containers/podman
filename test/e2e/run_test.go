@@ -283,7 +283,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run notify_socket", func() {
-		sock := "/run/sock"
+		sock := "/run/notify"
 		os.Setenv("NOTIFY_SOCKET", sock)
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "NOTIFY_SOCKET"})
 		session.WaitWithDefaultTimeout()
