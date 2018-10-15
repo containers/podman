@@ -93,6 +93,19 @@ stub() {
     echo "STUB: Pretending to do $1"
 }
 
+ircmsg() {
+    req_env_var "
+        SCRIPT_BASE $SCRIPT_BASE
+        GOSRC $GOSRC
+        CIRRUS_TASK_ID $CIRRUS_TASK_ID
+        1 $1
+    "
+    SCRIPT="$GOSRC/$SCRIPT_BASE/podbot.py"
+    NICK="podbot_$CIRRUS_TASK_ID"
+    NICK="${NICK:0:15}"  # Any longer will break things
+    $SCRIPT $NICK $1
+}
+
 # Run sudo in directory with GOPATH set
 cdsudo() {
     DIR="$1"

@@ -30,6 +30,7 @@ env:
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
     PACKER_BASE: "./contrib/cirrus/packer"
+    IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
 
 # Every *_task runs in parallel in separate VMs. The name prefix only for reference
 # in WebUI, and will be followed by matrix details.  This task does all the
