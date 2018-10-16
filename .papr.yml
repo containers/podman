@@ -109,6 +109,7 @@ packages:
     - git
     - go-md2man
     - gpgme-devel
+    - device-mapper-devel
     - libassuan-devel
     - libgpg-error-devel
     - libseccomp-devel
