@@ -20,6 +20,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -193,6 +194,11 @@ func init() {
 }
 
 func psCmd(c *cliconfig.PsValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "psCmd")
+		defer span.Finish()
+	}
+
 	var (
 		filterFuncs      []libpod.ContainerFilter
 		outputContainers []*libpod.Container

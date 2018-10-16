@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/libpod/common"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -59,7 +60,13 @@ func init() {
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
 func pullCmd(c *cliconfig.PullValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "pullCmd")
+		defer span.Finish()
+	}
+
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

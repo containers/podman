@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/registries"
 	multierror "github.com/hashicorp/go-multierror"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -109,6 +110,9 @@ func (ir *Runtime) getSinglePullRefPairGoal(srcRef types.ImageReference, destNam
 
 // pullGoalFromImageReference returns a pull goal for a single ImageReference, depending on the used transport.
 func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.ImageReference, imgName string, sc *types.SystemContext) (*pullGoal, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "pullGoalFromImageReference")
+	defer span.Finish()
+
 	// supports pulling from docker-archive, oci, and registries
 	switch srcRef.Transport().Name() {
 	case DockerArchive:
@@ -194,6 +198,9 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
 func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromHeuristicSource")
+	defer span.Finish()
+
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -214,6 +221,9 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 // pullImageFromReference pulls an image from a types.imageReference.
 func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromReference")
+	defer span.Finish()
+
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
@@ -224,6 +234,9 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
 func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "doPullImage")
+	defer span.Finish()
+
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
 		return nil, err

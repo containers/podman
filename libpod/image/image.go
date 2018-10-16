@@ -27,6 +27,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -126,6 +127,10 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 // New creates a new image object where the image could be local
 // or remote
 func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
@@ -805,6 +810,10 @@ func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, 
 
 // Inspect returns an image's inspect data
 func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
+	span.SetTag("type", "image")
+	defer span.Finish()
+
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		return nil, err

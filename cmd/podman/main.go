@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log/syslog"
 	"os"
 	"os/exec"
@@ -13,8 +15,10 @@ import (
 	"github.com/containers/libpod/libpod"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/reexec"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	lsyslog "github.com/sirupsen/logrus/hooks/syslog"
@@ -25,6 +29,9 @@ import (
 // in the repository
 var (
 	exitCode = 125
+	Ctx      context.Context
+	span     opentracing.Span
+	closer   io.Closer
 )
 
 // Commands that the remote and local client have
@@ -112,6 +119,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Syslog, "syslog", false, "Output logging information to syslog as well as the console")
 
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.TmpDir, "tmpdir", "", "Path to the tmp directory")
+	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Trace, "trace", false, "enable opentracing output")
 	rootCmd.AddCommand(mainCommands...)
 	rootCmd.AddCommand(getMainCommands()...)
 
@@ -181,12 +189,25 @@ func before(cmd *cobra.Command, args []string) error {
 		}
 		pprof.StartCPUProfile(f)
 	}
+	if cmd.Flag("trace").Changed {
+		var tracer opentracing.Tracer
+		tracer, closer = tracing.Init("podman")
+		opentracing.SetGlobalTracer(tracer)
+
+		span = tracer.StartSpan("before-context")
+
+		Ctx = opentracing.ContextWithSpan(context.Background(), span)
+	}
 	return nil
 }
 
 func after(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("cpu-profile").Changed {
 		pprof.StopCPUProfile()
+	}
+	if cmd.Flag("trace").Changed {
+		span.Finish()
+		closer.Close()
 	}
 	return nil
 }

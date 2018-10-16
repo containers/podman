@@ -31,6 +31,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -170,10 +171,15 @@ func (c *Container) cleanupNetwork() error {
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "generateSpec")
+	span.SetTag("type", "container")
+	defer span.Finish()
+
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now

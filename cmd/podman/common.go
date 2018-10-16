@@ -104,6 +104,9 @@ func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtim
 
 // getContext returns a non-nil, empty context
 func getContext() context.Context {
+	if Ctx != nil {
+		return Ctx
+	}
 	return context.TODO()
 }
 

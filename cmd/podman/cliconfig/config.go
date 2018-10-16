@@ -24,6 +24,7 @@ type MainFlags struct {
 	StorageDriver     string
 	StorageOpts       []string
 	Syslog            bool
+	Trace             bool
 
 	Config     string
 	CpuProfile string

@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -48,6 +49,10 @@ func init() {
 }
 
 func stopCmd(c *cliconfig.StopValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
+		defer span.Finish()
+	}
 
 	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
