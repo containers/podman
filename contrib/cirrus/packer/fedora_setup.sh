@@ -12,6 +12,7 @@ req_env_var "
 SCRIPT_BASE $SCRIPT_BASE
 CNI_COMMIT $CNI_COMMIT
 CRIO_COMMIT $CRIO_COMMIT
+CRIU_COMMIT $CRIU_COMMIT
 RUNC_COMMIT $RUNC_COMMIT
 "
 
@@ -40,6 +41,10 @@ ooe.sh sudo dnf install -y \
     gpgme-devel \
     iptables \
     libassuan-devel \
+    libcap-devel \
+    libnet \
+    libnet-devel \
+    libnl3-devel \
     libseccomp-devel \
     libselinux-devel \
     lsof \
@@ -47,14 +52,21 @@ ooe.sh sudo dnf install -y \
     nmap-ncat \
     ostree-devel \
     procps-ng \
+    protobuf \
+    protobuf-c \
+    protobuf-c-devel \
+    protobuf-compiler \
+    protobuf-devel \
+    protobuf-python \
     python \
+    python2-future \
     python3-dateutil \
     python3-psutil \
     python3-pytoml \
     runc \
     skopeo-containers \
     slirp4netns \
-    which\
+    which \
     xz
 
 install_varlink
@@ -64,6 +76,8 @@ install_cni_plugins
 install_buildah
 
 install_conmon
+
+install_criu
 
 install_packer_copied_files
 

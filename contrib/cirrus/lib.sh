@@ -202,6 +202,21 @@ install_conmon(){
     sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 }
 
+install_criu(){
+    echo "Installing CRIU from commit $CRIU_COMMIT"
+    req_env_var "
+    CRIU_COMMIT $CRIU_COMMIT
+    "
+    DEST="/tmp/criu"
+    rm -rf "$DEST"
+    ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
+    cd $DEST
+    ooe.sh git fetch origin --tags
+    ooe.sh git checkout -q "$CRIU_COMMIT"
+    ooe.sh make
+    sudo install -D -m 755  criu/criu /usr/sbin/
+}
+
 # Runs in testing VM, not image building
 install_testing_dependencies() {
     echo "Installing ginkgo, gomega, and easyjson into \$GOPATH=$GOPATH"

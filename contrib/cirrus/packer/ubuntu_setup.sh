@@ -12,6 +12,7 @@ req_env_var "
 SCRIPT_BASE $SCRIPT_BASE
 CNI_COMMIT $CNI_COMMIT
 CRIO_COMMIT $CRIO_COMMIT
+CRIU_COMMIT $CRIU_COMMIT
 RUNC_COMMIT $RUNC_COMMIT
 "
 
@@ -34,8 +35,8 @@ ooe.sh sudo apt-get -qq install --no-install-recommends \
     e2fslibs-dev \
     gawk \
     gettext \
-    golang \
     go-md2man \
+    golang \
     iptables \
     libaio-dev \
     libapparmor-dev \
@@ -46,10 +47,12 @@ ooe.sh sudo apt-get -qq install --no-install-recommends \
     libglib2.0-dev \
     libgpgme11-dev \
     liblzma-dev \
+    libnet1 \
+    libnet1-dev \
+    libnl-3-dev \
     libostree-dev \
     libprotobuf-c0-dev \
     libprotobuf-dev \
-    libtool \
     libtool \
     libudev-dev \
     lsof \
@@ -57,7 +60,9 @@ ooe.sh sudo apt-get -qq install --no-install-recommends \
     pkg-config \
     protobuf-c-compiler \
     protobuf-compiler \
+    python-future \
     python-minimal \
+    python-protobuf \
     python3-dateutil \
     python3-pip \
     python3-psutil \
@@ -76,6 +81,8 @@ ooe.sh sudo update-grub
 install_runc
 
 install_conmon
+
+install_criu
 
 install_cni_plugins
 
