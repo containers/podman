@@ -545,14 +545,16 @@ func NamespaceOptions(c *cli.Context) (namespaceOptions buildah.NamespaceOptions
 func defaultIsolation() (buildah.Isolation, error) {
 	isolation, isSet := os.LookupEnv("BUILDAH_ISOLATION")
 	if isSet {
-		if strings.HasPrefix(strings.ToLower(isolation), "oci") {
+		switch strings.ToLower(isolation) {
+		case "oci":
 			return buildah.IsolationOCI, nil
-		} else if strings.HasPrefix(strings.ToLower(isolation), "rootless") {
+		case "rootless":
 			return buildah.IsolationOCIRootless, nil
-		} else if strings.HasPrefix(strings.ToLower(isolation), "chroot") {
+		case "chroot":
 			return buildah.IsolationChroot, nil
+		default:
+			return 0, errors.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
 		}
-		return 0, errors.Errorf("unrecognized $BUILDAH_ISOLATION value %q", isolation)
 	}
 	return buildah.IsolationDefault, nil
 }
@@ -560,14 +562,15 @@ func defaultIsolation() (buildah.Isolation, error) {
 // IsolationOption parses the --isolation flag.
 func IsolationOption(c *cli.Context) (buildah.Isolation, error) {
 	if c.String("isolation") != "" {
-		if strings.HasPrefix(strings.ToLower(c.String("isolation")), "oci") {
+		switch strings.ToLower(c.String("isolation")) {
+		case "oci":
 			return buildah.IsolationOCI, nil
-		} else if strings.HasPrefix(strings.ToLower(c.String("isolation")), "rootless") {
+		case "rootless":
 			return buildah.IsolationOCIRootless, nil
-		} else if strings.HasPrefix(strings.ToLower(c.String("isolation")), "chroot") {
+		case "chroot":
 			return buildah.IsolationChroot, nil
-		} else {
-			return buildah.IsolationDefault, errors.Errorf("unrecognized isolation type %q", c.String("isolation"))
+		default:
+			return 0, errors.Errorf("unrecognized isolation type %q", c.String("isolation"))
 		}
 	}
 	return defaultIsolation()

@@ -54,11 +54,11 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 	case util.DockerArchive:
 		tarSource, err := tarfile.NewSourceFromFile(file)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "error opening tarfile %q as a source image", file)
 		}
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
-			return "", errors.Errorf("error retrieving manifest.json: %v", err)
+			return "", errors.Errorf("error retrieving manifest.json from tarfile %q: %v", file, err)
 		}
 		// to pull the first image stored in the tar file
 		if len(manifest) == 0 {
@@ -82,7 +82,7 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		// retrieve the manifest from index.json to access the image name
 		manifest, err := ociarchive.LoadManifestDescriptor(srcRef)
 		if err != nil {
-			return "", errors.Wrapf(err, "error loading manifest for %q", srcRef)
+			return "", errors.Wrapf(err, "error loading manifest for %q", transports.ImageName(srcRef))
 		}
 		// if index.json has no reference name, compute the image digest instead
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
@@ -108,11 +108,12 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 			if err == nil {
 				return name, nil
 			}
+			logrus.Debugf("error parsing local storage reference %q: %v", name, err)
 			if strings.LastIndex(name, "/") != -1 {
 				name = name[strings.LastIndex(name, "/")+1:]
 				_, err = is.Transport.ParseStoreReference(store, name)
 				if err == nil {
-					return name, nil
+					return name, errors.Wrapf(err, "error parsing local storage reference %q", name)
 				}
 			}
 			return "", errors.Errorf("reference to image %q is not a named reference", transports.ImageName(srcRef))
@@ -135,7 +136,7 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 	return name, nil
 }
 
-// Pull copies the contents of the image from somewhere else.
+// Pull copies the contents of the image from somewhere else to local storage.
 func Pull(ctx context.Context, imageName string, options PullOptions) (types.ImageReference, error) {
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 	return pullImage(ctx, options.Store, imageName, options, systemContext)
@@ -146,8 +147,9 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	srcRef, err := alltransports.ParseImageName(spec)
 	if err != nil {
 		if options.Transport == "" {
-			return nil, errors.Wrapf(err, "error parsing image name %q", spec)
+			options.Transport = DefaultTransport
 		}
+		logrus.Debugf("error parsing image name %q, trying with transport %q: %v", spec, options.Transport, err)
 		transport := options.Transport
 		if transport != DefaultTransport {
 			transport = transport + ":"
@@ -159,6 +161,7 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 		}
 		srcRef = srcRef2
 	}
+	logrus.Debugf("parsed image name %q", spec)
 
 	blocked, err := isReferenceBlocked(srcRef, sc)
 	if err != nil {
@@ -207,14 +210,17 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	registryPath := sysregistries.RegistriesConfPath(sc)
 	searchRegistries, err := getRegistries(sc)
 	if err != nil {
-		return nil, err
+		logrus.Debugf("error getting list of registries: %v", err)
+		return nil, errors.Wrapf(pullError, "error copying image from %q to %q", transports.ImageName(srcRef), transports.ImageName(destRef))
 	}
 	hasRegistryInName, err := hasRegistry(imageName)
 	if err != nil {
-		return nil, err
+		logrus.Debugf("error checking if image name %q includes a registry component: %v", imageName, err)
+		return nil, errors.Wrapf(pullError, "error copying image from %q to %q", transports.ImageName(srcRef), transports.ImageName(destRef))
 	}
 	if !hasRegistryInName && len(searchRegistries) == 0 {
-		return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s: %s", registryPath, pullError)
+		logrus.Debugf("copying %q to %q failed: %v", pullError)
+		return nil, errors.Errorf("image name provided does not include a registry name and no search registries are defined in %s: %s", registryPath, pullError)
 	}
 	return nil, pullError
 }
@@ -224,13 +230,13 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.SystemContext) (string, error) {
 	newImg, err := src.NewImage(ctx, sc)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "error opening image %q for reading", transports.ImageName(src))
 	}
 	defer newImg.Close()
 
 	digest := newImg.ConfigInfo().Digest
 	if err = digest.Validate(); err != nil {
-		return "", errors.Wrapf(err, "error getting config info")
+		return "", errors.Wrapf(err, "error getting config info from image %q", transports.ImageName(src))
 	}
 	return "@" + digest.Hex(), nil
 }

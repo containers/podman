@@ -9,9 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include <errno.h>
 #include <unistd.h>
 
-const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
+static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
+static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
 
 static int _buildah_unshare_parse_envint(const char *envname) {
 	char *p, *q;
@@ -31,12 +33,35 @@ static int _buildah_unshare_parse_envint(const char *envname) {
 	return l;
 }
 
-void _buildah_unshare(void)
+static void _check_proc_sys_file(const char *path)
 {
 	FILE *fp;
-	int flags, pidfd, continuefd, n, pgrp, sid, ctty;
-	long max_userns;
+	char buf[32];
 	size_t n_read;
+	long r;
+
+	fp = fopen(path, "r");
+	if (fp == NULL) {
+		if (errno != ENOENT)
+			fprintf(stderr, "Error reading %s: %m\n", _max_user_namespaces);
+	} else {
+		memset(buf, 0, sizeof(buf));
+		n_read = fread(buf, 1, sizeof(buf) - 1, fp);
+		if (n_read > 0) {
+			r = atoi(buf);
+			if (r == 0) {
+				fprintf(stderr, "User namespaces are not enabled in %s.\n", path);
+			}
+		} else {
+			fprintf(stderr, "Error reading %s: no contents, should contain a number greater than 0.\n", path);
+		}
+		fclose(fp);
+	}
+}
+
+void _buildah_unshare(void)
+{
+	int flags, pidfd, continuefd, n, pgrp, sid, ctty;
 	char buf[2048];
 
 	flags = _buildah_unshare_parse_envint("_Buildah-unshare");
@@ -46,22 +71,8 @@ void _buildah_unshare(void)
 	if ((flags & CLONE_NEWUSER) != 0) {
 		if (unshare(CLONE_NEWUSER) == -1) {
 			fprintf(stderr, "Error during unshare(CLONE_NEWUSER): %m\n");
-			fp = fopen(_max_user_namespaces, "r");
-			if (fp != NULL) {
-				memset(buf, 0, sizeof(buf));
-				n_read = fread(buf, 1, sizeof(buf) - 1, fp);
-				if (n_read > 0) {
-					max_userns = atoi(buf);
-					if (max_userns == 0) {
-						fprintf(stderr, "User namespaces are not enabled in %s.\n", _max_user_namespaces);
-					}
-				} else {
-					fprintf(stderr, "Error reading %s: no contents, should contain a number greater than 0.\n", _max_user_namespaces);
-				}
-				fclose(fp);
-			} else {
-				fprintf(stderr, "Error reading %s: %m\n", _max_user_namespaces);
-			}
+                        _check_proc_sys_file (_max_user_namespaces);
+                        _check_proc_sys_file (_unprivileged_user_namespaces);
 			_exit(1);
 		}
 	}

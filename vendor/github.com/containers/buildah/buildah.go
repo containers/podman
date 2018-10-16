@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -421,15 +422,14 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	}
 	buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
 	}
 	b := &Builder{}
-	err = json.Unmarshal(buildstate, &b)
-	if err != nil {
-		return nil, err
+	if err = json.Unmarshal(buildstate, &b); err != nil {
+		return nil, errors.Wrapf(err, "error parsing %q, read from %q", string(buildstate), filepath.Join(cdir, stateFile))
 	}
 	if b.Type != containerType {
-		return nil, errors.Errorf("container is not a %s container", Package)
+		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, Package, b.Type)
 	}
 	b.store = store
 	b.fixupConfig()
@@ -445,7 +445,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error turning %q into an absolute path", path)
 	}
 	builderMatchesPath := func(b *Builder, path string) bool {
 		return (b.MountPoint == path)
@@ -457,7 +457,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
 		}
 		b := &Builder{}
 		err = json.Unmarshal(buildstate, &b)
@@ -465,6 +465,11 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 			b.store = store
 			b.fixupConfig()
 			return b, nil
+		}
+		if err != nil {
+			logrus.Debugf("error parsing %q, read from %q: %v", string(buildstate), filepath.Join(cdir, stateFile), err)
+		} else if b.Type != containerType {
+			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, Package, b.Type)
 		}
 	}
 	return nil, storage.ErrContainerUnknown
@@ -484,6 +489,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil && os.IsNotExist(err) {
+			logrus.Debugf("error reading %q: %v", filepath.Join(cdir, stateFile), err)
 			continue
 		}
 		b := &Builder{}
@@ -492,6 +498,12 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 			b.store = store
 			b.fixupConfig()
 			builders = append(builders, b)
+			continue
+		}
+		if err != nil {
+			logrus.Debugf("error parsing %q, read from %q: %v", string(buildstate), filepath.Join(cdir, stateFile), err)
+		} else if b.Type != containerType {
+			logrus.Debugf("container %q is not a %s container (is a %q container)", container.ID, Package, b.Type)
 		}
 	}
 	return builders, nil
@@ -509,5 +521,8 @@ func (b *Builder) Save() error {
 	if err != nil {
 		return err
 	}
-	return ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600)
+	if err = ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600); err != nil {
+		return errors.Wrapf(err, "error saving builder state to %q", filepath.Join(cdir, stateFile))
+	}
+	return nil
 }

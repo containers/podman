@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -1193,8 +1194,6 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 			continue
 		}
 		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-		srcPath := filepath.Join(mountPoint, k)
-
 		var (
 			uid uint32
 			gid uint32
@@ -1209,31 +1208,43 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 			}
 		}
 
+		// Ensure the symlinks are resolved
+		resolvedSymlink, err := imagebuildah.ResolveSymLink(mountPoint, k)
+		if err != nil {
+			return errors.Wrapf(ErrCtrStateInvalid, "cannot resolve %s in %s for container %s", k, mountPoint, c.ID())
+		}
+		var srcPath string
+		if resolvedSymlink != "" {
+			srcPath = filepath.Join(mountPoint, resolvedSymlink)
+		} else {
+			srcPath = filepath.Join(mountPoint, k)
+		}
+
 		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 			logrus.Infof("Volume image mount point %s does not exist in root FS, need to create it", k)
 			if err = os.MkdirAll(srcPath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
+				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 
 			if err = os.Chown(srcPath, int(uid), int(gid)); err != nil {
-				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", srcPath, k, c.ID)
+				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", srcPath, k, c.ID())
 			}
 		}
 
 		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID)
+				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 
 			if err = os.Chown(volumePath, int(uid), int(gid)); err != nil {
-				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID)
+				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 
 			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
-				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID)
+				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID, srcPath)
+				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID(), srcPath)
 			}
 
 			// Set the volume path with the same owner and permission of source path

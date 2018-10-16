@@ -49,7 +49,7 @@ func pullAndFindImage(ctx context.Context, store storage.Store, imageName string
 	img, err := is.Transport.GetStoreImage(store, ref)
 	if err != nil {
 		logrus.Debugf("error reading pulled image %q: %v", imageName, err)
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(ref))
 	}
 	return img, ref, nil
 }
@@ -60,7 +60,7 @@ func getImageName(name string, img *storage.Image) string {
 		imageName = img.Names[0]
 		// When the image used by the container is a tagged image
 		// the container name might be set to the original image instead of
-		// the image given in the "form" command line.
+		// the image given in the "from" command line.
 		// This loop is supposed to fix this.
 		for _, n := range img.Names {
 			if strings.Contains(n, name) {
@@ -144,6 +144,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 				logrus.Debugf("error parsing image name %q: %v", image, err)
 				continue
 			}
+			logrus.Debugf("error parsing image name %q as given, trying with transport %q: %v", image, options.Transport, err)
 			transport := options.Transport
 			if transport != DefaultTransport {
 				transport = transport + ":"
@@ -151,7 +152,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 			srcRef2, err := alltransports.ParseImageName(transport + image)
 			if err != nil {
 				pullErrors = multierror.Append(pullErrors, err)
-				logrus.Debugf("error parsing image name %q: %v", image, err)
+				logrus.Debugf("error parsing image name %q: %v", transport+image, err)
 				continue
 			}
 			srcRef = srcRef2
@@ -322,7 +323,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if options.Mount {
 		_, err = builder.Mount(mountLabel)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error mounting build container")
+			return nil, errors.Wrapf(err, "error mounting build container %q", builder.ContainerID)
 		}
 	}
 
@@ -331,7 +332,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 	err = builder.Save()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error saving builder state")
+		return nil, errors.Wrapf(err, "error saving builder state for container %q", builder.ContainerID)
 	}
 
 	return builder, nil

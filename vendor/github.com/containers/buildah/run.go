@@ -213,7 +213,7 @@ func DefaultNamespaceOptions() (NamespaceOptions, error) {
 	}
 	g, err := generate.New("linux")
 	if err != nil {
-		return options, err
+		return options, errors.Wrapf(err, "error generating new 'linux' runtime spec")
 	}
 	spec := g.Config
 	if spec.Linux != nil {
@@ -295,7 +295,7 @@ func addHostsToFile(hosts []string, filename string) error {
 	}
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error creating hosts file %q", filename)
 	}
 	defer file.Close()
 	return addHosts(hosts, file)
@@ -370,6 +370,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 			specMount.Options = []string{"nosuid", "noexec", "nodev", "mode=1777", "size=" + shmSize}
 			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/shm"); err != nil && os.IsNotExist(err) {
+					logrus.Debugf("/dev/shm is not present, not binding into container")
 					continue
 				}
 				specMount = specs.Mount{
@@ -383,6 +384,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		if specMount.Destination == "/dev/mqueue" {
 			if hostIPC && !hostUser {
 				if _, err := os.Stat("/dev/mqueue"); err != nil && os.IsNotExist(err) {
+					logrus.Debugf("/dev/mqueue is not present, not binding into container")
 					continue
 				}
 				specMount = specs.Mount{
@@ -397,6 +399,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 			if hostNetwork && !hostUser {
 				mountCgroups = false
 				if _, err := os.Stat("/sys"); err != nil && os.IsNotExist(err) {
+					logrus.Debugf("/sys is not present, not binding into container")
 					continue
 				}
 				specMount = specs.Mount{
@@ -498,7 +501,8 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 		subdir := digest.Canonical.FromString(volume).Hex()
 		volumePath := filepath.Join(containerDir, "buildah-volumes", subdir)
 		// If we need to, initialize the volume path's initial contents.
-		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
+		if _, err := os.Stat(volumePath); err != nil && os.IsNotExist(err) {
+			logrus.Debugf("setting up built-in volume at %q", volumePath)
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
 				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", volumePath, volume)
 			}
@@ -576,6 +580,7 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 	}
 	// Bind mount volumes specified for this particular Run() invocation
 	for _, i := range optionMounts {
+		logrus.Debugf("setting up mounted volume at %q", i.Destination)
 		mount, err := parseMount(i.Source, i.Destination, append(i.Options, "rbind"))
 		if err != nil {
 			return nil, err
@@ -701,10 +706,7 @@ func setupCapabilities(g *generate.Generator, firstAdds, firstDrops, secondAdds,
 	if err := setupCapAdd(g, secondAdds...); err != nil {
 		return err
 	}
-	if err := setupCapDrop(g, secondDrops...); err != nil {
-		return err
-	}
-	return nil
+	return setupCapDrop(g, secondDrops...)
 }
 
 func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy, terminalSize *specs.Box) {
@@ -937,13 +939,13 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions)
 func (b *Builder) Run(command []string, options RunOptions) error {
 	p, err := ioutil.TempDir("", Package)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "run: error creating temporary directory under %q", os.TempDir())
 	}
 	// On some hosts like AH, /tmp is a symlink and we need an
 	// absolute path.
 	path, err := filepath.EvalSymlinks(p)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "run: error evaluating %q for symbolic links", p)
 	}
 	logrus.Debugf("using %q to hold bundle data", path)
 	defer func() {
@@ -954,7 +956,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	gp, err := generate.New("linux")
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error generating new 'linux' runtime spec")
 	}
 	g := &gp
 
@@ -987,7 +989,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	setupSelinux(g, b.ProcessLabel, b.MountLabel)
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error mounting container %q", b.ContainerID)
 	}
 	defer func() {
 		if err := b.Unmount(); err != nil {
@@ -1065,7 +1067,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, append(b.NamespaceOptions, options.NamespaceOptions...))
 	if err != nil {
-		return errors.Wrapf(err, "error resolving mountpoints for container")
+		return errors.Wrapf(err, "error resolving mountpoints for container %q", b.ContainerID)
 	}
 
 	if options.CNIConfigDir == "" {
@@ -1262,15 +1264,24 @@ func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bo
 	confwg.Add(1)
 	go func() {
 		_, conferr = io.Copy(pwriter, bytes.NewReader(config))
+		if conferr != nil {
+			conferr = errors.Wrapf(conferr, "error while copying configuration down pipe to child process")
+		}
 		confwg.Done()
 	}()
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	defer preader.Close()
 	defer pwriter.Close()
 	err = cmd.Run()
+	if err != nil {
+		err = errors.Wrapf(err, "error while running runtime")
+	}
 	confwg.Wait()
 	if err == nil {
 		return conferr
+	}
+	if conferr != nil {
+		logrus.Debugf("%v", conferr)
 	}
 	return err
 }
@@ -1340,10 +1351,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	// Write the runtime configuration.
 	specbytes, err := json.Marshal(spec)
 	if err != nil {
-		return 1, err
+		return 1, errors.Wrapf(err, "error encoding configuration %#v as json", spec)
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return 1, errors.Wrapf(err, "error storing runtime configuration")
+		return 1, errors.Wrapf(err, "error storing runtime configuration in %q", filepath.Join(bundlePath, "config.json"))
 	}
 
 	logrus.Debugf("config = %v", string(specbytes))
@@ -1378,7 +1389,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 			socketPath := filepath.Join(bundlePath, "console.sock")
 			consoleListener, err = net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 			if err != nil {
-				return 1, errors.Wrapf(err, "error creating socket to receive terminal descriptor")
+				return 1, errors.Wrapf(err, "error creating socket %q to receive terminal descriptor", consoleListener.Addr())
 			}
 			// Add console socket arguments.
 			moreCreateArgs = append(moreCreateArgs, "--console-socket", socketPath)
@@ -1792,7 +1803,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 				return true
 			}
 		}
-		logrus.Error(what)
+		logrus.Errorf("%s: %v", what, err)
 		return false
 	}
 	// Pass data back and forth.
@@ -1924,7 +1935,7 @@ func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Bo
 	oob := make([]byte, 8192)
 	n, oobn, _, _, err := c.ReadMsgUnix(b, oob)
 	if err != nil {
-		return -1, errors.Wrapf(err, "error reading socket descriptor: %v")
+		return -1, errors.Wrapf(err, "error reading socket descriptor")
 	}
 	if n > 0 {
 		logrus.Debugf("socket descriptor is for %q", string(b[:n]))

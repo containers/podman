@@ -24,7 +24,8 @@ func init() {
 func resolveChrootedSymlinks() {
 	status := 0
 	flag.Parse()
-	if len(flag.Args()) < 1 {
+	if len(flag.Args()) < 2 {
+		fmt.Fprintf(os.Stderr, "%s needs two arguments\n", symlinkChrootedCommand)
 		os.Exit(1)
 	}
 	// Our first parameter is the directory to chroot into.
@@ -50,7 +51,8 @@ func resolveChrootedSymlinks() {
 	os.Exit(status)
 }
 
-func resolveSymLink(rootdir, filename string) (string, error) {
+// ResolveSymlink resolves any symlink in filename in the context of rootdir.
+func ResolveSymLink(rootdir, filename string) (string, error) {
 	// The child process expects a chroot and one path that
 	// will be consulted relative to the chroot directory and evaluated
 	// for any symbolic links present.
