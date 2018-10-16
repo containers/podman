@@ -1,3 +1,21 @@
+- Changelog for v0.10.1.1 (2018-10-16)
+  * Update release notes for 0.10.1.1
+  * Mount proper cgroup for systemd to manage inside of the container.
+  * Cirrus: Enable debugging delay on non-zero exit
+  * Touchup fileo typo
+  * volume: resolve symlinks in paths
+  * volume: write the correct ID of the container in error messages
+  * vendor: update containers/buildah
+  * papr: relabel GOPATH/github.com/containers/libpod
+  * tests: do not fail in the cleanup phase
+  * tests: do not make assumptions on the mount output
+  * papr_prepare: remove double process for starting up .papr.sh
+  * Add support for pod commands
+  * Support auth file environment variable & add change to man pages
+  * Generate a passwd file for users not in container
+  * Bump gitvalidation epoch
+  * Bump to v0.10.2-dev
+
 - Changelog for v0.10.1 (2018-10-11)
   * Swap from map to channels for podman stop workers
   * Add release notes for 0.10.1
