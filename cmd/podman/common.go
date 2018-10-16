@@ -89,6 +89,21 @@ func validateFlags(c *cli.Context, flags []cli.Flag) error {
 	return nil
 }
 
+// checkAllAndLatest checks that --all and --latest are used correctly
+func checkAllAndLatest(c *cli.Context) error {
+	argLen := len(c.Args())
+	if (c.Bool("all") || c.Bool("latest")) && argLen > 0 {
+		return errors.Errorf("no arguments are needed with --all or --latest")
+	}
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+	if argLen < 1 && !c.Bool("all") && !c.Bool("latest") {
+		return errors.Errorf("you must provide at least one pod name or id")
+	}
+	return nil
+}
+
 // getContext returns a non-nil, empty context
 func getContext() context.Context {
 	return context.TODO()
