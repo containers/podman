@@ -1,5 +1,17 @@
 # Release Notes
 
+## 0.10.1.1
+### Features
+- Added handling for running containers as users with numeric UIDs not present in the container's /etc/passwd. This allows getpwuid() to work inside these containers.
+- Added support for the REGISTRY_AUTH_FILE environment variable, which specifies the location of credentials for registry login. This is supported by the `push`, `pull`, `login`, `logout`, `runlabel`, and `search` commands
+
+### Bugfixes
+- Fixed handling for image volumes which are mounted on symlinks. The links are now resolved within the container, not on the host
+- Fixed mounts for containers that use systemd as init to properly include all mounts required by systemd to function
+
+### Misc
+- Updated vendored version of Buildah used to power `podman build`
+
 ## 0.10.1
 ### Features
 - Added the `podman container checkpoint` and `podman container restore` commands to checkpoint and restore containers
