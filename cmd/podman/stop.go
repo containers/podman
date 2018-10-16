@@ -44,16 +44,11 @@ var (
 )
 
 func stopCmd(c *cli.Context) error {
-	args := c.Args()
-	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
-		return errors.Errorf("no arguments are needed with --all or --latest")
+
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
-	if c.Bool("all") && c.Bool("latest") {
-		return errors.Errorf("--all and --latest cannot be used together")
-	}
-	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("you must provide at least one container name or id")
-	}
+
 	if err := validateFlags(c, stopFlags); err != nil {
 		return err
 	}
@@ -86,6 +81,7 @@ func stopCmd(c *cli.Context) error {
 		}
 		containers = append(containers, lastCtr)
 	} else {
+		args := c.Args()
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
 			if err != nil {

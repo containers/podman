@@ -63,13 +63,8 @@ func rmCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
-	if c.Bool("latest") && c.Bool("all") {
-		return errors.Errorf("--all and --latest cannot be used together")
-	}
-
-	if len(args) == 0 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("specify one or more containers to remove")
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
 
 	if c.Bool("all") {
@@ -84,6 +79,7 @@ func rmCmd(c *cli.Context) error {
 		}
 		delContainers = append(delContainers, lastCtr)
 	} else {
+		args := c.Args()
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
 			if err != nil {

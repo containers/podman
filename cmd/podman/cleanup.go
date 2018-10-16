@@ -44,33 +44,25 @@ func cleanupCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
-
-	ctx := getContext()
+	if err := checkAllAndLatest(c); err != nil {
+		return err
+	}
 
 	var lastError error
 	var cleanupContainers []*libpod.Container
 	if c.Bool("all") {
-		if c.Bool("lastest") {
-			return errors.New("--all and --latest cannot be used together")
-		}
-		if len(args) != 0 {
-			return errors.New("--all and explicit container IDs cannot be used together")
-		}
 		cleanupContainers, err = runtime.GetContainers()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get container list")
 		}
 	} else if c.Bool("latest") {
-		if len(args) != 0 {
-			return errors.New("--latest and explicit container IDs cannot be used together")
-		}
 		lastCtr, err := runtime.GetLatestContainer()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get latest container")
 		}
 		cleanupContainers = append(cleanupContainers, lastCtr)
 	} else {
+		args := c.Args()
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
 			if err != nil {
@@ -81,6 +73,9 @@ func cleanupCmd(c *cli.Context) error {
 			cleanupContainers = append(cleanupContainers, container)
 		}
 	}
+
+	ctx := getContext()
+
 	for _, ctr := range cleanupContainers {
 		if err = ctr.Cleanup(ctx); err != nil {
 			if lastError != nil {

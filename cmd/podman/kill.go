@@ -41,19 +41,10 @@ var (
 
 // killCmd kills one or more containers with a signal
 func killCmd(c *cli.Context) error {
-	args := c.Args()
-	if (!c.Bool("all") && !c.Bool("latest")) && len(args) == 0 {
-		return errors.Errorf("you must specify one or more containers to kill")
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
-	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
-		return errors.Errorf("you cannot specify any containers to kill with --latest or --all")
-	}
-	if c.Bool("all") && c.Bool("latest") {
-		return errors.Errorf("--all and --latest cannot be used together")
-	}
-	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("you must provide at least one container name or id")
-	}
+
 	if err := validateFlags(c, killFlags); err != nil {
 		return err
 	}
@@ -96,6 +87,7 @@ func killCmd(c *cli.Context) error {
 		}
 		containers = append(containers, lastCtr)
 	} else {
+		args := c.Args()
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
 			if err != nil {
