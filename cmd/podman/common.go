@@ -465,3 +465,11 @@ func getAuthFile(authfile string) string {
 	}
 	return os.Getenv("REGISTRY_AUTH_FILE")
 }
+
+// scrubServer removes 'http://' or 'https://' from the front of the
+// server/registry string if either is there.  This will be mostly used
+// for user input from 'podman login' and 'podman logout'.
+func scrubServer(server string) string {
+	server = strings.TrimPrefix(server, "https://")
+	return strings.TrimPrefix(server, "http://")
+}

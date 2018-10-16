@@ -60,10 +60,7 @@ func loginCmd(c *cli.Context) error {
 	if len(args) == 0 {
 		return errors.Errorf("registry must be given")
 	}
-	var server string
-	if len(args) == 1 {
-		server = args[0]
-	}
+	server := scrubServer(args[0])
 	authfile := getAuthFile(c.String("authfile"))
 
 	sc := common.GetSystemContext("", authfile, false)
@@ -112,6 +109,10 @@ func getUserAndPass(username, password, userFromAuthFile string) (string, string
 		username, err = reader.ReadString('\n')
 		if err != nil {
 			return "", "", errors.Wrapf(err, "error reading username")
+		}
+		// If no username provided, use userFromAuthFile instead.
+		if strings.TrimSpace(username) == "" {
+			username = userFromAuthFile
 		}
 	}
 	if password == "" {
