@@ -5,7 +5,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/docker/pkg/mount"
@@ -261,12 +260,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		addedResources = true
 	}
 
-	if config.Systemd && (strings.HasSuffix(config.Command[0], "init") ||
-		strings.HasSuffix(config.Command[0], "systemd")) {
-		if err := setupSystemd(config, &g); err != nil {
-			return nil, errors.Wrap(err, "failed to setup systemd")
-		}
-	}
 	for _, i := range config.Tmpfs {
 		// Default options if nothing passed
 		options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev", "size=65536k"}
@@ -406,49 +399,6 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			g.AddLinuxReadonlyPaths(rp)
 		}
 	}
-}
-
-// systemd expects to have /run, /run/lock and /tmp on tmpfs
-// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-
-func setupSystemd(config *CreateConfig, g *generate.Generator) error {
-	mounts, err := config.GetVolumeMounts([]spec.Mount{})
-	if err != nil {
-		return err
-	}
-	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run", "/run/lock"} {
-		if libpod.MountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup", "size=65536k"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-	for _, dest := range []string{"/tmp", "/var/log/journal"} {
-		if libpod.MountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-	tmpfsMnt := spec.Mount{
-		Destination: "/sys/fs/cgroup/systemd",
-		Type:        "tmpfs",
-		Source:      "tmpfs",
-		Options:     append(options, "size=65536k"),
-	}
-	g.AddMount(tmpfsMnt)
-	return nil
 }
 
 func addPidNS(config *CreateConfig, g *generate.Generator) error {

@@ -349,6 +349,18 @@ func WithShmDir(dir string) CtrCreateOption {
 	}
 }
 
+// WithSystemd turns on systemd mode in the container
+func WithSystemd() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.Systemd = true
+		return nil
+	}
+}
+
 // WithShmSize sets the size of /dev/shm tmpfs mount.
 func WithShmSize(size int64) CtrCreateOption {
 	return func(ctr *Container) error {

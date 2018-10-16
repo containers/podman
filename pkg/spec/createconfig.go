@@ -319,6 +319,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	if c.Interactive {
 		options = append(options, libpod.WithStdin())
 	}
+	if c.Systemd && (strings.HasSuffix(c.Command[0], "init") ||
+		strings.HasSuffix(c.Command[0], "systemd")) {
+		options = append(options, libpod.WithSystemd())
+	}
 	if c.Name != "" {
 		logrus.Debugf("appending name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
