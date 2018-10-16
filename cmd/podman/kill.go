@@ -67,39 +67,7 @@ func killCmd(c *cli.Context) error {
 		killSignal = uint(sysSignal)
 	}
 
-	var filterFuncs []libpod.ContainerFilter
-	var containers []*libpod.Container
-	var lastError error
-	if c.Bool("all") {
-		// only get running containers
-		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-			state, _ := c.State()
-			return state == libpod.ContainerStateRunning
-		})
-		containers, err = runtime.GetContainers(filterFuncs...)
-		if err != nil {
-			return errors.Wrapf(err, "unable to get running containers")
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get last created container")
-		}
-		containers = append(containers, lastCtr)
-	} else {
-		args := c.Args()
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				if lastError != nil {
-					fmt.Fprintln(os.Stderr, lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			containers = append(containers, container)
-		}
-	}
+	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {
 		if err := ctr.Kill(killSignal); err != nil {

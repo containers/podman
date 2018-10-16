@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	rt "runtime"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -67,29 +66,7 @@ func rmCmd(c *cli.Context) error {
 		return err
 	}
 
-	if c.Bool("all") {
-		delContainers, err = runtime.GetContainers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get container list")
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
-		}
-		delContainers = append(delContainers, lastCtr)
-	} else {
-		args := c.Args()
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			delContainers = append(delContainers, container)
-		}
-	}
+	delContainers, lastError = getAllOrLatestContainers(c, runtime, -1, "all")
 
 	for _, container := range delContainers {
 		f := func() error {

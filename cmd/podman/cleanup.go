@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -48,31 +47,7 @@ func cleanupCmd(c *cli.Context) error {
 		return err
 	}
 
-	var lastError error
-	var cleanupContainers []*libpod.Container
-	if c.Bool("all") {
-		cleanupContainers, err = runtime.GetContainers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get container list")
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
-		}
-		cleanupContainers = append(cleanupContainers, lastCtr)
-	} else {
-		args := c.Args()
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			cleanupContainers = append(cleanupContainers, container)
-		}
-	}
+	cleanupContainers, lastError := getAllOrLatestContainers(c, runtime, -1, "all")
 
 	ctx := getContext()
 
