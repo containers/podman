@@ -1,5 +1,6 @@
 {
   "variables": {
+    "FEDORA_CNI_COMMIT": "{{env `FEDORA_CNI_COMMIT`}}",
     "CNI_COMMIT": "{{env `CNI_COMMIT`}}",
     "CRIO_COMMIT": "{{env `CRIO_COMMIT`}}",
     "RUNC_COMMIT": "{{env `RUNC_COMMIT`}}",
@@ -105,7 +106,7 @@
       "script": "{{user `GOSRC`}}/{{user `PACKER_BASE`}}/fedora_setup.sh",
       "environment_vars": [
         "SCRIPT_BASE={{user `SCRIPT_BASE`}}",
-        "CNI_COMMIT={{user `CNI_COMMIT`}}",
+        "CNI_COMMIT={{user `FEDORA_CNI_COMMIT`}}",
         "CRIO_COMMIT={{user `CRIO_COMMIT`}}",
         "RUNC_COMMIT={{user `RUNC_COMMIT`}}"
       ]

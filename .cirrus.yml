@@ -16,6 +16,7 @@ gce_instance:
 # Main collection of env. varss to set for all scripts. All others
 # are cooked in by $SCRIPT_BASE/setup_environment.sh
 env:
+    FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "662dbb31b5d4f5ed54511a47cde7190c61c28677"
     RUNC_COMMIT: "ad0f5255060d36872be04de22f8731f38ef2d7b1"
