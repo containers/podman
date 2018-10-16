@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -22,6 +23,11 @@ var (
 			Name:  "keep, k",
 			Usage: "keep all temporary checkpoint files",
 		},
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "checkpoint all running containers",
+		},
+		LatestFlag,
 	}
 	checkpointCommand = cli.Command{
 		Name:        "checkpoint",
@@ -45,21 +51,14 @@ func checkpointCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	keep := c.Bool("keep")
-	args := c.Args()
-	if len(args) < 1 {
-		return errors.Errorf("you must provide at least one container name or id")
+
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
 
-	var lastError error
-	for _, arg := range args {
-		ctr, err := runtime.LookupContainer(arg)
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "error looking up container %q", arg)
-			continue
-		}
+	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+
+	for _, ctr := range containers {
 		if err = ctr.Checkpoint(context.TODO(), keep); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
