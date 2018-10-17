@@ -141,6 +141,10 @@ func parseURL(input string) (string, error) {
 // registries of type Registry.
 func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	regMap := make(map[string]*Registry)
+	// We must preserve the order of config.V1Registries.Search.Registries at least.  The order of the
+	// other registries is not really important, but make it deterministic (the same for the same config file)
+	// to minimize behavior inconsistency and not contribute to difficult-to-reproduce situations.
+	registryOrder := []string{}
 
 	getRegistry := func(url string) (*Registry, error) { // Note: _pointer_ to a long-lived object
 		var err error
@@ -156,10 +160,13 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 				Prefix:  url,
 			}
 			regMap[url] = reg
+			registryOrder = append(registryOrder, url)
 		}
 		return reg, nil
 	}
 
+	// Note: config.V1Registries.Search needs to be processed first to ensure registryOrder is populated in the right order
+	// if one of the search registries is also in one of the other lists.
 	for _, search := range config.V1Registries.Search.Registries {
 		reg, err := getRegistry(search)
 		if err != nil {
@@ -183,7 +190,8 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	}
 
 	registries := []Registry{}
-	for _, reg := range regMap {
+	for _, url := range registryOrder {
+		reg := regMap[url]
 		registries = append(registries, *reg)
 	}
 	return registries, nil

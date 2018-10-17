@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/docker/reference"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -761,7 +762,7 @@ func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
 	if b.output != "" {
 		imageRef, err = alltransports.ParseImageName(b.output)
 		if err != nil {
-			candidates, err := util.ResolveName(b.output, "", b.systemContext, b.store)
+			candidates, _, err := util.ResolveName(b.output, "", b.systemContext, b.store)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error parsing target image name %q: %v", b.output)
 			}
@@ -860,7 +861,7 @@ func (b *Executor) Execute(ctx context.Context, stage imagebuilder.Stage) error 
 
 		// Commit if no cache is found
 		if cacheID == "" {
-			imgID, err = b.Commit(ctx, ib, getCreatedBy(node))
+			imgID, _, err = b.Commit(ctx, ib, getCreatedBy(node))
 			if err != nil {
 				return errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
@@ -903,7 +904,7 @@ func (b *Executor) copyExistingImage(ctx context.Context, cacheID string) error 
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for %q", cacheID)
 	}
-	if err := cp.Image(ctx, policyContext, dest, src, nil); err != nil {
+	if _, err := cp.Image(ctx, policyContext, dest, src, nil); err != nil {
 		return errors.Wrapf(err, "error copying image %q", cacheID)
 	}
 	b.log("COMMIT %s", b.output)
@@ -1083,10 +1084,10 @@ func urlContentModified(url string, historyTime *time.Time) (bool, error) {
 
 // Commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
-func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, createdBy string) (string, error) {
+func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, createdBy string) (string, reference.Canonical, error) {
 	imageRef, err := b.resolveNameToImageRef()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if ib.Author != "" {
@@ -1165,19 +1166,19 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, created
 		Squash:                b.squash,
 		Parent:                b.builder.FromImageID,
 	}
-	imgID, err := b.builder.Commit(ctx, imageRef, options)
+	imgID, ref, _, err := b.builder.Commit(ctx, imageRef, options)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if options.IIDFile == "" && imgID != "" {
 		fmt.Fprintf(b.out, "--> %s\n", imgID)
 	}
-	return imgID, nil
+	return imgID, ref, nil
 }
 
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
 // over each of the one or more parsed Dockerfiles and stages.
-func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error {
+func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (string, reference.Canonical, error) {
 	if len(stages) == 0 {
 		errors.New("error building: no stages to build")
 	}
@@ -1190,7 +1191,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 	for _, stage := range stages {
 		stageExecutor = b.withName(stage.Name, stage.Position)
 		if err := stageExecutor.Prepare(ctx, stage, ""); err != nil {
-			return err
+			return "", nil, err
 		}
 		// Always remove the intermediate/build containers, even if the build was unsuccessful.
 		// If building with layers, remove all intermediate/build containers if b.forceRmIntermediateCtrs
@@ -1208,7 +1209,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 			if b.removeIntermediateCtrs {
 				stageExecutor.deleteSuccessfulIntermediateCtrs()
 			}
-			return lastErr
+			return "", nil, lastErr
 		}
 		b.containerIDs = append(b.containerIDs, stageExecutor.containerIDs...)
 		// If we've a stage.Name with alpha and not numeric, we've an
@@ -1216,20 +1217,24 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 		// stage to be used by other FROM statements that will want
 		// to use it later in the Dockerfile.  Note the id in our map.
 		if _, err := strconv.Atoi(stage.Name); err != nil {
-			imgID, err := stageExecutor.Commit(ctx, stages[stageCount].Builder, "")
+			imgID, _, err := stageExecutor.Commit(ctx, stages[stageCount].Builder, "")
 			if err != nil {
-				return err
+				return "", nil, err
 			}
 			b.imageMap[stage.Name] = imgID
 		}
 		stageCount++
 	}
 
+	var imageRef reference.Canonical
+	imageID := ""
 	if !b.layers && !b.noCache {
-		_, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
+		imgID, ref, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
 		if err != nil {
-			return err
+			return "", nil, err
 		}
+		imageID = imgID
+		imageRef = ref
 	}
 	// If building with layers and b.removeIntermediateCtrs is true
 	// only remove intermediate container for each step if an error
@@ -1241,7 +1246,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 	// defer statement above.
 	if b.removeIntermediateCtrs && (b.layers || b.noCache) {
 		if err := b.deleteSuccessfulIntermediateCtrs(); err != nil {
-			return errors.Errorf("Failed to cleanup intermediate containers")
+			return "", nil, errors.Errorf("Failed to cleanup intermediate containers")
 		}
 	}
 	// Remove intermediate images that we created for AS clause handling
@@ -1250,15 +1255,15 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) error 
 			logrus.Debugf("unable to remove intermediate image %q: %v", value, err)
 		}
 	}
-	return nil
+	return imageID, imageRef, nil
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
 // URLs), creates a new Executor, and then runs Prepare/Execute/Commit/Delete
 // over the entire set of instructions.
-func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOptions, paths ...string) error {
+func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOptions, paths ...string) (string, reference.Canonical, error) {
 	if len(paths) == 0 {
-		return errors.Errorf("error building: no dockerfiles specified")
+		return "", nil, errors.Errorf("error building: no dockerfiles specified")
 	}
 	var dockerfiles []io.ReadCloser
 	defer func(dockerfiles ...io.ReadCloser) {
@@ -1274,11 +1279,11 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			logrus.Debugf("reading remote Dockerfile %q", dfile)
 			resp, err := http.Get(dfile)
 			if err != nil {
-				return errors.Wrapf(err, "error getting %q", dfile)
+				return "", nil, errors.Wrapf(err, "error getting %q", dfile)
 			}
 			if resp.ContentLength == 0 {
 				resp.Body.Close()
-				return errors.Errorf("no contents in %q", dfile)
+				return "", nil, errors.Errorf("no contents in %q", dfile)
 			}
 			data = resp.Body
 		} else {
@@ -1290,16 +1295,16 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 			logrus.Debugf("reading local Dockerfile %q", dfile)
 			contents, err := os.Open(dfile)
 			if err != nil {
-				return errors.Wrapf(err, "error reading %q", dfile)
+				return "", nil, errors.Wrapf(err, "error reading %q", dfile)
 			}
 			dinfo, err := contents.Stat()
 			if err != nil {
 				contents.Close()
-				return errors.Wrapf(err, "error reading info about %q", dfile)
+				return "", nil, errors.Wrapf(err, "error reading info about %q", dfile)
 			}
 			if dinfo.Mode().IsRegular() && dinfo.Size() == 0 {
 				contents.Close()
-				return errors.Wrapf(err, "no contents in %q", dfile)
+				return "", nil, errors.Wrapf(err, "no contents in %q", dfile)
 			}
 			data = contents
 		}
@@ -1308,7 +1313,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		if strings.HasSuffix(dfile, ".in") {
 			pData, err := preprocessDockerfileContents(data, options.ContextDirectory)
 			if err != nil {
-				return err
+				return "", nil, err
 			}
 			data = *pData
 		}
@@ -1317,18 +1322,18 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 	}
 	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
 	if err != nil {
-		return errors.Wrapf(err, "error parsing main Dockerfile")
+		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile")
 	}
 	for _, d := range dockerfiles[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(d)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing additional Dockerfile")
+			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile")
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
 	exec, err := NewExecutor(store, options)
 	if err != nil {
-		return errors.Wrapf(err, "error creating build executor")
+		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}
 	b := imagebuilder.NewBuilder(options.Args)
 	stages := imagebuilder.NewStages(mainNode, b)

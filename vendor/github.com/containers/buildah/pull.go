@@ -10,7 +10,6 @@ import (
 	"github.com/containers/image/docker/reference"
 	tarfile "github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
@@ -201,28 +200,10 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	}()
 
 	logrus.Debugf("copying %q to %q", spec, destName)
-	pullError := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, srcRef, sc, destRef, nil, ""))
-	if pullError == nil {
-		return destRef, nil
+	if _, err := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, srcRef, sc, destRef, nil, "")); err != nil {
+		return nil, err
 	}
-
-	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
-	registryPath := sysregistries.RegistriesConfPath(sc)
-	searchRegistries, err := getRegistries(sc)
-	if err != nil {
-		logrus.Debugf("error getting list of registries: %v", err)
-		return nil, errors.Wrapf(pullError, "error copying image from %q to %q", transports.ImageName(srcRef), transports.ImageName(destRef))
-	}
-	hasRegistryInName, err := hasRegistry(imageName)
-	if err != nil {
-		logrus.Debugf("error checking if image name %q includes a registry component: %v", imageName, err)
-		return nil, errors.Wrapf(pullError, "error copying image from %q to %q", transports.ImageName(srcRef), transports.ImageName(destRef))
-	}
-	if !hasRegistryInName && len(searchRegistries) == 0 {
-		logrus.Debugf("copying %q to %q failed: %v", pullError)
-		return nil, errors.Errorf("image name provided does not include a registry name and no search registries are defined in %s: %s", registryPath, pullError)
-	}
-	return nil, pullError
+	return destRef, nil
 }
 
 // getImageDigest creates an image object and uses the hex value of the digest as the image ID

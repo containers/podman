@@ -161,7 +161,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			importBuilder.SetWorkDir(splitChange[1])
 		}
 	}
-	candidates, err := util.ResolveName(destImage, "", sc, c.runtime.store)
+	candidates, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error resolving name %q", destImage)
 	}
@@ -172,7 +172,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing target image name %q", destImage)
 	}
-	id, err := importBuilder.Commit(ctx, imageRef, commitOptions)
+	id, _, _, err := importBuilder.Commit(ctx, imageRef, commitOptions)
 	if err != nil {
 		return nil, err
 	}

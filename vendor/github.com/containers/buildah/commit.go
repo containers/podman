@@ -9,12 +9,15 @@ import (
 
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/manifest"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -88,26 +91,26 @@ type PushOptions struct {
 // configuration, to a new image in the specified location, and if we know how,
 // add any additional tags that were specified. Returns the ID of the new image
 // if commit was successful and the image destination was local
-func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, error) {
+func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
 	var imgID string
 
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 
 	blocked, err := isReferenceBlocked(dest, systemContext)
 	if err != nil {
-		return "", errors.Wrapf(err, "error checking if committing to registry for %q is blocked", transports.ImageName(dest))
+		return "", nil, "", errors.Wrapf(err, "error checking if committing to registry for %q is blocked", transports.ImageName(dest))
 	}
 	if blocked {
-		return "", errors.Errorf("commit access to registry for %q is blocked by configuration", transports.ImageName(dest))
+		return "", nil, "", errors.Errorf("commit access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
-		return imgID, errors.Wrapf(err, "error obtaining default signature policy")
+		return imgID, nil, "", errors.Wrapf(err, "error obtaining default signature policy")
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return imgID, errors.Wrapf(err, "error creating new signature policy context")
+		return imgID, nil, "", errors.Wrapf(err, "error creating new signature policy context")
 	}
 	defer func() {
 		if err2 := policyContext.Destroy(); err2 != nil {
@@ -127,21 +130,22 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.Compression, options.HistoryTimestamp)
 	if err != nil {
-		return imgID, errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
+		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}
 	// "Copy" our image to where it needs to be.
-	if err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, "")); err != nil {
-		return imgID, errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
+	var manifestBytes []byte
+	if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, "")); err != nil {
+		return imgID, nil, "", errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
 	if len(options.AdditionalTags) > 0 {
 		switch dest.Transport().Name() {
 		case is.Transport.Name():
 			img, err := is.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
-				return imgID, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
+				return imgID, nil, "", errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
 			}
 			if err = util.AddImageNames(b.store, "", systemContext, img, options.AdditionalTags); err != nil {
-				return imgID, errors.Wrapf(err, "error setting image names to %v", append(img.Names, options.AdditionalTags...))
+				return imgID, nil, "", errors.Wrapf(err, "error setting image names to %v", append(img.Names, options.AdditionalTags...))
 			}
 			logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 		default:
@@ -151,7 +155,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 	img, err := is.Transport.GetStoreImage(b.store, dest)
 	if err != nil && err != storage.ErrImageUnknown {
-		return imgID, errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(dest))
+		return imgID, nil, "", errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(dest))
 	}
 
 	if err == nil {
@@ -159,47 +163,71 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 		if options.IIDFile != "" {
 			if err = ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
-				return imgID, errors.Wrapf(err, "failed to write image ID to file %q", options.IIDFile)
+				return imgID, nil, "", errors.Wrapf(err, "failed to write image ID to file %q", options.IIDFile)
 			}
 		}
 	}
 
-	return imgID, nil
+	manifestDigest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return imgID, nil, "", errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
+	}
+
+	var ref reference.Canonical
+	if name := dest.DockerReference(); name != nil {
+		ref, err = reference.WithDigest(name, manifestDigest)
+		if err != nil {
+			logrus.Warnf("error generating canonical reference with name %q and digest %s: %v", name, manifestDigest.String(), err)
+		}
+	}
+
+	return imgID, ref, manifestDigest, nil
 }
 
 // Push copies the contents of the image to a new location.
-func Push(ctx context.Context, image string, dest types.ImageReference, options PushOptions) error {
+func Push(ctx context.Context, image string, dest types.ImageReference, options PushOptions) (reference.Canonical, digest.Digest, error) {
 	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
 
 	blocked, err := isReferenceBlocked(dest, systemContext)
 	if err != nil {
-		return errors.Wrapf(err, "error checking if pushing to registry for %q is blocked", transports.ImageName(dest))
+		return nil, "", errors.Wrapf(err, "error checking if pushing to registry for %q is blocked", transports.ImageName(dest))
 	}
 	if blocked {
-		return errors.Errorf("push access to registry for %q is blocked by configuration", transports.ImageName(dest))
+		return nil, "", errors.Errorf("push access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
-		return errors.Wrapf(err, "error obtaining default signature policy")
+		return nil, "", errors.Wrapf(err, "error obtaining default signature policy")
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return errors.Wrapf(err, "error creating new signature policy context")
+		return nil, "", errors.Wrapf(err, "error creating new signature policy context")
 	}
 	// Look up the image.
-	src, img, err := util.FindImage(options.Store, "", systemContext, image)
+	src, _, err := util.FindImage(options.Store, "", systemContext, image)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	// Copy everything.
-	if err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, options.ManifestType)); err != nil {
-		return errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(src), transports.ImageName(dest))
+	var manifestBytes []byte
+	if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, options.ManifestType)); err != nil {
+		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(src), transports.ImageName(dest))
 	}
 	if options.ReportWriter != nil {
 		fmt.Fprintf(options.ReportWriter, "")
 	}
-	digest := "@" + img.Digest.Hex()
-	fmt.Printf("Successfully pushed %s%s\n", dest.StringWithinTransport(), digest)
-	return nil
+	manifestDigest, err := manifest.Digest(manifestBytes)
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
+	}
+	var ref reference.Canonical
+	if name := dest.DockerReference(); name != nil {
+		ref, err = reference.WithDigest(name, manifestDigest)
+		if err != nil {
+			logrus.Warnf("error generating canonical reference with name %q and digest %s: %v", name, manifestDigest.String(), err)
+		}
+	}
+	fmt.Printf("Successfully pushed %s@%s\n", dest.StringWithinTransport(), manifestDigest.String())
+	return ref, manifestDigest, nil
 }

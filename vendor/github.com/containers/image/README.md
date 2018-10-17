@@ -53,7 +53,7 @@ are also available
 
 This library, by default, also depends on the GpgME and libostree C libraries. Either install them:
 ```sh
-Fedora$ dnf install gpgme-devel libassuan-devel libostree-devel
+Fedora$ dnf install gpgme-devel libassuan-devel ostree-devel
 macOS$ brew install gpgme
 ```
 or use the build tags described below to avoid the dependencies (e.g. using `go build -tags …`)

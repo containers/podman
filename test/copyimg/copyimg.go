@@ -160,7 +160,7 @@ func main() {
 		ctx := context.TODO()
 		if imageName != "" {
 			if importFrom != "" {
-				err = copy.Image(ctx, policyContext, ref, importRef, options)
+				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
 				if err != nil {
 					logrus.Errorf("error importing %s: %v", importFrom, err)
 					os.Exit(1)
@@ -180,7 +180,7 @@ func main() {
 				}
 			}
 			if exportTo != "" {
-				err = copy.Image(ctx, policyContext, exportRef, ref, options)
+				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
 					logrus.Errorf("error exporting %s: %v", exportTo, err)
 					os.Exit(1)
@@ -188,7 +188,7 @@ func main() {
 			}
 		} else {
 			if importFrom != "" && exportTo != "" {
-				err = copy.Image(ctx, policyContext, exportRef, importRef, options)
+				_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
 				if err != nil {
 					logrus.Errorf("error copying %s to %s: %v", importFrom, exportTo, err)
 					os.Exit(1)

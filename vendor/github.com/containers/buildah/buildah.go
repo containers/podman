@@ -457,6 +457,10 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
+			if os.IsNotExist(err) {
+				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
+				continue
+			}
 			return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
 		}
 		b := &Builder{}
@@ -488,9 +492,12 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 			return nil, err
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
-		if err != nil && os.IsNotExist(err) {
-			logrus.Debugf("error reading %q: %v", filepath.Join(cdir, stateFile), err)
-			continue
+		if err != nil {
+			if os.IsNotExist(err) {
+				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
+				continue
+			}
+			return nil, errors.Wrapf(err, "error reading %q", filepath.Join(cdir, stateFile))
 		}
 		b := &Builder{}
 		err = json.Unmarshal(buildstate, &b)

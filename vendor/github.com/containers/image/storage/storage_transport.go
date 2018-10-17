@@ -107,7 +107,7 @@ func (s *storageTransport) DefaultGIDMap() []idtools.IDMap {
 // relative to the given store, and returns it in a reference object.
 func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (*storageReference, error) {
 	if ref == "" {
-		return nil, errors.Wrapf(ErrInvalidReference, "%q is an empty reference")
+		return nil, errors.Wrapf(ErrInvalidReference, "%q is an empty reference", ref)
 	}
 	if ref[0] == '[' {
 		// Ignore the store specifier.
