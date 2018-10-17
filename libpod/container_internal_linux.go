@@ -189,7 +189,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if c.config.Systemd {
-		c.setupSystemd(g.Mounts(), g)
+		if err := c.setupSystemd(g.Mounts(), g); err != nil {
+			return nil, errors.Wrapf(err, "error adding systemd-specific mounts")
+		}
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
@@ -300,7 +302,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) {
+func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if MountExists(mounts, dest) {
@@ -326,13 +328,22 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) {
 		}
 		g.AddMount(tmpfsMnt)
 	}
+
+	cgroupPath, err := c.CGroupPath()
+	if err != nil {
+		return err
+	}
+	sourcePath := filepath.Join("/sys/fs/cgroup/systemd", cgroupPath)
+
 	systemdMnt := spec.Mount{
 		Destination: "/sys/fs/cgroup/systemd",
 		Type:        "bind",
-		Source:      fmt.Sprintf("/sys/fs/cgroup/systemd%s/libpod-%s", CgroupfsDefaultCgroupParent, c.ID()),
+		Source:      sourcePath,
 		Options:     []string{"bind", "private"},
 	}
 	g.AddMount(systemdMnt)
+
+	return nil
 }
 
 // Add an existing container's namespace to the spec
