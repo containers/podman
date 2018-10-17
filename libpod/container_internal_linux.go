@@ -12,10 +12,12 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/plugins/pkg/ns"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/criu"
@@ -49,24 +51,61 @@ func (c *Container) unmountSHM(mount string) error {
 // prepare mounts the container and sets up other required resources like net
 // namespaces
 func (c *Container) prepare() (err error) {
-	// Mount storage if not mounted
-	if err := c.mountStorage(); err != nil {
-		return err
-	}
+	var (
+		wg                              sync.WaitGroup
+		netNS                           ns.NetNS
+		networkStatus                   []*cnitypes.Result
+		createNetNSErr, mountStorageErr error
+		mountPoint                      string
+		saveNetworkStatus               bool
+	)
 
-	// Set up network namespace if not already set up
-	if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
-		if err := c.runtime.createNetNS(c); err != nil {
-			// Tear down storage before exiting to make sure we
-			// don't leak mounts
-			if err2 := c.cleanupStorage(); err2 != nil {
-				logrus.Errorf("Error cleaning up storage for container %s: %v", c.ID(), err2)
-			}
-			return err
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		// Set up network namespace if not already set up
+		if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
+			saveNetworkStatus = true
+			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 		}
+	}()
+	// Mount storage if not mounted
+	go func() {
+		defer wg.Done()
+		mountPoint, mountStorageErr = c.mountStorage()
+	}()
+
+	wg.Wait()
+	if createNetNSErr != nil {
+		if mountStorageErr != nil {
+			logrus.Error(createNetNSErr)
+			return mountStorageErr
+		}
+		return createNetNSErr
+	}
+	if mountStorageErr != nil {
+		return mountStorageErr
 	}
 
-	return nil
+	// Assign NetNS attributes to container
+	if saveNetworkStatus {
+		c.state.NetNS = netNS
+		c.state.NetworkStatus = networkStatus
+	}
+
+	// Finish up mountStorage
+	c.state.Mounted = true
+	c.state.Mountpoint = mountPoint
+	if c.state.UserNSRoot == "" {
+		c.state.RealMountpoint = c.state.Mountpoint
+	} else {
+		c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
+	}
+
+	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+	// Save the container
+	return c.save()
 }
 
 // cleanupNetwork unmounts and cleans up the container's network
@@ -104,7 +143,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 		}
 	}
-
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
 	for _, m := range g.Mounts() {

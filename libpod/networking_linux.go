@@ -48,12 +48,12 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
 	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
-		return errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
+		return nil, errors.Wrapf(err, "error configuring network namespace for container %s", ctr.ID())
 	}
 	defer func() {
 		if err != nil {
@@ -63,15 +63,14 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 		}
 	}()
 
-	ctr.state.NetNS = ctrNS
-	ctr.state.NetworkStatus = make([]*cnitypes.Result, 0)
+	networkStatus := make([]*cnitypes.Result, 1)
 	for idx, r := range results {
 		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
 		resultCurrent, err := cnitypes.GetResult(r)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
+			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
 		}
-		ctr.state.NetworkStatus = append(ctr.state.NetworkStatus, resultCurrent)
+		networkStatus = append(ctr.state.NetworkStatus, resultCurrent)
 	}
 
 	// Add firewall rules to ensure the container has network access.
@@ -82,18 +81,18 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (err error) {
 			PrevResult: netStatus,
 		}
 		if err := r.firewallBackend.Add(firewallConf); err != nil {
-			return errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
+			return nil, errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
 		}
 	}
 
-	return nil
+	return networkStatus, nil
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (err error) {
+func (r *Runtime) createNetNS(ctr *Container) (ns.NetNS, []*cnitypes.Result, error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
-		return errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
+		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
 	defer func() {
 		if err != nil {
@@ -104,7 +103,9 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 	}()
 
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
-	return r.configureNetNS(ctr, ctrNS)
+
+	networkStatus, err := r.configureNetNS(ctr, ctrNS)
+	return ctrNS, networkStatus, err
 }
 
 // Configure the network namespace for a rootless container
@@ -173,7 +174,12 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 	if err != nil {
 		return err
 	}
-	return r.configureNetNS(ctr, netNS)
+	networkStatus, err := r.configureNetNS(ctr, netNS)
+
+	// Assign NetNS attributes to container
+	ctr.state.NetNS = netNS
+	ctr.state.NetworkStatus = networkStatus
+	return err
 }
 
 // Join an existing network namespace
