@@ -38,8 +38,6 @@ import (
 )
 
 const (
-	// DefaultWorkingDir is used if none was specified.
-	DefaultWorkingDir = "/"
 	// runUsingRuntimeCommand is a command we use as a key for reexec
 	runUsingRuntimeCommand = Package + "-oci-runtime"
 )
@@ -146,6 +144,8 @@ type RunOptions struct {
 	Runtime string
 	// Args adds global arguments for the runtime.
 	Args []string
+	// NoPivot adds the --no-pivot runtime flag.
+	NoPivot bool
 	// Mounts are additional mount points which we want to provide.
 	Mounts []specs.Mount
 	// Env is additional environment variables to set.
@@ -520,7 +520,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 			if err = os.Chown(volumePath, int(stat.Sys().(*syscall.Stat_t).Uid), int(stat.Sys().(*syscall.Stat_t).Gid)); err != nil {
 				return nil, errors.Wrapf(err, "error chowning directory %q for volume %q", volumePath, volume)
 			}
-			if err = copyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
+			if err = copyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(errors.Cause(err)) {
 				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
 			}
 		}
@@ -1025,10 +1025,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	spec := g.Spec()
 	g = nil
 
-	// Set the working directory, creating it if we must.
-	if spec.Process.Cwd == "" {
-		spec.Process.Cwd = DefaultWorkingDir
-	}
 	logrus.Debugf("ensuring working directory %q exists", filepath.Join(mountPoint, spec.Process.Cwd))
 	if err = os.MkdirAll(filepath.Join(mountPoint, spec.Process.Cwd), 0755); err != nil {
 		return errors.Wrapf(err, "error ensuring working directory %q exists", spec.Process.Cwd)
@@ -1093,7 +1089,13 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		// 	}
 		// }
 		// options.Args = append(options.Args, rootlessFlag...)
-		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, nil, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+		var moreCreateArgs []string
+		if options.NoPivot {
+			moreCreateArgs = []string{"--no-pivot"}
+		} else {
+			moreCreateArgs = nil
+		}
+		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	case IsolationChroot:
 		err = chroot.RunUsingChroot(spec, path, options.Stdin, options.Stdout, options.Stderr)
 	case IsolationOCIRootless:

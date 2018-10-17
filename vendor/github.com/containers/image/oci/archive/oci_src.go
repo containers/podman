@@ -28,7 +28,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiv
 	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
-			return nil, errors.Wrapf(err, "error deleting temp directory", tempDirRef.tempDirectory)
+			return nil, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)
 		}
 		return nil, err
 	}

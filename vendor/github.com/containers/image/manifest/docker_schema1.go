@@ -275,7 +275,7 @@ func (m *Schema1) ToSchema2Config(diffIDs []digest.Digest) ([]byte, error) {
 	raw := make(map[string]*json.RawMessage)
 	err = json.Unmarshal(config, &raw)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error re-decoding compat image config %#v: %v", s1)
+		return nil, errors.Wrapf(err, "error re-decoding compat image config %#v", s1)
 	}
 	// Drop some fields.
 	delete(raw, "id")

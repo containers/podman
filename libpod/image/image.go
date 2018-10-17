@@ -552,7 +552,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 		}
 	}
 	// Copy the image to the remote destination
-	err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
@@ -912,7 +912,8 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	if err != nil {
 		errors.Wrapf(err, "error getting image reference for %q", reference)
 	}
-	if err = cp.Image(ctx, policyContext, dest, src, copyOptions); err != nil {
+	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
+	if err != nil {
 		return nil, err
 	}
 	return ir.NewFromLocal(reference)

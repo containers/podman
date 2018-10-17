@@ -173,21 +173,6 @@ func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 	}
 }
 
-// getRegistries obtains the list of search registries defined in the global registries file.
-func getRegistries(sc *types.SystemContext) ([]string, error) {
-	var searchRegistries []string
-	registries, err := sysregistriesv2.GetRegistries(sc)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
-	}
-	for _, registry := range sysregistriesv2.FindUnqualifiedSearchRegistries(registries) {
-		if !registry.Blocked {
-			searchRegistries = append(searchRegistries, registry.URL)
-		}
-	}
-	return searchRegistries, nil
-}
-
 // isRegistryInsecure checks if the named registry is marked as not secure
 func isRegistryInsecure(registry string, sc *types.SystemContext) (bool, error) {
 	registries, err := sysregistriesv2.GetRegistries(sc)
@@ -252,20 +237,6 @@ func isReferenceBlocked(ref types.ImageReference, sc *types.SystemContext) (bool
 	return false, nil
 }
 
-// hasRegistry returns a bool/err response if the image has a registry in its
-// name
-func hasRegistry(imageName string) (bool, error) {
-	imgRef, err := reference.Parse(imageName)
-	if err != nil {
-		return false, errors.Wrapf(err, "error parsing image name %q", imageName)
-	}
-	registry := reference.Domain(imgRef.(reference.Named))
-	if registry != "" {
-		return true, nil
-	}
-	return false, nil
-}
-
 // ReserveSELinuxLabels reads containers storage and reserves SELinux containers
 // fall all existing buildah containers
 func ReserveSELinuxLabels(store storage.Store, id string) error {
@@ -281,7 +252,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 			} else {
 				b, err := OpenBuilder(store, c.ID)
 				if err != nil {
-					if os.IsNotExist(err) {
+					if os.IsNotExist(errors.Cause(err)) {
 						// Ignore not exist errors since containers probably created by other tool
 						// TODO, we need to read other containers json data to reserve their SELinux labels
 						continue

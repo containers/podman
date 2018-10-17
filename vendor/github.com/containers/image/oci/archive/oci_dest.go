@@ -25,7 +25,7 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociA
 	unpackedDest, err := tempDirRef.ociRefExtracted.NewImageDestination(ctx, sys)
 	if err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
-			return nil, errors.Wrapf(err, "error deleting temp directory", tempDirRef.tempDirectory)
+			return nil, errors.Wrapf(err, "error deleting temp directory %q", tempDirRef.tempDirectory)
 		}
 		return nil, err
 	}

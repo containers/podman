@@ -164,5 +164,6 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
-	return imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	return err
 }
