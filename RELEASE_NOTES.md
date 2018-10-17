@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.10.1.2
+### Bugfixes
+- Fixed cgroup mount for containers using systemd as init to work properly with the systemd cgroup manager
+
 ## 0.10.1.1
 ### Features
 - Added handling for running containers as users with numeric UIDs not present in the container's /etc/passwd. This allows getpwuid() to work inside these containers.
