@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.10.1.3
+### Bugfixes
+- Fixed a bug where `podman build` would not work while any containers were running
+
 ## 0.10.1.2
 ### Bugfixes
 - Fixed cgroup mount for containers using systemd as init to work properly with the systemd cgroup manager
