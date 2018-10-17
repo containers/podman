@@ -1,3 +1,9 @@
+- Changelog for v0.10.1.2 (2018-10-17)
+  * Update release notes for 0.10.1.2
+  * Fix CGroup paths used for systemd CGroup mount
+  * Bump gitvalidation epoch
+  * Bump to v0.10.2-dev
+
 - Changelog for v0.10.1.1 (2018-10-16)
   * Update release notes for 0.10.1.1
   * Mount proper cgroup for systemd to manage inside of the container.
