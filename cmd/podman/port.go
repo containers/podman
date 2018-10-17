@@ -104,6 +104,9 @@ func portCmd(c *cli.Context) error {
 		containers = append(containers, container)
 	} else if c.Bool("latest") {
 		container, err = runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get last created container")
+		}
 		containers = append(containers, container)
 	} else {
 		containers, err = runtime.GetRunningContainers()
