@@ -47,7 +47,7 @@ func TestGetAllLabels(t *testing.T) {
 }
 
 func TestGetAllLabelsBadKeyValue(t *testing.T) {
-	inLabels := []string{"ONE1", "TWO=2"}
+	inLabels := []string{"=badValue", "="}
 	fileLabels := []string{}
 	_, err := getAllLabels(fileLabels, inLabels)
 	assert.Error(t, err, assert.AnError)
