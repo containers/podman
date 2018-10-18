@@ -24,17 +24,22 @@ var ErrIncompatibleLabel = fmt.Errorf("Bad SELinux option z and Z can not be use
 // the container.  A list of options can be passed into this function to alter
 // the labels.  The labels returned will include a random MCS String, that is
 // guaranteed to be unique.
-func InitLabels(options []string) (string, string, error) {
+func InitLabels(options []string) (plabel string, mlabel string, Err error) {
 	if !selinux.GetEnabled() {
 		return "", "", nil
 	}
 	processLabel, mountLabel := selinux.ContainerLabels()
 	if processLabel != "" {
+		defer func() {
+			if Err != nil {
+				ReleaseLabel(mountLabel)
+			}
+		}()
 		pcon := selinux.NewContext(processLabel)
 		mcon := selinux.NewContext(mountLabel)
 		for _, opt := range options {
 			if opt == "disable" {
-				return "", "", nil
+				return "", mountLabel, nil
 			}
 			if i := strings.Index(opt, ":"); i == -1 {
 				return "", "", fmt.Errorf("Bad label option %q, valid options 'disable' or \n'user, role, level, type' followed by ':' and a value", opt)
@@ -154,6 +159,11 @@ func PidLabel(pid int) (string, error) {
 // Init initialises the labeling system
 func Init() {
 	selinux.GetEnabled()
+}
+
+// ClearLabels will clear all reserved labels
+func ClearLabels() {
+	selinux.ClearLabels()
 }
 
 // ReserveLabel will record the fact that the MCS label has already been used.

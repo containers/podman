@@ -48,6 +48,11 @@ func GetPidLabel(pid int) (string, error) {
 func Init() {
 }
 
+// ClearLabels clears all reserved labels
+func ClearLabels() {
+	return
+}
+
 func ReserveLabel(label string) error {
 	return nil
 }

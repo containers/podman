@@ -642,11 +642,11 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get creates and mounts the required file system for the given id and returns the mount path.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (_ string, retErr error) {
-	return d.get(id, mountLabel, false, uidMaps, gidMaps)
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
+	return d.get(id, false, options)
 }
 
-func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMaps []idtools.IDMap) (_ string, retErr error) {
+func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
 	dir := d.dir(id)
@@ -740,7 +740,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	if d.options.mountOptions != "" {
 		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
 	}
-	mountData := label.FormatMountLabel(opts, mountLabel)
+	mountData := label.FormatMountLabel(opts, options.MountLabel)
 	mountFunc := unix.Mount
 	mountTarget := mergedDir
 
@@ -753,7 +753,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	if d.options.mountProgram != "" {
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			if !disableShifting {
-				label = d.optsAppendMappings(label, uidMaps, gidMaps)
+				label = d.optsAppendMappings(label, options.UidMaps, options.GidMaps)
 			}
 
 			mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
@@ -763,7 +763,7 @@ func (d *Driver) get(id, mountLabel string, disableShifting bool, uidMaps, gidMa
 	} else if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores
 		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
-		mountData = label.FormatMountLabel(opts, mountLabel)
+		mountData = label.FormatMountLabel(opts, options.MountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
 		}
@@ -952,7 +952,10 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	}
 
 	// Mount the new layer and handle ownership changes and possible copy_ups in it.
-	layerFs, err := d.get(id, mountLabel, true, nil, nil)
+	options := graphdriver.MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := d.get(id, true, options)
 	if err != nil {
 		return err
 	}

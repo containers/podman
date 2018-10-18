@@ -133,6 +133,20 @@ func copyContainer(c *Container) *Container {
 	}
 }
 
+func (c *Container) MountLabel() string {
+	if label, ok := c.Flags["MountLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
+func (c *Container) ProcessLabel() string {
+	if label, ok := c.Flags["ProcessLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
 func (r *containerStore) Containers() ([]Container, error) {
 	containers := make([]Container, len(r.containers))
 	for i := range r.containers {
@@ -297,7 +311,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 			BigDataSizes:   make(map[string]int64),
 			BigDataDigests: make(map[string]digest.Digest),
 			Created:        time.Now().UTC(),
-			Flags:          make(map[string]interface{}),
+			Flags:          copyStringInterfaceMap(options.Flags),
 			UIDMap:         copyIDMap(options.UIDMap),
 			GIDMap:         copyIDMap(options.GIDMap),
 		}

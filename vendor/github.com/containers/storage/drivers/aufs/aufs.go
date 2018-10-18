@@ -416,7 +416,7 @@ func atomicRemove(source string) error {
 
 // Get returns the rootfs path for the id.
 // This will mount the dir at its given path
-func (a *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (a *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	a.locker.Lock(id)
 	defer a.locker.Unlock(id)
 	parents, err := a.getParentLayerPaths(id)
@@ -441,7 +441,7 @@ func (a *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (s
 	// If a dir does not have a parent ( no layers )do not try to mount
 	// just return the diff path to the data
 	if len(parents) > 0 {
-		if err := a.mount(id, m, mountLabel, parents); err != nil {
+		if err := a.mount(id, m, options.MountLabel, parents); err != nil {
 			return "", err
 		}
 	}

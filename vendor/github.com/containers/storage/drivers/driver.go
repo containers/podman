@@ -42,6 +42,15 @@ type CreateOpts struct {
 	StorageOpt map[string]string
 }
 
+// MountOpts contains optional arguments for LayerStope.Mount() methods.
+type MountOpts struct {
+	// Mount label is the MAC Labels to assign to mount point (SELINUX)
+	MountLabel string
+	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
+	UidMaps []idtools.IDMap
+	GidMaps []idtools.IDMap
+}
+
 // InitFunc initializes the storage driver.
 type InitFunc func(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error)
 
@@ -68,7 +77,7 @@ type ProtoDriver interface {
 	// to by this id. You can optionally specify a mountLabel or "".
 	// Optionally it gets the mappings used to create the layer.
 	// Returns the absolute path to the mounted layered filesystem.
-	Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (dir string, err error)
+	Get(id string, options MountOpts) (dir string, err error)
 	// Put releases the system resources for the specified id,
 	// e.g, unmounting layered filesystem.
 	Put(id string) error

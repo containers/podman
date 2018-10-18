@@ -163,7 +163,7 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get mounts a device with given id into the root filesystem
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
 	mp := path.Join(d.home, "mnt", id)
@@ -189,7 +189,7 @@ func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (s
 	}
 
 	// Mount the device
-	if err := d.DeviceSet.MountDevice(id, mp, mountLabel); err != nil {
+	if err := d.DeviceSet.MountDevice(id, mp, options.MountLabel); err != nil {
 		d.ctr.Decrement(mp)
 		return "", err
 	}
