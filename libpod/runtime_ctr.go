@@ -11,7 +11,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -329,10 +328,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 	}
 
-	if r.config.EnableLabeling {
-		label.ReleaseLabel(c.ProcessLabel())
-		r.reserveLabels()
-	}
 	// Delete the container.
 	// Not needed in Configured and Exited states, where the container
 	// doesn't exist in the runtime
@@ -466,29 +461,4 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
-}
-
-// reserveLabels walks the list o fcontainers and reserves the label, so new containers will not
-// get them.
-// TODO Performance wise this should only run if the state has changed since the last time it was run.
-func (r *Runtime) reserveLabels() error {
-	containers, err := r.state.AllContainers()
-	if err != nil {
-		return err
-	}
-	for _, ctr := range containers {
-		label.ReserveLabel(ctr.ProcessLabel())
-	}
-	return nil
-}
-
-// initLabels allocates an new label to return to the caller
-func (r *Runtime) initLabels(labelOpts []string) (string, string, error) {
-	if !r.config.EnableLabeling {
-		return "", "", nil
-	}
-	if err := r.reserveLabels(); err != nil {
-		return "", "", errors.Wrapf(err, "unable to reserve labels")
-	}
-	return label.InitLabels(labelOpts)
 }

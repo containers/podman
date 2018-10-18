@@ -79,9 +79,9 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		Name:            config.Name,
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,
+		ProcessLabel:    config.ProcessLabel,
 		EffectiveCaps:   spec.Process.Capabilities.Effective,
 		BoundingCaps:    spec.Process.Capabilities.Bounding,
-		ProcessLabel:    spec.Process.SelinuxLabel,
 		AppArmorProfile: spec.Process.ApparmorProfile,
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
@@ -93,6 +93,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 			HairpinMode:            false, // TODO
 			LinkLocalIPv6Address:   "",    // TODO - do we even support IPv6?
 			LinkLocalIPv6PrefixLen: 0,     // TODO - do we even support IPv6?
+
 			Ports:                  []ocicni.PortMapping{}, // TODO - maybe worth it to put this in Docker format?
 			SandboxKey:             "",                     // Network namespace path
 			SecondaryIPAddresses:   nil,                    // TODO - do we support this?

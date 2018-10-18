@@ -243,6 +243,8 @@ type ContainerConfig struct {
 	ProcessLabel string `json:"ProcessLabel,omitempty"`
 	// SELinux mount label for root filesystem
 	MountLabel string `json:"MountLabel,omitempty"`
+	// LabelOpts are options passed in by the user to setup SELinux labels
+	LabelOpts []string `json:"labelopts,omitempty"`
 	// User and group to use in the container
 	// Can be specified by name or UID/GID
 	User string `json:"user,omitempty"`

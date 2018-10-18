@@ -194,12 +194,18 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
-	var options *storage.ContainerOptions
-	if c.config.Rootfs == "" {
-		options = &storage.ContainerOptions{c.config.IDMappings}
-
+	options := storage.ContainerOptions{
+		IDMappingOptions: storage.IDMappingOptions{
+			HostUIDMapping: true,
+			HostGIDMapping: true,
+		},
+		LabelOpts: c.config.LabelOpts,
 	}
-	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, c.config.MountLabel, options)
+
+	if c.config.Rootfs == "" {
+		options.IDMappingOptions = c.config.IDMappings
+	}
+	containerInfo, err := c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
 	if err != nil {
 		return errors.Wrapf(err, "error creating container storage")
 	}
@@ -225,6 +231,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		}
 	}
 
+	c.config.ProcessLabel = containerInfo.ProcessLabel
+	c.config.MountLabel = containerInfo.MountLabel
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
 	c.state.DestinationRunDir = c.state.RunDir
