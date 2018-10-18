@@ -508,7 +508,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Set up a firewall backend
 	backendType := ""
-	if os.Geteuid() != 0 {
+	if rootless.IsRootless() {
 		backendType = "none"
 	}
 	fwBackend, err := firewall.GetBackend(backendType)
