@@ -12,6 +12,7 @@ required: true
 timeout: 90m
 
 tests:
+  - rpm-ostree usroverlay && rpm -Uvh https://kojipkgs.fedoraproject.org//packages/podman/0.10.1/1.gite4a1553.fc28/x86_64/podman-0.10.1-1.gite4a1553.fc28.x86_64.rpm
   - CONTAINER_RUNTIME="podman" sh .papr_prepare.sh
 
 artifacts:
