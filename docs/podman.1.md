@@ -73,7 +73,7 @@ Print the version
 
 ## Exit Status
 
-The exit code from `podman gives information about why the container
+The exit code from `podman` gives information about why the container
 failed to run or why it exited.  When `podman` commands exit with a non-zero code,
 the exit codes follow the `chroot` standard, see below:
 
