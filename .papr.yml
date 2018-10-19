@@ -133,42 +133,42 @@ required: false
 timeout: 90m
 context: "Fedora 28 Cloud"
 
-#---
-#
-#host:
-#    distro: fedora/29/cloud/pungi
-#    specs:
-#        ram: 8192
-#        cpus: 4
-#packages:
-#    - btrfs-progs-devel
-#    - glib2-devel
-#    - glibc-devel
-#    - glibc-static
-#    - git
-#    - go-md2man
-#    - gpgme-devel
-#    - libassuan-devel
-#    - libgpg-error-devel
-#    - libseccomp-devel
-#    - libselinux-devel
-#    - ostree-devel
-#    - pkgconfig
-#    - make
-#    - nc
-#    - go-compilers-golang-compiler
-#    - podman
-#    - python3-varlink
-#    - python3-dateutil
-#    - python3-psutil
-#    - container-selinux
-#
-#tests:
-#    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
-#    - dnf -y reinstall container-selinux
-#    - sh .papr.sh -b -i -t
-#
-#required: false
-#
-#timeout: 90m
-#context: "Fedora 29 Cloud"
+---
+
+host:
+    distro: fedora/29/cloud/pungi
+    specs:
+        ram: 8192
+        cpus: 4
+packages:
+    - btrfs-progs-devel
+    - glib2-devel
+    - glibc-devel
+    - glibc-static
+    - git
+    - go-md2man
+    - gpgme-devel
+    - libassuan-devel
+    - libgpg-error-devel
+    - libseccomp-devel
+    - libselinux-devel
+    - ostree-devel
+    - pkgconfig
+    - make
+    - nc
+    - go-compilers-golang-compiler
+    - podman
+    - python3-varlink
+    - python3-dateutil
+    - python3-psutil
+    - container-selinux
+
+tests:
+    - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
+    - dnf -y reinstall container-selinux
+    - sh .papr.sh -b -i -t
+
+required: false
+
+timeout: 90m
+context: "Fedora 29 Cloud"
