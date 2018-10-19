@@ -679,7 +679,7 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	// Container should clean itself up
-	return nil
+	return c.save()
 }
 
 // Internal, non-locking function to pause a container
