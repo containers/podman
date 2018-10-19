@@ -685,7 +685,7 @@ func (c *Container) Sync() error {
 		(c.state.State != ContainerStateConfigured) {
 		oldState := c.state.State
 		// TODO: optionally replace this with a stat for the exit file
-		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		if err := c.runtime.ociRuntime.updateContainerStatus(c, true); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed
