@@ -44,7 +44,7 @@ func logoutCmd(c *cli.Context) error {
 	}
 	var server string
 	if len(args) == 1 {
-		server = args[0]
+		server = scrubServer(args[0])
 	}
 	authfile := getAuthFile(c.String("authfile"))
 
@@ -54,14 +54,14 @@ func logoutCmd(c *cli.Context) error {
 		if err := config.RemoveAllAuthentication(sc); err != nil {
 			return err
 		}
-		fmt.Println("Remove login credentials for all registries")
+		fmt.Println("Removed login credentials for all registries")
 		return nil
 	}
 
 	err := config.RemoveAuthentication(sc, server)
 	switch err {
 	case nil:
-		fmt.Printf("Remove login credentials for %s\n", server)
+		fmt.Printf("Removed login credentials for %s\n", server)
 		return nil
 	case config.ErrNotLoggedIn:
 		return errors.Errorf("Not logged into %s\n", server)
