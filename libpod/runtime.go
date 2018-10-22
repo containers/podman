@@ -1,13 +1,11 @@
 package libpod
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
-	"syscall"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
@@ -17,6 +15,7 @@ import (
 	"github.com/containers/libpod/pkg/hooks"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/namesgenerator"
@@ -215,46 +214,12 @@ var (
 	}
 )
 
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-	if runtimeDir == "" {
-		tmpDir := filepath.Join("/run", "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		tmpDir := filepath.Join(os.TempDir(), "user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-		}
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		runtimeDir = filepath.Join(resolvedHome, "rundir")
-	}
-	return runtimeDir, nil
-}
-
 func getDefaultTmpDir() (string, error) {
 	if !rootless.IsRootless() {
 		return "/var/run/libpod", nil
 	}
 
-	rootlessRuntimeDir, err := GetRootlessRuntimeDir()
+	rootlessRuntimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
 		return "", err
 	}
@@ -269,7 +234,7 @@ func SetXdgRuntimeDir(val string) error {
 	}
 	if val == "" {
 		var err error
-		val, err = GetRootlessRuntimeDir()
+		val, err = util.GetRootlessRuntimeDir()
 		if err != nil {
 			return err
 		}
@@ -309,7 +274,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			foundConfig = false
 		}
 
-		runtimeDir, err := GetRootlessRuntimeDir()
+		runtimeDir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
 			return nil, err
 		}

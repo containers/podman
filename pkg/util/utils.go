@@ -3,10 +3,13 @@ package util
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -209,4 +212,83 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 		options.HostGIDMapping = false
 	}
 	return &options, nil
+}
+
+// GetRootlessRuntimeDir returns the runtime directory when running as non root
+func GetRootlessRuntimeDir() (string, error) {
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
+	if runtimeDir == "" {
+		tmpDir := filepath.Join("/run", "user", uid)
+		os.MkdirAll(tmpDir, 0700)
+		st, err := os.Stat(tmpDir)
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+			runtimeDir = tmpDir
+		}
+	}
+	if runtimeDir == "" {
+		tmpDir := filepath.Join(os.TempDir(), "user", uid)
+		os.MkdirAll(tmpDir, 0700)
+		st, err := os.Stat(tmpDir)
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+			runtimeDir = tmpDir
+		}
+	}
+	if runtimeDir == "" {
+		home := os.Getenv("HOME")
+		if home == "" {
+			return "", fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+		}
+		resolvedHome, err := filepath.EvalSymlinks(home)
+		if err != nil {
+			return "", errors.Wrapf(err, "cannot resolve %s", home)
+		}
+		runtimeDir = filepath.Join(resolvedHome, "rundir")
+	}
+	return runtimeDir, nil
+}
+
+func GetRootlessStorageOpts() (storage.StoreOptions, error) {
+	var opts storage.StoreOptions
+
+	rootlessRuntime, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return opts, err
+	}
+	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
+
+	dataDir := os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
+		home := os.Getenv("HOME")
+		if home == "" {
+			return opts, fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
+		}
+		// runc doesn't like symlinks in the rootfs path, and at least
+		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
+		resolvedHome, err := filepath.EvalSymlinks(home)
+		if err != nil {
+			return opts, errors.Wrapf(err, "cannot resolve %s", home)
+		}
+		dataDir = filepath.Join(resolvedHome, ".local", "share")
+	}
+	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	opts.GraphDriverName = "vfs"
+	return opts, nil
+}
+
+func GetDefaultStoreOptions() (storage.StoreOptions, error) {
+	storageOpts := storage.DefaultStoreOptions
+	if rootless.IsRootless() {
+		var err error
+		storageOpts, err = GetRootlessStorageOpts()
+		if err != nil {
+			return storageOpts, err
+		}
+
+		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+		if _, err := os.Stat(storageConf); err == nil {
+			storage.ReloadConfigurationFile(storageConf, &storageOpts)
+		}
+	}
+	return storageOpts, nil
 }

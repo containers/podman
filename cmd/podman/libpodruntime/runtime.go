@@ -1,21 +1,16 @@
 package libpodruntime
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts, err := GetDefaultStoreOptions()
+	storageOpts, err := util.GetDefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -28,58 +23,13 @@ func GetContainerRuntime(c *cli.Context) (*libpod.Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	storageOpts, err := GetDefaultStoreOptions()
+	storageOpts, err := util.GetDefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
 	storageOpts.UIDMap = mappings.UIDMap
 	storageOpts.GIDMap = mappings.GIDMap
 	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-func GetRootlessStorageOpts() (storage.StoreOptions, error) {
-	var opts storage.StoreOptions
-
-	rootlessRuntime, err := libpod.GetRootlessRuntimeDir()
-	if err != nil {
-		return opts, err
-	}
-	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return opts, fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return opts, errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	opts.GraphDriverName = "vfs"
-	return opts, nil
-}
-
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		var err error
-		storageOpts, err = GetRootlessStorageOpts()
-		if err != nil {
-			return storageOpts, err
-		}
-
-		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
-		if _, err := os.Stat(storageConf); err == nil {
-			storage.ReloadConfigurationFile(storageConf, &storageOpts)
-		}
-	}
-	return storageOpts, nil
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
