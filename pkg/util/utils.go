@@ -248,6 +248,7 @@ func GetRootlessRuntimeDir() (string, error) {
 	return runtimeDir, nil
 }
 
+// GetRootlessStorageOpts returns the storage ops for containers running as non root
 func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	var opts storage.StoreOptions
 
@@ -276,6 +277,7 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	return opts, nil
 }
 
+// GetDefaultStoreOptions returns the storage ops for containers
 func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 	storageOpts := storage.DefaultStoreOptions
 	if rootless.IsRootless() {

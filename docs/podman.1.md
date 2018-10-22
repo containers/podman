@@ -42,11 +42,13 @@ When namespace is set, created containers and pods will join the given namespace
 
 **--root**=**value**
 
-Path to the root directory in which data, including images, is stored
+Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
+Default root dir is configured in /etc/containers/storage.conf.
 
 **--runroot**=**value**
 
-Path to the 'run directory' where all state information is stored
+Storage state directory where all state information is stored (default: "/var/run/containers/storage" for UID 0, "/var/run/user/$UID/run" for other users).
+Default state dir is configured in /etc/containers/storage.conf.
 
 **--runtime**=**value**
 
