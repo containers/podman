@@ -31,12 +31,6 @@ var _ = Describe("Podman stats", func() {
 		GinkgoWriter.Write([]byte(timedResult))
 	})
 
-	It("podman stats should run with no containers", func() {
-		session := podmanTest.Podman([]string{"stats", "--no-stream"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-	})
-
 	It("podman stats with bogus container", func() {
 		session := podmanTest.Podman([]string{"stats", "--no-stream", "123"})
 		session.WaitWithDefaultTimeout()
@@ -49,15 +43,6 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"stats", "--no-stream", cid})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-	})
-
-	It("podman stats on a running container no id", func() {
-		session := podmanTest.RunTopContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -75,7 +60,7 @@ var _ = Describe("Podman stats", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "\"{{.Container}}\""})
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.Container}}\""})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -84,7 +69,7 @@ var _ = Describe("Podman stats", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--no-stream", "--format", "json"})
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
