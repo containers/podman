@@ -211,6 +211,11 @@ func main() {
 			Value:  hooks.DefaultDir,
 			Hidden: true,
 		},
+		cli.IntFlag{
+			Name:   "max-workers",
+			Usage:  "the maximum number of workers for parallel operations",
+			Hidden: true,
+		},
 		cli.StringFlag{
 			Name:  "log-level",
 			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",

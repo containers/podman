@@ -3,10 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	gosignal "os/signal"
-	"sync"
-
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
@@ -15,6 +11,8 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/tools/remotecommand"
+	"os"
+	gosignal "os/signal"
 )
 
 type RawTtyFormatter struct {
@@ -208,64 +206,4 @@ func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error
 		pods = append(pods, pod)
 	}
 	return pods, lastError
-}
-
-type pFunc func() error
-
-type workerInput struct {
-	containerID  string
-	parallelFunc pFunc
-}
-
-type containerError struct {
-	containerID string
-	err         error
-}
-
-// worker is a "threaded" worker that takes jobs from the channel "queue"
-func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results chan<- containerError) {
-	for j := range jobs {
-		err := j.parallelFunc()
-		results <- containerError{containerID: j.containerID, err: err}
-		wg.Done()
-	}
-}
-
-// parallelExecuteWorkerPool takes container jobs and performs them in parallel.  The worker
-// int is determines how many workers/threads should be premade.
-func parallelExecuteWorkerPool(workers int, functions []workerInput) map[string]error {
-	var (
-		wg sync.WaitGroup
-	)
-
-	resultChan := make(chan containerError, len(functions))
-	results := make(map[string]error)
-	paraJobs := make(chan workerInput, len(functions))
-
-	// If we have more workers than functions, match up the number of workers and functions
-	if workers > len(functions) {
-		workers = len(functions)
-	}
-
-	// Create the workers
-	for w := 1; w <= workers; w++ {
-		go worker(&wg, paraJobs, resultChan)
-	}
-
-	// Add jobs to the workers
-	for _, j := range functions {
-		j := j
-		wg.Add(1)
-		paraJobs <- j
-	}
-
-	close(paraJobs)
-	wg.Wait()
-
-	close(resultChan)
-	for ctrError := range resultChan {
-		results[ctrError.containerID] = ctrError.err
-	}
-
-	return results
 }

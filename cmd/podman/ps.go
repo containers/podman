@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -300,7 +301,13 @@ func psCmd(c *cli.Context) error {
 		outputContainers = []*libpod.Container{latestCtr}
 	}
 
-	pss := shared.PBatch(outputContainers, 8, opts)
+	maxWorkers := shared.Parallelize("ps")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	pss := shared.PBatch(outputContainers, maxWorkers, opts)
 	if opts.Sort != "" {
 		pss, err = sortPsOutput(opts.Sort, pss)
 		if err != nil {
