@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -418,7 +419,12 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	ch := make(chan syncStruct)
 	go func() {
 		var si *syncInfo
-		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
+		rdr := bufio.NewReader(parentPipe)
+		b, err := rdr.ReadBytes('\n')
+		if err != nil {
+			ch <- syncStruct{err: err}
+		}
+		if err := json.Unmarshal(b, &si); err != nil {
 			ch <- syncStruct{err: err}
 			return
 		}
