@@ -198,6 +198,11 @@ func readKVStrings(env map[string]string, files []string, override []string) err
 func parseEnv(env map[string]string, line string) error {
 	data := strings.SplitN(line, "=", 2)
 
+	// catch invalid variables such as "=" or "=A"
+	if data[0] == "" {
+		return errors.Errorf("invalid environment variable: %q", line)
+	}
+
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)
 	if strings.ContainsAny(name, whiteSpaces) {
@@ -208,10 +213,7 @@ func parseEnv(env map[string]string, line string) error {
 		env[name] = data[1]
 	} else {
 		// if only a pass-through variable is given, clean it up.
-		val, exists := os.LookupEnv(name)
-		if !exists {
-			return errors.Errorf("environment variable %q does not exist", name)
-		}
+		val, _ := os.LookupEnv(name)
 		env[name] = val
 	}
 	return nil
