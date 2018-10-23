@@ -409,6 +409,13 @@ func NewContext(label string) Context {
 	return c
 }
 
+// ClearLabels clears all reserved labels
+func ClearLabels() {
+	state.Lock()
+	state.mcsList = make(map[string]bool)
+	state.Unlock()
+}
+
 // ReserveLabel reserves the MLS/MCS level component of the specified label
 func ReserveLabel(label string) {
 	if len(label) != 0 {

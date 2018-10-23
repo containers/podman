@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 )
 
@@ -251,6 +252,8 @@ type Store interface {
 
 	// Mount attempts to mount a layer, image, or container for access, and
 	// returns the pathname if it succeeds.
+	// Note if the mountLabel == "", the default label for the container
+	// will be used.
 	//
 	// Note that we do some of this work in a child process.  The calling
 	// process's main() function needs to import our pkg/reexec package and
@@ -497,6 +500,8 @@ type ContainerOptions struct {
 	// container's layer will inherit settings from the image's top layer
 	// or, if it is not being created based on an image, the Store object.
 	IDMappingOptions
+	LabelOpts []string
+	Flags     map[string]interface{}
 }
 
 type store struct {
@@ -1175,7 +1180,26 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			},
 		}
 	}
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, "", nil, layerOptions, true)
+	if options.Flags == nil {
+		options.Flags = make(map[string]interface{})
+	}
+	plabel, _ := options.Flags["ProcessLabel"].(string)
+	mlabel, _ := options.Flags["MountLabel"].(string)
+	if (plabel == "" && mlabel != "") ||
+		(plabel != "" && mlabel == "") {
+		return nil, errors.Errorf("ProcessLabel and Mountlabel must either not be specified or both specified")
+	}
+
+	if plabel == "" {
+		processLabel, mountLabel, err := label.InitLabels(options.LabelOpts)
+		if err != nil {
+			return nil, err
+		}
+		options.Flags["ProcessLabel"] = processLabel
+		options.Flags["MountLabel"] = mountLabel
+	}
+
+	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), nil, layerOptions, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1189,13 +1213,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if modified, err := rcstore.Modified(); modified || err != nil {
 		rcstore.Load()
 	}
-	options = &ContainerOptions{
-		IDMappingOptions: IDMappingOptions{
-			HostUIDMapping: len(options.UIDMap) == 0,
-			HostGIDMapping: len(options.GIDMap) == 0,
-			UIDMap:         copyIDMap(options.UIDMap),
-			GIDMap:         copyIDMap(options.GIDMap),
-		},
+	options.IDMappingOptions = IDMappingOptions{
+		HostUIDMapping: len(options.UIDMap) == 0,
+		HostGIDMapping: len(options.GIDMap) == 0,
+		UIDMap:         copyIDMap(options.UIDMap),
+		GIDMap:         copyIDMap(options.GIDMap),
 	}
 	container, err := rcstore.Create(id, names, imageID, layer, metadata, options)
 	if err != nil || container == nil {
@@ -2273,7 +2295,12 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 		rlstore.Load()
 	}
 	if rlstore.Exists(id) {
-		return rlstore.Mount(id, mountLabel, uidMap, gidMap)
+		options := drivers.MountOpts{
+			MountLabel: mountLabel,
+			UidMaps:    uidMap,
+			GidMaps:    gidMap,
+		}
+		return rlstore.Mount(id, options)
 	}
 	return "", ErrLayerUnknown
 }

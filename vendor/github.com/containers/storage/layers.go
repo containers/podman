@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -210,7 +211,7 @@ type LayerStore interface {
 	// layers, it should not be written to.  An SELinux label to be applied to the
 	// mount can be specified to override the one configured for the layer.
 	// The mappings used by the container can be specified.
-	Mount(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error)
+	Mount(id string, options drivers.MountOpts) (string, error)
 
 	// Unmount unmounts a layer when it is no longer in use.
 	Unmount(id string, force bool) (bool, error)
@@ -294,6 +295,9 @@ func (r *layerStore) Load() error {
 	mounts := make(map[string]*Layer)
 	compressedsums := make(map[digest.Digest][]string)
 	uncompressedsums := make(map[digest.Digest][]string)
+	if r.lockfile.IsReadWrite() {
+		label.ClearLabels()
+	}
 	if err = json.Unmarshal(data, &layers); len(data) == 0 || err == nil {
 		idlist = make([]string, 0, len(layers))
 		for n, layer := range layers {
@@ -311,6 +315,9 @@ func (r *layerStore) Load() error {
 			}
 			if layer.UncompressedDigest != "" {
 				uncompressedsums[layer.UncompressedDigest] = append(uncompressedsums[layer.UncompressedDigest], layer.ID)
+			}
+			if layer.MountLabel != "" {
+				label.ReserveLabel(layer.MountLabel)
 			}
 		}
 	}
@@ -552,6 +559,9 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	} else {
 		parentMappings = &idtools.IDMappings{}
 	}
+	if mountLabel != "" {
+		label.ReserveLabel(mountLabel)
+	}
 	idMappings := idtools.NewIDMappingsFromMaps(moreOptions.UIDMap, moreOptions.GIDMap)
 	opts := drivers.CreateOpts{
 		MountLabel: mountLabel,
@@ -649,7 +659,7 @@ func (r *layerStore) Mounted(id string) (int, error) {
 	return layer.MountCount, nil
 }
 
-func (r *layerStore) Mount(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error) {
 	if !r.IsReadWrite() {
 		return "", errors.Wrapf(ErrStoreIsReadOnly, "not allowed to update mount locations for layers at %q", r.mountspath())
 	}
@@ -661,16 +671,16 @@ func (r *layerStore) Mount(id, mountLabel string, uidMaps, gidMaps []idtools.IDM
 		layer.MountCount++
 		return layer.MountPoint, r.Save()
 	}
-	if mountLabel == "" {
-		mountLabel = layer.MountLabel
+	if options.MountLabel == "" {
+		options.MountLabel = layer.MountLabel
 	}
 
-	if (uidMaps != nil || gidMaps != nil) && !r.driver.SupportsShifting() {
-		if !reflect.DeepEqual(uidMaps, layer.UIDMap) || !reflect.DeepEqual(gidMaps, layer.GIDMap) {
+	if (options.UidMaps != nil || options.GidMaps != nil) && !r.driver.SupportsShifting() {
+		if !reflect.DeepEqual(options.UidMaps, layer.UIDMap) || !reflect.DeepEqual(options.GidMaps, layer.GIDMap) {
 			return "", fmt.Errorf("cannot mount layer %v: shifting not enabled", layer.ID)
 		}
 	}
-	mountpoint, err := r.driver.Get(id, mountLabel, uidMaps, gidMaps)
+	mountpoint, err := r.driver.Get(id, options)
 	if mountpoint != "" && err == nil {
 		if layer.MountPoint != "" {
 			delete(r.bymount, layer.MountPoint)
@@ -839,6 +849,7 @@ func (r *layerStore) Delete(id string) error {
 		os.Remove(r.tspath(id))
 		delete(r.byid, id)
 		r.idindex.Delete(id)
+		mountLabel := layer.MountLabel
 		if layer.MountPoint != "" {
 			delete(r.bymount, layer.MountPoint)
 		}
@@ -855,6 +866,18 @@ func (r *layerStore) Delete(id string) error {
 				r.layers = r.layers[:len(r.layers)-1]
 			} else {
 				r.layers = append(r.layers[:toDeleteIndex], r.layers[toDeleteIndex+1:]...)
+			}
+		}
+		if mountLabel != "" {
+			var found bool
+			for _, candidate := range r.layers {
+				if candidate.MountLabel == mountLabel {
+					found = true
+					break
+				}
+			}
+			if !found {
+				label.ReleaseLabel(mountLabel)
 			}
 		}
 		if err = r.Save(); err != nil {
@@ -957,7 +980,7 @@ func (r *layerStore) newFileGetter(id string) (drivers.FileGetCloser, error) {
 	if getter, ok := r.driver.(drivers.DiffGetterDriver); ok {
 		return getter.DiffGetter(id)
 	}
-	path, err := r.Mount(id, "", nil, nil)
+	path, err := r.Mount(id, drivers.MountOpts{})
 	if err != nil {
 		return nil, err
 	}

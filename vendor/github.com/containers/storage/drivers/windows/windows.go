@@ -362,9 +362,9 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the rootfs path for the id. This will mount the dir at its given path.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	panicIfUsedByLcow()
-	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, mountLabel)
+	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, options.MountLabel)
 	var dir string
 
 	rID, err := d.resolveID(id)
@@ -620,7 +620,7 @@ func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 		return
 	}
 
-	layerFs, err := d.Get(id, "", nil, nil)
+	layerFs, err := d.Get(id, graphdriver.MountOpts{})
 	if err != nil {
 		return
 	}

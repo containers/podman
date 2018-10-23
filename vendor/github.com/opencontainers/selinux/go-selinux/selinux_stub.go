@@ -107,6 +107,11 @@ func NewContext(label string) Context {
 	return c
 }
 
+// ClearLabels clears all reserved MLS/MCS levels
+func ClearLabels() {
+	return
+}
+
 // ReserveLabel reserves the MLS/MCS level component of the specified label
 func ReserveLabel(label string) {
 	return

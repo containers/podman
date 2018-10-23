@@ -51,7 +51,10 @@ func (gdw *NaiveDiffDriver) Diff(id string, idMappings *idtools.IDMappings, pare
 		parentMappings = &idtools.IDMappings{}
 	}
 
-	layerFs, err := driver.Get(id, mountLabel, nil, nil)
+	options := MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := driver.Get(id, options)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +81,7 @@ func (gdw *NaiveDiffDriver) Diff(id string, idMappings *idtools.IDMappings, pare
 		}), nil
 	}
 
-	parentFs, err := driver.Get(parent, mountLabel, nil, nil)
+	parentFs, err := driver.Get(parent, options)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +122,10 @@ func (gdw *NaiveDiffDriver) Changes(id string, idMappings *idtools.IDMappings, p
 		parentMappings = &idtools.IDMappings{}
 	}
 
-	layerFs, err := driver.Get(id, mountLabel, nil, nil)
+	options := MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := driver.Get(id, options)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +134,10 @@ func (gdw *NaiveDiffDriver) Changes(id string, idMappings *idtools.IDMappings, p
 	parentFs := ""
 
 	if parent != "" {
-		parentFs, err = driver.Get(parent, mountLabel, nil, nil)
+		options := MountOpts{
+			MountLabel: mountLabel,
+		}
+		parentFs, err = driver.Get(parent, options)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +158,10 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id string, applyMappings *idtools.IDMappin
 	}
 
 	// Mount the root filesystem so we can apply the diff/layer.
-	layerFs, err := driver.Get(id, mountLabel, nil, nil)
+	mountOpts := MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := driver.Get(id, mountOpts)
 	if err != nil {
 		return
 	}
@@ -189,7 +201,10 @@ func (gdw *NaiveDiffDriver) DiffSize(id string, idMappings *idtools.IDMappings, 
 		return
 	}
 
-	layerFs, err := driver.Get(id, mountLabel, nil, nil)
+	options := MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := driver.Get(id, options)
 	if err != nil {
 		return
 	}

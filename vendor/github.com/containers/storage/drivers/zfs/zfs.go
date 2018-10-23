@@ -360,15 +360,15 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the mountpoint for the given id after creating the target directories if necessary.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	mountpoint := d.mountPath(id)
 	if count := d.ctr.Increment(mountpoint); count > 1 {
 		return mountpoint, nil
 	}
 
 	filesystem := d.zfsPath(id)
-	options := label.FormatMountLabel(d.options.mountOptions, mountLabel)
-	logrus.Debugf(`[zfs] mount("%s", "%s", "%s")`, filesystem, mountpoint, options)
+	opts := label.FormatMountLabel(d.options.mountOptions, options.MountLabel)
+	logrus.Debugf(`[zfs] mount("%s", "%s", "%s")`, filesystem, mountpoint, opts)
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
 	if err != nil {
@@ -381,7 +381,7 @@ func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (s
 		return "", err
 	}
 
-	if err := mount.Mount(filesystem, mountpoint, "zfs", options); err != nil {
+	if err := mount.Mount(filesystem, mountpoint, "zfs", opts); err != nil {
 		d.ctr.Decrement(mountpoint)
 		return "", fmt.Errorf("error creating zfs mount of %s to %s: %v", filesystem, mountpoint, err)
 	}

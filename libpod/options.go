@@ -391,11 +391,7 @@ func WithSecLabels(labelOpts []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-		var err error
-		ctr.config.ProcessLabel, ctr.config.MountLabel, err = ctr.runtime.initLabels(labelOpts)
-		if err != nil {
-			return errors.Wrapf(err, "failed to init labels")
-		}
+		ctr.config.LabelOpts = labelOpts
 		return nil
 	}
 }
