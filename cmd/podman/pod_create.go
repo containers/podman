@@ -90,13 +90,17 @@ func podCreateCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	if c.IsSet("pod-id-file") {
-		if _, err = os.Stat(c.String("pod-id-file")); err == nil {
-			return errors.Errorf("pod id file exists. ensure another pod is not using it or delete %s", c.String("pod-id-file"))
+	var podIdFile *os.File
+	if c.IsSet("pod-id-file") && os.Geteuid() == 0 {
+		podIdFile, err = libpod.OpenExclusiveFile(c.String("pod-id-file"))
+		if err != nil && os.IsExist(err) {
+			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", c.String("pod-id-file"))
 		}
-		if err = libpod.WriteFile("", c.String("pod-id-file")); err != nil {
-			return errors.Wrapf(err, "unable to write pod id file %s", c.String("pod-id-file"))
+		if err != nil {
+			return errors.Errorf("error opening pod-id-file %s", c.String("pod-id-file"))
 		}
+		defer podIdFile.Close()
+		defer podIdFile.Sync()
 	}
 	if !c.BoolT("infra") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
 		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
@@ -137,8 +141,8 @@ func podCreateCmd(c *cli.Context) error {
 		return err
 	}
 
-	if c.IsSet("pod-id-file") {
-		err = libpod.WriteFile(pod.ID(), c.String("pod-id-file"))
+	if podIdFile != nil {
+		_, err = podIdFile.WriteString(pod.ID())
 		if err != nil {
 			logrus.Error(err)
 		}
