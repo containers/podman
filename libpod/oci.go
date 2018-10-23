@@ -378,6 +378,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		childPipe.Close()
 		return err
 	}
+	defer cmd.Wait()
 
 	// We don't need childPipe on the parent side
 	childPipe.Close()
@@ -478,6 +479,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container) error {
 		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
 	}
+	defer cmd.Wait()
 
 	errPipe.Close()
 	out, err := ioutil.ReadAll(outPipe)
