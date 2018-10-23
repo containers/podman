@@ -35,8 +35,11 @@ req_env_var() {
 # and useful variables.
 # ref: https://cirrus-ci.org/guide/writing-tasks/#environment-variables
 show_env_vars() {
+    # This is almost always multi-line, print it separately
+    echo "export CIRRUS_CHANGE_MESSAGE=$CIRRUS_CHANGE_MESSAGE"
     echo "
 BUILDTAGS $BUILDTAGS
+BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
 CI $CI
 CIRRUS_CI $CIRRUS_CI
 CI_NODE_INDEX $CI_NODE_INDEX
@@ -47,7 +50,6 @@ CIRRUS_BASE_SHA $CIRRUS_BASE_SHA
 CIRRUS_BRANCH $CIRRUS_BRANCH
 CIRRUS_BUILD_ID $CIRRUS_BUILD_ID
 CIRRUS_CHANGE_IN_REPO $CIRRUS_CHANGE_IN_REPO
-CIRRUS_CHANGE_MESSAGE $CIRRUS_CHANGE_MESSAGE
 CIRRUS_CLONE_DEPTH $CIRRUS_CLONE_DEPTH
 CIRRUS_DEFAULT_BRANCH $CIRRUS_DEFAULT_BRANCH
 CIRRUS_PR $CIRRUS_PR
@@ -66,6 +68,7 @@ CIRRUS_USER_PERMISSION $CIRRUS_USER_PERMISSION
 CIRRUS_WORKING_DIR $CIRRUS_WORKING_DIR
 CIRRUS_HTTP_CACHE_HOST $CIRRUS_HTTP_CACHE_HOST
 $(go env)
+PACKER_BUILDS $PACKER_BUILDS
     " | while read NAME VALUE
     do
         [[ -z "$NAME" ]] || echo "export $NAME=\"$VALUE\""
@@ -197,6 +200,21 @@ install_conmon(){
     ooe.sh git checkout -q "$CRIO_COMMIT"
     ooe.sh make
     sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
+}
+
+install_criu(){
+    echo "Installing CRIU from commit $CRIU_COMMIT"
+    req_env_var "
+    CRIU_COMMIT $CRIU_COMMIT
+    "
+    DEST="/tmp/criu"
+    rm -rf "$DEST"
+    ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
+    cd $DEST
+    ooe.sh git fetch origin --tags
+    ooe.sh git checkout -q "$CRIU_COMMIT"
+    ooe.sh make
+    sudo install -D -m 755  criu/criu /usr/sbin/
 }
 
 # Runs in testing VM, not image building
