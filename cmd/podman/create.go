@@ -95,15 +95,6 @@ func createInit(c *cli.Context) error {
 		return err
 	}
 
-	if c.String("cidfile") != "" {
-		if _, err := os.Stat(c.String("cidfile")); err == nil {
-			return errors.Errorf("container id file exists. ensure another container is not using it or delete %s", c.String("cidfile"))
-		}
-		if err := libpod.WriteFile("", c.String("cidfile")); err != nil {
-			return errors.Wrapf(err, "unable to write cidfile %s", c.String("cidfile"))
-		}
-	}
-
 	if len(c.Args()) < 1 {
 		return errors.Errorf("image name or ID is required")
 	}
@@ -117,6 +108,20 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	rootfs := ""
 	if c.Bool("rootfs") {
 		rootfs = c.Args()[0]
+	}
+
+	var err error
+	var cidFile *os.File
+	if c.IsSet("cidfile") && os.Geteuid() == 0 {
+		cidFile, err = libpod.OpenExclusiveFile(c.String("cidfile"))
+		if err != nil && os.IsExist(err) {
+			return nil, nil, errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", c.String("cidfile"))
+		}
+		if err != nil {
+			return nil, nil, errors.Errorf("error opening cidfile %s", c.String("cidfile"))
+		}
+		defer cidFile.Close()
+		defer cidFile.Sync()
 	}
 
 	imageName := ""
@@ -171,12 +176,14 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 		return nil, nil, err
 	}
 
-	if c.String("cidfile") != "" {
-		err := libpod.WriteFile(ctr.ID(), c.String("cidfile"))
+	if cidFile != nil {
+		_, err = cidFile.WriteString(ctr.ID())
 		if err != nil {
 			logrus.Error(err)
 		}
+
 	}
+
 	logrus.Debugf("New container created %q", ctr.ID())
 	return ctr, createConfig, nil
 }
