@@ -21,8 +21,6 @@ env:
     CRIO_COMMIT: "662dbb31b5d4f5ed54511a47cde7190c61c28677"
     CRIU_COMMIT: "584cbe4643c3fc7dc901ff08bf923ca0fe7326f9"
     RUNC_COMMIT: "ad0f5255060d36872be04de22f8731f38ef2d7b1"
-    # Enable debugging delay on test-failure if non-empty.
-    FLAKE_DEBUG_DELAY: 1
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -32,6 +30,7 @@ env:
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
     PACKER_BASE: "./contrib/cirrus/packer"
+    IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
 
 # Every *_task runs in parallel in separate VMs. The name prefix only for reference
 # in WebUI, and will be followed by matrix details.  This task does all the
@@ -63,6 +62,8 @@ full_vm_testing_task:
     unit_test_script: $SCRIPT_BASE/unit_test.sh
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
+
+    success_script: $SCRIPT_BASE/success.sh
 
 
 # This task build new images for future PR testing, but only after a PR merge.
