@@ -47,7 +47,6 @@ full_vm_testing_task:
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
             #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
-
     timeout_in: 120m
 
     # Every *_script runs in sequence, for each task. The name prefix is for
