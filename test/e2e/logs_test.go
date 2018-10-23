@@ -42,7 +42,7 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(4))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman logs tail two lines", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(3))
+		Expect(len(results.OutputToStringArray())).To(Equal(2))
 	})
 
 	It("podman logs tail 99 lines", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(4))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman logs tail 2 lines with timestamps", func() {
@@ -81,7 +81,7 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(3))
+		Expect(len(results.OutputToStringArray())).To(Equal(2))
 	})
 
 	It("podman logs latest with since time", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(4))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman logs latest with since duration", func() {
@@ -107,6 +107,6 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
-		Expect(len(results.OutputToStringArray())).To(Equal(4))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
 })

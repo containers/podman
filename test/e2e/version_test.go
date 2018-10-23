@@ -34,6 +34,6 @@ var _ = Describe("Podman version", func() {
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 3))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
 	})
 })

@@ -77,6 +77,6 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(len(check.OutputToStringArray())).To(Equal(0))
 	})
 })

@@ -2,11 +2,15 @@ package shared
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/libpod/libpod"
@@ -15,6 +19,11 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	cidTruncLength = 12
+	podTruncLength = 12
 )
 
 // PsOptions describes the struct being formed for ps
@@ -45,6 +54,35 @@ type BatchContainerStruct struct {
 	Size        *ContainerSize
 }
 
+// PsContainerOutput is the struct being returned from a parallel
+// Batch operation
+type PsContainerOutput struct {
+	ID        string
+	Image     string
+	Command   string
+	Created   string
+	Ports     string
+	Names     string
+	IsInfra   bool
+	Status    string
+	State     libpod.ContainerStatus
+	Pid       int
+	Size      *ContainerSize
+	Pod       string
+	CreatedAt time.Time
+	ExitedAt  time.Time
+	StartedAt time.Time
+	Labels    map[string]string
+	PID       string
+	Cgroup    string
+	IPC       string
+	MNT       string
+	NET       string
+	PIDNS     string
+	User      string
+	UTS       string
+}
+
 // Namespace describes output for ps namespace
 type Namespace struct {
 	PID    string `json:"pid,omitempty"`
@@ -62,6 +100,212 @@ type Namespace struct {
 type ContainerSize struct {
 	RootFsSize int64 `json:"rootFsSize"`
 	RwSize     int64 `json:"rwSize"`
+}
+
+// NewBatchContainer runs a batch process under one lock to get container information and only
+// be called in PBatch
+func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput, error) {
+	var (
+		conState  libpod.ContainerStatus
+		command   string
+		created   string
+		status    string
+		exitedAt  time.Time
+		startedAt time.Time
+		exitCode  int32
+		err       error
+		pid       int
+		size      *ContainerSize
+		ns        *Namespace
+		pso       PsContainerOutput
+	)
+	batchErr := ctr.Batch(func(c *libpod.Container) error {
+		conState, err = c.State()
+		if err != nil {
+			return errors.Wrapf(err, "unable to obtain container state")
+		}
+		command = strings.Join(c.Command(), " ")
+		created = units.HumanDuration(time.Since(c.CreatedTime())) + " ago"
+
+		exitCode, _, err = c.ExitCode()
+		if err != nil {
+			return errors.Wrapf(err, "unable to obtain container exit code")
+		}
+		startedAt, err = c.StartedTime()
+		if err != nil {
+			logrus.Errorf("error getting started time for %q: %v", c.ID(), err)
+		}
+		exitedAt, err = c.FinishedTime()
+		if err != nil {
+			logrus.Errorf("error getting exited time for %q: %v", c.ID(), err)
+		}
+		if opts.Namespace {
+			pid, err = c.PID()
+			if err != nil {
+				return errors.Wrapf(err, "unable to obtain container pid")
+			}
+			ns = GetNamespaces(pid)
+		}
+		if opts.Size {
+			size = new(ContainerSize)
+
+			rootFsSize, err := c.RootFsSize()
+			if err != nil {
+				logrus.Errorf("error getting root fs size for %q: %v", c.ID(), err)
+			}
+
+			rwSize, err := c.RWSize()
+			if err != nil {
+				logrus.Errorf("error getting rw size for %q: %v", c.ID(), err)
+			}
+
+			size.RootFsSize = rootFsSize
+			size.RwSize = rwSize
+		}
+
+		return nil
+	})
+
+	if batchErr != nil {
+		return pso, batchErr
+	}
+
+	switch conState.String() {
+	case libpod.ContainerStateExited.String():
+		fallthrough
+	case libpod.ContainerStateStopped.String():
+		exitedSince := units.HumanDuration(time.Since(exitedAt))
+		status = fmt.Sprintf("Exited (%d) %s ago", exitCode, exitedSince)
+	case libpod.ContainerStateRunning.String():
+		status = "Up " + units.HumanDuration(time.Since(startedAt)) + " ago"
+	case libpod.ContainerStatePaused.String():
+		status = "Paused"
+	case libpod.ContainerStateCreated.String(), libpod.ContainerStateConfigured.String():
+		status = "Created"
+	default:
+		status = "Error"
+	}
+
+	_, imageName := ctr.Image()
+	cid := ctr.ID()
+	pod := ctr.PodID()
+	if !opts.NoTrunc {
+		cid = cid[0:cidTruncLength]
+		if len(pod) > 12 {
+			pod = pod[0:podTruncLength]
+		}
+	}
+
+	pso.ID = cid
+	pso.Image = imageName
+	pso.Command = command
+	pso.Created = created
+	pso.Ports = portsToString(ctr.PortMappings())
+	pso.Names = ctr.Name()
+	pso.IsInfra = ctr.IsInfra()
+	pso.Status = status
+	pso.State = conState
+	pso.Pid = pid
+	pso.Size = size
+	pso.Pod = pod
+	pso.ExitedAt = exitedAt
+	pso.CreatedAt = ctr.CreatedTime()
+	pso.StartedAt = startedAt
+	pso.Labels = ctr.Labels()
+
+	if opts.Namespace {
+		pso.Cgroup = ns.Cgroup
+		pso.IPC = ns.IPC
+		pso.MNT = ns.MNT
+		pso.NET = ns.NET
+		pso.User = ns.User
+		pso.UTS = ns.UTS
+		pso.PIDNS = ns.PIDNS
+	}
+
+	return pso, nil
+}
+
+type pFunc func() (PsContainerOutput, error)
+
+type workerInput struct {
+	parallelFunc pFunc
+	opts         PsOptions
+	cid          string
+	job          int
+}
+
+// worker is a "threaded" worker that takes jobs from the channel "queue"
+func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results chan<- PsContainerOutput, errors chan<- error) {
+	for j := range jobs {
+		r, err := j.parallelFunc()
+		// If we find an error, we return just the error
+		if err != nil {
+			errors <- err
+		} else {
+			// Return the result
+			results <- r
+		}
+		wg.Done()
+	}
+}
+
+// PBatch is performs batch operations on a container in parallel. It spawns the number of workers
+// relative to the the number of parallel operations desired.
+func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsContainerOutput {
+	var (
+		wg        sync.WaitGroup
+		psResults []PsContainerOutput
+	)
+
+	// If the number of containers in question is less than the number of
+	// proposed parallel operations, we shouldnt spawn so many workers
+	if workers > len(containers) {
+		workers = len(containers)
+	}
+
+	jobs := make(chan workerInput, len(containers))
+	results := make(chan PsContainerOutput, len(containers))
+	batchErrors := make(chan error, len(containers))
+
+	// Create the workers
+	for w := 1; w <= workers; w++ {
+		go worker(&wg, jobs, results, batchErrors)
+	}
+
+	// Add jobs to the workers
+	for i, j := range containers {
+		j := j
+		wg.Add(1)
+		f := func() (PsContainerOutput, error) {
+			return NewBatchContainer(j, opts)
+		}
+		jobs <- workerInput{
+			parallelFunc: f,
+			opts:         opts,
+			cid:          j.ID(),
+			job:          i,
+		}
+	}
+	close(jobs)
+	wg.Wait()
+	close(results)
+	close(batchErrors)
+	for err := range batchErrors {
+		logrus.Errorf("unable to get container info: %q", err)
+	}
+	for res := range results {
+		// We sort out running vs non-running here to save lots of copying
+		// later.
+		if !opts.All && !opts.Latest && opts.Last < 1 {
+			if !res.IsInfra && res.State == libpod.ContainerStateRunning {
+				psResults = append(psResults, res)
+			}
+		} else {
+			psResults = append(psResults, res)
+		}
+	}
+	return psResults
 }
 
 // BatchContainer is used in ps to reduce performance hits by "batching"
@@ -324,4 +568,20 @@ func getCgroup(spec *specs.Spec) string {
 		}
 	}
 	return cgroup
+}
+
+// portsToString converts the ports used to a string of the from "port1, port2"
+func portsToString(ports []ocicni.PortMapping) string {
+	var portDisplay []string
+	if len(ports) == 0 {
+		return ""
+	}
+	for _, v := range ports {
+		hostIP := v.HostIP
+		if hostIP == "" {
+			hostIP = "0.0.0.0"
+		}
+		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+	}
+	return strings.Join(portDisplay, ", ")
 }
