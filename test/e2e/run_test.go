@@ -577,6 +577,7 @@ USER mail`
 	})
 
 	It("podman run findmnt nothing shared", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).To(BeNil())
@@ -592,6 +593,7 @@ USER mail`
 	})
 
 	It("podman run findmnt shared", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).To(BeNil())
