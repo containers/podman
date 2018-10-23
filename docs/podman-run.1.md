@@ -182,7 +182,7 @@ Override the key sequence for detaching a container. Format is a single characte
 
 **--device**=[]
 
-Add a host device to the container (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
+Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
 
 **--device-read-bps**=[]
 
