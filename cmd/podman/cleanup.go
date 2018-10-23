@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -44,43 +43,14 @@ func cleanupCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
+	if err := checkAllAndLatest(c); err != nil {
+		return err
+	}
+
+	cleanupContainers, lastError := getAllOrLatestContainers(c, runtime, -1, "all")
 
 	ctx := getContext()
 
-	var lastError error
-	var cleanupContainers []*libpod.Container
-	if c.Bool("all") {
-		if c.Bool("lastest") {
-			return errors.New("--all and --latest cannot be used together")
-		}
-		if len(args) != 0 {
-			return errors.New("--all and explicit container IDs cannot be used together")
-		}
-		cleanupContainers, err = runtime.GetContainers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get container list")
-		}
-	} else if c.Bool("latest") {
-		if len(args) != 0 {
-			return errors.New("--latest and explicit container IDs cannot be used together")
-		}
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
-		}
-		cleanupContainers = append(cleanupContainers, lastCtr)
-	} else {
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			cleanupContainers = append(cleanupContainers, container)
-		}
-	}
 	for _, ctr := range cleanupContainers {
 		if err = ctr.Cleanup(ctx); err != nil {
 			if lastError != nil {

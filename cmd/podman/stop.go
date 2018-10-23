@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	rt "runtime"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -44,16 +43,11 @@ var (
 )
 
 func stopCmd(c *cli.Context) error {
-	args := c.Args()
-	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
-		return errors.Errorf("no arguments are needed with --all or --latest")
+
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
-	if c.Bool("all") && c.Bool("latest") {
-		return errors.Errorf("--all and --latest cannot be used together")
-	}
-	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("you must provide at least one container name or id")
-	}
+
 	if err := validateFlags(c, stopFlags); err != nil {
 		return err
 	}
@@ -65,39 +59,7 @@ func stopCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var filterFuncs []libpod.ContainerFilter
-	var containers []*libpod.Container
-	var lastError error
-
-	if c.Bool("all") {
-		// only get running containers
-		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-			state, _ := c.State()
-			return state == libpod.ContainerStateRunning
-		})
-		containers, err = runtime.GetContainers(filterFuncs...)
-		if err != nil {
-			return errors.Wrapf(err, "unable to get running containers")
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get last created container")
-		}
-		containers = append(containers, lastCtr)
-	} else {
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				if lastError != nil {
-					fmt.Fprintln(os.Stderr, lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			containers = append(containers, container)
-		}
-	}
+	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 
 	var stopFuncs []workerInput
 	for _, ctr := range containers {

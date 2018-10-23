@@ -89,6 +89,73 @@ func validateFlags(c *cli.Context, flags []cli.Flag) error {
 	return nil
 }
 
+// checkAllAndLatest checks that --all and --latest are used correctly
+func checkAllAndLatest(c *cli.Context) error {
+	argLen := len(c.Args())
+	if (c.Bool("all") || c.Bool("latest")) && argLen > 0 {
+		return errors.Errorf("no arguments are needed with --all or --latest")
+	}
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+	if argLen < 1 && !c.Bool("all") && !c.Bool("latest") {
+		return errors.Errorf("you must provide at least one pod name or id")
+	}
+	return nil
+}
+
+// getAllOrLatestContainers tries to return the correct list of containers
+// depending if --all, --latest or <container-id> is used.
+// It requires the Context (c) and the Runtime (runtime). As different
+// commands are using different container state for the --all option
+// the desired state has to be specified in filterState. If no filter
+// is desired a -1 can be used to get all containers. For a better
+// error message, if the filter fails, a corresponding verb can be
+// specified which will then appear in the error message.
+func getAllOrLatestContainers(c *cli.Context, runtime *libpod.Runtime, filterState libpod.ContainerStatus, verb string) ([]*libpod.Container, error) {
+	var containers []*libpod.Container
+	var lastError error
+	var err error
+	if c.Bool("all") {
+		if filterState != -1 {
+			var filterFuncs []libpod.ContainerFilter
+			filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+				state, _ := c.State()
+				return state == filterState
+			})
+			containers, err = runtime.GetContainers(filterFuncs...)
+		} else {
+			containers, err = runtime.GetContainers()
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get %s containers", verb)
+		}
+	} else if c.Bool("latest") {
+		lastCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get latest container")
+		}
+		containers = append(containers, lastCtr)
+	} else {
+		args := c.Args()
+		for _, i := range args {
+			container, err := runtime.LookupContainer(i)
+			if err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = errors.Wrapf(err, "unable to find container %s", i)
+			}
+			if container != nil {
+				// This is here to make sure this does not return [<nil>] but only nil
+				containers = append(containers, container)
+			}
+		}
+	}
+
+	return containers, lastError
+}
+
 // getContext returns a non-nil, empty context
 func getContext() context.Context {
 	return context.TODO()
