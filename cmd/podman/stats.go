@@ -84,8 +84,7 @@ func statsCmd(c *cli.Context) error {
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
 	} else if ctr == 0 {
-		// If user didn't specify, imply --all
-		all = true
+		return errors.Errorf("you must specify --all, --latest, or at least one container")
 	}
 
 	runtime, err := libpodruntime.GetRuntime(c)
@@ -126,6 +125,10 @@ func statsCmd(c *cli.Context) error {
 	for _, ctr := range ctrs {
 		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
+			// when doing "all", dont worry about containers that are not running
+			if c.Bool("all") && errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+				continue
+			}
 			return err
 		}
 		containerStats[ctr.ID()] = initialStats
