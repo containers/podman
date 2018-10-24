@@ -131,6 +131,8 @@ $PODMAN varlink --timeout=0 ${PODMAN_HOST} >>/tmp/test_podman.output 2>&1 &
 if [[ $? != 0 ]]; then
   echo 1>&2 Failed to start podman
   showlog /tmp/test_podman.output
+  showlog /tmp/alpine.log
+  showlog /tmp/busybox.log
 fi
 
 if [[ -z $1 ]]; then
@@ -145,9 +147,5 @@ fi
 
 pkill -9 podman
 pkill -9 conmon
-
-showlog /tmp/test_podman.output
-showlog /tmp/alpine.log
-showlog /tmp/busybox.log
 
 exit $RETURNCODE
