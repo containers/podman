@@ -21,6 +21,8 @@ import (
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cyphar/filepath-securejoin"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -197,12 +199,28 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
 	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
-		groups, err := chrootuser.GetAdditionalGroupsForUser(c.state.Mountpoint, uint64(g.Config.Process.User.UID))
-		if err != nil && errors.Cause(err) != chrootuser.ErrNoSuchUser {
+		var groupDest, passwdDest string
+		defaultExecUser := user.ExecUser{
+			Uid:  0,
+			Gid:  0,
+			Home: "/",
+		}
+
+		// Make sure the /etc/group  and /etc/passwd destinations are not a symlink to something naughty
+		if groupDest, err = securejoin.SecureJoin(c.state.Mountpoint, "/etc/group"); err != nil {
+			logrus.Debug(err)
 			return nil, err
 		}
-		for _, gid := range groups {
-			g.AddProcessAdditionalGid(gid)
+		if passwdDest, err = securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd"); err != nil {
+			logrus.Debug(err)
+			return nil, err
+		}
+		execUser, err := user.GetExecUserPath(c.config.User, &defaultExecUser, passwdDest, groupDest)
+		if err != nil {
+			return nil, err
+		}
+		for _, gid := range execUser.Sgids {
+			g.AddProcessAdditionalGid(uint32(gid))
 		}
 	}
 
