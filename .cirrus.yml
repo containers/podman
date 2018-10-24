@@ -9,9 +9,9 @@ gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830
 gce_instance:
     image_project: "libpod-218412"
     zone: "us-central1-a"  # Required by Cirrus for the time being
-    cpu: 2
-    memory: "4Gb"
-    disk: 40
+    cpu: 1
+    memory: "2Gb"
+    disk: 20
 
 # Main collection of env. varss to set for all scripts. All others
 # are cooked in by $SCRIPT_BASE/setup_environment.sh
@@ -47,79 +47,10 @@ full_vm_testing_task:
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
             #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
-    timeout_in: 120m
+    timeout_in: '555m'
 
     # Every *_script runs in sequence, for each task. The name prefix is for
     # WebUI reference.  The values may be strings...
     setup_environment_script: $SCRIPT_BASE/setup_environment.sh
 
-    # ...or lists of strings
-    verify_source_script:
-        - whoami  # root!
-        - $SCRIPT_BASE/verify_source.sh
-
-    unit_test_script: $SCRIPT_BASE/unit_test.sh
-
     integration_test_script: $SCRIPT_BASE/integration_test.sh
-
-    success_script: $SCRIPT_BASE/success.sh
-
-
-# This task build new images for future PR testing, but only after a PR merge.
-# These images save needing to install/setup the same environment to test every
-# PR.  The 'active' image for testing is selected by the 'image_name' items in
-# task above.  Currently this requires manually updating them, but this could
-# be automated (see comment at end).
-
-build_vm_images_task:
-    # Only produce new images after a PR merge
-    only_if: $CIRRUS_BRANCH == 'master'
-
-    # Require tests to pass first.
-    depends_on:
-        - test  # i.e. 'test_task'
-
-    env:
-        # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
-        PACKER_BUILDS: "ubuntu-18"
-        # TODO: Make these work (also full_vm_testing_task above)
-        # PACKER_BUILDS: "rhel-7,centos-7,fedora-28,ubuntu-18"
-        CENTOS_BASE_IMAGE: "centos-7-v20180911"
-        RHEL_BASE_IMAGE: "rhel-server-ec2-7-5-165-1"
-        FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-7"
-        UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20180911"
-        # low-level base VM image name inputs to packer
-
-        # Command to register a RHEL VM
-        RHSM_COMMAND: ENCRYPTED[5caa5ff8c5370c3d25c7a1a28168501ab0fa2e5e3b627926f6eaba02b3fed965a7638a6151657809661f8c905c7dc187]
-        # Additional environment variables needed to build GCE images, within a GCE VM
-        SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
-        GCE_SSH_USERNAME: ENCRYPTED[a7706b9e4b8bbb47f76358df7407f4fffa2e8552531190cc0b3315180c4b50588f560c4f85731e99cb5f43a396778277]
-        GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-        # Version of packer to use
-        PACKER_VER: "1.3.1"
-
-
-    gce_instance:
-        image_name: "image-builder-image"  # Simply CentOS 7 + packer dependencies
-        # Additional permissions for building GCE images, within a GCE VM
-        scopes:
-            - compute
-            - devstorage.full_control
-        # Doesn't need many local resources to run
-        cpu: 2
-        memory: "2Gb"
-        disk: 20
-    environment_script: $SCRIPT_BASE/setup_environment.sh
-    build_vm_images_script: $SCRIPT_BASE/build_vm_images.sh
-
-    # TODO,Continuous Delivery: Automaticly open a libpod PR after using 'sed' to replace
-    #                           the image_names with the new (just build) images.  That will
-    #                           cause a new round of testing to happen (via the PR) using
-    #                           the new images.  When all is good, the PR may be manually
-    #                           merged so all PR testing uses the new images.  The script
-    #                           names (below) describe their purpose in this workflow.
-    # deploy_images_script:
-    #   - clone_podman_release_branch.sh
-    #   - modify_cirrus_yaml_image_names.sh
-    #   - commit_and_create_upstream_pr.sh
