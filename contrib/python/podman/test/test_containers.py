@@ -220,7 +220,7 @@ class TestContainers(PodmanTestCase):
         self.assertTrue(ctnr.status, 'running')
 
     # creating cgoups can be flakey
-    @retry(podman.libs.errors.ErrorOccurred, tries=4, delay=2, print_=print)
+    #@retry(podman.libs.errors.ErrorOccurred, tries=4, delay=2, print_=print)
     def test_stats(self):
         try:
             self.assertTrue(self.alpine_ctnr.running)
