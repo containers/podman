@@ -184,7 +184,7 @@ func buildCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "error building system context")
 	}
-
+	systemContext.AuthFilePath = getAuthFile(c.String("authfile"))
 	commonOpts, err := parse.CommonBuildOptions(c)
 	if err != nil {
 		return err
