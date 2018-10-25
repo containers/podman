@@ -56,6 +56,7 @@ var _ = Describe("Podman rootless", func() {
 		commands := []string{"help", "version"}
 		for _, v := range commands {
 			env := os.Environ()
+			env = append(env, "USER=foo")
 			cmd := podmanTest.PodmanAsUser([]string{v}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
@@ -122,6 +123,7 @@ var _ = Describe("Podman rootless", func() {
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
 			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+			env = append(env, "USER=foo")
 
 			cmd := rootlessTest.PodmanAsUser([]string{"pod", "create", "--infra=false"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
@@ -152,6 +154,7 @@ var _ = Describe("Podman rootless", func() {
 		env := os.Environ()
 		env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 		env = append(env, fmt.Sprintf("HOME=%s", home))
+		env = append(env, "USER=foo")
 		cmd := podmanTest.PodmanAsUser([]string{"search", "docker.io/busybox"}, 1000, 1000, env)
 		cmd.WaitWithDefaultTimeout()
 		Expect(cmd.ExitCode()).To(Equal(0))
@@ -165,6 +168,7 @@ var _ = Describe("Podman rootless", func() {
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
 			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+			env = append(env, "USER=foo")
 
 			allArgs := append([]string{"run"}, args...)
 			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
