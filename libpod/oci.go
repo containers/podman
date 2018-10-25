@@ -441,6 +441,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 			}
 			return errors.Wrapf(ErrInternal, "container create failed")
 		}
+		ctr.state.PID = ss.si.Pid
 	case <-time.After(ContainerCreateTimeout):
 		return errors.Wrapf(ErrInternal, "container creation timeout")
 	}

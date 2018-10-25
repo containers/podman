@@ -734,11 +734,6 @@ func (c *Container) start() error {
 	}
 	logrus.Debugf("Started container %s", c.ID())
 
-	// We need to pick up full container state, including PID.
-	if err := c.runtime.ociRuntime.updateContainerStatus(c, true); err != nil {
-		return err
-	}
-
 	return c.save()
 }
 
