@@ -451,7 +451,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 // updateContainerStatus retrieves the current status of the container from the
 // runtime. It updates the container's state but does not save it.
 // If useRunc is false, we will not directly hit runc to see the container's
-// status, but will instead only check for the existance of the conmon exit file
+// status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
 func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
 	exitFile := ctr.exitFilePath()
