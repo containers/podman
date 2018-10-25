@@ -734,6 +734,8 @@ func (c *Container) start() error {
 	}
 	logrus.Debugf("Started container %s", c.ID())
 
+	c.state.State = ContainerStateRunning
+
 	return c.save()
 }
 
