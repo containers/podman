@@ -508,6 +508,8 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
 		}
 		if strings.Contains(string(out), "does not exist") {
 			ctr.removeConmonFiles()
+			ctr.state.ExitCode = -1
+			ctr.state.FinishedTime = time.Now()
 			ctr.state.State = ContainerStateExited
 			return nil
 		}
