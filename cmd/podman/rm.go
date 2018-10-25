@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	rt "runtime"
-
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -48,14 +48,13 @@ func rmCmd(c *cli.Context) error {
 	var (
 		delContainers []*libpod.Container
 		lastError     error
-		deleteFuncs   []workerInput
+		deleteFuncs   []shared.ParallelWorkerInput
 	)
 
 	ctx := getContext()
 	if err := validateFlags(c, rmFlags); err != nil {
 		return err
 	}
-
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -69,17 +68,23 @@ func rmCmd(c *cli.Context) error {
 	delContainers, lastError = getAllOrLatestContainers(c, runtime, -1, "all")
 
 	for _, container := range delContainers {
+		con := container
 		f := func() error {
-			return runtime.RemoveContainer(ctx, container, c.Bool("force"))
+			return runtime.RemoveContainer(ctx, con, c.Bool("force"))
 		}
 
-		deleteFuncs = append(deleteFuncs, workerInput{
-			containerID:  container.ID(),
-			parallelFunc: f,
+		deleteFuncs = append(deleteFuncs, shared.ParallelWorkerInput{
+			ContainerID:  con.ID(),
+			ParallelFunc: f,
 		})
 	}
+	maxWorkers := shared.Parallelize("rm")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	deleteErrors := parallelExecuteWorkerPool(rt.NumCPU()*3, deleteFuncs)
+	deleteErrors := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
 	for cid, result := range deleteErrors {
 		if result != nil {
 			fmt.Println(result.Error())

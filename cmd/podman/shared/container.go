@@ -226,10 +226,10 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 	return pso, nil
 }
 
-type pFunc func() (PsContainerOutput, error)
+type batchFunc func() (PsContainerOutput, error)
 
 type workerInput struct {
-	parallelFunc pFunc
+	parallelFunc batchFunc
 	opts         PsOptions
 	cid          string
 	job          int

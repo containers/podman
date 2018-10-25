@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	rt "runtime"
-
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -61,7 +61,7 @@ func stopCmd(c *cli.Context) error {
 
 	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 
-	var stopFuncs []workerInput
+	var stopFuncs []shared.ParallelWorkerInput
 	for _, ctr := range containers {
 		con := ctr
 		var stopTimeout uint
@@ -73,13 +73,19 @@ func stopCmd(c *cli.Context) error {
 		f := func() error {
 			return con.StopWithTimeout(stopTimeout)
 		}
-		stopFuncs = append(stopFuncs, workerInput{
-			containerID:  con.ID(),
-			parallelFunc: f,
+		stopFuncs = append(stopFuncs, shared.ParallelWorkerInput{
+			ContainerID:  con.ID(),
+			ParallelFunc: f,
 		})
 	}
 
-	stopErrors := parallelExecuteWorkerPool(rt.NumCPU()*3, stopFuncs)
+	maxWorkers := shared.Parallelize("stop")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	stopErrors := shared.ParallelExecuteWorkerPool(maxWorkers, stopFuncs)
 
 	for cid, result := range stopErrors {
 		if result != nil && result != libpod.ErrCtrStopped {
