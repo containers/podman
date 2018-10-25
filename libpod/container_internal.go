@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/opencontainers/runc/libcontainer/user"
 	"io"
 	"io/ioutil"
 	"os"
@@ -14,9 +15,9 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
+	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/secrets"
@@ -1029,7 +1030,8 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 func (c *Container) generatePasswd() (string, error) {
 	var (
 		groupspec string
-		gid       uint32
+		group     *user.Group
+		gid       int
 	)
 	if c.config.User == "" {
 		return "", nil
@@ -1044,21 +1046,27 @@ func (c *Container) generatePasswd() (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	// if UID exists inside of container rootfs /etc/passwd then
-	// don't generate passwd
-	if _, _, err := chrootuser.LookupUIDInContainer(c.state.Mountpoint, uid); err == nil {
+	// Lookup the user to see if it exists in the container image
+	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
+	if err != nil && err != user.ErrNoPasswdEntries {
+		return "", err
+	}
+	if err == nil {
 		return "", nil
 	}
-	if err == nil && groupspec != "" {
+	if groupspec != "" {
 		if !c.state.Mounted {
 			return "", errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate group field for passwd record", c.ID())
 		}
-		gid, err = chrootuser.GetGroup(c.state.Mountpoint, groupspec)
+		group, err = lookup.GetGroup(c.state.Mountpoint, groupspec)
 		if err != nil {
-			return "", errors.Wrapf(err, "unable to get gid from %s formporary passwd file")
+			if err == user.ErrNoGroupEntries {
+				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
+			}
+			return "", err
 		}
+		gid = group.Gid
 	}
-
 	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
 	orig, err := ioutil.ReadFile(originPasswdFile)
 	if err != nil {
@@ -1153,6 +1161,7 @@ func (c *Container) generateHosts() (string, error) {
 }
 
 func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) error {
+	var uid, gid int
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		return errors.Wrapf(ErrInternal, "container is not mounted")
@@ -1176,6 +1185,18 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 		}
 	}
 
+	if c.config.User != "" {
+		if !c.state.Mounted {
+			return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
+		}
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, nil)
+		if err != nil {
+			return err
+		}
+		uid = execUser.Uid
+		gid = execUser.Gid
+	}
+
 	for k := range imageData.ContainerConfig.Volumes {
 		mount := spec.Mount{
 			Destination: k,
@@ -1186,19 +1207,6 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 			continue
 		}
 		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-		var (
-			uid uint32
-			gid uint32
-		)
-		if c.config.User != "" {
-			if !c.state.Mounted {
-				return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
-			}
-			uid, gid, err = chrootuser.GetUser(c.state.Mountpoint, c.config.User)
-			if err != nil {
-				return err
-			}
-		}
 
 		// Ensure the symlinks are resolved
 		resolvedSymlink, err := imagebuildah.ResolveSymLink(mountPoint, k)
@@ -1218,7 +1226,7 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 
-			if err = os.Chown(srcPath, int(uid), int(gid)); err != nil {
+			if err = os.Chown(srcPath, uid, gid); err != nil {
 				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", srcPath, k, c.ID())
 			}
 		}
@@ -1228,7 +1236,7 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 
-			if err = os.Chown(volumePath, int(uid), int(gid)); err != nil {
+			if err = os.Chown(volumePath, uid, gid); err != nil {
 				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID())
 			}
 

@@ -19,12 +19,10 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/criu"
+	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cyphar/filepath-securejoin"
-	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -135,6 +133,10 @@ func (c *Container) cleanupNetwork() error {
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
+	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, nil)
+	if err != nil {
+		return nil, err
+	}
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If network namespace was requested, add it now
@@ -188,7 +190,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	var err error
 	if !rootless.IsRootless() {
 		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
 			return nil, errors.Wrapf(err, "error setting up OCI Hooks")
@@ -206,13 +207,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if !c.state.Mounted {
 			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
 		}
-		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, c.config.User)
-		if err != nil {
-			return nil, err
-		}
 		// User and Group must go together
-		g.SetProcessUID(uid)
-		g.SetProcessGID(gid)
+		g.SetProcessUID(uint32(execUser.Uid))
+		g.SetProcessGID(uint32(execUser.Gid))
 	}
 
 	// Add addition groups if c.config.GroupAdd is not empty
@@ -220,11 +217,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if !c.state.Mounted {
 			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to add additional groups", c.ID())
 		}
-		for _, group := range c.config.Groups {
-			gid, err := chrootuser.GetGroup(c.state.Mountpoint, group)
-			if err != nil {
-				return nil, err
-			}
+		gids, _ := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, nil)
+		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
 		}
 	}
@@ -237,26 +231,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
 	if !rootless.IsRootless() && !strings.Contains(c.config.User, ":") {
-		var groupDest, passwdDest string
-		defaultExecUser := user.ExecUser{
-			Uid:  0,
-			Gid:  0,
-			Home: "/",
-		}
-
-		// Make sure the /etc/group  and /etc/passwd destinations are not a symlink to something naughty
-		if groupDest, err = securejoin.SecureJoin(c.state.Mountpoint, "/etc/group"); err != nil {
-			logrus.Debug(err)
-			return nil, err
-		}
-		if passwdDest, err = securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd"); err != nil {
-			logrus.Debug(err)
-			return nil, err
-		}
-		execUser, err := user.GetExecUserPath(c.config.User, &defaultExecUser, passwdDest, groupDest)
-		if err != nil {
-			return nil, err
-		}
 		for _, gid := range execUser.Sgids {
 			g.AddProcessAdditionalGid(uint32(gid))
 		}

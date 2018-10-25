@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
-	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/pkg/errors"
@@ -292,13 +292,13 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	// the host
 	hostUser := ""
 	if user != "" {
-		uid, gid, err := chrootuser.GetUser(c.state.Mountpoint, user)
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, nil)
 		if err != nil {
-			return errors.Wrapf(err, "error getting user to launch exec session as")
+			return err
 		}
 
 		// runc expects user formatted as uid:gid
-		hostUser = fmt.Sprintf("%d:%d", uid, gid)
+		hostUser = fmt.Sprintf("%d:%d", execUser.Uid, execUser.Gid)
 	}
 
 	// Generate exec session ID
