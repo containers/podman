@@ -189,6 +189,12 @@ clientintegration:
 	$(MAKE) -C contrib/python/podman integration
 	$(MAKE) -C contrib/python/pypodman integration
 
+perftest:
+	$ cd contrib/perftest;go build
+
+run-perftest: perftest
+	$ contrib/perftest/perftest
+
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
