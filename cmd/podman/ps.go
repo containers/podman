@@ -351,7 +351,9 @@ func psCmd(c *cli.Context) error {
 		// Output Namespace headers
 		fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
 	}
-
+	if len(pss) == 0 {
+		fmt.Fprint(w, "\n")
+	}
 	// Now iterate each container and output its information
 	for _, container := range pss {
 
