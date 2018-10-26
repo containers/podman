@@ -31,7 +31,9 @@ function cleanup {
   # aggressive cleanup as tests may crash leaving crap around
   umount '^(shm|nsfs)'
   umount '\/run\/netns'
-  rm -r "$1"
+  if [[ $RETURNCODE -eq 0 ]]; then
+    rm -r "$1"
+  fi
 }
 
 # Create temporary directory for storage

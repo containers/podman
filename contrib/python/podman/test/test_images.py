@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from test.podman_testcase import PodmanTestCase
 
 import podman
+from podman import FoldedString
 
 
 class TestImages(PodmanTestCase):
@@ -44,6 +45,7 @@ class TestImages(PodmanTestCase):
         self.assertGreaterEqual(len(actual), 2)
         self.assertIsNotNone(self.alpine_image)
 
+    @unittest.skip('TODO: missing buildah json file')
     def test_build(self):
         path = os.path.join(self.tmpdir, 'ctnr', 'Dockerfile')
         img, logs = self.pclient.images.build(
@@ -59,12 +61,12 @@ class TestImages(PodmanTestCase):
     def test_create(self):
         img_details = self.alpine_image.inspect()
 
-        actual = self.alpine_image.container()
+        actual = self.alpine_image.container(command=['sleep',  '1h'])
         self.assertIsNotNone(actual)
-        self.assertEqual(actual.status, 'configured')
+        self.assertEqual(FoldedString(actual.status), 'configured')
 
         ctnr = actual.start()
-        self.assertIn(ctnr.status, ['running', 'stopped', 'exited'])
+        self.assertEqual(FoldedString(ctnr.status), 'running')
 
         ctnr_details = ctnr.inspect()
         for e in img_details.containerconfig['env']:
