@@ -20,7 +20,7 @@ import (
 // which copies up the opaque flag when copying up an opaque
 // directory or the kernel enable CONFIG_OVERLAY_FS_REDIRECT_DIR.
 // When these exist naive diff should be used.
-func doesSupportNativeDiff(d string) error {
+func doesSupportNativeDiff(d, mountOpts string) error {
 	td, err := ioutil.TempDir(d, "opaque-bug-check")
 	if err != nil {
 		return err
@@ -57,6 +57,9 @@ func doesSupportNativeDiff(d string) error {
 	}
 
 	opts := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", path.Join(td, "l2"), path.Join(td, "l1"), path.Join(td, "l3"), path.Join(td, "work"))
+	if mountOpts != "" {
+		opts = fmt.Sprintf("%s,%s", opts, mountOpts)
+	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", 0, opts); err != nil {
 		return errors.Wrap(err, "failed to mount overlay")
 	}
