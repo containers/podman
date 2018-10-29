@@ -213,4 +213,66 @@ var _ = Describe("Podman pause", func() {
 		result.WaitWithDefaultTimeout()
 	})
 
+	It("Pause all containers (no containers exist)", func() {
+		result := podmanTest.Podman([]string{"pause", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+	})
+
+	It("Unpause all containers (no paused containers exist)", func() {
+		result := podmanTest.Podman([]string{"unpause", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
+	It("Pause a bunch of running containers", func() {
+		podmanTest.RestoreArtifact(nginx)
+		for i := 0; i < 3; i++ {
+			name := fmt.Sprintf("test%d", i)
+			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, nginx})
+			run.WaitWithDefaultTimeout()
+			Expect(run.ExitCode()).To(Equal(0))
+
+		}
+		running := podmanTest.Podman([]string{"ps", "-q"})
+		running.WaitWithDefaultTimeout()
+		Expect(running.ExitCode()).To(Equal(0))
+		Expect(len(running.OutputToStringArray())).To(Equal(3))
+
+		pause := podmanTest.Podman([]string{"pause", "--all"})
+		pause.WaitWithDefaultTimeout()
+		Expect(pause.ExitCode()).To(Equal(0))
+
+		running = podmanTest.Podman([]string{"ps", "-q"})
+		running.WaitWithDefaultTimeout()
+		Expect(running.ExitCode()).To(Equal(0))
+		Expect(len(running.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("Unpause a bunch of running containers", func() {
+		podmanTest.RestoreArtifact(nginx)
+		for i := 0; i < 3; i++ {
+			name := fmt.Sprintf("test%d", i)
+			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, nginx})
+			run.WaitWithDefaultTimeout()
+			Expect(run.ExitCode()).To(Equal(0))
+
+		}
+		pause := podmanTest.Podman([]string{"pause", "--all"})
+		pause.WaitWithDefaultTimeout()
+		Expect(pause.ExitCode()).To(Equal(0))
+
+		unpause := podmanTest.Podman([]string{"unpause", "--all"})
+		unpause.WaitWithDefaultTimeout()
+		Expect(unpause.ExitCode()).To(Equal(0))
+
+		running := podmanTest.Podman([]string{"ps", "-q"})
+		running.WaitWithDefaultTimeout()
+		Expect(running.ExitCode()).To(Equal(0))
+		Expect(len(running.OutputToStringArray())).To(Equal(3))
+	})
+
 })

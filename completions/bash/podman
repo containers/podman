@@ -1,5 +1,6 @@
 : ${PROG:=$(basename ${BASH_SOURCE})}
 
+
 __podman_previous_extglob_setting=$(shopt -p extglob)
 shopt -s extglob
 
@@ -1934,6 +1935,10 @@ _podman_save() {
 }
 
 _podman_pause() {
+    local boolean_options="
+    -a
+    --all
+    "
      local options_with_args="
      --help -h
      "
@@ -2035,6 +2040,10 @@ _podman_stop() {
 }
 
 _podman_unpause() {
+    local boolean_options="
+    -a
+    --all
+    "
      local options_with_args="
      --help -h
      "

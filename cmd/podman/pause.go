@@ -5,11 +5,20 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 var (
+	pauseFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "pause all running containers",
+		},
+	}
 	pauseDescription = `
    podman pause
 
@@ -19,6 +28,7 @@ var (
 		Name:         "pause",
 		Usage:        "Pauses all the processes in one or more containers",
 		Description:  pauseDescription,
+		Flags:        pauseFlags,
 		Action:       pauseCmd,
 		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
 		OnUsageError: usageErrorHandler,
@@ -26,6 +36,11 @@ var (
 )
 
 func pauseCmd(c *cli.Context) error {
+	var (
+		lastError       error
+		pauseContainers []*libpod.Container
+		pauseFuncs      []shared.ParallelWorkerInput
+	)
 	if os.Geteuid() != 0 {
 		return errors.New("pause is not supported for rootless containers")
 	}
@@ -37,28 +52,55 @@ func pauseCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) < 1 {
+	if len(args) < 1 && !c.Bool("all") {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
-
-	var lastError error
-	for _, arg := range args {
-		ctr, err := runtime.LookupContainer(arg)
+	if c.Bool("all") {
+		containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
+			return err
+		}
+		pauseContainers = append(pauseContainers, containers...)
+	} else {
+		for _, arg := range args {
+			ctr, err := runtime.LookupContainer(arg)
+			if err != nil {
+				return err
 			}
-			lastError = errors.Wrapf(err, "error looking up container %q", arg)
+			pauseContainers = append(pauseContainers, ctr)
+		}
+	}
+
+	// Now assemble the slice of pauseFuncs
+	for _, ctr := range pauseContainers {
+		con := ctr
+
+		f := func() error {
+			return con.Pause()
+		}
+		pauseFuncs = append(pauseFuncs, shared.ParallelWorkerInput{
+			ContainerID:  con.ID(),
+			ParallelFunc: f,
+		})
+	}
+
+	maxWorkers := shared.Parallelize("pause")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	pauseErrors := shared.ParallelExecuteWorkerPool(maxWorkers, pauseFuncs)
+
+	for cid, result := range pauseErrors {
+		if result != nil {
+			if len(pauseErrors) > 1 {
+				fmt.Println(result.Error())
+			}
+			lastError = result
 			continue
 		}
-		if err = ctr.Pause(); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to pause container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
-		}
+		fmt.Println(cid)
 	}
 	return lastError
 }
