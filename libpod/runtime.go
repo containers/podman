@@ -184,6 +184,8 @@ var (
 		RuntimePath: []string{
 			"/usr/bin/runc",
 			"/usr/sbin/runc",
+			"/usr/local/bin/runc",
+			"/usr/local/sbin/runc",
 			"/sbin/runc",
 			"/bin/runc",
 			"/usr/lib/cri-o-runc/sbin/runc",
@@ -191,6 +193,7 @@ var (
 		ConmonPath: []string{
 			"/usr/libexec/podman/conmon",
 			"/usr/libexec/crio/conmon",
+			"/usr/local/lib/podman/conmon",
 			"/usr/local/libexec/crio/conmon",
 			"/usr/bin/conmon",
 			"/usr/sbin/conmon",
@@ -206,7 +209,7 @@ var (
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
 		CNIConfigDir:          "/etc/cni/net.d/",
-		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/opt/cni/bin"},
+		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/usr/local/lib/cni", "/opt/cni/bin"},
 		InfraCommand:          DefaultInfraCommand,
 		InfraImage:            DefaultInfraImage,
 		EnablePortReservation: true,
