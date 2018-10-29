@@ -72,20 +72,22 @@ func ParallelExecuteWorkerPool(workers int, functions []ParallelWorkerInput) map
 func Parallelize(job string) int {
 	numCpus := runtime.NumCPU()
 	switch job {
-	case "stop":
-		if numCpus <= 2 {
-			return 4
-		} else {
-			return numCpus * 3
-		}
+	case "ps":
+		return 8
+	case "restart":
+		return numCpus * 2
 	case "rm":
 		if numCpus <= 3 {
 			return numCpus * 3
 		} else {
 			return numCpus * 4
 		}
-	case "ps":
-		return 8
+	case "stop":
+		if numCpus <= 2 {
+			return 4
+		} else {
+			return numCpus * 3
+		}
 	}
 	return 3
 }
