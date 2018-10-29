@@ -52,7 +52,7 @@ ADD . /go/src/github.com/containers/libpod
 RUN set -x && cd /go/src/github.com/containers/libpod && make install.libseccomp.sudo
 
 # Install runc
-ENV RUNC_COMMIT ad0f5255060d36872be04de22f8731f38ef2d7b1
+ENV RUNC_COMMIT 78ef28e63bec2ee4c139b5e3e0d691eb9bdc748d
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
