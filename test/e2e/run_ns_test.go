@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman run ns", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman run ns", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreArtifact(fedoraMinimal)
 	})
 
@@ -49,7 +50,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns test", func() {
-		setup := podmanTest.SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
+		setup := SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 		hostShm := setup.OutputToString()
@@ -61,7 +62,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns ipcmk host test", func() {
-		setup := podmanTest.SystemExec("ipcmk", []string{"-M", "1024"})
+		setup := SystemExec("ipcmk", []string{"-M", "1024"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 		output := strings.Split(setup.OutputToString(), " ")
@@ -70,7 +71,7 @@ var _ = Describe("Podman run ns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		setup = podmanTest.SystemExec("ipcrm", []string{"-m", ipc})
+		setup = SystemExec("ipcrm", []string{"-m", ipc})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 	})

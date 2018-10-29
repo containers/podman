@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +13,7 @@ var _ = Describe("Podman pause", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	pausedState := "Paused"
@@ -23,7 +24,7 @@ var _ = Describe("Podman pause", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 

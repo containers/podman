@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/pkg/criu"
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman checkpoint", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman checkpoint", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")

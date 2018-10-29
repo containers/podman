@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman privileged container tests", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -42,7 +43,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged CapEff", func() {
-		cap := podmanTest.SystemExec("grep", []string{"CapEff", "/proc/self/status"})
+		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		Expect(cap.ExitCode()).To(Equal(0))
 
@@ -53,7 +54,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman cap-add CapEff", func() {
-		cap := podmanTest.SystemExec("grep", []string{"CapEff", "/proc/self/status"})
+		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		Expect(cap.ExitCode()).To(Equal(0))
 
@@ -87,13 +88,13 @@ var _ = Describe("Podman privileged container tests", func() {
 
 	It("run no-new-privileges test", func() {
 		// Check if our kernel is new enough
-		k, err := IsKernelNewThan("4.14")
+		k, err := IsKernelNewerThan("4.14")
 		Expect(err).To(BeNil())
 		if !k {
 			Skip("Kernel is not new enough to test this feature")
 		}
 
-		cap := podmanTest.SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
+		cap := SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		if cap.ExitCode() != 0 {
 			Skip("Can't determine NoNewPrivs")

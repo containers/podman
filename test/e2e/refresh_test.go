@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman refresh", func() {
 	var (
 		tmpdir     string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman refresh", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tmpdir)
+		podmanTest = PodmanTestCreate(tmpdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -43,13 +44,13 @@ var _ = Describe("Podman refresh", func() {
 		createSession.WaitWithDefaultTimeout()
 		Expect(createSession.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
-		Expect(podmanTest.NumberOfRunningContainers()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		refreshSession := podmanTest.Podman([]string{"container", "refresh"})
 		refreshSession.WaitWithDefaultTimeout()
 		Expect(refreshSession.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
-		Expect(podmanTest.NumberOfRunningContainers()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
 	Specify("Refresh with running container restarts container", func() {
@@ -57,7 +58,7 @@ var _ = Describe("Podman refresh", func() {
 		createSession.WaitWithDefaultTimeout()
 		Expect(createSession.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
-		Expect(podmanTest.NumberOfRunningContainers()).To(Equal(1))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		// HACK: ensure container starts before we move on
 		time.Sleep(1 * time.Second)
@@ -66,6 +67,6 @@ var _ = Describe("Podman refresh", func() {
 		refreshSession.WaitWithDefaultTimeout()
 		Expect(refreshSession.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
-		Expect(podmanTest.NumberOfRunningContainers()).To(Equal(1))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
 })

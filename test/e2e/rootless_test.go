@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"syscall"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -30,7 +31,7 @@ var _ = Describe("Podman rootless", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -38,7 +39,7 @@ var _ = Describe("Podman rootless", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.CgroupManager = "cgroupfs"
 		podmanTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
 		podmanTest.RestoreAllArtifacts()
@@ -68,7 +69,7 @@ var _ = Describe("Podman rootless", func() {
 		return os.Lchown(p, 1000, 1000)
 	}
 
-	type rootlessCB func(test PodmanTest, xdgRuntimeDir string, home string, mountPath string)
+	type rootlessCB func(test *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string)
 
 	runInRootlessContext := func(cb rootlessCB) {
 		// Check if we can create an user namespace
@@ -91,7 +92,7 @@ var _ = Describe("Podman rootless", func() {
 
 		tempdir, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
-		rootlessTest := PodmanCreate(tempdir)
+		rootlessTest := PodmanTestCreate(tempdir)
 		rootlessTest.CgroupManager = "cgroupfs"
 		rootlessTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
 		err = filepath.Walk(tempdir, chownFunc)
@@ -116,7 +117,7 @@ var _ = Describe("Podman rootless", func() {
 	}
 
 	It("podman rootless pod", func() {
-		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+		f := func(rootlessTest *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string) {
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
@@ -157,7 +158,7 @@ var _ = Describe("Podman rootless", func() {
 	})
 
 	runRootlessHelper := func(args []string) {
-		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+		f := func(rootlessTest *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string) {
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
 			env := os.Environ()

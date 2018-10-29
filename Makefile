@@ -31,7 +31,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e)
+PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e )
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
@@ -104,6 +104,9 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
+test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
+	$(GO) build -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
+
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
@@ -130,6 +133,7 @@ clean:
 		test/bin2img/bin2img \
 		test/checkseccomp/checkseccomp \
 		test/copyimg/copyimg \
+		test/goecho/goecho \
 		test/testdata/redis-image \
 		cmd/podman/varlink/iopodman.go \
 		libpod/container_ffjson.go \
@@ -166,7 +170,7 @@ shell: libpodimage
 testunit: libpodimage
 	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
-localunit: varlink_generate
+localunit: test/goecho/goecho varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
@@ -183,7 +187,7 @@ vagrant-check:
 
 binaries: varlink_generate easyjson_generate podman
 
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
+test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/goecho/goecho
 
 MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
