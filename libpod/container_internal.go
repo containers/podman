@@ -206,8 +206,8 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	}
 	statusCode, err := strconv.Atoi(string(statusCodeStr))
 	if err != nil {
-		return errors.Wrapf(err, "error converting exit status code for container %s to int",
-			c.ID())
+		return errors.Wrapf(err, "error converting exit status code (%q) for container %s to int",
+			c.ID(), statusCodeStr)
 	}
 	c.state.ExitCode = int32(statusCode)
 
