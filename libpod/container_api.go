@@ -453,22 +453,19 @@ func (c *Container) Unmount(force bool) error {
 		}
 	}
 
-	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
-	}
-
-	// Check if we have active exec sessions
-	if len(c.state.ExecSessions) != 0 {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to unmount", c.ID())
-	}
-
 	if c.state.Mounted {
 		mounted, err := c.runtime.storageService.MountedContainerImage(c.ID())
 		if err != nil {
 			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
 		}
 		if mounted == 1 {
-			return errors.Wrapf(err, "can't unmount %s last mount, it is still in use", c.ID())
+			if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+				return errors.Wrapf(ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
+			}
+			if len(c.state.ExecSessions) != 0 {
+				return errors.Wrapf(ErrCtrStateInvalid, "container %s has active exec sessions, refusing to unmount", c.ID())
+			}
+			return errors.Wrapf(ErrInternal, "can't unmount %s last mount, it is still in use", c.ID())
 		}
 	}
 	return c.unmount(force)
