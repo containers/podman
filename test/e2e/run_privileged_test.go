@@ -104,12 +104,12 @@ var _ = Describe("Podman privileged container tests", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		privs := strings.Split(cap.OutputToString(), ":")
+		privs := strings.Split(session.OutputToString(), ":")
 		session = podmanTest.Podman([]string{"run", "--security-opt", "no-new-privileges", "busybox", "grep", "NoNewPrivs", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		noprivs := strings.Split(cap.OutputToString(), ":")
+		noprivs := strings.Split(session.OutputToString(), ":")
 		Expect(privs[1]).To(Not(Equal(noprivs[1])))
 	})
 
