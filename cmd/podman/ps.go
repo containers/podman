@@ -329,7 +329,7 @@ func psCmd(c *cli.Context) error {
 	}
 
 	// Define a tab writer with stdout as the output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()
 
 	// Output standard PS headers
