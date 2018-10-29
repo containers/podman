@@ -31,7 +31,7 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e )
+PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
@@ -177,6 +177,9 @@ ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 localintegration: varlink_generate test-binaries clientintegration ginkgo
+
+localsystem:
+	ginkgo -v -noColor test/system/
 
 clientintegration:
 	$(MAKE) -C contrib/python/podman integration

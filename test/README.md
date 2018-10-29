@@ -100,3 +100,21 @@ make shell
 ```
 
 This will run a container and give you a shell and you can follow the instructions above.
+
+# System test
+System tests are used for testing the *podman* CLI in the context of a complete system. It
+requires that *podman*, all dependencies, and configurations are in place.  The intention of
+system testing is to match as closely as possible with real-world user/developer use-cases
+and environments. The orchestration of the environments and tests is left to external
+tooling.
+
+* `PodmanTestSystem`: System test *struct* as a composite of `PodmanTest`. It will not add any
+options to the command by default. When you run system test, you can set GLOBALOPTIONS,
+PODMAN_SUBCMD_OPTIONS or PODMAN_BINARY in ENV to run the test suite for different test matrices.
+
+## Run system test
+You can run the test with following command:
+
+```
+make localsystem
+```
