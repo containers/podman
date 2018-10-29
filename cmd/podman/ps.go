@@ -334,11 +334,7 @@ func psCmd(c *cli.Context) error {
 
 	// Output standard PS headers
 	if !opts.Namespace {
-		fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
-		// If the user does not want size OR pod info, we print the isInfra bool
-		if !opts.Size && !opts.Pod {
-			fmt.Fprintf(w, "\t%s", hinfra)
-		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
 		// User wants pod info
 		if opts.Pod {
 			fmt.Fprintf(w, "\t%s", hpod)
@@ -349,22 +345,15 @@ func psCmd(c *cli.Context) error {
 		}
 	} else {
 		// Output Namespace headers
-		fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
 	}
-	if len(pss) == 0 {
-		fmt.Fprint(w, "\n")
-	}
+
 	// Now iterate each container and output its information
 	for _, container := range pss {
 
 		// Standard PS output
 		if !opts.Namespace {
 			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
-
-			// If not size and not pod info, do isInfra
-			if !opts.Size && !opts.Pod {
-				fmt.Fprintf(w, "\t%t", container.IsInfra)
-			}
 			// User wants pod info
 			if opts.Pod {
 				fmt.Fprintf(w, "\t%s", container.Pod)
@@ -387,6 +376,7 @@ func psCmd(c *cli.Context) error {
 		}
 
 	}
+	fmt.Fprint(w, "\n")
 	return nil
 }
 
