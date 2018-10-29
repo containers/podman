@@ -148,21 +148,21 @@ func getLoggingPath(opts []string) string {
 	return ""
 }
 
-// parseDevice parses device mapping string to a src, dest & permissions string
-func parseDevice(device string) (string, string, string, error) { //nolint
+// ParseDevice parses device mapping string to a src, dest & permissions string
+func ParseDevice(device string) (string, string, string, error) { //nolint
 	src := ""
 	dst := ""
 	permissions := "rwm"
 	arr := strings.Split(device, ":")
 	switch len(arr) {
 	case 3:
-		if !validDeviceMode(arr[2]) {
+		if !IsValidDeviceMode(arr[2]) {
 			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
 		}
 		permissions = arr[2]
 		fallthrough
 	case 2:
-		if validDeviceMode(arr[1]) {
+		if IsValidDeviceMode(arr[1]) {
 			permissions = arr[1]
 		} else {
 			if arr[1][0] != '/' {
@@ -183,9 +183,9 @@ func parseDevice(device string) (string, string, string, error) { //nolint
 	return src, dst, permissions, nil
 }
 
-// validDeviceMode checks if the mode for device is valid or not.
-// Valid mode is a composition of r (read), w (write), and m (mknod).
-func validDeviceMode(mode string) bool {
+// IsValidDeviceMode checks if the mode for device is valid or not.
+// IsValid mode is a composition of r (read), w (write), and m (mknod).
+func IsValidDeviceMode(mode string) bool {
 	var legalDeviceMode = map[rune]bool{
 		'r': true,
 		'w': true,
