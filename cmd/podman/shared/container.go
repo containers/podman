@@ -24,6 +24,7 @@ import (
 const (
 	cidTruncLength = 12
 	podTruncLength = 12
+	cmdTruncLength = 17
 )
 
 // PsOptions describes the struct being formed for ps
@@ -191,8 +192,11 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 	pod := ctr.PodID()
 	if !opts.NoTrunc {
 		cid = cid[0:cidTruncLength]
-		if len(pod) > 12 {
+		if len(pod) > podTruncLength {
 			pod = pod[0:podTruncLength]
+		}
+		if len(command) > cmdTruncLength {
+			command = command[0:cmdTruncLength] + "..."
 		}
 	}
 
