@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -273,7 +274,12 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 		dataDir = filepath.Join(resolvedHome, ".local", "share")
 	}
 	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	opts.GraphDriverName = "vfs"
+	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
+		opts.GraphDriverName = "overlay"
+		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
+	} else {
+		opts.GraphDriverName = "vfs"
+	}
 	return opts, nil
 }
 
