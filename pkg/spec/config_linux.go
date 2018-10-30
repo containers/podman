@@ -28,7 +28,7 @@ func Device(d *configs.Device) spec.LinuxDevice {
 }
 
 func addDevice(g *generate.Generator, device string) error {
-	src, dst, permissions, err := parseDevice(device)
+	src, dst, permissions, err := ParseDevice(device)
 	if err != nil {
 		return err
 	}
