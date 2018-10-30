@@ -5,6 +5,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -41,6 +42,9 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	}
 	if c.GlobalIsSet("runroot") {
 		storageOpts.RunRoot = c.GlobalString("runroot")
+	}
+	if len(storageOpts.RunRoot) > 50 {
+		return nil, errors.New("the specified runroot is longer than 50 characters")
 	}
 	if c.GlobalIsSet("storage-driver") {
 		storageOpts.GraphDriverName = c.GlobalString("storage-driver")
