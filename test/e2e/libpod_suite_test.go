@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -29,19 +30,8 @@ var (
 	RUNC_BINARY        string
 	INTEGRATION_ROOT   string
 	CGROUP_MANAGER     = "systemd"
-	STORAGE_OPTIONS    = "--storage-driver vfs"
 	ARTIFACT_DIR       = "/tmp/.artifacts"
-	CACHE_IMAGES       = []string{ALPINE, BB, fedoraMinimal, nginx, redis, registry, infra, labels}
 	RESTORE_IMAGES     = []string{ALPINE, BB}
-	ALPINE             = "docker.io/library/alpine:latest"
-	BB                 = "docker.io/library/busybox:latest"
-	BB_GLIBC           = "docker.io/library/busybox:glibc"
-	fedoraMinimal      = "registry.fedoraproject.org/fedora-minimal:latest"
-	nginx              = "quay.io/baude/alpine_nginx:latest"
-	redis              = "docker.io/library/redis:alpine"
-	registry           = "docker.io/library/registry:2"
-	infra              = "k8s.gcr.io/pause:3.1"
-	labels             = "quay.io/baude/alpine_labels:latest"
 	defaultWaitTimeout = 90
 )
 
@@ -70,6 +60,7 @@ type PodmanTest struct {
 type HostOS struct {
 	Distribution string
 	Version      string
+	Arch         string
 }
 
 // TestLibpod ginkgo master function
@@ -245,7 +236,6 @@ func (p *PodmanTest) Cleanup() {
 	// Remove all containers
 	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
 	stopall.WaitWithDefaultTimeout()
-
 	session := p.Podman([]string{"rm", "-fa"})
 	session.Wait(90)
 	// Nuke tempdir
@@ -662,6 +652,7 @@ func GetHostDistributionInfo() HostOS {
 
 	l := bufio.NewScanner(f)
 	host := HostOS{}
+	host.Arch = runtime.GOARCH
 	for l.Scan() {
 		if strings.HasPrefix(l.Text(), "ID=") {
 			host.Distribution = strings.Replace(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "", -1)
