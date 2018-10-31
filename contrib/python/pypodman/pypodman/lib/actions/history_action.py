@@ -60,7 +60,7 @@ class History(AbstractActionBase):
                 if self._args.human:
                     fields.update({
                         'size':
-                        humanize.naturalsize(details.size, binary=True),
+                        humanize.naturalsize(details.size),
                         'created':
                         humanize.naturaldate(
                             podman.datetime_parse(details.created)),
