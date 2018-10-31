@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -134,12 +135,33 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
 	if err := cmd.Start(); err != nil {
-		return errors.Wrapf(err, "failed to start process")
+		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
+	defer cmd.Process.Release()
 
 	b := make([]byte, 16)
-	if _, err := syncR.Read(b); err != nil {
-		return errors.Wrapf(err, "failed to read from sync pipe")
+	for {
+		if err := syncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
+			return errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+		}
+		if _, err := syncR.Read(b); err == nil {
+			break
+		} else {
+			if os.IsTimeout(err) {
+				// Check if the process is still running.
+				var status syscall.WaitStatus
+				_, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+				if err != nil {
+					return errors.Wrapf(err, "failed to read slirp4netns process status")
+				}
+				if status.Exited() || status.Signaled() {
+					return errors.New("slirp4netns failed")
+				}
+
+				continue
+			}
+			return errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+		}
 	}
 	return nil
 }
