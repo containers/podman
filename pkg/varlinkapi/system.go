@@ -34,6 +34,10 @@ func (i *LibpodAPI) Ping(call iopodman.VarlinkCall) error {
 
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
+	versionInfo, err := libpod.GetVersion()
+	if err != nil {
+		return err
+	}
 	var (
 		registries, insecureRegistries []string
 	)
@@ -64,11 +68,10 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	podmanInfo.Host = infoHost
 	store := info[1].Data
 	pmaninfo := iopodman.InfoPodmanBinary{
-		Compiler:   goruntime.Compiler,
-		Go_version: goruntime.Version(),
-		// TODO : How are we going to get this here?
-		//Podman_version:
-		Git_commit: libpod.GitCommit,
+		Compiler:       goruntime.Compiler,
+		Go_version:     goruntime.Version(),
+		Podman_version: versionInfo.Version,
+		Git_commit:     versionInfo.GitCommit,
 	}
 
 	graphStatus := iopodman.InfoGraphStatus{

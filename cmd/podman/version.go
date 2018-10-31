@@ -21,7 +21,7 @@ func versionCmd(c *cli.Context) error {
 		fmt.Println("Git Commit:   ", output.GitCommit)
 	}
 	// Prints out the build time in readable format
-	if libpod.BuildInfo != "" {
+	if output.Built != 0 {
 		fmt.Println("Built:        ", time.Unix(output.Built, 0).Format(time.ANSIC))
 	}
 

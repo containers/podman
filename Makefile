@@ -36,7 +36,8 @@ PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/c
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO ?= $(shell date +%s)
-LDFLAGS_PODMAN ?= $(LDFLAGS) -X main.gitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO)
+LIBPOD := ${PROJECT}/libpod
+LDFLAGS_PODMAN ?= $(LDFLAGS) -X $(LIBPOD).gitCommit=$(GIT_COMMIT) -X $(LIBPOD).buildInfo=$(BUILD_INFO)
 ISODATE ?= $(shell date --iso-8601)
 LIBSECCOMP_COMMIT := release-2.3
 
