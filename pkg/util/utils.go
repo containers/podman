@@ -256,7 +256,7 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	if err != nil {
 		return opts, err
 	}
-	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
+	opts.RunRoot = rootlessRuntime
 
 	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
