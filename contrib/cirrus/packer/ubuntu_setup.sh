@@ -84,7 +84,7 @@ install_conmon
 
 install_criu
 
-install_cni_plugins
+install_cni_plugins $CNI_COMMIT
 
 install_buildah
 

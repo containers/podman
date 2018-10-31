@@ -4,8 +4,8 @@
 # to be sourced by other scripts, not called directly.
 
 # Under some contexts these values are not set, make sure they are.
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
+export USER="$(whoami)"
+export HOME="$(getent passwd $USER | cut -d : -f 6)"
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
     export PATH="$PATH:/usr/local/bin"
@@ -139,17 +139,18 @@ EOF
     sudo chmod 755 /usr/bin/git
 }
 
+# Given a branch, tag, or sha as parameter, install the CNI plugins
 install_cni_plugins() {
     echo "Installing CNI Plugins from commit $CNI_COMMIT"
     req_env_var "
+    1 $1
     GOPATH $GOPATH
-    CNI_COMMIT $CNI_COMMIT
     "
     DEST="$GOPATH/src/github.com/containernetworking/plugins"
     rm -rf "$DEST"
     ooe.sh git clone "https://github.com/containernetworking/plugins.git" "$DEST"
     cd "$DEST"
-    ooe.sh git checkout -q "$CNI_COMMIT"
+    ooe.sh git checkout -q "$1"
     ooe.sh ./build.sh
     sudo mkdir -p /usr/libexec/cni
     sudo cp bin/* /usr/libexec/cni
@@ -286,4 +287,42 @@ ubuntu_finalize(){
     echo "Resetting to fresh-state for usage as cloud-image."
     sudo rm -rf /var/cache/apt
     _finalize
+}
+
+# Given a path to an empty directory, create the following:
+#     path + ".img" - a floppy disk image suitable for cloud-init
+#     path + ".ssh" - a private ssh key file
+#     path + ".ssh.pub" - a public ssh key file
+nocloud_floppy(){
+    echo "Creating cloud-init, nocloud floppy and temporary ssh keys"
+    req_env_var "1 $1"
+    FLOPPYMNT=$1
+    mkdir -p $FLOPPYMNT
+    FLOPPYIMG="${FLOPPYMNT}.img"
+    ooe.sh sudo rm -f "$FLOPPYIMG" # must not exist
+    ooe.sh sudo mkfs.vfat -C -n cidata -i deadbeef -I "$FLOPPYIMG" 2880
+    ooe.sh sudo chown $USER:qemu "$FLOPPYIMG"
+    ooe.sh sudo chcon -t virt_content_t "$FLOPPYIMG"
+    ooe.sh sudo mount -o loop,rw "$FLOPPYIMG" "$FLOPPYMNT"
+    ooe.sh ssh-keygen -f "${FLOPPYMNT}.ssh" -P "" -q
+    PUBKEY=$(sudo cat "${FLOPPYMNT}.ssh.pub")
+    echo "local-hostname: localhost.localdomain" | sudo tee "$FLOPPYMNT/meta-data" > /dev/null
+    sudo tee "$FLOPPYMNT/user-data" <<EOF
+#cloud-config
+
+timezone: US/Eastern
+growpart:
+    mode: auto
+disable_root: false
+ssh_pwauth: True
+ssh_import_id: [root]
+ssh_authorized_keys:
+    - $PUBKEY
+users:
+   - name: root
+     primary-group: root
+     homedir: /root
+     system: true
+EOF
+    ooe.sh sudo umount "$FLOPPYIMG"
 }

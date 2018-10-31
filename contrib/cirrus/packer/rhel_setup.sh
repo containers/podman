@@ -108,7 +108,7 @@ ooe.sh sudo yum -y install \
 
 install_scl_git
 
-install_cni_plugins
+install_cni_plugins $CNI_COMMIT
 
 install_buildah
 

@@ -10,7 +10,7 @@ source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
 req_env_var "
 SCRIPT_BASE $SCRIPT_BASE
-CNI_COMMIT $CNI_COMMIT
+FEDORA_CNI_COMMIT $FEDORA_CNI_COMMIT
 CRIO_COMMIT $CRIO_COMMIT
 CRIU_COMMIT $CRIU_COMMIT
 RUNC_COMMIT $RUNC_COMMIT
@@ -71,7 +71,7 @@ ooe.sh sudo dnf install -y \
 
 install_varlink
 
-install_cni_plugins
+install_cni_plugins $FEDORA_CNI_COMMIT
 
 install_buildah
 

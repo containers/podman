@@ -1,0 +1,5 @@
+sha256sums
+libpod_images.json
+packer
+packer*zip
+packer_cache
