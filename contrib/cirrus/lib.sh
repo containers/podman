@@ -279,7 +279,7 @@ install_varlink(){
 _finalize(){
     echo "Removing leftover giblets from cloud-init"
     cd /
-    sudo rm -rf /var/lib/cloud
+    sudo rm -rf /var/lib/cloud/instance?
     sudo rm -rf /root/.ssh/*
     sudo rm -rf /home/*
 }
