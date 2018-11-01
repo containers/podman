@@ -89,7 +89,9 @@ func stopCmd(c *cli.Context) error {
 
 	for cid, result := range stopErrors {
 		if result != nil && result != libpod.ErrCtrStopped {
-			fmt.Println(result.Error())
+			if len(stopErrors) > 1 {
+				fmt.Println(result.Error())
+			}
 			lastError = result
 			continue
 		}
