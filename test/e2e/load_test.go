@@ -139,6 +139,9 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load multiple tags", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("skip on ppc64le")
+		}
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 		alpVersion := "docker.io/library/alpine:3.2"
 

@@ -33,7 +33,6 @@ var _ = Describe("Podman logs", func() {
 
 	//sudo bin/podman run -it --rm fedora-minimal bash -c 'for a in `seq 5`; do echo hello; done'
 	It("podman logs for container", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))
@@ -46,7 +45,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs tail two lines", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))
@@ -59,7 +57,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs tail 99 lines", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))
@@ -72,7 +69,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs tail 2 lines with timestamps", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))
@@ -85,7 +81,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs latest with since time", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))
@@ -98,7 +93,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	It("podman logs latest with since duration", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
 		Expect(logc.ExitCode()).To(Equal(0))

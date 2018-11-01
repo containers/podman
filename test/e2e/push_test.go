@@ -58,6 +58,9 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
@@ -73,6 +76,9 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		authPath := filepath.Join(podmanTest.TempDir, "auth")
 		os.Mkdir(authPath, os.ModePerm)
 		os.MkdirAll("/etc/containers/certs.d/localhost:5000", os.ModePerm)

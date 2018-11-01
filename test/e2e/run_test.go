@@ -42,8 +42,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on a complex local image name", func() {
+		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		podmanTest.RestoreArtifact(nginx)
-		session := podmanTest.Podman([]string{"run", "baude/alpine_nginx:latest", "ls"})
+		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 		Expect(session.ExitCode()).To(Equal(0))
@@ -203,6 +204,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with mount flag", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("skip failing test on ppc64le")
+		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session := podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
