@@ -21,9 +21,10 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-ooe.sh sudo apt-get -qq update
-ooe.sh sudo apt-get -qq update  # sometimes it needs to get it twice :S
-ooe.sh sudo apt-get -qq upgrade
+# Try twice as workaround for minor networking problems
+echo "Updating system and installing package dependencies"
+ooe.sh sudo apt-get -qq update || sudo apt-get -qq update
+ooe.sh sudo apt-get -qq upgrade || sudo apt-get -qq upgrade
 ooe.sh sudo apt-get -qq install --no-install-recommends \
     apparmor \
     autoconf \
