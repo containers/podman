@@ -4,9 +4,10 @@ Supplimental argparse.Action converters and validaters.
 The constructors are very verbose but remain for IDE support.
 """
 import argparse
+import copy
 import os
 
-# API defined by argparse.Action shut up pylint
+# API defined by argparse.Action therefore shut up pylint
 # pragma pylint: disable=redefined-builtin
 # pragma pylint: disable=too-few-public-methods
 # pragma pylint: disable=too-many-arguments
@@ -61,6 +62,54 @@ class BooleanAction(argparse.Action):
             parser.error('{} must be True or False.'.format(self.dest))
         else:
             setattr(namespace, self.dest, val)
+
+
+class ChangeAction(argparse.Action):
+    """Convert and validate change argument."""
+
+    def __init__(self,
+                 option_strings,
+                 dest,
+                 nargs=None,
+                 const=None,
+                 default=[],
+                 type=None,
+                 choices=None,
+                 required=False,
+                 help=None,
+                 metavar='OPT=VALUE'):
+        """Create ChangeAction object."""
+        help = (help or '') + ('Apply change(s) to the new image.'
+                               ' May be given multiple times.')
+
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs=nargs,
+            const=const,
+            default=default,
+            type=type,
+            choices=choices,
+            required=required,
+            help=help,
+            metavar=metavar)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Convert and Validate input."""
+        print(self.dest)
+        items = getattr(namespace, self.dest, None) or []
+        items = copy.copy(items)
+
+        choices = ('CMD', 'ENTRYPOINT', 'ENV', 'EXPOSE', 'LABEL', 'ONBUILD',
+                   'STOPSIGNAL', 'USER', 'VOLUME', 'WORKDIR')
+
+        opt, val = values.split('=', 1)
+        if opt not in choices:
+            parser.error('{} is not a supported "--change" option,'
+                         ' valid options are: {}'.format(
+                             opt, ', '.join(choices)))
+        items.append(values)
+        setattr(namespace, self.dest, items)
 
 
 class UnitAction(argparse.Action):
