@@ -52,13 +52,13 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run a container based on on a short name with localhost", func() {
 		podmanTest.RestoreArtifact(nginx)
-		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/baude/alpine_nginx:latest"})
+		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
 		rmi := podmanTest.Podman([]string{"rmi", nginx})
 		rmi.WaitWithDefaultTimeout()
 
-		session := podmanTest.Podman([]string{"run", "baude/alpine_nginx:latest", "ls"})
+		session := podmanTest.Podman([]string{"run", "libpod/alpine_nginx:latest", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 		Expect(session.ExitCode()).To(Equal(0))

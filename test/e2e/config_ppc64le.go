@@ -4,8 +4,8 @@ var (
 	STORAGE_OPTIONS          = "--storage-driver overlay"
 	ROOTLESS_STORAGE_OPTIONS = "--storage-driver vfs"
 	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, nginx, redis, infra, labels}
-	nginx                    = "quay.io/baude/alpine_nginx-ppc64le:latest"
+	nginx                    = "quay.io/libpod/alpine_nginx-ppc64le:latest"
 	BB_GLIBC                 = "docker.io/ppc64le/busybox:glibc"
-	labels                   = "quay.io/baude/alpine_labels-ppc64le:latest"
+	labels                   = "quay.io/libpod/alpine_labels-ppc64le:latest"
 	registry                 string
 )

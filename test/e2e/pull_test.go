@@ -63,11 +63,11 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from alternate registry without tag", func() {
-		session := podmanTest.Podman([]string{"pull", "quay.io/baude/alpine_nginx"})
+		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "quay.io/baude/alpine_nginx"})
+		session = podmanTest.Podman([]string{"rmi", "quay.io/libpod/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
