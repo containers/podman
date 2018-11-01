@@ -65,7 +65,7 @@ class Images(AbstractActionBase):
                 'created':
                 humanize.naturaldate(podman.datetime_parse(image.created)),
                 'size':
-                humanize.naturalsize(int(image.size), binary=True),
+                humanize.naturalsize(int(image.size)),
                 'repoDigests':
                 ' '.join(image.repoDigests),
             })
