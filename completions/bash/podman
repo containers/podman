@@ -1770,8 +1770,13 @@ _podman_restart() {
      --timeout -t
      "
      local boolean_options="
+     --all
+     -a
      --latest
-     -l"
+     -l
+     --running
+     --timeout
+     -t"
      case "$cur" in
         -*)
             COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
