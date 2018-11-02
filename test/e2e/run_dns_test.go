@@ -1,9 +1,10 @@
 package integration
 
 import (
-	"os"
-
 	"fmt"
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -82,5 +83,23 @@ var _ = Describe("Podman run dns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Equal("foobar"))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--hostname=foobar", ALPINE, "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"start", "-ia", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session.LineInOutputContains("foobar")
+		line := strings.Split(session.OutputToStringArray()[len(session.OutputToStringArray())-1], "\t")
+		ip1 := line[0]
+
+		session = podmanTest.Podman([]string{"start", "-ia", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session.LineInOutputContains("foobar")
+		line = strings.Split(session.OutputToStringArray()[len(session.OutputToStringArray())-1], "\t")
+		ip2 := line[0]
+		Expect(ip2).To(Not(Equal(ip1)))
 	})
 })
