@@ -1,0 +1,124 @@
+---
+
+variables:
+    # Complete local path to this repository (Required)
+    GOSRC:
+    # Relative path to this (packer) subdirectory (Required)
+    PACKER_BASE:
+    # Relative path to cirrus scripts subdirectory (Required)
+    SCRIPT_BASE:
+
+    # Image and checksum locations for images not already available in GCE
+    # N/B: _MUST_ end in '.x86_64.raw.xz' (expected by libpod_base_images_setup.sh)
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.raw.xz"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
+    FAH_IMAGE_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1.x86_64.raw.xz"
+    FAH_CSUM_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1-x86_64-CHECKSUM"
+    # This one requires a clicking-through agreements, must be supplied on command-line.
+    RHEL_IMAGE_BASENAME:
+    RHEL_IMAGE_FILE:
+    RHEL_CSUM_FILE:
+    # Unique ID for naming base-images
+    TIMESTAMP:
+    XFERBUCKET: "packer-import"  # pre-created, globally unique, lifecycle-enabled
+
+    # The complete project ID (not the short name)
+    GCP_PROJECT_ID: '{{env `GCP_PROJECT_ID`}}'
+    # Path to json file (likely ~/.config/gcloud/legacy_credentials/*/adc.json)
+    GOOGLE_APPLICATION_CREDENTIALS: '{{env `GOOGLE_APPLICATION_CREDENTIALS`}}'
+
+    REMOTE_GAC: '/tmp/libpod/{{env `PACKER_BASE`}}/.gac.json'
+    REMOTE_IMAGE_NAME_FILE: '/tmp/IMPORTED_IMAGES'
+
+    IBI_NAME: 'image-builder-image-{{env `TIMESTAMP`}}'
+
+# Don't leak sensitive values in error messages / output
+sensitive-variables:
+    - 'REMOTE_GAC'
+    - 'GCP_PROJECT_ID'
+    - 'GOOGLE_APPLICATION_CREDENTIALS'
+
+# What images to produce in which cloud
+builders:
+    - name: 'libpod_base_images'
+      type: 'googlecompute'
+      image_name: '{{user `IBI_NAME`}}'
+      image_family: 'image-builder-image'
+      source_image_family: 'centos-7'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      communicator: 'ssh'
+      ssh_username: 'centos'
+      ssh_pty: 'true'
+      # The only supported zone in Cirrus-CI, as of addition of this comment
+      zone: 'us-central1-f'
+      # Enable nested virtualization
+      image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
+      min_cpu_platform: "Intel Broadwell"  # nested-virt requirement
+
+provisioners:
+    - type: 'shell'
+      inline:
+        - 'mkdir -p /tmp/libpod/{{user `SCRIPT_BASE`}}'
+        - 'mkdir -p /tmp/libpod/{{user `PACKER_BASE`}}'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/.cirrus.yml'
+      destination: '/tmp/libpod/.cirrus.yml'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/{{user `SCRIPT_BASE`}}/'
+      destination: '/tmp/libpod/{{user `SCRIPT_BASE`}}/'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/'
+      destination: '/tmp/libpod/{{user `PACKER_BASE`}}/'
+
+    - type: 'file'
+      source: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      destination: '{{user `REMOTE_GAC`}}'
+
+    - type: 'file'
+      source: '{{user `RHEL_IMAGE_FILE`}}'
+      destination: '/tmp/libpod/{{user `RHEL_IMAGE_BASENAME`}}'
+
+    - type: 'file'
+      source: '{{user `RHEL_CSUM_FILE`}}'
+      destination: '/tmp/libpod/{{user `RHEL_IMAGE_BASENAME`}}.SHA256SUM'
+
+    - type: 'shell'
+      inline:
+        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_setup.sh'
+        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_setup.sh'
+      environment_vars:
+          - 'TIMESTAMP={{user `TIMESTAMP`}}'
+          - 'GOSRC=/tmp/libpod'
+          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
+          - 'PACKER_BASE={{user `PACKER_BASE`}}'
+          - 'GCP_PROJECT_ID={{user `GCP_PROJECT_ID`}}'
+          - 'GOOGLE_APPLICATION_CREDENTIALS={{user `REMOTE_GAC`}}'
+          - 'FEDORA_IMAGE_URL={{user `FEDORA_IMAGE_URL`}}'
+          - 'FEDORA_CSUM_URL={{user `FEDORA_CSUM_URL`}}'
+          - 'FAH_IMAGE_URL={{user `FAH_IMAGE_URL`}}'
+          - 'FAH_CSUM_URL={{user `FAH_CSUM_URL`}}'
+          - 'RHEL_IMAGE_BASENAME={{user `RHEL_IMAGE_BASENAME`}}'
+          - 'RHEL_IMAGE_FILE={{user `RHEL_IMAGE_FILE`}}'
+          - 'RHEL_CSUM_FILE={{user `RHEL_CSUM_FILE`}}'
+          - 'REMOTE_IMAGE_NAME_FILE={{user `REMOTE_IMAGE_NAME_FILE`}}'
+          - 'XFERBUCKET={{user `XFERBUCKET`}}'
+
+    - type: 'shell'
+      inline:
+        - 'rm -rf /tmp/libpod json'
+        - 'rm -f {{user `REMOTE_GAC`}}'
+
+    - type: 'file'
+      direction: "download"
+      source: '{{user `REMOTE_IMAGE_NAME_FILE`}}'
+      destination: '/tmp/libpod_base_images-{{user `TIMESTAMP`}}'
+
+post-processors:
+
+    - - type: 'shell-local'
+        inline:
+            - 'echo "{{user `IBI_NAME`}}" >> /tmp/{{build_name}}-{{user `TIMESTAMP`}}'

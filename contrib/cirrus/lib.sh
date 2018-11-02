@@ -96,6 +96,16 @@ stub() {
     echo "STUB: Pretending to do $1"
 }
 
+# print value of key $1 from .cirrus.yml on stdout
+getyaml() {
+    req_env_var "
+        GOSRC $GOSRC
+        1 $1
+    "
+    egrep -m 1 '^[^#]+\s+'"$1"':\s+' $GOSRC/.cirrus.yml | \
+        cut -d : -f 2- | tr -d \" | tr -d '[[:blank:]]'
+}
+
 ircmsg() {
     req_env_var "
         SCRIPT_BASE $SCRIPT_BASE
@@ -267,6 +277,8 @@ _finalize(){
     sudo rm -rf /var/lib/cloud
     sudo rm -rf /root/.ssh/*
     sudo rm -rf /home/*
+    sudo rm -rf /tmp/*
+    sudo rm -rf /tmp/.??*
 }
 
 rh_finalize(){
