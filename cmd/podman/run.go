@@ -96,8 +96,6 @@ func runCmd(c *cli.Context) error {
 			inputStream = nil
 		}
 
-		inputStream = nil
-
 		attachTo := c.StringSlice("attach")
 		for _, stream := range attachTo {
 			switch strings.ToLower(stream) {
