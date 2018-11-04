@@ -283,7 +283,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
 		$(GO) get -u github.com/alecthomas/gometalinter; \
 		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
+		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
 		$(GO) install github.com/alecthomas/gometalinter; \
 		$(GOBIN)/gometalinter --install; \
 	fi
