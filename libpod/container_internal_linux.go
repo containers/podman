@@ -376,6 +376,14 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Options:     []string{"bind", "private"},
 		}
 		g.AddMount(systemdMnt)
+	} else {
+		systemdMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup/systemd",
+			Type:        "bind",
+			Source:      "/sys/fs/cgroup/systemd",
+			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		}
+		g.AddMount(systemdMnt)
 	}
 
 	return nil
