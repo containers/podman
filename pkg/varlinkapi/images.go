@@ -271,6 +271,9 @@ func (i *LibpodAPI) InspectImage(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyImageNotFound(name)
 	}
 	inspectInfo, err := newImage.Inspect(getContext())
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
 	b, err := json.Marshal(inspectInfo)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to serialize"))
