@@ -12,13 +12,16 @@ class Export(AbstractActionBase):
     def subparser(cls, parent):
         """Add Export command to parent parser."""
         parser = parent.add_parser(
-            'export', help='export container to tarball')
+            'export',
+            help='export container to tarball',
+        )
         parser.add_argument(
             '--output',
             '-o',
             metavar='PATH',
             nargs=1,
-            help='Write to a file',
+            required=True,
+            help='Write to this file on host',
         )
         parser.add_argument(
             'container',
@@ -27,23 +30,11 @@ class Export(AbstractActionBase):
         )
         parser.set_defaults(class_=cls, method='export')
 
-    def __init__(self, args):
-        """Construct Export class."""
-        if not args.container:
-            raise ValueError('You must supply one container id'
-                             ' or name to be used as source.')
-
-        if not args.output:
-            raise ValueError('You must supply one filename'
-                             ' to be created as tarball using --output.')
-        super().__init__(args)
-
     def export(self):
         """Create tarball from container filesystem."""
         try:
             try:
                 ctnr = self.client.containers.get(self._args.container[0])
-                ctnr.export(self._args.output[0])
             except podman.ContainerNotFound as e:
                 sys.stdout.flush()
                 print(
@@ -51,6 +42,8 @@ class Export(AbstractActionBase):
                     file=sys.stderr,
                     flush=True)
                 return 1
+            else:
+                ctnr.export(self._args.output[0])
         except podman.ErrorOccurred as e:
             sys.stdout.flush()
             print(
@@ -58,3 +51,4 @@ class Export(AbstractActionBase):
                 file=sys.stderr,
                 flush=True)
             return 1
+        return 0

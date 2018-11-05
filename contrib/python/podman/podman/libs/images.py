@@ -137,7 +137,7 @@ class Images():
             results = podman.DeleteUnusedImages()
         return results['images']
 
-    def import_image(self, source, reference, message=None, changes=None):
+    def import_image(self, source, reference, message='', changes=None):
         """Read image tarball from source and save in image store."""
         with self._client() as podman:
             results = podman.ImportImage(source, reference, message, changes)
