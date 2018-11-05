@@ -8,7 +8,7 @@ gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830
 # Default VM to use for testing, unless values overriden by specific tasks (below)
 gce_instance:
     image_project: "libpod-218412"
-    zone: "us-central1-a"  # Required by Cirrus for the time being
+    zone: "us-east4-a"  # Required by Cirrus for the time being
     cpu: 2
     memory: "4Gb"
     disk: 40
