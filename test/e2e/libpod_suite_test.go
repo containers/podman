@@ -249,9 +249,11 @@ func (p *PodmanTest) Cleanup() {
 
 // CleanupPod cleans up the temporary store
 func (p *PodmanTest) CleanupPod() {
+	stop := p.Podman([]string{"pod", "stop", "-a"})
+	stop.WaitWithDefaultTimeout()
 	// Remove all containers
 	session := p.Podman([]string{"pod", "rm", "-fa"})
-	session.Wait(90)
+	session.WaitWithDefaultTimeout()
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
