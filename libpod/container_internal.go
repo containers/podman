@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/opencontainers/runc/libcontainer/user"
 	"io"
 	"io/ioutil"
 	"os"
@@ -25,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1069,7 +1069,7 @@ func (c *Container) generatePasswd() (string, error) {
 	}
 	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
 	orig, err := ioutil.ReadFile(originPasswdFile)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
 	}
 
