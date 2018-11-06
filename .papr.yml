@@ -9,7 +9,7 @@ host:
      ram: 8192
      cpus: 4
 required: true
-timeout: 90m
+timeout: 45m
 
 tests:
   - rpm-ostree usroverlay && rpm -Uvh https://kojipkgs.fedoraproject.org//packages/podman/0.10.1/1.gite4a1553.fc28/x86_64/podman-0.10.1-1.gite4a1553.fc28.x86_64.rpm

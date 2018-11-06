@@ -140,5 +140,8 @@ if [ $integrationtest -eq 1 ]; then
     make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
 fi
 
-
+echo $?
+mount
+ps aux
+env
 exit 0
