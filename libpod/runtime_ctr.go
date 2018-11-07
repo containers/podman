@@ -256,7 +256,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 
 		// Need to update container state to make sure we know it's stopped
-		if err := c.syncContainer(); err != nil {
+		if err := c.waitForExitFileAndSync(); err != nil {
 			return err
 		}
 	} else if !(c.state.State == ContainerStateConfigured ||

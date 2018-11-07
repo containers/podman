@@ -13,8 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
 	"github.com/containers/libpod/pkg/lookup"
@@ -31,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -147,6 +150,77 @@ func (c *Container) execPidPath(sessionID string) string {
 	return filepath.Join(c.state.RunDir, "exec_pid_"+sessionID)
 }
 
+// exitFilePath gets the path to the container's exit file
+func (c *Container) exitFilePath() string {
+	return filepath.Join(c.runtime.ociRuntime.exitsDir, c.ID())
+}
+
+// Wait for the container's exit file to appear.
+// When it does, update our state based on it.
+func (c *Container) waitForExitFileAndSync() error {
+	exitFile := c.exitFilePath()
+
+	err := kwait.ExponentialBackoff(
+		kwait.Backoff{
+			Duration: 500 * time.Millisecond,
+			Factor:   1.2,
+			Steps:    6,
+		},
+		func() (bool, error) {
+			_, err := os.Stat(exitFile)
+			if err != nil {
+				// wait longer
+				return false, nil
+			}
+			return true, nil
+		})
+	if err != nil {
+		// Exit file did not appear
+		// Reset our state
+		c.state.ExitCode = -1
+		c.state.FinishedTime = time.Now()
+		c.state.State = ContainerStateStopped
+
+		if err2 := c.save(); err2 != nil {
+			logrus.Errorf("Error saving container %s state: %v", c.ID(), err2)
+		}
+
+		return err
+	}
+
+	if err := c.runtime.ociRuntime.updateContainerStatus(c, false); err != nil {
+		return err
+	}
+
+	return c.save()
+}
+
+// Handle the container exit file.
+// The exit file is used to supply container exit time and exit code.
+// This assumes the exit file already exists.
+func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
+	c.state.FinishedTime = ctime.Created(fi)
+	statusCodeStr, err := ioutil.ReadFile(exitFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read exit file for container %s", c.ID())
+	}
+	statusCode, err := strconv.Atoi(string(statusCodeStr))
+	if err != nil {
+		return errors.Wrapf(err, "error converting exit status code (%q) for container %s to int",
+			c.ID(), statusCodeStr)
+	}
+	c.state.ExitCode = int32(statusCode)
+
+	oomFilePath := filepath.Join(c.bundlePath(), "oom")
+	if _, err = os.Stat(oomFilePath); err == nil {
+		c.state.OOMKilled = true
+	}
+
+	c.state.Exited = true
+
+	return nil
+}
+
 // Sync this container with on-disk state and runtime status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and
@@ -162,7 +236,7 @@ func (c *Container) syncContainer() error {
 		(c.state.State != ContainerStateExited) {
 		oldState := c.state.State
 		// TODO: optionally replace this with a stat for the exit file
-		if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
+		if err := c.runtime.ociRuntime.updateContainerStatus(c, false); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed
@@ -673,13 +747,8 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
-	// Sync the container's state to pick up return code
-	if err := c.runtime.ociRuntime.updateContainerStatus(c); err != nil {
-		return err
-	}
-
-	// Container should clean itself up
-	return nil
+	// Wait until we have an exit file, and sync once we do
+	return c.waitForExitFileAndSync()
 }
 
 // Internal, non-locking function to pause a container
