@@ -46,9 +46,6 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
-	if err := c.prepare(); err != nil {
-		return err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -56,6 +53,10 @@ func (c *Container) Init(ctx context.Context) (err error) {
 			}
 		}
 	}()
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container
@@ -99,9 +100,6 @@ func (c *Container) Start(ctx context.Context) (err error) {
 		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
-	if err := c.prepare(); err != nil {
-		return err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -109,6 +107,10 @@ func (c *Container) Start(ctx context.Context) (err error) {
 			}
 		}
 	}()
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
@@ -164,9 +166,6 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 		return nil, errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
-	if err := c.prepare(); err != nil {
-		return nil, err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -174,6 +173,10 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 			}
 		}
 	}()
+
+	if err := c.prepare(); err != nil {
+		return nil, err
+	}
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
