@@ -21,6 +21,7 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
+# Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND=noninteractive
 
 # Try twice as workaround for minor networking problems
@@ -56,6 +57,8 @@ ooe.sh sudo -E apt-get -qq install --no-install-recommends \
     libostree-dev \
     libprotobuf-c0-dev \
     libprotobuf-dev \
+    libseccomp-dev \
+    libseccomp2 \
     libtool \
     libudev-dev \
     lsof \

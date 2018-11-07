@@ -16,12 +16,11 @@ CIRRUS_BUILD_ID $CIRRUS_BUILD_ID"
 cd "$CIRRUS_WORKING_DIR"  # for clarity of initial conditions
 
 # Verify basic dependencies
-for depbin in go rsync unzip sha256sum curl make
+for depbin in go rsync unzip sha256sum curl make python3 git
 do
     if ! type -P "$depbin" &> /dev/null
     then
-        echo "ERROR: $depbin binary not found in $PATH"
-        exit 2
+        echo "***** WARNING: $depbin binary not found in $PATH *****"
     fi
 done
 
@@ -35,14 +34,15 @@ then
     # N/B: Single-quote items evaluated every time, double-quotes only once (right now).
     for envstr in \
         "$MARK" \
+        "export EPOCH_TEST_COMMIT=\"$CIRRUS_BASE_SHA\"" \
         "export HEAD=\"$CIRRUS_CHANGE_IN_REPO\"" \
         "export TRAVIS=\"1\"" \
         "export GOSRC=\"$CIRRUS_WORKING_DIR\"" \
         "export OS_RELEASE_ID=\"$(os_release_id)\"" \
         "export OS_RELEASE_VER=\"$(os_release_ver)\"" \
-        "export OS_REL_VER=\"${OS_RELEASE_ID}-${OS_RELEASE_VER}\"" \
+        "export OS_REL_VER=\"$(os_release_id)-$(os_release_ver)\"" \
         "export BUILT_IMAGE_SUFFIX=\"-$CIRRUS_REPO_NAME-${CIRRUS_CHANGE_IN_REPO:0:8}\"" \
-        "export GOPATH=\"/go\"" \
+        "export GOPATH=\"/var/tmp/go\"" \
         'export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"' \
         'export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"'
     do
@@ -57,7 +57,8 @@ then
             install_runc_from_git
             envstr='export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) varlink exclude_graphdriver_devicemapper"'
             ;;
-        fedora-28) ;&  # Continue to the next item
+        fedora-29) ;&  # Continue to the next item
+        fedora-28) ;&
         centos-7) ;&
         rhel-7)
             envstr='unset BUILDTAGS'  # Use default from Makefile

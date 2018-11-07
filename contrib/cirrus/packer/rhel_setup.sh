@@ -18,24 +18,7 @@ RHSM_COMMAND $RHSM_COMMAND
 
 install_ooe
 
-export GOPATH="$(mktemp -d)"
-export RHSMCMD="$(mktemp)"
-
-exit_handler() {
-    set +ex
-    cd /
-    sudo rm -rf "$RHSMCMD"
-    sudo rm -rf "$GOPATH"
-    sudo subscription-manager remove --all
-    sudo subscription-manager unregister
-    sudo subscription-manager clean
-}
-trap "exit_handler" EXIT
-
-# Avoid logging sensitive details
-echo "$RHSM_COMMAND" > "$RHSMCMD"
-ooe.sh sudo bash "$RHSMCMD"
-sudo rm -rf "$RHSMCMD"
+rhsm_enable
 
 ooe.sh sudo yum -y erase "rh-amazon-rhui-client*"
 ooe.sh sudo subscription-manager repos "--disable=*"
@@ -46,21 +29,6 @@ ooe.sh sudo subscription-manager repos \
     --enable=rhel-server-rhscl-7-rpms
 
 ooe.sh sudo yum -y update
-
-# Frequently needed
-ooe.sh sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-
-# Required for google to manage ssh keys
-sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo << EOM
-[google-cloud-compute]
-name=google-cloud-compute
-baseurl=https://packages.cloud.google.com/yum/repos/google-cloud-compute-el7-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
 
 ooe.sh sudo yum -y install \
     atomic-registries \
@@ -74,8 +42,6 @@ ooe.sh sudo yum -y install \
     golang \
     golang-github-cpuguy83-go-md2man \
     golang-github-cpuguy83-go-md2man \
-    google-compute-engine \
-    google-compute-engine-oslogin \
     gpgme-devel \
     iptables \
     libassuan-devel \
@@ -118,7 +84,7 @@ install_criu
 
 install_packer_copied_files
 
-exit_handler  # release subscription!
+rhel_exit_handler  # release subscription!
 
 rh_finalize
 

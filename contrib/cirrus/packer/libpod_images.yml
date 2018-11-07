@@ -16,7 +16,7 @@ variables:
     CRIU_COMMIT: "{{env `CRIU_COMMIT`}}"
     RUNC_COMMIT: "{{env `RUNC_COMMIT`}}"
 
-    CIRRUS_BUILD_ID: '{{env `CIRRUS_BUILD_ID`}}'
+    BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
     GOSRC: '{{env `GOSRC`}}'
     PACKER_BASE: '{{env `PACKER_BASE`}}'
     SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
@@ -41,9 +41,10 @@ builders:
     - &gce_hosted_image
       name: 'ubuntu-18'
       type: 'googlecompute'
-      image_name: '{{user `UBUNTU_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}'
-      image_family: '{{user `UBUNTU_BASE_IMAGE`}}-libpod'
+      image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
+      image_family: '{{build_name}}-libpod'
       source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      disk_size: 20
       project_id: '{{user `GCP_PROJECT_ID`}}'
       service_account_email: '{{user `SERVICE_ACCOUNT`}}'
       communicator: 'ssh'
@@ -55,17 +56,19 @@ builders:
     #      v----- is a YAML alias, allows partial re-use of the anchor object
     - <<: *gce_hosted_image
       name: 'rhel-7'
-      image_name: '{{user `RHEL_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}'
-      image_family: '{{user `RHEL_BASE_IMAGE`}}-libpod'
       source_image: '{{user `RHEL_BASE_IMAGE`}}'
-      ssh_username: 'ec2-user'
 
     - <<: *gce_hosted_image
       name: 'centos-7'
-      image_family: '{{user `CENTOS_BASE_IMAGE`}}-libpod'
-      image_name: '{{user `CENTOS_BASE_IMAGE`}}-libpod-{{user `CIRRUS_BUILD_ID`}}'
       source_image: '{{user `CENTOS_BASE_IMAGE`}}'
 
+    - <<: *gce_hosted_image
+      name: 'fedora-29'
+      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
+      name: 'fah-29'
+      source_image: '{{user `FAH_BASE_IMAGE`}}'
 
 # The brains of the operation, making actual modifications to the base-image.
 provisioners:
@@ -86,4 +89,3 @@ provisioners:
 
 post-processors:
     - - type: 'manifest'
-        output: '/tmp/packer-manifest.json'

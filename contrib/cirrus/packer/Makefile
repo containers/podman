@@ -54,3 +54,55 @@ endif
 	@echo "Finished.  The images mentioned above, and in packer-manifest.json"
 	@echo "can be used in .cirrus.yml as values for the 'image_name' keys"
 	@echo ""
+
+cidata.ssh:
+	ssh-keygen -f $@ -P "" -q
+
+cidata.ssh.pub: cidata.ssh
+	touch $@
+
+meta-data:
+	echo "local-hostname: localhost.localdomain" > $@
+
+user-data: cidata.ssh.pub
+	bash make-user-data.sh
+
+cidata.iso: user-data meta-data
+	genisoimage -output cidata.iso -volid cidata -input-charset utf-8 -joliet -rock user-data meta-data
+
+# This is intended to be run by a human, with admin access to the libpod GCE project.
+.PHONY: libpod_base_images
+libpod_base_images: libpod_base_images.json cidata.iso cidata.ssh packer
+ifndef GCP_PROJECT_ID
+	$(error GCP_PROJECT_ID is undefined, expected complete GCP project ID string e.g. foobar-12345)
+endif
+ifndef GOOGLE_APPLICATION_CREDENTIALS
+	$(error GOOGLE_APPLICATION_CREDENTIALS is undefined, expected absolute path to JSON file, like $HOME/.config/gcloud/legacy_credentials/*/adc.json)
+endif
+ifndef RHEL_IMAGE_FILE
+	$(error RHEL_IMAGE_FILE is undefined, expected full path to a rhel-server-ec2-*.raw.xz file)
+endif
+ifndef RHEL_CSUM_FILE
+	$(error RHEL_CSUM_FILE is undefined, expected full path to a rhel-server-ec2-*.raw.xz.SHA256SUM file)
+endif
+ifndef RHSM_COMMAND
+	$(error RHSM_COMMAND is undefined, expected string required for temporarily registering VM)
+endif
+	PACKER_CACHE_DIR=/tmp ./packer build \
+		-var TIMESTAMP=$(TIMESTAMP) \
+		-var TTYDEV=$(TTYDEV) \
+		-var GCP_PROJECT_ID=$(GCP_PROJECT_ID) \
+		-var GOOGLE_APPLICATION_CREDENTIALS=$(GOOGLE_APPLICATION_CREDENTIALS) \
+		-var GOSRC=$(GOSRC) \
+		-var PACKER_BASE=$(PACKER_BASE) \
+		-var SCRIPT_BASE=$(SCRIPT_BASE) \
+		-var RHEL_BASE_IMAGE_NAME=$(shell basename $(RHEL_IMAGE_FILE) | tr -d '[[:space:]]' | sed -r -e 's/\.x86_64\.raw\.xz//' | tr '[[:upper:]]' '[[:lower:]]' | tr '[[:punct:]]' '-') \
+		-var RHEL_IMAGE_FILE=$(RHEL_IMAGE_FILE) \
+		-var RHEL_CSUM_FILE=$(RHEL_CSUM_FILE) \
+	    -var 'RHSM_COMMAND=$(RHSM_COMMAND)' \
+		-only $(PACKER_BUILDS) \
+		libpod_base_images.json
+	@echo ""
+	@echo "Finished.  The images mentioned above, and in packer-manifest.json"
+	@echo "can be used in .cirrus.yml as values for the *_BASE_IMAGE keys."
+	@echo ""
