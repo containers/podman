@@ -18,13 +18,11 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
         make localunit "BUILDTAGS=$BUILDTAGS"
         make "BUILDTAGS=$BUILDTAGS"
         ;;
-    fedora-28)
+    fedora-28) ;&  # Continue to the next item
+    centos-7) ;&
+    rhel-7)
         make localunit
         make
-        ;;
-    centos-7) ;&  # Continue to the next item
-    rhel-7)
-        stub 'unit testing not working on $OS_RELEASE_ID'
         ;;
     *) bad_os_id_ver ;;
 esac

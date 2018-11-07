@@ -22,7 +22,9 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
     fedora-28) ;&  # Continue to the next item
     centos-7) ;&
     rhel-7)
-        stub 'integration testing not working on $OS_RELEASE_ID'
+        make install PREFIX=/usr ETCDIR=/etc
+        make test-binaries
+        make localintegration
         ;;
     *) bad_os_id_ver ;;
 esac

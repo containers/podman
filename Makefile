@@ -172,6 +172,7 @@ testunit: libpodimage
 
 localunit: test/goecho/goecho varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
+	$(MAKE) -C contrib/cirrus/packer test
 
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
