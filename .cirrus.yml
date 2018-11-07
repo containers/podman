@@ -63,6 +63,8 @@ full_vm_testing_task:
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
+    optional_system_test_script: $SCRIPT_BASE/optional_system_test.sh
+
     success_script: $SCRIPT_BASE/success.sh
 
 
