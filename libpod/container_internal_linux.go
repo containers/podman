@@ -360,19 +360,31 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		g.AddMount(tmpfsMnt)
 	}
 
-	cgroupPath, err := c.CGroupPath()
-	if err != nil {
-		return err
-	}
-	sourcePath := filepath.Join("/sys/fs/cgroup/systemd", cgroupPath)
+	// rootless containers have no write access to /sys/fs/cgroup, so don't
+	// add any mount into the container.
+	if !rootless.IsRootless() {
+		cgroupPath, err := c.CGroupPath()
+		if err != nil {
+			return err
+		}
+		sourcePath := filepath.Join("/sys/fs/cgroup/systemd", cgroupPath)
 
-	systemdMnt := spec.Mount{
-		Destination: "/sys/fs/cgroup/systemd",
-		Type:        "bind",
-		Source:      sourcePath,
-		Options:     []string{"bind", "private"},
+		systemdMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup/systemd",
+			Type:        "bind",
+			Source:      sourcePath,
+			Options:     []string{"bind", "private"},
+		}
+		g.AddMount(systemdMnt)
+	} else {
+		systemdMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup/systemd",
+			Type:        "bind",
+			Source:      "/sys/fs/cgroup/systemd",
+			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		}
+		g.AddMount(systemdMnt)
 	}
-	g.AddMount(systemdMnt)
 
 	return nil
 }
