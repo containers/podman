@@ -139,9 +139,8 @@ if [ $integrationtest -eq 1 ]; then
     fi
     make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
 fi
-
+# The following is just for status and debug at this time
 echo $?
 mount
 ps aux
 env
-exit 0
