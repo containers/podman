@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -37,7 +36,6 @@ var (
 
 func unpauseCmd(c *cli.Context) error {
 	var (
-		lastError         error
 		unpauseContainers []*libpod.Container
 		unpauseFuncs      []shared.ParallelWorkerInput
 	)
@@ -90,18 +88,6 @@ func unpauseCmd(c *cli.Context) error {
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	unpauseErrors := shared.ParallelExecuteWorkerPool(maxWorkers, unpauseFuncs)
-
-	for cid, result := range unpauseErrors {
-		if result != nil && result != libpod.ErrCtrStopped {
-			if len(unpauseErrors) > 1 {
-				fmt.Println(result.Error())
-			}
-			lastError = result
-			continue
-		}
-		fmt.Println(cid)
-	}
-
-	return lastError
+	unpauseErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, unpauseFuncs)
+	return printParallelOutput(unpauseErrors, errCount)
 }

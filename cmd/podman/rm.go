@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -46,9 +45,7 @@ Running containers will not be removed without the -f option.
 // saveCmd saves the image to either docker-archive or oci
 func rmCmd(c *cli.Context) error {
 	var (
-		delContainers []*libpod.Container
-		lastError     error
-		deleteFuncs   []shared.ParallelWorkerInput
+		deleteFuncs []shared.ParallelWorkerInput
 	)
 
 	ctx := getContext()
@@ -65,7 +62,13 @@ func rmCmd(c *cli.Context) error {
 		return err
 	}
 
-	delContainers, lastError = getAllOrLatestContainers(c, runtime, -1, "all")
+	delContainers, err := getAllOrLatestContainers(c, runtime, -1, "all")
+	if err != nil {
+		if len(delContainers) == 0 {
+			return err
+		}
+		fmt.Println(err.Error())
+	}
 
 	for _, container := range delContainers {
 		con := container
@@ -84,14 +87,7 @@ func rmCmd(c *cli.Context) error {
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	deleteErrors := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
-	for cid, result := range deleteErrors {
-		if result != nil {
-			fmt.Println(result.Error())
-			lastError = result
-			continue
-		}
-		fmt.Println(cid)
-	}
-	return lastError
+	// Run the parallel funcs
+	deleteErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
+	return printParallelOutput(deleteErrors, errCount)
 }

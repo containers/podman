@@ -13,7 +13,7 @@ podman\-rm - Remove one or more containers
 
 **--force, f**
 
-Force the removal of a running container
+Force the removal of a running and paused containers
 
 **--all, a**
 
@@ -29,16 +29,29 @@ to run containers such as CRI-O, the last started container could be from either
 Remove the volumes associated with the container. (Not yet implemented)
 
 ## EXAMPLE
-
+Remove a container by its name *mywebserver*
+```
 podman rm mywebserver
-
+```
+Remove several containers by name and container id.
+```
 podman rm mywebserver myflaskserver 860a4b23
+```
 
+Forcibly remove a container by container ID.
+```
 podman rm -f 860a4b23
+```
 
+Remove all containers regardless of its run state.
+```
 podman rm -f -a
+```
 
+Forcibly remove the latest container created.
+```
 podman rm -f --latest
+```
 
 ## SEE ALSO
 podman(1), podman-rmi(1)

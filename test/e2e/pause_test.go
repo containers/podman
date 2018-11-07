@@ -91,7 +91,7 @@ var _ = Describe("Podman pause", func() {
 
 	})
 
-	It("podman remove a paused container by id", func() {
+	It("podman remove a paused container by id without force", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -111,25 +111,26 @@ var _ = Describe("Podman pause", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
 
-		result = podmanTest.Podman([]string{"rm", "--force", cid})
+	})
+
+	It("podman remove a paused container by id with force", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"pause", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
 
-		result = podmanTest.Podman([]string{"unpause", cid})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result.ExitCode()).To(Equal(0))
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
-
 		result = podmanTest.Podman([]string{"rm", "--force", cid})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-
 	})
 
 	It("podman stop a paused container by id", func() {
