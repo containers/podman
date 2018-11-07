@@ -139,6 +139,3 @@ if [ $integrationtest -eq 1 ]; then
     fi
     make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
 fi
-
-
-exit 0
