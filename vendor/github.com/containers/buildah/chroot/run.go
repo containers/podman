@@ -1147,7 +1147,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 		if uintptr(fs.Flags)&expectedFlags != expectedFlags {
 			if err := unix.Mount(target, target, "bind", requestFlags|unix.MS_REMOUNT, ""); err != nil {
-				return undoBinds, errors.Wrapf(err, "error remounting %q in mount namespace with expected flags")
+				return undoBinds, errors.Wrapf(err, "error remounting %q in mount namespace with expected flags", target)
 			}
 		}
 	}

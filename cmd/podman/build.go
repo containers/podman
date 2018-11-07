@@ -1,6 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
@@ -10,14 +15,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var (
 	layerFlags = []cli.Flag{
+		cli.BoolTFlag{
+			Name:  "force-rm",
+			Usage: "Always remove intermediate containers after a build, even if the build is unsuccessful. (default true)",
+		},
 		cli.BoolTFlag{
 			Name:  "layers",
 			Usage: "cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. ",
@@ -230,7 +235,7 @@ func buildCmd(c *cli.Context) error {
 		Layers:                  layers,
 		NoCache:                 c.Bool("no-cache"),
 		RemoveIntermediateCtrs:  c.BoolT("rm"),
-		ForceRmIntermediateCtrs: c.Bool("force-rm"),
+		ForceRmIntermediateCtrs: c.BoolT("force-rm"),
 	}
 
 	if c.Bool("quiet") {

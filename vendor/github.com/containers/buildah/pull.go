@@ -146,11 +146,11 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 	srcRef, err := alltransports.ParseImageName(spec)
 	if err != nil {
 		if options.Transport == "" {
-			options.Transport = DefaultTransport
+			options.Transport = util.DefaultTransport
 		}
 		logrus.Debugf("error parsing image name %q, trying with transport %q: %v", spec, options.Transport, err)
 		transport := options.Transport
-		if transport != DefaultTransport {
+		if transport != util.DefaultTransport {
 			transport = transport + ":"
 		}
 		spec = transport + spec
@@ -201,6 +201,7 @@ func pullImage(ctx context.Context, store storage.Store, imageName string, optio
 
 	logrus.Debugf("copying %q to %q", spec, destName)
 	if _, err := cp.Image(ctx, policyContext, destRef, srcRef, getCopyOptions(options.ReportWriter, srcRef, sc, destRef, nil, "")); err != nil {
+		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", spec, destName, err)
 		return nil, err
 	}
 	return destRef, nil

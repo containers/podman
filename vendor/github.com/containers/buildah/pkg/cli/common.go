@@ -71,6 +71,10 @@ var (
 
 	LayerFlags = []cli.Flag{
 		cli.BoolFlag{
+			Name:  "force-rm",
+			Usage: "Always remove intermediate containers after a build, even if the build is unsuccessful.",
+		},
+		cli.BoolFlag{
 			Name:  "layers",
 			Usage: fmt.Sprintf("cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. (default %t)", UseLayers()),
 		},
@@ -114,10 +118,6 @@ var (
 		cli.StringSliceFlag{
 			Name:  "file, f",
 			Usage: "`pathname or URL` of a Dockerfile",
-		},
-		cli.BoolFlag{
-			Name:  "force-rm",
-			Usage: "Always remove intermediate containers after a build, even if the build is unsuccessful.",
 		},
 		cli.StringFlag{
 			Name:  "format",
