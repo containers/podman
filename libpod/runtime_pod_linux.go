@@ -265,15 +265,26 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			}
 		case CgroupfsCgroupsManager:
 			// Delete the cgroupfs cgroup
+			// Make sure the conmon cgroup is deleted first
+			// Since the pod is almost gone, don't bother failing
+			// hard - instead, just log errors.
 			v1CGroups := GetV1CGroups(getExcludedCGroups())
+			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
+			conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+			if err != nil && err != cgroups.ErrCgroupDeleted {
+				return err
+			}
+			if err == nil {
+				if err := conmonCgroup.Delete(); err != nil {
+					logrus.Errorf("Error deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+				}
+			}
 			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				return err
-			} else if err == nil {
+			}
+			if err == nil {
 				if err := cgroup.Delete(); err != nil {
-					// The pod is already almost gone.
-					// No point in hard-failing if we fail
-					// this bit of cleanup.
 					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
