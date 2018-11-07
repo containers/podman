@@ -1157,6 +1157,10 @@ func (c *Container) generateHosts() (string, error) {
 			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
 		}
 	}
+	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
+		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
+		hosts += fmt.Sprintf("%s\t%s\n", ipAddress, c.Hostname())
+	}
 	return c.writeStringToRundir("hosts", hosts)
 }
 
