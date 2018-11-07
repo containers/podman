@@ -484,9 +484,6 @@ func (c *Container) restore(ctx context.Context, keep bool) (err error) {
 		}
 	}
 
-	if err := c.prepare(); err != nil {
-		return err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -494,6 +491,10 @@ func (c *Container) restore(ctx context.Context, keep bool) (err error) {
 			}
 		}
 	}()
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
 
 	// TODO: use existing way to request static IPs, once it is merged in ocicni
 	// https://github.com/cri-o/ocicni/pull/23/

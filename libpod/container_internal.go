@@ -623,9 +623,6 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
 	}
 
-	if err := c.prepare(); err != nil {
-		return err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -633,6 +630,10 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 			}
 		}
 	}()
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
 
 	// If we are ContainerStateStopped we need to remove from runtime
 	// And reset to ContainerStateConfigured
@@ -719,9 +720,6 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 			return err
 		}
 	}
-	if err := c.prepare(); err != nil {
-		return err
-	}
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -729,6 +727,9 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 			}
 		}
 	}()
+	if err := c.prepare(); err != nil {
+		return err
+	}
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
