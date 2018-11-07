@@ -66,7 +66,7 @@ Write the container ID to the file
 
 **--conmon-pidfile**=""
 
-Write the pid of the `conmon` process to a file. `conmon` daemonizes separate from Podman, so this is necessary when using systemd to restart Podman containers.
+Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
 
 **--cpu-count**=*0*
 
@@ -321,13 +321,13 @@ Not implemented
 
 **--log-driver**="*json-file*"
 
-Logging driver for the container. Default is defined by daemon `--log-driver` flag.
-**Warning**: the `podman logs` command works only for the `json-file` and
-`journald` logging drivers.
+Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
 
 **--log-opt**=[]
 
-Logging driver specific options.
+Logging driver specific options.  Used to set the path to the container log file.  For example:
+
+`--log-opt path=/var/log/container/mycontainer.json`
 
 **--mac-address**=""
 
@@ -414,7 +414,7 @@ UUID short identifier (“f78375b1c487”)
 Name (“jonah”)
 
 podman generates a UUID for each container, and if a name is not assigned
-to the container with **--name** then the daemon will also generate a random
+to the container with **--name** then it will generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
