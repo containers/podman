@@ -69,3 +69,29 @@ communicate with a registry and not use tls verification.
   * Turn off tls verification by passing false to the tls-verification option.
   * I.e. `podman push --tls-verify=false alpine docker://localhost:5000/myalpine:latest`
 ---
+### 4) rootless containers cannot ping hosts
+
+When using the ping command from a non-root container, the command may
+fail because of a lack of privileges.
+
+#### Symptom
+
+```console
+$ podman run --rm fedora ping -W10 -c1 redhat.com
+PING redhat.com (209.132.183.105): 56 data bytes
+
+--- redhat.com ping statistics ---
+1 packets transmitted, 0 packets received, 100% packet loss
+```
+
+#### Solution
+
+It is most likely necessary to enable unprivileged pings on the host.
+Be sure the UID of the user is part of the range in the
+`/proc/sys/net/ipv4/ping_group_range` file.
+
+To change its value you can use something like: `sysctl -w
+"net.ipv4.ping_group_range=0 2000000"`.
+
+To make the change persistent, you'll need to add a file in
+`/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_UID`.
