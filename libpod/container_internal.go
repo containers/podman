@@ -821,28 +821,22 @@ func (c *Container) mountStorage() (string, error) {
 		return c.state.Mountpoint, nil
 	}
 
-	if !rootless.IsRootless() {
-		// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
-		mounted, err := mount.Mounted(c.config.ShmDir)
-		if err != nil {
-			return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
-		}
+	mounted, err := mount.Mounted(c.config.ShmDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
+	}
 
+	if !mounted {
+		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
+		if err := c.mountSHM(shmOptions); err != nil {
+			return "", err
+		}
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
-
-		if !mounted {
-			shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
-			if err := c.mountSHM(shmOptions); err != nil {
-				return "", err
-			}
-			if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-				return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
-			}
-		}
 	}
 
+	// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
 	mountPoint := c.config.Rootfs
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
