@@ -863,15 +863,16 @@ func (c *Container) mountStorage() (string, error) {
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
 func (c *Container) cleanupStorage() error {
-	if !c.state.Mounted {
-		// Already unmounted, do nothing
-		logrus.Debugf("Storage is already unmounted, skipping...")
-		return nil
-	}
+	// Make sure all shms are unmounted
 	for _, mount := range c.config.Mounts {
 		if err := c.unmountSHM(mount); err != nil {
 			return err
 		}
+	}
+	if !c.state.Mounted {
+		// Already unmounted, do nothing
+		logrus.Debugf("Storage is already unmounted, skipping...")
+		return nil
 	}
 	if c.config.Rootfs != "" {
 		return nil
