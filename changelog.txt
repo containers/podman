@@ -1,3 +1,104 @@
+- Changelog for v0.11.1 (2018-11-08)
+  * Update release notes for 0.11.1
+  * update seccomp.json
+  * Touch up --log* options and daemons in man pages
+  * Fix run --hostname test that started failing post-merge
+  * move defer'd function declaration ahead of prepare error return
+  * Don't fail if /etc/passwd or /etc/group does not exists
+  * Print error status code if we fail to parse it
+  * Properly set Running state when starting containers
+  * Fix misspelling
+  * Retrieve container PID from conmon
+  * If a container ceases to exist in runc, set exit status
+  * EXPERIMENTAL: Do not call out to runc for sync
+  * Actually save changes from post-stop sync
+  * rootless: mount /sys/fs/cgroup/systemd from the host
+  * rootless: don't bind mount /sys/fs/cgroup/systemd in systemd mode
+  * Add hostname to /etc/hosts
+  * Temporarily fix the Python tests to fix some PRs
+  * Remove conmon cgroup before pod cgroup for cgroupfs
+  * Fix cleanup for "Pause a bunch of running containers"
+  * --interactive shall keep STDIN attached even when not explicitly called out
+  * Do never override podman with docker
+  * Make kill, pause, and unpause parallel.
+  * Fix long image name handling
+  * Make restart parallel and add --all
+  * Add ChangeAction to parse sub-options from --change
+  * replace quay.io/baude to quay.io/libpod
+  * Change humanize to use MB vs MiB.
+  * allow ppc64le to pass libpod integration tests
+  * Cirrus-CI: Add option to run system-tests
+  * Cirrus: Skip rebuilding images unless instructed
+  * Cirrus: Disable image build job abort on push
+  * Cirrus: Add a readme
+  * Ubuntu VM image build: try update twice
+  * Cirrus: Enable updating F28 image
+  * rootless: do not add an additional /run to runroot
+  * rootless: avoid hang on failed slirp4netns
+  * Fix setting of version information
+  * runtime: do not allow runroot longer than 50 characters
+  * attach: fix attach when cuid is too long
+  * truncate command output in ps by default
+  * Update the runc commit used for testing
+  * make various changes to ps output
+  * Sync default config with libpod.conf
+  * Use two spaces to pad PS fields
+  * unmount: fix error logic
+  * get user and group information using securejoin and runc's user library
+  * CONTRIBUTING.md: add section about describing changes
+  * Change to exported name in ParseDevice
+  * Vendor in latest containers/storage
+  * fix bug in rm -fa parallel deletes
+  * Ensure test container in running state
+  * Add tests for selinux labels
+  * Add --max-workers and heuristics for parallel operations
+  * Increase security and performance when looking up groups
+  * run prepare in parallel
+  * downgrade runc due a rootless bug
+  * runlabel: run any command
+  * Eat our own dogfood
+  * vendor: update containers/storage
+  * Add support for /usr/local installation
+  * create: fix writing cidfile when using rootless
+  * Explain the device format in man pages
+  * read conmon output and convert to json in two steps
+  * Cirrus: Use images w/ buildah fix
+  * Add --all and --latest to checkpoint/restore
+  * Use the newly added getAllOrLatestContainers() function
+  * Use the new checkAllAndLatest() function
+  * Also factor out getAllOrLatestContainers() function
+  * Add checkAllAndLatest() function
+  * Downgrade code to support python3.4
+  * Allow containers/storage to handle on SELinux labeling
+  * Use more reliable check for rootless for firewall init
+  * Vendor in latest containers/storage opencontainers/selinux
+  * Make podman ps fast
+  * Support auth file environment variable in podman build
+  * fix environment variable parsing
+  * tests: use existing CRIU version check
+  * Use the CRIU version check in checkpoint/restore
+  * Add helper function to read out CRIU version
+  * vendor in go-criu and dependencies
+  * oci: cleanup process status
+  * Handle http/https in registry given to login/out
+  * re-enable f29 testing
+  * correct stats err with non-running containers
+  * Use restoreArtifacts to save time in integration tests
+  * Make rm faster
+  * Fix man page to show info on storage
+  * Move rootless directory handling to the libpod/pkg/util directory
+  * Fix podman port -l
+  * Fix trivial missing markup in manpage
+  * Cirrus: Install CRIU in test images
+  * Cirrus: Use different CNI_COMMIT for Fedora
+  * Fix Cirrus/Packer VM image building
+  * Revert "Cirrus: Enable debugging delay on non-zero exit"
+  * Cirrus: IRC message when cirrus testing successful
+  * cirrus: Add simple IRC messenger
+  * fix NOTIFY_SOCKET in e2e testfix NOTIFY_SOCKET in e2e tests
+  * Bump gitvalidation epoch
+  * Bump to v0.10.2-dev
+
 - Changelog for v0.10.1.3 (2018-10-17)
   * Update release notes for 0.10.1.3
   * Vendor in new new buildah/ci
