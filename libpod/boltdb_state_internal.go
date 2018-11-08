@@ -137,6 +137,9 @@ func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string
 				return nil
 			}
 
+			if (strings.EqualFold(fieldName, "graph driver name")) {
+				return errors.New("Configuration specifies " + runtimeValue + " storage driver but detected " + string(keyBytes) + "\nPlease change the configuration or clean up storage.")
+			}
 			return errors.Wrapf(ErrDBBadConfig, "database %s %s does not match our %s %s",
 				fieldName, string(keyBytes), fieldName, runtimeValue)
 		}
