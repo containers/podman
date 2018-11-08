@@ -74,7 +74,8 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		defer wg.Done()
 		runtime.LockOSThread()
 
-		fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+		var fd *os.File
+		fd, err = os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
 		if err != nil {
 			return
 		}
