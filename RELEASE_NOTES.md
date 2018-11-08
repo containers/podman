@@ -1,5 +1,40 @@
 # Release Notes
 
+## 0.11.1
+### Features
+- Added `--all` and `--latest` flags to `podman checkpoint` and `podman restore`
+- Added `--max-workers` flag to all Podman commands that support operating in parallel, allowing the maximum number of parallel workers used to be specified
+- Added `--all` flag to `podman restart`
+
+### Bugfixes
+- Fixed a bug where `podman port -l` would segfault if no containers were present
+- Fixed a bug where `podman stats -a` would error if containers were present but not running
+- Fixed a bug where container status checks would sometimes leave zombie OCI runtime processes
+- Fixed checkpoint and restore code to verify an appropriate version of `criu` is being used
+- Fixed a bug where environment variables with no specified value (e.g. `-e FOO`) caused errors (they are now added as empty)
+- Fixed a bug where rootless Podman would attempt to configure the system firewall, causing errors on some systems where iptables is not in the user's PATH
+- Fixed a bug where rootless Podman was unable to successfully write the container ID to a file when `--cid-file` was specified to `podman run`
+- Fixed a bug where `podman unmount` would refuse to unmount a container if it was running (the unmount will now be deferred until the container stops)
+- Fixed a bug where rootless `podman attach` would fail to attach due to a too-long path name
+- Fixed a bug where `podman info` was not properly reporting the Git commit Podman was built from
+- Fixed a bug where `podman run --interactive` was not holding STDIN open when `-a` flag was specified
+- Fixed a bug where Podman with the `cgroupfs` CGroup driver was sometimes not successfully removing pod CGroups
+- Fixed a bug where rootless Podman was unable to run systemd containers (note that this also requires an update to systemd)
+- Fixed a bug where `podman run` with the `--user` flag would fail if the container image did not contain `/etc/passwd` or `/etc/group`
+
+### Misc
+- `podman rm`, `podman restart`, `podman kill`, `podman pause`, and `podman unpause` now operate in parallel, greatly improving speed when multiple containers are specified
+- `podman create`, `podman run`, and `podman ps` have a number of improvements which should greatly increase their speed
+- Greatly improved performance and reduced memory utilization of container status checks, which should improve the speed of most Podman commands
+- Improve ability of `podman runlabel` to run commands that are not Podman
+- Podman containers with an IP address now add their hostnames to `/etc/hosts`
+- Changed default location of temporary libpod files in rootless Podman
+- Updated the default Podman seccomp profile
+
+### Compatability
+Several paths related to rootless Podman had their default values changed in this release.
+If paths were not hardcoded in libpod.conf, your system may lose track of running containers and believe they are newly-created.
+
 ## 0.10.1.3
 ### Bugfixes
 - Fixed a bug where `podman build` would not work while any containers were running
