@@ -670,6 +670,11 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if util.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
 		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
 	}
+	if !netMode.IsPrivate() {
+		if c.IsSet("dns-search") || c.IsSet("dns") || c.IsSet("dns-opt") {
+			return nil, errors.Errorf("specifying DNS flags when network mode is shared with the host or another container is not allowed")
+		}
+	}
 
 	// Validate domains are good
 	for _, dom := range c.StringSlice("dns-search") {

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,8 +22,11 @@ import (
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/lookup"
+	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -132,6 +136,9 @@ func (c *Container) prepare() (err error) {
 
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
+	if c.NetworkDisabled() {
+		return nil
+	}
 	if c.state.NetNS == nil {
 		logrus.Debugf("Network is already cleaned up, skipping...")
 		return nil
@@ -169,6 +176,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 		}
 	}
+
+	if err := c.makeBindMounts(); err != nil {
+		return nil, err
+	}
+
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
 	for _, m := range g.Mounts() {
@@ -590,4 +602,227 @@ func (c *Container) restore(ctx context.Context, keep bool) (err error) {
 	}
 
 	return c.save()
+}
+
+// Make standard bind mounts to include in the container
+func (c *Container) makeBindMounts() error {
+	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
+		return errors.Wrapf(err, "cannot chown run directory %s", c.state.RunDir)
+	}
+
+	if c.state.BindMounts == nil {
+		c.state.BindMounts = make(map[string]string)
+	}
+
+	if !c.NetworkDisabled() {
+		// Make /etc/resolv.conf
+		if _, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/resolv.conf")
+		}
+		newResolv, err := c.generateResolvConf()
+		if err != nil {
+			return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+		}
+		c.state.BindMounts["/etc/resolv.conf"] = newResolv
+
+		// Make /etc/hosts
+		if _, ok := c.state.BindMounts["/etc/hosts"]; ok {
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/hosts")
+		}
+		newHosts, err := c.generateHosts()
+		if err != nil {
+			return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+		}
+		c.state.BindMounts["/etc/hosts"] = newHosts
+
+	}
+
+	// SHM is always added when we mount the container
+	c.state.BindMounts["/dev/shm"] = c.config.ShmDir
+
+	newPasswd, err := c.generatePasswd()
+	if err != nil {
+		return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
+	}
+	if newPasswd != "" {
+		// Make /etc/passwd
+		if _, ok := c.state.BindMounts["/etc/passwd"]; ok {
+			// If it already exists, delete so we can recreate
+			delete(c.state.BindMounts, "/etc/passwd")
+		}
+		logrus.Debugf("adding entry to /etc/passwd for non existent default user")
+		c.state.BindMounts["/etc/passwd"] = newPasswd
+	}
+
+	// Make /etc/hostname
+	// This should never change, so no need to recreate if it exists
+	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
+		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
+		if err != nil {
+			return errors.Wrapf(err, "error creating hostname file for container %s", c.ID())
+		}
+		c.state.BindMounts["/etc/hostname"] = hostnamePath
+	}
+
+	// Make .containerenv
+	// Empty file, so no need to recreate if it exists
+	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
+		// Empty string for now, but we may consider populating this later
+		containerenvPath, err := c.writeStringToRundir(".containerenv", "")
+		if err != nil {
+			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
+		}
+		c.state.BindMounts["/run/.containerenv"] = containerenvPath
+	}
+
+	// Add Secret Mounts
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.DestinationRunDir, c.RootUID(), c.RootGID())
+	for _, mount := range secretMounts {
+		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
+			c.state.BindMounts[mount.Destination] = mount.Source
+		}
+	}
+
+	return nil
+}
+
+// generateResolvConf generates a containers resolv.conf
+func (c *Container) generateResolvConf() (string, error) {
+	// Determine the endpoint for resolv.conf in case it is a symlink
+	resolvPath, err := filepath.EvalSymlinks("/etc/resolv.conf")
+	if err != nil {
+		return "", err
+	}
+
+	contents, err := ioutil.ReadFile(resolvPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
+	}
+
+	// Process the file to remove localhost nameservers
+	// TODO: set ipv6 enable bool more sanely
+	resolv, err := resolvconf.FilterResolvDNS(contents, true)
+	if err != nil {
+		return "", errors.Wrapf(err, "error parsing host resolv.conf")
+	}
+
+	// Make a new resolv.conf
+	nameservers := resolvconf.GetNameservers(resolv.Content)
+	if len(c.config.DNSServer) > 0 {
+		// We store DNS servers as net.IP, so need to convert to string
+		nameservers = []string{}
+		for _, server := range c.config.DNSServer {
+			nameservers = append(nameservers, server.String())
+		}
+	}
+
+	search := resolvconf.GetSearchDomains(resolv.Content)
+	if len(c.config.DNSSearch) > 0 {
+		search = c.config.DNSSearch
+	}
+
+	options := resolvconf.GetOptions(resolv.Content)
+	if len(c.config.DNSOption) > 0 {
+		options = c.config.DNSOption
+	}
+
+	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
+
+	if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "error removing resolv.conf for container %s", c.ID())
+	}
+
+	// Build resolv.conf
+	if _, err = resolvconf.Build(destPath, nameservers, search, options); err != nil {
+		return "", errors.Wrapf(err, "error building resolv.conf for container %s")
+	}
+
+	// Relabel resolv.conf for the container
+	if err := label.Relabel(destPath, c.config.MountLabel, false); err != nil {
+		return "", err
+	}
+
+	return filepath.Join(c.state.DestinationRunDir, "resolv.conf"), nil
+}
+
+// generateHosts creates a containers hosts file
+func (c *Container) generateHosts() (string, error) {
+	orig, err := ioutil.ReadFile("/etc/hosts")
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read /etc/hosts")
+	}
+	hosts := string(orig)
+	if len(c.config.HostAdd) > 0 {
+		for _, host := range c.config.HostAdd {
+			// the host format has already been verified at this point
+			fields := strings.SplitN(host, ":", 2)
+			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
+		}
+	}
+	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
+		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
+		hosts += fmt.Sprintf("%s\t%s\n", ipAddress, c.Hostname())
+	}
+	return c.writeStringToRundir("hosts", hosts)
+}
+
+// generatePasswd generates a container specific passwd file,
+// iff g.config.User is a number
+func (c *Container) generatePasswd() (string, error) {
+	var (
+		groupspec string
+		group     *user.Group
+		gid       int
+	)
+	if c.config.User == "" {
+		return "", nil
+	}
+	spec := strings.SplitN(c.config.User, ":", 2)
+	userspec := spec[0]
+	if len(spec) > 1 {
+		groupspec = spec[1]
+	}
+	// If a non numeric User, then don't generate passwd
+	uid, err := strconv.ParseUint(userspec, 10, 32)
+	if err != nil {
+		return "", nil
+	}
+	// Lookup the user to see if it exists in the container image
+	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
+	if err != nil && err != user.ErrNoPasswdEntries {
+		return "", err
+	}
+	if err == nil {
+		return "", nil
+	}
+	if groupspec != "" {
+		if !c.state.Mounted {
+			return "", errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate group field for passwd record", c.ID())
+		}
+		group, err = lookup.GetGroup(c.state.Mountpoint, groupspec)
+		if err != nil {
+			if err == user.ErrNoGroupEntries {
+				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
+			}
+			return "", err
+		}
+		gid = group.Gid
+	}
+	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
+	orig, err := ioutil.ReadFile(originPasswdFile)
+	if err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "unable to read passwd file %s", originPasswdFile)
+	}
+
+	pwd := fmt.Sprintf("%s%d:x:%d:%d:container user:%s:/bin/sh\n", orig, uid, uid, gid, c.WorkingDir())
+	passwdFile, err := c.writeStringToRundir("passwd", pwd)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to create temporary passwd file")
+	}
+	if os.Chmod(passwdFile, 0644); err != nil {
+		return "", err
+	}
+	return passwdFile, nil
 }
