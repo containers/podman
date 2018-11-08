@@ -37,34 +37,41 @@ task (pass or fail) is set based on the exit status of the last script to execut
    Total execution time is capped at 2-hours (includes all the above)
    but this script normally completes in less than an hour.
 
+### ``optional_system_testing`` Task
+
+1. Optionally executes in parallel with ``full_vm_testing``.  Requires
+    **prior** to job-start, the magic string ``***CIRRUS: SYSTEM TEST***``
+   is found in the pull-request *description*.  The *description* is the first
+   text-box under the main *summary* line in the github WebUI.
+
+2. ``setup_environment.sh``: Same as for other tasks.
+
+3. ``system_test.sh``: Build both dependencies and libpod, install them,
+   then execute `make localsystem` from the repository root.
+
 ### ``build_vm_images`` Task
 
-1. When a PR is merged (``$CIRRUS_BRANCH`` == ``master``), run another
-   round of the ``full_vm_testing`` task (above).
+1. When a PR is merged (``$CIRRUS_BRANCH`` == ``master``), Cirrus
+   checks the last commit message. If it contains the magic string
+   ``***CIRRUS: REBUILD IMAGES***``, then this task continues.
 
-2. After confirming the tests all pass post-merge, spin up a special VM
-   capable of communicating with the GCE API.  Once accessible, ``ssh`` into
-   the special VM and run the following scripts.
+2. Execute run another round of the ``full_vm_testing`` task (above).
+   After the tests pass (post-merge), spin up a special VM
+   (from the `image-builder-image`) capable of communicating with the
+   GCE API.  Once accessible, ``ssh`` into the VM and run the following scripts.
 
-3. ``setup_environment.sh``: Configure root's ``.bash_profile``
-   for all subsequent scripts (each run in a new shell).  Any
-   distribution-specific environment variables are also defined
-   here.  For example, setting tags/flags to use compiling.
+3. ``setup_environment.sh``: Same as for other tasks.
 
-4. ``build_vm_images.sh``: Examine the merged PR's description on github.
-   If it contains the magic string ``***CIRRUS: REBUILD IMAGES***``, then
-   continue.  Otherwise display a message, take no further action, and
-   exit successfully.  This prevents production of new VM images unless
-   they are called for, thereby saving the cost of needlessly storing them.
-
-5. If the magic string was found, utilize [the packer tool](http://packer.io/docs/)
+4. ``build_vm_images.sh``: Utilize [the packer tool](http://packer.io/docs/)
    to produce new VM images.  Create a new VM from each base-image, connect
-   to them with ``ssh``, and perform these steps as defined by the
-   ``libpod_images.json`` file.
+   to them with ``ssh``, and perform the steps as defined by the
+   ``$PACKER_BASE/libpod_images.json`` file:
 
-    1. Copy the current state of the repository into ``/tmp/libpod``.
+    1. On a base-image VM, as root, copy the current state of the repository
+       into ``/tmp/libpod``.
     2. Execute distribution-specific scripts to prepare the image for
-       use by the ``full_vm_testing`` task (above).
+       use by the ``full_vm_testing`` task (above).  These scripts all
+       end with the suffix `_setup.sh` within the `$PACKER_BASE` directory.
     3. If successful, shut down each VM and create a new GCE Image
        named after the base image and the commit sha of the merge.
 
