@@ -64,20 +64,20 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		}
 	}()
 
-	networkStatus := make([]*cnitypes.Result, 1)
+	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
 		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
 		resultCurrent, err := cnitypes.GetResult(r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
 		}
-		networkStatus = append(ctr.state.NetworkStatus, resultCurrent)
+		networkStatus = append(networkStatus, resultCurrent)
 	}
 
 	// Add firewall rules to ensure the container has network access.
 	// Will not be necessary once CNI firewall plugin merges upstream.
 	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range ctr.state.NetworkStatus {
+	for _, netStatus := range networkStatus {
 		firewallConf := &firewall.FirewallNetConf{
 			PrevResult: netStatus,
 		}
