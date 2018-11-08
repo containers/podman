@@ -76,7 +76,7 @@ optional_system_testing_task:
     # later from OS distribution's build systems.
     only_if: >-
         $CIRRUS_BRANCH != 'master' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
     gce_instance:
         matrix:
@@ -89,10 +89,7 @@ optional_system_testing_task:
     timeout_in: 60m
 
     setup_environment_script: $SCRIPT_BASE/setup_environment.sh
-    verify_source_script: $SCRIPT_BASE/verify_source.sh
-    unit_test_script: $SCRIPT_BASE/unit_test.sh
-    integration_test_script: $SCRIPT_BASE/integration_test.sh
-    system_test_script: $SCRIPT_BASE/optional_system_test.sh
+    system_test_script: $SCRIPT_BASE/system_test.sh
     success_script: $SCRIPT_BASE/success.sh
 
 
@@ -107,7 +104,7 @@ build_vm_images_task:
     # is present in the most recent commit-message.
     only_if: >-
         $CIRRUS_BRANCH == 'master' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
 
     # Require tests to pass first.
     depends_on:
