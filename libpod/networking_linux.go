@@ -90,13 +90,16 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (ns.NetNS, []*cnitypes.Result, error) {
+func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
 	defer func() {
 		if err != nil {
+			if err2 := netns.UnmountNS(ctrNS); err2 != nil {
+				logrus.Errorf("Error unmounting partially created network namespace for container %s: %v", ctr.ID(), err2)
+			}
 			if err2 := ctrNS.Close(); err2 != nil {
 				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
 			}
