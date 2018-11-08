@@ -4,4 +4,4 @@ package version
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-const Version = "0.11.1"
+const Version = "0.11.2-dev"
