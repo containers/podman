@@ -77,7 +77,7 @@ $ sudo curl https://raw.githubusercontent.com/containers/skopeo/master/default-p
 ```console
 $ git clone https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
 $ cd $GOPATH/src/github.com/containernetworking/plugins
-$ ./build.sh
+$ ./build_linux.sh
 $ sudo mkdir -p /usr/libexec/cni
 $ sudo cp bin/* /usr/libexec/cni
 ```
