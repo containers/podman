@@ -30,9 +30,10 @@ func ParallelWorker(wg *sync.WaitGroup, jobs <-chan ParallelWorkerInput, results
 
 // ParallelExecuteWorkerPool takes container jobs and performs them in parallel.  The worker
 // int determines how many workers/threads should be premade.
-func ParallelExecuteWorkerPool(workers int, functions []ParallelWorkerInput) map[string]error {
+func ParallelExecuteWorkerPool(workers int, functions []ParallelWorkerInput) (map[string]error, int) {
 	var (
-		wg sync.WaitGroup
+		wg         sync.WaitGroup
+		errorCount int
 	)
 
 	resultChan := make(chan containerError, len(functions))
@@ -62,9 +63,12 @@ func ParallelExecuteWorkerPool(workers int, functions []ParallelWorkerInput) map
 	close(resultChan)
 	for ctrError := range resultChan {
 		results[ctrError.ContainerID] = ctrError.Err
+		if ctrError.Err != nil {
+			errorCount += 1
+		}
 	}
 
-	return results
+	return results, errorCount
 }
 
 // Parallelize provides the maximum number of parallel workers (int) as calculated by a basic

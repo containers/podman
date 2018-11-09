@@ -43,7 +43,6 @@ var (
 // killCmd kills one or more containers with a signal
 func killCmd(c *cli.Context) error {
 	var (
-		lastError  error
 		killFuncs  []shared.ParallelWorkerInput
 		killSignal uint = uint(syscall.SIGTERM)
 	)
@@ -75,8 +74,12 @@ func killCmd(c *cli.Context) error {
 
 	containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 	if err != nil {
-		return err
+		if len(containers) == 0 {
+			return err
+		}
+		fmt.Println(err.Error())
 	}
+
 	for _, ctr := range containers {
 		con := ctr
 		f := func() error {
@@ -95,18 +98,6 @@ func killCmd(c *cli.Context) error {
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	killErrors := shared.ParallelExecuteWorkerPool(maxWorkers, killFuncs)
-
-	for cid, result := range killErrors {
-		if result != nil {
-			if len(killErrors) > 1 {
-				fmt.Println(result.Error())
-			}
-			lastError = result
-			continue
-		}
-		fmt.Println(cid)
-	}
-
-	return lastError
+	killErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, killFuncs)
+	return printParallelOutput(killErrors, errCount)
 }

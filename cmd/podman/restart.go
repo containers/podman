@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -46,7 +44,6 @@ func restartCmd(c *cli.Context) error {
 	var (
 		restartFuncs      []shared.ParallelWorkerInput
 		containers        []*libpod.Container
-		lastError         error
 		restartContainers []*libpod.Container
 	)
 
@@ -124,15 +121,6 @@ func restartCmd(c *cli.Context) error {
 
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	restartErrors := shared.ParallelExecuteWorkerPool(maxWorkers, restartFuncs)
-
-	for cid, result := range restartErrors {
-		if result != nil {
-			fmt.Println(result.Error())
-			lastError = result
-			continue
-		}
-		fmt.Println(cid)
-	}
-	return lastError
+	restartErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, restartFuncs)
+	return printParallelOutput(restartErrors, errCount)
 }
