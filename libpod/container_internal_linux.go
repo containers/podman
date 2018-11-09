@@ -57,7 +57,7 @@ func (c *Container) prepare() (err error) {
 		networkStatus                   []*cnitypes.Result
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
-		saveNetworkStatus               bool
+		tmpStateLock                    sync.Mutex
 	)
 
 	wg.Add(2)
@@ -66,17 +66,55 @@ func (c *Container) prepare() (err error) {
 		defer wg.Done()
 		// Set up network namespace if not already set up
 		if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
-			saveNetworkStatus = true
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
+
+			tmpStateLock.Lock()
+			defer tmpStateLock.Unlock()
+
+			// Assign NetNS attributes to container
+			if createNetNSErr == nil {
+				c.state.NetNS = netNS
+				c.state.NetworkStatus = networkStatus
+			}
 		}
 	}()
 	// Mount storage if not mounted
 	go func() {
 		defer wg.Done()
 		mountPoint, mountStorageErr = c.mountStorage()
+
+		if mountStorageErr != nil {
+			return
+		}
+
+		tmpStateLock.Lock()
+		defer tmpStateLock.Unlock()
+
+		// Finish up mountStorage
+		c.state.Mounted = true
+		c.state.Mountpoint = mountPoint
+		if c.state.UserNSRoot == "" {
+			c.state.RealMountpoint = c.state.Mountpoint
+		} else {
+			c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
+		}
+
+		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
+	}()
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanupNetwork(); err2 != nil {
+				logrus.Errorf("Error cleaning up container %s network: %v", c.ID(), err2)
+			}
+			if err2 := c.cleanupStorage(); err2 != nil {
+				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), err2)
+			}
+		}
 	}()
 
 	wg.Wait()
+
 	if createNetNSErr != nil {
 		if mountStorageErr != nil {
 			logrus.Error(createNetNSErr)
@@ -88,22 +126,6 @@ func (c *Container) prepare() (err error) {
 		return mountStorageErr
 	}
 
-	// Assign NetNS attributes to container
-	if saveNetworkStatus {
-		c.state.NetNS = netNS
-		c.state.NetworkStatus = networkStatus
-	}
-
-	// Finish up mountStorage
-	c.state.Mounted = true
-	c.state.Mountpoint = mountPoint
-	if c.state.UserNSRoot == "" {
-		c.state.RealMountpoint = c.state.Mountpoint
-	} else {
-		c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
-	}
-
-	logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
 	// Save the container
 	return c.save()
 }
