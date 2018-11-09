@@ -106,7 +106,10 @@ ircmsg() {
     SCRIPT="$GOSRC/$SCRIPT_BASE/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
     NICK="${NICK:0:15}"  # Any longer will break things
+    set +e
     $SCRIPT $NICK $1
+    echo "Ignoring exit($?)"
+    set -e
 }
 
 # Run sudo in directory with GOPATH set
