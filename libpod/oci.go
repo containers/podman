@@ -350,7 +350,8 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		// Set the label of the conmon process to be level :s0
 		// This will allow the container processes to talk to fifo-files
 		// passed into the container by conmon
-		plabel, err := selinux.CurrentLabel()
+		var plabel string
+		plabel, err = selinux.CurrentLabel()
 		if err != nil {
 			childPipe.Close()
 			return errors.Wrapf(err, "Failed to get current SELinux label")
@@ -360,7 +361,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		runtime.LockOSThread()
 		if c["level"] != "s0" && c["level"] != "" {
 			c["level"] = "s0"
-			if err := label.SetProcessLabel(c.Get()); err != nil {
+			if err = label.SetProcessLabel(c.Get()); err != nil {
 				runtime.UnlockOSThread()
 				return err
 			}
