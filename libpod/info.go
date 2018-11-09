@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
@@ -30,6 +31,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
+	info["rootless"] = rootless.IsRootless()
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
