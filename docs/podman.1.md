@@ -192,7 +192,7 @@ the exit codes follow the `chroot` standard, see below:
     When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
 
 ## Rootless mode
-Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.
+Podman can also be used as non-root user.  When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
 
 Containers created by a non-root user are not visible to other users and are not seen or managed by podman running as root.
 
@@ -209,13 +209,14 @@ Or just add the content manually.
 	$ echo USERNAME:10000:65536 >> /etc/subuid
 	$ echo USERNAME:10000:65536 >> /etc/subgid
 
+See the `subuid(5)` and `subgid(5)` man pages for more information.
+
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
-Currently it is not possible to create a network device, so rootless containers need to run in the host network namespace.  If a rootless container creates a network namespace,
-then only the loopback device will be available.
+Currently the slirp4netns package is required to be installed to create a network device, otherwise rootless containers need to run in the network namespace of the host.
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
