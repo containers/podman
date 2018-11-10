@@ -19,6 +19,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const unknownPackage = "Unknown"
+
 func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd *exec.Cmd) error {
 	if os.Geteuid() == 0 {
 		if r.cgroupManager == SystemdCgroupsManager {
@@ -112,7 +114,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 }
 
 func rpmVersion(path string) string {
-	output := "Unknown"
+	output := unknownPackage
 	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
 	if outp, err := cmd.Output(); err == nil {
 		output = string(outp)
@@ -121,7 +123,7 @@ func rpmVersion(path string) string {
 }
 
 func dpkgVersion(path string) string {
-	output := "Unknown"
+	output := unknownPackage
 	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
 	if outp, err := cmd.Output(); err == nil {
 		output = string(outp)
@@ -130,14 +132,14 @@ func dpkgVersion(path string) string {
 }
 
 func (r *OCIRuntime) pathPackage() string {
-	if out := rpmVersion(r.path); out != "Unknown" {
+	if out := rpmVersion(r.path); out != unknownPackage {
 		return out
 	}
 	return dpkgVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	if out := rpmVersion(r.conmonPath); out != "Unknown" {
+	if out := rpmVersion(r.conmonPath); out != unknownPackage {
 		return out
 	}
 	return dpkgVersion(r.conmonPath)
