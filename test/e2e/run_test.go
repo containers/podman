@@ -292,8 +292,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "NOTIFY_SOCKET"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString(sock)
-		Expect(match).Should(BeTrue())
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 		os.Unsetenv("NOTIFY_SOCKET")
 	})
 
