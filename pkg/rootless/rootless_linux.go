@@ -89,7 +89,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
 func JoinNS(pid uint) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if IsRootless() {
 		return false, -1, nil
 	}
 
@@ -115,7 +115,7 @@ func JoinNS(pid uint) (bool, int, error) {
 // JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
 // specified path.
 func JoinNSPath(path string) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if IsRootless() {
 		return false, -1, nil
 	}
 
@@ -159,7 +159,7 @@ func getMinimumIDs(p string) int {
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNS() (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if IsRootless() {
 		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
