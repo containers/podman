@@ -180,6 +180,27 @@ Use your real name (sorry, no pseudonyms or anonymous contributions.)
 If you set your `user.name` and `user.email` git configs, you can sign your
 commit automatically with `git commit -s`.
 
+### Go Format and lint
+
+All code changes must pass ``make validate`` and ``make lint``, as
+executed in a standard container.  The container image for this
+purpose is provided at: ``quay.io/libpod/gate:latest``.  However,
+for changes to the image itself, it may also be built locally
+from the repository root, with the command:
+
+```
+sudo podman build -t quay.io/libpod/gate:latest -f contrib/gate/Dockerfile .
+```
+
+The container executes 'make' by default, on a copy of the repository.
+This avoids changing or leaving build artifacts in your working directory.
+Execution does not require any special permissions from the host. However,
+the repository root must be bind-mounted into the container at
+'/usr/src/libpod'. For example, running `make lint` is done (from
+the repository root) with the command:
+
+``sudo podman run -it --rm -v $PWD:/usr/src/libpod:z quay.io/libpod/gate:latest lint``
+
 ### Integration Tests
 
 Our primary means of performing integration testing for libpod is with the
