@@ -187,6 +187,9 @@ func BecomeRootInUserNS() (bool, int, error) {
 	if username == "" {
 		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
 		if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+			if os.IsNotExist(err) {
+				return false, 0, errors.Wrapf(err, "/etc/subuid or /etc/subgid does not exist, see subuid/subgid man pages for information on these files")
+			}
 			return false, 0, errors.Wrapf(err, "could not find user by UID nor USER env was set")
 		}
 		if err == nil {
