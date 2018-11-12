@@ -49,9 +49,9 @@ Sort by created, id, repository, size or tag (default: created)
 ```
 # podman images
 REPOSITORY                                   TAG      IMAGE ID       CREATED       SIZE
-docker.io/kubernetes/pause                   latest   e3d42bcaf643   3 years ago   251kB
-<none>                                       <none>   ebb91b73692b   4 weeks ago   27.2MB
-docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago   126MB
+docker.io/kubernetes/pause                   latest   e3d42bcaf643   3 years ago   251 kB
+<none>                                       <none>   ebb91b73692b   4 weeks ago   27.2 MB
+docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago   126 MB
 ```
 
 ```
@@ -63,17 +63,17 @@ ebb91b73692b
 
 ```
 # podman images --noheading
-docker.io/kubernetes/pause                   latest   e3d42bcaf643   3 years ago   251kB
-<none>                                       <none>   ebb91b73692b   4 weeks ago   27.2MB
-docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago   126MB
+docker.io/kubernetes/pause                   latest   e3d42bcaf643   3 years ago   251 kB
+<none>                                       <none>   ebb91b73692b   4 weeks ago   27.2 MB
+docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago   126 MB
 ```
 
 ```
 # podman images --no-trunc
 REPOSITORY                                   TAG      IMAGE ID                                                                  CREATED       SIZE
-docker.io/kubernetes/pause                   latest   sha256:e3d42bcaf643097dd1bb0385658ae8cbe100a80f773555c44690d22c25d16b27   3 years ago   251kB
-<none>                                       <none>   sha256:ebb91b73692bd27890685846412ae338d13552165eacf7fcd5f139bfa9c2d6d9   4 weeks ago   27.2MB
-docker.io/library/ubuntu                     latest   sha256:4526339ae51c3cdc97956a7a961c193c39dfc6bd9733b0d762a36c6881b5583a   6 weeks ago   126MB
+docker.io/kubernetes/pause                   latest   sha256:e3d42bcaf643097dd1bb0385658ae8cbe100a80f773555c44690d22c25d16b27   3 years ago   251 kB
+<none>                                       <none>   sha256:ebb91b73692bd27890685846412ae338d13552165eacf7fcd5f139bfa9c2d6d9   4 weeks ago   27.2 MB
+docker.io/library/ubuntu                     latest   sha256:4526339ae51c3cdc97956a7a961c193c39dfc6bd9733b0d762a36c6881b5583a   6 weeks ago   126 MB
 ```
 
 ```
@@ -87,7 +87,7 @@ ebb91b73692b   <none>                                       <none>
 ```
 # podman images --filter dangling=true
 REPOSITORY   TAG      IMAGE ID       CREATED       SIZE
-<none>       <none>   ebb91b73692b   4 weeks ago   27.2MB
+<none>       <none>   ebb91b73692b   4 weeks ago   27.2 MB
 ```
 
 ```
@@ -126,25 +126,25 @@ REPOSITORY   TAG      IMAGE ID       CREATED       SIZE
 ```
 # podman images --sort repository
 REPOSITORY                                   TAG      IMAGE ID       CREATED       SIZE
-<none>                                      <none>   2460217d76fc   About a minute ago   4.41MB
-docker.io/library/alpine                    latest   3fd9065eaf02   5 months ago         4.41MB
-localhost/myapp                             latest   b2e0ad03474a   About a minute ago   4.41MB
-registry.access.redhat.com/rhel7            latest   7a840db7f020   2 weeks ago          211MB
-registry.fedoraproject.org/fedora           27       801894bc0e43   6 weeks ago          246MB
+<none>                                      <none>   2460217d76fc   About a minute ago   4.41 MB
+docker.io/library/alpine                    latest   3fd9065eaf02   5 months ago         4.41 MB
+localhost/myapp                             latest   b2e0ad03474a   About a minute ago   4.41 MB
+registry.access.redhat.com/rhel7            latest   7a840db7f020   2 weeks ago          211 MB
+registry.fedoraproject.org/fedora           27       801894bc0e43   6 weeks ago          246 MB
 ```
 
 ```
 # podman images
 REPOSITORY                 TAG      IMAGE ID       CREATED         SIZE
-localhost/test             latest   18f0c080cd72   4 seconds ago   4.42MB
-docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41MB
+localhost/test             latest   18f0c080cd72   4 seconds ago   4.42 MB
+docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41 MB
 # podman images -a
 REPOSITORY                 TAG      IMAGE ID       CREATED         SIZE
-localhost/test             latest   18f0c080cd72   6 seconds ago   4.42MB
-<none>                     <none>   270e70dc54c0   7 seconds ago   4.42MB
-<none>                     <none>   4ed6fbe43414   8 seconds ago   4.41MB
-<none>                     <none>   6b0df8e71508   8 seconds ago   4.41MB
-docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41MB
+localhost/test             latest   18f0c080cd72   6 seconds ago   4.42 MB
+<none>                     <none>   270e70dc54c0   7 seconds ago   4.42 MB
+<none>                     <none>   4ed6fbe43414   8 seconds ago   4.41 MB
+<none>                     <none>   6b0df8e71508   8 seconds ago   4.41 MB
+docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41 MB
 ```
 
 ## SEE ALSO
