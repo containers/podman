@@ -38,7 +38,6 @@ The container command allows you to manage containers
 | stop     | [podman-stop(1)](podman-stop.1.md)                  | Stop one or more running containers.                                         |
 | top      | [podman-top(1)](podman-top.1.md)                    | Display the running processes of a container.                                |
 | umount   | [podman-umount(1)](podman-umount.1.md)              | Unmount a working container's root filesystem.                               |
-| unmount  | [podman-umount(1)](podman-umount.1.md)              | Unmount a working container's root filesystem.                               |
 | unpause  | [podman-unpause(1)](podman-unpause.1.md)            | Unpause one or more containers.                                              |
 | wait     | [podman-wait(1)](podman-wait.1.md)                  | Wait on one or more containers to stop and print their exit codes.           |
 
