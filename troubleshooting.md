@@ -10,7 +10,7 @@
 A large number of issues reported against Podman are often found to already be fixed
 in more current versions of the project.  Before reporting an issue, please verify the
 version you are running with `podman version` and compare it to the lastest release
-documented on the top of Podman's [README.md](README.md). 
+documented on the top of Podman's [README.md](README.md).
 
 If they differ, please update your version of PODMAN to the latest possible
 and retry your command before reporting the issue.
@@ -68,4 +68,36 @@ communicate with a registry and not use tls verification.
 
   * Turn off tls verification by passing false to the tls-verification option.
   * I.e. `podman push --tls-verify=false alpine docker://localhost:5000/myalpine:latest`
+
+---
+### 4) Rootless: could not get runtime - database configuration mismatch
+
+In Podman release 0.11.1, a default path for rootless containers was changed,
+potentially causing rootless Podman to be unable to function. The new default
+path is not a problem for new installations, but existing installations will
+need to work around it with the following fix.
+
+#### Symptom
+
+```console
+$ podman info
+could not get runtime: database run root /run/user/1000/run does not match our run root /run/user/1000: database configuration mismatch
+```
+
+#### Solution
+
+To work around the new default path, we can manually set the path Podman is
+expecting in a configuration file.
+
+First, we need to make a new local configuration file for rootless Podman.
+* `mkdir -p ~/.config/containers`
+* `cp /usr/share/containers/libpod.conf ~/.config/containers`
+
+Next, edit the new local configuration file
+(`~/.config/containers/libpod.conf`) with your favorite editor. Comment out the
+line starting with `cgroup_manager` by adding a `#` character at the beginning
+of the line, and change the path in the line starting with `tmp_dir` to point to
+the first path in the error message Podman gave (in this case,
+`/run/user/1000/run`).
+
 ---
