@@ -59,11 +59,11 @@ func NewCommitOptions() commitOptions {
 }
 
 type OstreeRepoTransactionStats struct {
-	metadata_objects_total int32
+	metadata_objects_total   int32
 	metadata_objects_written int32
-	content_objects_total int32
-	content_objects_written int32
-	content_bytes_written uint64
+	content_objects_total    int32
+	content_objects_written  int32
+	content_bytes_written    uint64
 }
 
 func (repo *Repo) PrepareTransaction() (bool, error) {
@@ -125,6 +125,7 @@ func (repo *Repo) RegenerateSummary() error {
 
 // Commits a directory, specified by commitPath, to an ostree repo as a given branch
 func (repo *Repo) Commit(commitPath, branch string, opts commitOptions) (string, error) {
+	// TODO(lucab): `options` is global un-synchronized mutable state, get rid of it.
 	options = opts
 
 	var err error
@@ -140,7 +141,7 @@ func (repo *Repo) Commit(commitPath, branch string, opts commitOptions) (string,
 	var cerr *C.GError
 	defer C.free(unsafe.Pointer(cerr))
 	var metadata *C.GVariant = nil
-	defer func(){
+	defer func() {
 		if metadata != nil {
 			defer C.g_variant_unref(metadata)
 		}
@@ -196,7 +197,7 @@ func (repo *Repo) Commit(commitPath, branch string, opts commitOptions) (string,
 	}
 
 	if options.AddDetachedMetadataString != nil {
-		_, err := parseKeyValueStrings(options.AddDetachedMetadataString)
+		_, err = parseKeyValueStrings(options.AddDetachedMetadataString)
 		if err != nil {
 			goto out
 		}
@@ -476,7 +477,7 @@ func handleStatOverrideLine(line string, table *glib.GHashTable) error {
 
 // Handle an individual line from a Skiplist file
 func handleSkipListline(line string, table *glib.GHashTable) error {
-	C.g_hash_table_add((*C.GHashTable)(table.Ptr()), C.gpointer( C.g_strdup((*C.gchar)(C.CString(line)))))
+	C.g_hash_table_add((*C.GHashTable)(table.Ptr()), C.gpointer(C.g_strdup((*C.gchar)(C.CString(line)))))
 
 	return nil
 }
