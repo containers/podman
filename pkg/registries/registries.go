@@ -38,8 +38,10 @@ func GetRegistries() ([]string, error) {
 func GetInsecureRegistries() ([]string, error) {
 	registryConfigPath := ""
 
-	if _, err := os.Stat(userRegistriesFile); err == nil {
-		registryConfigPath = userRegistriesFile
+	if rootless.IsRootless() {
+		if _, err := os.Stat(userRegistriesFile); err == nil {
+			registryConfigPath = userRegistriesFile
+		}
 	}
 
 	envOverride := os.Getenv("REGISTRIES_CONFIG_PATH")
