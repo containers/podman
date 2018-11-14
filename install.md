@@ -83,7 +83,7 @@ Debian, Ubuntu, and related distributions will also need to do the following set
 
 If using an older release or a long-term support release, be careful to double-check that the version of `runc` is new enough (running `runc --version` should produce `spec: 1.0.0`), or else [build](https://github.com/containers/libpod/blob/master/docs/tutorials/podman_tutorial.md#installing-runc) your own.
 
-Be careful to double-check that the version of golang is new enough, version 1.8.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
+Be careful to double-check that the version of golang is new enough, version 1.10.x or higher is required.  If needed, golang kits are available at https://golang.org/dl/
 
 **Optional**
 
