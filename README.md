@@ -4,6 +4,8 @@
 ### Latest Version: 0.10.1.3
 ### Status: Active Development
 
+### Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod)
+
 ## What is the scope of this project?
 
 libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
