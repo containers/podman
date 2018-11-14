@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -33,9 +34,17 @@ func runInUser() error {
 	return nil
 }
 
+var (
+	isRootlessOnce sync.Once
+	isRootless     bool
+)
+
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
-	return os.Geteuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
+	isRootlessOnce.Do(func() {
+		isRootless = os.Geteuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
+	})
+	return isRootless
 }
 
 var (
