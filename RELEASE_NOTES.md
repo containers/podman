@@ -1,5 +1,18 @@
 # Release Notes
 
+## 0.11.1.1
+### Bugfixes
+- Fixed a bug where Podman was not correctly adding firewall rules for containers, preventing them from accessing the network
+- Fixed a bug where full error messages were being lost when creating containers with user namespaces
+- Fixed a bug where container state was not properly updated if a failure occurred during network setup, which could cause mounts to be left behind when the container was removed
+- Fixed a bug where `podman exec` could time out on slower systems by increasing the relevant timeout
+
+### Misc
+- `podman rm -f` now removes paused containers. As such, `podman rm -af` completing successfully guarantees all Podman containers have been removed
+- Added a field to `podman info` to show if Podman is being run as rootless
+- Made a small output format change to `podman images` - image sizes now feature a space between number and unit (e.g. `123 MB` now instead of `123MB`)
+- Vendored an updated version of `containers/storage` to fix several bugs reported upstream
+
 ## 0.11.1
 ### Features
 - Added `--all` and `--latest` flags to `podman checkpoint` and `podman restore`
