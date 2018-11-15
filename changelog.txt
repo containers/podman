@@ -1,3 +1,32 @@
+- Changelog for v0.11.1.1 (2018-11-15)
+  * Vendor in containers/storage
+  * Add release notes for 0.11.1.1
+  * Increase pidWaitTimeout to 60s
+  * Cirrus: Add master branch testing status badge
+  * rootless: call IsRootless just once
+  * Bump golang to v1.10 in install.md
+  * Standardized container image for gofmt and lint
+  * Make list of approvers same as reviewers
+  * vendor: update ostree-go
+  * vendor.conf: fix typo
+  * Cleanup podman spec to not show git checkout is dirty
+  * Add space between num & unit in images output
+  * Update troubleshooting guide to deal with rootless path
+  * troubleshooting.md: add a recipe for rootless ping
+  * remove $-prefix from (most) shell examples
+  * docs: Fix duplicated entry for pod-container-unmount
+  * Better document rootless containers
+  * info: add rootless field
+  * Accurately update state if prepare() partially fails
+  * Do not hide errors when creating container with UserNSRoot
+  * rm -f now removes a paused container
+  * correct assignment of networkStatus
+  * podman_tutorial: cni build path has changed
+  * Bump gitvalidation epoch
+  * Bump to v0.11.2-dev
+  * Cirrus: Ignore any error from the IRC messenger
+  * rootless: default to fuse-overlayfs when available
+
 - Changelog for v0.11.1 (2018-11-08)
   * Update release notes for 0.11.1
   * update seccomp.json
