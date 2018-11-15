@@ -405,7 +405,7 @@ func atomicRemove(source string) error {
 	case os.IsExist(err):
 		// Got error saying the target dir already exists, maybe the source doesn't exist due to a previous (failed) remove
 		if _, e := os.Stat(source); !os.IsNotExist(e) {
-			return errors.Wrapf(err, "target rename dir '%s' exists but should not, this needs to be manually cleaned up")
+			return errors.Wrapf(err, "target rename dir '%s' exists but should not, this needs to be manually cleaned up", target)
 		}
 	default:
 		return errors.Wrapf(err, "error preparing atomic delete")

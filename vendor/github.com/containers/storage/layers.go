@@ -542,8 +542,8 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 			_, idInUse = r.byid[id]
 		}
 	}
-	if _, idInUse := r.byid[id]; idInUse {
-		return nil, -1, ErrDuplicateID
+	if duplicateLayer, idInUse := r.byid[id]; idInUse {
+		return duplicateLayer, -1, ErrDuplicateID
 	}
 	names = dedupeNames(names)
 	for _, name := range names {
@@ -841,8 +841,12 @@ func (r *layerStore) Delete(id string) error {
 		return ErrLayerUnknown
 	}
 	id = layer.ID
-	if _, err := r.Unmount(id, true); err != nil {
-		return err
+	// This check is needed for idempotency of delete where the layer could have been
+	// already unmounted (since c/storage gives you that API directly)
+	for layer.MountCount > 0 {
+		if _, err := r.Unmount(id, false); err != nil {
+			return err
+		}
 	}
 	err := r.driver.Remove(id)
 	if err == nil {

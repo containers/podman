@@ -340,6 +340,10 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 
 func (d *Driver) useNaiveDiff() bool {
 	useNaiveDiffLock.Do(func() {
+		if d.options.mountProgram != "" {
+			useNaiveDiffOnly = true
+			return
+		}
 		if err := doesSupportNativeDiff(d.home, d.options.mountOptions); err != nil {
 			logrus.Warnf("Not using native diff for overlay, this may cause degraded performance for building images: %v", err)
 			useNaiveDiffOnly = true
@@ -841,6 +845,17 @@ func (d *Driver) isParent(id, parent string) bool {
 	return ld == parentDir
 }
 
+func (d *Driver) getWhiteoutFormat() archive.WhiteoutFormat {
+	whiteoutFormat := archive.OverlayWhiteoutFormat
+	if d.options.mountProgram != "" {
+		// If we are using a mount program, we are most likely running
+		// as an unprivileged user that cannot use mknod, so fallback to the
+		// AUFS whiteout format.
+		whiteoutFormat = archive.AUFSWhiteoutFormat
+	}
+	return whiteoutFormat
+}
+
 // ApplyDiff applies the new layer into a root
 func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent string, mountLabel string, diff io.Reader) (size int64, err error) {
 	if !d.isParent(id, parent) {
@@ -858,7 +873,7 @@ func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent str
 	if err := untar(diff, applyDir, &archive.TarOptions{
 		UIDMaps:        idMappings.UIDs(),
 		GIDMaps:        idMappings.GIDs(),
-		WhiteoutFormat: archive.OverlayWhiteoutFormat,
+		WhiteoutFormat: d.getWhiteoutFormat(),
 	}); err != nil {
 		return 0, err
 	}
@@ -911,7 +926,7 @@ func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, 
 		Compression:    archive.Uncompressed,
 		UIDMaps:        idMappings.UIDs(),
 		GIDMaps:        idMappings.GIDs(),
-		WhiteoutFormat: archive.OverlayWhiteoutFormat,
+		WhiteoutFormat: d.getWhiteoutFormat(),
 		WhiteoutData:   lowerDirs,
 	})
 }

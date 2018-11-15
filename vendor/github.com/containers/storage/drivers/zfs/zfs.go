@@ -52,7 +52,7 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 		return nil, errors.Wrap(graphdriver.ErrPrerequisites, "the 'zfs' command is not available")
 	}
 
-	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 600)
+	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 0600)
 	if err != nil {
 		logrus.Debugf("[zfs] cannot open /dev/zfs: %v", err)
 		return nil, errors.Wrapf(graphdriver.ErrPrerequisites, "could not open /dev/zfs: %v", err)
