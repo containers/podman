@@ -2,7 +2,7 @@
 layers, container images, and containers.  A `containers-storage` CLI wrapper
 is also included for manual and scripting use.
 
-To build the CLI wrapper, use 'make build-binary'.
+To build the CLI wrapper, use 'make binary'.
 
 Operations which use VMs expect to launch them using 'vagrant', defaulting to
 using its 'libvirt' provider.  The boxes used are also available for the

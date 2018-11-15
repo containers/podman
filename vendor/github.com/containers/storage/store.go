@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1069,7 +1068,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 		}
 		mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, rc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating ID-mapped copy of layer %q")
+			return nil, errors.Wrapf(err, "error creating ID-mapped copy of layer %q", parentLayer.ID)
 		}
 		if err = istore.addMappedTopLayer(image.ID, mappedLayer.ID); err != nil {
 			if err2 := rlstore.Delete(mappedLayer.ID); err2 != nil {
@@ -3203,56 +3202,19 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		storeOptions.UIDMap = mappings.UIDs()
 		storeOptions.GIDMap = mappings.GIDs()
 	}
-	nonDigitsToWhitespace := func(r rune) rune {
-		if strings.IndexRune("0123456789", r) == -1 {
-			return ' '
-		} else {
-			return r
-		}
+
+	uidmap, err := idtools.ParseIDMap(config.Storage.Options.RemapUIDs, "remap-uids")
+	if err != nil {
+		fmt.Print(err)
+	} else {
+		storeOptions.UIDMap = append(storeOptions.UIDMap, uidmap...)
 	}
-	parseTriple := func(spec []string) (container, host, size uint32, err error) {
-		cid, err := strconv.ParseUint(spec[0], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
-		}
-		hid, err := strconv.ParseUint(spec[1], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
-		}
-		sz, err := strconv.ParseUint(spec[2], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
-		}
-		return uint32(cid), uint32(hid), uint32(sz), nil
+	gidmap, err := idtools.ParseIDMap(config.Storage.Options.RemapGIDs, "remap-gids")
+	if err != nil {
+		fmt.Print(err)
+	} else {
+		storeOptions.GIDMap = append(storeOptions.GIDMap, gidmap...)
 	}
-	parseIDMap := func(idMapSpec, mapSetting string) (idmap []idtools.IDMap) {
-		if len(idMapSpec) > 0 {
-			idSpec := strings.Fields(strings.Map(nonDigitsToWhitespace, idMapSpec))
-			if len(idSpec)%3 != 0 {
-				fmt.Printf("Error initializing ID mappings: %s setting is malformed.\n", mapSetting)
-				return nil
-			}
-			for i := range idSpec {
-				if i%3 != 0 {
-					continue
-				}
-				cid, hid, size, err := parseTriple(idSpec[i : i+3])
-				if err != nil {
-					fmt.Printf("Error initializing ID mappings: %s setting is malformed.\n", mapSetting)
-					return nil
-				}
-				mapping := idtools.IDMap{
-					ContainerID: int(cid),
-					HostID:      int(hid),
-					Size:        int(size),
-				}
-				idmap = append(idmap, mapping)
-			}
-		}
-		return idmap
-	}
-	storeOptions.UIDMap = append(storeOptions.UIDMap, parseIDMap(config.Storage.Options.RemapUIDs, "remap-uids")...)
-	storeOptions.GIDMap = append(storeOptions.GIDMap, parseIDMap(config.Storage.Options.RemapGIDs, "remap-gids")...)
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		storeOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
 	}
