@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,7 +17,7 @@ var _ = Describe("Podman run", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -24,7 +25,7 @@ var _ = Describe("Podman run", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -355,7 +356,7 @@ var _ = Describe("Podman run", func() {
 		keyFile := filepath.Join(targetDir, "key.pem")
 		err = ioutil.WriteFile(keyFile, []byte(mountString), 0755)
 		Expect(err).To(BeNil())
-		execSession := podmanTest.SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
+		execSession := SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession.ExitCode()).To(Equal(0))
 

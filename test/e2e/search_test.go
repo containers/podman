@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman search", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 	const regFileContents = `
 	[registries.search]
@@ -40,7 +41,7 @@ var _ = Describe("Podman search", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -136,7 +137,7 @@ var _ = Describe("Podman search", func() {
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -159,7 +160,7 @@ var _ = Describe("Podman search", func() {
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry3", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry3", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -182,7 +183,7 @@ var _ = Describe("Podman search", func() {
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry4", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry4", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -214,7 +215,7 @@ var _ = Describe("Podman search", func() {
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry5", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry5", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -245,7 +246,7 @@ var _ = Describe("Podman search", func() {
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry6", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry6", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -276,7 +277,7 @@ var _ = Describe("Podman search", func() {
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry7", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry7", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -284,7 +285,7 @@ var _ = Describe("Podman search", func() {
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry8", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry8", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})

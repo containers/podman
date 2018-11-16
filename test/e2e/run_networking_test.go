@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +13,7 @@ var _ = Describe("Podman rmi", func() {
 	var (
 		tempdir     string
 		err         error
-		podmanTest  PodmanTest
+		podmanTest  *PodmanTestIntegration
 		hostname, _ = os.Hostname()
 	)
 
@@ -21,7 +22,7 @@ var _ = Describe("Podman rmi", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -54,7 +55,7 @@ var _ = Describe("Podman rmi", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.SystemExec("iptables", []string{"-t", "nat", "-L"})
+		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
 		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("222"))
@@ -65,12 +66,12 @@ var _ = Describe("Podman rmi", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.SystemExec("iptables", []string{"-t", "nat", "-L"})
+		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
 		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
 
-		ncBusy := podmanTest.SystemExec("nc", []string{"-l", "-p", "80"})
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "80"})
 		ncBusy.Wait(10)
 		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
 	})

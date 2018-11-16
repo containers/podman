@@ -4,31 +4,16 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"golang.org/x/sys/unix"
 )
-
-// PodmanPID execs podman and returns its PID
-func (p *PodmanTest) PodmanPID(args []string) (*PodmanSession, int) {
-	podmanOptions := p.MakeOptions()
-	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
-	podmanOptions = append(podmanOptions, args...)
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	if err != nil {
-		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
-	}
-	return &PodmanSession{session}, command.Process.Pid
-}
 
 const sigCatch = "trap \"echo FOO >> /h/fifo \" 8; echo READY >> /h/fifo; while :; do sleep 0.25; done"
 
@@ -36,7 +21,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	var (
 		tmpdir     string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -44,7 +29,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tmpdir)
+		podmanTest = PodmanTestCreate(tmpdir)
 		podmanTest.RestoreArtifact(fedoraMinimal)
 	})
 
@@ -122,7 +107,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		signal := syscall.SIGPOLL
 		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch})
 
-		ok := WaitForContainer(&podmanTest)
+		ok := WaitForContainer(podmanTest)
 		Expect(ok).To(BeTrue())
 
 		// Kill with given signal

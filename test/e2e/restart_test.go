@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman restart", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman restart", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -74,7 +75,7 @@ var _ = Describe("Podman restart", func() {
 
 	It("Podman restart running container", func() {
 		_ = podmanTest.RunTopContainer("test1")
-		ok := WaitForContainer(&podmanTest)
+		ok := WaitForContainer(podmanTest)
 		Expect(ok).To(BeTrue())
 		startTime := podmanTest.Podman([]string{"inspect", "--format='{{.State.StartedAt}}'", "test1"})
 		startTime.WaitWithDefaultTimeout()
