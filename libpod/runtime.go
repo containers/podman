@@ -369,6 +369,16 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// Find a working OCI runtime binary
 	foundRuntime := false
 	for _, path := range runtime.config.RuntimePath {
+		if filepath.IsAbs(path) {
+			foundRuntime = true
+			runtime.ociRuntimePath = path
+			break
+		}
+		runtime.ociRuntimePath, err = exec.LookPath(path)
+		if err == nil {
+			foundRuntime = true
+			break
+		}
 		stat, err := os.Stat(path)
 		if err != nil {
 			continue
