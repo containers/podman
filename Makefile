@@ -178,8 +178,11 @@ ginkgo:
 
 localintegration: varlink_generate test-binaries clientintegration ginkgo
 
-localsystem:
+localsystem: .install.ginkgo .install.gomega
 	ginkgo -v -noColor test/system/
+
+system.test-binary: .install.ginkgo .install.gomega
+	$(GO) test -c ./test/system
 
 clientintegration:
 	$(MAKE) -C contrib/python/podman integration
