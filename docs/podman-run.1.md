@@ -450,8 +450,9 @@ container is not allowed to access any devices. A “privileged” container
 is given access to all devices.
 
 When the operator executes **podman run --privileged**, podman enables access
-to all devices on the host as well as set turn off most of the security measures
-protecting the host from the container.
+to all devices on the host, turns off graphdriver mount options, as well as
+turning off most of the security measures protecting the host from the
+container.
 
 **-p**, **--publish**=[]
 
