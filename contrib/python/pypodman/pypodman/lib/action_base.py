@@ -66,6 +66,16 @@ class AbstractActionBase(abc.ABC):
         return self._args.identity_file
 
     @property
+    def ignore_hosts(self):
+        """Ignore ssh host keys."""
+        return self._args.ignore_hosts
+
+    @property
+    def known_hosts(self):
+        """File for known hosts."""
+        return self._args.known_hosts
+
+    @property
     @lru_cache(maxsize=1)
     def client(self):
         """Podman remote client for communicating."""
@@ -74,14 +84,18 @@ class AbstractActionBase(abc.ABC):
         return podman.Client(
             uri=self.local_uri,
             remote_uri=self.remote_uri,
-            identity_file=self.identity_file)
+            identity_file=self.identity_file,
+            ignore_hosts=self.ignore_hosts,
+            known_hosts=self.known_hosts)
 
     def __repr__(self):
         """Compute the “official” string representation of object."""
         return ("{}(local_uri='{}', remote_uri='{}',"
-                " identity_file='{}')").format(
+                " identity_file='{}', ignore_hosts='{}', known_hosts='{}')").format(
                     self.__class__,
                     self.local_uri,
                     self.remote_uri,
                     self.identity_file,
+                    self.ignore_hosts,
+                    self.known_hosts,
                 )

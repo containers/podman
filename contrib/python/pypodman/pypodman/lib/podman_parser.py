@@ -89,6 +89,15 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             action=PathAction,
             help='path to ssh identity file. (default: ~user/.ssh/id_dsa)')
         self.add_argument(
+            '--ignore-hosts',
+            action='store_true',
+            help='ignore ssh host keys (default: False)')
+        self.add_argument(
+            '--known-hosts',
+            '-k',
+            action=PathAction,
+            help='path to ssh known hosts. (default: ~user/.ssh/known_hosts)')
+        self.add_argument(
             '--config-home',
             metavar='DIRECTORY',
             action=PathAction,
@@ -210,6 +219,27 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         if not os.path.isfile(args.identity_file):
             args.identity_file = None
+
+        setattr(
+            args,
+            'ignore_hosts',
+            getattr(args, 'ignore_hosts')
+            or os.environ.get('PODMAN_IGNORE_HOSTS')
+            or config['default'].get('ignore_hosts')
+            or False
+        )   # yapf:disable
+
+        setattr(
+            args,
+            'known_hosts',
+            getattr(args, 'known_hosts')
+            or os.environ.get('PODMAN_KNOWN_HOSTS')
+            or config['default'].get('known_hosts')
+            or os.path.expanduser('~{}/.ssh/known_hosts'.format(args.username))
+        )   # yapf:disable
+
+        if not os.path.isfile(args.known_hosts):
+            args.known_hosts = None
 
         if args.host:
             args.local_socket_path = str(Path(args.run_dir, 'podman.socket'))

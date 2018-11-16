@@ -20,6 +20,8 @@ Context = collections.namedtuple('Context', (
     'hostname',
     'port',
     'identity_file',
+    'ignore_hosts',
+    'known_hosts',
 ))
 Context.__new__.__defaults__ = (None, ) * len(Context._fields)
 
@@ -120,6 +122,13 @@ class Tunnel():
 
         cmd.extend(('-L', '{}:{}'.format(self.context.local_socket,
                                          self.context.remote_socket)))
+
+        if self.context.ignore_hosts:
+            cmd.extend(('-o', 'StrictHostKeyChecking=no',
+                        '-o', 'UserKnownHostsFile=/dev/null'))
+        elif self.context.known_hosts:
+            cmd.extend(('-o', 'UserKnownHostsFile=%s' % self.context.known_hosts))
+
         if self.context.identity_file:
             cmd.extend(('-i', self.context.identity_file))
 
