@@ -37,7 +37,7 @@ class BooleanAction(argparse.Action):
                  const=None,
                  default=None,
                  type=None,
-                 choices=('True', 'False'),
+                 choices=None,
                  required=False,
                  help=None,
                  metavar='{True,False}'):
@@ -59,7 +59,7 @@ class BooleanAction(argparse.Action):
         try:
             val = BooleanValidate()(values)
         except ValueError:
-            parser.error('{} must be True or False.'.format(self.dest))
+            parser.error('"{}" must be True or False.'.format(option_string))
         else:
             setattr(namespace, self.dest, val)
 
@@ -96,7 +96,6 @@ class ChangeAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         """Convert and Validate input."""
-        print(self.dest)
         items = getattr(namespace, self.dest, None) or []
         items = copy.copy(items)
 
@@ -105,9 +104,9 @@ class ChangeAction(argparse.Action):
 
         opt, val = values.split('=', 1)
         if opt not in choices:
-            parser.error('{} is not a supported "--change" option,'
+            parser.error('Option "{}" is not supported by argument "{}",'
                          ' valid options are: {}'.format(
-                             opt, ', '.join(choices)))
+                             opt, option_string, ', '.join(choices)))
         items.append(values)
         setattr(namespace, self.dest, items)
 
@@ -127,8 +126,8 @@ class UnitAction(argparse.Action):
                  help=None,
                  metavar='UNIT'):
         """Create UnitAction object."""
-        help = (help or metavar or dest
-                ) + ' (format: <number>[<unit>], where unit = b, k, m or g)'
+        help = (help or metavar or dest)\
+            + ' (format: <number>[<unit>], where unit = b, k, m or g)'
         super().__init__(
             option_strings=option_strings,
             dest=dest,
@@ -148,15 +147,15 @@ class UnitAction(argparse.Action):
         except ValueError:
             if not values[:-1].isdigit():
                 msg = ('{} must be a positive integer,'
-                       ' with optional suffix').format(self.dest)
+                       ' with optional suffix').format(option_string)
                 parser.error(msg)
             if not values[-1] in ('b', 'k', 'm', 'g'):
                 msg = '{} only supports suffices of: b, k, m, g'.format(
-                    self.dest)
+                    option_string)
                 parser.error(msg)
         else:
             if val <= 0:
-                msg = '{} must be a positive integer'.format(self.dest)
+                msg = '{} must be a positive integer'.format(option_string)
                 parser.error(msg)
 
         setattr(namespace, self.dest, values)
@@ -174,19 +173,16 @@ class PositiveIntAction(argparse.Action):
                  type=int,
                  choices=None,
                  required=False,
-                 help=None,
+                 help='Must be a positive integer.',
                  metavar=None):
         """Create PositiveIntAction object."""
-        self.message = '{} must be a positive integer'.format(dest)
-        help = help or self.message
-
         super().__init__(
             option_strings=option_strings,
             dest=dest,
             nargs=nargs,
             const=const,
             default=default,
-            type=int,
+            type=type,
             choices=choices,
             required=required,
             help=help,
@@ -198,7 +194,8 @@ class PositiveIntAction(argparse.Action):
             setattr(namespace, self.dest, values)
             return
 
-        parser.error(self.message)
+        msg = '{} must be a positive integer'.format(option_string)
+        parser.error(msg)
 
 
 class PathAction(argparse.Action):
