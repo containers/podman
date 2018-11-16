@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/google/shlex"
 )
 
 func substituteCommand(cmd string) (string, error) {
@@ -42,7 +44,11 @@ func GenerateCommand(command, imageName, name string) ([]string, error) {
 	if name == "" {
 		name = imageName
 	}
-	cmd := strings.Split(command, " ")
+
+	cmd, err := shlex.Split(command)
+	if err != nil {
+		return nil, err
+	}
 
 	prog, err := substituteCommand(cmd[0])
 	if err != nil {
