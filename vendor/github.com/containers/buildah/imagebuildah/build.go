@@ -563,39 +563,39 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		registry:                       options.Registry,
 		transport:                      options.Transport,
 		ignoreUnrecognizedInstructions: options.IgnoreUnrecognizedInstructions,
-		quiet:                   options.Quiet,
-		runtime:                 options.Runtime,
-		runtimeArgs:             options.RuntimeArgs,
-		transientMounts:         options.TransientMounts,
-		compression:             options.Compression,
-		output:                  options.Output,
-		outputFormat:            options.OutputFormat,
-		additionalTags:          options.AdditionalTags,
-		signaturePolicyPath:     options.SignaturePolicyPath,
-		systemContext:           options.SystemContext,
-		volumeCache:             make(map[string]string),
-		volumeCacheInfo:         make(map[string]os.FileInfo),
-		log:                     options.Log,
-		in:                      options.In,
-		out:                     options.Out,
-		err:                     options.Err,
-		reportWriter:            options.ReportWriter,
-		isolation:               options.Isolation,
-		namespaceOptions:        options.NamespaceOptions,
-		configureNetwork:        options.ConfigureNetwork,
-		cniPluginPath:           options.CNIPluginPath,
-		cniConfigDir:            options.CNIConfigDir,
-		idmappingOptions:        options.IDMappingOptions,
-		commonBuildOptions:      options.CommonBuildOpts,
-		defaultMountsFilePath:   options.DefaultMountsFilePath,
-		iidfile:                 options.IIDFile,
-		squash:                  options.Squash,
-		labels:                  append([]string{}, options.Labels...),
-		annotations:             append([]string{}, options.Annotations...),
-		layers:                  options.Layers,
-		noCache:                 options.NoCache,
-		removeIntermediateCtrs:  options.RemoveIntermediateCtrs,
-		forceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
+		quiet:                          options.Quiet,
+		runtime:                        options.Runtime,
+		runtimeArgs:                    options.RuntimeArgs,
+		transientMounts:                options.TransientMounts,
+		compression:                    options.Compression,
+		output:                         options.Output,
+		outputFormat:                   options.OutputFormat,
+		additionalTags:                 options.AdditionalTags,
+		signaturePolicyPath:            options.SignaturePolicyPath,
+		systemContext:                  options.SystemContext,
+		volumeCache:                    make(map[string]string),
+		volumeCacheInfo:                make(map[string]os.FileInfo),
+		log:                            options.Log,
+		in:                             options.In,
+		out:                            options.Out,
+		err:                            options.Err,
+		reportWriter:                   options.ReportWriter,
+		isolation:                      options.Isolation,
+		namespaceOptions:               options.NamespaceOptions,
+		configureNetwork:               options.ConfigureNetwork,
+		cniPluginPath:                  options.CNIPluginPath,
+		cniConfigDir:                   options.CNIConfigDir,
+		idmappingOptions:               options.IDMappingOptions,
+		commonBuildOptions:             options.CommonBuildOpts,
+		defaultMountsFilePath:          options.DefaultMountsFilePath,
+		iidfile:                        options.IIDFile,
+		squash:                         options.Squash,
+		labels:                         append([]string{}, options.Labels...),
+		annotations:                    append([]string{}, options.Annotations...),
+		layers:                         options.Layers,
+		noCache:                        options.NoCache,
+		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
+		forceRmIntermediateCtrs:        options.ForceRmIntermediateCtrs,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -764,7 +764,7 @@ func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
 		if err != nil {
 			candidates, _, err := util.ResolveName(b.output, "", b.systemContext, b.store)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing target image name %q: %v", b.output)
+				return nil, errors.Wrapf(err, "error parsing target image name %q", b.output)
 			}
 			if len(candidates) == 0 {
 				return nil, errors.Errorf("error parsing target image name %q", b.output)
@@ -1044,17 +1044,14 @@ func (b *Executor) copiedFilesMatch(node *parser.Node, historyTime *time.Time) (
 			}
 			continue
 		}
-		// For local files, walk the file tree and check the time stamps.
-		timeIsGreater := false
-		err := filepath.Walk(item, func(path string, info os.FileInfo, err error) error {
-			if info.ModTime().After(*historyTime) {
-				timeIsGreater = true
-				return nil
-			}
-			return nil
-		})
+		// Walks the file tree for local files and uses chroot to ensure we don't escape out of the allowed path
+		// when resolving any symlinks.
+		// Change the time format to ensure we don't run into a parsing error when converting again from string
+		// to time.Time. It is a known Go issue that the conversions cause errors sometimes, so specifying a particular
+		// time format here when converting to a string.
+		timeIsGreater, err := resolveModifiedTime(b.contextDir, item, historyTime.Format(time.RFC3339Nano))
 		if err != nil {
-			return false, errors.Wrapf(err, "error walking file tree %q", item)
+			return false, errors.Wrapf(err, "error resolving symlinks and comparing modified times: %q", item)
 		}
 		if timeIsGreater {
 			return false, nil
@@ -1289,15 +1286,24 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		} else {
 			// If the Dockerfile isn't found try prepending the
 			// context directory to it.
-			if _, err := os.Stat(dfile); os.IsNotExist(err) {
+			dinfo, err := os.Stat(dfile)
+			if os.IsNotExist(err) {
 				dfile = filepath.Join(options.ContextDirectory, dfile)
+			}
+			dinfo, err = os.Stat(dfile)
+			if err != nil {
+				return "", nil, errors.Wrapf(err, "error reading info about %q", dfile)
+			}
+			// If given a directory, add '/Dockerfile' to it.
+			if dinfo.Mode().IsDir() {
+				dfile = filepath.Join(dfile, "Dockerfile")
 			}
 			logrus.Debugf("reading local Dockerfile %q", dfile)
 			contents, err := os.Open(dfile)
 			if err != nil {
 				return "", nil, errors.Wrapf(err, "error reading %q", dfile)
 			}
-			dinfo, err := contents.Stat()
+			dinfo, err = contents.Stat()
 			if err != nil {
 				contents.Close()
 				return "", nil, errors.Wrapf(err, "error reading info about %q", dfile)

@@ -1,7 +1,6 @@
 package buildah
 
 import (
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 )
 
@@ -14,5 +13,5 @@ func (b *Builder) Delete() error {
 	b.MountPoint = ""
 	b.Container = ""
 	b.ContainerID = ""
-	return label.ReleaseLabel(b.ProcessLabel)
+	return nil
 }

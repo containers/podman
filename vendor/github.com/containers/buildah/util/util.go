@@ -7,10 +7,8 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -31,6 +29,10 @@ import (
 
 const (
 	minimumTruncatedIDLength = 3
+	// DefaultTransport is a prefix that we apply to an image name if we
+	// can't find one in the local Store, in order to generate a source
+	// reference for the image that we can then copy to the local Store.
+	DefaultTransport = "docker://"
 )
 
 var (
@@ -89,6 +91,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		}
 	}
 
+	name = strings.TrimPrefix(name, DefaultTransport)
 	// If the image name already included a domain component, we're done.
 	named, err := reference.ParseNormalizedNamed(name)
 	if err != nil {
@@ -448,60 +451,6 @@ func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap,
 		return nil, nil, err
 	}
 	return uid, gid, nil
-}
-
-// UnsharedRootPath returns a location under ($XDG_DATA_HOME/containers/storage,
-// or $HOME/.local/share/containers/storage, or
-// (the user's home directory)/.local/share/containers/storage, or an error.
-func UnsharedRootPath(homedir string) (string, error) {
-	// If $XDG_DATA_HOME is defined...
-	if envDataHome, haveDataHome := os.LookupEnv("XDG_DATA_HOME"); haveDataHome {
-		return filepath.Join(envDataHome, "containers", "storage"), nil
-	}
-	// If $XDG_DATA_HOME is not defined, but $HOME is defined...
-	if envHomedir, haveHomedir := os.LookupEnv("HOME"); haveHomedir {
-		// Default to the user's $HOME/.local/share/containers/storage subdirectory.
-		return filepath.Join(envHomedir, ".local", "share", "containers", "storage"), nil
-	}
-	// If we know where our home directory is...
-	if homedir != "" {
-		// Default to the user's homedir/.local/share/containers/storage subdirectory.
-		return filepath.Join(homedir, ".local", "share", "containers", "storage"), nil
-	}
-	return "", errors.New("unable to determine a --root location: neither $XDG_DATA_HOME nor $HOME is set")
-}
-
-// UnsharedRunrootPath returns $XDG_RUNTIME_DIR/run, /var/run/user/(the user's UID)/run, or an error.
-func UnsharedRunrootPath(uid string) (string, error) {
-	// If $XDG_RUNTIME_DIR is defined...
-	if envRuntimeDir, haveRuntimeDir := os.LookupEnv("XDG_RUNTIME_DIR"); haveRuntimeDir {
-		return filepath.Join(envRuntimeDir, "run"), nil
-	}
-	var runtimeDir string
-	// If $XDG_RUNTIME_DIR is not defined, but we know our UID...
-	if uid != "" {
-		tmpDir := filepath.Join("/var/run/user", uid)
-		os.MkdirAll(tmpDir, 0700)
-		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
-			runtimeDir = tmpDir
-		}
-	}
-	if runtimeDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", errors.New("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-		}
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		runtimeDir = filepath.Join(resolvedHome, "rundir")
-	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return "", errors.New("could not set XDG_RUNTIME_DIR")
-	}
-	return runtimeDir, nil
 }
 
 // GetPolicyContext sets up, initializes and returns a new context for the specified policy

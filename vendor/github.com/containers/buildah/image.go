@@ -107,7 +107,6 @@ func expectedDockerDiffIDs(image docker.V2Image) int {
 // compression that we'll be applying.
 func (i *containerImageRef) computeLayerMIMEType(what string) (omediaType, dmediaType string, err error) {
 	omediaType = v1.MediaTypeImageLayer
-	//TODO: Convert to manifest.DockerV2Schema2LayerUncompressedMediaType once available
 	dmediaType = docker.V2S2MediaTypeUncompressedLayer
 	if i.compression != archive.Uncompressed {
 		switch i.compression {

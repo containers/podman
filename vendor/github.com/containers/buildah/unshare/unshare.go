@@ -55,6 +55,10 @@ func (c *Cmd) Start() error {
 	}
 	c.Env = append(c.Env, fmt.Sprintf("_Buildah-unshare=%d", c.UnshareFlags))
 
+	// Please the libpod "rootless" package to find the expected env variables.
+	c.Env = append(c.Env, "_LIBPOD_USERNS_CONFIGURED=done")
+	c.Env = append(c.Env, fmt.Sprintf("_LIBPOD_ROOTLESS_UID=%d", os.Geteuid()))
+
 	// Create the pipe for reading the child's PID.
 	pidRead, pidWrite, err := os.Pipe()
 	if err != nil {

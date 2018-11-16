@@ -224,6 +224,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		ContainerID:           b.ContainerID,
 		MountPoint:            b.MountPoint,
 		ProcessLabel:          b.ProcessLabel,
+		MountLabel:            b.MountLabel,
 		ImageAnnotations:      b.ImageAnnotations,
 		ImageCreatedBy:        b.ImageCreatedBy,
 		OCIv1:                 b.OCIv1,
