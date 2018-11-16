@@ -30,8 +30,8 @@ func parseTriple(spec []string) (container, host, size uint32, err error) {
 }
 
 // ParseIDMap parses idmap triples from string.
-func ParseIDMap(idMapSpec, mapSetting string) (idmap []IDMap, err error) {
-	if len(idMapSpec) > 0 {
+func ParseIDMap(mapSpec []string, mapSetting string) (idmap []IDMap, err error) {
+	for _, idMapSpec := range mapSpec {
 		idSpec := strings.Fields(strings.Map(nonDigitsToWhitespace, idMapSpec))
 		if len(idSpec)%3 != 0 {
 			return nil, fmt.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
