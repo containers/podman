@@ -264,6 +264,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	configPath := ConfigPath
 	foundConfig := true
+	rootlessConfigPath := ""
 	if rootless.IsRootless() {
 		home := os.Getenv("HOME")
 		if runtime.config.SignaturePolicyPath == "" {
@@ -272,7 +273,10 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 				runtime.config.SignaturePolicyPath = newPath
 			}
 		}
-		configPath = filepath.Join(home, ".config/containers/libpod.conf")
+
+		rootlessConfigPath = filepath.Join(home, ".config/containers/libpod.conf")
+
+		configPath = rootlessConfigPath
 		if _, err := os.Stat(configPath); err != nil {
 			foundConfig = false
 		}
@@ -317,6 +321,22 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err := makeRuntime(runtime); err != nil {
 		return nil, err
 	}
+
+	if !foundConfig && rootlessConfigPath != "" {
+		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
+		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil && !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+		}
+		if err == nil {
+			defer file.Close()
+			enc := toml.NewEncoder(file)
+			if err := enc.Encode(runtime.config); err != nil {
+				os.Remove(rootlessConfigPath)
+			}
+		}
+	}
+
 	return runtime, nil
 }
 
