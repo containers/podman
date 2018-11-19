@@ -120,23 +120,6 @@ cdsudo() {
     sudo --preserve-env=GOPATH --non-interactive bash -c "$CMD"
 }
 
-# Skip a build if $1 does not match in the PR Title/Description with message $2
-require_regex() {
-    req_env_var "
-        CIRRUS_CHANGE_MESSAGE $CIRRUS_CHANGE_MESSAGE
-        1 $1
-        2 $2
-    "
-    regex="$1"
-    msg="$2"
-    if ! echo "$CIRRUS_CHANGE_MESSAGE" | egrep -q "$regex"
-    then
-        echo "***** The PR Title/Description did not match the regular expression: $MAGIC_RE"
-        echo "***** $msg"
-        exit 0
-    fi
-}
-
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
 install_ooe() {
     req_env_var "SCRIPT_BASE $SCRIPT_BASE"

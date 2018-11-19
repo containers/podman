@@ -22,8 +22,6 @@ SCRIPT_BASE $SCRIPT_BASE
 PACKER_BASE $PACKER_BASE
 "
 
-require_regex '\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*' 'Not re-building VM images'
-
 show_env_vars
 
 # Everything here is running on the 'image-builder-image' GCE image

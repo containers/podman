@@ -63,24 +63,52 @@ full_vm_testing_task:
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
-    optional_system_test_script: $SCRIPT_BASE/optional_system_test.sh
-
     success_script: $SCRIPT_BASE/success.sh
 
 
-# This task build new images for future PR testing, but only after a PR merge.
-# These images save needing to install/setup the same environment to test every
-# PR.  The 'active' image for testing is selected by the 'image_name' items in
-# task above.  Currently this requires manually updating them, but this could
-# be automated (see comment at end).
+# Because system tests are stored within the repository, it is sometimes
+# necessary to execute them within a PR to validate changes.
+
+optional_system_testing_task:
+
+    # Only run system tests in PRs (not on merge) if magic string is present
+    # in the PR description.  Post-merge system testing is assumed to happen
+    # later from OS distribution's build systems.
+    only_if: >-
+        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
+
+    gce_instance:
+        matrix:
+            image_name: "ubuntu-1804-bionic-v20180911-libpod-63a86a18"
+            # TODO: Make these work (also build_images_task below)
+            #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
+            #image_name: "centos-7-v20180911-libpod-fce09afe"
+            #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
+
+    timeout_in: 60m
+
+    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
+    system_test_script: $SCRIPT_BASE/system_test.sh
+    success_script: $SCRIPT_BASE/success.sh
+
+
+# This task builds new cache-images for future PR testing.  These images save
+# time installing/setting up the environment while an engineer is waiting.
+# The 'active' cache-images for full_vm_testing are selected by the
+# 'image_name' keys.  Updating those items requires manually modification,
+# but this could be automated (see comment at end of build_vm_images_task).
 
 build_vm_images_task:
-    # Only produce new images after a PR merge
-    only_if: $CIRRUS_BRANCH == 'master'
+    # Only produce new cache-images after a PR merge, and if a magic string
+    # is present in the most recent commit-message.
+    only_if: >-
+        $CIRRUS_BRANCH == 'master' &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
 
     # Require tests to pass first.
     depends_on:
-        - test  # i.e. 'test_task'
+        - full_vm_testing  # i.e. 'full_vm_testing_task'
 
     env:
         # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
