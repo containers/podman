@@ -2178,12 +2178,14 @@ _podman_pod_create() {
       --cgroup-parent
       --infra-command
       --infra-image
-      --share
-      --podidfile
       --label-file
       --label
       -l
       --name
+      --podidfile
+      --publish
+      -p
+      --share
   "
 
   local boolean_options="

@@ -335,7 +335,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		}
 		options = append(options, runtime.WithPod(pod))
 	}
-
 	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()
 		if err != nil {
