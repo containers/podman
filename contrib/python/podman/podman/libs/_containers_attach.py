@@ -19,9 +19,13 @@ class Mixin:
         """
         if stdin is None:
             stdin = sys.stdin.fileno()
+        elif hasattr(stdin, 'fileno'):
+            stdin = stdin.fileno()
 
         if stdout is None:
             stdout = sys.stdout.fileno()
+        elif hasattr(stdout, 'fileno'):
+            stdout = stdout.fileno()
 
         with self._client() as podman:
             attach = podman.GetAttachSockets(self._id)
@@ -49,7 +53,7 @@ class Mixin:
     def resize_handler(self):
         """Send the new window size to conmon."""
 
-        def wrapped(signum, frame):
+        def wrapped(signum, frame):  # pylint: disable=unused-argument
             packed = fcntl.ioctl(self.pseudo_tty.stdout, termios.TIOCGWINSZ,
                                  struct.pack('HHHH', 0, 0, 0, 0))
             rows, cols, _, _ = struct.unpack('HHHH', packed)
@@ -67,7 +71,7 @@ class Mixin:
     def log_handler(self):
         """Send command to reopen log to conmon."""
 
-        def wrapped(signum, frame):
+        def wrapped(signum, frame):  # pylint: disable=unused-argument
             with open(self.pseudo_tty.control_socket, 'w') as skt:
                 # send conmon reopen log message
                 skt.write('2\n')
