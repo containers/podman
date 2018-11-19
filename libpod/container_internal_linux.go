@@ -228,10 +228,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
-		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
-	}
-
 	// Bind builtin image volumes
 	if c.config.Rootfs == "" && c.config.ImageVolumes {
 		if err := c.addLocalVolumes(ctx, &g, execUser); err != nil {
@@ -384,6 +380,12 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		logrus.Debugf("set root propagation to %q", rootPropagation)
 		g.SetLinuxRootPropagation(rootPropagation)
 	}
+
+	// Warning: precreate hooks may alter g.Config in place.
+	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
+		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
+	}
+
 	return g.Config, nil
 }
 
