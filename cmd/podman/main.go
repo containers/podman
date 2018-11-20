@@ -77,6 +77,7 @@ func main() {
 		infoCommand,
 		inspectCommand,
 		killCommand,
+		kubeCommand,
 		loadCommand,
 		loginCommand,
 		logoutCommand,
