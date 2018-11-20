@@ -1104,14 +1104,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	switch isolation {
 	case IsolationOCI:
-		// The default is --rootless=auto, which makes troubleshooting a bit harder.
-		// rootlessFlag := []string{"--rootless=false"}
-		// for _, arg := range options.Args {
-		// 	if strings.HasPrefix(arg, "--rootless") {
-		// 		rootlessFlag = nil
-		// 	}
-		// }
-		// options.Args = append(options.Args, rootlessFlag...)
 		var moreCreateArgs []string
 		if options.NoPivot {
 			moreCreateArgs = []string{"--no-pivot"}
@@ -1125,13 +1117,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID); err != nil {
 			return err
 		}
-		rootlessFlag := []string{"--rootless=true"}
-		for _, arg := range options.Args {
-			if strings.HasPrefix(arg, "--rootless") {
-				rootlessFlag = nil
-			}
-		}
-		options.Args = append(options.Args, rootlessFlag...)
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, []string{"--no-new-keyring"}, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	default:
 		err = errors.Errorf("don't know how to run this command")

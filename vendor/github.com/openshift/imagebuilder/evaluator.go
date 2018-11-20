@@ -122,8 +122,7 @@ func (b *Step) Resolve(ast *parser.Node) error {
 	envs := b.Env
 	for ast.Next != nil {
 		ast = ast.Next
-		var str string
-		str = ast.Value
+		str := ast.Value
 		if replaceEnvAllowed[cmd] {
 			var err error
 			var words []string
