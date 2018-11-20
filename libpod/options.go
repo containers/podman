@@ -1295,3 +1295,14 @@ func WithInfraContainer() PodCreateOption {
 		return nil
 	}
 }
+
+// WithInfraContainerPorts tells the pod to add port bindings to the pause container
+func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+		pod.config.InfraContainer.PortBindings = bindings
+		return nil
+	}
+}

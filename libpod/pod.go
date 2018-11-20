@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
 
@@ -96,7 +97,8 @@ type PodContainerInfo struct {
 
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
-	HasInfraContainer bool `json:"makeInfraContainer"`
+	HasInfraContainer bool                 `json:"makeInfraContainer"`
+	PortBindings      []ocicni.PortMapping `json:"infraPortBindings"`
 }
 
 // ID retrieves the pod's ID

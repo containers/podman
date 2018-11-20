@@ -6,6 +6,7 @@ package libpod
 
 import (
 	json "encoding/json"
+	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -721,6 +722,29 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod5(in *jlexer.Lexer, ou
 		switch key {
 		case "makeInfraContainer":
 			out.HasInfraContainer = bool(in.Bool())
+		case "infraPortBindings":
+			if in.IsNull() {
+				in.Skip()
+				out.PortBindings = nil
+			} else {
+				in.Delim('[')
+				if out.PortBindings == nil {
+					if !in.IsDelim(']') {
+						out.PortBindings = make([]ocicni.PortMapping, 0, 1)
+					} else {
+						out.PortBindings = []ocicni.PortMapping{}
+					}
+				} else {
+					out.PortBindings = (out.PortBindings)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v6 ocicni.PortMapping
+					easyjsonBe091417DecodeGithubComContainersLibpodVendorGithubComCriOOcicniPkgOcicni(in, &v6)
+					out.PortBindings = append(out.PortBindings, v6)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -744,6 +768,110 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod5(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Bool(bool(in.HasInfraContainer))
+	}
+	{
+		const prefix string = ",\"infraPortBindings\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		if in.PortBindings == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v7, v8 := range in.PortBindings {
+				if v7 > 0 {
+					out.RawByte(',')
+				}
+				easyjsonBe091417EncodeGithubComContainersLibpodVendorGithubComCriOOcicniPkgOcicni(out, v8)
+			}
+			out.RawByte(']')
+		}
+	}
+	out.RawByte('}')
+}
+func easyjsonBe091417DecodeGithubComContainersLibpodVendorGithubComCriOOcicniPkgOcicni(in *jlexer.Lexer, out *ocicni.PortMapping) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "hostPort":
+			out.HostPort = int32(in.Int32())
+		case "containerPort":
+			out.ContainerPort = int32(in.Int32())
+		case "protocol":
+			out.Protocol = string(in.String())
+		case "hostIP":
+			out.HostIP = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonBe091417EncodeGithubComContainersLibpodVendorGithubComCriOOcicniPkgOcicni(out *jwriter.Writer, in ocicni.PortMapping) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"hostPort\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int32(int32(in.HostPort))
+	}
+	{
+		const prefix string = ",\"containerPort\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int32(int32(in.ContainerPort))
+	}
+	{
+		const prefix string = ",\"protocol\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Protocol))
+	}
+	{
+		const prefix string = ",\"hostIP\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.HostIP))
 	}
 	out.RawByte('}')
 }

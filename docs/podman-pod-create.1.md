@@ -51,6 +51,15 @@ Assign a name to the pod
 
 Write the pod ID to the file
 
+**-p**, **--publish**=[]
+
+Publish a port or range of ports from the pod to the host
+
+Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
+Both hostPort and containerPort can be specified as a range of ports.
+When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
+Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
+
 **--share**=""
 
 A comma deliminated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
