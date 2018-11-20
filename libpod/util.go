@@ -90,7 +90,7 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 }
 
 // WaitForFile waits until a file has been created or the given timeout has occurred
-func WaitForFile(path string, timeout time.Duration) error {
+func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
 	done := make(chan struct{})
 	chControl := make(chan struct{})
 	go func() {
@@ -110,11 +110,13 @@ func WaitForFile(path string, timeout time.Duration) error {
 	}()
 
 	select {
+	case e := <-chWait:
+		return true, e
 	case <-done:
-		return nil
+		return false, nil
 	case <-time.After(timeout):
 		close(chControl)
-		return errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+		return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
 }
 
