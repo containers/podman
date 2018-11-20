@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -93,18 +94,49 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
 	done := make(chan struct{})
 	chControl := make(chan struct{})
+
+	var inotifyEvents chan fsnotify.Event
+	var timer chan struct{}
+	watcher, err := fsnotify.NewWatcher()
+	if err == nil {
+		if err := watcher.Add(filepath.Dir(path)); err == nil {
+			inotifyEvents = watcher.Events
+		}
+		defer watcher.Close()
+	}
+	if inotifyEvents == nil {
+		// If for any reason we fail to create the inotify
+		// watcher, fallback to polling the file
+		timer = make(chan struct{})
+		go func() {
+			select {
+			case <-chControl:
+				close(timer)
+				return
+			default:
+				time.Sleep(25 * time.Millisecond)
+				timer <- struct{}{}
+			}
+		}()
+	}
+
 	go func() {
 		for {
 			select {
 			case <-chControl:
 				return
-			default:
+			case <-timer:
 				_, err := os.Stat(path)
 				if err == nil {
 					close(done)
 					return
 				}
-				time.Sleep(25 * time.Millisecond)
+			case <-inotifyEvents:
+				_, err := os.Stat(path)
+				if err == nil {
+					close(done)
+					return
+				}
 			}
 		}
 	}()
