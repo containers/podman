@@ -440,7 +440,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
-	if err := c.runtime.ociRuntime.checkpointContainer(c); err != nil {
+	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
 		return err
 	}
 
@@ -457,11 +457,13 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
-	c.state.State = ContainerStateStopped
+	if !options.KeepRunning {
+		c.state.State = ContainerStateStopped
 
-	// Cleanup Storage and Network
-	if err := c.cleanup(ctx); err != nil {
-		return err
+		// Cleanup Storage and Network
+		if err := c.cleanup(ctx); err != nil {
+			return err
+		}
 	}
 
 	if !options.Keep {

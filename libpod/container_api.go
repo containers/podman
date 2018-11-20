@@ -833,7 +833,8 @@ func (c *Container) Refresh(ctx context.Context) error {
 // ContainerCheckpointOptions is a struct used to pass the parameters
 // for checkpointing to corresponding functions
 type ContainerCheckpointOptions struct {
-	Keep bool
+	Keep        bool
+	KeepRunning bool
 }
 
 // Checkpoint checkpoints a container
