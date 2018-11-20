@@ -431,7 +431,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 
 	if !criu.CheckForCriu() {
 		return errors.Errorf("checkpointing a container requires at least CRIU %d", criu.MinCriuVersion)
@@ -464,7 +464,7 @@ func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
 		return err
 	}
 
-	if !keep {
+	if !options.Keep {
 		// Remove log file
 		os.Remove(filepath.Join(c.bundlePath(), "dump.log"))
 		// Remove statistic file

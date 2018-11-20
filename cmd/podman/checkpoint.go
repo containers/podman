@@ -50,7 +50,9 @@ func checkpointCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	keep := c.Bool("keep")
+	options := libpod.ContainerCheckpointOptions{
+		Keep: c.Bool("keep"),
+	}
 
 	if err := checkAllAndLatest(c); err != nil {
 		return err
@@ -59,7 +61,7 @@ func checkpointCmd(c *cli.Context) error {
 	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {
-		if err = ctr.Checkpoint(context.TODO(), keep); err != nil {
+		if err = ctr.Checkpoint(context.TODO(), options); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
