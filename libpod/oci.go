@@ -741,6 +741,8 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	if tty {
 		args = append(args, "--tty")
+	} else {
+		args = append(args, "--tty=false")
 	}
 
 	if user != "" {
