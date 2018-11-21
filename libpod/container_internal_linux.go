@@ -729,9 +729,10 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "unable to read %s", resolvPath)
 	}
 
-	// Process the file to remove localhost nameservers
+	// Ensure that the container's /etc/resolv.conf is compatible with its
+	// network configuration.
 	// TODO: set ipv6 enable bool more sanely
-	resolv, err := resolvconf.FilterResolvDNS(contents, true)
+	resolv, err := resolvconf.FilterResolvDNS(contents, true, c.config.CreateNetNS)
 	if err != nil {
 		return "", errors.Wrapf(err, "error parsing host resolv.conf")
 	}
