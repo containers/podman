@@ -16,6 +16,7 @@
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
 | [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container
 | [podman-export(1)](/docs/podman-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
+| [podman-generate(1)](/docs/podman-generate.1.md)         | Generate structured output based on Podman containers and pods | |
 | [podman-history(1)](/docs/podman-history.1.md)           | Shows the history of an image                                             |[![...](/docs/play.png)](https://asciinema.org/a/bCvUQJ6DkxInMELZdc5DinNSx)|
 | [podman-image(1)](/docs/podman-image.1.md)             | Manage Images||
 | [podman-images(1)](/docs/podman-images.1.md)             | List images in local storage                                              |[![...](/docs/play.png)](https://asciinema.org/a/133649)|
