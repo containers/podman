@@ -28,6 +28,10 @@ var (
 			Usage: "leave the container running after writing checkpoint to disk",
 		},
 		cli.BoolFlag{
+			Name:  "tcp-established",
+			Usage: "checkpoint a container with established TCP connections",
+		},
+		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "checkpoint all running containers",
 		},
@@ -55,8 +59,9 @@ func checkpointCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	options := libpod.ContainerCheckpointOptions{
-		Keep:        c.Bool("keep"),
-		KeepRunning: c.Bool("leave-running"),
+		Keep:           c.Bool("keep"),
+		KeepRunning:    c.Bool("leave-running"),
+		TCPEstablished: c.Bool("tcp-established"),
 	}
 
 	if err := checkAllAndLatest(c); err != nil {

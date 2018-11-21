@@ -833,8 +833,14 @@ func (c *Container) Refresh(ctx context.Context) error {
 // ContainerCheckpointOptions is a struct used to pass the parameters
 // for checkpointing (and restoring) to the corresponding functions
 type ContainerCheckpointOptions struct {
-	Keep        bool
+	// Keep tells the API to not delete checkpoint artifacts
+	Keep bool
+	// KeepRunning tells the API to keep the container running
+	// after writing the checkpoint to disk
 	KeepRunning bool
+	// TCPEstablished tells the API to checkpoint a container
+	// even if it contains established TCP connections
+	TCPEstablished bool
 }
 
 // Checkpoint checkpoints a container

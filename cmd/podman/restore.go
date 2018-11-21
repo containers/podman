@@ -27,6 +27,10 @@ var (
 		// dedicated state for container which are checkpointed.
 		// TODO: add ContainerStateCheckpointed
 		cli.BoolFlag{
+			Name:  "tcp-established",
+			Usage: "checkpoint a container with established TCP connections",
+		},
+		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "restore all checkpointed containers",
 		},
@@ -54,7 +58,8 @@ func restoreCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	options := libpod.ContainerCheckpointOptions{
-		Keep: c.Bool("keep"),
+		Keep:           c.Bool("keep"),
+		TCPEstablished: c.Bool("tcp-established"),
 	}
 
 	if err := checkAllAndLatest(c); err != nil {

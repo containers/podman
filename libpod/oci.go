@@ -291,6 +291,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 
 	if restoreOptions != nil {
 		args = append(args, "--restore", ctr.CheckpointPath())
+		if restoreOptions.TCPEstablished {
+			args = append(args, "--restore-arg", "--tcp-established")
+		}
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -861,6 +864,9 @@ func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckp
 	args = append(args, workPath)
 	if options.KeepRunning {
 		args = append(args, "--leave-running")
+	}
+	if options.TCPEstablished {
+		args = append(args, "--tcp-established")
 	}
 	args = append(args, ctr.ID())
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
