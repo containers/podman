@@ -347,8 +347,34 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// Mounts need to be sorted so paths will not cover other paths
 	mounts := sortMounts(g.Mounts())
 	g.ClearMounts()
+
+	// Determine property of RootPropagation based on volume properties. If
+	// a volume is shared, then keep root propagation shared. This should
+	// work for slave and private volumes too.
+	//
+	// For slave volumes, it can be either [r]shared/[r]slave.
+	//
+	// For private volumes any root propagation value should work.
+	rootPropagation := ""
 	for _, m := range mounts {
 		g.AddMount(m)
+		for _, opt := range m.Options {
+			switch opt {
+			case MountShared, MountRShared:
+				if rootPropagation != MountShared && rootPropagation != MountRShared {
+					rootPropagation = MountShared
+				}
+			case MountSlave, MountRSlave:
+				if rootPropagation != MountShared && rootPropagation != MountRShared && rootPropagation != MountSlave && rootPropagation != MountRSlave {
+					rootPropagation = MountRSlave
+				}
+			}
+		}
+	}
+
+	if rootPropagation != "" {
+		logrus.Debugf("set root propagation to %q", rootPropagation)
+		g.SetLinuxRootPropagation(rootPropagation)
 	}
 	return g.Config, nil
 }
