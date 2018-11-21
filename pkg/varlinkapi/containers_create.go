@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/pkg/signal"
@@ -126,7 +127,11 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 	// NETWORK MODE
 	networkMode := create.Net_mode
 	if networkMode == "" {
-		networkMode = "bridge"
+		if rootless.IsRootless() {
+			networkMode = "slirp4netns"
+		} else {
+			networkMode = "bridge"
+		}
 	}
 
 	// WORKING DIR
