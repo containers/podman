@@ -227,7 +227,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	return files, nil
 }
 
-func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreContainer bool) (err error) {
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -289,7 +289,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		args = append(args, "--syslog")
 	}
 
-	if restoreContainer {
+	if restoreOptions != nil {
 		args = append(args, "--restore", ctr.CheckpointPath())
 	}
 

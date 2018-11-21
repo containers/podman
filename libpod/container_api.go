@@ -831,7 +831,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 }
 
 // ContainerCheckpointOptions is a struct used to pass the parameters
-// for checkpointing to corresponding functions
+// for checkpointing (and restoring) to the corresponding functions
 type ContainerCheckpointOptions struct {
 	Keep        bool
 	KeepRunning bool
@@ -853,7 +853,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 }
 
 // Restore restores a container
-func (c *Container) Restore(ctx context.Context, keep bool) (err error) {
+func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 	logrus.Debugf("Trying to restore container %s", c)
 	if !c.batched {
 		c.lock.Lock()
@@ -864,5 +864,5 @@ func (c *Container) Restore(ctx context.Context, keep bool) (err error) {
 		}
 	}
 
-	return c.restore(ctx, keep)
+	return c.restore(ctx, options)
 }
