@@ -10,6 +10,8 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/dnsservice"
+	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -37,6 +39,12 @@ var runCommand = cli.Command{
 }
 
 func runCmd(c *cli.Context) error {
+	var (
+		serviceContainer   *libpod.Container
+		extraOptions       []libpod.CtrCreateOption
+		serviceContainerIP string
+	)
+
 	if err := createInit(c); err != nil {
 		return err
 	}
@@ -50,7 +58,61 @@ func runCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, createConfig, err := createContainer(c, runtime)
+	ctx := getContext()
+
+	// We need to make sure the dns service container is running prior to the new container
+	// If one exists, make sure it is running; otherwise create it.
+	if c.Bool("dns-service") {
+		netMode := ns.NetworkMode(c.String("net"))
+		if netMode.IsNone() || netMode.IsHost() || netMode.IsContainer() {
+			return errors.New("you can only run a dns service on a bridged network")
+		}
+
+		network := c.String("network")
+		if network == "bridge" {
+			network = runtime.GetConfig().CNIDefaultNetwork
+			if network == "" {
+				network = "podman"
+			}
+		}
+
+		serviceContainer, err = getDNSServiceContainers(runtime, network)
+		if err != nil {
+			return err
+		}
+
+		// If the service container does not exist, we must create one.
+		if serviceContainer == nil {
+			serviceContainer, err = createDNSServiceContainer(runtime, ctx, network)
+			if err != nil {
+				return err
+			}
+		}
+		// Make sure dns-service container is started
+		logrus.Debug("Starting DNS service container: %s", serviceContainer.ID())
+		cstate, err := serviceContainer.State()
+		if err != nil {
+			return err
+		}
+		if cstate != libpod.ContainerStateRunning {
+			if err := serviceContainer.Start(ctx); err != nil {
+				return err
+			}
+		}
+
+		serviceContainerIPs, err := serviceContainer.IPs()
+		if err != nil {
+			return err
+		}
+		serviceContainerIP = serviceContainerIPs[0].IP.String()
+
+		// Add extra options to the containers creation that allow it to use the dns-service
+		// Add in a dependency for the dns container itself; and add in the IP address of the dns-service
+		extraOptions = append(extraOptions, libpod.WithDNS([]string{serviceContainerIP}))
+		extraOptions = append(extraOptions, libpod.WithDependencyCtrs([]*libpod.Container{serviceContainer}))
+	}
+
+	ctr, createConfig, err := createContainer(c, runtime, extraOptions, &dnsservice.DNSIP{IPAddress: serviceContainerIP})
 	if err != nil {
 		return err
 	}
@@ -62,7 +124,6 @@ func runCmd(c *cli.Context) error {
 		}
 	}
 
-	ctx := getContext()
 	// Handle detached start
 	if createConfig.Detach {
 		if err := ctr.Start(ctx); err != nil {

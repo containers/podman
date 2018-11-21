@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -11,7 +12,10 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/libpod"
+	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/dnsservice"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
@@ -31,7 +35,9 @@ var (
 )
 
 const (
-	idTruncLength = 12
+	idTruncLength           = 12
+	DNSServiceImageName     = "quay.io/libpod/dns-service:latest"
+	DNSServiceContainerName = "dns-service"
 )
 
 func splitCamelCase(src string) string {
@@ -282,6 +288,10 @@ var createFlags = []cli.Flag{
 	cli.StringSliceFlag{
 		Name:  "dns-search",
 		Usage: "Set custom DNS search domains",
+	},
+	cli.BoolFlag{
+		Name:  "dns-service",
+		Usage: "Use a built in dns-service pod for container network resolution",
 	},
 	cli.StringFlag{
 		Name:  "entrypoint",
@@ -547,4 +557,94 @@ func getAuthFile(authfile string) string {
 func scrubServer(server string) string {
 	server = strings.TrimPrefix(server, "https://")
 	return strings.TrimPrefix(server, "http://")
+}
+
+func getDNSServiceContainers(runtime *libpod.Runtime, network string) (*libpod.Container, error) {
+	allContainers, err := runtime.GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
+	for _, container := range allContainers {
+		labels := container.Labels()
+		if container.IsDNS() && labels["network"] == network {
+			return container, nil
+		}
+	}
+	return nil, nil
+
+}
+
+func createDNSServiceContainer(r *libpod.Runtime, ctx context.Context, network string) (*libpod.Container, error) {
+	rtc := r.GetConfig()
+	image := rtc.DNSServiceImage
+	if image == "" {
+		image = DNSServiceImageName
+	}
+	newImage, err := r.ImageRuntime().New(ctx, image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image2.SigningOptions{}, false, false)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := newImage.Inspect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := make(map[string]string)
+	labels["network"] = network
+	labels["service"] = "dns"
+
+	_, dnsServiceHostsFilePath := dnsservice.GenerateDNSFileNames(network)
+	if err := dnsservice.CreateDNSHostsFileDir(dnsServiceHostsFilePath); err != nil {
+		return nil, err
+	}
+
+	createConfig := createconfig.CreateConfig{
+		Image:      image,
+		ImageID:    newImage.ID(),
+		StopSignal: 15,
+		IDMappings: &storage.IDMappingOptions{},
+		Name:       fmt.Sprintf("%s-%s", DNSServiceContainerName, network),
+		Volumes:    []string{fmt.Sprintf("%s:/etc/dnsmasqhosts/:Z", dnsServiceHostsFilePath)},
+		WorkDir:    data.ContainerConfig.WorkingDir,
+		Entrypoint: data.ContainerConfig.Entrypoint,
+		Command:    data.ContainerConfig.Entrypoint,
+		Network:    network,
+		Labels:     labels,
+	}
+
+	runtimeSpec, err := createconfig.CreateConfigToOCISpec(&createConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	options, err := createConfig.GetContainerCreateOptions(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set this container as a DNS-service container
+	options = append(options, libpod.WithIsDNS())
+
+	became, ret, err := joinOrCreateRootlessUserNamespace(&createConfig, r)
+	if err != nil {
+		return nil, err
+	}
+	if became {
+		os.Exit(ret)
+	}
+
+	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	createConfigJSON, err := json.Marshal(createConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
+		return nil, err
+	}
+	return ctr, nil
 }

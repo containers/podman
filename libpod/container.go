@@ -352,6 +352,12 @@ type ContainerConfig struct {
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
 
+	// IsDNS is a bool indicating if this container is a dns service container
+	IsDNS bool `json:"dnscontainer"`
+
+	// UseDNSService is a bool indicating if a container has opted into the dns-service
+	UseDNSService bool `json:"dns-service"`
+
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
 }
@@ -995,6 +1001,11 @@ func (c *Container) IsInfra() bool {
 	return c.config.IsInfra
 }
 
+// UsesDNSService returns whether the container uses the dns-service
+func (c *Container) UsesDNSService() bool {
+	return c.config.UseDNSService
+}
+
 // IsReadOnly returns whether the container is running in read only mode
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly
@@ -1010,4 +1021,9 @@ func (c *Container) NetworkDisabled() bool {
 		}
 	}
 	return false
+}
+
+// IsDNS returns whether the container is a DNS service container
+func (c *Container) IsDNS() bool {
+	return c.config.IsDNS
 }

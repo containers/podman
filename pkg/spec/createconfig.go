@@ -80,6 +80,7 @@ type CreateConfig struct {
 	DNSOpt             []string          //dns-opt
 	DNSSearch          []string          //dns-search
 	DNSServers         []string          //dns
+	DNSServiceIP       string            // IP address of the dns-service
 	Entrypoint         []string          //entrypoint
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
@@ -380,7 +381,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 			networks = append(networks, netName)
 		}
 	}
-
 	if IsNS(string(c.NetMode)) {
 		// pass
 	} else if c.NetMode.IsContainer() {
@@ -436,6 +436,11 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	}
 	if len(c.DNSServers) > 0 {
 		options = append(options, libpod.WithDNS(c.DNSServers))
+	}
+	if c.DNSServiceIP != "" {
+		// This adds the DNS service IP to the containers resolve
+		options = append(options, libpod.WithDNS([]string{c.DNSServiceIP}))
+		options = append(options, libpod.WithUseDNSService())
 	}
 	if len(c.DNSOpt) > 0 {
 		options = append(options, libpod.WithDNSOption(c.DNSOpt))

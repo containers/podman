@@ -16,6 +16,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/libpod/pkg/dnsservice"
 	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/netns"
@@ -50,6 +51,7 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
+	var ips []string
 	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
@@ -68,6 +70,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 	for idx, r := range results {
 		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
 		resultCurrent, err := cnitypes.GetResult(r)
+		for _, i := range resultCurrent.IPs {
+			ips = append(ips, i.Address.IP.String())
+		}
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
 		}
@@ -83,6 +88,21 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		}
 		if err := r.firewallBackend.Add(firewallConf); err != nil {
 			return nil, errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
+		}
+	}
+
+	// If the container "enrolled" in the host dns service, we need to add a host record
+	// for the new container with ip, host name, and container ID
+	if ctr.config.UseDNSService {
+		var network string
+		if len(podNetwork.Networks) > 0 {
+			network = podNetwork.Networks[0]
+		}
+		if network == "" {
+			network = r.netPlugin.GetDefaultNetworkName()
+		}
+		if err := dnsservice.AddHostDNSRecord(ips, ctr.Hostname(), ctr.ID(), network); err != nil {
+			return nil, err
 		}
 	}
 
@@ -259,6 +279,23 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
+
+	// If the container opted to use the dns-service
+	// we need to make sure to remove host entries on teardown
+	if ctr.UsesDNSService() {
+		var network string
+		if len(podNetwork.Networks) > 0 {
+			network = podNetwork.Networks[0]
+		}
+		if network == "" {
+			network = r.netPlugin.GetDefaultNetworkName()
+		}
+		if err := dnsservice.RemoveHostDNSRecord(ctr.ID(), network); err != nil {
+			// I dont think this is fatal. And we want the rest of the teardown to continue
+			fmt.Println(err)
+			logrus.Errorf("unable to remove host record for %s", ctr.ID())
+		}
+	}
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {

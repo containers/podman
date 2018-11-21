@@ -173,6 +173,9 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
+	// DNSServiceImage is the name of the dns-service image used to resolve
+	// host names amongst containers
+	DNSServiceImage string `toml:"dns_service_image"`
 }
 
 var (

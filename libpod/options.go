@@ -1103,6 +1103,32 @@ func withIsInfra() CtrCreateOption {
 	}
 }
 
+// WithUseDNSService sets bool on the container that indicates it wants to opt into the dns-service
+func WithUseDNSService() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.UseDNSService = true
+
+		return nil
+	}
+}
+
+// WithIsDNS sets bool on the container that indicates it is a dns service container
+func WithIsDNS() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.IsDNS = true
+
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod.

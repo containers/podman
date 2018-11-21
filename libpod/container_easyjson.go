@@ -1708,6 +1708,10 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 			}
 		case "pause":
 			out.IsInfra = bool(in.Bool())
+		case "dnscontainer":
+			out.IsDNS = bool(in.Bool())
+		case "dns-service":
+			out.UseDNSService = bool(in.Bool())
 		case "systemd":
 			out.Systemd = bool(in.Bool())
 		default:
@@ -2400,6 +2404,26 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Bool(bool(in.IsInfra))
+	}
+	{
+		const prefix string = ",\"dnscontainer\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.IsDNS))
+	}
+	{
+		const prefix string = ",\"dns-service\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Bool(bool(in.UseDNSService))
 	}
 	{
 		const prefix string = ",\"systemd\":"

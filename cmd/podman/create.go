@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/libpod/pkg/dnsservice"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
@@ -72,7 +73,8 @@ func createCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, _, err := createContainer(c, runtime)
+	// TODO need to add dns-service stuff in for create still
+	ctr, _, err := createContainer(c, runtime, []libpod.CtrCreateOption{}, nil)
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,7 @@ func createInit(c *cli.Context) error {
 	return nil
 }
 
-func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
+func createContainer(c *cli.Context, runtime *libpod.Runtime, extraContainerOptions []libpod.CtrCreateOption, dnsip *dnsservice.DNSIP) (*libpod.Container, *cc.CreateConfig, error) {
 	rtc := runtime.GetConfig()
 	ctx := getContext()
 	rootfs := ""
@@ -140,7 +142,7 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 			imageName = newImage.ID()
 		}
 	}
-	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
+	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data, dnsip)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,6 +156,9 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Append options we cannot deduce in this context like dns-service
+	options = append(options, extraContainerOptions...)
 
 	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, runtime)
 	if err != nil {
@@ -404,7 +409,7 @@ func configurePod(c *cli.Context, runtime *libpod.Runtime, namespaces map[string
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
+func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtime, imageName string, data *inspect.ImageData, dnsip *dnsservice.DNSIP) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
@@ -722,6 +727,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		DNSOpt:            c.StringSlice("dns-opt"),
 		DNSSearch:         c.StringSlice("dns-search"),
 		DNSServers:        c.StringSlice("dns"),
+		DNSServiceIP:      dnsip.IPAddress,
 		Entrypoint:        entrypoint,
 		Env:               env,
 		//ExposedPorts:   ports,
@@ -797,6 +803,9 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		Syslog:      c.GlobalBool("syslog"),
 	}
 
+	if c.Bool("dns-service") {
+		config.DNSServiceIP = dnsip.IPAddress
+	}
 	if config.Privileged {
 		config.LabelOpts = label.DisableSecOpt()
 	} else {
