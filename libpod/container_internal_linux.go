@@ -431,7 +431,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 
 	if !criu.CheckForCriu() {
 		return errors.Errorf("checkpointing a container requires at least CRIU %d", criu.MinCriuVersion)
@@ -440,7 +440,7 @@ func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
-	if err := c.runtime.ociRuntime.checkpointContainer(c); err != nil {
+	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
 		return err
 	}
 
@@ -457,14 +457,16 @@ func (c *Container) checkpoint(ctx context.Context, keep bool) (err error) {
 
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
-	c.state.State = ContainerStateStopped
+	if !options.KeepRunning {
+		c.state.State = ContainerStateStopped
 
-	// Cleanup Storage and Network
-	if err := c.cleanup(ctx); err != nil {
-		return err
+		// Cleanup Storage and Network
+		if err := c.cleanup(ctx); err != nil {
+			return err
+		}
 	}
 
-	if !keep {
+	if !options.Keep {
 		// Remove log file
 		os.Remove(filepath.Join(c.bundlePath(), "dump.log"))
 		// Remove statistic file

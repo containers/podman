@@ -844,13 +844,22 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 }
 
 // checkpointContainer checkpoints the given container
-func (r *OCIRuntime) checkpointContainer(ctr *Container) error {
+func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
 	// workPath will be used to store dump.log and stats-dump
 	workPath := ctr.bundlePath()
 	logrus.Debugf("Writing checkpoint to %s", imagePath)
 	logrus.Debugf("Writing checkpoint logs to %s", workPath)
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, "checkpoint",
-		"--image-path", imagePath, "--work-path", workPath, ctr.ID())
+	args := []string{}
+	args = append(args, "checkpoint")
+	args = append(args, "--image-path")
+	args = append(args, imagePath)
+	args = append(args, "--work-path")
+	args = append(args, workPath)
+	if options.KeepRunning {
+		args = append(args, "--leave-running")
+	}
+	args = append(args, ctr.ID())
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }

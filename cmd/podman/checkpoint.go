@@ -24,6 +24,10 @@ var (
 			Usage: "keep all temporary checkpoint files",
 		},
 		cli.BoolFlag{
+			Name:  "leave-running, R",
+			Usage: "leave the container running after writing checkpoint to disk",
+		},
+		cli.BoolFlag{
 			Name:  "all, a",
 			Usage: "checkpoint all running containers",
 		},
@@ -50,7 +54,10 @@ func checkpointCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	keep := c.Bool("keep")
+	options := libpod.ContainerCheckpointOptions{
+		Keep:        c.Bool("keep"),
+		KeepRunning: c.Bool("leave-running"),
+	}
 
 	if err := checkAllAndLatest(c); err != nil {
 		return err
@@ -59,7 +66,7 @@ func checkpointCmd(c *cli.Context) error {
 	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {
-		if err = ctr.Checkpoint(context.TODO(), keep); err != nil {
+		if err = ctr.Checkpoint(context.TODO(), options); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

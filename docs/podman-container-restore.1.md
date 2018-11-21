@@ -24,6 +24,14 @@ processes in the checkpointed container.
 Without the **-k**, **--keep** option the checkpoint will be consumed and cannot be used
 again.
 
+**--all, -a**
+
+Restore all checkpointed containers.
+
+**--latest, -l**
+
+Instead of providing the container name or ID, restore the last created container.
+
 ## EXAMPLE
 
 podman container restore mywebserver
