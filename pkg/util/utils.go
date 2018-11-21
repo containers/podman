@@ -284,6 +284,35 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	return opts, nil
 }
 
+type tomlOptionsConfig struct {
+	MountProgram string `toml:"mount_program"`
+}
+
+type tomlConfig struct {
+	Storage struct {
+		Driver    string                      `toml:"driver"`
+		RunRoot   string                      `toml:"runroot"`
+		GraphRoot string                      `toml:"graphroot"`
+		Options   struct{ tomlOptionsConfig } `toml:"options"`
+	} `toml:"storage"`
+}
+
+func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
+	config := new(tomlConfig)
+
+	config.Storage.Driver = storeOptions.GraphDriverName
+	config.Storage.RunRoot = storeOptions.RunRoot
+	config.Storage.GraphRoot = storeOptions.GraphRoot
+	for _, i := range storeOptions.GraphDriverOptions {
+		s := strings.Split(i, "=")
+		if s[0] == "overlay.mount_program" {
+			config.Storage.Options.MountProgram = s[1]
+		}
+	}
+
+	return config
+}
+
 // GetDefaultStoreOptions returns the storage ops for containers
 func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 	storageOpts := storage.DefaultStoreOptions
@@ -304,9 +333,10 @@ func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
 			}
 
+			tomlConfiguration := getTomlStorage(&storageOpts)
 			defer file.Close()
 			enc := toml.NewEncoder(file)
-			if err := enc.Encode(storageOpts); err != nil {
+			if err := enc.Encode(tomlConfiguration); err != nil {
 				os.Remove(storageConf)
 			}
 		}
