@@ -137,7 +137,7 @@ context: "Fedora 28 Cloud"
 ---
 
 host:
-    distro: fedora/29/cloud/pungi
+    distro: fedora/29/cloud
     specs:
         ram: 8192
         cpus: 4
