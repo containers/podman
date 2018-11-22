@@ -1,0 +1,37 @@
+language: go
+env:  # important!
+matrix:
+  include:
+    - os: linux
+      sudo: required
+      name: ubuntu
+      dist: xenial
+    - os: osx
+      name: macos
+      dist: xenial
+  allow_failures:
+    - os: osx
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gpgme; fi
+  - >
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    sudo apt-get install -y
+    btrfs-tools
+    git
+    golang-go
+    go-md2man
+    iptables
+    libassuan-dev
+    libdevmapper-dev
+    libglib2.0-dev
+    libc6-dev
+    libgpgme11-dev
+    libgpg-error-dev
+    libprotobuf-dev
+    libprotobuf-c0-dev
+    libseccomp-dev
+    libselinux1-dev
+    pkg-config
+    ; fi
+script: make
