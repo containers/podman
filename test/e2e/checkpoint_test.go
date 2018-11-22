@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"syscall"
 
 	"github.com/containers/libpod/pkg/criu"
 	. "github.com/containers/libpod/test/utils"
@@ -24,6 +25,18 @@ var _ = Describe("Podman checkpoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
+
+		// CRIU doesn't work on overlay:
+		// https://github.com/checkpoint-restore/criu/issues/136
+		var v syscall.Statfs_t
+
+		const overlayMagic = 0x794c7630
+		if err := syscall.Statfs("/", &v); err == nil {
+			if v.Type == overlayMagic {
+				Skip("CRIU doesn't work on overlayfs")
+			}
+		}
+
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")
 		}
