@@ -56,9 +56,9 @@ func (p *PodmanTest) MakeOptions(args []string) []string {
 	return p.PodmanMakeOptions(args)
 }
 
-// PodmanAsUser exec podman as user. uid and gid is set for credentials useage. env is used
+// PodmanAsUserBase exec podman as user. uid and gid is set for credentials useage. env is used
 // to record the env for debugging
-func (p *PodmanTest) PodmanAsUser(args []string, uid, gid uint32, env []string) *PodmanSession {
+func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, env []string) *PodmanSession {
 	var command *exec.Cmd
 	podmanOptions := p.MakeOptions(args)
 
@@ -86,7 +86,7 @@ func (p *PodmanTest) PodmanAsUser(args []string, uid, gid uint32, env []string) 
 
 // PodmanBase exec podman with default env.
 func (p *PodmanTest) PodmanBase(args []string) *PodmanSession {
-	return p.PodmanAsUser(args, 0, 0, nil)
+	return p.PodmanAsUserBase(args, 0, 0, nil)
 }
 
 // WaitForContainer waits on a started container

@@ -19,11 +19,11 @@ var _ = Describe("PodmanTest test", func() {
 		FakeOutputs = make(map[string][]string)
 	})
 
-	It("Test PodmanAsUser", func() {
+	It("Test PodmanAsUserBase", func() {
 		FakeOutputs["check"] = []string{"check"}
 		os.Setenv("HOOK_OPTION", "hook_option")
 		env := os.Environ()
-		session := podmanTest.PodmanAsUser([]string{"check"}, 1000, 1000, env)
+		session := podmanTest.PodmanAsUserBase([]string{"check"}, 1000, 1000, env)
 		os.Unsetenv("HOOK_OPTION")
 		session.WaitWithDefaultTimeout()
 		Expect(session.Command.Process).ShouldNot(BeNil())
