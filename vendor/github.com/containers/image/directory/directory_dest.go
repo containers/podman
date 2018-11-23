@@ -127,10 +127,11 @@ func (d *dirImageDestination) IgnoresEmbeddedDockerReference() bool {
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.
+// May update cache.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	blobFile, err := ioutil.TempFile(d.ref.path, "dir-put-blob")
 	if err != nil {
 		return types.BlobInfo{}, err
@@ -169,27 +170,27 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 	return types.BlobInfo{Digest: computedDigest, Size: size}, nil
 }
 
-// HasBlob returns true iff the image destination already contains a blob with the matching digest which can be reapplied using ReapplyBlob.
-// Unlike PutBlob, the digest can not be empty.  If HasBlob returns true, the size of the blob must also be returned.
-// If the destination does not contain the blob, or it is unknown, HasBlob ordinarily returns (false, -1, nil);
-// it returns a non-nil error only on an unexpected failure.
-func (d *dirImageDestination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
+// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
+// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
+// info.Digest must not be empty.
+// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
+// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
+// May use and/or update cache.
+func (d *dirImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
 	if info.Digest == "" {
-		return false, -1, errors.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, types.BlobInfo{}, errors.Errorf(`"Can not check for a blob with unknown digest`)
 	}
 	blobPath := d.ref.layerPath(info.Digest)
 	finfo, err := os.Stat(blobPath)
 	if err != nil && os.IsNotExist(err) {
-		return false, -1, nil
+		return false, types.BlobInfo{}, nil
 	}
 	if err != nil {
-		return false, -1, err
+		return false, types.BlobInfo{}, err
 	}
-	return true, finfo.Size(), nil
-}
+	return true, types.BlobInfo{Digest: info.Digest, Size: finfo.Size()}, nil
 
-func (d *dirImageDestination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
-	return info, nil
 }
 
 // PutManifest writes manifest to the destination.

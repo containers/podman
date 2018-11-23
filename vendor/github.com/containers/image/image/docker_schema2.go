@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/blobinfocache"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -95,7 +96,7 @@ func (m *manifestSchema2) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if m.src == nil {
 			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestSchema2")
 		}
-		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromSchema2Descriptor(m.m.ConfigDescriptor))
+		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromSchema2Descriptor(m.m.ConfigDescriptor), blobinfocache.NoCache)
 		if err != nil {
 			return nil, err
 		}
@@ -249,7 +250,9 @@ func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, dest typ
 		if historyEntry.EmptyLayer {
 			if !haveGzippedEmptyLayer {
 				logrus.Debugf("Uploading empty layer during conversion to schema 1")
-				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}, false)
+				// Ideally we should update the relevant BlobInfoCache about this layer, but that would require passing it down here,
+				// and anyway this blob is so small that it’s easier to just copy it than to worry about figuring out another location where to get it.
+				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}, blobinfocache.NoCache, false)
 				if err != nil {
 					return nil, errors.Wrap(err, "Error uploading empty layer")
 				}
