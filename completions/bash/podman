@@ -1906,11 +1906,16 @@ _podman_top() {
 }
 
 _podman_version() {
-     local options_with_args="
-     "
-     local boolean_options="
-     "
-     _complete_ "$options_with_args" "$boolean_options"
+    local boolean_options="
+     --help
+     -h
+    "
+    local options_with_args="
+     --format
+    "
+    local all_options="$options_with_args $boolean_options"
+
+    _complete_ "$options_with_args" "$boolean_options"
 }
 
 _podman_save() {
