@@ -869,6 +869,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		GraphDriver:  driver,
 		ManifestType: manifestType,
 		User:         ociv1Img.Config.User,
+		History:      ociv1Img.History,
 	}
 	return data, nil
 }
