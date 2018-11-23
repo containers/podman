@@ -80,6 +80,16 @@ RUN set -x \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 
+# Install criu
+ENV CRIU_COMMIT 584cbe4643c3fc7dc901ff08bf923ca0fe7326f9
+RUN set -x \
+      && cd /tmp \
+      && git clone https://github.com/checkpoint-restore/criu.git \
+      && cd criu \
+      && make \
+      && install -D -m 755  criu/criu /usr/sbin/ \
+      && rm -rf /tmp/criu
+
 # Install cni config
 #RUN make install.cni
 RUN mkdir -p /etc/cni/net.d/
