@@ -129,7 +129,7 @@ $ sudo podman inspect -l | grep IPAddress\":
         "IPAddress": "10.88.6.140",
 ```
 
-Note: The -l is convenience arguement for **latest container**.  You can also use the container's ID instead
+Note: The -l is a convenience argument for **latest container**.  You can also use the container's ID instead
 of -l.
 
 ### Testing the httpd server
