@@ -20,6 +20,7 @@ The container command allows you to manage containers
 | create   | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |
 | diff     | [podman-diff(1)](podman-diff.1.md)                  | Inspect changes on a container or image's filesystem.                        |
 | exec     | [podman-exec(1)](podman-exec.1.md)                  | Execute a command in a running container.                                    |
+| exists   | [podman-exists(1)](podman-container-exists.1.md)    | Check if a container exists in local storage                                 |
 | export   | [podman-export(1)](podman-export.1.md)              | Export a container's filesystem contents as a tar archive.                   |
 | inspect  | [podman-inspect(1)](podman-inspect.1.md)            | Display a container or image's configuration.                                |
 | kill     | [podman-kill(1)](podman-kill.1.md)                  | Kill the main process in one or more containers.                             |
