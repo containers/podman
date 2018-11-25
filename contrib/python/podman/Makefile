@@ -4,6 +4,7 @@ PODMAN_VERSION ?= '0.0.4'
 
 .PHONY: python-podman
 python-podman:
+	PODMAN_VERSION=$(PODMAN_VERSION) \
 	$(PYTHON) setup.py sdist bdist
 
 .PHONY: lint
@@ -16,6 +17,7 @@ integration:
 
 .PHONY: install
 install:
+	PODMAN_VERSION=$(PODMAN_VERSION) \
 	$(PYTHON) setup.py install --root ${DESTDIR}
 
 .PHONY: upload
