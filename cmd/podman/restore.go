@@ -66,7 +66,7 @@ func restoreCmd(c *cli.Context) error {
 		return err
 	}
 
-	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "checkpointed")
+	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateExited, "checkpointed")
 
 	for _, ctr := range containers {
 		if err = ctr.Restore(context.TODO(), options); err != nil {
