@@ -2178,6 +2178,22 @@ _podman_container_runlabel() {
     esac
 }
 
+_podman_container_exists() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+  "
+}
+
+_podman_image_exists() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+  "
+}
+
 _podman_pod_create() {
   local options_with_args="
       --cgroup-parent

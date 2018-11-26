@@ -9,6 +9,7 @@ var (
 		attachCommand,
 		checkpointCommand,
 		cleanupCommand,
+		containerExistsCommand,
 		commitCommand,
 		createCommand,
 		diffCommand,

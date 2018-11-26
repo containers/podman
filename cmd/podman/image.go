@@ -9,6 +9,7 @@ var (
 		buildCommand,
 		historyCommand,
 		importCommand,
+		imageExistsCommand,
 		inspectCommand,
 		loadCommand,
 		lsImagesCommand,

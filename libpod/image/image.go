@@ -252,7 +252,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	// The image has a registry name in it and we made sure we looked for it locally
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
-		return nil, errors.Errorf("%s", imageError)
+		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
 
 	}
 
@@ -275,7 +275,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return repoImage, nil
 	}
 
-	return nil, errors.Wrapf(err, imageError)
+	return nil, errors.Wrapf(ErrNoSuchImage, err.Error())
 }
 
 // ID returns the image ID as a string
