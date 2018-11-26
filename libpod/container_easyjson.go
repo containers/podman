@@ -8,6 +8,7 @@ import (
 	json "encoding/json"
 	types "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/current"
+	namespaces "github.com/containers/libpod/pkg/namespaces"
 	storage "github.com/containers/storage"
 	idtools "github.com/containers/storage/pkg/idtools"
 	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
@@ -1550,6 +1551,8 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 				}
 				in.Delim(']')
 			}
+		case "networkMode":
+			out.NetMode = namespaces.NetworkMode(in.String())
 		case "userVolumes":
 			if in.IsNull() {
 				in.Skip()
@@ -2176,6 +2179,16 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 			}
 			out.RawByte(']')
 		}
+	}
+	if in.NetMode != "" {
+		const prefix string = ",\"networkMode\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.NetMode))
 	}
 	if len(in.UserVolumes) != 0 {
 		const prefix string = ",\"userVolumes\":"

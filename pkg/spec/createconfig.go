@@ -391,11 +391,11 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		isRootless := rootless.IsRootless()
-		postConfigureNetNS := isRootless || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
+		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
 		if isRootless && len(portBindings) > 0 {
 			return nil, errors.New("port bindings are not yet supported by rootless containers")
 		}
-		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, networks))
+		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
 	}
 
 	if c.PidMode.IsContainer() {
