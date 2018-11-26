@@ -172,8 +172,11 @@ type Stage struct {
 	Node     *parser.Node
 }
 
-func NewStages(node *parser.Node, b *Builder) Stages {
+func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 	var stages Stages
+	if err := b.extractHeadingArgsFromNode(node); err != nil {
+		return stages, err
+	}
 	for i, root := range SplitBy(node, command.From) {
 		name, _ := extractNameFromNode(root.Children[0])
 		if len(name) == 0 {
@@ -189,7 +192,36 @@ func NewStages(node *parser.Node, b *Builder) Stages {
 			Node: root,
 		})
 	}
-	return stages
+	return stages, nil
+}
+
+func (b *Builder) extractHeadingArgsFromNode(node *parser.Node) error {
+	var args []*parser.Node
+	var children []*parser.Node
+	extract := true
+	for _, child := range node.Children {
+		if extract && child.Value == command.Arg {
+			args = append(args, child)
+		} else {
+			if child.Value == command.From {
+				extract = false
+			}
+			children = append(children, child)
+		}
+	}
+
+	for _, c := range args {
+		step := b.Step()
+		if err := step.Resolve(c); err != nil {
+			return err
+		}
+		if err := b.Run(step, NoopExecutor, false); err != nil {
+			return err
+		}
+	}
+
+	node.Children = children
+	return nil
 }
 
 func extractNameFromNode(node *parser.Node) (string, bool) {
@@ -345,6 +377,9 @@ var ErrNoFROM = fmt.Errorf("no FROM statement found")
 // is set to the first From found, or left unchanged if already
 // set.
 func (b *Builder) From(node *parser.Node) (string, error) {
+	if err := b.extractHeadingArgsFromNode(node); err != nil {
+		return "", err
+	}
 	children := SplitChildren(node, command.From)
 	switch {
 	case len(children) == 0:
