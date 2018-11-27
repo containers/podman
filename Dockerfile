@@ -112,8 +112,7 @@ RUN set -x \
       && go get -u github.com/mailru/easyjson/... \
       && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
-# Install criu
-ENV CRIU_COMMIT 584cbe4643c3fc7dc901ff08bf923ca0fe7326f9
+# Install latest stable criu version
 RUN set -x \
       && cd /tmp \
       && git clone https://github.com/checkpoint-restore/criu.git \
