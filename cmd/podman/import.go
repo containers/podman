@@ -139,7 +139,7 @@ func downloadFromURL(source string) (string, error) {
 
 	_, err = io.Copy(outFile, response.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "error saving %q to %q", source, outFile)
+		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
 	}
 
 	return outFile.Name(), nil

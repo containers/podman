@@ -829,7 +829,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	ips := make([]net.IPNet, 0)
@@ -857,7 +857,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	routes := make([]types.Route, 0)
