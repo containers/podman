@@ -226,7 +226,6 @@ var _ = Describe("Podman run", func() {
 		found, matches := session.GrepString("/run/test")
 		Expect(found).Should(BeTrue())
 		Expect(matches[0]).To(ContainSubstring("rw"))
-		Expect(matches[0]).To(ContainSubstring("relatime"))
 		Expect(matches[0]).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
