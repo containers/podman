@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -77,7 +78,11 @@ func stopCmd(c *cli.Context) error {
 			stopTimeout = ctr.StopTimeout()
 		}
 		f := func() error {
-			return con.StopWithTimeout(stopTimeout)
+			if err := con.StopWithTimeout(stopTimeout); err != nil && errors.Cause(err) != libpod.ErrCtrStopped {
+				return err
+			}
+			return nil
+
 		}
 		stopFuncs = append(stopFuncs, shared.ParallelWorkerInput{
 			ContainerID:  con.ID(),
