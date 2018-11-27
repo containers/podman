@@ -204,7 +204,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime, shared"))
 	})
 
-	It("podman run with mount flag", func() {
+	It("podman run with --mount flag", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("skip failing test on ppc64le")
 		}
@@ -226,7 +226,6 @@ var _ = Describe("Podman run", func() {
 		found, matches := session.GrepString("/run/test")
 		Expect(found).Should(BeTrue())
 		Expect(matches[0]).To(ContainSubstring("rw"))
-		Expect(matches[0]).To(ContainSubstring("relatime"))
 		Expect(matches[0]).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
