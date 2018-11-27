@@ -152,7 +152,7 @@ class TestContainers(PodmanTestCase):
         changes.append('WORKDIR=/data/application')
 
         id = self.alpine_ctnr.commit(
-            'alpine3', author='Bozo the clown', changes=changes, pause=True)
+            'alpine3', author='Bozo the clown', change=changes, pause=True)
         img = self.pclient.images.get(id)
         self.assertIsNotNone(img)
 

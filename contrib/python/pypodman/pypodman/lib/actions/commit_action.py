@@ -30,7 +30,8 @@ class Commit(AbstractActionBase):
             choices=('oci', 'docker'),
             default='oci',
             type=str.lower,
-            help='Set the format of the image manifest and metadata',
+            help='Set the format of the image manifest and metadata.'
+            ' (Ignored.)',
         )
         parser.add_argument(
             '--iidfile',
@@ -40,7 +41,8 @@ class Commit(AbstractActionBase):
         parser.add_argument(
             '--message',
             '-m',
-            help='Set commit message for committed image',
+            help='Set commit message for committed image'
+            ' (Only on docker images.)',
         )
         parser.add_argument(
             '--pause',
@@ -80,8 +82,16 @@ class Commit(AbstractActionBase):
                     flush=True)
                 return 1
             else:
-                ident = ctnr.commit(self.opts['image'][0], **self.opts)
-                print(ident)
+                ident = ctnr.commit(
+                    self.opts['image'][0],
+                    change=self.opts.get('change', None),
+                    message=self.opts.get('message', None),
+                    pause=self.opts['pause'],
+                    author=self.opts.get('author', None),
+                )
+
+                if not self.opts['quiet']:
+                    print(ident)
         except podman.ErrorOccurred as e:
             sys.stdout.flush()
             print(

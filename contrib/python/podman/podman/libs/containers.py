@@ -108,19 +108,16 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
             results = podman.ExportContainer(self._id, target)
         return results['tarfile']
 
-    def commit(self,
-               image_name,
-               *args,
-               changes=[],
-               message='',
-               pause=True,
-               **kwargs):  # pylint: disable=unused-argument
+    def commit(self, image_name, **kwargs):
         """Create image from container.
 
-        All changes overwrite existing values.
-          See inspect() to obtain current settings.
+        Keyword arguments:
+            author -- change image's author
+            message -- change image's message, docker format only.
+            pause -- pause container during commit
+            change -- Additional properties to change
 
-        Changes:
+        Change examples:
             CMD=/usr/bin/zsh
             ENTRYPOINT=/bin/sh date
             ENV=TEST=test_containers.TestContainers.test_commit
@@ -129,21 +126,23 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
             USER=bozo:circus
             VOLUME=/data
             WORKDIR=/data/application
-        """
-        # TODO: Clean up *args, **kwargs after Commit() is complete
-        try:
-            author = kwargs.get('author', getpass.getuser())
-        except Exception:  # pylint: disable=broad-except
-            author = ''
 
-        for c in changes:
+        All changes overwrite existing values.
+          See inspect() to obtain current settings.
+        """
+        author = kwargs.get('author', None) or getpass.getuser()
+        change = kwargs.get('change', None) or []
+        message = kwargs.get('message', None) or ''
+        pause = kwargs.get('pause', None) or True
+
+        for c in change:
             if c.startswith('LABEL=') and c.count('=') < 2:
                 raise ValueError(
                     'LABEL should have the format: LABEL=label=value, not {}'.
                     format(c))
 
         with self._client() as podman:
-            results = podman.Commit(self._id, image_name, changes, author,
+            results = podman.Commit(self._id, image_name, change, author,
                                     message, pause)
         return results['image']
 
@@ -194,7 +193,7 @@ class Container(AttachMixin, StartMixin, collections.UserDict):
             podman.UnpauseContainer(self._id)
             return self._refresh(podman)
 
-    def update_container(self, *args, **kwargs):          \
+    def update_container(self, *args, **kwargs):  \
             # pylint: disable=unused-argument
         """TODO: Update container..., return id on success."""
         with self._client() as podman:
