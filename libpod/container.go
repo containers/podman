@@ -996,3 +996,15 @@ func (c *Container) IsInfra() bool {
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly
 }
+
+// NetworkDisabled returns whether the container is running with a disabled network
+func (c *Container) NetworkDisabled() bool {
+	if !c.config.PostConfigureNetNS {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return ns.Path == ""
+			}
+		}
+	}
+	return false
+}
