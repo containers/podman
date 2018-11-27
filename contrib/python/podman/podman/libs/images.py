@@ -27,9 +27,10 @@ class Image(collections.UserDict):
 
     @staticmethod
     def _split_token(values=None, sep='='):
+        if not values:
+            return {}
         return {
-            k: v1
-            for k, v1 in (v0.split(sep, 1) for v0 in values if values)
+            k: v1 for k, v1 in (v0.split(sep, 1) for v0 in values)
         }
 
     def create(self, *args, **kwargs):
