@@ -696,8 +696,12 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 
 // deleteContainer deletes a container from the OCI runtime
 func (r *OCIRuntime) deleteContainer(ctr *Container) error {
-	_, err := utils.ExecCmd(r.path, "delete", "--force", ctr.ID())
-	return err
+	runtimeDir, err := util.GetRootlessRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "delete", "--force", ctr.ID())
 }
 
 // pauseContainer pauses the given container
