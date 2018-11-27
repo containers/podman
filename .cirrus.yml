@@ -19,7 +19,7 @@ env:
     FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
-    CRIU_COMMIT: "584cbe4643c3fc7dc901ff08bf923ca0fe7326f9"
+    CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
     RUNC_COMMIT: "78ef28e63bec2ee4c139b5e3e0d691eb9bdc748d"
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
