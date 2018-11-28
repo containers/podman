@@ -18,5 +18,6 @@ var (
 		Subcommands:            kubeSubCommands,
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
+		Hidden:                 true,
 	}
 )
