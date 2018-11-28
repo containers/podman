@@ -591,6 +591,9 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 		return err
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
+	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "start", ctr.ID()); err != nil {
 		return err
 	}
