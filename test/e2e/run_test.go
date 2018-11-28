@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -287,13 +288,27 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run notify_socket", func() {
-		sock := "/run/notify"
+		host := GetHostDistributionInfo()
+		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
+			Skip("this test requires a working runc")
+		}
+		sock := filepath.Join(podmanTest.TempDir, "notify")
+		addr := net.UnixAddr{
+			Name: sock,
+			Net:  "unixgram",
+		}
+		socket, err := net.ListenUnixgram("unixgram", &addr)
+		Expect(err).To(BeNil())
+		defer os.Remove(sock)
+		defer socket.Close()
+
 		os.Setenv("NOTIFY_SOCKET", sock)
+		defer os.Unsetenv("NOTIFY_SOCKET")
+
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "NOTIFY_SOCKET"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
-		os.Unsetenv("NOTIFY_SOCKET")
 	})
 
 	It("podman run log-opt", func() {
