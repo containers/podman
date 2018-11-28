@@ -1828,6 +1828,7 @@ _podman_rm() {
 	-h
 	--latest
 	-l
+	--sync
 	--volumes
 	-v
     "
