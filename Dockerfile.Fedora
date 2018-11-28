@@ -17,7 +17,7 @@ RUN dnf -y install btrfs-progs-devel \
               libseccomp-devel \
               libselinux-devel \
               skopeo-containers \
-              https://kojipkgs.fedoraproject.org//packages/runc/1.0.0/55.dev.git578fe65.fc28/x86_64/runc-1.0.0-55.dev.git578fe65.fc28.x86_64.rpm \
+              runc \
               make \
               ostree-devel \
               python \

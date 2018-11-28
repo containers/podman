@@ -122,7 +122,6 @@ packages:
     - python3-varlink
     - python3-dateutil
     - python3-psutil
-    - https://kojipkgs.fedoraproject.org//packages/runc/1.0.0/55.dev.git578fe65.fc28/x86_64/runc-1.0.0-55.dev.git578fe65.fc28.x86_64.rpm
 
 tests:
     - sed 's/^expand-check.*/expand-check=0/g' -i /etc/selinux/semanage.conf
