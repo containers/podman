@@ -685,6 +685,11 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 // Running a manual Sync() ensures that container state will be correct in
 // such situations.
 func (c *Container) Sync() error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
+
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
