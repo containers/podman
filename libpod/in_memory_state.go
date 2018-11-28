@@ -73,6 +73,11 @@ func (s *InMemoryState) Refresh() error {
 	return nil
 }
 
+// GetDBConfig is not implemented for the in-memory state
+func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
+	return nil, ErrNotImplemented
+}
+
 // SetNamespace sets the namespace for container and pod retrieval.
 func (s *InMemoryState) SetNamespace(ns string) error {
 	s.namespace = ns

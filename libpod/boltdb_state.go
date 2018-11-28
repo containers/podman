@@ -240,6 +240,48 @@ func (s *BoltState) Refresh() error {
 	return err
 }
 
+// GetDBConfig retrieves runtime configuration fields that were created when
+// the database was first initialized
+func (s *BoltState) GetDBConfig() (*DBConfig, error) {
+	cfg := new(DBConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		configBucket, err := getRuntimeConfigBucket(tx)
+		if err != nil {
+			return nil
+		}
+
+		// Some of these may be nil
+		// When we convert to string, Go will coerce them to ""
+		// That's probably fine - we could raise an error if the key is
+		// missing, but just not including it is also OK.
+		libpodRoot := configBucket.Get(staticDirKey)
+		libpodTmp := configBucket.Get(tmpDirKey)
+		storageRoot := configBucket.Get(graphRootKey)
+		storageTmp := configBucket.Get(runRootKey)
+		graphDriver := configBucket.Get(graphDriverKey)
+
+		cfg.LibpodRoot = string(libpodRoot)
+		cfg.LibpodTmp = string(libpodTmp)
+		cfg.StorageRoot = string(storageRoot)
+		cfg.StorageTmp = string(storageTmp)
+		cfg.GraphDriver = string(graphDriver)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
 // SetNamespace sets the namespace that will be used for container and pod
 // retrieval
 func (s *BoltState) SetNamespace(ns string) error {

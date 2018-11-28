@@ -30,6 +30,13 @@ const (
 	containersName   = "containers"
 	podIDName        = "pod-id"
 	namespaceName    = "namespace"
+
+	staticDirName   = "static-dir"
+	tmpDirName      = "tmp-dir"
+	runRootName     = "run-root"
+	graphRootName   = "graph-root"
+	graphDriverName = "graph-driver-name"
+	osName          = "os"
 )
 
 var (
@@ -49,21 +56,19 @@ var (
 	containersBkt   = []byte(containersName)
 	podIDKey        = []byte(podIDName)
 	namespaceKey    = []byte(namespaceName)
+
+	staticDirKey   = []byte(staticDirName)
+	tmpDirKey      = []byte(tmpDirName)
+	runRootKey     = []byte(runRootName)
+	graphRootKey   = []byte(graphRootName)
+	graphDriverKey = []byte(graphDriverName)
+	osKey          = []byte(osName)
 )
 
 // Check if the configuration of the database is compatible with the
 // configuration of the runtime opening it
 // If there is no runtime configuration loaded, load our own
 func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
-	var (
-		staticDir       = []byte("static-dir")
-		tmpDir          = []byte("tmp-dir")
-		runRoot         = []byte("run-root")
-		graphRoot       = []byte("graph-root")
-		graphDriverName = []byte("graph-driver-name")
-		osKey           = []byte("os")
-	)
-
 	err := db.Update(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
@@ -74,31 +79,31 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "static dir",
-			rt.config.StaticDir, staticDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod root directory",
+			rt.config.StaticDir, staticDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "tmp dir",
-			rt.config.TmpDir, tmpDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory",
+			rt.config.TmpDir, tmpDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "run root",
-			rt.config.StorageConfig.RunRoot, runRoot,
+		if err := validateDBAgainstConfig(configBkt, "storage temporary directory",
+			rt.config.StorageConfig.RunRoot, runRootKey,
 			storage.DefaultStoreOptions.RunRoot); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "graph root",
-			rt.config.StorageConfig.GraphRoot, graphRoot,
+		if err := validateDBAgainstConfig(configBkt, "storage graph root directory",
+			rt.config.StorageConfig.GraphRoot, graphRootKey,
 			storage.DefaultStoreOptions.GraphRoot); err != nil {
 			return err
 		}
 
-		return validateDBAgainstConfig(configBkt, "graph driver name",
+		return validateDBAgainstConfig(configBkt, "storage graph driver",
 			rt.config.StorageConfig.GraphDriverName,
-			graphDriverName,
+			graphDriverKey,
 			storage.DefaultStoreOptions.GraphDriverName)
 	})
 
