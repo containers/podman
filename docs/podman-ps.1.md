@@ -103,6 +103,13 @@ Valid filters are listed below:
 
 Print usage statement
 
+**--sync**
+
+Force a sync of container state with the OCI runtime.
+In some cases, a container's state in the runtime can become out of sync with Podman's state.
+This will update Podman's state based on what the OCI runtime reports.
+Forcibly syncing is much slower, but can resolve inconsistent state issues.
+
 ## EXAMPLES
 
 ```

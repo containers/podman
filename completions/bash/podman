@@ -2038,6 +2038,7 @@ _podman_ps() {
 	  --quiet -q
 	  --size -s
 	  --namespace --ns
+	  --sync
      "
      _complete_ "$options_with_args" "$boolean_options"
 }

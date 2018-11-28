@@ -200,6 +200,10 @@ var (
 			Usage: "Sort output by command, created, id, image, names, runningfor, size, or status",
 			Value: "created",
 		},
+		cli.BoolFlag{
+			Name:  "sync",
+			Usage: "Sync container state with OCI runtime",
+		},
 	}
 	psDescription = "Prints out information about the containers"
 	psCommand     = cli.Command{
@@ -260,6 +264,7 @@ func psCmd(c *cli.Context) error {
 		Size:      c.Bool("size"),
 		Namespace: c.Bool("namespace"),
 		Sort:      c.String("sort"),
+		Sync:      c.Bool("sync"),
 	}
 
 	filters := c.StringSlice("filter")

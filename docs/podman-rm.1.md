@@ -26,7 +26,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 **--sync**
 
-Force a sync of container state with the OCI runtime before attempting to remove.
+Force a sync of container state with the OCI runtime before attempting to remove the container.
 In some cases, a container's state in the runtime can become out of sync with Podman's state,
 which can cause Podman to refuse to remove containers because it believes they are still running.
 A sync will resolve this issue.
