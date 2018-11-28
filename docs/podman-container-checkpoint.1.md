@@ -29,6 +29,13 @@ Instead of providing the container name or ID, checkpoint the last created conta
 
 Leave the container running after checkpointing instead of stopping it.
 
+**--tcp-established**
+
+Checkpoint a container with established TCP connections. If the checkpoint
+image contains established TCP connections, this options is required during
+restore. Defaults to not checkpointing containers with established TCP
+connections.
+
 ## EXAMPLE
 
 podman container checkpoint mywebserver

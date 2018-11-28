@@ -833,10 +833,16 @@ func (c *Container) Refresh(ctx context.Context) error {
 }
 
 // ContainerCheckpointOptions is a struct used to pass the parameters
-// for checkpointing to corresponding functions
+// for checkpointing (and restoring) to the corresponding functions
 type ContainerCheckpointOptions struct {
-	Keep        bool
+	// Keep tells the API to not delete checkpoint artifacts
+	Keep bool
+	// KeepRunning tells the API to keep the container running
+	// after writing the checkpoint to disk
 	KeepRunning bool
+	// TCPEstablished tells the API to checkpoint a container
+	// even if it contains established TCP connections
+	TCPEstablished bool
 }
 
 // Checkpoint checkpoints a container
@@ -855,7 +861,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 }
 
 // Restore restores a container
-func (c *Container) Restore(ctx context.Context, keep bool) (err error) {
+func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 	logrus.Debugf("Trying to restore container %s", c)
 	if !c.batched {
 		c.lock.Lock()
@@ -866,5 +872,5 @@ func (c *Container) Restore(ctx context.Context, keep bool) (err error) {
 		}
 	}
 
-	return c.restore(ctx, keep)
+	return c.restore(ctx, options)
 }

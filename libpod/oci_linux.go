@@ -65,10 +65,10 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreContainer bool) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
 	if ctr.state.UserNSRoot == "" {
 		// no need of an intermediate mount ns
-		return r.createOCIContainer(ctr, cgroupParent, restoreContainer)
+		return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -106,7 +106,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		if err != nil {
 			return
 		}
-		err = r.createOCIContainer(ctr, cgroupParent, restoreContainer)
+		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}()
 	wg.Wait()
 
