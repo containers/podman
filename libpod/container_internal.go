@@ -1191,7 +1191,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 			if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
 				return nil, err
 			}
-			logrus.Warnf("failed to load hooks: {}", err)
+			logrus.Warnf("failed to load hooks: %q", err)
 			return nil, nil
 		}
 		hooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)

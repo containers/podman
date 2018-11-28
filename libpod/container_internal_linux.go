@@ -765,7 +765,7 @@ func (c *Container) generateResolvConf() (string, error) {
 
 	// Build resolv.conf
 	if _, err = resolvconf.Build(destPath, nameservers, search, options); err != nil {
-		return "", errors.Wrapf(err, "error building resolv.conf for container %s")
+		return "", errors.Wrapf(err, "error building resolv.conf for container %s", c.ID())
 	}
 
 	// Relabel resolv.conf for the container

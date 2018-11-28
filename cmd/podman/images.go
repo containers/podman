@@ -376,13 +376,13 @@ func CreateFilterFuncs(ctx context.Context, r *libpod.Runtime, c *cli.Context, i
 		case "before":
 			before, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
+				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, image.CreatedBeforeFilter(before.Created()))
 		case "after":
 			after, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
+				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, image.CreatedAfterFilter(after.Created()))
 		case "dangling":

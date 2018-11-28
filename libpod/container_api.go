@@ -39,7 +39,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s")
+		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
@@ -93,7 +93,7 @@ func (c *Container) Start(ctx context.Context) (err error) {
 
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s")
+		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
@@ -159,7 +159,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error checking dependencies for container %s")
+		return nil, errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
@@ -718,7 +718,7 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s")
+		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
@@ -803,7 +803,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	logrus.Debugf("Successfully refresh container %s state")
+	logrus.Debugf("Successfully refresh container %s state", c.ID())
 
 	// Initialize the container if it was created in runc
 	if wasCreated || wasRunning || wasPaused {
@@ -847,7 +847,7 @@ type ContainerCheckpointOptions struct {
 
 // Checkpoint checkpoints a container
 func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
-	logrus.Debugf("Trying to checkpoint container %s", c)
+	logrus.Debugf("Trying to checkpoint container %s", c.ID())
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -862,7 +862,7 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 
 // Restore restores a container
 func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
-	logrus.Debugf("Trying to restore container %s", c)
+	logrus.Debugf("Trying to restore container %s", c.ID())
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

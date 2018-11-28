@@ -240,7 +240,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 
 	if c.User() != "" {
 		// It is *possible* that
-		logrus.Debug("Looking in container for user: %s", c.User())
+		logrus.Debugf("Looking in container for user: %s", c.User())
 		u, err := lookup.GetUser(c.state.Mountpoint, c.User())
 		if err != nil {
 			return nil, err
