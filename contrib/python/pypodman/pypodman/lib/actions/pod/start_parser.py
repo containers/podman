@@ -14,8 +14,10 @@ class StartPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Start command to parent parser."""
         parser = parent.add_parser('start', help='start pod')
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Start all pods')
+        parser.add_flag(
+            '--all',
+            '-a',
+            help='Start all pods.')
         parser.add_argument(
             'pod', nargs='*', help='Pod to start. Or, use --all')
         parser.set_defaults(class_=cls, method='start')

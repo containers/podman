@@ -1,9 +1,7 @@
 """Remote client command for reporting on Podman service."""
-import json
 import sys
 
 import podman
-import yaml
 from pypodman.lib import AbstractActionBase
 
 
@@ -16,10 +14,6 @@ class Version(AbstractActionBase):
         parser = parent.add_parser(
             'version', help='report version on podman service')
         parser.set_defaults(class_=cls, method='version')
-
-    def __init__(self, args):
-        """Construct Version class."""
-        super().__init__(args)
 
     def version(self):
         """Report on Podman Service."""

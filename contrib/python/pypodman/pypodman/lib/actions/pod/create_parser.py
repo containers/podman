@@ -2,7 +2,7 @@
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase, BooleanAction
+from pypodman.lib import AbstractActionBase
 
 
 class CreatePod(AbstractActionBase):
@@ -20,12 +20,9 @@ class CreatePod(AbstractActionBase):
             type=str,
             help='Path to cgroups under which the'
             ' cgroup for the pod will be created.')
-        parser.add_argument(
+        parser.add_flag(
             '--infra',
-            action=BooleanAction,
-            default=True,
-            help='Create an infra container and associate it with the pod'
-            '(default: %(default)s)')
+            help='Create an infra container and associate it with the pod.')
         parser.add_argument(
             '-l',
             '--label',

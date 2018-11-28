@@ -48,6 +48,18 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         super().__init__(**kwargs)
 
+    def add_flag(self, *args, **kwargs):
+        """Add flag to parser."""
+        flags = [a for a in args if a[0] in self.prefix_chars]
+        dest = flags[0].lstrip(self.prefix_chars)
+        no_flag = '{0}{0}no-{1}'.format(self.prefix_chars, dest)
+
+        group = self.add_mutually_exclusive_group(required=False)
+        group.add_argument(*flags, action='store_true', dest=dest, **kwargs)
+        group.add_argument(no_flag, action='store_false', dest=dest, **kwargs)
+        default = kwargs.get('default', False)
+        self.set_defaults(**{dest: default})
+
     def initialize_parser(self):
         """Initialize parser without causing recursion meltdown."""
         self.add_argument(

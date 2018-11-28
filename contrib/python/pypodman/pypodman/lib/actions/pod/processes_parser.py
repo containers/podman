@@ -14,18 +14,15 @@ class ProcessesPod(AbstractActionBase):
         parser = parent.add_parser('ps', help='list processes of pod')
         super().subparser(parser)
 
-        parser.add_argument(
+        parser.add_flag(
             '--ctr-names',
-            action='store_true',
-            help='Include container name in the info field')
-        parser.add_argument(
+            help='Include container name in the info field.')
+        parser.add_flag(
             '--ctr-ids',
-            action='store_true',
-            help='Include container ID in the info field')
-        parser.add_argument(
+            help='Include container ID in the info field.')
+        parser.add_flag(
             '--ctr-status',
-            action='store_true',
-            help='Include container status in the info field')
+            help='Include container status in the info field.')
         parser.add_argument(
             '--format',
             choices=('json'),

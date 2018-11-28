@@ -19,10 +19,6 @@ class Pause(AbstractActionBase):
         )
         parser.set_defaults(class_=cls, method='pause')
 
-    def __init__(self, args):
-        """Construct Pause class."""
-        super().__init__(args)
-
     def pause(self):
         """Pause provided containers."""
         try:

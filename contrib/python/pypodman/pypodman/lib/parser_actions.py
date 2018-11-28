@@ -6,6 +6,7 @@ The constructors are very verbose but remain for IDE support.
 import argparse
 import copy
 import os
+import signal
 
 # API defined by argparse.Action therefore shut up pylint
 # pragma pylint: disable=redefined-builtin
@@ -13,22 +14,8 @@ import os
 # pragma pylint: disable=too-many-arguments
 
 
-class BooleanValidate():
-    """Validate value is boolean string."""
-
-    def __call__(self, value):
-        """Return True, False or raise ValueError."""
-        val = value.capitalize()
-        if val == 'False':
-            return False
-        elif val == 'True':
-            return True
-        else:
-            raise ValueError('"{}" is not True or False'.format(value))
-
-
-class BooleanAction(argparse.Action):
-    """Convert and validate bool argument."""
+class ChangeAction(argparse.Action):
+    """Convert and validate change argument."""
 
     def __init__(self,
                  option_strings,
@@ -40,47 +27,12 @@ class BooleanAction(argparse.Action):
                  choices=None,
                  required=False,
                  help=None,
-                 metavar='{True,False}'):
-        """Create BooleanAction object."""
-        super().__init__(
-            option_strings=option_strings,
-            dest=dest,
-            nargs=nargs,
-            const=const,
-            default=default,
-            type=type,
-            choices=choices,
-            required=required,
-            help=help,
-            metavar=metavar)
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Convert and Validate input."""
-        try:
-            val = BooleanValidate()(values)
-        except ValueError:
-            parser.error('"{}" must be True or False.'.format(option_string))
-        else:
-            setattr(namespace, self.dest, val)
-
-
-class ChangeAction(argparse.Action):
-    """Convert and validate change argument."""
-
-    def __init__(self,
-                 option_strings,
-                 dest,
-                 nargs=None,
-                 const=None,
-                 default=[],
-                 type=None,
-                 choices=None,
-                 required=False,
-                 help=None,
                  metavar='OPT=VALUE'):
         """Create ChangeAction object."""
         help = (help or '') + ('Apply change(s) to the new image.'
                                ' May be given multiple times.')
+        if default is None:
+            default = []
 
         super().__init__(
             option_strings=option_strings,
@@ -102,13 +54,77 @@ class ChangeAction(argparse.Action):
         choices = ('CMD', 'ENTRYPOINT', 'ENV', 'EXPOSE', 'LABEL', 'ONBUILD',
                    'STOPSIGNAL', 'USER', 'VOLUME', 'WORKDIR')
 
-        opt, val = values.split('=', 1)
+        opt, _ = values.split('=', 1)
         if opt not in choices:
             parser.error('Option "{}" is not supported by argument "{}",'
                          ' valid options are: {}'.format(
                              opt, option_string, ', '.join(choices)))
         items.append(values)
         setattr(namespace, self.dest, items)
+
+
+class SignalAction(argparse.Action):
+    """Validate input as a signal."""
+
+    def __init__(self,
+                 option_strings,
+                 dest,
+                 nargs=None,
+                 const=None,
+                 default=None,
+                 type=str,
+                 choices=None,
+                 required=False,
+                 help='The signal to send.'
+                 ' It may be given as a name or a number.',
+                 metavar='SIGNAL'):
+        """Create SignalAction object."""
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            nargs=nargs,
+            const=const,
+            default=default,
+            type=type,
+            choices=choices,
+            required=required,
+            help=help,
+            metavar=metavar)
+
+        if hasattr(signal, "Signals"):
+
+            def _signal_number(signame):
+                cooked = 'SIG{}'.format(signame)
+                try:
+                    return signal.Signals[cooked].value
+                except ValueError:
+                    pass
+        else:
+
+            def _signal_number(signame):
+                cooked = 'SIG{}'.format(signame)
+                for n, v in sorted(signal.__dict__.items()):
+                    if n != cooked:
+                        continue
+                    if n.startswith("SIG") and not n.startswith("SIG_"):
+                        return v
+
+        self._signal_number = _signal_number
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Validate input is a signal for platform."""
+        if values.isdigit():
+            signum = int(values)
+            if signal.SIGRTMIN <= signum >= signal.SIGRTMAX:
+                raise ValueError('"{}" is not a valid signal. {}-{}'.format(
+                    values, signal.SIGRTMIN, signal.SIGRTMAX))
+        else:
+            signum = self._signal_number(values)
+            if signum is None:
+                parser.error(
+                    '"{}" is not a valid signal,'
+                    ' see your platform documentation.'.format(values))
+        setattr(namespace, self.dest, signum)
 
 
 class UnitAction(argparse.Action):

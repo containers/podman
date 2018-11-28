@@ -5,6 +5,8 @@ import sys
 
 from pypodman.lib import AbstractActionBase
 
+# pylint: disable=wildcard-import
+# pylint: disable=unused-wildcard-import
 from .pod import *
 
 

@@ -1,6 +1,6 @@
 """Implement common create container arguments together."""
 
-from pypodman.lib import BooleanAction, UnitAction
+from pypodman.lib import SignalAction, UnitAction
 
 
 class CreateArguments():
@@ -108,11 +108,9 @@ class CreateArguments():
             metavar='NODES',
             help=('Memory nodes (MEMs) in which to allow execution (0-3, 0,1).'
                   ' Only effective on NUMA systems'))
-        parser.add_argument(
+        parser.add_flag(
             '--detach',
             '-d',
-            action=BooleanAction,
-            default=False,
             help='Detached mode: run the container in the background and'
             ' print the new container ID. (default: False)')
         parser.add_argument(
@@ -218,7 +216,7 @@ class CreateArguments():
 
         # only way for argparse to handle these options.
         vol_args = {
-            'choices': ['bind', 'tmpfs', 'ignore'],
+            'choices': ('bind', 'tmpfs', 'ignore'),
             'metavar': 'MODE',
             'type': str.lower,
             'help': 'Tells podman how to handle the builtin image volumes',
@@ -228,12 +226,10 @@ class CreateArguments():
         volume_group.add_argument('--image-volume', **vol_args)
         volume_group.add_argument('--builtin-volume', **vol_args)
 
-        parser.add_argument(
+        parser.add_flag(
             '--interactive',
             '-i',
-            action=BooleanAction,
-            default=False,
-            help='Keep STDIN open even if not attached. (default: False)')
+            help='Keep STDIN open even if not attached.')
         parser.add_argument('--ipc', help='Create namespace')
         parser.add_argument(
             '--kernel-memory', action=UnitAction, help='Kernel memory limit')
@@ -278,10 +274,9 @@ class CreateArguments():
             metavar='BRIDGE',
             help='Set the Network mode for the container.'
             ' (format: bridge, host, container:UUID, ns:PATH, none)')
-        parser.add_argument(
+        parser.add_flag(
             '--oom-kill-disable',
-            action=BooleanAction,
-            help='Whether to disable OOM Killer for the container or not')
+            help='Whether to disable OOM Killer for the container or not.')
         parser.add_argument(
             '--oom-score-adj',
             choices=range(-1000, 1000),
@@ -298,41 +293,33 @@ class CreateArguments():
             help=("Tune the container's pids limit."
                   " Set -1 to have unlimited pids for the container."))
         parser.add_argument('--pod', help='Run container in an existing pod')
-        parser.add_argument(
+        parser.add_flag(
             '--privileged',
-            action=BooleanAction,
             help='Give extended privileges to this container.')
         parser.add_argument(
             '--publish',
             '-p',
             metavar='RANGE',
             help="Publish a container's port, or range of ports, to the host")
-        parser.add_argument(
+        parser.add_flag(
             '--publish-all',
             '-P',
-            action=BooleanAction,
             help='Publish all exposed ports to random'
-            ' ports on the host interfaces'
-            '(default: False)')
-        parser.add_argument(
+            ' ports on the host interfaces.')
+        parser.add_flag(
             '--quiet',
             '-q',
-            action='store_true',
             help='Suppress output information when pulling images')
-        parser.add_argument(
+        parser.add_flag(
             '--read-only',
-            action=BooleanAction,
             help="Mount the container's root filesystem as read only.")
-        parser.add_argument(
+        parser.add_flag(
             '--rm',
-            action=BooleanAction,
-            default=False,
             help='Automatically remove the container when it exits.')
         parser.add_argument(
             '--rootfs',
-            action='store_true',
-            help=('If specified, the first argument refers to an'
-                  ' exploded container on the file system of remote host.'))
+            help='If specified, the first argument refers to an'
+            ' exploded container on the file system of remote host.')
         parser.add_argument(
             '--security-opt',
             action='append',
@@ -340,15 +327,14 @@ class CreateArguments():
             help='Set security options.')
         parser.add_argument(
             '--shm-size', action=UnitAction, help='Size of /dev/shm')
-        parser.add_argument(
+        parser.add_flag(
             '--sig-proxy',
-            action=BooleanAction,
-            default=True,
             help='Proxy signals sent to the podman run'
             ' command to the container process')
         parser.add_argument(
             '--stop-signal',
-            metavar='SIGTERM',
+            action=SignalAction,
+            default='TERM',
             help='Signal to stop a container')
         parser.add_argument(
             '--stop-timeout',
@@ -374,11 +360,9 @@ class CreateArguments():
             metavar='MOUNT',
             help='Create a tmpfs mount.'
             ' (default: rw,noexec,nosuid,nodev,size=65536k.)')
-        parser.add_argument(
+        parser.add_flag(
             '--tty',
             '-t',
-            action=BooleanAction,
-            default=False,
             help='Allocate a pseudo-TTY for standard input of container.')
         parser.add_argument(
             '--uidmap',
@@ -394,15 +378,16 @@ class CreateArguments():
         parser.add_argument(
             '--user',
             '-u',
-            help=('Sets the username or UID used and optionally'
-                  ' the groupname or GID for the specified command.'))
+            help='Sets the username or UID used and optionally'
+            ' the groupname or GID for the specified command.')
         parser.add_argument(
             '--userns',
             metavar='NAMESPACE',
             help='Set the user namespace mode for the container')
         parser.add_argument(
             '--uts',
-            choices=['host', 'ns'],
+            choices=('host', 'ns'),
+            type=str.lower,
             help='Set the UTS mode for the container')
         parser.add_argument('--volume', '-v', help='Create a bind mount.')
         parser.add_argument(

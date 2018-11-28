@@ -17,29 +17,21 @@ class AbstractActionBase(abc.ABC):
         Use set_defaults() to set attributes "class_" and "method". These will
         be invoked as class_(parsed_args).method()
         """
-        parent.add_argument(
+        parent.add_flag(
             '--all',
-            action='store_true',
-            help=('list all items.'
-                  ' (default: no-op, included for compatibility.)'))
-        parent.add_argument(
-            '--no-trunc',
-            '--notruncate',
-            action='store_false',
-            dest='truncate',
+            help='list all items.')
+        parent.add_flag(
+            '--truncate',
+            '--trunc',
             default=True,
-            help='Display extended information. (default: False)')
-        parent.add_argument(
-            '--noheading',
-            action='store_false',
-            dest='heading',
+            help="Truncate id's and other long fields.")
+        parent.add_flag(
+            '--heading',
             default=True,
-            help=('Omit the table headings from the output.'
-                  ' (default: False)'))
-        parent.add_argument(
+            help='Include table headings in the output.')
+        parent.add_flag(
             '--quiet',
-            action='store_true',
-            help='List only the IDs. (default: %(default)s)')
+            help='List only the IDs.')
 
     def __init__(self, args):
         """Construct class."""

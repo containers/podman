@@ -2,7 +2,7 @@
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase, BooleanAction, ChangeAction
+from pypodman.lib import AbstractActionBase, ChangeAction
 
 
 class Commit(AbstractActionBase):
@@ -44,17 +44,14 @@ class Commit(AbstractActionBase):
             help='Set commit message for committed image'
             ' (Only on docker images.)',
         )
-        parser.add_argument(
+        parser.add_flag(
             '--pause',
             '-p',
-            action=BooleanAction,
-            default=True,
             help='Pause the container when creating an image',
         )
-        parser.add_argument(
+        parser.add_flag(
             '--quiet',
             '-q',
-            action='store_true',
             help='Suppress output',
         )
         parser.add_argument(

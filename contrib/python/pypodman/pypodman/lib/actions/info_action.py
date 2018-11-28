@@ -22,10 +22,6 @@ class Info(AbstractActionBase):
             " (default: yaml)")
         parser.set_defaults(class_=cls, method='info')
 
-    def __init__(self, args):
-        """Construct Info class."""
-        super().__init__(args)
-
     def info(self):
         """Report on Podman Service."""
         try:
