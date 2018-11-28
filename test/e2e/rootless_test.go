@@ -205,6 +205,10 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
+			cmd = rootlessTest.PodmanAsUser([]string{"inspect", "-l", "--type", "container", "--format", "{{ .State.Status }}"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.LineInOutputContains("exited")).To(BeTrue())
+
 			cmd = rootlessTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
