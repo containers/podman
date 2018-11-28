@@ -28,6 +28,10 @@ var _ = Describe("Podman checkpoint", func() {
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")
 		}
+		hostInfo := podmanTest.Host
+		if hostInfo.Distribution == "fedora" && hostInfo.Version == "29" {
+			Skip("Checkpoint tests appear to fail on F29.")
+		}
 	})
 
 	AfterEach(func() {
