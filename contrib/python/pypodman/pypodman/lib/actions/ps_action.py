@@ -16,6 +16,7 @@ class Ps(AbstractActionBase):
         """Add Images command to parent parser."""
         parser = parent.add_parser('ps', help='list containers')
         super().subparser(parser)
+
         parser.add_argument(
             '--sort',
             choices=('createdat', 'id', 'image', 'names', 'runningfor', 'size',
@@ -32,9 +33,9 @@ class Ps(AbstractActionBase):
 
         self.columns = OrderedDict({
             'id':
-            ReportColumn('id', 'CONTAINER ID', 14),
+            ReportColumn('id', 'CONTAINER ID', 12),
             'image':
-            ReportColumn('image', 'IMAGE', 30),
+            ReportColumn('image', 'IMAGE', 31),
             'command':
             ReportColumn('column', 'COMMAND', 20),
             'createdat':
@@ -49,10 +50,15 @@ class Ps(AbstractActionBase):
 
     def list(self):
         """List containers."""
+        if self._args.all:
+            ictnrs = self.client.containers.list()
+        else:
+            ictnrs = filter(
+                lambda c: podman.FoldedString(c['status']) == 'running',
+                self.client.containers.list())
+
         # TODO: Verify sorting on dates and size
-        ctnrs = sorted(
-            self.client.containers.list(),
-            key=operator.attrgetter(self._args.sort))
+        ctnrs = sorted(ictnrs, key=operator.attrgetter(self._args.sort))
         if not ctnrs:
             return
 
@@ -65,9 +71,6 @@ class Ps(AbstractActionBase):
                 'createdat':
                 humanize.naturaldate(podman.datetime_parse(ctnr.createdat)),
             })
-
-            if self._args.truncate:
-                fields.update({'image': ctnr.image[-30:]})
             rows.append(fields)
 
         with Report(self.columns, heading=self._args.heading) as report:
