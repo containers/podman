@@ -328,6 +328,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	if err != nil {
 		return errors.Wrapf(err, "error exec %s", c.ID())
 	}
+	chWait := make(chan error)
+	go func() {
+		chWait <- execCmd.Wait()
+	}()
+	defer close(chWait)
 
 	pidFile := c.execPidPath(sessionID)
 	// 60 second seems a reasonable time to wait
@@ -336,18 +341,12 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 	const pidWaitTimeout = 60000
 
 	// Wait until the runtime makes the pidfile
-	// TODO: If runtime errors before the PID file is created, we have to
-	// wait for timeout here
-	if err := WaitForFile(pidFile, pidWaitTimeout*time.Millisecond); err != nil {
-		logrus.Debugf("Timed out waiting for pidfile from runtime for container %s exec", c.ID())
-
-		// Check if an error occurred in the process before we made a pidfile
-		// TODO: Wait() here is a poor choice - is there a way to see if
-		// a process has finished, instead of waiting for it to finish?
-		if err := execCmd.Wait(); err != nil {
+	exited, err := WaitForFile(pidFile, chWait, pidWaitTimeout*time.Millisecond)
+	if err != nil {
+		if exited {
+			// If the runtime exited, propagate the error we got from the process.
 			return err
 		}
-
 		return errors.Wrapf(err, "timed out waiting for runtime to create pidfile for exec session in container %s", c.ID())
 	}
 
@@ -389,7 +388,10 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 		locked = false
 	}
 
-	waitErr := execCmd.Wait()
+	var waitErr error
+	if !exited {
+		waitErr = <-chWait
+	}
 
 	// Lock again
 	if !c.batched {
