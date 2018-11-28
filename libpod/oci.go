@@ -333,7 +333,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
 	}
 
-	if rootless.IsRootless() {
+	if ctr.config.NetMode.IsSlirp4netns() {
 		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
 		if err != nil {
 			return errors.Wrapf(err, "failed to create rootless network sync pipe")

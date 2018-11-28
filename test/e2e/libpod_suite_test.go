@@ -181,6 +181,12 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
+func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, env []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanAsUserBase(args, uid, gid, env)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
 	podmanOptions := p.MakeOptions(args)

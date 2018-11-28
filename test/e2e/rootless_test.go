@@ -221,6 +221,14 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
+			if len(args) == 0 {
+				cmd = rootlessTest.PodmanAsUser([]string{"inspect", "-l"}, 1000, 1000, env)
+				cmd.WaitWithDefaultTimeout()
+				Expect(cmd.ExitCode()).To(Equal(0))
+				data := cmd.InspectContainerToJSON()
+				Expect(data[0].HostConfig.NetworkMode).To(ContainSubstring("slirp4netns"))
+			}
+
 			if !canUseExec {
 				Skip("ioctl(NS_GET_PARENT) not supported.")
 			}

@@ -223,7 +223,12 @@ func (n NetworkMode) IsBridge() bool {
 	return n == "bridge"
 }
 
+// IsSlirp4netns indicates if we are running a rootless network stack
+func (n NetworkMode) IsSlirp4netns() bool {
+	return n == "slirp4netns"
+}
+
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns()
 }
