@@ -426,6 +426,33 @@ func makeRuntime(runtime *Runtime) (err error) {
 			runtime.config.ConmonPath)
 	}
 
+	// Set up the state
+	switch runtime.config.StateType {
+	case InMemoryStateStore:
+		state, err := NewInMemoryState()
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	case SQLiteStateStore:
+		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
+	case BoltDBStateStore:
+		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
+
+		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
+	}
+
+	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
+		return errors.Wrapf(err, "error setting libpod namespace in state")
+	}
+	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
+
 	// Set up containers/storage
 	var store storage.Store
 	if rootless.SkipStorageSetup() {
@@ -539,33 +566,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.firewallBackend = fwBackend
-
-	// Set up the state
-	switch runtime.config.StateType {
-	case InMemoryStateStore:
-		state, err := NewInMemoryState()
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	case SQLiteStateStore:
-		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
-	case BoltDBStateStore:
-		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
-
-		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	default:
-		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
-	}
-
-	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
-		return errors.Wrapf(err, "error setting libpod namespace in state")
-	}
-	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this
