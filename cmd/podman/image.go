@@ -19,6 +19,7 @@ var (
 		rmImageCommand,
 		saveCommand,
 		tagCommand,
+		trustCommand,
 	}
 
 	imageDescription = "Manage images"
