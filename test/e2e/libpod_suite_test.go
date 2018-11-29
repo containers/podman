@@ -99,7 +99,10 @@ var _ = BeforeSuite(func() {
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
-
+	var (
+		runCBinary string
+		err        error
+	)
 	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
 
@@ -129,12 +132,16 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 		cgroupManager = "cgroupfs"
 	}
 
-	runCBinary, err := exec.LookPath("runc")
-	// If we cannot find the runc binary, setting to something static as we have no way
-	// to return an error.  The tests will fail and point out that the runc binary could
-	// not be found nicely.
-	if err != nil {
-		runCBinary = "/usr/bin/runc"
+	if os.Getenv("RUNC_BINARY") != "" {
+		runCBinary = os.Getenv("RUNC_BINARY")
+	} else {
+		runCBinary, err = exec.LookPath("runc")
+		// If we cannot find the runc binary, setting to something static as we have no way
+		// to return an error.  The tests will fail and point out that the runc binary could
+		// not be found nicely.
+		if err != nil {
+			runCBinary = "/usr/bin/runc"
+		}
 	}
 
 	CNIConfigDir := "/etc/cni/net.d"

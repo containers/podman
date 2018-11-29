@@ -17,7 +17,7 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
     ubuntu-18)
         make install PREFIX=/usr ETCDIR=/etc "BUILDTAGS=$BUILDTAGS"
         make test-binaries "BUILDTAGS=$BUILDTAGS"
-        SKIP_USERNS=1 make localintegration "BUILDTAGS=$BUILDTAGS"
+        RUNC_BINARY=/usr/lib/cri-o-runc/sbin/runc SKIP_USERNS=1 make localintegration "BUILDTAGS=$BUILDTAGS"
         ;;
     fedora-28) ;&  # Continue to the next item
     centos-7) ;&
