@@ -97,6 +97,8 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         actions_parser = self.add_subparsers(
             dest='subparser_name', help='commands')
+        # For create/exec/run: don't process options intended for subcommand
+        actions_parser.REMAINDER = argparse.REMAINDER
 
         # import buried here to prevent import loops
         import pypodman.lib.actions  # pylint: disable=cyclic-import
