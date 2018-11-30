@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -109,5 +110,83 @@ var _ = Describe("Podman create", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(Equal("/bin/foo -c"))
+	})
+
+	It("podman create --mount flag with multiple mounts", func() {
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).To(BeNil())
+		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
+		err = os.MkdirAll(vol2, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", "type=bind,src=" + vol1 + ",target=/myvol1,z", "--mount", "type=bind,src=" + vol2 + ",target=/myvol2,z", ALPINE, "touch", "/myvol2/foo.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"start", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"logs", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).ToNot(ContainSubstring("cannot touch"))
+	})
+
+	It("podman create with --mount flag", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("skip failing test on ppc64le")
+		}
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		session := podmanTest.Podman([]string{"create", "--name", "test", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"logs", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw"))
+
+		session = podmanTest.Podman([]string{"create", "--name", "test_ro", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,ro", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "test_ro"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"logs", "test_ro"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/create/test ro"))
+
+		session = podmanTest.Podman([]string{"create", "--name", "test_shared", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test,shared", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "test_shared"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"logs", "test_shared"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, matches := session.GrepString("/create/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("rw"))
+		Expect(matches[0]).To(ContainSubstring("shared"))
+
+		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
+		os.Mkdir(mountPath, 0755)
+		session = podmanTest.Podman([]string{"create", "--name", "test_tmpfs", "--rm", "--mount", "type=tmpfs,target=/create/test", ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "test_tmpfs"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"logs", "test_tmpfs"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw,nosuid,nodev,noexec,relatime - tmpfs"))
 	})
 })
