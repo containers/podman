@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -60,27 +59,48 @@ func loginCmd(c *cli.Context) error {
 	if len(args) == 0 {
 		return errors.Errorf("registry must be given")
 	}
-	server := scrubServer(args[0])
+	server := registryFromFullName(scrubServer(args[0]))
 	authfile := getAuthFile(c.String("authfile"))
 
 	sc := common.GetSystemContext("", authfile, false)
 
 	// username of user logged in to server (if one exists)
-	userFromAuthFile, err := config.GetUserLoggedIn(sc, server)
+	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
 	if err != nil {
 		return errors.Wrapf(err, "error getting logged-in user")
 	}
-	username, password, err := getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
+
+	ctx := getContext()
+
+	var (
+		username string
+		password string
+	)
+
+	if userFromAuthFile != "" {
+		username = userFromAuthFile
+		password = passFromAuthFile
+		fmt.Println("Authenticating with existing credentials...")
+		if err := docker.CheckAuth(ctx, sc, username, password, server); err == nil {
+			fmt.Println("Existing credentials are valid. Already logged in to", server)
+			return nil
+		}
+		fmt.Println("Existing credentials are invalid, please enter valid username and password")
+	}
+
+	username, password, err = getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
 	}
+
 	sc.DockerInsecureSkipTLSVerify = !c.BoolT("tls-verify")
 	if c.String("cert-dir") != "" {
 		sc.DockerCertPath = c.String("cert-dir")
 	}
 
-	if err = docker.CheckAuth(context.TODO(), sc, username, password, server); err == nil {
-		if err := config.SetAuthentication(sc, server, username, password); err != nil {
+	if err = docker.CheckAuth(ctx, sc, username, password, server); err == nil {
+		// Write the new credentials to the authfile
+		if err = config.SetAuthentication(sc, server, username, password); err != nil {
 			return err
 		}
 	}
@@ -125,4 +145,15 @@ func getUserAndPass(username, password, userFromAuthFile string) (string, string
 		fmt.Println()
 	}
 	return strings.TrimSpace(username), password, err
+}
+
+// registryFromFullName gets the registry from the input. If the input is of the form
+// quay.io/myuser/myimage, it will parse it and just return quay.io
+// It also returns true if a full image name was given
+func registryFromFullName(input string) string {
+	split := strings.Split(input, "/")
+	if len(split) > 1 {
+		return split[0]
+	}
+	return split[0]
 }
