@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
 	digest "github.com/opencontainers/go-digest"
@@ -501,6 +502,7 @@ type ContainerOptions struct {
 	IDMappingOptions
 	LabelOpts []string
 	Flags     map[string]interface{}
+	MountOpts []string
 }
 
 type store struct {
@@ -2144,21 +2146,20 @@ func (s *store) DeleteContainer(id string) error {
 				if err = rlstore.Delete(container.LayerID); err != nil {
 					return err
 				}
-				if err = rcstore.Delete(id); err != nil {
-					return err
-				}
-				middleDir := s.graphDriverName + "-containers"
-				gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-				if err = os.RemoveAll(gcpath); err != nil {
-					return err
-				}
-				rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-				if err = os.RemoveAll(rcpath); err != nil {
-					return err
-				}
-				return nil
 			}
-			return ErrNotALayer
+			if err = rcstore.Delete(id); err != nil {
+				return err
+			}
+			middleDir := s.graphDriverName + "-containers"
+			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
+			if err = os.RemoveAll(gcpath); err != nil {
+				return err
+			}
+			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
+			if err = os.RemoveAll(rcpath); err != nil {
+				return err
+			}
+			return nil
 		}
 	}
 	return ErrNotAContainer
@@ -2279,10 +2280,14 @@ func (s *store) Version() ([][2]string, error) {
 
 func (s *store) Mount(id, mountLabel string) (string, error) {
 	container, err := s.Container(id)
-	var uidMap, gidMap []idtools.IDMap
+	var (
+		uidMap, gidMap []idtools.IDMap
+		mountOpts      []string
+	)
 	if err == nil {
 		uidMap, gidMap = container.UIDMap, container.GIDMap
 		id = container.LayerID
+		mountOpts = container.MountOpts()
 	}
 	rlstore, err := s.LayerStore()
 	if err != nil {
@@ -2298,6 +2303,7 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			MountLabel: mountLabel,
 			UidMaps:    uidMap,
 			GidMaps:    gidMap,
+			Options:    mountOpts,
 		}
 		return rlstore.Mount(id, options)
 	}
@@ -3203,13 +3209,13 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		storeOptions.GIDMap = mappings.GIDs()
 	}
 
-	uidmap, err := idtools.ParseIDMap(config.Storage.Options.RemapUIDs, "remap-uids")
+	uidmap, err := idtools.ParseIDMap([]string{config.Storage.Options.RemapUIDs}, "remap-uids")
 	if err != nil {
 		fmt.Print(err)
 	} else {
 		storeOptions.UIDMap = append(storeOptions.UIDMap, uidmap...)
 	}
-	gidmap, err := idtools.ParseIDMap(config.Storage.Options.RemapGIDs, "remap-gids")
+	gidmap, err := idtools.ParseIDMap([]string{config.Storage.Options.RemapGIDs}, "remap-gids")
 	if err != nil {
 		fmt.Print(err)
 	} else {
@@ -3232,4 +3238,24 @@ func init() {
 	DefaultStoreOptions.GraphDriverName = ""
 
 	ReloadConfigurationFile(defaultConfigFile, &DefaultStoreOptions)
+}
+
+func GetDefaultMountOptions() ([]string, error) {
+	mountOpts := []string{
+		".mountopt",
+		fmt.Sprintf("%s.mountopt", DefaultStoreOptions.GraphDriverName),
+	}
+	for _, option := range DefaultStoreOptions.GraphDriverOptions {
+		key, val, err := parsers.ParseKeyValueOpt(option)
+		if err != nil {
+			return nil, err
+		}
+		key = strings.ToLower(key)
+		for _, m := range mountOpts {
+			if m == key {
+				return strings.Split(val, ","), nil
+			}
+		}
+	}
+	return nil, nil
 }

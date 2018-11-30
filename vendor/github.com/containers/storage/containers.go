@@ -147,6 +147,13 @@ func (c *Container) ProcessLabel() string {
 	return ""
 }
 
+func (c *Container) MountOpts() []string {
+	if mountOpts, ok := c.Flags["MountOpts"].([]string); ok {
+		return mountOpts
+	}
+	return nil
+}
+
 func (r *containerStore) Containers() ([]Container, error) {
 	containers := make([]Container, len(r.containers))
 	for i := range r.containers {
@@ -292,6 +299,9 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	}
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
+	}
+	if options.MountOpts != nil {
+		options.Flags["MountOpts"] = append([]string{}, options.MountOpts...)
 	}
 	names = dedupeNames(names)
 	for _, name := range names {

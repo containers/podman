@@ -367,6 +367,9 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, options.MountLabel)
 	var dir string
 
+	if len(options.Options) > 0 {
+		return "", fmt.Errorf("windows driver does not support mount options")
+	}
 	rID, err := d.resolveID(id)
 	if err != nil {
 		return "", err

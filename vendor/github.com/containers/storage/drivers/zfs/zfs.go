@@ -366,8 +366,13 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 		return mountpoint, nil
 	}
 
+	mountOptions := d.options.mountOptions
+	if len(options.Options) > 0 {
+		mountOptions = strings.Join(options.Options, ",")
+	}
+
 	filesystem := d.zfsPath(id)
-	opts := label.FormatMountLabel(d.options.mountOptions, options.MountLabel)
+	opts := label.FormatMountLabel(mountOptions, options.MountLabel)
 	logrus.Debugf(`[zfs] mount("%s", "%s", "%s")`, filesystem, mountpoint, opts)
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)

@@ -9,8 +9,6 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
 	"github.com/containers/storage/pkg/idtools"
@@ -18,6 +16,7 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/system"
 	units "github.com/docker/go-units"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -189,7 +188,7 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	}
 
 	// Mount the device
-	if err := d.DeviceSet.MountDevice(id, mp, options.MountLabel); err != nil {
+	if err := d.DeviceSet.MountDevice(id, mp, options); err != nil {
 		d.ctr.Decrement(mp)
 		return "", err
 	}

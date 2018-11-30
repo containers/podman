@@ -743,7 +743,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	workDir := path.Join(dir, "work")
 	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workDir)
-	if d.options.mountOptions != "" {
+	if len(options.Options) > 0 {
+		opts = fmt.Sprintf("%s,%s", strings.Join(options.Options, ","), opts)
+	} else if d.options.mountOptions != "" {
 		opts = fmt.Sprintf("%s,%s", d.options.mountOptions, opts)
 	}
 	mountData := label.FormatMountLabel(opts, options.MountLabel)

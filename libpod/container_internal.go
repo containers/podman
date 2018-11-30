@@ -273,6 +273,27 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
+	if c.config.Privileged {
+		privOpt := func(opt string) bool {
+			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
+				if opt == privopt {
+					return true
+				}
+			}
+			return false
+		}
+		defOptions, err := storage.GetDefaultMountOptions()
+		if err != nil {
+			return errors.Wrapf(err, "error getting default mount options")
+		}
+		var newOptions []string
+		for _, opt := range defOptions {
+			if !privOpt(opt) {
+				newOptions = append(newOptions, opt)
+			}
+		}
+		options.MountOpts = newOptions
+	}
 
 	if c.config.Rootfs == "" {
 		options.IDMappingOptions = c.config.IDMappings
