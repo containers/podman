@@ -20,7 +20,7 @@ env:
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
-    RUNC_COMMIT: "78ef28e63bec2ee4c139b5e3e0d691eb9bdc748d"
+    RUNC_COMMIT: "869add33186caff4a22e3e11a7472a2d48d77889"
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
