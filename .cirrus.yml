@@ -80,7 +80,7 @@ optional_system_testing_task:
 
     gce_instance:
         matrix:
-            image_name: "ubuntu-18-libpod-0c954a67"
+            image_name: "ubuntu-1804-bionic-v20180911-libpod-e8d18305"
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
