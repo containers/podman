@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
@@ -375,8 +376,8 @@ func configureEntrypoint(c *cli.Context, data *inspect.ImageData) []string {
 	return entrypoint
 }
 
-func configurePod(c *cli.Context, runtime *libpod.Runtime, namespaces map[string]string) (map[string]string, error) {
-	pod, err := runtime.LookupPod(c.String("pod"))
+func configurePod(c *cli.Context, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, error) {
+	pod, err := runtime.LookupPod(podName)
 	if err != nil {
 		return namespaces, err
 	}
@@ -409,6 +410,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
 		blkioWeight                                              uint16
+		namespaces                                               map[string]string
 	)
 	idmappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
 	if err != nil {
@@ -492,12 +494,21 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
+	// EXPOSED PORTS
+	var portBindings map[nat.Port][]nat.PortBinding
+	if data != nil {
+		portBindings, err = cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Kernel Namespaces
 	// TODO Fix handling of namespace from pod
 	// Instead of integrating here, should be done in libpod
 	// However, that also involves setting up security opts
 	// when the pod's namespace is integrated
-	namespaces := map[string]string{
+	namespaces = map[string]string{
 		"pid":  c.String("pid"),
 		"net":  c.String("net"),
 		"ipc":  c.String("ipc"),
@@ -505,8 +516,41 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		"uts":  c.String("uts"),
 	}
 
+	originalPodName := c.String("pod")
+	podName := strings.Replace(originalPodName, "new:", "", 1)
+	// after we strip out :new, make sure there is something left for a pod name
+	if len(podName) < 1 && c.IsSet("pod") {
+		return nil, errors.Errorf("new pod name must be at least one character")
+	}
 	if c.IsSet("pod") {
-		namespaces, err = configurePod(c, runtime, namespaces)
+		if strings.HasPrefix(originalPodName, "new:") {
+			// pod does not exist; lets make it
+			var podOptions []libpod.PodCreateOption
+			podOptions = append(podOptions, libpod.WithPodName(podName), libpod.WithInfraContainer(), libpod.WithPodCgroups())
+			if len(portBindings) > 0 {
+				ociPortBindings, err := cc.NatToOCIPortBindings(portBindings)
+				if err != nil {
+					return nil, err
+				}
+				podOptions = append(podOptions, libpod.WithInfraContainerPorts(ociPortBindings))
+			}
+
+			podNsOptions, err := shared.GetNamespaceOptions(strings.Split(DefaultKernelNamespaces, ","))
+			if err != nil {
+				return nil, err
+			}
+			podOptions = append(podOptions, podNsOptions...)
+			// make pod
+			pod, err := runtime.NewPod(ctx, podOptions...)
+			if err != nil {
+				return nil, err
+			}
+			logrus.Debugf("pod %s created by new container request", pod.ID())
+
+			// The container now cannot have port bindings; so we reset the map
+			portBindings = make(map[nat.Port][]nat.PortBinding)
+		}
+		namespaces, err = configurePod(c, runtime, namespaces, podName)
 		if err != nil {
 			return nil, err
 		}
@@ -535,7 +579,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	// Make sure if network is set to container namespace, port binding is not also being asked for
 	netMode := ns.NetworkMode(namespaces["net"])
 	if netMode.IsContainer() {
-		if len(c.StringSlice("publish")) > 0 || c.Bool("publish-all") {
+		if len(portBindings) > 0 {
 			return nil, errors.Errorf("cannot set port bindings on an existing container network namespace")
 		}
 	}
@@ -644,15 +688,6 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Errorf("No command specified on command line or as CMD or ENTRYPOINT in this image")
 	}
 
-	// EXPOSED PORTS
-	var portBindings map[nat.Port][]nat.PortBinding
-	if data != nil {
-		portBindings, err = cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// SHM Size
 	shmSize, err := units.FromHumanSize(c.String("shm-size"))
 	if err != nil {
@@ -746,7 +781,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		NetMode:        netMode,
 		UtsMode:        utsMode,
 		PidMode:        pidMode,
-		Pod:            c.String("pod"),
+		Pod:            podName,
 		Privileged:     c.Bool("privileged"),
 		Publish:        c.StringSlice("publish"),
 		PublishAll:     c.Bool("publish-all"),

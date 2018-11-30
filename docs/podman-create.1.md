@@ -455,7 +455,8 @@ Tune the container's pids limit. Set `-1` to have unlimited pids for the contain
 
 **--pod**=""
 
-Run container in an existing pod
+Run container in an existing pod. If you want podman to make the pod for you, preference the pod name with `new:`.
+To make a pod with more granular options, use the `podman pod create` command before creating a container.
 
 **--privileged**=*true*|*false*
 
