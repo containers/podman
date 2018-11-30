@@ -2033,7 +2033,7 @@ _podman_ps() {
 	  --help -h
 	  --latest -l
 	  --no-trunc
-	  --pod
+	  --pod -p
 	  --quiet -q
 	  --size -s
 	  --namespace --ns

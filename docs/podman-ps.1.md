@@ -24,7 +24,7 @@ all the containers information.  By default it lists:
 
 Show all the containers, default is only running containers
 
-**--pod**
+**--pod, -p**
 
 Display the pods the containers are associated with
 
