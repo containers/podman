@@ -157,6 +157,19 @@ install_cni_plugins() {
     sudo cp bin/* /usr/libexec/cni
 }
 
+install_runc_from_git(){
+    wd=$(pwd)
+    DEST="$GOPATH/src/github.com/opencontainers/runc"
+    rm -rf "$DEST"
+    ooe.sh git clone https://github.com/opencontainers/runc.git "$DEST"
+    cd "$DEST"
+    ooe.sh git fetch origin --tags
+    ooe.sh git checkout -q "$RUNC_COMMIT"
+    ooe.sh make static BUILDTAGS="seccomp selinux"
+    sudo install -m 755 runc /usr/bin/runc
+    cd $wd
+}
+
 install_runc(){
     OS_RELEASE_ID=$(os_release_id)
     echo "Installing RunC from commit $RUNC_COMMIT"
@@ -179,14 +192,7 @@ install_runc(){
         cd "$GOPATH/src/github.com/containers/libpod"
         ooe.sh sudo make install.libseccomp.sudo
     fi
-    DEST="$GOPATH/src/github.com/opencontainers/runc"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/opencontainers/runc.git "$DEST"
-    cd "$DEST"
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$RUNC_COMMIT"
-    ooe.sh make static BUILDTAGS="seccomp selinux"
-    sudo install -m 755 runc /usr/bin/runc
+    install_runc_from_git
 }
 
 install_buildah() {
