@@ -184,7 +184,7 @@ var (
 			Usage: "Display the extended information",
 		},
 		cli.BoolFlag{
-			Name:  "pod",
+			Name:  "pod, p",
 			Usage: "Print the ID and name of the pod the containers are associated with",
 		},
 		cli.BoolFlag{
