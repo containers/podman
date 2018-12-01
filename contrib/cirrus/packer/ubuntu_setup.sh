@@ -21,11 +21,13 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
+export DEBIAN_FRONTEND=noninteractive
+
 # Try twice as workaround for minor networking problems
 echo "Updating system and installing package dependencies"
-ooe.sh sudo apt-get -qq update || sudo apt-get -qq update
-ooe.sh sudo apt-get -qq upgrade || sudo apt-get -qq upgrade
-ooe.sh sudo apt-get -qq install --no-install-recommends \
+ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
+ooe.sh sudo -E apt-get -qq upgrade || sudo -E apt-get -qq upgrade
+ooe.sh sudo -E apt-get -qq install --no-install-recommends \
     apparmor \
     autoconf \
     automake \
