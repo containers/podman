@@ -22,7 +22,7 @@ var (
 		mountCommand,
 		pauseCommand,
 		portCommand,
-		//		pruneCommand,
+		pruneContainersCommand,
 		refreshCommand,
 		restartCommand,
 		restoreCommand,

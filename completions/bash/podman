@@ -871,6 +871,7 @@ _podman_container() {
 	 create
 	 diff
 	 exec
+	 exists
 	 export
 	 inspect
 	 kill
@@ -879,6 +880,7 @@ _podman_container() {
 	 mount
 	 pause
 	 port
+	 prune
 	 refresh
 	 restart
 	 restore
@@ -1210,11 +1212,13 @@ _podman_image() {
      "
      subcommands="
 	 build
+	 exists
 	 history
 	 import
 	 inspect
 	 load
 	 ls
+	 prune
 	 pull
 	 push
 	 rm
@@ -2225,6 +2229,26 @@ _podman_container_runlabel() {
 	    __podman_complete_images --id
 	    ;;
     esac
+}
+
+_podman_images_prune() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+     -h
+	 --help
+  "
+}
+
+_podman_container_prune() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+     -h
+	 --help
+  "
 }
 
 _podman_container_exists() {

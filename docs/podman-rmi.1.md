@@ -19,15 +19,25 @@ Remove all images in the local storage.
 
 This option will cause podman to remove all containers that are using the image before removing the image from the system.
 
-## EXAMPLE
 
-podman rmi imageID
-
+Remove an image by its short ID
+```
+podman rmi c0ed59d05ff7
+```
+Remove an image and its associated containers.
+```
 podman rmi --force imageID
+````
 
-podman rmi imageID1 imageID2 imageID3
+Remove multiple images by their shortened IDs.
+```
+podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
+```
 
+Remove all images and containers.
+```
 podman rmi -a -f
+```
 
 ## SEE ALSO
 podman(1)
