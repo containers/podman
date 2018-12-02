@@ -313,7 +313,8 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the storage ops for containers.
+// GetDefaultRootlessStoreOptions returns the storage opts for rootless
+// containers.
 func GetDefaultRootlessStoreOptions() (storage.StoreOptions, error) {
 	var err error
 	storageOpts, err := GetRootlessStorageOpts()

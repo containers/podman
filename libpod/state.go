@@ -3,10 +3,10 @@ package libpod
 // DBConfig is a set of Libpod runtime configuration settings that are saved
 // in a State when it is first created, and can subsequently be retrieved.
 type DBConfig struct {
-	LibpodRoot string
-	LibpodTmp string
+	LibpodRoot  string
+	LibpodTmp   string
 	StorageRoot string
-	StorageTmp string
+	StorageTmp  string
 	GraphDriver string
 }
 
