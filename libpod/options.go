@@ -29,18 +29,18 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.StorageConfig.RunRoot = config.RunRoot
 		if config.RunRoot != "" {
+			rt.config.StorageConfig.RunRoot = config.RunRoot
 			rt.configuredFrom.storageRunRootSet = true
 		}
 
-		rt.config.StorageConfig.GraphRoot = config.GraphRoot
 		if config.GraphRoot != "" {
+			rt.config.StorageConfig.GraphRoot = config.GraphRoot
 			rt.configuredFrom.storageGraphRootSet = true
 		}
 
-		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
 		if config.GraphDriverName != "" {
+			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
 			rt.configuredFrom.storageGraphDriverSet = true
 		}
 
@@ -51,14 +51,20 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			rt.configuredFrom.libpodStaticDirSet = true
 		}
 
-		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		if config.GraphDriverOptions != nil {
+			rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+			copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		}
 
-		rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
-		copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+		if config.UIDMap != nil {
+			rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
+			copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+		}
 
-		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
-		copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		if config.GIDMap != nil {
+			rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
+			copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		}
 
 		return nil
 	}

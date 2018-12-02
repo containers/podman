@@ -313,33 +313,31 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the storage ops for containers
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		var err error
-		storageOpts, err = GetRootlessStorageOpts()
+// GetDefaultStoreOptions returns the storage ops for containers.
+func GetDefaultRootlessStoreOptions() (storage.StoreOptions, error) {
+	var err error
+	storageOpts, err := GetRootlessStorageOpts()
+	if err != nil {
+		return storageOpts, err
+	}
+
+	storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+	if _, err := os.Stat(storageConf); err == nil {
+		storage.ReloadConfigurationFile(storageConf, &storageOpts)
+	} else if os.IsNotExist(err) {
+		os.MkdirAll(filepath.Dir(storageConf), 0755)
+		file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 		if err != nil {
-			return storageOpts, err
+			return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
 		}
 
-		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
-		if _, err := os.Stat(storageConf); err == nil {
-			storage.ReloadConfigurationFile(storageConf, &storageOpts)
-		} else if os.IsNotExist(err) {
-			os.MkdirAll(filepath.Dir(storageConf), 0755)
-			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
-			}
-
-			tomlConfiguration := getTomlStorage(&storageOpts)
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tomlConfiguration); err != nil {
-				os.Remove(storageConf)
-			}
+		tomlConfiguration := getTomlStorage(&storageOpts)
+		defer file.Close()
+		enc := toml.NewEncoder(file)
+		if err := enc.Encode(tomlConfiguration); err != nil {
+			os.Remove(storageConf)
 		}
 	}
+
 	return storageOpts, nil
 }

@@ -11,31 +11,17 @@ import (
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts, err := util.GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-// GetContainerRuntime generates a new libpod runtime configured by command line options for containers
-func GetContainerRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return nil, err
-	}
-	storageOpts, err := util.GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-// GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions) (*libpod.Runtime, error) {
+	storageOpts := new(storage.StoreOptions)
 	options := []libpod.RuntimeOption{}
+
+	if c.IsSet("uidmap") || c.IsSet("gidmap") || c.IsSet("subuidmap") || c.IsSet("subgidmap") {
+		mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+		if err != nil {
+			return nil, err
+		}
+		storageOpts.UIDMap = mappings.UIDMap
+		storageOpts.GIDMap = mappings.GIDMap
+	}
 
 	if c.GlobalIsSet("root") {
 		storageOpts.GraphRoot = c.GlobalString("root")

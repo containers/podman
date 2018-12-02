@@ -278,6 +278,15 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 	runtime.config.TmpDir = tmpDir
 
+	if rootless.IsRootless() {
+		// If we're rootless, override the default storage config
+		storageConf, err := util.GetDefaultRootlessStoreOptions()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
+		}
+		runtime.config.StorageConfig = storageConf
+	}
+
 	configPath := ConfigPath
 	foundConfig := true
 	rootlessConfigPath := ""
