@@ -484,7 +484,31 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
-	// Validate our config against the database
+	// Grab config from the database so we can reset some defaults
+	dbConfig, err := runtime.state.GetDBConfig()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving runtime configuration from database")
+	}
+
+	// Reset defaults if they were not explicitly set
+	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
+		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
+	}
+	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
+		runtime.config.StorageConfig.GraphRoot = dbConfig.StorageRoot
+	}
+	if !runtime.configuredFrom.storageRunRootSet && dbConfig.StorageTmp != "" {
+		runtime.config.StorageConfig.RunRoot = dbConfig.StorageTmp
+	}
+	if !runtime.configuredFrom.libpodStaticDirSet && dbConfig.LibpodRoot != "" {
+		runtime.config.StaticDir = dbConfig.LibpodRoot
+	}
+	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
+		runtime.config.TmpDir = dbConfig.LibpodTmp
+	}
+
+	// Validate our config against the database, now that we've set our
+	// final storage configuration
 	if err := runtime.state.ValidateDBConfig(runtime); err != nil {
 		return err
 	}

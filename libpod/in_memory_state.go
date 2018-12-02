@@ -73,9 +73,10 @@ func (s *InMemoryState) Refresh() error {
 	return nil
 }
 
-// GetDBConfig is not implemented for the in-memory state
+// GetDBConfig is not implemented for in-memory state.
+// As we do not store a config, return an empty one.
 func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
-	return nil, ErrNotImplemented
+	return &DBConfig{}, nil
 }
 
 // ValidateDBConfig is not implemented for the in-memory state.
