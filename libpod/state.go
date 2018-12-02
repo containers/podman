@@ -38,6 +38,15 @@ type State interface {
 	// validate runtime configuration.
 	GetDBConfig() (*DBConfig, error)
 
+	// ValidateDBConfig ralidates the config in the given Runtime struct
+	// against paths stored in the configured database.
+	// Libpod root and tmp dirs and c/storage root and tmp dirs and graph
+	// driver are validated.
+	// This is not implemented by the in-memory state, as it has no need to
+	// validate runtime configuration that may change over multiple runs of
+	// the program.
+	ValidateDBConfig(runtime *Runtime) error
+
 	// SetNamespace() sets the namespace for the store, and will determine
 	// what containers are retrieved with container and pod retrieval calls.
 	// A namespace of "", the empty string, acts as no namespace, and

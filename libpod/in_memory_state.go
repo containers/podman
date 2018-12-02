@@ -78,6 +78,12 @@ func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
 	return nil, ErrNotImplemented
 }
 
+// ValidateDBConfig is not implemented for the in-memory state.
+// Since we do nothing just return no error.
+func (s *InMemoryState) ValidateDBConfig(runtime *Runtime) error {
+	return nil
+}
+
 // SetNamespace sets the namespace for container and pod retrieval.
 func (s *InMemoryState) SetNamespace(ns string) error {
 	s.namespace = ns

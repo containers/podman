@@ -115,11 +115,6 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 		return nil, errors.Wrapf(err, "error creating initial database layout")
 	}
 
-	// Check runtime configuration
-	if err := checkRuntimeConfig(db, runtime); err != nil {
-		return nil, err
-	}
-
 	state.valid = true
 
 	return state, nil
@@ -243,6 +238,10 @@ func (s *BoltState) Refresh() error {
 // GetDBConfig retrieves runtime configuration fields that were created when
 // the database was first initialized
 func (s *BoltState) GetDBConfig() (*DBConfig, error) {
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
 	cfg := new(DBConfig)
 
 	db, err := s.getDBCon()
@@ -280,6 +279,26 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// ValidateDBConfig validates paths in the given runtime against the database
+func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	// Check runtime configuration
+	if err := checkRuntimeConfig(db, runtime); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetNamespace sets the namespace that will be used for container and pod

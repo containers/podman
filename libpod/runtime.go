@@ -448,6 +448,11 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
 	}
 
+	// Validate our config against the database
+	if err := runtime.state.ValidateDBConfig(runtime); err != nil {
+		return err
+	}
+
 	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
 		return errors.Wrapf(err, "error setting libpod namespace in state")
 	}
