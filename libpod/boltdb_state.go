@@ -3,7 +3,6 @@ package libpod
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"strings"
 	"sync"
 
@@ -61,15 +60,6 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 	state.namespaceBytes = nil
 
 	logrus.Debugf("Initializing boltdb state at %s", path)
-
-	// Make the directory that will hold container lockfiles
-	if err := os.MkdirAll(lockDir, 0750); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating lockfiles dir %s", lockDir)
-		}
-	}
-	state.lockDir = lockDir
 
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {

@@ -285,6 +285,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
 		}
 		runtime.config.StorageConfig = storageConf
+		runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
 	}
 
 	configPath := ConfigPath
@@ -515,6 +516,12 @@ func makeRuntime(runtime *Runtime) (err error) {
 	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
 		runtime.config.TmpDir = dbConfig.LibpodTmp
 	}
+
+	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
+	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
+	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
+	logrus.Debugf("Using static dir %s", runtime.config.StaticDir)
+	logrus.Debugf("Using tmp dir %s", runtime.config.TmpDir)
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration
