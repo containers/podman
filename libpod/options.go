@@ -30,9 +30,26 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		}
 
 		rt.config.StorageConfig.RunRoot = config.RunRoot
+		if config.RunRoot != "" {
+			rt.configuredFrom.storageRunRootSet = true
+		}
+
 		rt.config.StorageConfig.GraphRoot = config.GraphRoot
+		if config.GraphRoot != "" {
+			rt.configuredFrom.storageGraphRootSet = true
+		}
+
 		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-		rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+		if config.GraphDriverName != "" {
+			rt.configuredFrom.storageGraphDriverSet = true
+		}
+
+		// Only set our static dir if it was not already explicitly
+		// overridden
+		if config.GraphRoot != "" && !rt.configuredFrom.libpodStaticDirSet {
+			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.configuredFrom.libpodStaticDirSet = true
+		}
 
 		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
 		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
@@ -174,6 +191,7 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.StaticDir = dir
+		rt.configuredFrom.libpodStaticDirSet = true
 
 		return nil
 	}
@@ -226,6 +244,7 @@ func WithTmpDir(dir string) RuntimeOption {
 		}
 
 		rt.config.TmpDir = dir
+		rt.configuredFrom.libpodTmpDirSet = true
 
 		return nil
 	}

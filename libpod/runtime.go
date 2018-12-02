@@ -84,6 +84,7 @@ type Runtime struct {
 	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
+	configuredFrom  *runtimeConfiguredFrom
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -175,6 +176,20 @@ type RuntimeConfig struct {
 	EnableLabeling bool `toml:"label"`
 }
 
+// runtimeConfiguredFrom is a struct used during early runtime init to help
+// assemble the full RuntimeConfig struct from defaults.
+// It indicated whether several fields in the runtime configuration were set
+// explicitly.
+// If they were not, we may override them with information from the database,
+// if it exists and differs from what is present in the system already.
+type runtimeConfiguredFrom struct {
+	storageGraphDriverSet bool
+	storageGraphRootSet   bool
+	storageRunRootSet     bool
+	libpodStaticDirSet    bool
+	libpodTmpDirSet       bool
+}
+
 var (
 	defaultRuntimeConfig = RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
@@ -253,6 +268,7 @@ func SetXdgRuntimeDir(val string) error {
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
+	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
 	// Copy the default configuration
 	tmpDir, err := getDefaultTmpDir()
@@ -307,6 +323,25 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
 		}
+
+		// This is ugly, but we need to decode twice.
+		// Once to check if libpod static and tmp dirs were explicitly
+		// set (not enough to check if they're not the default value,
+		// might have been explicitly configured to the default).
+		// A second time to actually get a usable config.
+		tmpConfig := new(RuntimeConfig)
+		if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
+			return nil, errors.Wrapf(err, "error decoding configuration file %s",
+				configPath)
+		}
+
+		if tmpConfig.StaticDir != "" {
+			runtime.configuredFrom.libpodStaticDirSet = true
+		}
+		if tmpConfig.TmpDir != "" {
+			runtime.configuredFrom.libpodTmpDirSet = true
+		}
+
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
 		}
@@ -348,6 +383,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
+	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
 	// Set two fields not in the TOML config
 	runtime.config.StateType = defaultRuntimeConfig.StateType
