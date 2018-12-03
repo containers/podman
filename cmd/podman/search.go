@@ -73,11 +73,12 @@ type searchParams struct {
 }
 
 type searchOpts struct {
-	filter   []string
-	limit    int
-	noTrunc  bool
-	format   string
-	authfile string
+	filter                []string
+	limit                 int
+	noTrunc               bool
+	format                string
+	authfile              string
+	insecureSkipTLSVerify types.OptionalBool
 }
 
 type searchFilterParams struct {
@@ -117,7 +118,10 @@ func searchCmd(c *cli.Context) error {
 		filter:   c.StringSlice("filter"),
 		authfile: getAuthFile(c.String("authfile")),
 	}
-	regAndSkipTLS, err := getRegistriesAndSkipTLS(c, registry)
+	if c.IsSet("tls-verify") {
+		opts.insecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	}
+	registries, err := getRegistries(registry)
 	if err != nil {
 		return err
 	}
@@ -127,7 +131,7 @@ func searchCmd(c *cli.Context) error {
 		return err
 	}
 
-	return generateSearchOutput(term, regAndSkipTLS, opts, *filter)
+	return generateSearchOutput(term, registries, opts, *filter)
 }
 
 func genSearchFormat(format string) string {
@@ -158,16 +162,8 @@ func (s *searchParams) headerMap() map[string]string {
 	return values
 }
 
-// A function for finding which registries can skip TLS
-func getRegistriesAndSkipTLS(c *cli.Context, registry string) (map[string]bool, error) {
-	// Variables for setting up Registry and TLSVerify
-	tlsVerify := c.BoolT("tls-verify")
-	forceSecure := false
-
-	if c.IsSet("tls-verify") {
-		forceSecure = c.BoolT("tls-verify")
-	}
-
+// getRegistries returns the list of registries to search, depending on an optional registry specification
+func getRegistries(registry string) ([]string, error) {
 	var registries []string
 	if registry != "" {
 		registries = append(registries, registry)
@@ -178,35 +174,10 @@ func getRegistriesAndSkipTLS(c *cli.Context, registry string) (map[string]bool, 
 			return nil, errors.Wrapf(err, "error getting registries to search")
 		}
 	}
-	regAndSkipTLS := make(map[string]bool)
-	// If tls-verify is set to false, allow insecure always.
-	if !tlsVerify {
-		for _, reg := range registries {
-			regAndSkipTLS[reg] = true
-		}
-	} else {
-		// initially set all registries to verify with TLS
-		for _, reg := range registries {
-			regAndSkipTLS[reg] = false
-		}
-		// if the user didn't allow nor disallow insecure registries, check to see if the registry is insecure
-		if !forceSecure {
-			insecureRegistries, err := sysreg.GetInsecureRegistries()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting insecure registries to search")
-			}
-			for _, reg := range insecureRegistries {
-				// if there are any insecure registries in registries, allow for HTTP
-				if _, ok := regAndSkipTLS[reg]; ok {
-					regAndSkipTLS[reg] = true
-				}
-			}
-		}
-	}
-	return regAndSkipTLS, nil
+	return registries, nil
 }
 
-func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
+func getSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if opts.limit != 0 {
@@ -214,10 +185,10 @@ func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts
 	}
 
 	sc := common.GetSystemContext("", opts.authfile, false)
+	sc.DockerInsecureSkipTLSVerify = opts.insecureSkipTLSVerify
+	sc.SystemRegistriesConfPath = sysreg.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	var paramsArr []searchParams
-	for reg, skipTLS := range regAndSkipTLS {
-		// set the SkipTLSVerify bool depending on the registry being searched through
-		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(skipTLS)
+	for _, reg := range registries {
 		results, err := docker.SearchRegistry(context.TODO(), sc, reg, term, limit)
 		if err != nil {
 			logrus.Errorf("error searching registry %q: %v", reg, err)
@@ -277,8 +248,8 @@ func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts
 	return paramsArr, nil
 }
 
-func generateSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts, filter searchFilterParams) error {
-	searchOutput, err := getSearchOutput(term, regAndSkipTLS, opts, filter)
+func generateSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) error {
+	searchOutput, err := getSearchOutput(term, registries, opts, filter)
 	if err != nil {
 		return err
 	}
