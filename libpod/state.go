@@ -38,7 +38,7 @@ type State interface {
 	// validate runtime configuration.
 	GetDBConfig() (*DBConfig, error)
 
-	// ValidateDBConfig ralidates the config in the given Runtime struct
+	// ValidateDBConfig validates the config in the given Runtime struct
 	// against paths stored in the configured database.
 	// Libpod root and tmp dirs and c/storage root and tmp dirs and graph
 	// driver are validated.
