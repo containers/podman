@@ -79,23 +79,23 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "libpod root directory",
+		if err := validateDBAgainstConfig(configBkt, "libpod root directory (staticdir)",
 			rt.config.StaticDir, staticDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory",
+		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory (tmpdir)",
 			rt.config.TmpDir, tmpDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "storage temporary directory",
+		if err := validateDBAgainstConfig(configBkt, "storage temporary directory (runroot)",
 			rt.config.StorageConfig.RunRoot, runRootKey,
 			storage.DefaultStoreOptions.RunRoot); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "storage graph root directory",
+		if err := validateDBAgainstConfig(configBkt, "storage graph root directory (graphroot)",
 			rt.config.StorageConfig.GraphRoot, graphRootKey,
 			storage.DefaultStoreOptions.GraphRoot); err != nil {
 			return err
