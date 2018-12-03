@@ -10,7 +10,6 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
@@ -19,7 +18,6 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/registries"
-	"github.com/containers/libpod/pkg/util"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -230,27 +228,12 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	}
 	defer policyContext.Destroy()
 
-	insecureRegistries, err := registries.GetInsecureRegistries()
-	if err != nil {
-		return nil, err
-	}
+	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
 	var images []string
 	var pullErrors *multierror.Error
 	for _, imageInfo := range goal.refPairs {
 		copyOptions := getCopyOptions(sc, writer, dockerOptions, nil, signingOptions, "", nil)
-		if imageInfo.srcRef.Transport().Name() == DockerTransport {
-			imgRef := imageInfo.srcRef.DockerReference()
-			if imgRef == nil { // This should never happen; such references can’t be created.
-				return nil, fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference",
-					transports.ImageName(imageInfo.srcRef))
-			}
-			registry := reference.Domain(imgRef)
-
-			if util.StringInSlice(registry, insecureRegistries) && dockerOptions.DockerInsecureSkipTLSVerify != types.OptionalBoolFalse {
-				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-				logrus.Info(fmt.Sprintf("%s is an insecure registry; pulling with tls-verify=false", registry))
-			}
-		}
+		copyOptions.SourceCtx.SystemRegistriesConfPath = systemRegistriesConfPath // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 		// Print the following statement only when pulling from a docker or atomic registry
 		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
