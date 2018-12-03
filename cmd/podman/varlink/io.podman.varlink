@@ -371,6 +371,22 @@ type PodContainerErrorData (
     reason: string
 )
 
+# Runlabel describes the required input for container runlabel
+type Runlabel(
+    image: string,
+    authfile: string,
+    certDir: string,
+    creds: string,
+    display: bool,
+    name: string,
+    pull: bool,
+    signaturePolicyPath: string,
+    tlsVerify: bool,
+    label: string,
+    extraArgs: []string,
+    opts: [string]string
+)
+
 # Ping provides a response for developers to ensure their varlink setup is working.
 # #### Example
 # ~~~
@@ -803,6 +819,42 @@ method TopPod() -> (notimplemented: NotImplemented)
 # }
 # ~~~
 method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
+
+# ImageExists talks a full or partial image ID or name and returns an int as to whether
+# the image exists in local storage. An int result of 0 means the image does exist in
+# local storage; whereas 1 indicates the image does not exists in local storage.
+method ImageExists(name: string) -> (exists: int)
+
+# ContainerExists takes a full or partial container ID or name and returns an int as to
+# whether the container exists in local storage.  A result of 0 means the container does
+# exists; whereas a result of 1 means it could not be found.
+method ContainerExists(name: string) -> (exists: int)
+
+# ContainerCheckPoint performs a checkpopint on a container by its name or full/partial container
+# ID.  On successful checkpoint, the id of the checkpointed container is returned.
+method ContainerCheckpoint(name: string, keep: bool, leaveRunning: bool, tcpEstablished: bool) -> (id: string)
+
+# ContainerRestore restores a container that has been checkpointed.  The container to be restored can
+# be identified by its name or full/partial container ID.  A successful restore will result in the return
+# of the container's ID.
+method ContainerRestore(name: string, keep: bool, tcpEstablished: bool) -> (id: string)
+
+# ContainerRunlabel runs executes a command as described by a given container image label.
+method ContainerRunlabel(runlabel: Runlabel) -> ()
+
+# ListContainerMounts gathers all the mounted container mount points and returns them as an array
+# of strings
+method ListContainerMounts() -> (mounts: []string)
+
+# MountContainer mounts a container by name or full/partial ID.  Upon a successful mount, the destination
+# mount is returned as a string.
+method MountContainer(name: string) -> (path: string)
+
+# UnmountContainer umounts a container by its name or full/partial container ID.
+method  UnmountContainer(name: string, force: bool) -> ()
+
+# This function is not implemented yet.
+method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)

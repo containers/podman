@@ -278,6 +278,18 @@ func (i *LibpodAPI) RestartContainer(call iopodman.VarlinkCall, name string, tim
 	return call.ReplyRestartContainer(ctr.ID())
 }
 
+// ContainerExists looks in local storage for the existence of a container
+func (i *LibpodAPI) ContainerExists(call iopodman.VarlinkCall, name string) error {
+	_, err := i.Runtime.LookupContainer(name)
+	if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		return call.ReplyContainerExists(1)
+	}
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyContainerExists(0)
+}
+
 // KillContainer kills a running container.  If you want to use the default SIGTERM signal, just send a -1
 // for the signal arg.
 func (i *LibpodAPI) KillContainer(call iopodman.VarlinkCall, name string, signal int64) error {
@@ -412,4 +424,41 @@ func (i *LibpodAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) err
 		Control_socket: ctr.ControlSocketPath(),
 	}
 	return call.ReplyGetAttachSockets(s)
+}
+
+// ContainerCheckpoint ...
+func (i *LibpodAPI) ContainerCheckpoint(call iopodman.VarlinkCall, name string, keep, leaveRunning, tcpEstablished bool) error {
+	ctx := getContext()
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name)
+	}
+
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           keep,
+		TCPEstablished: tcpEstablished,
+		KeepRunning:    leaveRunning,
+	}
+	if err := ctr.Checkpoint(ctx, options); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyContainerCheckpoint(ctr.ID())
+}
+
+// ContainerRestore ...
+func (i *LibpodAPI) ContainerRestore(call iopodman.VarlinkCall, name string, keep, tcpEstablished bool) error {
+	ctx := getContext()
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name)
+	}
+
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           keep,
+		TCPEstablished: tcpEstablished,
+	}
+	if err := ctr.Restore(ctx, options); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyContainerRestore(ctr.ID())
 }

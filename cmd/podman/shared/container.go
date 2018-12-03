@@ -1,10 +1,15 @@
 package shared
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -588,4 +593,80 @@ func portsToString(ports []ocicni.PortMapping) string {
 		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
 	}
 	return strings.Join(portDisplay, ", ")
+}
+
+// GetRunlabel is a helper function for runlabel; it gets the image if needed and begins the
+// contruction of the runlabel output and environment variables
+func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtime *libpod.Runtime, pull bool, inputCreds string, dockerRegistryOptions image.DockerRegistryOptions, authfile string, signaturePolicyPath string, output io.Writer) (string, string, error) {
+	var (
+		newImage  *image.Image
+		err       error
+		imageName string
+	)
+	if pull {
+		var registryCreds *types.DockerAuthConfig
+		if inputCreds != "" {
+			creds, err := util.ParseRegistryCreds(inputCreds)
+			if err != nil {
+				return "", "", err
+			}
+			registryCreds = creds
+		}
+		dockerRegistryOptions.DockerRegistryCreds = registryCreds
+		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, signaturePolicyPath, authfile, output, &dockerRegistryOptions, image.SigningOptions{}, false, false)
+	} else {
+		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
+	}
+	if err != nil {
+		return "", "", errors.Wrapf(err, "unable to find image")
+	}
+
+	if len(newImage.Names()) < 1 {
+		imageName = newImage.ID()
+	} else {
+		imageName = newImage.Names()[0]
+	}
+
+	runLabel, err := newImage.GetLabel(ctx, label)
+	return runLabel, imageName, err
+}
+
+// GenerateRunlabelCommand generates the command that will eventually be execucted by podman
+func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]string, extraArgs []string) ([]string, []string, error) {
+	// The user provided extra arguments that need to be tacked onto the label's command
+	if len(extraArgs) > 0 {
+		runLabel = fmt.Sprintf("%s %s", runLabel, strings.Join(extraArgs, " "))
+	}
+	cmd, err := GenerateCommand(runLabel, imageName, name)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "unable to generate command")
+	}
+	env := GenerateRunEnvironment(name, imageName, opts)
+	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
+
+	envmap := envSliceToMap(env)
+
+	envmapper := func(k string) string {
+		switch k {
+		case "OPT1":
+			return envmap["OPT1"]
+		case "OPT2":
+			return envmap["OPT2"]
+		case "OPT3":
+			return envmap["OPT3"]
+		}
+		return ""
+	}
+	newS := os.Expand(strings.Join(cmd, " "), envmapper)
+	cmd = strings.Split(newS, " ")
+	return cmd, env, nil
+}
+
+func envSliceToMap(env []string) map[string]string {
+	m := make(map[string]string)
+	for _, i := range env {
+		split := strings.Split(i, "=")
+		m[split[0]] = strings.Join(split[1:], " ")
+	}
+	return m
 }
