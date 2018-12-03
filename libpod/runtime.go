@@ -472,6 +472,15 @@ func makeRuntime(runtime *Runtime) (err error) {
 			runtime.config.ConmonPath)
 	}
 
+	// Make the static files directory if it does not exist
+	if err := os.MkdirAll(runtime.config.StaticDir, 0700); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating runtime static files directory %s",
+				runtime.config.StaticDir)
+		}
+	}
+
 	// Set up the state
 	switch runtime.config.StateType {
 	case InMemoryStateStore:
@@ -600,15 +609,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.ociRuntime = ociRuntime
-
-	// Make the static files directory if it does not exist
-	if err := os.MkdirAll(runtime.config.StaticDir, 0755); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime static files directory %s",
-				runtime.config.StaticDir)
-		}
-	}
 
 	// Make a directory to hold container lockfiles
 	lockDir := filepath.Join(runtime.config.TmpDir, "lock")
