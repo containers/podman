@@ -498,7 +498,7 @@ func (i *Image) UntagImage(tag string) error {
 
 // PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
 // Use PushImageToReference if the destination is known precisely.
-func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -516,11 +516,11 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 			return err
 		}
 	}
-	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, forceSecure, additionalDockerArchiveTags)
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
 }
 
 // PushImageToReference pushes the given image to a location described by the given path
-func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 
 	policyContext, err := getPolicyContext(sc)
@@ -546,7 +546,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 		}
 		registry := reference.Domain(imgRef)
 
-		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
+		if util.StringInSlice(registry, insecureRegistries) && dockerRegistryOptions.DockerInsecureSkipTLSVerify != types.OptionalBoolFalse {
 			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
 		}
