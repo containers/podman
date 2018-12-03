@@ -324,6 +324,30 @@ type DockerAuthConfig struct {
 	Password string
 }
 
+// OptionalBool is a boolean with an additional undefined value, which is meant
+// to be used in the context of user input to distinguish between a
+// user-specified value and a default value.
+type OptionalBool byte
+
+const (
+	// OptionalBoolUndefined indicates that the OptionalBoolean hasn't been written.
+	OptionalBoolUndefined OptionalBool = iota
+	// OptionalBoolTrue represents the boolean true.
+	OptionalBoolTrue
+	// OptionalBoolFalse represents the boolean false.
+	OptionalBoolFalse
+)
+
+// NewOptionalBool converts the input bool into either OptionalBoolTrue or
+// OptionalBoolFalse.  The function is meant to avoid boilerplate code of users.
+func NewOptionalBool(b bool) OptionalBool {
+	o := OptionalBoolFalse
+	if b == true {
+		o = OptionalBoolTrue
+	}
+	return o
+}
+
 // SystemContext allows parameterizing access to implicitly-accessed resources,
 // like configuration files in /etc and users' login state in their home directory.
 // Various components can share the same field only if their semantics is exactly
@@ -376,7 +400,7 @@ type SystemContext struct {
 	// Ignored if DockerCertPath is non-empty.
 	DockerPerHostCertDirPath string
 	// Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
-	DockerInsecureSkipTLSVerify bool
+	DockerInsecureSkipTLSVerify OptionalBool
 	// if nil, the library tries to parse ~/.docker/config.json to retrieve credentials
 	DockerAuthConfig *DockerAuthConfig
 	// if not "", an User-Agent header is added to each request when contacting a registry.
