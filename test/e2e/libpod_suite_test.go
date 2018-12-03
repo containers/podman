@@ -227,6 +227,17 @@ func (p *PodmanTestIntegration) CleanupPod() {
 	}
 }
 
+// CleanupVolume cleans up the temporary store
+func (p *PodmanTestIntegration) CleanupVolume() {
+	// Remove all containers
+	session := p.Podman([]string{"volume", "rm", "-fa"})
+	session.Wait(90)
+	// Nuke tempdir
+	if err := os.RemoveAll(p.TempDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
 // PullImages pulls multiple images
 func (p *PodmanTestIntegration) PullImages(images []string) error {
 	for _, i := range images {

@@ -74,6 +74,11 @@ func getTestContainer(id, name, locksDir string) (*Container, error) {
 				"/test/file.test": "/test2/file2.test",
 			},
 		},
+		runtime: &Runtime{
+			config: &RuntimeConfig{
+				VolumePath: "/does/not/exist/tmp/volumes",
+			},
+		},
 		valid: true,
 	}
 
