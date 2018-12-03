@@ -6,31 +6,28 @@
 set -e
 
 # Load in library (copied by packer, before this script was run)
-source /tmp/libpod/$SCRIPT_BASE/lib.sh
+source $GOSRC/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE CNI_COMMIT CONMON_COMMIT CRIU_COMMIT
+req_env_var SCRIPT_BASE
 
 install_ooe
 
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-# Avoid getting stuck waiting for user input
-export DEBIAN_FRONTEND=noninteractive
+echo "Updating/configuring package repositories."
+$LILTO $SUDOAPTGET update
+$LILTO $SUDOAPTGET install software-properties-common
+$LILTO $SUDOAPTADD ppa:longsleep/golang-backports
+$LILTO $SUDOAPTADD ppa:projectatomic/ppa
+$LILTO $SUDOAPTADD ppa:criu/ppa
 
-# Try twice as workaround for minor networking problems
-echo "Updating system and installing package dependencies"
-ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
-ooe.sh sudo -E apt-get -qq upgrade || sudo -E apt-get -qq upgrade
-ooe.sh sudo -E apt-get -qq install software-properties-common
+echo "Upgrading all packages"
+$LILTO $SUDOAPTGET update
+$BIGTO $SUDOAPTGET upgrade
 
-# Required to have Go 1.11 on Ubuntu 18.0.4
-ooe.sh sudo -E add-apt-repository --yes ppa:longsleep/golang-backports
-ooe.sh sudo -E add-apt-repository --yes ppa:projectatomic/ppa
-ooe.sh sudo -E add-apt-repository --yes ppa:criu/ppa
-ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
-
-ooe.sh sudo -E apt-get -qq install \
+echo "Installing general testing and system dependencies"
+$BIGTO $SUDOAPTGET install \
     apparmor \
     autoconf \
     automake \
@@ -38,6 +35,8 @@ ooe.sh sudo -E apt-get -qq install \
     bison \
     btrfs-tools \
     build-essential \
+    containernetworking-plugins \
+    containers-common \
     cri-o-runc \
     criu \
     curl \
@@ -73,6 +72,7 @@ ooe.sh sudo -E apt-get -qq install \
     lsof \
     netcat \
     pkg-config \
+    podman \
     protobuf-c-compiler \
     protobuf-compiler \
     python-future \
@@ -83,29 +83,22 @@ ooe.sh sudo -E apt-get -qq install \
     python3-psutil \
     python3-pytoml \
     python3-setuptools \
+    slirp4netns \
+    skopeo \
     socat \
     unzip \
     vim \
     xz-utils \
     zip
 
-echo "Fixing Ubuntu kernel not enabling swap accounting by default"
+echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
 SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
 ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
 ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
 ooe.sh sudo update-grub
 
-install_conmon
-
-install_cni_plugins
-
 sudo /tmp/libpod/hack/install_catatonit.sh
-
-install_varlink
-
-sudo mkdir -p /etc/containers
-sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora\
-          -o /etc/containers/registries.conf
+ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
 
 ubuntu_finalize
 
