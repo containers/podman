@@ -74,7 +74,7 @@ func GetRootlessUID() int {
 func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
 	path, err := exec.LookPath(tool)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "cannot find %s", tool)
 	}
 
 	appendTriplet := func(l []string, a, b, c int) []string {
@@ -92,7 +92,11 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 		Path: path,
 		Args: args,
 	}
-	return cmd.Run()
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "cannot setup namespace using %s", tool)
+	}
+	return nil
 }
 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
@@ -191,11 +195,13 @@ func BecomeRootInUserNS() (bool, int, error) {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
+	allowSingleIDMapping := os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") != ""
+
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
 		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
-		if err != nil && os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+		if err != nil && !allowSingleIDMapping {
 			if os.IsNotExist(err) {
 				return false, 0, errors.Wrapf(err, "/etc/subuid or /etc/subgid does not exist, see subuid/subgid man pages for information on these files")
 			}
@@ -206,7 +212,7 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}
 	mappings, err := idtools.NewIDMappings(username, username)
-	if os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") == "" {
+	if !allowSingleIDMapping {
 		if err != nil {
 			return false, -1, err
 		}
@@ -236,7 +242,11 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	uidsMapped := false
 	if mappings != nil && uids != nil {
-		uidsMapped = tryMappingTool("newuidmap", pid, os.Getuid(), uids) == nil
+		err := tryMappingTool("newuidmap", pid, os.Getuid(), uids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
+		uidsMapped = err == nil
 	}
 	if !uidsMapped {
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
@@ -254,7 +264,11 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	gidsMapped := false
 	if mappings != nil && gids != nil {
-		gidsMapped = tryMappingTool("newgidmap", pid, os.Getgid(), gids) == nil
+		err := tryMappingTool("newgidmap", pid, os.Getgid(), gids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
+		gidsMapped = err == nil
 	}
 	if !gidsMapped {
 		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
