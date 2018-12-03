@@ -254,7 +254,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	}
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
 	if len(images) == 0 {
-		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
+		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{SystemRegistriesConfPath: systemRegistriesConfPath})
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
 		}
