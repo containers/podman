@@ -175,11 +175,11 @@ func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 
 // isRegistryInsecure checks if the named registry is marked as not secure
 func isRegistryInsecure(registry string, sc *types.SystemContext) (bool, error) {
-	registries, err := sysregistriesv2.GetRegistries(sc)
+	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
 	}
-	if reginfo := sysregistriesv2.FindRegistry(registry, registries); reginfo != nil {
+	if reginfo != nil {
 		if reginfo.Insecure {
 			logrus.Debugf("registry %q is marked insecure in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
 		} else {
@@ -193,11 +193,11 @@ func isRegistryInsecure(registry string, sc *types.SystemContext) (bool, error) 
 
 // isRegistryBlocked checks if the named registry is marked as blocked
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
-	registries, err := sysregistriesv2.GetRegistries(sc)
+	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
 	}
-	if reginfo := sysregistriesv2.FindRegistry(registry, registries); reginfo != nil {
+	if reginfo != nil {
 		if reginfo.Blocked {
 			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
 		} else {

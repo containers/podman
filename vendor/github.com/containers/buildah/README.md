@@ -105,6 +105,7 @@ $ sudo ./lighttpd.sh
 | [buildah-copy(1)](/docs/buildah-copy.md)             | Copies the contents of a file, URL, or directory into a container's working directory.               |
 | [buildah-from(1)](/docs/buildah-from.md)             | Creates a new working container, either from scratch or using a specified image as a starting point. |
 | [buildah-images(1)](/docs/buildah-images.md)         | List images in local storage.                                                                        |
+| [buildah-info(1)](/docs/buildah-info.md)             | Display Buildah system information.                                                                  |
 | [buildah-inspect(1)](/docs/buildah-inspect.md)       | Inspects the configuration of a container or image.                                                  |
 | [buildah-mount(1)](/docs/buildah-mount.md)           | Mount the working container's root filesystem.                                                       |
 | [buildah-pull(1)](/docs/buildah-pull.md)             | Pull an image from the specified location.                                                           |
