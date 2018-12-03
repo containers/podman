@@ -547,7 +547,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 		registry := reference.Domain(imgRef)
 
 		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
-			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true
+			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
 		}
 	}

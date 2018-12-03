@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
@@ -322,8 +322,9 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 		destname = tag
 	}
 
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerInsecureSkipTLSVerify: !tlsVerify,
+	dockerRegistryOptions := image.DockerRegistryOptions{}
+	if !tlsVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
 
 	so := image.SigningOptions{}
@@ -520,8 +521,10 @@ func (i *LibpodAPI) ImageExists(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.Runlabel) error {
 	ctx := getContext()
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerCertPath:              input.CertDir,
-		DockerInsecureSkipTLSVerify: !input.TlsVerify,
+		DockerCertPath: input.CertDir,
+	}
+	if !input.TlsVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
 
 	stdErr := os.Stderr

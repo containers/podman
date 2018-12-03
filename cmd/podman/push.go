@@ -108,7 +108,6 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	certPath := c.String("cert-dir")
-	skipVerify := !c.BoolT("tls-verify")
 	removeSignatures := c.Bool("remove-signatures")
 	signBy := c.String("sign-by")
 
@@ -145,14 +144,13 @@ func pushCmd(c *cli.Context) error {
 		}
 	}
 
-	if c.IsSet("tls-verify") {
-		forceSecure = c.Bool("tls-verify")
-	}
-
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              certPath,
-		DockerInsecureSkipTLSVerify: skipVerify,
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      certPath,
+	}
+	if c.IsSet("tls-verify") {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+		forceSecure = c.Bool("tls-verify")
 	}
 
 	so := image.SigningOptions{

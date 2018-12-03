@@ -609,7 +609,8 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "regi
 
 method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
-and a boolean as to whether tls-verify should be used.  It will return an [ImageNotFound](#ImageNotFound) error if
+and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
+It will return an [ImageNotFound](#ImageNotFound) error if
 the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
 ### <a name="RemoveContainer"></a>func RemoveContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">

@@ -104,11 +104,11 @@ func pullCmd(c *cli.Context) error {
 	}
 
 	dockerRegistryOptions := image2.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              c.String("cert-dir"),
-		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      c.String("cert-dir"),
 	}
 	if c.IsSet("tls-verify") {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
 		forceSecure = c.Bool("tls-verify")
 	}
 

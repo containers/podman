@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/pkg/docker/config"
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/common"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -93,7 +94,9 @@ func loginCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error getting username and password")
 	}
 
-	sc.DockerInsecureSkipTLSVerify = !c.BoolT("tls-verify")
+	if c.IsSet("tls-verify") {
+		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	}
 	if c.String("cert-dir") != "" {
 		sc.DockerCertPath = c.String("cert-dir")
 	}

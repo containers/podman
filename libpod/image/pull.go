@@ -247,7 +247,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			registry := reference.Domain(imgRef)
 
 			if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
-				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = true
+				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				logrus.Info(fmt.Sprintf("%s is an insecure registry; pulling with tls-verify=false", registry))
 			}
 		}

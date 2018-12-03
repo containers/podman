@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker"
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
@@ -216,7 +217,7 @@ func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts
 	var paramsArr []searchParams
 	for reg, skipTLS := range regAndSkipTLS {
 		// set the SkipTLSVerify bool depending on the registry being searched through
-		sc.DockerInsecureSkipTLSVerify = skipTLS
+		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(skipTLS)
 		results, err := docker.SearchRegistry(context.TODO(), sc, reg, term, limit)
 		if err != nil {
 			logrus.Errorf("error searching registry %q: %v", reg, err)
