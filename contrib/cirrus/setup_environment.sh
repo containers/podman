@@ -6,14 +6,15 @@ source $(dirname $0)/lib.sh
 
 req_env_var USER HOME GOSRC SCRIPT_BASE SETUP_MARKER_FILEPATH
 
+show_env_vars
+
 # Ensure this script only executes successfully once and always logs ending timestamp
 [[ ! -e "$SETUP_MARKER_FILEPATH" ]] || exit 0
 exithandler() {
     RET=$?
-    set +e
-    show_env_vars
+    echo "."
     echo "$(basename $0) exit status: $RET"
-    [[ "$RET" -eq "0" ]] && date +%s >> "SETUP_MARKER_FILEPATH"
+    [[ "$RET" -eq "0" ]] && date +%s >> "$SETUP_MARKER_FILEPATH"
 }
 trap exithandler EXIT
 
@@ -31,6 +32,7 @@ done
 #       Anything externally dependent, should be made fixed-in-time by adding to
 #       contrib/cirrus/packer/*_setup.sh to be incorporated into VM cache-images
 #       (see docs).
+cd "${GOSRC}/"
 case "${OS_REL_VER}" in
     ubuntu-18) ;;
     fedora-30) ;;
@@ -42,20 +44,10 @@ case "${OS_REL_VER}" in
     *) bad_os_id_ver ;;
 esac
 
-cd "${GOSRC}/"
 # Reload to incorporate any changes from above
 source "$SCRIPT_BASE/lib.sh"
 
-echo "Installing cni config, policy and registry config"
-req_env_var GOSRC
-sudo install -D -m 755 $GOSRC/cni/87-podman-bridge.conflist \
-                       /etc/cni/net.d/87-podman-bridge.conflist
-sudo install -D -m 755 $GOSRC/test/policy.json \
-                       /etc/containers/policy.json
-sudo install -D -m 755 $GOSRC/test/registries.conf \
-                       /etc/containers/registries.conf
-# cri-o if installed will mess with testing in non-obvious ways
-rm -f /etc/cni/net.d/*cri*
+install_test_configs
 
 make install.tools
 
