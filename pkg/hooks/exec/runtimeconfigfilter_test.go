@@ -194,7 +194,7 @@ func TestRuntimeConfigFilter(t *testing.T) {
 					Path: "rootfs",
 				},
 			},
-			expectedHookError: "^signal: killed$",
+			expectedHookError: "^executing \\[sh -c sleep 2]: signal: killed$",
 			expectedRunError:  context.DeadlineExceeded,
 		},
 		{
@@ -218,7 +218,7 @@ func TestRuntimeConfigFilter(t *testing.T) {
 					Path: "rootfs",
 				},
 			},
-			expectedHookError: "^signal: killed$",
+			expectedHookError: "^executing \\[sh -c sleep 2]: signal: killed$",
 			expectedRunError:  context.DeadlineExceeded,
 		},
 		{
