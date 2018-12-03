@@ -534,23 +534,8 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
 	}
-	insecureRegistries, err := registries.GetInsecureRegistries()
-	if err != nil {
-		return err
-	}
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
-	if dest.Transport().Name() == DockerTransport {
-		imgRef := dest.DockerReference()
-		if imgRef == nil { // This should never happen; such references can’t be created.
-			return fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference", transports.ImageName(dest))
-		}
-		registry := reference.Domain(imgRef)
-
-		if util.StringInSlice(registry, insecureRegistries) && dockerRegistryOptions.DockerInsecureSkipTLSVerify != types.OptionalBoolFalse {
-			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
-		}
-	}
+	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	// Copy the image to the remote destination
 	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
