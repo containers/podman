@@ -1168,10 +1168,6 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 }
 
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
-	if len(c.runtime.config.HooksDir) == 0 {
-		return nil, nil
-	}
-
 	var locale string
 	var ok bool
 	for _, envVar := range []string{
@@ -1199,25 +1195,39 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
-	allHooks := make(map[string][]spec.Hook)
-	for _, hDir := range c.runtime.config.HooksDir {
-		manager, err := hooks.New(ctx, []string{hDir}, []string{"poststop"}, lang)
-		if err != nil {
-			if c.runtime.config.HooksDirNotExistFatal || !os.IsNotExist(err) {
-				return nil, err
-			}
-			logrus.Warnf("failed to load hooks: %q", err)
+	if c.runtime.config.HooksDir == nil {
+		if rootless.IsRootless() {
 			return nil, nil
 		}
-		hooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
-		if err != nil {
-			return nil, err
+		allHooks := make(map[string][]spec.Hook)
+		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
+			manager, err := hooks.New(ctx, []string{hDir}, []string{"poststop"}, lang)
+			if err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
+				return nil, err
+			}
+			hooks, err := manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+			if err != nil {
+				return nil, err
+			}
+			if len(hooks) > 0 || config.Hooks != nil {
+				logrus.Warnf("implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load hooks from this directory", hDir)
+			}
+			for i, hook := range hooks {
+				allHooks[i] = hook
+			}
 		}
-		for i, hook := range hooks {
-			allHooks[i] = hook
-		}
+		return allHooks, nil
 	}
-	return allHooks, nil
+
+	manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"poststop"}, lang)
+	if err != nil {
+		return nil, err
+	}
+
+	return manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
 }
 
 // mount mounts the container's root filesystem

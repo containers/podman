@@ -224,10 +224,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if !rootless.IsRootless() {
-		if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
-			return nil, errors.Wrapf(err, "error setting up OCI Hooks")
-		}
+	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
+		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
 	}
 
 	// Bind builtin image volumes
