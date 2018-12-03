@@ -280,7 +280,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	if rootless.IsRootless() {
 		// If we're rootless, override the default storage config
-		storageConf, err := util.GetDefaultRootlessStoreOptions()
+		storageConf, err := util.GetDefaultStoreOptions()
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
 		}
