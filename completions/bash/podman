@@ -2235,6 +2235,14 @@ _podman_container_exists() {
   "
 }
 
+_podman_pod_exists() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+  "
+}
+
 _podman_image_exists() {
     local options_with_args="
     "
