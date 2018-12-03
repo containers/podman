@@ -37,18 +37,16 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		if config.GraphRoot != "" {
 			rt.config.StorageConfig.GraphRoot = config.GraphRoot
 			rt.configuredFrom.storageGraphRootSet = true
+
+			// Also set libpod static dir, so we are a subdirectory
+			// of the c/storage store by default
+			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.configuredFrom.libpodStaticDirSet = true
 		}
 
 		if config.GraphDriverName != "" {
 			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
 			rt.configuredFrom.storageGraphDriverSet = true
-		}
-
-		// Only set our static dir if it was not already explicitly
-		// overridden
-		if config.GraphRoot != "" && !rt.configuredFrom.libpodStaticDirSet {
-			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
-			rt.configuredFrom.libpodStaticDirSet = true
 		}
 
 		if config.GraphDriverOptions != nil {
