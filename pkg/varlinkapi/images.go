@@ -498,7 +498,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 // PullImage pulls an image from a registry to the image store.
 // TODO This implementation is incomplete
 func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
-	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true, false)
+	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 	}

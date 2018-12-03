@@ -193,7 +193,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
-func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -209,21 +209,21 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
-	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions)
 }
 
 // pullImageFromReference pulls an image from a types.imageReference.
-func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
-	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions)
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
-func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
 		return nil, err
@@ -246,7 +246,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			}
 			registry := reference.Domain(imgRef)
 
-			if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
+			if util.StringInSlice(registry, insecureRegistries) && dockerOptions.DockerInsecureSkipTLSVerify != types.OptionalBoolFalse {
 				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				logrus.Info(fmt.Sprintf("%s is an insecure registry; pulling with tls-verify=false", registry))
 			}

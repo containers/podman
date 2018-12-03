@@ -64,7 +64,6 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
 func pullCmd(c *cli.Context) error {
-	forceSecure := false
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -109,7 +108,6 @@ func pullCmd(c *cli.Context) error {
 	}
 	if c.IsSet("tls-verify") {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
-		forceSecure = c.Bool("tls-verify")
 	}
 
 	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
@@ -125,7 +123,7 @@ func pullCmd(c *cli.Context) error {
 		imgID = newImage[0].ID()
 	} else {
 		authfile := getAuthFile(c.String("authfile"))
-		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, forceSecure)
+		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", image)
 		}
