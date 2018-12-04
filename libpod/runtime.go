@@ -494,7 +494,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 	case BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
 
-		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
+		state, err := NewBoltState(dbPath, runtime)
 		if err != nil {
 			return err
 		}

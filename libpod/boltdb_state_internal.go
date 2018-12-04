@@ -266,7 +266,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
+	lockPath := filepath.Join(s.runtime.lockDir, string(id))
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
@@ -302,7 +302,7 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
+	lockPath := filepath.Join(s.runtime.lockDir, string(id))
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))

@@ -52,8 +52,9 @@ func getEmptyBoltState() (s State, p string, p2 string, err error) {
 	runtime := new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.config.StorageConfig = storage.StoreOptions{}
+	runtime.lockDir = lockDir
 
-	state, err := NewBoltState(dbPath, lockDir, runtime)
+	state, err := NewBoltState(dbPath, runtime)
 	if err != nil {
 		return nil, "", "", err
 	}

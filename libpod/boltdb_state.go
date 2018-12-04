@@ -18,7 +18,6 @@ type BoltState struct {
 	dbLock         sync.Mutex
 	namespace      string
 	namespaceBytes []byte
-	lockDir        string
 	runtime        *Runtime
 }
 
@@ -51,10 +50,9 @@ type BoltState struct {
 //   containers/storage do not occur.
 
 // NewBoltState creates a new bolt-backed state database
-func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
+func NewBoltState(path string, runtime *Runtime) (State, error) {
 	state := new(BoltState)
 	state.dbPath = path
-	state.lockDir = lockDir
 	state.runtime = runtime
 	state.namespace = ""
 	state.namespaceBytes = nil
