@@ -238,9 +238,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	if c.config.User != "" {
-		if !c.state.Mounted {
-			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
-		}
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
 		g.SetProcessGID(uint32(execUser.Gid))
@@ -248,9 +245,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Add addition groups if c.config.GroupAdd is not empty
 	if len(c.config.Groups) > 0 {
-		if !c.state.Mounted {
-			return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to add additional groups", c.ID())
-		}
 		gids, _ := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, nil)
 		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
@@ -802,7 +796,6 @@ func (c *Container) generateHosts() (string, error) {
 func (c *Container) generatePasswd() (string, error) {
 	var (
 		groupspec string
-		group     *user.Group
 		gid       int
 	)
 	if c.config.User == "" {
@@ -827,17 +820,16 @@ func (c *Container) generatePasswd() (string, error) {
 		return "", nil
 	}
 	if groupspec != "" {
-		if !c.state.Mounted {
-			return "", errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate group field for passwd record", c.ID())
-		}
-		group, err = lookup.GetGroup(c.state.Mountpoint, groupspec)
-		if err != nil {
-			if err == user.ErrNoGroupEntries {
+		ugid, err := strconv.ParseUint(groupspec, 10, 32)
+		if err == nil {
+			gid = int(ugid)
+		} else {
+			group, err := lookup.GetGroup(c.state.Mountpoint, groupspec)
+			if err != nil {
 				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
 			}
-			return "", err
+			gid = group.Gid
 		}
-		gid = group.Gid
 	}
 	originPasswdFile := filepath.Join(c.state.Mountpoint, "/etc/passwd")
 	orig, err := ioutil.ReadFile(originPasswdFile)
