@@ -336,7 +336,7 @@ var _ = Describe("Podman run", func() {
 		hooksDir := tempdir + "/hooks"
 		os.Mkdir(hooksDir, 0755)
 		fileutils.CopyFile("hooks/hooks.json", hooksDir)
-		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir-path=%s", hooksDir))
+		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir=%s", hooksDir))
 		os.Remove(hcheck)
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.Wait(10)

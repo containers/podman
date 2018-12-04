@@ -90,8 +90,8 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	if c.GlobalIsSet("default-mounts-file") {
 		options = append(options, libpod.WithDefaultMountsFile(c.GlobalString("default-mounts-file")))
 	}
-	if c.GlobalIsSet("hooks-dir-path") {
-		options = append(options, libpod.WithHooksDir(c.GlobalString("hooks-dir-path")))
+	if c.GlobalIsSet("hooks-dir") {
+		options = append(options, libpod.WithHooksDir(c.GlobalStringSlice("hooks-dir")...))
 	}
 
 	// TODO flag to set CNI plugins dir?

@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/firewall"
-	"github.com/containers/libpod/pkg/hooks"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -141,11 +140,11 @@ type RuntimeConfig struct {
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
-	// HooksDir Path to the directory containing hooks configuration files
+	// HooksDir holds paths to the directories containing hooks
+	// configuration files. When the same filename is present in in
+	// multiple directories, the file in the directory listed last in
+	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir"`
-	// HooksDirNotExistFatal switches between fatal errors and non-fatal
-	// warnings if the configured HooksDir does not exist.
-	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
 	// DefaultMountsFile is the path to the default mounts file for testing
 	// purposes only
 	DefaultMountsFile string `toml:"-"`
@@ -203,7 +202,6 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:         SystemdCgroupsManager,
-		HooksDir:              []string{hooks.DefaultDir, hooks.OverrideDir},
 		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,

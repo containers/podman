@@ -31,6 +31,18 @@ CGroup manager to use for container cgroups. Supported values are cgroupfs or sy
 
 Path to where the cpu performance results should be written
 
+**--hooks-dir**=**path**
+
+Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+This option may be set multiple times; paths from later options have higher precedence (`oci-hooks(5)` discusses directory precedence).
+
+For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+
+For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+
+If `--hooks-dir` is unset for root callers, Podman and libpod will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `--hooks-dir`.
+
 **--log-level**
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
@@ -160,18 +172,6 @@ the exit codes follow the `chroot` standard, see below:
 **mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
 
     The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
-
-**OCI hooks JSON** (`/etc/containers/oci/hooks.d/*.json`, `/usr/share/containers/oci/hooks.d/*.json`)
-
-    Each `*.json` file in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers, with `/etc/containers/oci/hooks.d` having higher precedence.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
-
-    Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
-
-    For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
-
-    For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
-
-    Hooks are not used when running in rootless mode.
 
 **policy.json** (`/etc/containers/policy.json`)
 
