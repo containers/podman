@@ -189,4 +189,15 @@ var _ = Describe("Podman create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/create/test rw,nosuid,nodev,noexec,relatime - tmpfs"))
 	})
+
+	It("podman create --pod automatically", func() {
+		session := podmanTest.Podman([]string{"create", "--pod", "new:foobar", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
+		check.WaitWithDefaultTimeout()
+		match, _ := check.GrepString("foobar")
+		Expect(match).To(BeTrue())
+	})
 })

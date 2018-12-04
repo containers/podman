@@ -496,8 +496,13 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 
 // CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
 func (c *CreateConfig) CreatePortBindings() ([]ocicni.PortMapping, error) {
+	return NatToOCIPortBindings(c.PortBindings)
+}
+
+// NatToOCIPortBindings iterates a nat.portmap slice and creates []ocicni portmapping slice
+func NatToOCIPortBindings(ports nat.PortMap) ([]ocicni.PortMapping, error) {
 	var portBindings []ocicni.PortMapping
-	for containerPb, hostPb := range c.PortBindings {
+	for containerPb, hostPb := range ports {
 		var pm ocicni.PortMapping
 		pm.ContainerPort = int32(containerPb.Int())
 		for _, i := range hostPb {

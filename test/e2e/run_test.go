@@ -628,4 +628,15 @@ USER mail`
 		isSharedOnly := !strings.Contains(shared[0], "shared,")
 		Expect(isSharedOnly).Should(BeTrue())
 	})
+
+	It("podman run --pod automatically", func() {
+		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
+		check.WaitWithDefaultTimeout()
+		match, _ := check.GrepString("foobar")
+		Expect(match).To(BeTrue())
+	})
 })
