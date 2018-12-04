@@ -523,11 +523,13 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
-	if err != nil {
-		return errors.Wrapf(err, "error configuring CNI network plugin")
+	if !rootless.IsRootless() {
+		netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
+		if err != nil {
+			return errors.Wrapf(err, "error configuring CNI network plugin")
+		}
+		runtime.netPlugin = netPlugin
 	}
-	runtime.netPlugin = netPlugin
 
 	// Set up a firewall backend
 	backendType := ""
