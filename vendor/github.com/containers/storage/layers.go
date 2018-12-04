@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	tarSplitSuffix  = ".tar-split.gz"
-	incompleteFlag  = "incomplete"
-	compressionFlag = "diff-compression"
+	tarSplitSuffix = ".tar-split.gz"
+	incompleteFlag = "incomplete"
 )
 
 // A Layer is a record of a copy-on-write layer that's stored by the lower

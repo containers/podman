@@ -29,6 +29,7 @@ import (
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	units "github.com/docker/go-units"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -876,6 +877,7 @@ func (d *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent str
 		UIDMaps:        idMappings.UIDs(),
 		GIDMaps:        idMappings.GIDs(),
 		WhiteoutFormat: d.getWhiteoutFormat(),
+		InUserNS:       rsystem.RunningInUserNS(),
 	}); err != nil {
 		return 0, err
 	}

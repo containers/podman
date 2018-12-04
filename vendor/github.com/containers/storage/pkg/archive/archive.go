@@ -22,6 +22,7 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/promise"
 	"github.com/containers/storage/pkg/system"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/sirupsen/logrus"
 )
 
@@ -1054,6 +1055,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		GIDMaps:     tarMappings.GIDs(),
 		Compression: Uncompressed,
 		CopyPass:    true,
+		InUserNS:    rsystem.RunningInUserNS(),
 	}
 	archive, err := TarWithOptions(src, options)
 	if err != nil {
@@ -1068,6 +1070,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1087,6 +1090,7 @@ func (archiver *Archiver) UntarPath(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1186,6 +1190,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		UIDMaps:   archiver.UntarIDMappings.UIDs(),
 		GIDMaps:   archiver.UntarIDMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
+		InUserNS:  rsystem.RunningInUserNS(),
 	}
 	err = archiver.Untar(r, filepath.Dir(dst), options)
 	if err != nil {
