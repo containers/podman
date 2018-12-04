@@ -91,8 +91,23 @@ func rmiCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to query local images")
 		}
-		for _, i := range imagesToDelete {
-			removeImage(i)
+		lastNumberofImages := 0
+		for len(imagesToDelete) > 0 {
+			if lastNumberofImages == len(imagesToDelete) {
+				return errors.New("unable to delete all images; re-run the rmi command again.")
+			}
+			for _, i := range imagesToDelete {
+				isParent, err := i.IsParent()
+				if err != nil {
+					return err
+				}
+				if isParent {
+					continue
+				}
+				removeImage(i)
+			}
+			lastNumberofImages = len(imagesToDelete)
+			imagesToDelete, err = runtime.ImageRuntime().GetImages()
 		}
 	} else {
 		// Create image.image objects for deletion from user input.
