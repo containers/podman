@@ -75,7 +75,7 @@ class Image(collections.UserDict):
         obj = json.loads(results['image'], object_hook=fold_keys())
         return collections.namedtuple('ImageInspect', obj.keys())(**obj)
 
-    def push(self, target, tlsverify=False):
+    def push(self, target, tlsverify=True):
         """Copy image to target, return id on success."""
         with self._client() as podman:
             results = podman.PushImage(self._id, target, tlsverify)
