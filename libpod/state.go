@@ -1,5 +1,15 @@
 package libpod
 
+// DBConfig is a set of Libpod runtime configuration settings that are saved
+// in a State when it is first created, and can subsequently be retrieved.
+type DBConfig struct {
+	LibpodRoot  string
+	LibpodTmp   string
+	StorageRoot string
+	StorageTmp  string
+	GraphDriver string
+}
+
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.
 // As such, initialization methods for State implementations may safely assume
@@ -20,6 +30,22 @@ type State interface {
 
 	// Refresh clears container and pod states after a reboot
 	Refresh() error
+
+	// GetDBConfig retrieves several paths configured within the database
+	// when it was created - namely, Libpod root and tmp dirs, c/storage
+	// root and tmp dirs, and c/storage graph driver.
+	// This is not implemented by the in-memory state, as it has no need to
+	// validate runtime configuration.
+	GetDBConfig() (*DBConfig, error)
+
+	// ValidateDBConfig validates the config in the given Runtime struct
+	// against paths stored in the configured database.
+	// Libpod root and tmp dirs and c/storage root and tmp dirs and graph
+	// driver are validated.
+	// This is not implemented by the in-memory state, as it has no need to
+	// validate runtime configuration that may change over multiple runs of
+	// the program.
+	ValidateDBConfig(runtime *Runtime) error
 
 	// SetNamespace() sets the namespace for the store, and will determine
 	// what containers are retrieved with container and pod retrieval calls.

@@ -3,7 +3,6 @@ package libpod
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"strings"
 	"sync"
 
@@ -19,7 +18,6 @@ type BoltState struct {
 	dbLock         sync.Mutex
 	namespace      string
 	namespaceBytes []byte
-	lockDir        string
 	runtime        *Runtime
 }
 
@@ -52,24 +50,14 @@ type BoltState struct {
 //   containers/storage do not occur.
 
 // NewBoltState creates a new bolt-backed state database
-func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
+func NewBoltState(path string, runtime *Runtime) (State, error) {
 	state := new(BoltState)
 	state.dbPath = path
-	state.lockDir = lockDir
 	state.runtime = runtime
 	state.namespace = ""
 	state.namespaceBytes = nil
 
 	logrus.Debugf("Initializing boltdb state at %s", path)
-
-	// Make the directory that will hold container lockfiles
-	if err := os.MkdirAll(lockDir, 0750); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "error creating lockfiles dir %s", lockDir)
-		}
-	}
-	state.lockDir = lockDir
 
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
@@ -113,11 +101,6 @@ func NewBoltState(path, lockDir string, runtime *Runtime) (State, error) {
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating initial database layout")
-	}
-
-	// Check runtime configuration
-	if err := checkRuntimeConfig(db, runtime); err != nil {
-		return nil, err
 	}
 
 	state.valid = true
@@ -238,6 +221,72 @@ func (s *BoltState) Refresh() error {
 		return err
 	})
 	return err
+}
+
+// GetDBConfig retrieves runtime configuration fields that were created when
+// the database was first initialized
+func (s *BoltState) GetDBConfig() (*DBConfig, error) {
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	cfg := new(DBConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		configBucket, err := getRuntimeConfigBucket(tx)
+		if err != nil {
+			return nil
+		}
+
+		// Some of these may be nil
+		// When we convert to string, Go will coerce them to ""
+		// That's probably fine - we could raise an error if the key is
+		// missing, but just not including it is also OK.
+		libpodRoot := configBucket.Get(staticDirKey)
+		libpodTmp := configBucket.Get(tmpDirKey)
+		storageRoot := configBucket.Get(graphRootKey)
+		storageTmp := configBucket.Get(runRootKey)
+		graphDriver := configBucket.Get(graphDriverKey)
+
+		cfg.LibpodRoot = string(libpodRoot)
+		cfg.LibpodTmp = string(libpodTmp)
+		cfg.StorageRoot = string(storageRoot)
+		cfg.StorageTmp = string(storageTmp)
+		cfg.GraphDriver = string(graphDriver)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+// ValidateDBConfig validates paths in the given runtime against the database
+func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	// Check runtime configuration
+	if err := checkRuntimeConfig(db, runtime); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetNamespace sets the namespace that will be used for container and pod

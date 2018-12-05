@@ -29,19 +29,40 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.StorageConfig.RunRoot = config.RunRoot
-		rt.config.StorageConfig.GraphRoot = config.GraphRoot
-		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-		rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+		if config.RunRoot != "" {
+			rt.config.StorageConfig.RunRoot = config.RunRoot
+			rt.configuredFrom.storageRunRootSet = true
+		}
 
-		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		if config.GraphRoot != "" {
+			rt.config.StorageConfig.GraphRoot = config.GraphRoot
+			rt.configuredFrom.storageGraphRootSet = true
 
-		rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
-		copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+			// Also set libpod static dir, so we are a subdirectory
+			// of the c/storage store by default
+			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.configuredFrom.libpodStaticDirSet = true
+		}
 
-		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
-		copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		if config.GraphDriverName != "" {
+			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
+			rt.configuredFrom.storageGraphDriverSet = true
+		}
+
+		if config.GraphDriverOptions != nil {
+			rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+			copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		}
+
+		if config.UIDMap != nil {
+			rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
+			copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+		}
+
+		if config.GIDMap != nil {
+			rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
+			copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		}
 
 		return nil
 	}
@@ -174,6 +195,7 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.StaticDir = dir
+		rt.configuredFrom.libpodStaticDirSet = true
 
 		return nil
 	}
@@ -225,6 +247,7 @@ func WithTmpDir(dir string) RuntimeOption {
 		}
 
 		rt.config.TmpDir = dir
+		rt.configuredFrom.libpodTmpDirSet = true
 
 		return nil
 	}

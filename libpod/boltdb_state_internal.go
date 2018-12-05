@@ -30,6 +30,13 @@ const (
 	containersName   = "containers"
 	podIDName        = "pod-id"
 	namespaceName    = "namespace"
+
+	staticDirName   = "static-dir"
+	tmpDirName      = "tmp-dir"
+	runRootName     = "run-root"
+	graphRootName   = "graph-root"
+	graphDriverName = "graph-driver-name"
+	osName          = "os"
 )
 
 var (
@@ -49,21 +56,19 @@ var (
 	containersBkt   = []byte(containersName)
 	podIDKey        = []byte(podIDName)
 	namespaceKey    = []byte(namespaceName)
+
+	staticDirKey   = []byte(staticDirName)
+	tmpDirKey      = []byte(tmpDirName)
+	runRootKey     = []byte(runRootName)
+	graphRootKey   = []byte(graphRootName)
+	graphDriverKey = []byte(graphDriverName)
+	osKey          = []byte(osName)
 )
 
 // Check if the configuration of the database is compatible with the
 // configuration of the runtime opening it
 // If there is no runtime configuration loaded, load our own
 func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
-	var (
-		staticDir       = []byte("static-dir")
-		tmpDir          = []byte("tmp-dir")
-		runRoot         = []byte("run-root")
-		graphRoot       = []byte("graph-root")
-		graphDriverName = []byte("graph-driver-name")
-		osKey           = []byte("os")
-	)
-
 	err := db.Update(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
@@ -74,31 +79,31 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "static dir",
-			rt.config.StaticDir, staticDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod root directory (staticdir)",
+			rt.config.StaticDir, staticDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "tmp dir",
-			rt.config.TmpDir, tmpDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory (tmpdir)",
+			rt.config.TmpDir, tmpDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "run root",
-			rt.config.StorageConfig.RunRoot, runRoot,
+		if err := validateDBAgainstConfig(configBkt, "storage temporary directory (runroot)",
+			rt.config.StorageConfig.RunRoot, runRootKey,
 			storage.DefaultStoreOptions.RunRoot); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "graph root",
-			rt.config.StorageConfig.GraphRoot, graphRoot,
+		if err := validateDBAgainstConfig(configBkt, "storage graph root directory (graphroot)",
+			rt.config.StorageConfig.GraphRoot, graphRootKey,
 			storage.DefaultStoreOptions.GraphRoot); err != nil {
 			return err
 		}
 
-		return validateDBAgainstConfig(configBkt, "graph driver name",
+		return validateDBAgainstConfig(configBkt, "storage graph driver",
 			rt.config.StorageConfig.GraphDriverName,
-			graphDriverName,
+			graphDriverKey,
 			storage.DefaultStoreOptions.GraphDriverName)
 	})
 
@@ -261,7 +266,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
+	lockPath := filepath.Join(s.runtime.lockDir, string(id))
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
@@ -297,7 +302,7 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
+	lockPath := filepath.Join(s.runtime.lockDir, string(id))
 	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
