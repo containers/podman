@@ -21,10 +21,6 @@ var (
 		},
 		LatestFlag,
 		cli.BoolFlag{
-			Name:  "sync",
-			Usage: "Sync container state with OCI runtime before removing",
-		},
-		cli.BoolFlag{
 			Name:  "volumes, v",
 			Usage: "Remove the volumes associated with the container (Not implemented yet)",
 		},
@@ -77,12 +73,6 @@ func rmCmd(c *cli.Context) error {
 	for _, container := range delContainers {
 		con := container
 		f := func() error {
-			if c.Bool("sync") {
-				if err := con.Sync(); err != nil {
-					return err
-				}
-			}
-
 			return runtime.RemoveContainer(ctx, con, c.Bool("force"))
 		}
 

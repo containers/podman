@@ -24,13 +24,6 @@ Remove all containers.  Can be used in conjunction with -f as well.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
-**--sync**
-
-Force a sync of container state with the OCI runtime before attempting to remove the container.
-In some cases, a container's state in the runtime can become out of sync with Podman's state,
-which can cause Podman to refuse to remove containers because it believes they are still running.
-A sync will resolve this issue.
-
 **--volumes, -v**
 
 Remove the volumes associated with the container. (Not yet implemented)
