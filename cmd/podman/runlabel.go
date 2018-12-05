@@ -6,11 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -94,7 +92,7 @@ func runlabelCmd(c *cli.Context) error {
 		imageName      string
 		stdErr, stdOut io.Writer
 		stdIn          io.Reader
-		newImage       *image.Image
+		extraArgs      []string
 	)
 
 	// Evil images could trick into recursively executing the runlabel
@@ -124,6 +122,9 @@ func runlabelCmd(c *cli.Context) error {
 		return errors.Errorf("the display and quiet flags cannot be used together.")
 	}
 
+	if len(args) > 2 {
+		extraArgs = args[2:]
+	}
 	pull := c.Bool("pull")
 	label := args[0]
 
@@ -151,75 +152,24 @@ func runlabelCmd(c *cli.Context) error {
 		stdIn = nil
 	}
 
-	if pull {
-		var registryCreds *types.DockerAuthConfig
-		if c.IsSet("creds") {
-			creds, err := util.ParseRegistryCreds(c.String("creds"))
-			if err != nil {
-				return err
-			}
-			registryCreds = creds
-		}
-		dockerRegistryOptions := image.DockerRegistryOptions{
-			DockerRegistryCreds:         registryCreds,
-			DockerCertPath:              c.String("cert-dir"),
-			DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
-		}
-		authfile := getAuthFile(c.String("authfile"))
-
-		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, c.String("signature-policy"), authfile, stdOut, &dockerRegistryOptions, image.SigningOptions{}, false, false)
-	} else {
-		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
-	}
-	if err != nil {
-		return errors.Wrapf(err, "unable to find image")
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerCertPath:              c.String("cert-dir"),
+		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
 	}
 
-	if len(newImage.Names()) < 1 {
-		imageName = newImage.ID()
-	} else {
-		imageName = newImage.Names()[0]
-	}
-
-	runLabel, err := newImage.GetLabel(ctx, label)
+	authfile := getAuthFile(c.String("authfile"))
+	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, pull, c.String("creds"), dockerRegistryOptions, authfile, c.String("signature-policy"), stdOut)
 	if err != nil {
 		return err
 	}
-
-	// If no label to execute, we return
 	if runLabel == "" {
 		return nil
 	}
 
-	// The user provided extra arguments that need to be tacked onto the label's command
-	if len(args) > 2 {
-		runLabel = fmt.Sprintf("%s %s", runLabel, strings.Join(args[2:], " "))
-	}
-
-	cmd, err := shared.GenerateCommand(runLabel, imageName, c.String("name"))
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.String("name"), opts, extraArgs)
 	if err != nil {
-		return errors.Wrapf(err, "unable to generate command")
+		return err
 	}
-	env := shared.GenerateRunEnvironment(c.String("name"), imageName, opts)
-	env = append(env, "PODMAN_RUNLABEL_NESTED=1")
-
-	envmap := envSliceToMap(env)
-
-	envmapper := func(k string) string {
-		switch k {
-		case "OPT1":
-			return envmap["OPT1"]
-		case "OPT2":
-			return envmap["OPT2"]
-		case "OPT3":
-			return envmap["OPT3"]
-		}
-		return ""
-	}
-
-	newS := os.Expand(strings.Join(cmd, " "), envmapper)
-	cmd = strings.Split(newS, " ")
-
 	if !c.Bool("quiet") {
 		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
 		if c.Bool("display") {
@@ -227,13 +177,4 @@ func runlabelCmd(c *cli.Context) error {
 		}
 	}
 	return utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...)
-}
-
-func envSliceToMap(env []string) map[string]string {
-	m := make(map[string]string)
-	for _, i := range env {
-		split := strings.Split(i, "=")
-		m[split[0]] = strings.Join(split[1:], " ")
-	}
-	return m
 }

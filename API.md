@@ -9,6 +9,14 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) string](#Commit)
 
+[func ContainerCheckpoint(name: string, keep: bool, leaveRunning: bool, tcpEstablished: bool) string](#ContainerCheckpoint)
+
+[func ContainerExists(name: string) int](#ContainerExists)
+
+[func ContainerRestore(name: string, keep: bool, tcpEstablished: bool) string](#ContainerRestore)
+
+[func ContainerRunlabel(runlabel: Runlabel) ](#ContainerRunlabel)
+
 [func CreateContainer(create: Create) string](#CreateContainer)
 
 [func CreateImage() NotImplemented](#CreateImage)
@@ -43,6 +51,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func HistoryImage(name: string) ImageHistory](#HistoryImage)
 
+[func ImageExists(name: string) int](#ImageExists)
+
 [func ImportImage(source: string, reference: string, message: string, changes: []string) string](#ImportImage)
 
 [func InspectContainer(name: string) string](#InspectContainer)
@@ -57,6 +67,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ListContainerChanges(name: string) ContainerChanges](#ListContainerChanges)
 
+[func ListContainerMounts() []string](#ListContainerMounts)
+
+[func ListContainerPorts(name: string) NotImplemented](#ListContainerPorts)
+
 [func ListContainerProcesses(name: string, opts: []string) []string](#ListContainerProcesses)
 
 [func ListContainers() ListContainerData](#ListContainers)
@@ -64,6 +78,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func ListImages() ImageInList](#ListImages)
 
 [func ListPods() ListPodData](#ListPods)
+
+[func MountContainer(name: string) string](#MountContainer)
 
 [func PauseContainer(name: string) string](#PauseContainer)
 
@@ -102,6 +118,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func TagImage(name: string, tagged: string) string](#TagImage)
 
 [func TopPod() NotImplemented](#TopPod)
+
+[func UnmountContainer(name: string, force: bool) ](#UnmountContainer)
 
 [func UnpauseContainer(name: string) string](#UnpauseContainer)
 
@@ -165,6 +183,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type PodmanInfo](#PodmanInfo)
 
+[type Runlabel](#Runlabel)
+
 [type Sockets](#Sockets)
 
 [type StringResponse](#StringResponse)
@@ -211,6 +231,31 @@ attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOL
 container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
 the resulting image's ID will be returned as a string.
+### <a name="ContainerCheckpoint"></a>func ContainerCheckpoint
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerCheckpoint(name: [string](https://godoc.org/builtin#string), keep: [bool](https://godoc.org/builtin#bool), leaveRunning: [bool](https://godoc.org/builtin#bool), tcpEstablished: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+ContainerCheckPoint performs a checkpopint on a container by its name or full/partial container
+ID.  On successful checkpoint, the id of the checkpointed container is returned.
+### <a name="ContainerExists"></a>func ContainerExists
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerExists(name: [string](https://godoc.org/builtin#string)) [int](https://godoc.org/builtin#int)</div>
+ContainerExists takes a full or partial container ID or name and returns an int as to
+whether the container exists in local storage.  A result of 0 means the container does
+exists; whereas a result of 1 means it could not be found.
+### <a name="ContainerRestore"></a>func ContainerRestore
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerRestore(name: [string](https://godoc.org/builtin#string), keep: [bool](https://godoc.org/builtin#bool), tcpEstablished: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+ContainerRestore restores a container that has been checkpointed.  The container to be restored can
+be identified by its name or full/partial container ID.  A successful restore will result in the return
+of the container's ID.
+### <a name="ContainerRunlabel"></a>func ContainerRunlabel
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerRunlabel(runlabel: [Runlabel](#Runlabel)) </div>
+ContainerRunlabel runs executes a command as described by a given container image label.
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -403,6 +448,13 @@ method HistoryImage(name: [string](https://godoc.org/builtin#string)) [ImageHist
 HistoryImage takes the name or ID of an image and returns information about its history and layers.  The returned
 history is in the form of an array of ImageHistory structures.  If the image cannot be found, an
 [ImageNotFound](#ImageNotFound) error is returned.
+### <a name="ImageExists"></a>func ImageExists
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ImageExists(name: [string](https://godoc.org/builtin#string)) [int](https://godoc.org/builtin#int)</div>
+ImageExists talks a full or partial image ID or name and returns an int as to whether
+the image exists in local storage. An int result of 0 means the image does exist in
+local storage; whereas 1 indicates the image does not exists in local storage.
 ### <a name="ImportImage"></a>func ImportImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -453,6 +505,17 @@ See also [StopPod](StopPod).
 method ListContainerChanges(name: [string](https://godoc.org/builtin#string)) [ContainerChanges](#ContainerChanges)</div>
 ListContainerChanges takes a name or ID of a container and returns changes between the container and
 its base image. It returns a struct of changed, deleted, and added path names.
+### <a name="ListContainerMounts"></a>func ListContainerMounts
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ListContainerMounts() [[]string](#[]string)</div>
+ListContainerMounts gathers all the mounted container mount points and returns them as an array
+of strings
+### <a name="ListContainerPorts"></a>func ListContainerPorts
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ListContainerPorts(name: [string](https://godoc.org/builtin#string)) [NotImplemented](#NotImplemented)</div>
+This function is not implemented yet.
 ### <a name="ListContainerProcesses"></a>func ListContainerProcesses
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -491,6 +554,12 @@ an image currently in storage.  See also [InspectImage](InspectImage).
 method ListPods() [ListPodData](#ListPodData)</div>
 ListPods returns a list of pods in no particular order.  They are
 returned as an array of ListPodData structs.  See also [GetPod](#GetPod).
+### <a name="MountContainer"></a>func MountContainer
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method MountContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+MountContainer mounts a container by name or full/partial ID.  Upon a successful mount, the destination
+mount is returned as a string.
 ### <a name="PauseContainer"></a>func PauseContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -696,6 +765,11 @@ be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, 
 
 method TopPod() [NotImplemented](#NotImplemented)</div>
 This method has not been implemented yet.
+### <a name="UnmountContainer"></a>func UnmountContainer
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method UnmountContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) </div>
+UnmountContainer umounts a container by its name or full/partial container ID.
 ### <a name="UnpauseContainer"></a>func UnpauseContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1293,6 +1367,33 @@ insecure_registries [[]string](#[]string)
 store [InfoStore](#InfoStore)
 
 podman [InfoPodmanBinary](#InfoPodmanBinary)
+### <a name="Runlabel"></a>type Runlabel
+
+Runlabel describes the required input for container runlabel
+
+image [string](https://godoc.org/builtin#string)
+
+authfile [string](https://godoc.org/builtin#string)
+
+certDir [string](https://godoc.org/builtin#string)
+
+creds [string](https://godoc.org/builtin#string)
+
+display [bool](https://godoc.org/builtin#bool)
+
+name [string](https://godoc.org/builtin#string)
+
+pull [bool](https://godoc.org/builtin#bool)
+
+signaturePolicyPath [string](https://godoc.org/builtin#string)
+
+tlsVerify [bool](https://godoc.org/builtin#bool)
+
+label [string](https://godoc.org/builtin#string)
+
+extraArgs [[]string](#[]string)
+
+opts [map[string]](#map[string])
 ### <a name="Sockets"></a>type Sockets
 
 Sockets describes sockets location for a container
@@ -1336,7 +1437,7 @@ ImageNotFound means the image could not be found by the provided name or ID in l
 NoContainerRunning means none of the containers requested are running in a command that requires a running container.
 ### <a name="NoContainersInPod"></a>type NoContainersInPod
 
-NoContainersInPod means a pod has no containers on which to perform operation. It contains
+NoContainersInPod means a pod has no containers on which to perform the operation. It contains
 the pod ID.
 ### <a name="PodContainerError"></a>type PodContainerError
 
