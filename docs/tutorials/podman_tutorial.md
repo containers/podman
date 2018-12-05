@@ -24,7 +24,7 @@ acquire the source, and build it.
 sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
                                   gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
                                   atomic-registries iptables skopeo-containers containernetworking-cni \
-                                  conmon
+                                  conmon ostree-devel
 ```
 ### Building and installing podman
 
@@ -54,7 +54,7 @@ tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was use
 #### Installing base packages
 ```console
 sudo apt-get update
-sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
+sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev libostree-dev \
                         go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev python3-setuptools
 ```
 #### Building and installing conmon
