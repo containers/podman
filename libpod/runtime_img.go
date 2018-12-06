@@ -3,49 +3,14 @@ package libpod
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
-	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 )
 
 // Runtime API
-
-// CopyOptions contains the options given when pushing or pulling images
-type CopyOptions struct {
-	// Compression specifies the type of compression which is applied to
-	// layer blobs.  The default is to not use compression, but
-	// archive.Gzip is recommended.
-	Compression archive.Compression
-	// DockerRegistryOptions encapsulates settings that affect how we
-	// connect or authenticate to a remote registry to which we want to
-	// push the image.
-	common.DockerRegistryOptions
-	// SigningOptions encapsulates settings that control whether or not we
-	// strip or add signatures to the image when pushing (uploading) the
-	// image to a registry.
-	common.SigningOptions
-
-	// SigningPolicyPath this points to a alternative signature policy file, used mainly for testing
-	SignaturePolicyPath string
-	// AuthFile is the path of the cached credentials file defined by the user
-	AuthFile string
-	// Writer is the reportWriter for the output
-	Writer io.Writer
-	// Reference is the name for the image created when a tar archive is imported
-	Reference string
-	// ImageConfig is the Image spec for the image created when a tar archive is imported
-	ImageConfig ociv1.Image
-	// ManifestMIMEType is the manifest type of the image when saving to a directory
-	ManifestMIMEType string
-	// ForceCompress compresses the image layers when saving to a directory using the dir transport if true
-	ForceCompress bool
-}
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true

@@ -81,7 +81,6 @@ func pushCmd(c *cli.Context) error {
 	var (
 		registryCreds *types.DockerAuthConfig
 		destName      string
-		forceSecure   bool
 	)
 
 	args := c.Args()
@@ -108,7 +107,6 @@ func pushCmd(c *cli.Context) error {
 	}
 
 	certPath := c.String("cert-dir")
-	skipVerify := !c.BoolT("tls-verify")
 	removeSignatures := c.Bool("remove-signatures")
 	signBy := c.String("sign-by")
 
@@ -145,14 +143,12 @@ func pushCmd(c *cli.Context) error {
 		}
 	}
 
-	if c.IsSet("tls-verify") {
-		forceSecure = c.Bool("tls-verify")
-	}
-
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerRegistryCreds:         registryCreds,
-		DockerCertPath:              certPath,
-		DockerInsecureSkipTLSVerify: skipVerify,
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      certPath,
+	}
+	if c.IsSet("tls-verify") {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
 	}
 
 	so := image.SigningOptions{
@@ -167,5 +163,5 @@ func pushCmd(c *cli.Context) error {
 
 	authfile := getAuthFile(c.String("authfile"))
 
-	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, authfile, c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, forceSecure, nil)
+	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, authfile, c.String("signature-policy"), writer, c.Bool("compress"), so, &dockerRegistryOptions, nil)
 }

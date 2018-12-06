@@ -4,11 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/docker/go-units"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,9 +13,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
 	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -620,7 +620,7 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 			registryCreds = creds
 		}
 		dockerRegistryOptions.DockerRegistryCreds = registryCreds
-		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, signaturePolicyPath, authfile, output, &dockerRegistryOptions, image.SigningOptions{}, false, false)
+		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, signaturePolicyPath, authfile, output, &dockerRegistryOptions, image.SigningOptions{}, false)
 	} else {
 		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
 	}

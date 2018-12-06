@@ -282,7 +282,7 @@ func SystemContextFromOptions(c *cli.Context) (*types.SystemContext, error) {
 		DockerCertPath: c.String("cert-dir"),
 	}
 	if c.IsSet("tls-verify") {
-		ctx.DockerInsecureSkipTLSVerify = !c.BoolT("tls-verify")
+		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
 		ctx.OCIInsecureSkipTLSVerify = !c.BoolT("tls-verify")
 		ctx.DockerDaemonInsecureSkipTLSVerify = !c.BoolT("tls-verify")
 	}

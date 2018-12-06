@@ -610,7 +610,8 @@ method InspectImage(name: string) -> (image: string)
 method HistoryImage(name: string) -> (history: []ImageHistory)
 
 # PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
-# and a boolean as to whether tls-verify should be used.  It will return an [ImageNotFound](#ImageNotFound) error if
+# and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
+# It will return an [ImageNotFound](#ImageNotFound) error if
 # the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
 method PushImage(name: string, tag: string, tlsverify: bool) -> (image: string)
 

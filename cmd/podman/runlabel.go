@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
@@ -153,8 +154,10 @@ func runlabelCmd(c *cli.Context) error {
 	}
 
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerCertPath:              c.String("cert-dir"),
-		DockerInsecureSkipTLSVerify: !c.BoolT("tls-verify"),
+		DockerCertPath: c.String("cert-dir"),
+	}
+	if c.IsSet("tls-verify") {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
 	}
 
 	authfile := getAuthFile(c.String("authfile"))

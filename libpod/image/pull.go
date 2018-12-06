@@ -10,7 +10,6 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistries"
@@ -19,7 +18,6 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/registries"
-	"github.com/containers/libpod/pkg/util"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -193,7 +191,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
-func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -209,48 +207,33 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 			return nil, errors.Wrapf(err, "error determining pull goal for image %q", inputName)
 		}
 	}
-	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions)
 }
 
 // pullImageFromReference pulls an image from a types.imageReference.
-func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))
 	}
-	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, forceSecure)
+	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions)
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
-func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, forceSecure bool) ([]string, error) {
+func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
 		return nil, err
 	}
 	defer policyContext.Destroy()
 
-	insecureRegistries, err := registries.GetInsecureRegistries()
-	if err != nil {
-		return nil, err
-	}
+	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
 	var images []string
 	var pullErrors *multierror.Error
 	for _, imageInfo := range goal.refPairs {
 		copyOptions := getCopyOptions(sc, writer, dockerOptions, nil, signingOptions, "", nil)
-		if imageInfo.srcRef.Transport().Name() == DockerTransport {
-			imgRef := imageInfo.srcRef.DockerReference()
-			if imgRef == nil { // This should never happen; such references can’t be created.
-				return nil, fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference",
-					transports.ImageName(imageInfo.srcRef))
-			}
-			registry := reference.Domain(imgRef)
-
-			if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
-				copyOptions.SourceCtx.DockerInsecureSkipTLSVerify = true
-				logrus.Info(fmt.Sprintf("%s is an insecure registry; pulling with tls-verify=false", registry))
-			}
-		}
+		copyOptions.SourceCtx.SystemRegistriesConfPath = systemRegistriesConfPath // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 		// Print the following statement only when pulling from a docker or atomic registry
 		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
 			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
@@ -271,7 +254,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	}
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
 	if len(images) == 0 {
-		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{})
+		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{SystemRegistriesConfPath: systemRegistriesConfPath})
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
 		}

@@ -125,7 +125,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull, forceSecure bool) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool) (*Image, error) {
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
@@ -145,7 +145,7 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, forceSecure)
+	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
@@ -167,7 +167,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{}, false)
+	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
@@ -498,7 +498,7 @@ func (i *Image) UntagImage(tag string) error {
 
 // PushImageToHeuristicDestination pushes the given image to "destination", which is heuristically parsed.
 // Use PushImageToReference if the destination is known precisely.
-func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	if destination == "" {
 		return errors.Wrapf(syscall.EINVAL, "destination image name must be specified")
 	}
@@ -516,11 +516,11 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 			return err
 		}
 	}
-	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, forceSecure, additionalDockerArchiveTags)
+	return i.PushImageToReference(ctx, dest, manifestMIMEType, authFile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, additionalDockerArchiveTags)
 }
 
 // PushImageToReference pushes the given image to a location described by the given path
-func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, forceSecure bool, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
 
 	policyContext, err := getPolicyContext(sc)
@@ -534,23 +534,8 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
 	}
-	insecureRegistries, err := registries.GetInsecureRegistries()
-	if err != nil {
-		return err
-	}
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
-	if dest.Transport().Name() == DockerTransport {
-		imgRef := dest.DockerReference()
-		if imgRef == nil { // This should never happen; such references can’t be created.
-			return fmt.Errorf("internal error: DockerTransport reference %s does not have a DockerReference", transports.ImageName(dest))
-		}
-		registry := reference.Domain(imgRef)
-
-		if util.StringInSlice(registry, insecureRegistries) && !forceSecure {
-			copyOptions.DestinationCtx.DockerInsecureSkipTLSVerify = true
-			logrus.Info(fmt.Sprintf("%s is an insecure registry; pushing with tls-verify=false", registry))
-		}
-	}
+	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 	// Copy the image to the remote destination
 	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {

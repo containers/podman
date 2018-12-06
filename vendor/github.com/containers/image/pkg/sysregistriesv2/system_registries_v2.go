@@ -3,7 +3,7 @@ package sysregistriesv2
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -82,8 +82,8 @@ func (e *InvalidRegistries) Error() string {
 }
 
 // parseURL parses the input string, performs some sanity checks and returns
-// the sanitized input string.  An error is returned in case parsing fails or
-// or if URI scheme or user is set.
+// the sanitized input string.  An error is returned if the input string is
+// empty or if contains an "http{s,}://" prefix.
 func parseURL(input string) (string, error) {
 	trimmed := strings.TrimRight(input, "/")
 
@@ -91,46 +91,8 @@ func parseURL(input string) (string, error) {
 		return "", &InvalidRegistries{s: "invalid URL: cannot be empty"}
 	}
 
-	// Ultimately, we expect input of the form example.com[/namespace/…], a prefix
-	// of a fully-expended reference (containers/image/docker/Reference.String()).
-	// c/image/docker/Reference does not currently provide such a parser.
-	// So, we use url.Parse("http://"+trimmed) below to ~verify the format, possibly
-	// letting some invalid input in, trading that off for a simpler parser.
-	//
-	// url.Parse("http://"+trimmed) is, sadly, too permissive, notably for
-	// trimmed == "http://example.com/…", url.Parse("http://http://example.com/…")
-	// is accepted and parsed as
-	// {Scheme: "http", Host: "http:", Path: "//example.com/…"}.
-	//
-	// So, first we do an explicit check for an unwanted scheme prefix:
-
-	// This will parse trimmed=="http://example.com/…" with Scheme: "http".  Perhaps surprisingly,
-	// it also succeeds for the input we want to accept, in different ways:
-	// "example.com" -> {Scheme:"", Opaque:"", Path:"example.com"}
-	// "example.com/repo" -> {Scheme:"", Opaque:"", Path:"example.com/repo"}
-	// "example.com:5000" -> {Scheme:"example.com", Opaque:"5000"}
-	// "example.com:5000/repo" -> {Scheme:"example.com", Opaque:"5000/repo"}
-	uri, err := url.Parse(trimmed)
-	if err != nil {
-		return "", &InvalidRegistries{s: fmt.Sprintf("invalid URL '%s': %v", input, err)}
-	}
-
-	// Check if a URI Scheme is set.
-	// Note that URLs that do not start with a slash after the scheme are
-	// interpreted as `scheme:opaque[?query][#fragment]`; see above for examples.
-	if uri.Scheme != "" && uri.Opaque == "" {
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
 		msg := fmt.Sprintf("invalid URL '%s': URI schemes are not supported", input)
-		return "", &InvalidRegistries{s: msg}
-	}
-
-	uri, err = url.Parse("http://" + trimmed)
-	if err != nil {
-		msg := fmt.Sprintf("invalid URL '%s': sanitized URL did not parse: %v", input, err)
-		return "", &InvalidRegistries{s: msg}
-	}
-
-	if uri.User != nil {
-		msg := fmt.Sprintf("invalid URL '%s': user/password are not supported", trimmed)
 		return "", &InvalidRegistries{s: msg}
 	}
 
@@ -279,7 +241,18 @@ var configMutex = sync.Mutex{}
 // are synchronized via configMutex.
 var configCache = make(map[string][]Registry)
 
+// InvalidateCache invalidates the registry cache.  This function is meant to be
+// used for long-running processes that need to reload potential changes made to
+// the cached registry config files.
+func InvalidateCache() {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	configCache = make(map[string][]Registry)
+}
+
 // GetRegistries loads and returns the registries specified in the config.
+// Note the parsed content of registry config files is cached.  For reloading,
+// use `InvalidateCache` and re-call `GetRegistries`.
 func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 	configPath := getConfigPath(ctx)
 
@@ -293,6 +266,13 @@ func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 	// load the config
 	config, err := loadRegistryConf(configPath)
 	if err != nil {
+		// Return an empty []Registry if we use the default config,
+		// which implies that the config path of the SystemContext
+		// isn't set.  Note: if ctx.SystemRegistriesConfPath points to
+		// the default config, we will still return an error.
+		if os.IsNotExist(err) && (ctx == nil || ctx.SystemRegistriesConfPath == "") {
+			return []Registry{}, nil
+		}
 		return nil, err
 	}
 
@@ -323,23 +303,33 @@ func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 
 // FindUnqualifiedSearchRegistries returns all registries that are configured
 // for unqualified image search (i.e., with Registry.Search == true).
-func FindUnqualifiedSearchRegistries(registries []Registry) []Registry {
+func FindUnqualifiedSearchRegistries(ctx *types.SystemContext) ([]Registry, error) {
+	registries, err := GetRegistries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	unqualified := []Registry{}
 	for _, reg := range registries {
 		if reg.Search {
 			unqualified = append(unqualified, reg)
 		}
 	}
-	return unqualified
+	return unqualified, nil
 }
 
 // FindRegistry returns the Registry with the longest prefix for ref.  If no
 // Registry prefixes the image, nil is returned.
-func FindRegistry(ref string, registries []Registry) *Registry {
+func FindRegistry(ctx *types.SystemContext, ref string) (*Registry, error) {
+	registries, err := GetRegistries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	reg := Registry{}
 	prefixLen := 0
 	for _, r := range registries {
-		if strings.HasPrefix(ref, r.Prefix) {
+		if strings.HasPrefix(ref, r.Prefix+"/") || ref == r.Prefix {
 			length := len(r.Prefix)
 			if length > prefixLen {
 				reg = r
@@ -348,9 +338,9 @@ func FindRegistry(ref string, registries []Registry) *Registry {
 		}
 	}
 	if prefixLen != 0 {
-		return &reg
+		return &reg, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // Reads the global registry file from the filesystem. Returns a byte array.

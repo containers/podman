@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"io"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
@@ -322,13 +322,14 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 		destname = tag
 	}
 
-	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerInsecureSkipTLSVerify: !tlsVerify,
+	dockerRegistryOptions := image.DockerRegistryOptions{}
+	if !tlsVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
 
 	so := image.SigningOptions{}
 
-	if err := newImage.PushImageToHeuristicDestination(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, false, nil); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, nil); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyPushImage(newImage.ID())
@@ -488,7 +489,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 		return err
 	}
 
-	if err := newImage.PushImageToHeuristicDestination(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, false, additionalTags); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, additionalTags); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyExportImage(newImage.ID())
@@ -497,7 +498,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 // PullImage pulls an image from a registry to the image store.
 // TODO This implementation is incomplete
 func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
-	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true, false)
+	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 	}
@@ -520,8 +521,10 @@ func (i *LibpodAPI) ImageExists(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.Runlabel) error {
 	ctx := getContext()
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerCertPath:              input.CertDir,
-		DockerInsecureSkipTLSVerify: !input.TlsVerify,
+		DockerCertPath: input.CertDir,
+	}
+	if !input.TlsVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
 
 	stdErr := os.Stderr

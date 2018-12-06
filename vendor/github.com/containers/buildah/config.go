@@ -543,3 +543,37 @@ func (b *Builder) SetStopSignal(stopSignal string) {
 	b.OCIv1.Config.StopSignal = stopSignal
 	b.Docker.Config.StopSignal = stopSignal
 }
+
+// Healthcheck returns information that recommends how a container engine
+// should check if a running container is "healthy".
+func (b *Builder) Healthcheck() *docker.HealthConfig {
+	if b.Docker.Config.Healthcheck == nil {
+		return nil
+	}
+	return &docker.HealthConfig{
+		Test:        copyStringSlice(b.Docker.Config.Healthcheck.Test),
+		Interval:    b.Docker.Config.Healthcheck.Interval,
+		Timeout:     b.Docker.Config.Healthcheck.Timeout,
+		StartPeriod: b.Docker.Config.Healthcheck.StartPeriod,
+		Retries:     b.Docker.Config.Healthcheck.Retries,
+	}
+}
+
+// SetHealthcheck sets recommended commands to run in order to verify that a
+// running container based on this image is "healthy", along with information
+// specifying how often that test should be run, and how many times the test
+// should fail before the container should be considered unhealthy.
+// Note: this setting is not present in the OCIv1 image format, so it is
+// discarded when writing images using OCIv1 formats.
+func (b *Builder) SetHealthcheck(config *docker.HealthConfig) {
+	b.Docker.Config.Healthcheck = nil
+	if config != nil {
+		b.Docker.Config.Healthcheck = &docker.HealthConfig{
+			Test:        copyStringSlice(config.Test),
+			Interval:    config.Interval,
+			Timeout:     config.Timeout,
+			StartPeriod: config.StartPeriod,
+			Retries:     config.Retries,
+		}
+	}
+}

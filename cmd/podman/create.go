@@ -129,7 +129,7 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	var data *inspect.ImageData = nil
 
 	if rootfs == "" && !rootless.SkipStorageSetup() {
-		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, false)
+		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false)
 		if err != nil {
 			return nil, nil, err
 		}
