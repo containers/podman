@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/storage/drivers"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/system"
@@ -15,8 +14,8 @@ import (
 )
 
 var (
-	// CopyWithTar defines the copy method to use.
-	CopyWithTar = chrootarchive.NewArchiver(nil).CopyWithTar
+	// CopyDir defines the copy method to use.
+	CopyDir = dirCopy
 )
 
 func init() {
@@ -141,7 +140,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		if err != nil {
 			return fmt.Errorf("%s: %s", parent, err)
 		}
-		if err := CopyWithTar(parentDir, dir); err != nil {
+		if err := dirCopy(parentDir, dir); err != nil {
 			return err
 		}
 	}
