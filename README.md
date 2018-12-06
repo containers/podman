@@ -1,7 +1,7 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
 # libpod - library for running OCI-based containers in Pods
 
-### Latest Version: 0.11.1.1
+### Latest Version: 0.12.1
 ### Status: Active Development
 
 ### Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod)
