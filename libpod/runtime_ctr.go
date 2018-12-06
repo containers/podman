@@ -154,6 +154,24 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 	}()
 
+	// Go through the volume mounts and check for named volumes
+	// If the named volme already exists continue, otherwise create
+	// the storage for the named volume.
+	for i, vol := range ctr.config.Spec.Mounts {
+		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
+			volInfo, err := r.state.Volume(vol.Source)
+			if err != nil {
+				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source))
+				if err != nil {
+					logrus.Errorf("error creating named volume %q: %v", vol.Source, err)
+				}
+				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
+				continue
+			}
+			ctr.config.Spec.Mounts[i].Source = volInfo.MountPoint()
+		}
+	}
+
 	if ctr.config.LogPath == "" {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
@@ -170,6 +188,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
+
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
@@ -473,4 +492,12 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
+}
+
+// Check if volName is a named volume and not one of the default mounts we add to containers
+func isNamedVolume(volName string) bool {
+	if volName != "proc" && volName != "tmpfs" && volName != "devpts" && volName != "shm" && volName != "mqueue" && volName != "sysfs" && volName != "cgroup" {
+		return true
+	}
+	return false
 }

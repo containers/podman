@@ -92,6 +92,7 @@ type RuntimeConfig struct {
 	// Not included in on-disk config, use the dedicated containers/storage
 	// configuration file instead
 	StorageConfig storage.StoreOptions `toml:"-"`
+	VolumePath    string               `toml:"volume_path"`
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images
 	ImageDefaultTransport string `toml:"image_default_transport"`
@@ -278,12 +279,13 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	if rootless.IsRootless() {
 		// If we're rootless, override the default storage config
-		storageConf, err := util.GetDefaultStoreOptions()
+		storageConf, volumePath, err := util.GetDefaultStoreOptions()
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
 		}
 		runtime.config.StorageConfig = storageConf
 		runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
+		runtime.config.VolumePath = volumePath
 	}
 
 	configPath := ConfigPath

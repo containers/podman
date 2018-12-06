@@ -94,6 +94,12 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		if _, err := tx.CreateBucketIfNotExists(allPodsBkt); err != nil {
 			return errors.Wrapf(err, "error creating all pods bucket")
 		}
+		if _, err := tx.CreateBucketIfNotExists(volBkt); err != nil {
+			return errors.Wrapf(err, "error creating volume bucket")
+		}
+		if _, err := tx.CreateBucketIfNotExists(allVolsBkt); err != nil {
+			return errors.Wrapf(err, "error creating all volumes bucket")
+		}
 		if _, err := tx.CreateBucketIfNotExists(runtimeConfigBkt); err != nil {
 			return errors.Wrapf(err, "error creating runtime-config bucket")
 		}
@@ -1148,6 +1154,378 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 	}
 
 	return ctrs, nil
+}
+
+// AddVolume adds the given volume to the state. It also adds ctrDepID to
+// the sub bucket holding the container dependencies that this volume has
+func (s *BoltState) AddVolume(volume *Volume) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !volume.valid {
+		return ErrVolumeRemoved
+	}
+
+	volName := []byte(volume.Name())
+
+	volConfigJSON, err := json.Marshal(volume.config)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling volume %s config to JSON", volume.Name())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allVolsBkt, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check if we already have a volume with the given name
+		volExists := allVolsBkt.Get(volName)
+		if volExists != nil {
+			return errors.Wrapf(ErrVolumeExists, "name %s is in use", volume.Name())
+		}
+
+		// We are good to add the volume
+		// Make a bucket for it
+		newVol, err := volBkt.CreateBucket(volName)
+		if err != nil {
+			return errors.Wrapf(err, "error creating bucket for volume %s", volume.Name())
+		}
+
+		// Make a subbucket for the containers using the volume. Dependent container IDs will be addedremoved to
+		// this bucket in addcontainer/removeContainer
+		if _, err := newVol.CreateBucket(volDependenciesBkt); err != nil {
+			return errors.Wrapf(err, "error creating bucket for containers using volume %s", volume.Name())
+		}
+
+		if err := newVol.Put(configKey, volConfigJSON); err != nil {
+			return errors.Wrapf(err, "error storing volume %s configuration in DB", volume.Name())
+		}
+
+		if err := allVolsBkt.Put(volName, volName); err != nil {
+			return errors.Wrapf(err, "error storing volume %s in all volumes bucket in DB", volume.Name())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RemoveVolCtrDep updates the container dependencies sub bucket of the given volume.
+// It deletes it from the bucket when found.
+// This is important when force removing a volume and we want to get rid of the dependencies.
+func (s *BoltState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
+	if ctrID == "" {
+		return nil
+	}
+
+	if !s.valid {
+		return ErrDBBadConfig
+	}
+
+	if !volume.valid {
+		return ErrVolumeRemoved
+	}
+
+	volName := []byte(volume.Name())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBkt.Bucket(volName)
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
+		}
+
+		// Make a subbucket for the containers using the volume
+		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+		depCtrID := []byte(ctrID)
+		if depExists := ctrDepsBkt.Get(depCtrID); depExists != nil {
+			if err := ctrDepsBkt.Delete(depCtrID); err != nil {
+				return errors.Wrapf(err, "error deleting container dependencies %q for volume %s in ctrDependencies bucket in DB", ctrID, volume.Name())
+			}
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RemoveVolume removes the given volume from the state
+func (s *BoltState) RemoveVolume(volume *Volume) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !volume.valid {
+		return ErrVolumeRemoved
+	}
+
+	volName := []byte(volume.Name())
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allVolsBkt, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check if the volume exists
+		volDB := volBkt.Bucket(volName)
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(ErrNoSuchVolume, "volume %s does not exist in DB", volume.Name())
+		}
+
+		// Check if volume is not being used by any container
+		// This should never be nil
+		// But if it is, we can assume that no containers are using
+		// the volume.
+		volCtrsBkt := volDB.Bucket(volDependenciesBkt)
+		if volCtrsBkt != nil {
+			var deps []string
+			err = volCtrsBkt.ForEach(func(id, value []byte) error {
+				deps = append(deps, string(id))
+				return nil
+			})
+			if err != nil {
+				return errors.Wrapf(err, "error getting list of dependencies from dependencies bucket for volumes %q", volume.Name())
+			}
+			if len(deps) > 0 {
+				return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by container(s) %s", volume.Name(), strings.Join(deps, ","))
+			}
+		}
+
+		// volume is ready for removal
+		// Let's kick it out
+		if err := allVolsBkt.Delete(volName); err != nil {
+			return errors.Wrapf(err, "error removing volume %s from all volumes bucket in DB", volume.Name())
+		}
+		if err := volBkt.DeleteBucket(volName); err != nil {
+			return errors.Wrapf(err, "error removing volume %s from DB", volume.Name())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// AllVolumes returns all volumes present in the state
+func (s *BoltState) AllVolumes() ([]*Volume, error) {
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	volumes := []*Volume{}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		allVolsBucket, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+		err = allVolsBucket.ForEach(func(id, name []byte) error {
+			volExists := volBucket.Bucket(id)
+			// This check can be removed if performance becomes an
+			// issue, but much less helpful errors will be produced
+			if volExists == nil {
+				return errors.Wrapf(ErrInternal, "inconsistency in state - volume %s is in all volumes bucket but volume not found", string(id))
+			}
+
+			volume := new(Volume)
+			volume.config = new(VolumeConfig)
+
+			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
+				if errors.Cause(err) != ErrNSMismatch {
+					logrus.Errorf("Error retrieving volume %s from the database: %v", string(id), err)
+				}
+			} else {
+				volumes = append(volumes, volume)
+			}
+
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return volumes, nil
+}
+
+// Volume retrieves a volume from full name
+func (s *BoltState) Volume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	volName := []byte(name)
+
+	volume := new(Volume)
+	volume.config = new(VolumeConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		return s.getVolumeFromDB(volName, volume, volBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+// HasVolume returns true if the given volume exists in the state, otherwise it returns false
+func (s *BoltState) HasVolume(name string) (bool, error) {
+	if name == "" {
+		return false, ErrEmptyID
+	}
+
+	if !s.valid {
+		return false, ErrDBClosed
+	}
+
+	volName := []byte(name)
+
+	exists := false
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return false, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBkt.Bucket(volName)
+		if volDB != nil {
+			exists = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// VolumeInUse checks if any container is using the volume
+// It returns a slice of the IDs of the containers using the given
+// volume. If the slice is empty, no containers use the given volume
+func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
+	if !s.valid {
+		return nil, ErrDBClosed
+	}
+
+	if !volume.valid {
+		return nil, ErrVolumeRemoved
+	}
+
+	depCtrs := []string{}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBucket.Bucket([]byte(volume.Name()))
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in DB", volume.Name())
+		}
+
+		dependsBkt := volDB.Bucket(volDependenciesBkt)
+		if dependsBkt == nil {
+			return errors.Wrapf(ErrInternal, "volume %s has no dependencies bucket", volume.Name())
+		}
+
+		// Iterate through and add dependencies
+		err = dependsBkt.ForEach(func(id, value []byte) error {
+			depCtrs = append(depCtrs, string(id))
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return depCtrs, nil
 }
 
 // AddPod adds the given pod to the state.

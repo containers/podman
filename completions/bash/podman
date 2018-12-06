@@ -689,6 +689,23 @@ __podman_images() {
 	__podman_q images $images_args | awk "$awk_script" | grep -v '<none>$'
 }
 
+# __podman_complete_volumes applies completion of volumes based on the current
+# value of `$cur` or the value of the optional first option `--cur`, if given.
+__podman_complete_volumes() {
+	local current="$cur"
+	if [ "$1" = "--cur" ] ; then
+		current="$2"
+		shift 2
+	fi
+	COMPREPLY=( $(compgen -W "$(__podman_volume "$@")" -- "$current") )
+}
+
+__podman_complete_volume_names() {
+	local names=( $(__podman_q volume ls --quiet) )
+	COMPREPLY=( $(compgen -W "${names[*]}" -- "$cur") )
+}
+
+
 _podman_attach() {
      local options_with_args="
      --detach-keys
@@ -2536,6 +2553,128 @@ _podman_pod() {
      esac
 }
 
+_podman_volume_create() {
+  local options_with_args="
+      --driver
+      --label
+      -l
+      --opt
+      -o
+  "
+
+  local boolean_options="
+    --help
+    -h
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+}
+
+_podman_volume_ls() {
+  local options_with_args="
+      --filter
+      --format
+      -f
+  "
+
+  local boolean_options="
+    --help
+    -h
+    --quiet
+    -q
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+}
+
+_podman_volume_inspect() {
+  local options_with_args="
+      --format
+      -f
+  "
+
+  local boolean_options="
+    --all
+    -a
+    --help
+    -h
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_volume_names
+            ;;
+    esac
+}
+
+_podman_volume_rm() {
+  local options_with_args=""
+
+  local boolean_options="
+    --all
+    -a
+    --force
+    -f
+    --help
+    -h
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+    case "$cur" in
+        -*)
+            COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_volume_names
+            ;;
+    esac
+}
+
+_podman_volume_prune() {
+  local options_with_args=""
+
+  local boolean_options="
+    --force
+    -f
+    --help
+    -h
+  "
+
+  _complete_ "$options_with_args" "$boolean_options"
+}
+
+_podman_volume() {
+    local boolean_options="
+    --help
+    -h
+    "
+    subcommands="
+     create
+     inspect
+     ls
+     rm
+     prune
+    "
+    local aliases="
+     list
+     remove
+    "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+    -*)
+        COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+        ;;
+    *)
+        COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+        ;;
+     esac
+}
+
 _podman_podman() {
      local options_with_args="
 	   --config -c
@@ -2596,6 +2735,7 @@ _podman_podman() {
     unpause
     varlink
     version
+    volume
     wait
      "
 

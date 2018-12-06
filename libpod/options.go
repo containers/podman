@@ -327,6 +327,22 @@ func WithNamespace(ns string) RuntimeOption {
 	}
 }
 
+// WithVolumePath sets the path under which all named volumes
+// should be created.
+// The path changes based on whethe rthe user is running as root
+// or not.
+func WithVolumePath(volPath string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.VolumePath = volPath
+
+		return nil
+	}
+}
+
 // WithDefaultInfraImage sets the infra image for libpod.
 // An infra image is used for inter-container kernel
 // namespace sharing within a pod. Typically, an infra
@@ -1120,6 +1136,70 @@ func withIsInfra() CtrCreateOption {
 		}
 
 		ctr.config.IsInfra = true
+
+		return nil
+	}
+}
+
+// Volume Creation Options
+
+// WithVolumeName sets the name of the volume.
+func WithVolumeName(name string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		// Check the name against a regex
+		if !nameRegex.MatchString(name) {
+			return errors.Wrapf(ErrInvalidArg, "name must match regex [a-zA-Z0-9_-]+")
+		}
+		volume.config.Name = name
+
+		return nil
+	}
+}
+
+// WithVolumeLabels sets the labels of the volume.
+func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.Labels = make(map[string]string)
+		for key, value := range labels {
+			volume.config.Labels[key] = value
+		}
+
+		return nil
+	}
+}
+
+// WithVolumeDriver sets the driver of the volume.
+func WithVolumeDriver(driver string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.Driver = driver
+
+		return nil
+	}
+}
+
+// WithVolumeOptions sets the options of the volume.
+func WithVolumeOptions(options map[string]string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.Options = make(map[string]string)
+		for key, value := range options {
+			volume.config.Options[key] = value
+		}
 
 		return nil
 	}

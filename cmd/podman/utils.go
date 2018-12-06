@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	gosignal "os/signal"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
@@ -11,8 +14,6 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/tools/remotecommand"
-	"os"
-	gosignal "os/signal"
 )
 
 type RawTtyFormatter struct {
@@ -206,6 +207,35 @@ func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error
 		pods = append(pods, pod)
 	}
 	return pods, lastError
+}
+
+func getVolumesFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Volume, error) {
+	args := c.Args()
+	var (
+		vols      []*libpod.Volume
+		lastError error
+		err       error
+	)
+
+	if c.Bool("all") {
+		vols, err = r.Volumes()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get all volumes")
+		}
+	}
+
+	for _, i := range args {
+		vol, err := r.GetVolume(i)
+		if err != nil {
+			if lastError != nil {
+				logrus.Errorf("%q", lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find volume %s", i)
+			continue
+		}
+		vols = append(vols, vol)
+	}
+	return vols, lastError
 }
 
 //printParallelOutput takes the map of parallel worker results and outputs them
