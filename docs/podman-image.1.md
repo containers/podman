@@ -21,6 +21,7 @@ The image command allows you to manage images
 | load     | [podman-load(1)](podman-load.1.md)        | Load an image from the docker archive.                                         |
 | ls       | [podman-images(1)](podman-images.1.md)    | Prints out information about images.                                           |
 | pull     | [podman-pull(1)](podman-pull.1.md)        | Pull an image from a registry.                                                 |
+| prune| [podman-container-prune(1)](podman-container-prune.1.md)        | Removed all unused images from the local store                                 |
 | push     | [podman-push(1)](podman-push.1.md)        | Push an image from local storage to elsewhere.                                 |
 | rm       | [podman-rm(1)](podman-rmi.1.md)           | Removes one or more locally stored images.                                     |
 | save     | [podman-save(1)](podman-save.1.md)        | Save an image to docker-archive or oci.                                        |

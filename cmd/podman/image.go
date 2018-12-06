@@ -13,7 +13,7 @@ var (
 		inspectCommand,
 		loadCommand,
 		lsImagesCommand,
-		//		pruneCommand,
+		pruneImagesCommand,
 		pullCommand,
 		pushCommand,
 		rmImageCommand,
