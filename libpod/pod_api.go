@@ -62,7 +62,13 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	return nil, nil
 }
 
-// Stop stops all containers within a pod that are not already stopped
+// Stop stops all containers within a pod without a timeout.  It assumes -1 for
+// a timeout.
+func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) {
+	return p.StopWithTimeout(ctx, cleanup, -1)
+}
+
+// StopWithTimeout stops all containers within a pod that are not already stopped
 // Each container will use its own stop timeout
 // Only running containers will be stopped. Paused, stopped, or created
 // containers will be ignored.
@@ -77,7 +83,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrCtrExists
 // If both error and the map are nil, all containers were stopped without error
-func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) {
+func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -110,8 +116,11 @@ func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) 
 			ctr.lock.Unlock()
 			continue
 		}
-
-		if err := ctr.stop(ctr.config.StopTimeout); err != nil {
+		stopTimeout := ctr.config.StopTimeout
+		if timeout > -1 {
+			stopTimeout = uint(timeout)
+		}
+		if err := ctr.stop(stopTimeout); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue

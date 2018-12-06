@@ -120,12 +120,12 @@ func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 }
 
 // StopPod ...
-func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string) error {
+func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int64) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
 		return call.ReplyPodNotFound(name)
 	}
-	ctrErrs, err := pod.Stop(getContext(), true)
+	ctrErrs, err := pod.StopWithTimeout(getContext(), true, int(timeout))
 	callErr := handlePodCall(call, pod, ctrErrs, err)
 	if callErr != nil {
 		return err

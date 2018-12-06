@@ -2451,6 +2451,8 @@ _podman_pod_start() {
 
 _podman_pod_stop() {
   local options_with_args="
+      -t
+      --timeout
   "
 
   local boolean_options="
