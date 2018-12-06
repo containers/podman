@@ -6,8 +6,7 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/sirupsen/logrus"
+	"unicode"
 
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -16,6 +15,7 @@ import (
 	"github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -289,6 +289,8 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 					sizeStr = err.Error()
 				} else {
 					sizeStr = units.HumanSizeWithPrecision(float64(*size), 3)
+					lastNumIdx := strings.LastIndexFunc(sizeStr, unicode.IsNumber)
+					sizeStr = sizeStr[:lastNumIdx+1] + " " + sizeStr[lastNumIdx+1:]
 				}
 				params := imagesTemplateParams{
 					Repository:  repo,
@@ -374,13 +376,13 @@ func CreateFilterFuncs(ctx context.Context, r *libpod.Runtime, c *cli.Context, i
 		case "before":
 			before, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
+				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, image.CreatedBeforeFilter(before.Created()))
 		case "after":
 			after, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image % in local stores", splitFilter[1])
+				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, image.CreatedAfterFilter(after.Created()))
 		case "dangling":

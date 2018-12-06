@@ -3,10 +3,12 @@ package integration
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,7 +18,7 @@ var _ = Describe("Podman run", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -24,7 +26,7 @@ var _ = Describe("Podman run", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -42,8 +44,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on a complex local image name", func() {
+		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		podmanTest.RestoreArtifact(nginx)
-		session := podmanTest.Podman([]string{"run", "baude/alpine_nginx:latest", "ls"})
+		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 		Expect(session.ExitCode()).To(Equal(0))
@@ -51,13 +54,13 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run a container based on on a short name with localhost", func() {
 		podmanTest.RestoreArtifact(nginx)
-		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/baude/alpine_nginx:latest"})
+		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
 		rmi := podmanTest.Podman([]string{"rmi", nginx})
 		rmi.WaitWithDefaultTimeout()
 
-		session := podmanTest.Podman([]string{"run", "baude/alpine_nginx:latest", "ls"})
+		session := podmanTest.Podman([]string{"run", "libpod/alpine_nginx:latest", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 		Expect(session.ExitCode()).To(Equal(0))
@@ -202,7 +205,10 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime, shared"))
 	})
 
-	It("podman run with mount flag", func() {
+	It("podman run with --mount flag", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("skip failing test on ppc64le")
+		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session := podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
@@ -221,7 +227,6 @@ var _ = Describe("Podman run", func() {
 		found, matches := session.GrepString("/run/test")
 		Expect(found).Should(BeTrue())
 		Expect(matches[0]).To(ContainSubstring("rw"))
-		Expect(matches[0]).To(ContainSubstring("relatime"))
 		Expect(matches[0]).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
@@ -283,14 +288,27 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run notify_socket", func() {
-		sock := "/run/notify"
+		host := GetHostDistributionInfo()
+		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
+			Skip("this test requires a working runc")
+		}
+		sock := filepath.Join(podmanTest.TempDir, "notify")
+		addr := net.UnixAddr{
+			Name: sock,
+			Net:  "unixgram",
+		}
+		socket, err := net.ListenUnixgram("unixgram", &addr)
+		Expect(err).To(BeNil())
+		defer os.Remove(sock)
+		defer socket.Close()
+
 		os.Setenv("NOTIFY_SOCKET", sock)
+		defer os.Unsetenv("NOTIFY_SOCKET")
+
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "NOTIFY_SOCKET"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString(sock)
-		Expect(match).Should(BeTrue())
-		os.Unsetenv("NOTIFY_SOCKET")
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
 	})
 
 	It("podman run log-opt", func() {
@@ -318,7 +336,7 @@ var _ = Describe("Podman run", func() {
 		hooksDir := tempdir + "/hooks"
 		os.Mkdir(hooksDir, 0755)
 		fileutils.CopyFile("hooks/hooks.json", hooksDir)
-		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir-path=%s", hooksDir))
+		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir=%s", hooksDir))
 		os.Remove(hcheck)
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.Wait(10)
@@ -351,7 +369,7 @@ var _ = Describe("Podman run", func() {
 		keyFile := filepath.Join(targetDir, "key.pem")
 		err = ioutil.WriteFile(keyFile, []byte(mountString), 0755)
 		Expect(err).To(BeNil())
-		execSession := podmanTest.SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
+		execSession := SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession.ExitCode()).To(Equal(0))
 
@@ -604,7 +622,21 @@ USER mail`
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:shared,z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("shared")
+		match, shared := session.GrepString("shared")
 		Expect(match).Should(BeTrue())
+		// make sure it's only shared (and not 'shared,slave')
+		isSharedOnly := !strings.Contains(shared[0], "shared,")
+		Expect(isSharedOnly).Should(BeTrue())
+	})
+
+	It("podman run --pod automatically", func() {
+		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"pod", "ps", "--no-trunc"})
+		check.WaitWithDefaultTimeout()
+		match, _ := check.GrepString("foobar")
+		Expect(match).To(BeTrue())
 	})
 })

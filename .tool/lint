@@ -40,6 +40,8 @@ ${LINTER} \
 	--exclude='.*_test\.go:.*error return value not checked.*\(errcheck\)$'\
 	--exclude='duplicate of.*_test.go.*\(dupl\)$'\
 	--exclude='cmd\/client\/.*\.go.*\(dupl\)$'\
+	--exclude='libpod\/.*_easyjson.go:.*'\
+	--exclude='.* other occurrence\(s\) of "(container|host|tmpfs|unknown)" found in: .*\(goconst\)$'\
 	--exclude='vendor\/.*'\
 	--exclude='podman\/.*'\
 	--exclude='server\/seccomp\/.*\.go.*$'\

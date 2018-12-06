@@ -9,6 +9,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -296,6 +297,8 @@ type ContainerConfig struct {
 	HostAdd []string `json:"hostsAdd,omitempty"`
 	// Network names (CNI) to add container to. Empty to use default network.
 	Networks []string `json:"networks,omitempty"`
+	// Network mode specified for the default network.
+	NetMode namespaces.NetworkMode `json:"networkMode,omitempty"`
 
 	// Image Config
 
@@ -826,7 +829,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	ips := make([]net.IPNet, 0)
@@ -854,7 +857,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod")
+		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	routes := make([]types.Route, 0)
@@ -995,4 +998,16 @@ func (c *Container) IsInfra() bool {
 // IsReadOnly returns whether the container is running in read only mode
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly
+}
+
+// NetworkDisabled returns whether the container is running with a disabled network
+func (c *Container) NetworkDisabled() bool {
+	if !c.config.PostConfigureNetNS {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return ns.Path == ""
+			}
+		}
+	}
+	return false
 }

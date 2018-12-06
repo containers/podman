@@ -17,6 +17,25 @@ are not deleted if checkpointing fails for further debugging. If checkpointing s
 files are theoretically not needed, but if these files are needed Podman can keep the files
 for further analysis.
 
+**--all, -a**
+
+Checkpoint all running containers.
+
+**--latest, -l**
+
+Instead of providing the container name or ID, checkpoint the last created container.
+
+**--leave-running, -R**
+
+Leave the container running after checkpointing instead of stopping it.
+
+**--tcp-established**
+
+Checkpoint a container with established TCP connections. If the checkpoint
+image contains established TCP connections, this options is required during
+restore. Defaults to not checkpointing containers with established TCP
+connections.
+
 ## EXAMPLE
 
 podman container checkpoint mywebserver

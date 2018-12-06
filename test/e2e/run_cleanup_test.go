@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +13,7 @@ var _ = Describe("Podman run exit", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,7 +21,7 @@ var _ = Describe("Podman run exit", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -32,14 +33,14 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
-		mount := podmanTest.SystemExec("mount", nil)
+		mount := SystemExec("mount", nil)
 		mount.WaitWithDefaultTimeout()
 		out1 := mount.OutputToString()
 		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.SystemExec("mount", nil)
+		mount = SystemExec("mount", nil)
 		mount.WaitWithDefaultTimeout()
 		out2 := mount.OutputToString()
 		Expect(out1).To(Equal(out2))

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman load", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman load", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -55,7 +56,7 @@ var _ = Describe("Podman load", func() {
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 
-		compress := podmanTest.SystemExec("gzip", []string{outfile})
+		compress := SystemExec("gzip", []string{outfile})
 		compress.WaitWithDefaultTimeout()
 		outfile = outfile + ".gz"
 
@@ -139,6 +140,9 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load multiple tags", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("skip on ppc64le")
+		}
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 		alpVersion := "docker.io/library/alpine:3.2"
 
@@ -250,7 +254,7 @@ var _ = Describe("Podman load", func() {
 		save := podmanTest.Podman([]string{"save", "-o", outfile, BB})
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
-		session := podmanTest.SystemExec("xz", []string{outfile})
+		session := SystemExec("xz", []string{outfile})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

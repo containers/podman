@@ -3,11 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -58,6 +62,10 @@ var podCreateFlags = []cli.Flag{
 		Name:  "pod-id-file",
 		Usage: "Write the pod ID to the file",
 	},
+	cli.StringSliceFlag{
+		Name:  "publish, p",
+		Usage: "Publish a container's port, or a range of ports, to the host (default [])",
+	},
 	cli.StringFlag{
 		Name:  "share",
 		Usage: "A comma delimited list of kernel namespaces the pod will share",
@@ -102,6 +110,16 @@ func podCreateCmd(c *cli.Context) error {
 		defer podIdFile.Close()
 		defer podIdFile.Sync()
 	}
+
+	if len(c.StringSlice("publish")) > 0 {
+		if !c.BoolT("infra") {
+			return errors.Errorf("you must have an infra container to publish port bindings to the host")
+		}
+		if rootless.IsRootless() {
+			return errors.Errorf("rootless networking does not allow port binding to the host")
+		}
+	}
+
 	if !c.BoolT("infra") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
 		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
 	}
@@ -131,6 +149,14 @@ func podCreateCmd(c *cli.Context) error {
 		options = append(options, nsOptions...)
 	}
 
+	if len(c.StringSlice("publish")) > 0 {
+		portBindings, err := CreatePortBindings(c.StringSlice("publish"))
+		if err != nil {
+			return err
+		}
+		options = append(options, libpod.WithInfraContainerPorts(portBindings))
+
+	}
 	// always have containers use pod cgroups
 	// User Opt out is not yet supported
 	options = append(options, libpod.WithPodCgroups())
@@ -151,4 +177,37 @@ func podCreateCmd(c *cli.Context) error {
 	fmt.Printf("%s\n", pod.ID())
 
 	return nil
+}
+
+// CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
+func CreatePortBindings(ports []string) ([]ocicni.PortMapping, error) {
+	var portBindings []ocicni.PortMapping
+	// The conversion from []string to natBindings is temporary while mheon reworks the port
+	// deduplication code.  Eventually that step will not be required.
+	_, natBindings, err := nat.ParsePortSpecs(ports)
+	if err != nil {
+		return nil, err
+	}
+	for containerPb, hostPb := range natBindings {
+		var pm ocicni.PortMapping
+		pm.ContainerPort = int32(containerPb.Int())
+		for _, i := range hostPb {
+			var hostPort int
+			var err error
+			pm.HostIP = i.HostIP
+			if i.HostPort == "" {
+				hostPort = containerPb.Int()
+			} else {
+				hostPort, err = strconv.Atoi(i.HostPort)
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to convert host port to integer")
+				}
+			}
+
+			pm.HostPort = int32(hostPort)
+			pm.Protocol = containerPb.Proto()
+			portBindings = append(portBindings, pm)
+		}
+	}
+	return portBindings, nil
 }

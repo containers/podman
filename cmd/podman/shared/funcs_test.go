@@ -18,10 +18,11 @@ var (
 )
 
 func TestGenerateCommand(t *testing.T) {
-	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
+	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo \"hello world\""
+	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo hello world"
 	newCommand, err := GenerateCommand(inputCommand, "foo", "bar")
 	assert.Nil(t, err)
+	assert.Equal(t, "hello world", newCommand[11])
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
@@ -108,8 +109,8 @@ func TestGenerateCommandNoSetName(t *testing.T) {
 }
 
 func TestGenerateCommandNoName(t *testing.T) {
-	inputCommand := "docker run -it  -e IMAGE=IMAGE IMAGE echo install"
-	correctCommand := "/proc/self/exe run -it  -e IMAGE=foo foo echo install"
+	inputCommand := "docker run -it -e IMAGE=IMAGE IMAGE echo install"
+	correctCommand := "/proc/self/exe run -it -e IMAGE=foo foo echo install"
 	newCommand, err := GenerateCommand(inputCommand, "foo", "")
 	assert.Nil(t, err)
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))

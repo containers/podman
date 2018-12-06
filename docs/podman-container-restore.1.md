@@ -24,6 +24,22 @@ processes in the checkpointed container.
 Without the **-k**, **--keep** option the checkpoint will be consumed and cannot be used
 again.
 
+**--all, -a**
+
+Restore all checkpointed containers.
+
+**--latest, -l**
+
+Instead of providing the container name or ID, restore the last created container.
+
+**--tcp-established**
+
+Restore a container with established TCP connections. If the checkpoint image
+contains established TCP connections, this option is required during restore.
+If the checkpoint image does not contain established TCP connections this
+option is ignored. Defaults to not restoring containers with established TCP
+connections.
+
 ## EXAMPLE
 
 podman container restore mywebserver

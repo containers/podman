@@ -1,15 +1,16 @@
 package main
 
 import (
-	"os"
+	"fmt"
 	"syscall"
 
-	"fmt"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -41,6 +42,11 @@ var (
 
 // killCmd kills one or more containers with a signal
 func killCmd(c *cli.Context) error {
+	var (
+		killFuncs  []shared.ParallelWorkerInput
+		killSignal uint = uint(syscall.SIGTERM)
+	)
+
 	if err := checkAllAndLatest(c); err != nil {
 		return err
 	}
@@ -56,7 +62,6 @@ func killCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var killSignal uint = uint(syscall.SIGTERM)
 	if c.String("signal") != "" {
 		// Check if the signalString provided by the user is valid
 		// Invalid signals will return err
@@ -67,17 +72,32 @@ func killCmd(c *cli.Context) error {
 		killSignal = uint(sysSignal)
 	}
 
-	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	if err != nil {
+		if len(containers) == 0 {
+			return err
+		}
+		fmt.Println(err.Error())
+	}
 
 	for _, ctr := range containers {
-		if err := ctr.Kill(killSignal); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
+		con := ctr
+		f := func() error {
+			return con.Kill(killSignal)
 		}
+
+		killFuncs = append(killFuncs, shared.ParallelWorkerInput{
+			ContainerID:  con.ID(),
+			ParallelFunc: f,
+		})
 	}
-	return lastError
+
+	maxWorkers := shared.Parallelize("kill")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	killErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, killFuncs)
+	return printParallelOutput(killErrors, errCount)
 }

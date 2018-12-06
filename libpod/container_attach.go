@@ -16,6 +16,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+//#include <sys/un.h>
+// extern int unix_path_length(){struct sockaddr_un addr; return sizeof(addr.sun_path) - 1;}
+import "C"
+
 /* Sync with stdpipe_t in conmon.c */
 const (
 	AttachPipeStdin  = 1
@@ -81,11 +85,19 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 			logrus.Warnf("Failed to write to control file to resize terminal: %v", err)
 		}
 	})
-	logrus.Debug("connecting to socket ", c.AttachSocketPath())
 
-	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: c.AttachSocketPath(), Net: "unixpacket"})
+	socketPath := c.AttachSocketPath()
+
+	maxUnixLength := int(C.unix_path_length())
+	if maxUnixLength < len(socketPath) {
+		socketPath = socketPath[0:maxUnixLength]
+	}
+
+	logrus.Debug("connecting to socket ", socketPath)
+
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", c.AttachSocketPath())
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
 	}
 	defer conn.Close()
 

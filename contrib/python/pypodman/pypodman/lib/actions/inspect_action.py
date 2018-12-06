@@ -23,9 +23,9 @@ class Inspect(AbstractActionBase):
             help='Type of object to inspect',
         )
         parser.add_argument(
-            'size',
+            '--size',
             action='store_true',
-            default=True,
+            default=False,
             help='Display the total file size if the type is a container.'
             ' Always True.')
         parser.add_argument(
@@ -59,7 +59,7 @@ class Inspect(AbstractActionBase):
 
     def inspect(self):
         """Inspect provided podman objects."""
-        output = {}
+        output = []
         try:
             for ident in self._args.objects:
                 obj = None
@@ -78,7 +78,13 @@ class Inspect(AbstractActionBase):
                         msg = 'Object "{}" not found'.format(ident)
                     print(msg, file=sys.stderr, flush=True)
                 else:
-                    output.update(obj._asdict())
+                    fields = obj._asdict()
+                    if not self._args.size:
+                        try:
+                            del fields['sizerootfs']
+                        except KeyError:
+                            pass
+                    output.append(fields)
         except podman.ErrorOccurred as e:
             sys.stdout.flush()
             print(

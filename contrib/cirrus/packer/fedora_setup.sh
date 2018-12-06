@@ -21,8 +21,7 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-# breaks networking on f28/29 in GCE
-# ooe.sh sudo dnf update -y
+ooe.sh sudo dnf update -y
 
 ooe.sh sudo dnf install -y \
     atomic-registries \

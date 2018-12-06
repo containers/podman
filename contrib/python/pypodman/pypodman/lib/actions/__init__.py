@@ -22,6 +22,8 @@ from pypodman.lib.actions.rm_action import Rm
 from pypodman.lib.actions.rmi_action import Rmi
 from pypodman.lib.actions.run_action import Run
 from pypodman.lib.actions.search_action import Search
+from pypodman.lib.actions.start_action import Start
+from pypodman.lib.actions.version_action import Version
 
 __all__ = [
     'Attach',
@@ -47,4 +49,6 @@ __all__ = [
     'Rmi',
     'Run',
     'Search',
+    'Start',
+    'Version',
 ]

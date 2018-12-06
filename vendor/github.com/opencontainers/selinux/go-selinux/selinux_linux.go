@@ -687,7 +687,11 @@ func Chcon(fpath string, label string, recurse bool) error {
 		return err
 	}
 	callback := func(p string, info os.FileInfo, err error) error {
-		return SetFileLabel(p, label)
+		e := SetFileLabel(p, label)
+		if os.IsNotExist(e) {
+			return nil
+		}
+		return e
 	}
 
 	if recurse {

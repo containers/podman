@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/utils"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -271,6 +274,9 @@ func (i *LibpodAPI) InspectImage(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyImageNotFound(name)
 	}
 	inspectInfo, err := newImage.Inspect(getContext())
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
 	b, err := json.Marshal(inspectInfo)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to serialize"))
@@ -496,4 +502,46 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 	}
 	return call.ReplyPullImage(newImage.ID())
+}
+
+// ImageExists returns bool as to whether the input image exists in local storage
+func (i *LibpodAPI) ImageExists(call iopodman.VarlinkCall, name string) error {
+	_, err := i.Runtime.ImageRuntime().NewFromLocal(name)
+	if errors.Cause(err) == libpod.ErrNoSuchImage {
+		return call.ReplyImageExists(1)
+	}
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyImageExists(0)
+}
+
+// ContainerRunlabel ...
+func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.Runlabel) error {
+	ctx := getContext()
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerCertPath:              input.CertDir,
+		DockerInsecureSkipTLSVerify: !input.TlsVerify,
+	}
+
+	stdErr := os.Stderr
+	stdOut := os.Stdout
+	stdIn := os.Stdin
+
+	runLabel, imageName, err := shared.GetRunlabel(input.Label, input.Image, ctx, i.Runtime, input.Pull, input.Creds, dockerRegistryOptions, input.Authfile, input.SignaturePolicyPath, nil)
+	if err != nil {
+		return err
+	}
+	if runLabel == "" {
+		return nil
+	}
+
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs)
+	if err != nil {
+		return err
+	}
+	if err := utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyContainerRunlabel()
 }

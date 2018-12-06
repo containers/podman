@@ -31,6 +31,18 @@ CGroup manager to use for container cgroups. Supported values are cgroupfs or sy
 
 Path to where the cpu performance results should be written
 
+**--hooks-dir**=**path**
+
+Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+This option may be set multiple times; paths from later options have higher precedence (`oci-hooks(5)` discusses directory precedence).
+
+For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+
+For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+
+If `--hooks-dir` is unset for root callers, Podman and libpod will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `--hooks-dir`.
+
 **--log-level**
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
@@ -56,7 +68,7 @@ Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
 
-Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for other users.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
 Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
@@ -161,18 +173,6 @@ the exit codes follow the `chroot` standard, see below:
 
     The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
 
-**OCI hooks JSON** (`/etc/containers/oci/hooks.d/*.json`, `/usr/share/containers/oci/hooks.d/*.json`)
-
-    Each `*.json` file in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` configures a hook for Podman containers, with `/etc/containers/oci/hooks.d` having higher precedence.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.
-
-    Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
-
-    For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
-
-    For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
-
-    Hooks are not used when running in rootless mode.
-
 **policy.json** (`/etc/containers/policy.json`)
 
     Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
@@ -192,7 +192,7 @@ the exit codes follow the `chroot` standard, see below:
     When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
 
 ## Rootless mode
-Podman can also be used as non-root user.  When podman runs in rootless mode, an user namespace is automatically created.
+Podman can also be used as non-root user.  When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
 
 Containers created by a non-root user are not visible to other users and are not seen or managed by podman running as root.
 
@@ -209,13 +209,14 @@ Or just add the content manually.
 	$ echo USERNAME:10000:65536 >> /etc/subuid
 	$ echo USERNAME:10000:65536 >> /etc/subgid
 
+See the `subuid(5)` and `subgid(5)` man pages for more information.
+
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
-Currently it is not possible to create a network device, so rootless containers need to run in the host network namespace.  If a rootless container creates a network namespace,
-then only the loopback device will be available.
+Currently the slirp4netns package is required to be installed to create a network device, otherwise rootless containers need to run in the network namespace of the host.
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>

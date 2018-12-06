@@ -44,7 +44,7 @@ func runCmd(c *cli.Context) error {
 		rootless.SetSkipStorageSetup(true)
 	}
 
-	runtime, err := libpodruntime.GetContainerRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -95,8 +95,6 @@ func runCmd(c *cli.Context) error {
 		if !c.Bool("interactive") {
 			inputStream = nil
 		}
-
-		inputStream = nil
 
 		attachTo := c.StringSlice("attach")
 		for _, stream := range attachTo {

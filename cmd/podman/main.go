@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/hooks"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/version"
@@ -77,6 +76,7 @@ func main() {
 		infoCommand,
 		inspectCommand,
 		killCommand,
+		kubeCommand,
 		loadCommand,
 		loginCommand,
 		logoutCommand,
@@ -205,11 +205,9 @@ func main() {
 			Usage:  "path to default mounts file",
 			Hidden: true,
 		},
-		cli.StringFlag{
-			Name:   "hooks-dir-path",
-			Usage:  "set the OCI hooks directory path",
-			Value:  hooks.DefaultDir,
-			Hidden: true,
+		cli.StringSliceFlag{
+			Name:  "hooks-dir",
+			Usage: "set the OCI hooks directory path (may be set multiple times)",
 		},
 		cli.IntFlag{
 			Name:   "max-workers",

@@ -19,6 +19,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const unknownPackage = "Unknown"
+
 func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd *exec.Cmd) error {
 	if os.Geteuid() == 0 {
 		if r.cgroupManager == SystemdCgroupsManager {
@@ -63,10 +65,10 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreContainer bool) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
 	if ctr.state.UserNSRoot == "" {
 		// no need of an intermediate mount ns
-		return r.createOCIContainer(ctr, cgroupParent, restoreContainer)
+		return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -74,7 +76,8 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		defer wg.Done()
 		runtime.LockOSThread()
 
-		fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+		var fd *os.File
+		fd, err = os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
 		if err != nil {
 			return
 		}
@@ -103,7 +106,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		if err != nil {
 			return
 		}
-		err = r.createOCIContainer(ctr, cgroupParent, restoreContainer)
+		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}()
 	wg.Wait()
 
@@ -111,7 +114,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 }
 
 func rpmVersion(path string) string {
-	output := "Unknown"
+	output := unknownPackage
 	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
 	if outp, err := cmd.Output(); err == nil {
 		output = string(outp)
@@ -120,7 +123,7 @@ func rpmVersion(path string) string {
 }
 
 func dpkgVersion(path string) string {
-	output := "Unknown"
+	output := unknownPackage
 	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
 	if outp, err := cmd.Output(); err == nil {
 		output = string(outp)
@@ -129,14 +132,14 @@ func dpkgVersion(path string) string {
 }
 
 func (r *OCIRuntime) pathPackage() string {
-	if out := rpmVersion(r.path); out != "Unknown" {
+	if out := rpmVersion(r.path); out != unknownPackage {
 		return out
 	}
 	return dpkgVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	if out := rpmVersion(r.conmonPath); out != "Unknown" {
+	if out := rpmVersion(r.conmonPath); out != unknownPackage {
 		return out
 	}
 	return dpkgVersion(r.conmonPath)

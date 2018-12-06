@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"syscall"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -30,7 +31,7 @@ var _ = Describe("Podman rootless", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -38,8 +39,9 @@ var _ = Describe("Podman rootless", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.CgroupManager = "cgroupfs"
+		podmanTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -54,6 +56,7 @@ var _ = Describe("Podman rootless", func() {
 		commands := []string{"help", "version"}
 		for _, v := range commands {
 			env := os.Environ()
+			env = append(env, "USER=foo")
 			cmd := podmanTest.PodmanAsUser([]string{v}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
@@ -67,7 +70,7 @@ var _ = Describe("Podman rootless", func() {
 		return os.Lchown(p, 1000, 1000)
 	}
 
-	type rootlessCB func(test PodmanTest, xdgRuntimeDir string, home string, mountPath string)
+	type rootlessCB func(test *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string)
 
 	runInRootlessContext := func(cb rootlessCB) {
 		// Check if we can create an user namespace
@@ -90,8 +93,9 @@ var _ = Describe("Podman rootless", func() {
 
 		tempdir, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
-		rootlessTest := PodmanCreate(tempdir)
+		rootlessTest := PodmanTestCreate(tempdir)
 		rootlessTest.CgroupManager = "cgroupfs"
+		rootlessTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
 		err = filepath.Walk(tempdir, chownFunc)
 		Expect(err).To(BeNil())
 
@@ -114,11 +118,12 @@ var _ = Describe("Podman rootless", func() {
 	}
 
 	It("podman rootless pod", func() {
-		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+		f := func(rootlessTest *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string) {
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
 			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+			env = append(env, "USER=foo")
 
 			cmd := rootlessTest.PodmanAsUser([]string{"pod", "create", "--infra=false"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
@@ -149,19 +154,21 @@ var _ = Describe("Podman rootless", func() {
 		env := os.Environ()
 		env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 		env = append(env, fmt.Sprintf("HOME=%s", home))
+		env = append(env, "USER=foo")
 		cmd := podmanTest.PodmanAsUser([]string{"search", "docker.io/busybox"}, 1000, 1000, env)
 		cmd.WaitWithDefaultTimeout()
 		Expect(cmd.ExitCode()).To(Equal(0))
 	})
 
 	runRootlessHelper := func(args []string) {
-		f := func(rootlessTest PodmanTest, xdgRuntimeDir string, home string, mountPath string) {
+		f := func(rootlessTest *PodmanTestIntegration, xdgRuntimeDir string, home string, mountPath string) {
 			runtime.LockOSThread()
 			defer runtime.UnlockOSThread()
 			env := os.Environ()
 			env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", xdgRuntimeDir))
 			env = append(env, fmt.Sprintf("HOME=%s", home))
 			env = append(env, "PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS=1")
+			env = append(env, "USER=foo")
 
 			allArgs := append([]string{"run"}, args...)
 			allArgs = append(allArgs, "--rootfs", mountPath, "echo", "hello")
@@ -202,6 +209,10 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 
+			cmd = rootlessTest.PodmanAsUser([]string{"inspect", "-l", "--type", "container", "--format", "{{ .State.Status }}"}, 1000, 1000, env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.LineInOutputContains("exited")).To(BeTrue())
+
 			cmd = rootlessTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
@@ -213,6 +224,14 @@ var _ = Describe("Podman rootless", func() {
 			cmd = rootlessTest.PodmanAsUser([]string{"start", "-l"}, 1000, 1000, env)
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
+
+			if len(args) == 0 {
+				cmd = rootlessTest.PodmanAsUser([]string{"inspect", "-l"}, 1000, 1000, env)
+				cmd.WaitWithDefaultTimeout()
+				Expect(cmd.ExitCode()).To(Equal(0))
+				data := cmd.InspectContainerToJSON()
+				Expect(data[0].HostConfig.NetworkMode).To(ContainSubstring("slirp4netns"))
+			}
 
 			if !canUseExec {
 				Skip("ioctl(NS_GET_PARENT) not supported.")

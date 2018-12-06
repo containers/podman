@@ -52,7 +52,7 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 		return nil, errors.Wrap(graphdriver.ErrPrerequisites, "the 'zfs' command is not available")
 	}
 
-	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 600)
+	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 0600)
 	if err != nil {
 		logrus.Debugf("[zfs] cannot open /dev/zfs: %v", err)
 		return nil, errors.Wrapf(graphdriver.ErrPrerequisites, "could not open /dev/zfs: %v", err)
@@ -366,8 +366,13 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 		return mountpoint, nil
 	}
 
+	mountOptions := d.options.mountOptions
+	if len(options.Options) > 0 {
+		mountOptions = strings.Join(options.Options, ",")
+	}
+
 	filesystem := d.zfsPath(id)
-	opts := label.FormatMountLabel(d.options.mountOptions, options.MountLabel)
+	opts := label.FormatMountLabel(mountOptions, options.MountLabel)
 	logrus.Debugf(`[zfs] mount("%s", "%s", "%s")`, filesystem, mountpoint, opts)
 
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)

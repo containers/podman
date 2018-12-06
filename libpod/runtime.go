@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/firewall"
-	"github.com/containers/libpod/pkg/hooks"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -84,6 +83,7 @@ type Runtime struct {
 	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
+	configuredFrom  *runtimeConfiguredFrom
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -141,11 +141,11 @@ type RuntimeConfig struct {
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to
 	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
-	// HooksDir Path to the directory containing hooks configuration files
+	// HooksDir holds paths to the directories containing hooks
+	// configuration files. When the same filename is present in in
+	// multiple directories, the file in the directory listed last in
+	// this slice takes precedence.
 	HooksDir []string `toml:"hooks_dir"`
-	// HooksDirNotExistFatal switches between fatal errors and non-fatal
-	// warnings if the configured HooksDir does not exist.
-	HooksDirNotExistFatal bool `toml:"hooks_dir_not_exist_fatal"`
 	// DefaultMountsFile is the path to the default mounts file for testing
 	// purposes only
 	DefaultMountsFile string `toml:"-"`
@@ -173,6 +173,20 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
+}
+
+// runtimeConfiguredFrom is a struct used during early runtime init to help
+// assemble the full RuntimeConfig struct from defaults.
+// It indicated whether several fields in the runtime configuration were set
+// explicitly.
+// If they were not, we may override them with information from the database,
+// if it exists and differs from what is present in the system already.
+type runtimeConfiguredFrom struct {
+	storageGraphDriverSet bool
+	storageGraphRootSet   bool
+	storageRunRootSet     bool
+	libpodStaticDirSet    bool
+	libpodTmpDirSet       bool
 }
 
 var (
@@ -203,7 +217,6 @@ var (
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		CgroupManager:         SystemdCgroupsManager,
-		HooksDir:              []string{hooks.DefaultDir, hooks.OverrideDir},
 		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,
@@ -253,6 +266,7 @@ func SetXdgRuntimeDir(val string) error {
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
+	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
 	// Copy the default configuration
 	tmpDir, err := getDefaultTmpDir()
@@ -262,8 +276,19 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 	runtime.config.TmpDir = tmpDir
 
+	if rootless.IsRootless() {
+		// If we're rootless, override the default storage config
+		storageConf, err := util.GetDefaultStoreOptions()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
+		}
+		runtime.config.StorageConfig = storageConf
+		runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
+	}
+
 	configPath := ConfigPath
 	foundConfig := true
+	rootlessConfigPath := ""
 	if rootless.IsRootless() {
 		home := os.Getenv("HOME")
 		if runtime.config.SignaturePolicyPath == "" {
@@ -272,7 +297,10 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 				runtime.config.SignaturePolicyPath = newPath
 			}
 		}
-		configPath = filepath.Join(home, ".config/containers/libpod.conf")
+
+		rootlessConfigPath = filepath.Join(home, ".config/containers/libpod.conf")
+
+		configPath = rootlessConfigPath
 		if _, err := os.Stat(configPath); err != nil {
 			foundConfig = false
 		}
@@ -303,6 +331,25 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
 		}
+
+		// This is ugly, but we need to decode twice.
+		// Once to check if libpod static and tmp dirs were explicitly
+		// set (not enough to check if they're not the default value,
+		// might have been explicitly configured to the default).
+		// A second time to actually get a usable config.
+		tmpConfig := new(RuntimeConfig)
+		if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
+			return nil, errors.Wrapf(err, "error decoding configuration file %s",
+				configPath)
+		}
+
+		if tmpConfig.StaticDir != "" {
+			runtime.configuredFrom.libpodStaticDirSet = true
+		}
+		if tmpConfig.TmpDir != "" {
+			runtime.configuredFrom.libpodTmpDirSet = true
+		}
+
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
 		}
@@ -317,6 +364,22 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	if err := makeRuntime(runtime); err != nil {
 		return nil, err
 	}
+
+	if !foundConfig && rootlessConfigPath != "" {
+		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
+		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil && !os.IsExist(err) {
+			return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+		}
+		if err == nil {
+			defer file.Close()
+			enc := toml.NewEncoder(file)
+			if err := enc.Encode(runtime.config); err != nil {
+				os.Remove(rootlessConfigPath)
+			}
+		}
+	}
+
 	return runtime, nil
 }
 
@@ -328,6 +391,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
+	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
 	// Set two fields not in the TOML config
 	runtime.config.StateType = defaultRuntimeConfig.StateType
@@ -406,6 +470,77 @@ func makeRuntime(runtime *Runtime) (err error) {
 			runtime.config.ConmonPath)
 	}
 
+	// Make the static files directory if it does not exist
+	if err := os.MkdirAll(runtime.config.StaticDir, 0700); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating runtime static files directory %s",
+				runtime.config.StaticDir)
+		}
+	}
+
+	// Set up the state
+	switch runtime.config.StateType {
+	case InMemoryStateStore:
+		state, err := NewInMemoryState()
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	case SQLiteStateStore:
+		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
+	case BoltDBStateStore:
+		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
+
+		state, err := NewBoltState(dbPath, runtime)
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	default:
+		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
+	}
+
+	// Grab config from the database so we can reset some defaults
+	dbConfig, err := runtime.state.GetDBConfig()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving runtime configuration from database")
+	}
+
+	// Reset defaults if they were not explicitly set
+	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
+		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
+	}
+	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
+		runtime.config.StorageConfig.GraphRoot = dbConfig.StorageRoot
+	}
+	if !runtime.configuredFrom.storageRunRootSet && dbConfig.StorageTmp != "" {
+		runtime.config.StorageConfig.RunRoot = dbConfig.StorageTmp
+	}
+	if !runtime.configuredFrom.libpodStaticDirSet && dbConfig.LibpodRoot != "" {
+		runtime.config.StaticDir = dbConfig.LibpodRoot
+	}
+	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
+		runtime.config.TmpDir = dbConfig.LibpodTmp
+	}
+
+	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
+	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
+	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
+	logrus.Debugf("Using static dir %s", runtime.config.StaticDir)
+	logrus.Debugf("Using tmp dir %s", runtime.config.TmpDir)
+
+	// Validate our config against the database, now that we've set our
+	// final storage configuration
+	if err := runtime.state.ValidateDBConfig(runtime); err != nil {
+		return err
+	}
+
+	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
+		return errors.Wrapf(err, "error setting libpod namespace in state")
+	}
+	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
+
 	// Set up containers/storage
 	var store storage.Store
 	if rootless.SkipStorageSetup() {
@@ -473,15 +608,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	runtime.ociRuntime = ociRuntime
 
-	// Make the static files directory if it does not exist
-	if err := os.MkdirAll(runtime.config.StaticDir, 0755); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime static files directory %s",
-				runtime.config.StaticDir)
-		}
-	}
-
 	// Make a directory to hold container lockfiles
 	lockDir := filepath.Join(runtime.config.TmpDir, "lock")
 	if err := os.MkdirAll(lockDir, 0755); err != nil {
@@ -503,11 +629,13 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 
 	// Set up the CNI net plugin
-	netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
-	if err != nil {
-		return errors.Wrapf(err, "error configuring CNI network plugin")
+	if !rootless.IsRootless() {
+		netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
+		if err != nil {
+			return errors.Wrapf(err, "error configuring CNI network plugin")
+		}
+		runtime.netPlugin = netPlugin
 	}
-	runtime.netPlugin = netPlugin
 
 	// Set up a firewall backend
 	backendType := ""
@@ -519,33 +647,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.firewallBackend = fwBackend
-
-	// Set up the state
-	switch runtime.config.StateType {
-	case InMemoryStateStore:
-		state, err := NewInMemoryState()
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	case SQLiteStateStore:
-		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
-	case BoltDBStateStore:
-		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
-
-		state, err := NewBoltState(dbPath, runtime.lockDir, runtime)
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	default:
-		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
-	}
-
-	if err := runtime.state.SetNamespace(runtime.config.Namespace); err != nil {
-		return errors.Wrapf(err, "error setting libpod namespace in state")
-	}
-	logrus.Debugf("Set libpod namespace to %q", runtime.config.Namespace)
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this

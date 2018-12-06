@@ -102,7 +102,7 @@ class TestImages(PodmanTestCase):
     def test_push(self):
         path = '{}/alpine_push'.format(self.tmpdir)
         target = 'dir:{}'.format(path)
-        self.alpine_image.push(target)
+        self.alpine_image.push(target, tlsverify=False)
 
         self.assertTrue(os.path.isfile(os.path.join(path, 'manifest.json')))
         self.assertTrue(os.path.isfile(os.path.join(path, 'version')))

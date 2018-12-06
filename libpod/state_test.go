@@ -45,11 +45,16 @@ func getEmptyBoltState() (s State, p string, p2 string, err error) {
 	dbPath := filepath.Join(tmpDir, "db.sql")
 	lockDir := filepath.Join(tmpDir, "locks")
 
+	if err := os.Mkdir(lockDir, 0755); err != nil {
+		return nil, "", "", err
+	}
+
 	runtime := new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.config.StorageConfig = storage.StoreOptions{}
+	runtime.lockDir = lockDir
 
-	state, err := NewBoltState(dbPath, lockDir, runtime)
+	state, err := NewBoltState(dbPath, runtime)
 	if err != nil {
 		return nil, "", "", err
 	}

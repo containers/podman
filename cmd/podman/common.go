@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
@@ -159,6 +160,13 @@ func getAllOrLatestContainers(c *cli.Context, runtime *libpod.Runtime, filterSta
 // getContext returns a non-nil, empty context
 func getContext() context.Context {
 	return context.TODO()
+}
+
+func getDefaultNetwork() string {
+	if rootless.IsRootless() {
+		return "slirp4netns"
+	}
+	return "bridge"
 }
 
 // Common flags shared between commands
@@ -372,7 +380,7 @@ var createFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "net, network",
 		Usage: "Connect a container to a network",
-		Value: "bridge",
+		Value: getDefaultNetwork(),
 	},
 	cli.BoolFlag{
 		Name:  "oom-kill-disable",

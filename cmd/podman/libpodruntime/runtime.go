@@ -5,42 +5,32 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts, err := util.GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-// GetContainerRuntime generates a new libpod runtime configured by command line options for containers
-func GetContainerRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return nil, err
-	}
-	storageOpts, err := util.GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-// GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions) (*libpod.Runtime, error) {
+	storageOpts := new(storage.StoreOptions)
 	options := []libpod.RuntimeOption{}
+
+	if c.IsSet("uidmap") || c.IsSet("gidmap") || c.IsSet("subuidmap") || c.IsSet("subgidmap") {
+		mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
+		if err != nil {
+			return nil, err
+		}
+		storageOpts.UIDMap = mappings.UIDMap
+		storageOpts.GIDMap = mappings.GIDMap
+	}
 
 	if c.GlobalIsSet("root") {
 		storageOpts.GraphRoot = c.GlobalString("root")
 	}
 	if c.GlobalIsSet("runroot") {
 		storageOpts.RunRoot = c.GlobalString("runroot")
+	}
+	if len(storageOpts.RunRoot) > 50 {
+		return nil, errors.New("the specified runroot is longer than 50 characters")
 	}
 	if c.GlobalIsSet("storage-driver") {
 		storageOpts.GraphDriverName = c.GlobalString("storage-driver")
@@ -86,8 +76,8 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	if c.GlobalIsSet("default-mounts-file") {
 		options = append(options, libpod.WithDefaultMountsFile(c.GlobalString("default-mounts-file")))
 	}
-	if c.GlobalIsSet("hooks-dir-path") {
-		options = append(options, libpod.WithHooksDir(c.GlobalString("hooks-dir-path")))
+	if c.GlobalIsSet("hooks-dir") {
+		options = append(options, libpod.WithHooksDir(c.GlobalStringSlice("hooks-dir")...))
 	}
 
 	// TODO flag to set CNI plugins dir?

@@ -49,6 +49,7 @@ type MountOpts struct {
 	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
 	UidMaps []idtools.IDMap
 	GidMaps []idtools.IDMap
+	Options []string
 }
 
 // InitFunc initializes the storage driver.

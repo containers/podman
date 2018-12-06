@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"fmt"
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"strings"
@@ -13,7 +14,7 @@ var _ = Describe("Podman pull", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,7 +22,7 @@ var _ = Describe("Podman pull", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -63,11 +64,11 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from alternate registry without tag", func() {
-		session := podmanTest.Podman([]string{"pull", "quay.io/baude/alpine_nginx"})
+		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "quay.io/baude/alpine_nginx"})
+		session = podmanTest.Podman([]string{"rmi", "quay.io/libpod/alpine_nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -101,7 +102,7 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := podmanTest.SystemExec("rm", []string{"/tmp/alp.tar"})
+		clean := SystemExec("rm", []string{"/tmp/alp.tar"})
 		clean.WaitWithDefaultTimeout()
 		Expect(clean.ExitCode()).To(Equal(0))
 	})
@@ -119,12 +120,12 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := podmanTest.SystemExec("rm", []string{"/tmp/oci-alp.tar"})
+		clean := SystemExec("rm", []string{"/tmp/oci-alp.tar"})
 		clean.WaitWithDefaultTimeout()
 	})
 
 	It("podman pull from local directory", func() {
-		setup := podmanTest.SystemExec("mkdir", []string{"-p", "/tmp/podmantestdir"})
+		setup := SystemExec("mkdir", []string{"-p", "/tmp/podmantestdir"})
 		setup.WaitWithDefaultTimeout()
 		session := podmanTest.Podman([]string{"push", "alpine", "dir:/tmp/podmantestdir"})
 		session.WaitWithDefaultTimeout()
@@ -139,7 +140,7 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		clean := podmanTest.SystemExec("rm", []string{"-fr", "/tmp/podmantestdir"})
+		clean := SystemExec("rm", []string{"-fr", "/tmp/podmantestdir"})
 		clean.WaitWithDefaultTimeout()
 	})
 

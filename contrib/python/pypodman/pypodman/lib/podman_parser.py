@@ -97,6 +97,8 @@ class PodmanArgumentParser(argparse.ArgumentParser):
 
         actions_parser = self.add_subparsers(
             dest='subparser_name', help='commands')
+        # For create/exec/run: don't process options intended for subcommand
+        actions_parser.REMAINDER = argparse.REMAINDER
 
         # import buried here to prevent import loops
         import pypodman.lib.actions  # pylint: disable=cyclic-import
@@ -152,7 +154,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         reqattr(
             'run_dir',
             getattr(args, 'run_dir')
-            or os.environ.get('RUN_DIR')
+            or os.environ.get('PODMAN_RUN_DIR')
             or config['default'].get('run_dir')
             or str(Path(args.xdg_runtime_dir, 'pypodman'))
         )   # yapf: disable
@@ -161,23 +163,24 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             args,
             'host',
             getattr(args, 'host')
-            or os.environ.get('HOST')
+            or os.environ.get('PODMAN_HOST')
             or config['default'].get('host')
         )   # yapf:disable
 
         reqattr(
             'username',
             getattr(args, 'username')
+            or os.environ.get('PODMAN_USER')
+            or config['default'].get('username')
             or os.environ.get('USER')
             or os.environ.get('LOGNAME')
-            or config['default'].get('username')
             or getpass.getuser()
         )   # yapf:disable
 
         reqattr(
             'port',
             getattr(args, 'port')
-            or os.environ.get('PORT')
+            or os.environ.get('PODMAN_PORT')
             or config['default'].get('port', None)
             or 22
         )   # yapf:disable
@@ -185,7 +188,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         reqattr(
             'remote_socket_path',
             getattr(args, 'remote_socket_path')
-            or os.environ.get('REMOTE_SOCKET_PATH')
+            or os.environ.get('PODMAN_REMOTE_SOCKET_PATH')
             or config['default'].get('remote_socket_path')
             or '/run/podman/io.podman'
         )   # yapf:disable
@@ -193,7 +196,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
         reqattr(
             'log_level',
             getattr(args, 'log_level')
-            or os.environ.get('LOG_LEVEL')
+            or os.environ.get('PODMAN_LOG_LEVEL')
             or config['default'].get('log_level')
             or logging.WARNING
         )  # yapf:disable
@@ -202,7 +205,7 @@ class PodmanArgumentParser(argparse.ArgumentParser):
             args,
             'identity_file',
             getattr(args, 'identity_file')
-            or os.environ.get('IDENTITY_FILE')
+            or os.environ.get('PODMAN_IDENTITY_FILE')
             or config['default'].get('identity_file')
             or os.path.expanduser('~{}/.ssh/id_dsa'.format(args.username))
         )   # yapf:disable

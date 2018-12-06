@@ -1,6 +1,21 @@
 """Report Manager."""
+import string
 import sys
 from collections import namedtuple
+
+
+class ReportFormatter(string.Formatter):
+    """Custom formatter to default missing keys to '<none>'."""
+
+    def get_value(self, key, args, kwargs):
+        """Map missing key to value '<none>'."""
+        try:
+            if isinstance(key, int):
+                return args[key]
+            else:
+                return kwargs[key]
+        except KeyError:
+            return '<none>'
 
 
 class ReportColumn(namedtuple('ReportColumn', 'key display width default')):
@@ -26,18 +41,24 @@ class Report():
         """
         self._columns = columns
         self._file = file
+        self._format_string = None
+        self._formatter = ReportFormatter()
         self._heading = heading
         self.epilog = epilog
-        self._format = None
 
     def row(self, **fields):
         """Print row for report."""
         if self._heading:
             hdrs = {k: v.display for (k, v) in self._columns.items()}
-            print(self._format.format(**hdrs), flush=True, file=self._file)
+            print(
+                self._formatter.format(self._format_string, **hdrs),
+                flush=True,
+                file=self._file,
+            )
             self._heading = False
+
         fields = {k: str(v) for k, v in fields.items()}
-        print(self._format.format(**fields))
+        print(self._formatter.format(self._format_string, **fields))
 
     def __enter__(self):
         """Return `self` upon entering the runtime context."""
@@ -63,4 +84,4 @@ class Report():
                 display_len = info.width
 
             fmt.append('{{{0}:{1}.{1}}}'.format(key, display_len))
-        self._format = ' '.join(fmt)
+        self._format_string = ' '.join(fmt)

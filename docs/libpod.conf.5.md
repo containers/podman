@@ -24,6 +24,18 @@ libpod to manage containers.
 **cgroup_manager**=""
   Specify the CGroup Manager to use; valid values are "systemd" and "cgroupfs"
 
+**hooks_dir**=["*path*", ...]
+
+  Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
+
+  Paths listed later in the array higher precedence (`oci-hooks(5)` discusses directory precedence).
+
+  For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
+
+  For the bind-mount conditions, only mounts explicitly requested by the caller via `--volume` are considered.  Bind mounts that libpod inserts by default (e.g. `/dev/shm`) are not considered.
+
+  If `hooks_dir` is unset for root callers, Podman and libpod will currently default to `/usr/share/containers/oci/hooks.d` and `/etc/containers/oci/hooks.d` in order of increasing precedence.  Using these defaults is deprecated, and callers should migrate to explicitly setting `hooks_dir`.
+
 **static_dir**=""
   Directory for persistent libpod files (database, etc)
   By default this will be configured relative to where containers/storage

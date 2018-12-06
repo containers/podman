@@ -95,7 +95,7 @@ func commitCmd(c *cli.Context) error {
 		for _, change := range c.StringSlice("change") {
 			splitChange := strings.Split(strings.ToUpper(change), "=")
 			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
-				return errors.Errorf("invalid syntax for --change ", change)
+				return errors.Errorf("invalid syntax for --change: %s", change)
 			}
 		}
 	}

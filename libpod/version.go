@@ -11,10 +11,10 @@ import (
 var (
 	// GitCommit is the commit that the binary is being built from.
 	// It will be populated by the Makefile.
-	GitCommit string
+	gitCommit string
 	// BuildInfo is the time at which the binary was built
 	// It will be populated by the Makefile.
-	BuildInfo string
+	buildInfo string
 )
 
 //Version is an output struct for varlink
@@ -30,9 +30,9 @@ type Version struct {
 func GetVersion() (Version, error) {
 	var err error
 	var buildTime int64
-	if BuildInfo != "" {
+	if buildInfo != "" {
 		// Converts unix time from string to int64
-		buildTime, err = strconv.ParseInt(BuildInfo, 10, 64)
+		buildTime, err = strconv.ParseInt(buildInfo, 10, 64)
 
 		if err != nil {
 			return Version{}, err
@@ -41,7 +41,7 @@ func GetVersion() (Version, error) {
 	return Version{
 		Version:   podmanVersion.Version,
 		GoVersion: runtime.Version(),
-		GitCommit: GitCommit,
+		GitCommit: gitCommit,
 		Built:     buildTime,
 		OsArch:    runtime.GOOS + "/" + runtime.GOARCH,
 	}, nil

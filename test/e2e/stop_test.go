@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +13,7 @@ var _ = Describe("Podman stop", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,7 +21,7 @@ var _ = Describe("Podman stop", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -54,6 +55,20 @@ var _ = Describe("Podman stop", func() {
 		session = podmanTest.Podman([]string{"stop", "test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman stop stopped container", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"stop", "test1"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+
+		session3 := podmanTest.Podman([]string{"stop", "test1"})
+		session3.WaitWithDefaultTimeout()
+		Expect(session3.ExitCode()).To(Equal(0))
 	})
 
 	It("podman stop all containers", func() {

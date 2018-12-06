@@ -8,6 +8,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	rsystem "github.com/opencontainers/runc/libcontainer/system"
 	"github.com/sirupsen/logrus"
 )
 
@@ -167,7 +168,9 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id string, applyMappings *idtools.IDMappin
 	}
 	defer driver.Put(id)
 
-	options := &archive.TarOptions{}
+	options := &archive.TarOptions{
+		InUserNS: rsystem.RunningInUserNS(),
+	}
 	if applyMappings != nil {
 		options.UIDMaps = applyMappings.UIDs()
 		options.GIDMaps = applyMappings.GIDs()

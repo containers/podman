@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,9 +13,7 @@ var _ = Describe("Podman rmi", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
-		image1     = "docker.io/library/alpine:latest"
-		image3     = "docker.io/library/busybox:glibc"
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -22,7 +21,7 @@ var _ = Describe("Podman rmi", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -42,7 +41,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with fq name", func() {
-		session := podmanTest.Podman([]string{"rmi", image1})
+		session := podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -56,15 +55,18 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi all images", func() {
-		podmanTest.PullImages([]string{image3})
+		podmanTest.PullImages([]string{nginx})
 		session := podmanTest.Podman([]string{"rmi", "-a"})
 		session.WaitWithDefaultTimeout()
+		images := podmanTest.Podman([]string{"images"})
+		images.WaitWithDefaultTimeout()
+		fmt.Println(images.OutputToStringArray())
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
 
 	It("podman rmi all images forcibly with short options", func() {
-		podmanTest.PullImages([]string{image3})
+		podmanTest.PullImages([]string{nginx})
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -247,5 +249,26 @@ var _ = Describe("Podman rmi", func() {
 		session2 := podmanTest.Podman([]string{"rmi", "-fa"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
+	})
+
+	It("podman rmi -a with parent|child images", func() {
+		dockerfile := `FROM docker.io/library/alpine:latest AS base
+RUN touch /1
+ENV LOCAL=/1
+RUN find $LOCAL
+FROM base
+RUN find $LOCAL
+
+`
+		podmanTest.BuildImage(dockerfile, "test", "true")
+		session := podmanTest.Podman([]string{"rmi", "-a"})
+		session.WaitWithDefaultTimeout()
+		fmt.Println(session.OutputToString())
+		Expect(session.ExitCode()).To(Equal(0))
+
+		images := podmanTest.Podman([]string{"images", "--all"})
+		images.WaitWithDefaultTimeout()
+		Expect(images.ExitCode()).To(Equal(0))
+		Expect(len(images.OutputToStringArray())).To(Equal(0))
 	})
 })

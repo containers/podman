@@ -53,6 +53,8 @@ then
     # Some setup needs to vary between distros
     case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
         ubuntu-18)
+            # Always install runc on Ubuntu
+            install_runc_from_git
             envstr='export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) varlink exclude_graphdriver_devicemapper"'
             ;;
         fedora-28) ;&  # Continue to the next item

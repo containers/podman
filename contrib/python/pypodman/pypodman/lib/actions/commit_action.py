@@ -2,7 +2,7 @@
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase, BooleanAction
+from pypodman.lib import AbstractActionBase, BooleanAction, ChangeAction
 
 
 class Commit(AbstractActionBase):
@@ -12,7 +12,9 @@ class Commit(AbstractActionBase):
     def subparser(cls, parent):
         """Add Commit command to parent parser."""
         parser = parent.add_parser(
-            'commit', help='create image from container')
+            'commit',
+            help='create image from container',
+        )
         parser.add_argument(
             '--author',
             help='Set the author for the committed image',
@@ -20,11 +22,7 @@ class Commit(AbstractActionBase):
         parser.add_argument(
             '--change',
             '-c',
-            choices=('CMD', 'ENTRYPOINT', 'ENV', 'EXPOSE', 'LABEL', 'ONBUILD',
-                     'STOPSIGNAL', 'USER', 'VOLUME', 'WORKDIR'),
-            action='append',
-            type=str.upper,
-            help='Apply the following possible changes to the created image',
+            action=ChangeAction,
         )
         parser.add_argument(
             '--format',
@@ -32,7 +30,8 @@ class Commit(AbstractActionBase):
             choices=('oci', 'docker'),
             default='oci',
             type=str.lower,
-            help='Set the format of the image manifest and metadata',
+            help='Set the format of the image manifest and metadata.'
+            ' (Ignored.)',
         )
         parser.add_argument(
             '--iidfile',
@@ -42,7 +41,8 @@ class Commit(AbstractActionBase):
         parser.add_argument(
             '--message',
             '-m',
-            help='Set commit message for committed image',
+            help='Set commit message for committed image'
+            ' (Only on docker images.)',
         )
         parser.add_argument(
             '--pause',
@@ -69,27 +69,11 @@ class Commit(AbstractActionBase):
         )
         parser.set_defaults(class_=cls, method='commit')
 
-    def __init__(self, args):
-        """Construct Commit class."""
-        if not args.container:
-            raise ValueError('You must supply one container id'
-                             ' or name to be used as source.')
-        if not args.image:
-            raise ValueError('You must supply one image id'
-                             ' or name to be created.')
-        super().__init__(args)
-
-        # used only on client
-        del self.opts['image']
-        del self.opts['container']
-
     def commit(self):
         """Create image from container."""
         try:
             try:
                 ctnr = self.client.containers.get(self._args.container[0])
-                ident = ctnr.commit(**self.opts)
-                print(ident)
             except podman.ContainerNotFound as e:
                 sys.stdout.flush()
                 print(
@@ -97,6 +81,17 @@ class Commit(AbstractActionBase):
                     file=sys.stderr,
                     flush=True)
                 return 1
+            else:
+                ident = ctnr.commit(
+                    self.opts['image'][0],
+                    change=self.opts.get('change', None),
+                    message=self.opts.get('message', None),
+                    pause=self.opts['pause'],
+                    author=self.opts.get('author', None),
+                )
+
+                if not self.opts['quiet']:
+                    print(ident)
         except podman.ErrorOccurred as e:
             sys.stdout.flush()
             print(
@@ -104,3 +99,4 @@ class Commit(AbstractActionBase):
                 file=sys.stderr,
                 flush=True)
             return 1
+        return 0

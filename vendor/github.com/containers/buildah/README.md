@@ -107,6 +107,7 @@ $ sudo ./lighttpd.sh
 | [buildah-images(1)](/docs/buildah-images.md)         | List images in local storage.                                                                        |
 | [buildah-inspect(1)](/docs/buildah-inspect.md)       | Inspects the configuration of a container or image.                                                  |
 | [buildah-mount(1)](/docs/buildah-mount.md)           | Mount the working container's root filesystem.                                                       |
+| [buildah-pull(1)](/docs/buildah-pull.md)             | Pull an image from the specified location.                                                           |
 | [buildah-push(1)](/docs/buildah-push.md)             | Push an image from local storage to elsewhere.                                                       |
 | [buildah-rename(1)](/docs/buildah-rename.md)         | Rename a local container.                                                                            |
 | [buildah-rm(1)](/docs/buildah-rm.md)                 | Removes one or more working containers.                                                              |

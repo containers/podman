@@ -2364,7 +2364,7 @@ func (devices *DeviceSet) xfsSetNospaceRetries(info *devInfo) error {
 }
 
 // MountDevice mounts the device if not already mounted.
-func (devices *DeviceSet) MountDevice(hash, path, mountLabel string) error {
+func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.MountOpts) error {
 	info, err := devices.lookupDeviceWithLock(hash)
 	if err != nil {
 		return err
@@ -2396,8 +2396,17 @@ func (devices *DeviceSet) MountDevice(hash, path, mountLabel string) error {
 		options = joinMountOptions(options, "nouuid")
 	}
 
-	options = joinMountOptions(options, devices.mountOptions)
-	options = joinMountOptions(options, label.FormatMountLabel("", mountLabel))
+	mountOptions := devices.mountOptions
+	if len(moptions.Options) > 0 {
+		addNouuid := strings.Contains("nouuid", mountOptions)
+		mountOptions = strings.Join(moptions.Options, ",")
+		if addNouuid {
+			mountOptions = fmt.Sprintf("nouuid,", mountOptions)
+		}
+	}
+
+	options = joinMountOptions(options, mountOptions)
+	options = joinMountOptions(options, label.FormatMountLabel("", moptions.MountLabel))
 
 	if err := mount.Mount(info.DevName(), path, fstype, options); err != nil {
 		return fmt.Errorf("devmapper: Error mounting '%s' on '%s': %s\n%v", info.DevName(), path, err, string(dmesg.Dmesg(256)))

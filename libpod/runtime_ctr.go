@@ -246,7 +246,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	}
 
 	if c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+		if !force {
+			return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+		}
+		if err := c.runtime.ociRuntime.killContainer(c, 9); err != nil {
+			return err
+		}
+		if err := c.unpause(); err != nil {
+			return err
+		}
+		// Need to update container state to make sure we know it's stopped
+		if err := c.waitForExitFileAndSync(); err != nil {
+			return err
+		}
 	}
 
 	// Check that the container's in a good state to be removed
@@ -256,7 +268,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		}
 
 		// Need to update container state to make sure we know it's stopped
-		if err := c.syncContainer(); err != nil {
+		if err := c.waitForExitFileAndSync(); err != nil {
 			return err
 		}
 	} else if !(c.state.State == ContainerStateConfigured ||

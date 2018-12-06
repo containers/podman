@@ -39,7 +39,7 @@
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
-Version: 0.10.2
+Version: 0.11.2
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
@@ -378,10 +378,6 @@ providing packages with %{import_path} prefix.
 
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
-sed -i '/\/bin\/env/d' completions/bash/%{name}
-sed -i 's/0.0.0/%{version}/' contrib/python/%{name}/setup.py
-sed -i 's/0.0.0/%{version}/' contrib/python/py%{name}/setup.py
-mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 # untar cri-o
 tar zxf %{SOURCE1}
@@ -416,15 +412,17 @@ popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
-%{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
         install.man \
         install.cni \
         install.systemd \
         install.completions
 
+mv pkg/hooks/README.md pkg/hooks/README-hooks.md
+
 %if %{with varlink}
-%{__make} DESTDIR=%{buildroot} install.python
+PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} install.python
 %endif # varlink
 
 # install libpod.conf

@@ -3,9 +3,14 @@ approvers:
   - baude
   - mrunalp
   - rhatdan
+  - TomSweeneyRedHat
+  - umohnani8
+  - giuseppe
+  - vrothberg
 reviewers:
   - mheon
   - baude
+  - mrunalp
   - rhatdan
   - TomSweeneyRedHat
   - umohnani8

@@ -1,6 +1,6 @@
 GO ?= go
 DESTDIR ?= /
-EPOCH_TEST_COMMIT ?= 733cfe96819e1dc044e982b5321b3c902d1a47c6
+EPOCH_TEST_COMMIT ?= 1b52843cfd2ae254a6e52c74e564730f1c875c4c
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -23,7 +23,7 @@ BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
-CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null | echo docker)
+CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 
 HAS_PYTHON3 := $(shell command -v python3 2>/dev/null)
 
@@ -31,12 +31,13 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e)
+PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),"${COMMIT_NO}-dirty","${COMMIT_NO}")
 BUILD_INFO ?= $(shell date +%s)
-LDFLAGS_PODMAN ?= $(LDFLAGS) -X main.gitCommit=$(GIT_COMMIT) -X main.buildInfo=$(BUILD_INFO)
+LIBPOD := ${PROJECT}/libpod
+LDFLAGS_PODMAN ?= $(LDFLAGS) -X $(LIBPOD).gitCommit=$(GIT_COMMIT) -X $(LIBPOD).buildInfo=$(BUILD_INFO)
 ISODATE ?= $(shell date --iso-8601)
 LIBSECCOMP_COMMIT := release-2.3
 
@@ -103,6 +104,9 @@ test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
+test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
+	$(GO) build -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
+
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -i -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
@@ -129,6 +133,7 @@ clean:
 		test/bin2img/bin2img \
 		test/checkseccomp/checkseccomp \
 		test/copyimg/copyimg \
+		test/goecho/goecho \
 		test/testdata/redis-image \
 		cmd/podman/varlink/iopodman.go \
 		libpod/container_ffjson.go \
@@ -165,13 +170,19 @@ shell: libpodimage
 testunit: libpodimage
 	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
-localunit: varlink_generate
+localunit: test/goecho/goecho varlink_generate
 	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
 
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 localintegration: varlink_generate test-binaries clientintegration ginkgo
+
+localsystem: .install.ginkgo .install.gomega
+	ginkgo -v -noColor test/system/
+
+system.test-binary: .install.ginkgo .install.gomega
+	$(GO) test -c ./test/system
 
 clientintegration:
 	$(MAKE) -C contrib/python/podman integration
@@ -182,7 +193,7 @@ vagrant-check:
 
 binaries: varlink_generate easyjson_generate podman
 
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp
+test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/goecho/goecho
 
 MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
@@ -282,7 +293,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
 		$(GO) get -u github.com/alecthomas/gometalinter; \
 		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout 23261fa046586808612c61da7a81d75a658e0814; \
+		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
 		$(GO) install github.com/alecthomas/gometalinter; \
 		$(GOBIN)/gometalinter --install; \
 	fi

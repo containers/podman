@@ -451,7 +451,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
 	copyWithTar := b.copyWithTar(nil, nil)
-	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes)
+	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes, int(rootUID), int(rootGID))
 	if err != nil {
 		return err
 	}
@@ -493,15 +493,21 @@ func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts 
 	return mounts, nil
 }
 
-func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWithTar func(srcPath, dstPath string) error, builtinVolumes []string) ([]specs.Mount, error) {
+func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWithTar func(srcPath, dstPath string) error, builtinVolumes []string, rootUID, rootGID int) ([]specs.Mount, error) {
 	var mounts []specs.Mount
+	hostOwner := idtools.IDPair{UID: rootUID, GID: rootGID}
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
 	for _, volume := range builtinVolumes {
 		subdir := digest.Canonical.FromString(volume).Hex()
 		volumePath := filepath.Join(containerDir, "buildah-volumes", subdir)
+		srcPath := filepath.Join(mountPoint, volume)
+		initializeVolume := false
 		// If we need to, initialize the volume path's initial contents.
-		if _, err := os.Stat(volumePath); err != nil && os.IsNotExist(err) {
+		if _, err := os.Stat(volumePath); err != nil {
+			if !os.IsNotExist(err) {
+				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", volumePath, volume)
+			}
 			logrus.Debugf("setting up built-in volume at %q", volumePath)
 			if err = os.MkdirAll(volumePath, 0755); err != nil {
 				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", volumePath, volume)
@@ -509,11 +515,21 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, copyWit
 			if err = label.Relabel(volumePath, mountLabel, false); err != nil {
 				return nil, errors.Wrapf(err, "error relabeling directory %q for volume %q", volumePath, volume)
 			}
-			srcPath := filepath.Join(mountPoint, volume)
-			stat, err := os.Stat(srcPath)
-			if err != nil {
+			initializeVolume = true
+		}
+		stat, err := os.Stat(srcPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
 				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
 			}
+			if err = idtools.MkdirAllAndChownNew(srcPath, 0755, hostOwner); err != nil {
+				return nil, errors.Wrapf(err, "error creating directory %q for volume %q", srcPath, volume)
+			}
+			if stat, err = os.Stat(srcPath); err != nil {
+				return nil, errors.Wrapf(err, "failed to stat %q for volume %q", srcPath, volume)
+			}
+		}
+		if initializeVolume {
 			if err = os.Chmod(volumePath, stat.Mode().Perm()); err != nil {
 				return nil, errors.Wrapf(err, "failed to chmod %q for volume %q", volumePath, volume)
 			}
@@ -1044,24 +1060,31 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
-	hostFile, err := b.addNetworkConfig(path, "/etc/hosts", rootIDPair)
-	if err != nil {
-		return err
-	}
-	resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair)
-	if err != nil {
-		return err
+	bindFiles := make(map[string]string)
+	namespaceOptions := append(b.NamespaceOptions, options.NamespaceOptions...)
+	volumes := b.Volumes()
+
+	if !contains(volumes, "/etc/hosts") {
+		hostFile, err := b.addNetworkConfig(path, "/etc/hosts", rootIDPair)
+		if err != nil {
+			return err
+		}
+		bindFiles["/etc/hosts"] = hostFile
+
+		if err := addHostsToFile(b.CommonBuildOpts.AddHost, hostFile); err != nil {
+			return err
+		}
 	}
 
-	if err := addHostsToFile(b.CommonBuildOpts.AddHost, hostFile); err != nil {
-		return err
+	if !contains(volumes, "/etc/resolv.conf") {
+		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair)
+		if err != nil {
+			return err
+		}
+		bindFiles["/etc/resolv.conf"] = resolvFile
 	}
 
-	bindFiles := map[string]string{
-		"/etc/hosts":       hostFile,
-		"/etc/resolv.conf": resolvFile,
-	}
-	err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, b.Volumes(), b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, append(b.NamespaceOptions, options.NamespaceOptions...))
+	err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, b.CommonBuildOpts.ShmSize, namespaceOptions)
 	if err != nil {
 		return errors.Wrapf(err, "error resolving mountpoints for container %q", b.ContainerID)
 	}
@@ -1081,39 +1104,33 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	switch isolation {
 	case IsolationOCI:
-		// The default is --rootless=auto, which makes troubleshooting a bit harder.
-		// rootlessFlag := []string{"--rootless=false"}
-		// for _, arg := range options.Args {
-		// 	if strings.HasPrefix(arg, "--rootless") {
-		// 		rootlessFlag = nil
-		// 	}
-		// }
-		// options.Args = append(options.Args, rootlessFlag...)
 		var moreCreateArgs []string
 		if options.NoPivot {
 			moreCreateArgs = []string{"--no-pivot"}
 		} else {
 			moreCreateArgs = nil
 		}
-		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	case IsolationChroot:
 		err = chroot.RunUsingChroot(spec, path, options.Stdin, options.Stdout, options.Stderr)
 	case IsolationOCIRootless:
 		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID); err != nil {
 			return err
 		}
-		rootlessFlag := []string{"--rootless=true"}
-		for _, arg := range options.Args {
-			if strings.HasPrefix(arg, "--rootless") {
-				rootlessFlag = nil
-			}
-		}
-		options.Args = append(options.Args, rootlessFlag...)
-		err = b.runUsingRuntimeSubproc(options, configureNetwork, configureNetworks, []string{"--no-new-keyring"}, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, []string{"--no-new-keyring"}, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	default:
 		err = errors.Errorf("don't know how to run this command")
 	}
 	return err
+}
+
+func contains(volumes []string, v string) bool {
+	for _, i := range volumes {
+		if i == v {
+			return true
+		}
+	}
+	return false
 }
 
 func checkAndOverrideIsolationOptions(isolation Isolation, options *RunOptions) error {
@@ -1123,10 +1140,22 @@ func checkAndOverrideIsolationOptions(isolation Isolation, options *RunOptions) 
 			logrus.Debugf("Forcing use of an IPC namespace.")
 		}
 		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.IPCNamespace)})
-		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil && !ns.Host {
-			logrus.Debugf("Disabling network namespace.")
+		_, err := exec.LookPath("slirp4netns")
+		hostNetworking := err != nil
+		networkNamespacePath := ""
+		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil {
+			hostNetworking = ns.Host
+			networkNamespacePath = ns.Path
+			if !hostNetworking && networkNamespacePath != "" && !filepath.IsAbs(networkNamespacePath) {
+				logrus.Debugf("Disabling network namespace configuration.")
+				networkNamespacePath = ""
+			}
 		}
-		options.NamespaceOptions.AddOrReplace(NamespaceOption{Name: string(specs.NetworkNamespace), Host: true})
+		options.NamespaceOptions.AddOrReplace(NamespaceOption{
+			Name: string(specs.NetworkNamespace),
+			Host: hostNetworking,
+			Path: networkNamespacePath,
+		})
 		if ns := options.NamespaceOptions.Find(string(specs.PIDNamespace)); ns == nil || ns.Host {
 			logrus.Debugf("Forcing use of a PID namespace.")
 		}
@@ -1227,9 +1256,10 @@ type runUsingRuntimeSubprocOptions struct {
 	ConfigureNetworks []string
 	MoreCreateArgs    []string
 	ContainerName     string
+	Isolation         Isolation
 }
 
-func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
+func (b *Builder) runUsingRuntimeSubproc(isolation Isolation, options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (err error) {
 	var confwg sync.WaitGroup
 	config, conferr := json.Marshal(runUsingRuntimeSubprocOptions{
 		Options:           options,
@@ -1240,6 +1270,7 @@ func (b *Builder) runUsingRuntimeSubproc(options RunOptions, configureNetwork bo
 		ConfigureNetworks: configureNetworks,
 		MoreCreateArgs:    moreCreateArgs,
 		ContainerName:     containerName,
+		Isolation:         isolation,
 	})
 	if conferr != nil {
 		return errors.Wrapf(conferr, "error encoding configuration for %q", runUsingRuntimeCommand)
@@ -1318,7 +1349,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Run the container, start to finish.
-	status, err := runUsingRuntime(options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
+	status, err := runUsingRuntime(options.Isolation, options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)
@@ -1333,7 +1364,7 @@ func runUsingRuntimeMain() {
 	os.Exit(1)
 }
 
-func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
+func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
 	// Lock the caller to a single OS-level thread.
 	runtime.LockOSThread()
 
@@ -1490,7 +1521,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, configureNetwork
 	}()
 
 	if configureNetwork {
-		teardown, err := runConfigureNetwork(options, configureNetworks, pid, containerName, spec.Process.Args)
+		teardown, err := runConfigureNetwork(isolation, options, configureNetworks, pid, containerName, spec.Process.Args)
 		if teardown != nil {
 			defer teardown()
 		}
@@ -1623,9 +1654,81 @@ func runCollectOutput(fds, closeBeforeReadingFds []int) string {
 	}
 	return b.String()
 }
+func setupRootlessNetwork(pid int) (teardown func(), err error) {
+	slirp4netns, err := exec.LookPath("slirp4netns")
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot find slirp4netns")
+	}
 
-func runConfigureNetwork(options RunOptions, configureNetworks []string, pid int, containerName string, command []string) (teardown func(), err error) {
+	rootlessSlirpSyncR, rootlessSlirpSyncW, err := os.Pipe()
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create slirp4netns sync pipe")
+	}
+	defer rootlessSlirpSyncR.Close()
+
+	// Be sure there are no fds inherited to slirp4netns except the sync pipe
+	files, err := ioutil.ReadDir("/proc/self/fd")
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot list open fds")
+	}
+	for _, f := range files {
+		fd, err := strconv.Atoi(f.Name())
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot parse fd")
+		}
+		if fd == int(rootlessSlirpSyncW.Fd()) {
+			continue
+		}
+		unix.CloseOnExec(fd)
+	}
+
+	cmd := exec.Command(slirp4netns, "-r", "3", "-c", fmt.Sprintf("%d", pid), "tap0")
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
+	cmd.ExtraFiles = []*os.File{rootlessSlirpSyncW}
+
+	err = cmd.Start()
+	rootlessSlirpSyncW.Close()
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot start slirp4netns")
+	}
+
+	b := make([]byte, 1)
+	for {
+		if err := rootlessSlirpSyncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
+			return nil, errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+		}
+		if _, err := rootlessSlirpSyncR.Read(b); err == nil {
+			break
+		} else {
+			if os.IsTimeout(err) {
+				// Check if the process is still running.
+				var status syscall.WaitStatus
+				_, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to read slirp4netns process status")
+				}
+				if status.Exited() || status.Signaled() {
+					return nil, errors.New("slirp4netns failed")
+				}
+
+				continue
+			}
+			return nil, errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+		}
+	}
+
+	return func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+	}, nil
+}
+
+func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetworks []string, pid int, containerName string, command []string) (teardown func(), err error) {
 	var netconf, undo []*libcni.NetworkConfigList
+
+	if isolation == IsolationOCIRootless {
+		return setupRootlessNetwork(pid)
+	}
 	// Scan for CNI configuration files.
 	confdir := options.CNIConfigDir
 	files, err := libcni.ConfFiles(confdir, []string{".conf"})
@@ -1956,7 +2059,7 @@ func runAcceptTerminal(consoleListener *net.UnixListener, terminalSize *specs.Bo
 	for i := range scm {
 		fds, err := unix.ParseUnixRights(&scm[i])
 		if err != nil {
-			return -1, errors.Wrapf(err, "error parsing unix rights control message: %v")
+			return -1, errors.Wrapf(err, "error parsing unix rights control message: %v", &scm[i])
 		}
 		logrus.Debugf("fds: %v", fds)
 		if len(fds) == 0 {

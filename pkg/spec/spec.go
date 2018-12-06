@@ -453,6 +453,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 	} else if IsPod(string(netMode)) {
 		logrus.Debug("Using pod netmode, unless pod is not sharing")
 		return nil
+	} else if netMode.IsSlirp4netns() {
+		logrus.Debug("Using slirp4netns netmode")
+		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
 		return nil

@@ -48,7 +48,7 @@ func (p *Pod) updatePod() error {
 // Save pod state to database
 func (p *Pod) save() error {
 	if err := p.runtime.state.SavePod(p); err != nil {
-		return errors.Wrapf(err, "error saving pod %s state")
+		return errors.Wrapf(err, "error saving pod %s state", p.ID())
 	}
 
 	return nil

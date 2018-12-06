@@ -18,9 +18,9 @@ gce_instance:
 env:
     FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
-    CRIO_COMMIT: "662dbb31b5d4f5ed54511a47cde7190c61c28677"
-    CRIU_COMMIT: "584cbe4643c3fc7dc901ff08bf923ca0fe7326f9"
-    RUNC_COMMIT: "78ef28e63bec2ee4c139b5e3e0d691eb9bdc748d"
+    CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
+    CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
+    RUNC_COMMIT: "96ec2177ae841256168fcf76954f7177af9446eb"
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -42,11 +42,12 @@ full_vm_testing_task:
         # 'matrix' combinations.  All run in parallel.
         matrix:
             # Images are generated separetly, from build_images_task (below)
-            image_name: "ubuntu-1804-bionic-v20180911-libpod-63a86a18"
+            image_name: "ubuntu-18-libpod-0c954a67"
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
             #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
+
     timeout_in: 120m
 
     # Every *_script runs in sequence, for each task. The name prefix is for
@@ -65,19 +66,49 @@ full_vm_testing_task:
     success_script: $SCRIPT_BASE/success.sh
 
 
-# This task build new images for future PR testing, but only after a PR merge.
-# These images save needing to install/setup the same environment to test every
-# PR.  The 'active' image for testing is selected by the 'image_name' items in
-# task above.  Currently this requires manually updating them, but this could
-# be automated (see comment at end).
+# Because system tests are stored within the repository, it is sometimes
+# necessary to execute them within a PR to validate changes.
+
+optional_system_testing_task:
+
+    # Only run system tests in PRs (not on merge) if magic string is present
+    # in the PR description.  Post-merge system testing is assumed to happen
+    # later from OS distribution's build systems.
+    only_if: >-
+        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
+
+    gce_instance:
+        matrix:
+            image_name: "ubuntu-1804-bionic-v20180911-libpod-e8d18305"
+            # TODO: Make these work (also build_images_task below)
+            #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
+            #image_name: "centos-7-v20180911-libpod-fce09afe"
+            #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
+
+    timeout_in: 60m
+
+    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
+    system_test_script: $SCRIPT_BASE/system_test.sh
+    success_script: $SCRIPT_BASE/success.sh
+
+
+# This task builds new cache-images for future PR testing.  These images save
+# time installing/setting up the environment while an engineer is waiting.
+# The 'active' cache-images for full_vm_testing are selected by the
+# 'image_name' keys.  Updating those items requires manually modification,
+# but this could be automated (see comment at end of build_vm_images_task).
 
 build_vm_images_task:
-    # Only produce new images after a PR merge
-    only_if: $CIRRUS_BRANCH == 'master'
+    # Only produce new cache-images after a PR merge, and if a magic string
+    # is present in the most recent commit-message.
+    only_if: >-
+        $CIRRUS_BRANCH == 'master' &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
 
     # Require tests to pass first.
     depends_on:
-        - test  # i.e. 'test_task'
+        - full_vm_testing  # i.e. 'full_vm_testing_task'
 
     env:
         # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
@@ -99,6 +130,8 @@ build_vm_images_task:
         # Version of packer to use
         PACKER_VER: "1.3.1"
 
+    # VMs created by packer are not cleaned up by cirrus
+    auto_cancellation: $CI != "true"
 
     gce_instance:
         image_name: "image-builder-image"  # Simply CentOS 7 + packer dependencies

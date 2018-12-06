@@ -40,14 +40,15 @@ var (
 	logsDescription = "The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.  This does not guarantee execution" +
 		"order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs"
 	logsCommand = cli.Command{
-		Name:           "logs",
-		Usage:          "Fetch the logs of a container",
-		Description:    logsDescription,
-		Flags:          sortFlags(logsFlags),
-		Action:         logsCmd,
-		ArgsUsage:      "CONTAINER",
-		SkipArgReorder: true,
-		OnUsageError:   usageErrorHandler,
+		Name:                   "logs",
+		Usage:                  "Fetch the logs of a container",
+		Description:            logsDescription,
+		Flags:                  sortFlags(logsFlags),
+		Action:                 logsCmd,
+		ArgsUsage:              "CONTAINER",
+		SkipArgReorder:         true,
+		OnUsageError:           usageErrorHandler,
+		UseShortOptionHandling: true,
 	}
 )
 

@@ -21,7 +21,7 @@ class Create(AbstractActionBase):
         parser.add_argument('image', nargs=1, help='source image id')
         parser.add_argument(
             'command',
-            nargs='*',
+            nargs=parent.REMAINDER,
             help='command and args to run.',
         )
         parser.set_defaults(class_=cls, method='create')

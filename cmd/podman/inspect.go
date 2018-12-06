@@ -119,7 +119,7 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *l
 			}
 			libpodInspectData, err := ctr.Inspect(c.Bool("size"))
 			if err != nil {
-				inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
+				inspectError = errors.Wrapf(err, "error getting libpod container inspect data %s", ctr.ID())
 				break
 			}
 			data, err = shared.GetCtrInspectInfo(ctr, libpodInspectData)
@@ -154,12 +154,12 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *l
 			} else {
 				libpodInspectData, err := ctr.Inspect(c.Bool("size"))
 				if err != nil {
-					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %q", ctr.ID)
+					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %s", ctr.ID())
 					break
 				}
 				data, err = shared.GetCtrInspectInfo(ctr, libpodInspectData)
 				if err != nil {
-					inspectError = errors.Wrapf(err, "error parsing container data %q", ctr.ID)
+					inspectError = errors.Wrapf(err, "error parsing container data %s", ctr.ID())
 					break
 				}
 			}

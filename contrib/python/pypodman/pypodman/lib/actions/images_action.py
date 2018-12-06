@@ -37,7 +37,7 @@ class Images(AbstractActionBase):
 
         self.columns = OrderedDict({
             'name':
-            ReportColumn('name', 'REPOSITORY', 40),
+            ReportColumn('name', 'REPOSITORY', 0),
             'tag':
             ReportColumn('tag', 'TAG', 10),
             'id':
@@ -65,18 +65,18 @@ class Images(AbstractActionBase):
                 'created':
                 humanize.naturaldate(podman.datetime_parse(image.created)),
                 'size':
-                humanize.naturalsize(int(image.size), binary=True),
+                humanize.naturalsize(int(image.size)),
                 'repoDigests':
                 ' '.join(image.repoDigests),
             })
 
             for r in image.repoTags:
-                name, tag = r.split(':', 1)
+                name, tag = r.rsplit(':', 1)
                 fields.update({
                     'name': name,
                     'tag': tag,
                 })
-                rows.append(fields)
+            rows.append(fields)
 
         if not self._args.digests:
             del self.columns['repoDigests']

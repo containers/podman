@@ -207,3 +207,20 @@ func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error
 	}
 	return pods, lastError
 }
+
+//printParallelOutput takes the map of parallel worker results and outputs them
+// to stdout
+func printParallelOutput(m map[string]error, errCount int) error {
+	var lastError error
+	for cid, result := range m {
+		if result != nil {
+			if errCount > 1 {
+				fmt.Println(result.Error())
+			}
+			lastError = result
+			continue
+		}
+		fmt.Println(cid)
+	}
+	return lastError
+}

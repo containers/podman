@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -63,20 +64,20 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		}
 	}()
 
-	networkStatus := make([]*cnitypes.Result, 1)
+	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
 		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
 		resultCurrent, err := cnitypes.GetResult(r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
 		}
-		networkStatus = append(ctr.state.NetworkStatus, resultCurrent)
+		networkStatus = append(networkStatus, resultCurrent)
 	}
 
 	// Add firewall rules to ensure the container has network access.
 	// Will not be necessary once CNI firewall plugin merges upstream.
 	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range ctr.state.NetworkStatus {
+	for _, netStatus := range networkStatus {
 		firewallConf := &firewall.FirewallNetConf{
 			PrevResult: netStatus,
 		}
@@ -89,13 +90,16 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (ns.NetNS, []*cnitypes.Result, error) {
+func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
 	}
 	defer func() {
 		if err != nil {
+			if err2 := netns.UnmountNS(ctrNS); err2 != nil {
+				logrus.Errorf("Error unmounting partially created network namespace for container %s: %v", ctr.ID(), err2)
+			}
 			if err2 := ctrNS.Close(); err2 != nil {
 				logrus.Errorf("Error closing partially created network namespace for container %s: %v", ctr.ID(), err2)
 			}
@@ -134,12 +138,33 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
 	if err := cmd.Start(); err != nil {
-		return errors.Wrapf(err, "failed to start process")
+		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
+	defer cmd.Process.Release()
 
 	b := make([]byte, 16)
-	if _, err := syncR.Read(b); err != nil {
-		return errors.Wrapf(err, "failed to read from sync pipe")
+	for {
+		if err := syncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
+			return errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+		}
+		if _, err := syncR.Read(b); err == nil {
+			break
+		} else {
+			if os.IsTimeout(err) {
+				// Check if the process is still running.
+				var status syscall.WaitStatus
+				_, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+				if err != nil {
+					return errors.Wrapf(err, "failed to read slirp4netns process status")
+				}
+				if status.Exited() || status.Signaled() {
+					return errors.New("slirp4netns failed")
+				}
+
+				continue
+			}
+			return errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+		}
 	}
 	return nil
 }

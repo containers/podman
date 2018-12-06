@@ -78,7 +78,7 @@ Write the container ID to the file
 
 **--conmon-pidfile**=""
 
-Write the pid of the `conmon` process to a file. `conmon` daemonizes separate from Podman, so this is necessary when using systemd to restart Podman containers.
+Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
 
 **--cpu-period**=*0*
 
@@ -333,16 +333,13 @@ Not implemented
 
 **--log-driver**="*json-file*"
 
-Logging driver for the container. Default is defined by daemon `--log-driver` flag.
-
-**Warning**: the `podman logs` command works only for the `json-file` and
-`journald` logging drivers.
+Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
 
 **--log-opt**=[]
 
-Logging driver specific options.
+Logging driver specific options.  Used to set the path to the container log file.  For example:
 
-`path=/var/log/container/mycontainer.json`: Set the path to the container log file.
+`--log-opt path=/var/log/container/mycontainer.json`
 
 **--mac-address**=""
 
@@ -399,7 +396,7 @@ The operator can identify a container in three ways:
 - Name (“jonah”)
 
 podman generates a UUID for each container, and if a name is not assigned
-to the container with **--name** then the daemon will also generate a random
+to the container with **--name** then it will generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
@@ -411,7 +408,8 @@ Set the Network mode for the container:
 - `container:<name|id>`: reuse another container's network stack
 - `host`: use the podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - `<network-name>|<network-id>`: connect to a user-defined network
-- `ns:<path>` path to a network namespace to join
+- `ns:<path>`: path to a network namespace to join
+- `slirp4netns`: use slirp4netns to create a user network stack.  This is the default for rootless containers
 
 **--network-alias**=[]
 
@@ -441,7 +439,8 @@ Tune the container's pids limit. Set `-1` to have unlimited pids for the contain
 
 **--pod**=""
 
-Run container in an existing pod
+Run container in an existing pod. If you want podman to make the pod for you, preference the pod name with `new:`.
+To make a pod with more granular options, use the `podman pod create` command before creating a container.
 
 **--privileged**=*true*|*false*
 
@@ -453,8 +452,9 @@ container is not allowed to access any devices. A “privileged” container
 is given access to all devices.
 
 When the operator executes **podman run --privileged**, podman enables access
-to all devices on the host as well as set turn off most of the security measures
-protecting the host from the container.
+to all devices on the host, turns off graphdriver mount options, as well as
+turning off most of the security measures protecting the host from the
+container.
 
 **-p**, **--publish**=[]
 

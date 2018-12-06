@@ -14,6 +14,7 @@ The image command allows you to manage images
 | Command  | Man Page                                  | Description                                                                    |
 | -------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
 | build    | [podman-build(1)](podman-build.1.md)      | Build a container using a Dockerfile.                                          |
+| exists   | [podman-exists(1)](podman-image-exists.1.md)      | Check if a image exists in local storage                                          |
 | history  | [podman-history(1)](podman-history.1.md)  | Show the history of an image.                                                  |
 | import   | [podman-import(1)](podman-import.1.md)    | Import a tarball and save it as a filesystem image.                            |
 | inspect  | [podman-inspect(1)](podman-inspect.1.md)  | Display a image or image's configuration.                                      |

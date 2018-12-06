@@ -149,6 +149,15 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 		mountFiles = append(mountFiles, []string{OverrideMountsFile, DefaultMountsFile}...)
 		if rootless.IsRootless() {
 			mountFiles = append([]string{UserOverrideMountsFile}, mountFiles...)
+			_, err := os.Stat(UserOverrideMountsFile)
+			if err != nil && os.IsNotExist(err) {
+				os.MkdirAll(filepath.Dir(UserOverrideMountsFile), 0755)
+				if f, err := os.Create(UserOverrideMountsFile); err != nil {
+					logrus.Warnf("could not create file %s: %v", UserOverrideMountsFile, err)
+				} else {
+					f.Close()
+				}
+			}
 		}
 	} else {
 		mountFiles = append(mountFiles, mountFile)

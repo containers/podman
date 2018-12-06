@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -28,19 +29,40 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
-		rt.config.StorageConfig.RunRoot = config.RunRoot
-		rt.config.StorageConfig.GraphRoot = config.GraphRoot
-		rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-		rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+		if config.RunRoot != "" {
+			rt.config.StorageConfig.RunRoot = config.RunRoot
+			rt.configuredFrom.storageRunRootSet = true
+		}
 
-		rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
-		copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		if config.GraphRoot != "" {
+			rt.config.StorageConfig.GraphRoot = config.GraphRoot
+			rt.configuredFrom.storageGraphRootSet = true
 
-		rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
-		copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+			// Also set libpod static dir, so we are a subdirectory
+			// of the c/storage store by default
+			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.configuredFrom.libpodStaticDirSet = true
+		}
 
-		rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
-		copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		if config.GraphDriverName != "" {
+			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
+			rt.configuredFrom.storageGraphDriverSet = true
+		}
+
+		if config.GraphDriverOptions != nil {
+			rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
+			copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+		}
+
+		if config.UIDMap != nil {
+			rt.config.StorageConfig.UIDMap = make([]idtools.IDMap, len(config.UIDMap))
+			copy(rt.config.StorageConfig.UIDMap, config.UIDMap)
+		}
+
+		if config.GIDMap != nil {
+			rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
+			copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		}
 
 		return nil
 	}
@@ -173,26 +195,26 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.StaticDir = dir
+		rt.configuredFrom.libpodStaticDirSet = true
 
 		return nil
 	}
 }
 
-// WithHooksDir sets the directory to look for OCI runtime hooks config.
-// Note we are not saving this in database, since this is really just for used
-// for testing.
-func WithHooksDir(hooksDir string) RuntimeOption {
+// WithHooksDir sets the directories to look for OCI runtime hook configuration.
+func WithHooksDir(hooksDirs ...string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		if hooksDir == "" {
-			return errors.Wrap(ErrInvalidArg, "empty-string hook directories are not supported")
+		for _, hooksDir := range hooksDirs {
+			if hooksDir == "" {
+				return errors.Wrap(ErrInvalidArg, "empty-string hook directories are not supported")
+			}
 		}
 
-		rt.config.HooksDir = []string{hooksDir}
-		rt.config.HooksDirNotExistFatal = true
+		rt.config.HooksDir = hooksDirs
 		return nil
 	}
 }
@@ -225,6 +247,7 @@ func WithTmpDir(dir string) RuntimeOption {
 		}
 
 		rt.config.TmpDir = dir
+		rt.configuredFrom.libpodTmpDirSet = true
 
 		return nil
 	}
@@ -817,7 +840,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, networks []string) CtrCreateOption {
+func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmode string, networks []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
@@ -831,6 +854,7 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netwo
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
 		ctr.config.Networks = networks
+		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 
 		return nil
 	}
@@ -1292,6 +1316,17 @@ func WithInfraContainer() PodCreateOption {
 
 		pod.config.InfraContainer.HasInfraContainer = true
 
+		return nil
+	}
+}
+
+// WithInfraContainerPorts tells the pod to add port bindings to the pause container
+func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+		pod.config.InfraContainer.PortBindings = bindings
 		return nil
 	}
 }

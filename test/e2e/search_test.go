@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +14,7 @@ var _ = Describe("Podman search", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 	const regFileContents = `
 	[registries.search]
@@ -40,7 +41,7 @@ var _ = Describe("Podman search", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
 	})
 
@@ -128,12 +129,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -148,12 +152,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search in local registry", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry3", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry3", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -168,12 +175,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry4", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry4", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry4", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -197,12 +207,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if force secure is true", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry5", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry5", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry5", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -225,12 +238,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if registry is not listed as insecure", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry6", registry})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry6", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry6", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -253,12 +269,15 @@ var _ = Describe("Podman search", func() {
 	})
 
 	It("podman search doesn't attempt HTTP if one registry is not listed as insecure", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
 		podmanTest.RestoreArtifact(registry)
 		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry7", registry})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry7", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry7", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 
@@ -266,7 +285,7 @@ var _ = Describe("Podman search", func() {
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal.ExitCode()).To(Equal(0))
 
-		if !WaitContainerReady(&podmanTest, "registry8", "listening on", 20, 1) {
+		if !WaitContainerReady(podmanTest, "registry8", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")
 		}
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})

@@ -1,15 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 var (
+	unpauseFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "unpause all paused containers",
+		},
+	}
 	unpauseDescription = `
    podman unpause
 
@@ -19,6 +27,7 @@ var (
 		Name:         "unpause",
 		Usage:        "Unpause the processes in one or more containers",
 		Description:  unpauseDescription,
+		Flags:        unpauseFlags,
 		Action:       unpauseCmd,
 		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
 		OnUsageError: usageErrorHandler,
@@ -26,6 +35,10 @@ var (
 )
 
 func unpauseCmd(c *cli.Context) error {
+	var (
+		unpauseContainers []*libpod.Container
+		unpauseFuncs      []shared.ParallelWorkerInput
+	)
 	if os.Geteuid() != 0 {
 		return errors.New("unpause is not supported for rootless containers")
 	}
@@ -37,28 +50,44 @@ func unpauseCmd(c *cli.Context) error {
 	defer runtime.Shutdown(false)
 
 	args := c.Args()
-	if len(args) < 1 {
+	if len(args) < 1 && !c.Bool("all") {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
-
-	var lastError error
-	for _, arg := range args {
-		ctr, err := runtime.LookupContainer(arg)
+	if c.Bool("all") {
+		cs, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStatePaused, "paused")
 		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "error looking up container %q", arg)
-			continue
+			return err
 		}
-		if err = ctr.Unpause(); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
+		unpauseContainers = append(unpauseContainers, cs...)
+	} else {
+		for _, arg := range args {
+			ctr, err := runtime.LookupContainer(arg)
+			if err != nil {
+				return err
 			}
-			lastError = errors.Wrapf(err, "failed to unpause container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
+			unpauseContainers = append(unpauseContainers, ctr)
 		}
 	}
-	return lastError
+
+	// Assemble the unpause funcs
+	for _, ctr := range unpauseContainers {
+		con := ctr
+		f := func() error {
+			return con.Unpause()
+		}
+
+		unpauseFuncs = append(unpauseFuncs, shared.ParallelWorkerInput{
+			ContainerID:  con.ID(),
+			ParallelFunc: f,
+		})
+	}
+
+	maxWorkers := shared.Parallelize("unpause")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalInt("max-workers")
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	unpauseErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, unpauseFuncs)
+	return printParallelOutput(unpauseErrors, errCount)
 }
