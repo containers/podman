@@ -136,7 +136,14 @@ func (c *Container) prepare() (err error) {
 
 // cleanupNetwork unmounts and cleans up the container's network
 func (c *Container) cleanupNetwork() error {
-	if c.NetworkDisabled() {
+	if c.config.NetNsCtr != "" {
+		return nil
+	}
+	netDisabled, err := c.NetworkDisabled()
+	if err != nil {
+		return err
+	}
+	if netDisabled {
 		return nil
 	}
 	if c.state.NetNS == nil {
@@ -180,7 +187,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err := c.makeBindMounts(); err != nil {
 		return nil, err
 	}
-
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
 	for _, m := range g.Mounts() {
@@ -633,8 +639,12 @@ func (c *Container) makeBindMounts() error {
 	if c.state.BindMounts == nil {
 		c.state.BindMounts = make(map[string]string)
 	}
+	netDisabled, err := c.NetworkDisabled()
+	if err != nil {
+		return err
+	}
 
-	if !c.NetworkDisabled() {
+	if !netDisabled {
 		// Make /etc/resolv.conf
 		if _, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
 			// If it already exists, delete so we can recreate
