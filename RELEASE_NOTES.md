@@ -1,5 +1,43 @@
 # Release Notes
 
+## 0.12.1
+### Features
+- Rootless Podman now creates the storage.conf, libpod.conf, and mounts.conf configuration files automatically in `~/.config/containers/` for ease of reconfiguration
+- The `podman pod create` command can expose ports in the pod's network namespace, allowing public services to be created in pods
+- The `podman container checkpoint` command can now keep containers running after they are checkpointed with the `--leave-running` flag
+- The `podman container checkpoint` and `podman container restore` commands now support the `--tcp-established` flag to checkpoint and restore containers with active TCP connections
+- The `podman version` command now has a `--format` flag to produce machine-readable output
+- Added the `podman container exists`, `podman pod exists`, and `podman image exists` commands to easily check for a container/pod/image, respectively, by name or ID
+- The `podman ps --pod` flag now has a short alias, `-p`
+- The `podman rmi` and `podman rm` commands now have a `--prune` flag to prune unused images and containers, respectively
+- The `podman ps` command now has a `--sync` flag to force a sync of Podman's state against the OCI runtime, resolving some state desync errors
+- Added the `podman volume` set of commands for creating and managing local-only named volumes
+
+### Bugfixes
+- Fixed a breaking change in rootless Podman where a change in default paths caused Podman to be unable to function on systems upgraded from 0.10.x or earlier
+- Fixed a bug where `podman exec` without `-t` would still use a terminal if the container was created with `-t`
+- Fixed a bug where container root propogation was not being properly adjusted if volumes with root propogation set were mounted into the container
+- Fixed a bug where `podman exec` could hold the container lock longer than necessary waiting for an exited container
+- Fixed a bug where rootless containers using `slirp4netns` for networking were reporting using `bridge` networking in `podman inspect`
+- Fixed a bug where `podman container restore -a` was attempting to restore all containers, including created and running ones. It will now only attempt to restore stopped and exited containers
+- Fixed a bug where rootless Podman detached containers were not being properly cleaned up
+- Fixed a bug where privileged containers were being mounted with incorrect (too restrictive) mount options such as `nodev`
+- Fixed a bug where `podman stop` would throw an error attempting to stop a container that had already stopped
+- Fixed a bug where `NOTIFY_SOCKET` was not properly being passed into Podman containers
+- Fixed a bug where `/dev/shm` was not properly mounted in rootless containers
+- Fixed a bug where rootless Podman would set up the CNI plugins for networking (despite not using them in rootless mode), potentially causing `inotify` related errors
+- Fixed a bug where Podman would error on numeric GIDs that do not exist in the container's `/etc/group`
+- Fixed a bug where containers in pods or created with `--net=container` were not mounting `/etc/resolv.conf` and `/etc/hosts`
+
+### Misc
+- `podman build` now defaults the `--force-rm` flag to `true`
+- Improved `podman runlabel` support for labels featuring arguments with whitespace
+- Containers without a network namespace will now use the host's `resolv.conf`
+- The `slirp4netns` network mode can now be used with containers running as root. It may be useful for container-in-container scenarios where the outer container does not have host networking set
+- Podman now uses `inotify` to wait for container exit files to be created, instead of polling. If `inotify` cannot be used, Podman will fall back to polling to check if the file has been created
+- The `podman logs` command now uses improved short-options handling, allowing its flags to be combined if desired (for example, `podman logs -lf` instead of `podman logs -l -f`)
+- Hardcoded OCI hooks directories used by Podman are now deprecated; they should instead be coded into the `libpod.conf` configuration file. They can be specified as an array via `hooks_dir`
+
 ## 0.11.1.1
 ### Bugfixes
 - Fixed a bug where Podman was not correctly adding firewall rules for containers, preventing them from accessing the network
