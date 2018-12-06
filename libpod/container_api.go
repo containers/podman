@@ -675,22 +675,27 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	return err
 }
 
-// Sync updates the current state of the container, checking whether its state
-// has changed
-// Sync can only be used inside Batch() - otherwise, it will be done
-// automatically.
-// When called outside Batch(), Sync() is a no-op
+// Sync updates the status of a container by querying the OCI runtime.
+// If the container has not been created inside the OCI runtime, nothing will be
+// done.
+// Most of the time, Podman does not explicitly query the OCI runtime for
+// container status, and instead relies upon exit files created by conmon.
+// This can cause a disconnect between running state and what Podman sees in
+// cases where Conmon was killed unexpected, or runc was upgraded.
+// Running a manual Sync() ensures that container state will be correct in
+// such situations.
 func (c *Container) Sync() error {
 	if !c.batched {
-		return nil
+		c.lock.Lock()
+		defer c.lock.Unlock()
 	}
 
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if (c.state.State != ContainerStateUnknown) &&
-		(c.state.State != ContainerStateConfigured) {
+		(c.state.State != ContainerStateConfigured) &&
+		(c.state.State != ContainerStateExited) {
 		oldState := c.state.State
-		// TODO: optionally replace this with a stat for the exit file
 		if err := c.runtime.ociRuntime.updateContainerStatus(c, true); err != nil {
 			return err
 		}

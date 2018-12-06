@@ -45,6 +45,7 @@ type PsOptions struct {
 	Sort      string
 	Label     string
 	Namespace bool
+	Sync      bool
 }
 
 // BatchContainerStruct is the return obkect from BatchContainer and contains
@@ -126,6 +127,12 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 		pso       PsContainerOutput
 	)
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
+		if opts.Sync {
+			if err := c.Sync(); err != nil {
+				return err
+			}
+		}
+
 		conState, err = c.State()
 		if err != nil {
 			return errors.Wrapf(err, "unable to obtain container state")
