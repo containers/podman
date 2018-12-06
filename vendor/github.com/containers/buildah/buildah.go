@@ -317,6 +317,10 @@ type BuilderOptions struct {
 	// the registry together, can not be resolved to a reference to a
 	// source image.  No separator is implicitly added.
 	Transport string
+	// PullBlobDirectory is the name of a directory in which we'll attempt
+	// to store copies of layer blobs that we pull down, if any.  It should
+	// already exist.
+	PullBlobDirectory string
 	// Mount signals to NewBuilder() that the container should be mounted
 	// immediately.
 	Mount bool
