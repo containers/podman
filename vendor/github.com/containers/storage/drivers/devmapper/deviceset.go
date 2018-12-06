@@ -2401,7 +2401,7 @@ func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.Mo
 		addNouuid := strings.Contains("nouuid", mountOptions)
 		mountOptions = strings.Join(moptions.Options, ",")
 		if addNouuid {
-			mountOptions = fmt.Sprintf("nouuid,", mountOptions)
+			mountOptions = fmt.Sprintf("nouuid,%s", mountOptions)
 		}
 	}
 
