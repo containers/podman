@@ -601,7 +601,11 @@ func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container
 }
 
 func (c *Container) completeNetworkSetup() error {
-	if !c.config.PostConfigureNetNS || c.NetworkDisabled() {
+	netDisabled, err := c.NetworkDisabled()
+	if err != nil {
+		return err
+	}
+	if !c.config.PostConfigureNetNS || netDisabled {
 		return nil
 	}
 	if err := c.syncContainer(); err != nil {
