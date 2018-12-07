@@ -4,8 +4,8 @@ import sys
 from collections import OrderedDict
 
 import podman
-from pypodman.lib import (AbstractActionBase, BooleanValidate,
-                          PositiveIntAction, Report, ReportColumn)
+from pypodman.lib import (AbstractActionBase, PositiveIntAction, Report,
+                          ReportColumn)
 
 
 class FilterAction(argparse.Action):
@@ -58,16 +58,16 @@ class FilterAction(argparse.Action):
             if val < 0:
                 parser.error(msg)
         elif opt == 'is-automated':
-            try:
-                val = BooleanValidate()(val)
-            except ValueError:
+            if val.capitalize() in ('True', 'False'):
+                val = bool(val)
+            else:
                 msg = ('{} option "is-automated"'
                        ' must be True or False.'.format(self.dest))
                 parser.error(msg)
         elif opt == 'is-official':
-            try:
-                val = BooleanValidate()(val)
-            except ValueError:
+            if val.capitalize() in ('True', 'False'):
+                val = bool(val)
+            else:
                 msg = ('{} option "is-official"'
                        ' must be True or False.'.format(self.dest))
                 parser.error(msg)

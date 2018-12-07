@@ -5,8 +5,7 @@ from collections import OrderedDict
 import humanize
 
 import podman
-from pypodman.lib import (AbstractActionBase, BooleanAction, Report,
-                          ReportColumn)
+from pypodman.lib import AbstractActionBase, Report, ReportColumn
 
 
 class History(AbstractActionBase):
@@ -17,13 +16,10 @@ class History(AbstractActionBase):
         """Add History command to parent parser."""
         parser = parent.add_parser('history', help='report image history')
         super().subparser(parser)
-        parser.add_argument(
+        parser.add_flag(
             '--human',
             '-H',
-            action=BooleanAction,
-            default='True',
-            help='Display sizes and dates in human readable format.'
-            ' (default: %(default)s)')
+            help='Display sizes and dates in human readable format.')
         parser.add_argument(
             '--format',
             choices=('json', 'table'),

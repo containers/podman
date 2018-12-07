@@ -12,19 +12,13 @@ class Rm(AbstractActionBase):
     def subparser(cls, parent):
         """Add Rm command to parent parser."""
         parser = parent.add_parser('rm', help='delete container(s)')
-        parser.add_argument(
-            '-f',
+        parser.add_flag(
             '--force',
-            action='store_true',
-            help=('force delete of running container(s).'
-                  ' (default: %(default)s)'))
+            '-f',
+            help='force delete of running container(s).')
         parser.add_argument(
             'targets', nargs='+', help='container id(s) to delete')
         parser.set_defaults(class_=cls, method='remove')
-
-    def __init__(self, args):
-        """Construct Rm class."""
-        super().__init__(args)
 
     def remove(self):
         """Remove container(s)."""

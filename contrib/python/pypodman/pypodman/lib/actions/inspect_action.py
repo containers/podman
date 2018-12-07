@@ -22,22 +22,15 @@ class Inspect(AbstractActionBase):
             type=str.lower,
             help='Type of object to inspect',
         )
-        parser.add_argument(
+        parser.add_flag(
             '--size',
-            action='store_true',
-            default=False,
-            help='Display the total file size if the type is a container.'
-            ' Always True.')
+            help='Display the total file size if the type is a container.')
         parser.add_argument(
             'objects',
             nargs='+',
             help='objects to inspect',
         )
         parser.set_defaults(class_=cls, method='inspect')
-
-    def __init__(self, args):
-        """Construct Inspect class."""
-        super().__init__(args)
 
     def _get_container(self, ident):
         try:

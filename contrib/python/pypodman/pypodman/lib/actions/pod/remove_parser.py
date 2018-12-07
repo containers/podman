@@ -13,13 +13,14 @@ class RemovePod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Rm command to parent parser."""
         parser = parent.add_parser('rm', help='Delete pod and container(s)')
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Remove all pods')
-        parser.add_argument(
-            '-f',
+        parser.add_flag(
+            '--all',
+            '-a',
+            help='Remove all pods.')
+        parser.add_flag(
             '--force',
-            action='store_true',
-            help='Stop and remove container(s) then delete pod')
+            '-f',
+            help='Stop and remove container(s) then delete pod.')
         parser.add_argument(
             'pod', nargs='*', help='Pod to remove. Or, use --all')
         parser.set_defaults(class_=cls, method='remove')

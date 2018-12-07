@@ -13,8 +13,10 @@ class PausePod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Pause command to parent parser."""
         parser = parent.add_parser('pause', help='pause containers in pod')
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Pause all pods')
+        parser.add_flag(
+            '--all',
+            '-a',
+            help='Pause all pods.')
         parser.add_argument('pod', nargs='*', help='pod(s) to pause.')
         parser.set_defaults(class_=cls, method='pause')
 

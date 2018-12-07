@@ -23,10 +23,6 @@ class Restart(AbstractActionBase):
             'targets', nargs='+', help='container id(s) to restart')
         parser.set_defaults(class_=cls, method='restart')
 
-    def __init__(self, args):
-        """Construct Restart class."""
-        super().__init__(args)
-
     def restart(self):
         """Restart container(s)."""
         try:

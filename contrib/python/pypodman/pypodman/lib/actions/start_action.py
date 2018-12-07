@@ -2,7 +2,7 @@
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase, BooleanAction
+from pypodman.lib import AbstractActionBase
 
 
 class Start(AbstractActionBase):
@@ -12,12 +12,10 @@ class Start(AbstractActionBase):
     def subparser(cls, parent):
         """Add Start command to parent parser."""
         parser = parent.add_parser('start', help='start container')
-        parser.add_argument(
+        parser.add_flag(
             '--attach',
             '-a',
-            action=BooleanAction,
-            default=False,
-            help="Attach container's STDOUT and STDERR (default: %(default)s)")
+            help="Attach container's STDOUT and STDERR.")
         parser.add_argument(
             '--detach-keys',
             metavar='KEY(s)',
@@ -25,18 +23,14 @@ class Start(AbstractActionBase):
             help='Override the key sequence for detaching a container.'
             ' (format: a single character [a-Z] or ctrl-<value> where'
             ' <value> is one of: a-z, @, ^, [, , or _) (default: ^D)')
-        parser.add_argument(
+        parser.add_flag(
             '--interactive',
             '-i',
-            action=BooleanAction,
-            default=False,
-            help="Attach container's STDIN (default: %(default)s)")
+            help="Attach container's STDIN.")
         # TODO: Implement sig-proxy
-        parser.add_argument(
+        parser.add_flag(
             '--sig-proxy',
-            action=BooleanAction,
-            default=False,
-            help="Proxy received signals to the process (default: %(default)s)"
+            help="Proxy received signals to the process."
         )
         parser.add_argument(
             'containers',
@@ -74,3 +68,4 @@ class Start(AbstractActionBase):
                 file=sys.stderr,
                 flush=True)
             return 1
+        return 0

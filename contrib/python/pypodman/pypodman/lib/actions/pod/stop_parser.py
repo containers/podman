@@ -13,8 +13,10 @@ class StopPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Stop command to parent parser."""
         parser = parent.add_parser('stop', help='stop pod')
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Stop all pods')
+        parser.add_flag(
+            '--all',
+            '-a',
+            help='Stop all pods.')
         parser.add_argument(
             'pod', nargs='*', help='Pod to stop. Or, use --all')
         parser.set_defaults(class_=cls, method='stop')

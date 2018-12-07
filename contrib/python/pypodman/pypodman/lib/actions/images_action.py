@@ -24,11 +24,9 @@ class Images(AbstractActionBase):
             help=('Change sort ordered of displayed images.'
                   ' (default: %(default)s)'))
 
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument(
+        parser.add_flag(
             '--digests',
-            action='store_true',
-            help='Include digests with images. (default: %(default)s)')
+            help='Include digests with images.')
         parser.set_defaults(class_=cls, method='list')
 
     def __init__(self, args):

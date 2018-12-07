@@ -13,8 +13,10 @@ class RestartPod(AbstractActionBase):
     def subparser(cls, parent):
         """Add Pod Restart command to parent parser."""
         parser = parent.add_parser('restart', help='restart containers in pod')
-        parser.add_argument(
-            '-a', '--all', action='store_true', help='Restart all pods')
+        parser.add_flag(
+            '--all',
+            '-a',
+            help='Restart all pods.')
         parser.add_argument(
             'pod', nargs='*', help='Pod to restart. Or, use --all')
         parser.set_defaults(class_=cls, method='restart')

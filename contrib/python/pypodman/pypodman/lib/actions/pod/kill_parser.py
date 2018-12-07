@@ -3,7 +3,7 @@ import signal
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase
+from pypodman.lib import AbstractActionBase, SignalAction
 from pypodman.lib import query_model as query_pods
 
 
@@ -15,18 +15,16 @@ class KillPod(AbstractActionBase):
         """Add Pod Kill command to parent parser."""
         parser = parent.add_parser('kill', help='signal containers in pod')
 
-        parser.add_argument(
-            '-a',
+        parser.add_flag(
             '--all',
-            action='store_true',
-            help='Sends signal to all pods')
+            '-a',
+            help='Sends signal to all pods.')
         parser.add_argument(
             '-s',
             '--signal',
-            choices=range(1, signal.NSIG),
-            metavar='[1,{}]'.format(signal.NSIG),
+            action=SignalAction,
             default=9,
-            help='Signal to send to the pod. (default: 9)')
+            help='Signal to send to the pod. (default: %(default)s)')
         parser.add_argument('pod', nargs='*', help='pod(s) to signal')
         parser.set_defaults(class_=cls, method='kill')
 

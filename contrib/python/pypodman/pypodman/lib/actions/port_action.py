@@ -13,16 +13,13 @@ class Port(AbstractActionBase):
         """Add Port command to parent parser."""
         parser = parent.add_parser(
             'port', help='retrieve ports from containers')
-        parser.add_argument(
+        parser.add_flag(
             '--all',
             '-a',
-            action='store_true',
-            default=False,
             help='List all known port mappings for running containers')
         parser.add_argument(
             'containers',
             nargs='*',
-            default=None,
             help='containers to list ports',
         )
         parser.set_defaults(class_=cls, method='port')
@@ -61,3 +58,4 @@ class Port(AbstractActionBase):
                 file=sys.stderr,
                 flush=True)
             return 1
+        return 0

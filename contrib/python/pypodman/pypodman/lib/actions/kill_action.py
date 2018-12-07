@@ -1,9 +1,8 @@
 """Remote client command for signaling podman containers."""
-import signal
 import sys
 
 import podman
-from pypodman.lib import AbstractActionBase
+from pypodman.lib import AbstractActionBase, SignalAction
 
 
 class Kill(AbstractActionBase):
@@ -16,20 +15,15 @@ class Kill(AbstractActionBase):
         parser.add_argument(
             '--signal',
             '-s',
-            choices=range(1, signal.NSIG),
-            metavar='[1,{}]'.format(signal.NSIG),
+            action=SignalAction,
             default=9,
-            help='Signal to send to the container. (default: 9)')
+            help='Signal to send to the container. (default: %(default)s)')
         parser.add_argument(
             'containers',
             nargs='+',
             help='containers to signal',
         )
         parser.set_defaults(class_=cls, method='kill')
-
-    def __init__(self, args):
-        """Construct Kill class."""
-        super().__init__(args)
 
     def kill(self):
         """Signal provided containers."""
