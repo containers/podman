@@ -1,3 +1,26 @@
+- Changelog for v0.12.1.1 (2018-12-07)
+  * Update release notes for v0.12.1.1
+  * Fix errors where OCI hooks directory does not exist
+  * add timeout to pod stop
+  * Remove manual handling of insecure registries in (podman search)
+  * Fix reporting the registries.conf path on error
+  * Remove manual handling of insecure registries in doPullImage
+  * Remove the forceSecure parameter on the pull call stack
+  * Remove manual handling of insecure registries in PushImageToReference
+  * Factor out the registries.conf location code in pkg/registries
+  * Remove the forceSecure parameter of Image.PushImageTo*
+  * Minimally update for the DockerInsecureSkipTLSVerify type change
+  * Bump gitvalidation epoch
+  * Bump to v0.12.2-dev
+  * Fix build on non-Linux
+  * Remove some unused data structures and code
+  * Vendor buildah after merging https://github.com/containers/buildah/pull/1214
+  * Update containers/image to 63a1cbdc5e6537056695cf0d627c0a33b334df53
+  * Cirrus: Document and codify base-image production
+  * Cirrus: Use Makefile for image-building
+  * Refactor BooleanAction to mimic golang interface
+  * generate kube
+
 - Changelog for v0.12.1 (2018-12-06)
   * Update release notes for 0.12.1
   * bind mount /etc/resolv.conf|hosts in pods
