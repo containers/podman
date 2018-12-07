@@ -508,7 +508,7 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 // ImageExists returns bool as to whether the input image exists in local storage
 func (i *LibpodAPI) ImageExists(call iopodman.VarlinkCall, name string) error {
 	_, err := i.Runtime.ImageRuntime().NewFromLocal(name)
-	if errors.Cause(err) == libpod.ErrNoSuchImage {
+	if errors.Cause(err) == image.ErrNoSuchImage {
 		return call.ReplyImageExists(1)
 	}
 	if err != nil {
