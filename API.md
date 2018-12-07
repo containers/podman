@@ -113,7 +113,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func StopContainer(name: string, timeout: int) string](#StopContainer)
 
-[func StopPod(name: string) string](#StopPod)
+[func StopPod(name: string, timeout: int) string](#StopPod)
 
 [func TagImage(name: string, tagged: string) string](#TagImage)
 
@@ -741,8 +741,8 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.StopContainer '{"name": "
 ### <a name="StopPod"></a>func StopPod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method StopPod(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
-StopPod stops containers in a pod.  It takes the name or ID of a pod.
+method StopPod(name: [string](https://godoc.org/builtin#string), timeout: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
+StopPod stops containers in a pod.  It takes the name or ID of a pod and a timeout.
 If the pod cannot be found, a [PodNotFound](#PodNotFound) error will be returned instead.
 Containers in a pod are stopped independently. If there is an error stopping one container, the ID of those containers
 will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).

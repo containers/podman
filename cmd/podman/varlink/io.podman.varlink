@@ -715,7 +715,7 @@ method InspectPod(name: string) -> (pod: string)
 # ~~~
 method StartPod(name: string) -> (pod: string)
 
-# StopPod stops containers in a pod.  It takes the name or ID of a pod.
+# StopPod stops containers in a pod.  It takes the name or ID of a pod and a timeout.
 # If the pod cannot be found, a [PodNotFound](#PodNotFound) error will be returned instead.
 # Containers in a pod are stopped independently. If there is an error stopping one container, the ID of those containers
 # will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
@@ -728,7 +728,7 @@ method StartPod(name: string) -> (pod: string)
 #   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 # }
 # ~~~
-method StopPod(name: string) -> (pod: string)
+method StopPod(name: string, timeout: int) -> (pod: string)
 
 # RestartPod will restart containers in a pod given a pod name or ID. Containers in
 # the pod that are running will be stopped, then all stopped containers will be run.

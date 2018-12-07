@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -16,6 +15,10 @@ var (
 			Usage: "stop all running pods",
 		},
 		LatestPodFlag,
+		cli.UintFlag{
+			Name:  "timeout, time, t",
+			Usage: "Seconds to wait for pod stop before killing the container",
+		},
 	}
 	podStopDescription = `
    podman pod stop
@@ -35,6 +38,7 @@ var (
 )
 
 func podStopCmd(c *cli.Context) error {
+	timeout := -1
 	if err := checkMutuallyExclusiveFlags(c); err != nil {
 		return err
 	}
@@ -52,9 +56,12 @@ func podStopCmd(c *cli.Context) error {
 
 	ctx := getContext()
 
+	if c.IsSet("timeout") {
+		timeout = int(c.Uint("timeout"))
+	}
 	for _, pod := range pods {
 		// set cleanup to true to clean mounts and namespaces
-		ctr_errs, err := pod.Stop(ctx, true)
+		ctr_errs, err := pod.StopWithTimeout(ctx, true, timeout)
 		if ctr_errs != nil {
 			for ctr, err := range ctr_errs {
 				if lastError != nil {
