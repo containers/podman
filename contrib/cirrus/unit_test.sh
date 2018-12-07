@@ -9,22 +9,22 @@ OS_RELEASE_ID $OS_RELEASE_ID
 OS_RELEASE_VER $OS_RELEASE_VER
 "
 
-show_env_vars
+clean_env
 
 set -x
 cd "$GOSRC"
 case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
     ubuntu-18)
+        make install.tools "BUILDTAGS=$BUILDTAGS"
         make localunit "BUILDTAGS=$BUILDTAGS"
         make "BUILDTAGS=$BUILDTAGS"
         ;;
-    fedora-28)
+    fedora-29) ;&  # Continue to the next item
+    centos-7) ;&
+    rhel-7)
+        make install.tools
         make localunit
         make
-        ;;
-    centos-7) ;&  # Continue to the next item
-    rhel-7)
-        stub 'unit testing not working on $OS_RELEASE_ID'
         ;;
     *) bad_os_id_ver ;;
 esac

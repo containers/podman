@@ -5,48 +5,118 @@
 # and storage.
 gcp_credentials: ENCRYPTED[885c6e4297dd8d6f67593c42b810353af0c505a7a670e2c6fd830c56e86bbb2debcc3c18f942d0d46ab36b63521061d4]
 
-# Default VM to use for testing, unless values overriden by specific tasks (below)
-gce_instance:
-    image_project: "libpod-218412"
-    zone: "us-central1-a"  # Required by Cirrus for the time being
-    cpu: 2
-    memory: "4Gb"
-    disk: 40
+# Default timeout for each task
+timeout_in: 120m
 
-# Main collection of env. varss to set for all scripts. All others
-# are cooked in by $SCRIPT_BASE/setup_environment.sh
+# Main collection of env. vars to set for all tasks and scripts.
 env:
-    FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
-    CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
-    CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
-    CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
-    RUNC_COMMIT: "96ec2177ae841256168fcf76954f7177af9446eb"
+    ####
+    #### Global variables used for all tasks
+    ####
     # File to update in home-dir with task-specific env. var values
     ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
-    CIRRUS_WORKING_DIR: "/go/src/github.com/containers/libpod"
+    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
     # Required so $ENVLIB gets loaded
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
     PACKER_BASE: "./contrib/cirrus/packer"
-    IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
 
-# Every *_task runs in parallel in separate VMs. The name prefix only for reference
-# in WebUI, and will be followed by matrix details.  This task does all the
-# per-pr unit/integration testing.
-full_vm_testing_task:
+    ####
+    #### Variables for composing new cache-images (used in PR testing) from
+    #### base-images (pre-existing in GCE)
+    ####
+    # Git commits to use while building dependencies into cache-images
+    FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
+    CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
+    CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
+    CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
+    RUNC_COMMIT: "25f3f893c86d07426df93b7aa172f33fdf093fbd"
+    # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
+    PACKER_BUILDS: "ubuntu-18,fedora-29"  # TODO: fah-29,rhel-7,centos-7
+    # Version of packer to use
+    PACKER_VER: "1.3.1"
+    # Google-maintained base-image names
+    UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20181203a"
+    CENTOS_BASE_IMAGE: "centos-7-v20181113"
+    # Manually produced base-image names (see $SCRIPT_BASE/README.md)
+    FEDORA_BASE_IMAGE:  "fedora-cloud-base-29-1-2-1541789245"
+    FAH_BASE_IMAGE:  "fedora-atomichost-29-20181025-1-1541787861"
+    # RHEL image must be imported, google bills extra for their native image.
+    RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1541783972"
+
+    ####
+    #### Credentials and other secret-sauces, decrypted at runtime when authorized.
+    ####
+    # Freenode IRC credentials for posting status messages
+    IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
+    # Command to register a RHEL VM to install/update packages
+    RHSM_COMMAND: ENCRYPTED[5caa5ff8c5370c3d25c7a1a28168501ab0fa2e5e3b627926f6eaba02b3fed965a7638a6151657809661f8c905c7dc187]
+    # Needed to build GCE images, within a GCE VM
+    SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
+    # User ID for cirrus to ssh into VMs
+    GCE_SSH_USERNAME: ENCRYPTED[a7706b9e4b8bbb47f76358df7407f4fffa2e8552531190cc0b3315180c4b50588f560c4f85731e99cb5f43a396778277]
+    # Name where this repositories cloud resources are located
+    GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+
+    # Space separated list of environment variables to unset before testing
+    UNSET_ENV_VARS: >-
+        GCP_PROJECT_ID GCE_SSH_USERNAME SERVICE_ACCOUNT RHSM_COMMAND BUILT_IMAGE_SUFFIX
+        IRCID RHEL_BASE_IMAGE FAH_BASE_IMAGE FEDORA_BASE_IMAGE CENTOS_BASE_IMAGE
+        UBUNTU_BASE_IMAGE PACKER_VER PACKER_BUILDS RUNC_COMMIT CRIU_COMMIT
+        CRIO_COMMIT CNI_COMMIT FEDORA_CNI_COMMIT PACKER_BASE SCRIPT_BASE
+        CIRRUS_SHELL CIRRUS_WORKING_DIR ENVLIB BUILT_IMAGE_SUFFIX CIRRUS_CI
+        CI_NODE_INDEX CI_NODE_TOTAL CIRRUS_BASE_BRANCH CIRRUS_BASE_SHA
+        CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_CHANGE_IN_REPO CIRRUS_CLONE_DEPTH
+        CIRRUS_COMMIT_MESSAGE CIRRUS_CHANGE_MESSAGE CIRRUS_REPO_CLONE_HOST
+        CIRRUS_DEFAULT_BRANCH CIRRUS_PR CIRRUS_TAG CIRRUS_OS CIRRUS_TASK_NAME
+        CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
+        CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
+        CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
+        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID
+
+# Every *_task runs in parallel in separate VMsd. The name prefix only for reference
+# in WebUI, and will be followed by matrix details.  This task gates all others with
+# quick format, lint, and unit tests on the standard platform.
+gating_task:
+
+    env:
+        CIRRUS_WORKING_DIR: "/usr/src/libpod"
+
+    # Runs within Cirrus's "community cluster"
+    container:
+        image: "quay.io/libpod/gate:latest"
+        cpu: 4
+        memory: 12
+
+    gate_script:
+        - '/usr/local/bin/entrypoint.sh validate'
+        - '/usr/local/bin/entrypoint.sh lint'
+
+
+# This task does the unit and integration testing for every platform
+testing_task:
+
+    depends_on:
+        - "gating"
 
     gce_instance:
-        # Generate multiple 'test' tasks, covering all possible
-        # 'matrix' combinations.  All run in parallel.
+        image_project: "libpod-218412"
+        zone: "us-central1-a"  # Required by Cirrus for the time being
+        cpu: 2
+        memory: "4Gb"
+        disk: 40
+        # Generate multiple parallel tasks, covering all possible
+        # 'matrix' combinations.
         matrix:
-            # Images are generated separetly, from build_images_task (below)
+            # Images are generated separately, from build_images_task (below)
             image_name: "ubuntu-18-libpod-0c954a67"
-            # TODO: Make these work (also build_images_task below)
-            #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
-            #image_name: "centos-7-v20180911-libpod-fce09afe"
-            #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
+            image_name: "fedora-29-libpod-0c954a67"
+            # TODO: tests fail
+            # image_name: "rhel-7-something-something"
+            # image_name: "centos-7-something-something"
+            # image_name: "fah-29-libpod-5070733157859328"
 
     timeout_in: 120m
 
@@ -55,11 +125,9 @@ full_vm_testing_task:
     setup_environment_script: $SCRIPT_BASE/setup_environment.sh
 
     # ...or lists of strings
-    verify_source_script:
-        - whoami  # root!
-        - $SCRIPT_BASE/verify_source.sh
-
-    unit_test_script: $SCRIPT_BASE/unit_test.sh
+    unit_test_script:
+        - go version
+        - $SCRIPT_BASE/unit_test.sh
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
@@ -68,8 +136,7 @@ full_vm_testing_task:
 
 # Because system tests are stored within the repository, it is sometimes
 # necessary to execute them within a PR to validate changes.
-
-optional_system_testing_task:
+optional_testing_task:
 
     # Only run system tests in PRs (not on merge) if magic string is present
     # in the PR description.  Post-merge system testing is assumed to happen
@@ -79,12 +146,13 @@ optional_system_testing_task:
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
     gce_instance:
+        image_project: "libpod-218412"
         matrix:
-            image_name: "ubuntu-1804-bionic-v20180911-libpod-e8d18305"
+            image_name: "ubuntu-18-libpod-0c954a67"
+            image_name: "fedora-29-libpod-0c954a67"
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
-            #image_name: "fedora-cloud-base-28-1-1-7-libpod-fce09afe"
 
     timeout_in: 60m
 
@@ -93,13 +161,11 @@ optional_system_testing_task:
     success_script: $SCRIPT_BASE/success.sh
 
 
-# This task builds new cache-images for future PR testing.  These images save
-# time installing/setting up the environment while an engineer is waiting.
-# The 'active' cache-images for full_vm_testing are selected by the
-# 'image_name' keys.  Updating those items requires manually modification,
-# but this could be automated (see comment at end of build_vm_images_task).
-
-build_vm_images_task:
+# Build new cache-images for future PR testing, but only after a PR merge.
+# The cache-images save install/setup time needed test every PR.  The 'active' images
+# are selected by the 'image_name' items tasks above.  Currently this requires
+# manually updating the names, but this could be automated (see comment below).
+cache_images_task:
     # Only produce new cache-images after a PR merge, and if a magic string
     # is present in the most recent commit-message.
     only_if: >-
@@ -108,45 +174,27 @@ build_vm_images_task:
 
     # Require tests to pass first.
     depends_on:
-        - full_vm_testing  # i.e. 'full_vm_testing_task'
-
-    env:
-        # CSV of packer builder names to enable (see $PACKER_BASE/libpod_images.json)
-        PACKER_BUILDS: "ubuntu-18"
-        # TODO: Make these work (also full_vm_testing_task above)
-        # PACKER_BUILDS: "rhel-7,centos-7,fedora-28,ubuntu-18"
-        CENTOS_BASE_IMAGE: "centos-7-v20180911"
-        RHEL_BASE_IMAGE: "rhel-server-ec2-7-5-165-1"
-        FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-7"
-        UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20180911"
-        # low-level base VM image name inputs to packer
-
-        # Command to register a RHEL VM
-        RHSM_COMMAND: ENCRYPTED[5caa5ff8c5370c3d25c7a1a28168501ab0fa2e5e3b627926f6eaba02b3fed965a7638a6151657809661f8c905c7dc187]
-        # Additional environment variables needed to build GCE images, within a GCE VM
-        SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
-        GCE_SSH_USERNAME: ENCRYPTED[a7706b9e4b8bbb47f76358df7407f4fffa2e8552531190cc0b3315180c4b50588f560c4f85731e99cb5f43a396778277]
-        GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-        # Version of packer to use
-        PACKER_VER: "1.3.1"
+        - "gating"
+        - "testing"
 
     # VMs created by packer are not cleaned up by cirrus
     auto_cancellation: $CI != "true"
 
     gce_instance:
-        image_name: "image-builder-image"  # Simply CentOS 7 + packer dependencies
+        image_project: "libpod-218412"
+        zone: "us-central1-a"  # Required by Cirrus for the time being
+        cpu: 4
+        memory: "4Gb"
+        disk: 20
+        image_name: "image-builder-image-1541772081"  # Simply CentOS 7 + packer dependencies
         # Additional permissions for building GCE images, within a GCE VM
         scopes:
             - compute
             - devstorage.full_control
-        # Doesn't need many local resources to run
-        cpu: 2
-        memory: "2Gb"
-        disk: 20
     environment_script: $SCRIPT_BASE/setup_environment.sh
     build_vm_images_script: $SCRIPT_BASE/build_vm_images.sh
 
-    # TODO,Continuous Delivery: Automaticly open a libpod PR after using 'sed' to replace
+    # TODO,Continuous Delivery: Automatically open a libpod PR after using 'sed' to replace
     #                           the image_names with the new (just build) images.  That will
     #                           cause a new round of testing to happen (via the PR) using
     #                           the new images.  When all is good, the PR may be manually

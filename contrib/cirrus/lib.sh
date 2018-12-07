@@ -4,8 +4,8 @@
 # to be sourced by other scripts, not called directly.
 
 # Under some contexts these values are not set, make sure they are.
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
+export USER="$(whoami)"
+export HOME="$(getent passwd $USER | cut -d : -f 6)"
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
     export PATH="$PATH:/usr/local/bin"
@@ -73,6 +73,18 @@ PACKER_BUILDS $PACKER_BUILDS
     do
         [[ -z "$NAME" ]] || echo "export $NAME=\"$VALUE\""
     done
+    echo ""
+    echo "##### $(go version) #####"
+    echo ""
+}
+
+# Unset environment variables not needed for testing purposes
+clean_env() {
+    req_env_var "
+        UNSET_ENV_VARS $UNSET_ENV_VARS
+    "
+    echo "Unsetting $(echo $UNSET_ENV_VARS | wc -w) environment variables"
+    unset -v UNSET_ENV_VARS $UNSET_ENV_VARS || true  # don't fail on read-only
 }
 
 # Return a GCE image-name compatible string representation of distribution name
@@ -269,21 +281,29 @@ install_varlink(){
 }
 
 _finalize(){
+    set +e  # Don't fail at the very end
+    set +e  # make errors non-fatal
     echo "Removing leftover giblets from cloud-init"
     cd /
     sudo rm -rf /var/lib/cloud/instance?
     sudo rm -rf /root/.ssh/*
     sudo rm -rf /home/*
+    sudo rm -rf /tmp/*
+    sudo rm -rf /tmp/.??*
+    sync
+    sudo fstrim -av
 }
 
 rh_finalize(){
+    set +e  # Don't fail at the very end
     # Allow root ssh-logins
     if [[ -r /etc/cloud/cloud.cfg ]]
     then
         sudo sed -re 's/^disable_root:.*/disable_root: 0/g' -i /etc/cloud/cloud.cfg
     fi
     echo "Resetting to fresh-state for usage as cloud-image."
-    sudo $(type -P dnf || type -P yum) clean all
+    PKG=$(type -P dnf || type -P yum || echo "")
+    [[ -z "$PKG" ]] || sudo $PKG clean all  # not on atomic
     sudo rm -rf /var/cache/{yum,dnf}
     sudo rm -f /etc/udev/rules.d/*-persistent-*.rules
     sudo touch /.unconfigured  # force firstboot to run
@@ -291,7 +311,35 @@ rh_finalize(){
 }
 
 ubuntu_finalize(){
+    set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
     sudo rm -rf /var/cache/apt
     _finalize
+}
+
+rhel_exit_handler() {
+    set +ex
+    req_env_var "
+        GOPATH $GOPATH
+        RHSMCMD $RHSMCMD
+    "
+    cd /
+    sudo rm -rf "$RHSMCMD"
+    sudo rm -rf "$GOPATH"
+    sudo subscription-manager remove --all
+    sudo subscription-manager unregister
+    sudo subscription-manager clean
+}
+
+rhsm_enable() {
+    req_env_var "
+        RHSM_COMMAND $RHSM_COMMAND
+    "
+    export GOPATH="$(mktemp -d)"
+    export RHSMCMD="$(mktemp)"
+    trap "rhel_exit_handler" EXIT
+    # Avoid logging sensitive details
+    echo "$RHSM_COMMAND" > "$RHSMCMD"
+    ooe.sh sudo bash "$RHSMCMD"
+    sudo rm -rf "$RHSMCMD"
 }

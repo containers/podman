@@ -1,0 +1,179 @@
+---
+
+variables:
+    # Complete local path to this repository (Required)
+    GOSRC:
+    # Relative path to this (packer) subdirectory (Required)
+    PACKER_BASE:
+    # Relative path to cirrus scripts subdirectory (Required)
+    SCRIPT_BASE:
+    # Unique ID for naming new base-images (required)
+    TIMESTAMP:
+    # Required for output from qemu builders
+    TTYDEV:
+    # RHEL images require click-through agreements to obtain (required)
+    RHEL_BASE_IMAGE_NAME:
+    RHEL_IMAGE_FILE:
+    RHEL_CSUM_FILE:
+    # RHEL requires a subscription to install/update packages
+    RHSM_COMMAND:
+
+    # Fedora images are obtainable by direct download
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
+    FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-29-1-2'  # Name to use in GCE
+    FAH_IMAGE_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1.x86_64.qcow2"
+    FAH_CSUM_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1-x86_64-CHECKSUM"
+    FAH_BASE_IMAGE_NAME: 'fedora-atomichost-29-20181025-1'  # Name to use in GCE
+
+    # The name of the image in GCE used for packer build libpod_images.yml
+    IBI_BASE_NAME: 'image-builder-image'
+    CIDATA_ISO: 'cidata.iso'  # produced by Makefile
+
+    # Path to json file (required, likely ~/.config/gcloud/legacy_credentials/*/adc.json)
+    GOOGLE_APPLICATION_CREDENTIALS:
+    # The complete project ID (required, not the short name)
+    GCP_PROJECT_ID:
+    # Pre-existing storage bucket w/ lifecycle-enabled
+    XFERBUCKET: "packer-import"  # pre-created, globally unique, lifecycle-enabled
+
+# Don't leak sensitive values in error messages / output
+sensitive-variables:
+    - 'GOOGLE_APPLICATION_CREDENTIALS'
+    - 'GCP_PROJECT_ID'
+    - 'RHSM_COMMAND'
+
+# What images to produce in which cloud
+builders:
+    - name: '{{user `IBI_BASE_NAME`}}'
+      type: 'googlecompute'
+      image_name: '{{user `IBI_BASE_NAME`}}-{{user `TIMESTAMP`}}'
+      image_family: '{{user `IBI_BASE_NAME`}}'
+      source_image_project_id: 'centos-cloud'
+      source_image_family: 'centos-7'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      communicator: 'ssh'
+      ssh_username: 'centos'
+      ssh_pty: 'true'
+      # The only supported zone in Cirrus-CI, as of addition of this comment
+      zone: 'us-central1-a'
+      # Enable nested virtualization in case it's ever needed
+      image_licenses:
+        - 'https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx'
+      min_cpu_platform: "Intel Broadwell"  # nested-virt requirement
+
+    - &nested_virt
+      name: 'fedora'
+      type: 'qemu'
+      accelerator: "kvm"
+      iso_url: '{{user `FEDORA_IMAGE_URL`}}'
+      disk_image: true
+      format: "raw"
+      disk_size: 5120
+      iso_checksum_url: '{{user `FEDORA_CSUM_URL`}}'
+      iso_checksum_type: "sha256"
+      output_directory: '/tmp/{{build_name}}'
+      vm_name: "disk.raw"  # actually qcow2, name required for post-processing
+      boot_wait: '5s'
+      shutdown_command: 'shutdown -h now'
+      headless: true
+      qemu_binary: "/usr/libexec/qemu-kvm"
+      qemuargs:  # List-of-list format required to override packer-generated args
+        - - "-m"
+          - "1024"
+        - - "-cpu"
+          - "host"
+        - - "-device"
+          - "virtio-rng-pci"
+        - - "-chardev"
+          - "tty,id=pts,path={{user `TTYDEV`}}"
+        - - "-device"
+          - "isa-serial,chardev=pts"
+        - - "-cdrom"
+          - "{{user `CIDATA_ISO`}}"
+        - - "-netdev"
+          - "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22"
+        - - "-device"
+          - "virtio-net,netdev=net0"
+      communicator: 'ssh'
+      ssh_private_key_file: 'cidata.ssh'
+      ssh_username: 'root'
+
+    - <<: *nested_virt
+      name: 'fah'
+      iso_url: '{{user `FAH_IMAGE_URL`}}'
+      iso_checksum_url: '{{user `FAH_CSUM_URL`}}'
+      disk_size: 10240
+
+    - <<: *nested_virt
+      name: 'rhel'
+      iso_url: 'file://{{user `RHEL_IMAGE_FILE`}}'
+      iso_checksum_url: 'file://{{user `RHEL_CSUM_FILE`}}'
+      disk_size: 10240
+
+provisioners:
+    - type: 'shell'
+      inline:
+        - 'mkdir -p /tmp/libpod/{{user `SCRIPT_BASE`}}'
+        - 'mkdir -p /tmp/libpod/{{user `PACKER_BASE`}}'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/.cirrus.yml'
+      destination: '/tmp/libpod/.cirrus.yml'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/{{user `SCRIPT_BASE`}}/'
+      destination: '/tmp/libpod/{{user `SCRIPT_BASE`}}/'
+
+    - type: 'file'
+      source: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/'
+      destination: '/tmp/libpod/{{user `PACKER_BASE`}}/'
+
+    - &shell_script
+      type: 'shell'
+      inline:
+        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
+        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh pre'
+      expect_disconnect: true  # Allow this to reboot the VM
+      environment_vars:
+          - 'TIMESTAMP={{user `TIMESTAMP`}}'
+          - 'GOSRC=/tmp/libpod'
+          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
+          - 'PACKER_BASE={{user `PACKER_BASE`}}'
+          - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
+
+    - <<: *shell_script
+      inline: ['{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh']
+      expect_disconnect: false
+      pause_before: '10s'
+      inline:
+        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh post'
+
+post-processors:
+    - - type: "compress"
+        only: ['fedora', 'fah', 'rhel']
+        output: '/tmp/{{build_name}}/disk.raw.tar.gz'
+        format: '.tar.gz'
+        compression_level: 9
+      - &gcp_import
+        only: ['fedora']
+        type: "googlecompute-import"
+        project_id: '{{user `GCP_PROJECT_ID`}}'
+        account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+        bucket: '{{user `XFERBUCKET`}}'
+        gcs_object_name: '{{build_name}}-{{user `TIMESTAMP`}}-{{uuid}}.tar.gz'
+        image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
+        image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
+        image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
+      - <<: *gcp_import
+        only: ['fah']
+        image_name: "{{user `FAH_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
+        image_description: 'Based on {{user `FAH_IMAGE_URL`}}'
+        image_family: '{{user `FAH_BASE_IMAGE_NAME`}}'
+      - <<: *gcp_import
+        only: ['rhel']
+        image_name: "{{user `RHEL_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
+        image_description: 'Based on {{user `RHEL_IMAGE_FILE`}}'
+        image_family: '{{user `RHEL_BASE_IMAGE_NAME`}}'
+      - type: 'manifest'

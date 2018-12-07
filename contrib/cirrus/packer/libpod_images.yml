@@ -1,0 +1,91 @@
+---
+
+# All of these are required
+variables:
+    # Names of GCE Base images to start from, in .cirrus.yml
+    RHEL_BASE_IMAGE: '{{env `RHEL_BASE_IMAGE`}}'
+    CENTOS_BASE_IMAGE: '{{env `CENTOS_BASE_IMAGE`}}'
+    UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
+    FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
+    FAH_BASE_IMAGE: '{{env `FAH_BASE_IMAGE`}}'
+
+    # libpod dependencies to build and install into images
+    FEDORA_CNI_COMMIT: "{{env `FEDORA_CNI_COMMIT`}}"
+    CNI_COMMIT: "{{env `CNI_COMMIT`}}"
+    CRIO_COMMIT: "{{env `CRIO_COMMIT`}}"
+    CRIU_COMMIT: "{{env `CRIU_COMMIT`}}"
+    RUNC_COMMIT: "{{env `RUNC_COMMIT`}}"
+
+    BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
+    GOSRC: '{{env `GOSRC`}}'
+    PACKER_BASE: '{{env `PACKER_BASE`}}'
+    SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
+
+    # Protected credentials, decrypted by Cirrus at runtime
+    GCE_SSH_USERNAME: '{{env `GCE_SSH_USERNAME`}}'
+    GCP_PROJECT_ID: '{{env `GCP_PROJECT_ID`}}'
+    RHSM_COMMAND: '{{env `RHSM_COMMAND`}}'
+    SERVICE_ACCOUNT: '{{env `SERVICE_ACCOUNT`}}'
+    GOOGLE_APPLICATION_CREDENTIALS: '{{env `GOOGLE_APPLICATION_CREDENTIALS`}}'
+
+# Don't leak sensitive values in error messages / output
+sensitive-variables:
+    - 'GCE_SSH_USERNAME'
+    - 'GCP_PROJECT_ID'
+    - 'RHSM_COMMAND'
+    - 'SERVICE_ACCOUNT'
+
+# What images to produce in which cloud
+builders:
+    #  v----- is a YAML anchor, allows referencing this object by name (below)
+    - &gce_hosted_image
+      name: 'ubuntu-18'
+      type: 'googlecompute'
+      image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
+      image_family: '{{build_name}}-libpod'
+      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      disk_size: 20
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      service_account_email: '{{user `SERVICE_ACCOUNT`}}'
+      communicator: 'ssh'
+      ssh_username: '{{user `GCE_SSH_USERNAME`}}'
+      ssh_pty: 'true'
+      # The only supported zone in Cirrus-CI, as of addition of this comment
+      zone: 'us-central1-a'
+
+    #      v----- is a YAML alias, allows partial re-use of the anchor object
+    - <<: *gce_hosted_image
+      name: 'rhel-7'
+      source_image: '{{user `RHEL_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
+      name: 'centos-7'
+      source_image: '{{user `CENTOS_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
+      name: 'fedora-29'
+      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
+      name: 'fah-29'
+      source_image: '{{user `FAH_BASE_IMAGE`}}'
+
+# The brains of the operation, making actual modifications to the base-image.
+provisioners:
+    - type: 'file'
+      source: '{{user `GOSRC`}}'
+      destination: '/tmp/libpod'
+
+    - type: 'shell'
+      script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
+      environment_vars:
+          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
+          - 'CNI_COMMIT={{user `CNI_COMMIT`}}'
+          - 'FEDORA_CNI_COMMIT={{user `FEDORA_CNI_COMMIT`}}'
+          - 'CRIO_COMMIT={{user `CRIO_COMMIT`}}'
+          - 'CRIU_COMMIT={{user `CRIU_COMMIT`}}'
+          - 'RUNC_COMMIT={{user `RUNC_COMMIT`}}'
+          - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
+
+post-processors:
+    - - type: 'manifest'
