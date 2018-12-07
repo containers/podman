@@ -876,6 +876,25 @@ _podman_container_wait() {
      _podman_wait
 }
 
+_podman_generate() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	 kube
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
 _podman_container() {
     local boolean_options="
 	--help
@@ -2219,6 +2238,14 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_generate_kube() {
+    local options_with_args=""
+
+    local boolean_options="
+    -s
+    --service
+    "
+
 _podman_container_runlabel() {
     local options_with_args="
      --authfile
@@ -2702,6 +2729,7 @@ _podman_podman() {
     diff
     exec
     export
+    generate
     history
     images
     import
