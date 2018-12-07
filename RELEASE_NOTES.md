@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.12.1.1
+### Features
+- Added the `podman generate kube` command to generate Kubernetes Pod and Service YAML for Podman containers and pods
+- The `podman pod stop` flag now accepts a `--timeout` flag to set the timeout for stopping containers in the pod
+
+### Bugfixes
+- Fixed a bug where rootless Podman would fail to start if the default OCI hooks directory is not present
+
 ## 0.12.1
 ### Features
 - Rootless Podman now creates the storage.conf, libpod.conf, and mounts.conf configuration files automatically in `~/.config/containers/` for ease of reconfiguration
