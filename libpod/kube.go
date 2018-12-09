@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
@@ -335,20 +336,69 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
 	return vms, nil
 }
 
+func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
+	var (
+		drop []v1.Capability
+		add  []v1.Capability
+	)
+	// Find caps in the defaultCaps but not in the container's
+	// those indicate a dropped cap
+	for _, capability := range defaultCaps {
+		if !util.StringInSlice(capability, containerCaps) {
+			cap := v1.Capability(capability)
+			drop = append(drop, cap)
+		}
+	}
+	// Find caps in the container but not in the defaults; those indicate
+	// an added cap
+	for _, capability := range containerCaps {
+		if !util.StringInSlice(capability, defaultCaps) {
+			cap := v1.Capability(capability)
+			add = append(add, cap)
+		}
+	}
+
+	return &v1.Capabilities{
+		Add:  add,
+		Drop: drop,
+	}
+}
+
+func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
+	g, err := generate.New("linux")
+	if err != nil {
+		return nil, err
+	}
+	// Combine all the default capabilities into a slice
+	defaultCaps := append(g.Config.Process.Capabilities.Ambient, g.Config.Process.Capabilities.Bounding...)
+	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Effective...)
+	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Inheritable...)
+	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Permitted...)
+
+	// Combine all the container's capabilities into a slic
+	containerCaps := append(caps.Ambient, caps.Bounding...)
+	containerCaps = append(containerCaps, caps.Effective...)
+	containerCaps = append(containerCaps, caps.Inheritable...)
+	containerCaps = append(containerCaps, caps.Permitted...)
+
+	calculatedCaps := determineCapAddDropFromCapabilities(defaultCaps, containerCaps)
+	return calculatedCaps, nil
+}
+
 // generateKubeSecurityContext generates a securityContext based on the existing container
 func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	priv := c.Privileged()
 	ro := c.IsReadOnly()
 	allowPrivEscalation := !c.Spec().Process.NoNewPrivileges
 
-	// TODO enable use of capabilities when we can figure out how to extract cap-add|remove
-	//caps := v1.Capabilities{
-	//	//Add: c.config.Spec.Process.Capabilities
-	//}
+	newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
+	if err != nil {
+		return nil, err
+	}
+
 	sc := v1.SecurityContext{
-		// TODO enable use of capabilities when we can figure out how to extract cap-add|remove
-		//Capabilities: &caps,
-		Privileged: &priv,
+		Capabilities: newCaps,
+		Privileged:   &priv,
 		// TODO How do we know if selinux were passed into podman
 		//SELinuxOptions:
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
