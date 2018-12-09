@@ -146,37 +146,10 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 		return nil, nil, err
 	}
 
-	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
+	ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	options, err := createConfig.GetContainerCreateOptions(runtime)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, runtime)
-	if err != nil {
-		return nil, nil, err
-	}
-	if became {
-		os.Exit(ret)
-	}
-
-	ctr, err := runtime.NewContainer(ctx, runtimeSpec, options...)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	createConfigJSON, err := json.Marshal(createConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
-		return nil, nil, err
-	}
-
 	if cidFile != nil {
 		_, err = cidFile.WriteString(ctr.ID())
 		if err != nil {
@@ -912,4 +885,38 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 		}
 	}
 	return rootless.BecomeRootInUserNS()
+}
+
+func createContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context) (*libpod.Container, error) {
+	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	options, err := createConfig.GetContainerCreateOptions(r)
+	if err != nil {
+		return nil, err
+	}
+
+	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, r)
+	if err != nil {
+		return nil, err
+	}
+	if became {
+		os.Exit(ret)
+	}
+
+	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	createConfigJSON, err := json.Marshal(createConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
+		return nil, err
+	}
+	return ctr, nil
 }

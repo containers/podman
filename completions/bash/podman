@@ -895,6 +895,26 @@ _podman_generate() {
 		;;
      esac
 }
+
+_podman_play() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	 kube
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
 _podman_container() {
     local boolean_options="
 	--help
@@ -2247,6 +2267,22 @@ _podman_generate_kube() {
     --service
     "
 
+_podman_play_kube() {
+    local options_with_args="
+    --authfile
+    --cert-dir
+    --creds
+    --signature-policy
+    "
+
+    local boolean_options="
+    -h
+    --help
+    --quiet
+    -q
+    --tls-verify
+    "
+
 _podman_container_runlabel() {
     local options_with_args="
      --authfile
@@ -2750,6 +2786,7 @@ _podman_podman() {
     ps
     pull
     push
+    play
     restart
     rm
     rmi
