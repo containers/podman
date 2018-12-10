@@ -244,6 +244,12 @@ method ContainerExists(name: [string](https://godoc.org/builtin#string)) [int](h
 ContainerExists takes a full or partial container ID or name and returns an int as to
 whether the container exists in local storage.  A result of 0 means the container does
 exists; whereas a result of 1 means it could not be found.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ContainerExists '{"name": "flamboyant_payne"}'{
+  "exists": 0
+}
+~~~
 ### <a name="ContainerRestore"></a>func ContainerRestore
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -298,12 +304,36 @@ $ varlink call unix:/run/podman/io.podman/io.podman.CreatePod '{"create": {"name
 method DeleteStoppedContainers() [[]string](#[]string)</div>
 DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
 container IDs.  See also [RemoveContainer](RemoveContainer).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteStoppedContainers
+{
+  "containers": [
+    "451410b931d00def8aa9b4f8084e4d4a39e5e04ea61f358cf53a5cf95afcdcee",
+    "8b60f754a3e01389494a9581ade97d35c2765b6e2f19acd2d3040c82a32d1bc0",
+    "cf2e99d4d3cad6073df199ed32bbe64b124f3e1aba6d78821aa8460e70d30084",
+    "db901a329587312366e5ecff583d08f0875b4b79294322df67d90fc6eed08fc1"
+  ]
+}
+~~~
 ### <a name="DeleteUnusedImages"></a>func DeleteUnusedImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method DeleteUnusedImages() [[]string](#[]string)</div>
 DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 in a string array.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteUnusedImages
+{
+  "images": [
+    "166ea6588079559c724c15223f52927f514f73dd5c5cf2ae2d143e3b2e6e9b52",
+    "da86e6ba6ca197bf6bc5e9d900febd906b133eaa4750e6bed647b0fbe50ed43e",
+    "3ef70f7291f47dfe2b82931a993e16f5a44a0e7a68034c3e0e086d77f5829adc",
+    "59788edf1f3e78cd0ebe6ce1446e9d10788225db3dedcfd1a59f764bad2b2690"
+  ]
+}
+~~~
 ### <a name="ExportContainer"></a>func ExportContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -312,6 +342,13 @@ ExportContainer creates an image from a container.  It takes the name or ID of a
 path representing the target tarfile.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
 error will be returned.
 The return value is the written tarfile.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ExportContainer '{"name": "flamboyant_payne", "path": "/tmp/payne.tar" }'
+{
+  "tarfile": "/tmp/payne.tar"
+}
+~~~
 ### <a name="ExportImage"></a>func ExportImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -403,6 +440,32 @@ method GetPod(name: [string](https://godoc.org/builtin#string)) [ListPodData](#L
 GetPod takes a name or ID of a pod and returns single [ListPodData](#ListPodData)
 structure.  A [PodNotFound](#PodNotFound) error will be returned if the pod cannot be found.
 See also [ListPods](ListPods).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.GetPod '{"name": "foobar"}'
+{
+  "pod": {
+    "cgroup": "machine.slice",
+    "containersinfo": [
+      {
+        "id": "00c130a45de0411f109f1a0cfea2e298df71db20fa939de5cab8b2160a36be45",
+        "name": "1840835294cf-infra",
+        "status": "running"
+      },
+      {
+        "id": "49a5cce72093a5ca47c6de86f10ad7bb36391e2d89cef765f807e460865a0ec6",
+        "name": "upbeat_murdock",
+        "status": "running"
+      }
+    ],
+    "createdat": "2018-12-07 13:10:15.014139258 -0600 CST",
+    "id": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f",
+    "name": "foobar",
+    "numberofcontainers": "2",
+    "status": "Running"
+  }
+}
+~~~
 ### <a name="GetPodStats"></a>func GetPodStats
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -455,6 +518,13 @@ method ImageExists(name: [string](https://godoc.org/builtin#string)) [int](https
 ImageExists talks a full or partial image ID or name and returns an int as to whether
 the image exists in local storage. An int result of 0 means the image does exist in
 local storage; whereas 1 indicates the image does not exists in local storage.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ImageExists '{"name": "imageddoesntexist"}'
+{
+  "exists": 1
+}
+~~~
 ### <a name="ImportImage"></a>func ImportImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -499,6 +569,13 @@ Containers in a pod are killed independently. If there is an error killing one c
 will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 If the pod was killed with no errors, the pod ID is returned.
 See also [StopPod](StopPod).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.KillPod '{"name": "foobar", "signal": 15}'
+{
+  "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
+}
+~~~
 ### <a name="ListContainerChanges"></a>func ListContainerChanges
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -511,6 +588,18 @@ its base image. It returns a struct of changed, deleted, and added path names.
 method ListContainerMounts() [[]string](#[]string)</div>
 ListContainerMounts gathers all the mounted container mount points and returns them as an array
 of strings
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ListContainerMounts
+{
+  "mounts": [
+    "/var/lib/containers/storage/overlay/b215fb622c65ba3b06c6d2341be80b76a9de7ae415ce419e65228873d4f0dcc8/merged",
+    "/var/lib/containers/storage/overlay/5eaf806073f79c0ed9a695180ad598e34f963f7407da1d2ccf3560bdab49b26f/merged",
+    "/var/lib/containers/storage/overlay/1ecb6b1dbb251737c7a24a31869096839c3719d8b250bf075f75172ddcc701e1/merged",
+    "/var/lib/containers/storage/overlay/7137b28a3c422165fe920cba851f2f8da271c6b5908672c451ebda03ad3919e2/merged"
+  ]
+}
+~~~
 ### <a name="ListContainerPorts"></a>func ListContainerPorts
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -554,12 +643,61 @@ an image currently in storage.  See also [InspectImage](InspectImage).
 method ListPods() [ListPodData](#ListPodData)</div>
 ListPods returns a list of pods in no particular order.  They are
 returned as an array of ListPodData structs.  See also [GetPod](#GetPod).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ListPods
+{
+  "pods": [
+    {
+      "cgroup": "machine.slice",
+      "containersinfo": [
+        {
+          "id": "00c130a45de0411f109f1a0cfea2e298df71db20fa939de5cab8b2160a36be45",
+          "name": "1840835294cf-infra",
+          "status": "running"
+        },
+        {
+          "id": "49a5cce72093a5ca47c6de86f10ad7bb36391e2d89cef765f807e460865a0ec6",
+          "name": "upbeat_murdock",
+          "status": "running"
+        }
+      ],
+      "createdat": "2018-12-07 13:10:15.014139258 -0600 CST",
+      "id": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f",
+      "name": "foobar",
+      "numberofcontainers": "2",
+      "status": "Running"
+    },
+    {
+      "cgroup": "machine.slice",
+      "containersinfo": [
+        {
+          "id": "1ca4b7bbba14a75ba00072d4b705c77f3df87db0109afaa44d50cb37c04a477e",
+          "name": "784306f655c6-infra",
+          "status": "running"
+        }
+      ],
+      "createdat": "2018-12-07 13:09:57.105112457 -0600 CST",
+      "id": "784306f655c6200aea321dd430ba685e9b2cc1f7d7528a72f3ff74ffb29485a2",
+      "name": "nostalgic_pike",
+      "numberofcontainers": "1",
+      "status": "Running"
+    }
+  ]
+}
+~~~
 ### <a name="MountContainer"></a>func MountContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method MountContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 MountContainer mounts a container by name or full/partial ID.  Upon a successful mount, the destination
 mount is returned as a string.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.MountContainer '{"name": "jolly_shannon"}'{
+  "path": "/var/lib/containers/storage/overlay/419eeb04e783ea159149ced67d9fcfc15211084d65e894792a96bedfae0470ca/merged"
+}
+~~~
 ### <a name="PauseContainer"></a>func PauseContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -577,6 +715,13 @@ Containers in a pod are paused independently. If there is an error pausing one c
 will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 If the pod was paused with no errors, the pod ID is returned.
 See also [UnpausePod](#UnpausePod).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.PausePod '{"name": "foobar"}'
+{
+  "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
+}
+~~~
 ### <a name="Ping"></a>func Ping
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -771,6 +916,11 @@ This method has not been implemented yet.
 
 method UnmountContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) </div>
 UnmountContainer umounts a container by its name or full/partial container ID.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.UnmountContainer '{"name": "jolly_shannon", "force": false}'
+{}
+~~~
 ### <a name="UnpauseContainer"></a>func UnpauseContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -788,6 +938,13 @@ Containers in a pod are unpaused independently. If there is an error unpausing o
 will be returned in a list, along with the ID of the pod in a [PodContainerError](#PodContainerError).
 If the pod was unpaused with no errors, the pod ID is returned.
 See also [PausePod](#PausePod).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.UnpausePod '{"name": "foobar"}'
+{
+  "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
+}
+~~~
 ### <a name="UpdateContainer"></a>func UpdateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
