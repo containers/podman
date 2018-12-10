@@ -861,6 +861,7 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 
 // checkpointContainer checkpoints the given container
 func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
+	label.SetSocketLabel(ctr.ProcessLabel())
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
 	// workPath will be used to store dump.log and stats-dump

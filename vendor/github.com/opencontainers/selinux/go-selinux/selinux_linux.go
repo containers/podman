@@ -385,6 +385,17 @@ func SetExecLabel(label string) error {
 	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/exec", syscall.Gettid()), label)
 }
 
+// SetSocketLabel takes a process label and tells the kernel to assign the
+// label to the next socket that gets created
+func SetSocketLabel(label string) error {
+	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/sockcreate", syscall.Gettid()), label)
+}
+
+// SocketLabel retrieves the current socket label setting
+func SocketLabel() (string, error) {
+	return readCon(fmt.Sprintf("/proc/self/task/%d/attr/sockcreate", syscall.Gettid()))
+}
+
 // Get returns the Context as a string
 func (c Context) Get() string {
 	if c["level"] != "" {
