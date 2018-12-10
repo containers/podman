@@ -109,7 +109,7 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	}
 	conmonBinary := filepath.Join("/usr/libexec/podman/conmon")
 	altConmonBinary := "/usr/libexec/crio/conmon"
-	if _, err := os.Stat(altConmonBinary); err == nil {
+	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
 		conmonBinary = altConmonBinary
 	}
 	if os.Getenv("CONMON_BINARY") != "" {

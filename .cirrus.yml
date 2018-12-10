@@ -34,14 +34,15 @@ env:
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
     RUNC_COMMIT: "25f3f893c86d07426df93b7aa172f33fdf093fbd"
     # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
-    PACKER_BUILDS: "ubuntu-18,fedora-29"  # TODO: fah-29,rhel-7,centos-7
+    PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28"  # TODO: fah-29,rhel-7,centos-7
     # Version of packer to use
     PACKER_VER: "1.3.1"
     # Google-maintained base-image names
     UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20181203a"
     CENTOS_BASE_IMAGE: "centos-7-v20181113"
     # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-    FEDORA_BASE_IMAGE:  "fedora-cloud-base-29-1-2-1541789245"
+    FEDORA_BASE_IMAGE: "fedora-cloud-base-29-1-2-1541789245"
+    PRIOR_FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-1544474897"
     FAH_BASE_IMAGE:  "fedora-atomichost-29-20181025-1-1541787861"
     # RHEL image must be imported, google bills extra for their native image.
     RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1541783972"
@@ -111,8 +112,10 @@ testing_task:
         # 'matrix' combinations.
         matrix:
             # Images are generated separately, from build_images_task (below)
-            image_name: "ubuntu-18-libpod-0c954a67"
-            image_name: "fedora-29-libpod-0c954a67"
+            image_name: "ubuntu-18-libpod-86d821ea"
+            image_name: "fedora-28-libpod-86d821ea"
+            image_name: "fedora-29-libpod-86d821ea"
+
             # TODO: tests fail
             # image_name: "rhel-7-something-something"
             # image_name: "centos-7-something-something"
@@ -148,8 +151,9 @@ optional_testing_task:
     gce_instance:
         image_project: "libpod-218412"
         matrix:
-            image_name: "ubuntu-18-libpod-0c954a67"
-            image_name: "fedora-29-libpod-0c954a67"
+            image_name: "ubuntu-18-libpod-86d821ea"
+            image_name: "fedora-28-libpod-86d821ea"
+            image_name: "fedora-29-libpod-86d821ea"
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"

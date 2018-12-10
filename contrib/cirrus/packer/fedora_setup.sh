@@ -28,7 +28,6 @@ ooe.sh sudo dnf install -y \
     atomic-registries \
     btrfs-progs-devel \
     bzip2 \
-    conmon \
     device-mapper-devel \
     findutils \
     git \

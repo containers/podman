@@ -18,10 +18,14 @@ variables:
     # RHEL requires a subscription to install/update packages
     RHSM_COMMAND:
 
-    # Fedora images are obtainable by direct download
+    # Latest Fedora release
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
     FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
     FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-29-1-2'  # Name to use in GCE
+    # Prior Fedora release
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-28-1.1-x86_64-CHECKSUM"
+    PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-28-1-1'  # Name to use in GCE
     FAH_IMAGE_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1.x86_64.qcow2"
     FAH_CSUM_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1-x86_64-CHECKSUM"
     FAH_BASE_IMAGE_NAME: 'fedora-atomichost-29-20181025-1'  # Name to use in GCE
@@ -101,6 +105,11 @@ builders:
       ssh_username: 'root'
 
     - <<: *nested_virt
+      name: 'prior_fedora'
+      iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
+      iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
+
+    - <<: *nested_virt
       name: 'fah'
       iso_url: '{{user `FAH_IMAGE_URL`}}'
       iso_checksum_url: '{{user `FAH_CSUM_URL`}}'
@@ -152,7 +161,7 @@ provisioners:
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'fah', 'rhel']
+        only: ['fedora', 'prior_fedora', 'fah', 'rhel']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -166,6 +175,11 @@ post-processors:
         image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
         image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
+      - <<: *gcp_import
+        only: ['prior_fedora']
+        image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
+        image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
+        image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'
       - <<: *gcp_import
         only: ['fah']
         image_name: "{{user `FAH_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
