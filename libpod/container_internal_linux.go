@@ -26,6 +26,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/mrunalp/fileutils"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -645,28 +646,68 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	if !netDisabled {
-		// Make /etc/resolv.conf
-		if _, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-			// If it already exists, delete so we can recreate
+		// If /etc/resolv.conf and /etc/hosts exist, delete them so we
+		// will recreate
+		if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
+			}
 			delete(c.state.BindMounts, "/etc/resolv.conf")
 		}
-		newResolv, err := c.generateResolvConf()
-		if err != nil {
-			return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
-		}
-		c.state.BindMounts["/etc/resolv.conf"] = newResolv
-
-		// Make /etc/hosts
-		if _, ok := c.state.BindMounts["/etc/hosts"]; ok {
-			// If it already exists, delete so we can recreate
+		if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error removing container %s hosts", c.ID())
+			}
 			delete(c.state.BindMounts, "/etc/hosts")
 		}
-		newHosts, err := c.generateHosts()
-		if err != nil {
-			return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
-		}
-		c.state.BindMounts["/etc/hosts"] = newHosts
 
+		if c.config.NetNsCtr != "" {
+			// We share a net namespace
+			// We want /etc/resolv.conf and /etc/hosts from the
+			// other container
+			depCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
+			if err != nil {
+				return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
+			}
+
+			// We need that container's bind mounts
+			bindMounts, err := depCtr.BindMounts()
+			if err != nil {
+				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
+			}
+
+			// The other container may not have a resolv.conf or /etc/hosts
+			// If it doesn't, don't copy them
+			resolvPath, exists := bindMounts["/etc/resolv.conf"]
+			if exists {
+				resolvDest := filepath.Join(c.state.RunDir, "resolv.conf")
+				if err := fileutils.CopyFile(resolvPath, resolvDest); err != nil {
+					return errors.Wrapf(err, "error copying resolv.conf from dependency container %s of container %s", depCtr.ID(), c.ID())
+				}
+				c.state.BindMounts["/etc/resolv.conf"] = resolvDest
+			}
+
+			hostsPath, exists := bindMounts["/etc/hosts"]
+			if exists {
+				hostsDest := filepath.Join(c.state.RunDir, "hosts")
+				if err := fileutils.CopyFile(hostsPath, hostsDest); err != nil {
+					return errors.Wrapf(err, "error copying hosts file from dependency container %s of container %s", depCtr.ID(), c.ID())
+				}
+				c.state.BindMounts["/etc/hosts"] = hostsDest
+			}
+		} else {
+			newResolv, err := c.generateResolvConf()
+			if err != nil {
+				return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+			}
+			c.state.BindMounts["/etc/resolv.conf"] = newResolv
+
+			newHosts, err := c.generateHosts()
+			if err != nil {
+				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			}
+			c.state.BindMounts["/etc/hosts"] = newHosts
+		}
 	}
 
 	// SHM is always added when we mount the container
