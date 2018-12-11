@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -168,6 +169,8 @@ type BuildOptions struct {
 	// ForceRmIntermediateCtrs tells the builder to remove all intermediate containers even if
 	// the build was unsuccessful.
 	ForceRmIntermediateCtrs bool
+	// BlobDirectory is a directory which we'll use for caching layer blobs.
+	BlobDirectory string
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -224,6 +227,7 @@ type Executor struct {
 	containerIDs                   []string          // Stores the IDs of the successful intermediate containers used during layer build
 	imageMap                       map[string]string // Used to map images that we create to handle the AS construct.
 	copyFrom                       string            // Used to keep track of the --from flag from COPY and ADD
+	blobDirectory                  string
 }
 
 // builtinAllowedBuildArgs is list of built-in allowed build args
@@ -239,7 +243,7 @@ var builtinAllowedBuildArgs = map[string]bool{
 }
 
 // withName creates a new child executor that will be used whenever a COPY statement uses --from=NAME.
-func (b *Executor) withName(name string, index int) *Executor {
+func (b *Executor) withName(name string, index int, from string) *Executor {
 	if b.named == nil {
 		b.named = make(map[string]*Executor)
 	}
@@ -248,6 +252,7 @@ func (b *Executor) withName(name string, index int) *Executor {
 	copied.name = name
 	child := &copied
 	b.named[name] = child
+	b.named[from] = child
 	if idx := strconv.Itoa(index); idx != name {
 		b.named[idx] = child
 	}
@@ -609,6 +614,7 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		noCache:                        options.NoCache,
 		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
 		forceRmIntermediateCtrs:        options.ForceRmIntermediateCtrs,
+		blobDirectory:                  options.BlobDirectory,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -664,6 +670,7 @@ func (b *Executor) Prepare(ctx context.Context, stage imagebuilder.Stage, from s
 		PullPolicy:            b.pullPolicy,
 		Registry:              b.registry,
 		Transport:             b.transport,
+		PullBlobDirectory:     b.blobDirectory,
 		SignaturePolicyPath:   b.signaturePolicyPath,
 		ReportWriter:          b.reportWriter,
 		SystemContext:         b.systemContext,
@@ -1227,6 +1234,7 @@ func (b *Executor) Commit(ctx context.Context, ib *imagebuilder.Builder, created
 		SystemContext:         b.systemContext,
 		IIDFile:               b.iidfile,
 		Squash:                b.squash,
+		BlobDirectory:         b.blobDirectory,
 		Parent:                b.builder.FromImageID,
 	}
 	imgID, ref, _, err := b.builder.Commit(ctx, imageRef, options)
@@ -1252,8 +1260,16 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (strin
 	b.imageMap = make(map[string]string)
 	stageCount := 0
 	for _, stage := range stages {
-		stageExecutor = b.withName(stage.Name, stage.Position)
-		if err := stageExecutor.Prepare(ctx, stage, ""); err != nil {
+		ib := stage.Builder
+		node := stage.Node
+		base, err := ib.From(node)
+		if err != nil {
+			logrus.Debugf("Build(node.Children=%#v)", node.Children)
+			return "", nil, err
+		}
+
+		stageExecutor = b.withName(stage.Name, stage.Position, base)
+		if err := stageExecutor.Prepare(ctx, stage, base); err != nil {
 			return "", nil, err
 		}
 		// Always remove the intermediate/build containers, even if the build was unsuccessful.
@@ -1392,6 +1408,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 
 		dockerfiles = append(dockerfiles, data)
 	}
+
+	dockerfiles = processCopyFrom(dockerfiles)
+
 	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile")
@@ -1413,6 +1432,80 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		return "", nil, errors.Wrap(err, "error reading multiple stages")
 	}
 	return exec.Build(ctx, stages)
+}
+
+// processCopyFrom goes through the Dockerfiles and handles any 'COPY --from' instances
+// prepending a new FROM statement the Dockerfile that do not already have a corresponding
+// FROM command within them.
+func processCopyFrom(dockerfiles []io.ReadCloser) []io.ReadCloser {
+
+	var newDockerfiles []io.ReadCloser
+	// fromMap contains the names of the images seen in a FROM
+	// line in the Dockerfiles.  The boolean value just completes the map object.
+	fromMap := make(map[string]bool)
+	// asMap contains the names of the images seen after a "FROM image AS"
+	// line in the Dockefiles.  The boolean value just completes the map object.
+	asMap := make(map[string]bool)
+
+	copyRE := regexp.MustCompile(`\s*COPY\s+--from=`)
+	fromRE := regexp.MustCompile(`\s*FROM\s+`)
+	asRE := regexp.MustCompile(`(?i)\s+as\s+`)
+	for _, dfile := range dockerfiles {
+		if dfileBinary, err := ioutil.ReadAll(dfile); err == nil {
+			dfileString := fmt.Sprintf("%s", dfileBinary)
+			copyFromContent := copyRE.Split(dfileString, -1)
+			// no "COPY --from=", just continue
+			if len(copyFromContent) < 2 {
+				newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(dfileString)))
+				continue
+			}
+			// Load all image names in our Dockerfiles into a map
+			// for easy reference later.
+			fromContent := fromRE.Split(dfileString, -1)
+			for i := 0; i < len(fromContent); i++ {
+				imageName := strings.Split(fromContent[i], " ")
+				if len(imageName) > 0 {
+					finalImage := strings.Split(imageName[0], "\n")
+					if finalImage[0] != "" {
+						fromMap[strings.TrimSpace(finalImage[0])] = true
+					}
+				}
+			}
+			logrus.Debug("fromMap: ", fromMap)
+
+			// Load all image names associated with an 'as' or 'AS' in
+			// our Dockerfiles into a map for easy reference later.
+			asContent := asRE.Split(dfileString, -1)
+			// Skip the first entry in the array as it's stuff before
+			// the " as " and we don't care.
+			for i := 1; i < len(asContent); i++ {
+				asName := strings.Split(asContent[i], " ")
+				if len(asName) > 0 {
+					finalAsImage := strings.Split(asName[0], "\n")
+					if finalAsImage[0] != "" {
+						asMap[strings.TrimSpace(finalAsImage[0])] = true
+					}
+				}
+			}
+			logrus.Debug("asMap: ", asMap)
+
+			for i := 1; i < len(copyFromContent); i++ {
+				fromArray := strings.Split(copyFromContent[i], " ")
+				// If the image isn't a stage number or already declared,
+				// add a FROM statement for it to the top of our Dockerfile.
+				trimmedFrom := strings.TrimSpace(fromArray[0])
+				_, okFrom := fromMap[trimmedFrom]
+				_, okAs := asMap[trimmedFrom]
+				_, err := strconv.Atoi(trimmedFrom)
+				if !okFrom && !okAs && err != nil {
+					from := "FROM " + trimmedFrom
+					newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(from)))
+				}
+			}
+			newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(dfileString)))
+		} // End if dfileBinary, err := ioutil.ReadAll(dfile); err == nil
+	} // End for _, dfile := range dockerfiles {
+	return newDockerfiles
 }
 
 // deleteSuccessfulIntermediateCtrs goes through the container IDs in b.containerIDs

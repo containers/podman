@@ -132,7 +132,15 @@ func (d *ostreeImageDestination) IgnoresEmbeddedDockerReference() bool {
 	return false // N/A, DockerReference() returns nil.
 }
 
-func (d *ostreeImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, isConfig bool) (types.BlobInfo, error) {
+// PutBlob writes contents of stream and returns data representing the result.
+// inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
+// inputInfo.Size is the expected length of stream, if known.
+// inputInfo.MediaType describes the blob format, if known.
+// May update cache.
+// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
+// to any other readers for download using the supplied digest.
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
+func (d *ostreeImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	tmpDir, err := ioutil.TempDir(d.tmpDirPath, "blob")
 	if err != nil {
 		return types.BlobInfo{}, err
@@ -322,12 +330,18 @@ func (d *ostreeImageDestination) importConfig(repo *otbuiltin.Repo, blob *blobTo
 	return d.ostreeCommit(repo, ostreeBranch, destinationPath, []string{fmt.Sprintf("docker.size=%d", blob.Size)})
 }
 
-func (d *ostreeImageDestination) HasBlob(ctx context.Context, info types.BlobInfo) (bool, int64, error) {
-
+// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
+// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
+// info.Digest must not be empty.
+// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
+// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
+// May use and/or update cache.
+func (d *ostreeImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
 	if d.repo == nil {
 		repo, err := openRepo(d.ref.repo)
 		if err != nil {
-			return false, 0, err
+			return false, types.BlobInfo{}, err
 		}
 		d.repo = repo
 	}
@@ -335,29 +349,25 @@ func (d *ostreeImageDestination) HasBlob(ctx context.Context, info types.BlobInf
 
 	found, data, err := readMetadata(d.repo, branch, "docker.uncompressed_digest")
 	if err != nil || !found {
-		return found, -1, err
+		return found, types.BlobInfo{}, err
 	}
 
 	found, data, err = readMetadata(d.repo, branch, "docker.uncompressed_size")
 	if err != nil || !found {
-		return found, -1, err
+		return found, types.BlobInfo{}, err
 	}
 
 	found, data, err = readMetadata(d.repo, branch, "docker.size")
 	if err != nil || !found {
-		return found, -1, err
+		return found, types.BlobInfo{}, err
 	}
 
 	size, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
-		return false, -1, err
+		return false, types.BlobInfo{}, err
 	}
 
-	return true, size, nil
-}
-
-func (d *ostreeImageDestination) ReapplyBlob(ctx context.Context, info types.BlobInfo) (types.BlobInfo, error) {
-	return info, nil
+	return true, types.BlobInfo{Digest: info.Digest, Size: size}, nil
 }
 
 // PutManifest writes manifest to the destination.

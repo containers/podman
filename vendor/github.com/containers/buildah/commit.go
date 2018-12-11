@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/docker/reference"
@@ -55,6 +56,12 @@ type CommitOptions struct {
 	// Squash tells the builder to produce an image with a single layer
 	// instead of with possibly more than one layer.
 	Squash bool
+	// BlobDirectory is the name of a directory in which we'll look for
+	// prebuilt copies of layer blobs that we might otherwise need to
+	// regenerate from on-disk layers.  If blobs are available, the
+	// manifest of the new image will reference the blobs rather than
+	// on-disk layers.
+	BlobDirectory string
 
 	// OnBuild is a list of commands to be run by images based on this image
 	OnBuild []string
@@ -85,6 +92,11 @@ type PushOptions struct {
 	// ManifestType is the format to use when saving the imge using the 'dir' transport
 	// possible options are oci, v2s1, and v2s2
 	ManifestType string
+	// BlobDirectory is the name of a directory in which we'll look for
+	// prebuilt copies of layer blobs that we might otherwise need to
+	// regenerate from on-disk layers, substituting them in the list of
+	// blobs to copy whenever possible.
+	BlobDirectory string
 }
 
 // Commit writes the contents of the container, along with its updated
@@ -128,13 +140,37 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			}
 		}
 	}
-	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.Compression, options.HistoryTimestamp)
+	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.BlobDirectory, options.Compression, options.HistoryTimestamp)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}
+	var maybeCachedSrc types.ImageReference = src
+	var maybeCachedDest types.ImageReference = dest
+	if options.BlobDirectory != "" {
+		compress := types.PreserveOriginal
+		if options.Compression != archive.Uncompressed {
+			compress = types.Compress
+		}
+		cache, err := blobcache.NewBlobCache(src, options.BlobDirectory, compress)
+		if err != nil {
+			return imgID, nil, "", errors.Wrapf(err, "error wrapping image reference %q in blob cache at %q", transports.ImageName(src), options.BlobDirectory)
+		}
+		maybeCachedSrc = cache
+		cache, err = blobcache.NewBlobCache(dest, options.BlobDirectory, compress)
+		if err != nil {
+			return imgID, nil, "", errors.Wrapf(err, "error wrapping image reference %q in blob cache at %q", transports.ImageName(dest), options.BlobDirectory)
+		}
+		maybeCachedDest = cache
+	}
 	// "Copy" our image to where it needs to be.
+	switch options.Compression {
+	case archive.Uncompressed:
+		systemContext.OCIAcceptUncompressedLayers = true
+	case archive.Gzip:
+		systemContext.DirForceCompress = true
+	}
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, "")); err != nil {
+	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(options.ReportWriter, maybeCachedSrc, nil, maybeCachedDest, systemContext, "")); err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
 	if len(options.AdditionalTags) > 0 {
@@ -209,10 +245,28 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 	if err != nil {
 		return nil, "", err
 	}
+	var maybeCachedSrc types.ImageReference = src
+	if options.BlobDirectory != "" {
+		compress := types.PreserveOriginal
+		if options.Compression != archive.Uncompressed {
+			compress = types.Compress
+		}
+		cache, err := blobcache.NewBlobCache(src, options.BlobDirectory, compress)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "error wrapping image reference %q in blob cache at %q", transports.ImageName(src), options.BlobDirectory)
+		}
+		maybeCachedSrc = cache
+	}
 	// Copy everything.
+	switch options.Compression {
+	case archive.Uncompressed:
+		systemContext.OCIAcceptUncompressedLayers = true
+	case archive.Gzip:
+		systemContext.DirForceCompress = true
+	}
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, getCopyOptions(options.ReportWriter, src, nil, dest, systemContext, options.ManifestType)); err != nil {
-		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(src), transports.ImageName(dest))
+	if manifestBytes, err = cp.Image(ctx, policyContext, dest, maybeCachedSrc, getCopyOptions(options.ReportWriter, maybeCachedSrc, nil, dest, systemContext, options.ManifestType)); err != nil {
+		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(maybeCachedSrc), transports.ImageName(dest))
 	}
 	if options.ReportWriter != nil {
 		fmt.Fprintf(options.ReportWriter, "")

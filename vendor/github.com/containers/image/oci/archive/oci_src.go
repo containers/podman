@@ -76,9 +76,11 @@ func (s *ociArchiveImageSource) GetManifest(ctx context.Context, instanceDigest 
 	return s.unpackedSrc.GetManifest(ctx, instanceDigest)
 }
 
-// GetBlob returns a stream for the specified blob, and the blob's size.
-func (s *ociArchiveImageSource) GetBlob(ctx context.Context, info types.BlobInfo) (io.ReadCloser, int64, error) {
-	return s.unpackedSrc.GetBlob(ctx, info)
+// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (s *ociArchiveImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
+	return s.unpackedSrc.GetBlob(ctx, info, cache)
 }
 
 // GetSignatures returns the image's signatures.  It may use a remote (= slow) service.

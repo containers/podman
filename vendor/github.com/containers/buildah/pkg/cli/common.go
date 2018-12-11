@@ -112,6 +112,10 @@ var (
 			Usage: "use `[username[:password]]` for accessing the registry",
 		},
 		cli.BoolFlag{
+			Name:  "disable-compression, D",
+			Usage: "don't compress layers by default",
+		},
+		cli.BoolFlag{
 			Name:  "disable-content-trust",
 			Usage: "This is a Docker specific option and is a NOOP",
 		},
@@ -191,6 +195,12 @@ var (
 		cli.StringSliceFlag{
 			Name:  "add-host",
 			Usage: "add a custom host-to-IP mapping (`host:ip`) (default [])",
+		},
+		cli.StringFlag{
+			Name:   "blob-cache",
+			Value:  "",
+			Usage:  "assume image blobs in the specified directory will be available for pushing",
+			Hidden: true, // this is here mainly so that we can test the API during integration tests
 		},
 		cli.StringSliceFlag{
 			Name:  "cap-add",

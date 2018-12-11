@@ -34,6 +34,7 @@ func pullAndFindImage(ctx context.Context, store storage.Store, imageName string
 		Store:         store,
 		SystemContext: options.SystemContext,
 		Transport:     options.Transport,
+		BlobDirectory: options.PullBlobDirectory,
 	}
 	ref, err := pullImage(ctx, store, imageName, pullOptions, sc)
 	if err != nil {
