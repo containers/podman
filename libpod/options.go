@@ -29,9 +29,12 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			return ErrRuntimeFinalized
 		}
 
+		setField := false
+
 		if config.RunRoot != "" {
 			rt.config.StorageConfig.RunRoot = config.RunRoot
 			rt.configuredFrom.storageRunRootSet = true
+			setField = true
 		}
 
 		if config.GraphRoot != "" {
@@ -42,16 +45,20 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			// of the c/storage store by default
 			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
 			rt.configuredFrom.libpodStaticDirSet = true
+
+			setField = true
 		}
 
 		if config.GraphDriverName != "" {
 			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
 			rt.configuredFrom.storageGraphDriverSet = true
+			setField = true
 		}
 
 		if config.GraphDriverOptions != nil {
 			rt.config.StorageConfig.GraphDriverOptions = make([]string, len(config.GraphDriverOptions))
 			copy(rt.config.StorageConfig.GraphDriverOptions, config.GraphDriverOptions)
+			setField = true
 		}
 
 		if config.UIDMap != nil {
@@ -62,6 +69,18 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		if config.GIDMap != nil {
 			rt.config.StorageConfig.GIDMap = make([]idtools.IDMap, len(config.GIDMap))
 			copy(rt.config.StorageConfig.GIDMap, config.GIDMap)
+		}
+
+		// If any one of runroot, graphroot, graphdrivername,
+		// or graphdriveroptions are set, then GraphRoot and RunRoot
+		// must be set
+		if setField {
+			if rt.config.StorageConfig.GraphRoot == "" {
+				rt.config.StorageConfig.GraphRoot = storage.DefaultStoreOptions.GraphRoot
+			}
+			if rt.config.StorageConfig.RunRoot == "" {
+				rt.config.StorageConfig.RunRoot = storage.DefaultStoreOptions.RunRoot
+			}
 		}
 
 		return nil
