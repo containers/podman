@@ -50,7 +50,16 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Result, error) {
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
+	var requestedIP net.IP
+	if ctr.requestedIP != nil {
+		requestedIP = ctr.requestedIP
+		// cancel request for a specific IP in case the container is reused later
+		ctr.requestedIP = nil
+	} else {
+		requestedIP = ctr.config.StaticIP
+	}
+
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -258,7 +267,16 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, ctr.config.StaticIP)
+	var requestedIP net.IP
+	if ctr.requestedIP != nil {
+		requestedIP = ctr.requestedIP
+		// cancel request for a specific IP in case the container is reused later
+		ctr.requestedIP = nil
+	} else {
+		requestedIP = ctr.config.StaticIP
+	}
+
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
