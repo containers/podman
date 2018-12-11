@@ -28,7 +28,7 @@ func newTestRuntime(t *testing.T) (*Runtime, func()) {
 	store, err := storage.GetStore(storage.StoreOptions{
 		RunRoot:            filepath.Join(wd, "run"),
 		GraphRoot:          filepath.Join(wd, "root"),
-		GraphDriverName:    "vfs",
+		GraphDriverName:    "fuse-overlayfs",
 		GraphDriverOptions: []string{},
 		UIDMap: []idtools.IDMap{{
 			ContainerID: 0,

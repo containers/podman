@@ -2,7 +2,7 @@ package integration
 
 var (
 	STORAGE_OPTIONS          = "--storage-driver overlay"
-	ROOTLESS_STORAGE_OPTIONS = "--storage-driver vfs"
+	ROOTLESS_STORAGE_OPTIONS = "--storage-driver fuse-overlayfs"
 	CACHE_IMAGES             = []string{ALPINE, BB, fedoraMinimal, nginx, redis, infra, labels}
 	nginx                    = "quay.io/libpod/alpine_nginx-ppc64le:latest"
 	BB_GLIBC                 = "docker.io/ppc64le/busybox:glibc"

@@ -111,7 +111,7 @@ ENTRYPOINT ["/tmp/hello.sh"]
 EOT
 
 export PODMAN_HOST="unix:${TMPDIR}/podman/io.podman"
-PODMAN_ARGS="--storage-driver=vfs \
+PODMAN_ARGS="--storage-driver=fuse-overlayfs\
   --root=${TMPDIR}/crio \
   --runroot=${TMPDIR}/crio-run \
   --cni-config-dir=$CNI_CONFIG_PATH \

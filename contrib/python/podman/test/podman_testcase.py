@@ -40,7 +40,7 @@ class PodmanTestCase(unittest.TestCase):
 
         tmpdir = os.environ.get('TMPDIR', '/tmp')
         podman_args = [
-            '--storage-driver=vfs',
+            '--storage-driver=fuse-overlayfs',
             '--cgroup-manager=cgroupfs',
             '--root={}/crio'.format(tmpdir),
             '--runroot={}/crio-run'.format(tmpdir),

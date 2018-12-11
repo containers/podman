@@ -6,6 +6,7 @@ RUN dnf -y install btrfs-progs-devel \
               conmon \
               device-mapper-devel \
               findutils \
+              fuse-overlayfs \
               git \
               glib2-devel \
               glibc-static \

@@ -68,7 +68,7 @@ Path to the OCI compatible binary used to run containers
 
 **--storage-driver, -s**=**value**
 
-Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and the default storage driver is *fuse-overlayfs* for non-root users.  If *fuse-overlayfs* is not available, *vfs* will be used.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
 Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
