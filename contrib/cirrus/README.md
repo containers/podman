@@ -142,38 +142,50 @@ the ``cache_images`` Task) some input parameters are required:
        to limit the base-images produced.  For example,
        ``PACKER_BUILDS=fedora,image-builder-image``.
 
-The following process should be performed on a bare-metal CentOS 7 machine
-with network access to GCE.  Software dependencies can be obtained from
-the ``packer/image-builder-image_base_setup.sh`` script.
-
-Alternatively, an existing image-builder-image may be used from within GCE.
-However it must be created with elevated cloud privileges.  For example,
+If there is an existing 'image-builder-image' within GCE, it may be utilized
+to produce base-images (in addition to cache-images).  However it must be
+created with support for nested-virtualization, and with elevated cloud
+privileges (to access GCE, from within the GCE VM).  For example:
 
 ```
 $ alias pgcloud='sudo podman run -it --rm -e AS_ID=$UID
-    -e AS_USER=$USER -v /home/$USER:/home/$USER:z cevich/gcloud_centos:latest'
+    -e AS_USER=$USER -v $HOME:$HOME:z quay.io/cevich/gcloud_centos:latest'
 
 $ URL=https://www.googleapis.com/auth
 $ SCOPES=$URL/userinfo.email,$URL/compute,$URL/devstorage.full_control
 
+# The --min-cpu-platform is critical for nested-virt.
 $ pgcloud compute instances create $USER-making-images \
     --image-family image-builder-image \
     --boot-disk-size "200GB" \
     --min-cpu-platform "Intel Haswell" \
     --machine-type n1-standard-2 \
     --scopes $SCOPES
+```
 
-$ pgcloud compute ssh centos@$USER-making-images
+Alternatively, if there is no image-builder-image available yet, a bare-metal
+CentOS 7 machine with network access to GCE is required.  Software dependencies
+can be obtained from the ``packer/image-builder-image_base_setup.sh`` script.
+
+In both cases, the following can be used to setup and build base-images.
+
+```
+$ IP_ADDRESS=1.2.3.4  # EXTERNAL_IP from command output above
+$ rsync -av $PWD centos@$IP_ADDRESS:.
+$ scp $GOOGLE_APPLICATION_CREDENTIALS centos@$IP_ADDRESS:.
+$ ssh centos@$IP_ADDRESS
 ...
 ```
 
-When ready, change to the ``packer`` sub-directory, and run:
+When ready, change to the ``packer`` sub-directory, and build the images:
 
 ```
+$ cd libpod/contrib/cirrus/packer
 $ make libpod_base_images GCP_PROJECT_ID=<VALUE> \
     GOOGLE_APPLICATION_CREDENTIALS=<VALUE> \
     RHEL_IMAGE_FILE=<VALUE> \
     RHEL_CSUM_FILE=<VALUE> \
+    RHSM_COMMAND=<VALUE> \
     PACKER_BUILDS=<OPTIONAL>
 ```
 
@@ -182,9 +194,9 @@ produce a ``packer-manifest.json`` output file.  This contains the base-image
 names suitable for updating in ``.cirrus.yml``, `env` keys ``*_BASE_IMAGE``.
 
 On failure, it should be possible to determine the problem from the packer
-output.  The only exception is for the Fedora and FAH builds, which utilize
-local qemu-kvm virtualisation.  To observe the serial-port output from those
-builds, set the ``TTYDEV`` parameter to your current device.  For example:
+output.  Sometimes that means setting `PACKER_LOG=1` and troubleshooting
+the nested virt calls.  It's also possible to observe the (nested) qemu-kvm
+console output.  Simply set the ``TTYDEV`` parameter, for example:
 
 ```
 $ make libpod_base_images ... TTYDEV=$(tty)
