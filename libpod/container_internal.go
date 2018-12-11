@@ -18,12 +18,12 @@ import (
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
-	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1027,7 +1027,7 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
-func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) error {
+func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator, execUser *user.ExecUser) error {
 	var uid, gid int
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
@@ -1053,12 +1053,8 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator) 
 	}
 
 	if c.config.User != "" {
-		if !c.state.Mounted {
-			return errors.Wrapf(ErrCtrStateInvalid, "container %s must be mounted in order to translate User field", c.ID())
-		}
-		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, nil)
-		if err != nil {
-			return err
+		if execUser == nil {
+			return errors.Wrapf(ErrInternal, "nil pointer passed to addLocalVolumes for execUser")
 		}
 		uid = execUser.Uid
 		gid = execUser.Gid
