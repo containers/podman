@@ -13,7 +13,9 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/docker"
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
@@ -130,7 +132,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	if config.Pull_always {
 		pullPolicy = imagebuildah.PullAlways
 	}
-	manifestType := "oci"
+	manifestType := "oci" //nolint
 	if config.Image_format != "" {
 		manifestType = config.Image_format
 	}
@@ -311,8 +313,12 @@ func (i *LibpodAPI) HistoryImage(call iopodman.VarlinkCall, name string) error {
 }
 
 // PushImage pushes an local image to registry
-// TODO We need to add options for signing, credentials, tls, and multi-tag
-func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVerify bool) error {
+func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVerify bool, signaturePolicy, creds, certDir string, compress bool, format string, removeSignatures bool, signBy string) error {
+	var (
+		registryCreds *types.DockerAuthConfig
+		manifestType  string
+	)
+
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		return call.ReplyImageNotFound(err.Error())
@@ -321,15 +327,38 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 	if tag != "" {
 		destname = tag
 	}
-
-	dockerRegistryOptions := image.DockerRegistryOptions{}
+	if creds != "" {
+		creds, err := util.ParseRegistryCreds(creds)
+		if err != nil {
+			return err
+		}
+		registryCreds = creds
+	}
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      certDir,
+	}
 	if !tlsVerify {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
+	if format != "" {
+		switch format {
+		case "oci": //nolint
+			manifestType = v1.MediaTypeImageManifest
+		case "v2s1":
+			manifestType = manifest.DockerV2Schema1SignedMediaType
+		case "v2s2", "docker":
+			manifestType = manifest.DockerV2Schema2MediaType
+		default:
+			return call.ReplyErrorOccurred(fmt.Sprintf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", format))
+		}
+	}
+	so := image.SigningOptions{
+		RemoveSignatures: removeSignatures,
+		SignBy:           signBy,
+	}
 
-	so := image.SigningOptions{}
-
-	if err := newImage.PushImageToHeuristicDestination(getContext(), destname, "", "", "", nil, false, so, &dockerRegistryOptions, nil); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", signaturePolicy, nil, compress, so, &dockerRegistryOptions, nil); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyPushImage(newImage.ID())
@@ -428,7 +457,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	sc := image.GetSystemContext(i.Runtime.GetConfig().SignaturePolicyPath, "", false)
 	var mimeType string
 	switch manifestType {
-	case "oci", "":
+	case "oci", "": //nolint
 		mimeType = buildah.OCIv1ImageManifest
 	case "docker":
 		mimeType = manifest.DockerV2Schema2MediaType
@@ -496,13 +525,47 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 }
 
 // PullImage pulls an image from a registry to the image store.
-// TODO This implementation is incomplete
-func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
-	newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", nil, &image.DockerRegistryOptions{}, image.SigningOptions{}, true)
-	if err != nil {
-		return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
+func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, creds, signaturePolicy string, tlsVerify bool) error {
+	var (
+		registryCreds *types.DockerAuthConfig
+		imageID       string
+	)
+	if creds != "" {
+		creds, err := util.ParseRegistryCreds(creds)
+		if err != nil {
+			return err
+		}
+		registryCreds = creds
 	}
-	return call.ReplyPullImage(newImage.ID())
+
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      certDir,
+	}
+	if tlsVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
+	}
+
+	so := image.SigningOptions{}
+
+	if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
+		srcRef, err := alltransports.ParseImageName(name)
+		if err != nil {
+			return errors.Wrapf(err, "error parsing %q", name)
+		}
+		newImage, err := i.Runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, signaturePolicy, nil)
+		if err != nil {
+			return errors.Wrapf(err, "error pulling image from %q", name)
+		}
+		imageID = newImage[0].ID()
+	} else {
+		newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", nil, &dockerRegistryOptions, so, false)
+		if err != nil {
+			return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
+		}
+		imageID = newImage.ID()
+	}
+	return call.ReplyPullImage(imageID)
 }
 
 // ImageExists returns bool as to whether the input image exists in local storage
