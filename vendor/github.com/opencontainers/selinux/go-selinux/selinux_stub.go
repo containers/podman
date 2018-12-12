@@ -96,6 +96,19 @@ func SetExecLabel(label string) error {
 	return nil
 }
 
+/*
+SetSocketLabel sets the SELinux label that the kernel will use for any programs
+that are executed by the current process thread, or an error.
+*/
+func SetSocketLabel(label string) error {
+	return nil
+}
+
+// SocketLabel retrieves the current socket label setting
+func SocketLabel() (string, error) {
+	return "", nil
+}
+
 // Get returns the Context as a string
 func (c Context) Get() string {
 	return ""

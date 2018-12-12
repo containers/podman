@@ -9,7 +9,7 @@ func InitLabels(options []string) (string, string, error) {
 	return "", "", nil
 }
 
-func GetROMountLabel() string {
+func ROMountLabel() string {
 	return ""
 }
 
@@ -25,7 +25,19 @@ func SetProcessLabel(processLabel string) error {
 	return nil
 }
 
-func GetFileLabel(path string) (string, error) {
+func ProcessLabel() (string, error) {
+	return "", nil
+}
+
+func SetSocketLabel(processLabel string) error {
+	return nil
+}
+
+func SocketLabel() (string, error) {
+	return "", nil
+}
+
+func FileLabel(path string) (string, error) {
 	return "", nil
 }
 
@@ -41,7 +53,7 @@ func Relabel(path string, fileLabel string, shared bool) error {
 	return nil
 }
 
-func GetPidLabel(pid int) (string, error) {
+func PidLabel(pid int) (string, error) {
 	return "", nil
 }
 

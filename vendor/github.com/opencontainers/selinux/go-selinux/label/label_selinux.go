@@ -95,6 +95,17 @@ func SetProcessLabel(processLabel string) error {
 	return selinux.SetExecLabel(processLabel)
 }
 
+// SetSocketLabel takes a process label and tells the kernel to assign the
+// label to the next socket that gets created
+func SetSocketLabel(processLabel string) error {
+	return selinux.SetSocketLabel(processLabel)
+}
+
+// SocketLabel retrieves the current default socket label setting
+func SocketLabel() (string, error) {
+	return selinux.SocketLabel()
+}
+
 // ProcessLabel returns the process label that the kernel will assign
 // to the next program executed by the current process.  If "" is returned
 // this indicates that the default labeling will happen for the process.
@@ -102,7 +113,7 @@ func ProcessLabel() (string, error) {
 	return selinux.ExecLabel()
 }
 
-// GetFileLabel returns the label for specified path
+// FileLabel returns the label for specified path
 func FileLabel(path string) (string, error) {
 	return selinux.FileLabel(path)
 }
