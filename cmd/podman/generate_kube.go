@@ -88,7 +88,7 @@ func generateKubeYAMLCmd(c *cli.Context) error {
 		return err
 	}
 
-	header := `# Generation of Kubenetes YAML is still under development!
+	header := `# Generation of Kubernetes YAML is still under development!
 #
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
