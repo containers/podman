@@ -3,9 +3,11 @@ package main
 import (
 	js "encoding/json"
 	"fmt"
+	"os"
 
 	of "github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -52,12 +54,31 @@ func mountCmd(c *cli.Context) error {
 	if err := validateFlags(c, mountFlags); err != nil {
 		return err
 	}
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
 
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
+
+	if os.Geteuid() != 0 {
+		if driver := runtime.GetConfig().StorageConfig.GraphDriverName; driver != "vfs" {
+			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
+			// of the mount command.
+			return fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
+		}
+
+		became, ret, err := rootless.BecomeRootInUserNS()
+		if err != nil {
+			return err
+		}
+		if became {
+			os.Exit(ret)
+		}
+	}
 
 	formats := map[string]bool{
 		"":            true,
