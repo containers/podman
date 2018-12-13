@@ -639,4 +639,31 @@ USER mail`
 		match, _ := check.GrepString("foobar")
 		Expect(match).To(BeTrue())
 	})
+
+	It("podman run --rm should work", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(Equal(0))
+	})
+
+	It("podman run --rm failed container should delete itself", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(Equal(0))
+	})
+
+	It("podman run failed container should NOT delete itself", func() {
+		session := podmanTest.Podman([]string{"run", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(Equal(1))
+	})
 })

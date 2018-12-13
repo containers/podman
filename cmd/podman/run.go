@@ -116,6 +116,11 @@ func runCmd(c *cli.Context) error {
 		if strings.Index(err.Error(), "permission denied") > -1 {
 			exitCode = 126
 		}
+		if c.IsSet("rm") {
+			if deleteError := runtime.RemoveContainer(ctx, ctr, true); deleteError != nil {
+				logrus.Errorf("unable to remove container %s after failing to start and attach to it", ctr.ID())
+			}
+		}
 		return err
 	}
 

@@ -89,4 +89,30 @@ var _ = Describe("Podman start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
+
+	It("podman failed to start with --rm should delete the container", func() {
+		session := podmanTest.Podman([]string{"create", "-it", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		start := podmanTest.Podman([]string{"start", "-l"})
+		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(BeZero())
+	})
+
+	It("podman failed to start without --rm should NOT delete the container", func() {
+		session := podmanTest.Podman([]string{"create", "-it", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		start := podmanTest.Podman([]string{"start", "-l"})
+		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(Equal(1))
+	})
 })

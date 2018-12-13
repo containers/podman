@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -132,6 +134,18 @@ func startCmd(c *cli.Context) error {
 		}
 		// Handle non-attach start
 		if err := ctr.Start(ctx); err != nil {
+			var createArtifact cc.CreateConfig
+			artifact, artifactErr := ctr.GetArtifact("create-config")
+			if artifactErr == nil {
+				if jsonErr := json.Unmarshal(artifact, &createArtifact); jsonErr != nil {
+					logrus.Errorf("unable to detect if container %s should be deleted", ctr.ID())
+				}
+				if createArtifact.Rm {
+					if rmErr := runtime.RemoveContainer(ctx, ctr, true); rmErr != nil {
+						logrus.Errorf("unable to remove container %s after it failed to start", ctr.ID())
+					}
+				}
+			}
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
