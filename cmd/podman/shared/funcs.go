@@ -10,10 +10,23 @@ import (
 )
 
 func substituteCommand(cmd string) (string, error) {
+	var (
+		newCommand string
+	)
+
+	// Replace cmd with "/proc/self/exe" if "podman" or "docker" is being
+	// used. If "/usr/bin/docker" is provided, we also sub in podman.
+	// Otherwise, leave the command unchanged.
+	if cmd == "podman" || filepath.Base(cmd) == "docker" {
+		newCommand = "/proc/self/exe"
+	} else {
+		newCommand = cmd
+	}
+
 	// If cmd is an absolute or relative path, check if the file exists.
 	// Throw an error if it doesn't exist.
-	if strings.Contains(cmd, "/") || strings.HasPrefix(cmd, ".") {
-		res, err := filepath.Abs(cmd)
+	if strings.Contains(newCommand, "/") || strings.HasPrefix(newCommand, ".") {
+		res, err := filepath.Abs(newCommand)
 		if err != nil {
 			return "", err
 		}
@@ -24,16 +37,7 @@ func substituteCommand(cmd string) (string, error) {
 		}
 	}
 
-	// Replace cmd with "/proc/self/exe" if "podman" or "docker" is being
-	// used.  Otherwise, leave the command unchanged.
-	switch cmd {
-	case "podman":
-		fallthrough
-	case "docker":
-		return "/proc/self/exe", nil
-	default:
-		return cmd, nil
-	}
+	return newCommand, nil
 }
 
 // GenerateCommand takes a label (string) and converts it to an executable command
