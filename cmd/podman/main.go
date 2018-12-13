@@ -34,6 +34,7 @@ var cmdsNotRequiringRootless = map[string]bool{
 	// If this change, please also update libpod.refreshRootless()
 	"login":   true,
 	"logout":  true,
+	"mount":   true,
 	"kill":    true,
 	"pause":   true,
 	"restart": true,
