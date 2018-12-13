@@ -1,3 +1,29 @@
+- Changelog for v0.12.1.2 (2018-12-13)
+  * Add release notes for 0.12.1.2
+  * runlabel should sub podman for docker|/usr/bin/docker
+  * condition fixed for adding volume to boltdb.
+  * e2e: add tests for systemd
+  * Add test for sharing resolv and hosts with netns
+  * Makefile tweaks to fix make shell
+  * failed containers with --rm should remove themselves
+  * Fix documentation links and flow
+  * Set Socket label for contianer
+  * Containers sharing a netns should share resolv/hosts
+  * Prevent a second lookup of user for image volumes
+  * fix typo in kubernetes
+  * No need to use `-i` in go build (with go 1.10 and above)
+  * rootless: fix restart when using fuse-overlayfs
+  * Cirrus: Update base-image build docs
+  * Add capabilities to generate kube
+  * disable F29 tests on PAPR
+  * Ensure storage options are properly initialized
+  * add more example usage to varlink endpoints
+  * Update for API change
+  * Vendor buildah after merging mtrmac/blob-info-caching-on-top-of-contents-caching
+  * Vendor c/image after merging c/image#536
+  * Bump gitvalidation epoch
+  * Bump to v0.12.2-dev
+
 - Changelog for v0.12.1.1 (2018-12-07)
   * Update release notes for v0.12.1.1
   * Fix errors where OCI hooks directory does not exist
