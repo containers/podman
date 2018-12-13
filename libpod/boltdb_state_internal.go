@@ -565,10 +565,12 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		// Add container to volume dependencies bucket if container is using a named volume
+		if ctr.runtime.config.VolumePath == "" {
+			return nil
+		}
 		for _, vol := range ctr.config.Spec.Mounts {
 			if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
 				volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
-
 				volDB := volBkt.Bucket([]byte(volName))
 				if volDB == nil {
 					return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volName)
