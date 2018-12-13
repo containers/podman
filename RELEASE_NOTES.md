@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.12.1.2
+### Bugfixes
+- Fixed a bug where an empty path for named volumes could make it impossible to create containers
+- Fixed a bug where containers using another container's network namespace would not also use the other container's /etc/hosts and /etc/resolv.conf
+- Fixed a bug where containers with `--rm` which failed to start were not removed
+- Fixed a potential race condition attempting to read `/etc/passwd` inside containers
+
 ## 0.12.1.1
 ### Features
 - Added the `podman generate kube` command to generate Kubernetes Pod and Service YAML for Podman containers and pods
