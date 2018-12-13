@@ -66,6 +66,18 @@ task (pass or fail) is set based on the exit status of the last script to execut
 
 ### ``cache_images`` Task
 
+Modifying the contents of cache-images is done by making changes to
+one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Testing
+those changes currently requires adding a temporary commit to a PR that
+updates ``.cirrus.yml``:
+
+* Remove all task sections except ``cache_images_task``.
+* Remove the ``only_if`` condition and ``depends_on`` dependencies
+
+The new image names will be displayed at the end of output, assuming the build
+is successful, at that point the temporary commit may be removed.  Finally,
+the new names may be used as ``image_name`` values in ``.cirrus.yml``.
+
 ***N/B: Steps below are performed by automation***
 
 1. When a PR is merged (``$CIRRUS_BRANCH`` == ``master``), run another
@@ -89,12 +101,6 @@ task (pass or fail) is set based on the exit status of the last script to execut
        ``fedora_setup.sh``.
     3. If successful, shut down each VM and create a new GCE Image
        named with the base image, and the commit sha of the merge.
-
-***Note:*** The ``.cirrus.yml`` file must be manually updated with the new
-images names, then the change sent in via a secondary pull-request.  This
-ensures that all the ``integration_testing`` tasks can pass with the new images,
-before subjecting all future PRs to them.  A workflow to automate this
-process is described in comments at the end of the ``.cirrus.yml`` file.
 
 ### Base-images
 
@@ -120,27 +126,27 @@ as the standard 'cloud-init' services.
 To produce new base-images, including an `image-builder-image` (used by
 the ``cache_images`` Task) some input parameters are required:
 
-    *  ``GCP_PROJECT_ID``: The complete GCP project ID string e.g. foobar-12345
-       identifying where the images will be stored.
+* ``GCP_PROJECT_ID``: The complete GCP project ID string e.g. foobar-12345
+  identifying where the images will be stored.
 
-    *  ``GOOGLE_APPLICATION_CREDENTIALS``: A *JSON* file containing
-       credentials for a GCE service account.  This can be [a service
-       account](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually)
-       or [end-user
-       credentials](https://cloud.google.com/docs/authentication/end-user#creating_your_client_credentials]
+* ``GOOGLE_APPLICATION_CREDENTIALS``: A *JSON* file containing
+  credentials for a GCE service account.  This can be [a service
+  account](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually)
+  or [end-user
+  credentials](https://cloud.google.com/docs/authentication/end-user#creating_your_client_credentials)
 
-    *  ``RHEL_IMAGE_FILE`` and ``RHEL_CSUM_FILE`` complete paths
-       to a `rhel-server-ec2-*.raw.xz` and it's cooresponding
-       checksum file.  These must be supplied manually because
-       they're not available directly via URL like other images.
+* ``RHEL_IMAGE_FILE`` and ``RHEL_CSUM_FILE`` complete paths
+  to a `rhel-server-ec2-*.raw.xz` and it's cooresponding
+  checksum file.  These must be supplied manually because
+  they're not available directly via URL like other images.
 
-    * ``RHSM_COMMAND`` contains the complete string needed to register
-      the VM for installing package dependencies.  The VM will be de-registered
-      upon completion.
+* ``RHSM_COMMAND`` contains the complete string needed to register
+  the VM for installing package dependencies.  The VM will be de-registered
+  upon completion.
 
-    *  Optionally, CSV's may be specified to ``PACKER_BUILDS``
-       to limit the base-images produced.  For example,
-       ``PACKER_BUILDS=fedora,image-builder-image``.
+*  Optionally, CSV's may be specified to ``PACKER_BUILDS``
+   to limit the base-images produced.  For example,
+   ``PACKER_BUILDS=fedora,image-builder-image``.
 
 If there is an existing 'image-builder-image' within GCE, it may be utilized
 to produce base-images (in addition to cache-images).  However it must be

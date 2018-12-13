@@ -1,15 +1,15 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
-# libpod - library for running OCI-based containers in Pods
 
-### Latest Version: 0.12.1
-### Status: Active Development
+# Library and tool for running OCI-based containers in Pods
 
-### Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod)
+Libpod provides a library for applications looking to use the Container Pod concept,
+popularized by Kubernetes.  libpod also contains the `podman` tool, for managing
+Pods, Containers, and Container Images.
 
-## What is the scope of this project?
+* [Latest Version: 0.12.1](https://github.com/containers/libpod/releases/latest)
+* [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 
-libpod provides a library for applications looking to use the Container Pod concept popularized by Kubernetes.
-libpod also contains a tool called podman for managing Pods, Containers, and Container Images.
+## Overview and scope
 
 At a high level, the scope of libpod and podman is the following:
 
@@ -19,11 +19,22 @@ At a high level, the scope of libpod and podman is the following:
 * Full management of container lifecycle
 * Support for pods to manage groups of containers together
 * Resource isolation of containers and pods.
+* Integration with CRI-O to share containers and backend code.
 
-## What is not in scope for this project?
+## Roadmap
 
-* Signing and pushing images to various image storages. See [Skopeo](https://github.com/containers/skopeo/).
-* Container Runtimes daemons for working with Kubernetes CRIs. See [CRI-O](https://github.com/kubernetes-sigs/cri-o). We are working to integrate libpod into CRI-O to share containers and backend code with Podman.
+1. Python frontend for Varlink API
+1. Integrate libpod into CRI-O to replace its existing container management backend
+1. Further work on the podman pod command
+1. Further improvements on rootless containers
+1. In-memory locking to replace file locks
+
+## Out of scope
+
+* Signing and pushing images to various image storages.
+  See [Skopeo](https://github.com/containers/skopeo/).
+* Container Runtimes daemons for working with Kubernetes CRIs.
+  See [CRI-O](https://github.com/kubernetes-sigs/cri-o).
 
 ## OCI Projects Plans
 
@@ -67,14 +78,6 @@ Release notes for recent Podman versions
 
 **[Contributing](CONTRIBUTING.md)**
 Information about contributing to this project.
-
-## Current Roadmap
-
-1. Python frontend for Varlink API
-1. Integrate libpod into CRI-O to replace its existing container management backend
-1. Further work on the podman pod command
-1. Further improvements on rootless containers
-1. In-memory locking to replace file locks
 
 [spec-hooks]: https://github.com/opencontainers/runtime-spec/blob/v2.0.1/config.md#posix-platform-hooks
 
