@@ -1003,7 +1003,7 @@ func (c *Container) IsReadOnly() bool {
 // NetworkDisabled returns whether the container is running with a disabled network
 func (c *Container) NetworkDisabled() (bool, error) {
 	if c.config.NetNsCtr != "" {
-		container, err := c.runtime.LookupContainer(c.config.NetNsCtr)
+		container, err := c.runtime.state.Container(c.config.NetNsCtr)
 		if err != nil {
 			return false, err
 		}
