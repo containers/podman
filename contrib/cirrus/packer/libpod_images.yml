@@ -7,6 +7,7 @@ variables:
     CENTOS_BASE_IMAGE: '{{env `CENTOS_BASE_IMAGE`}}'
     UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
     FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
+    PRIOR_FEDORA_BASE_IMAGE: '{{env `PRIOR_FEDORA_BASE_IMAGE`}}'
     FAH_BASE_IMAGE: '{{env `FAH_BASE_IMAGE`}}'
 
     # libpod dependencies to build and install into images
@@ -65,6 +66,10 @@ builders:
     - <<: *gce_hosted_image
       name: 'fedora-29'
       source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
+      name: 'fedora-28'
+      source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
 
     - <<: *gce_hosted_image
       name: 'fah-29'

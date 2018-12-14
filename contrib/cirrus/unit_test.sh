@@ -20,6 +20,7 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
         make "BUILDTAGS=$BUILDTAGS"
         ;;
     fedora-29) ;&  # Continue to the next item
+    fedora-28) ;&
     centos-7) ;&
     rhel-7)
         make install.tools

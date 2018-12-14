@@ -58,7 +58,11 @@ then
             envstr='export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) varlink exclude_graphdriver_devicemapper"'
             ;;
         fedora-29) ;&  # Continue to the next item
-        fedora-28) ;&
+        fedora-28)
+            RUNC="https://kojipkgs.fedoraproject.org/packages/runc/1.0.0/55.dev.git578fe65.fc${OS_RELEASE_VER}/x86_64/runc-1.0.0-55.dev.git578fe65.fc${OS_RELEASE_VER}.x86_64.rpm"
+            echo ">>>>> OVERRIDING RUNC WITH $RUNC <<<<<"
+            dnf -y install "$RUNC"
+            ;&  # Continue to the next item
         centos-7) ;&
         rhel-7)
             envstr='unset BUILDTAGS'  # Use default from Makefile

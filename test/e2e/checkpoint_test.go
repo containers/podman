@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/containers/libpod/pkg/criu"
 	. "github.com/containers/libpod/test/utils"
@@ -29,8 +30,9 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip("CRIU is missing or too old.")
 		}
 		hostInfo := podmanTest.Host
-		if hostInfo.Distribution == "fedora" && hostInfo.Version == "29" {
-			Skip("Checkpoint tests appear to fail on F29.")
+		hostDistVer, _ := strconv.Atoi(hostInfo.Version)
+		if hostInfo.Distribution == "fedora" && hostDistVer <= 29 {
+			Skip("Checkpoint tests appear to fail on older (<30) Fedora versions .")
 		}
 	})
 
