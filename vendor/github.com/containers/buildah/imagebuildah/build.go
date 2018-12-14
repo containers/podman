@@ -1253,6 +1253,13 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (strin
 	if len(stages) == 0 {
 		errors.New("error building: no stages to build")
 	}
+
+	//Check if we have a one line Dockerfile, if so, layers are irrelevant
+	ignoreLayers := false
+	if len(stages) < 2 && len(stages[0].Node.Children) < 2 {
+		ignoreLayers = true
+	}
+
 	var (
 		stageExecutor *Executor
 		lastErr       error
@@ -1307,7 +1314,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (strin
 
 	var imageRef reference.Canonical
 	imageID := ""
-	if !b.layers && !b.noCache {
+	if (!b.layers && !b.noCache) || ignoreLayers {
 		imgID, ref, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
 		if err != nil {
 			return "", nil, err
