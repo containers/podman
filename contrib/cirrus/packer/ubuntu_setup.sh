@@ -37,6 +37,7 @@ ooe.sh sudo -E apt-get -qq install --no-install-recommends \
     build-essential \
     curl \
     e2fslibs-dev \
+    emacs-nox \
     gawk \
     gettext \
     go-md2man \
@@ -76,6 +77,7 @@ ooe.sh sudo -E apt-get -qq install --no-install-recommends \
     python3-setuptools \
     socat \
     unzip \
+    vim \
     xz-utils
 
 echo "Fixing Ubuntu kernel not enabling swap accounting by default"

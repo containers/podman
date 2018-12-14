@@ -30,6 +30,7 @@ ooe.sh sudo dnf install -y \
     bzip2 \
     conmon \
     device-mapper-devel \
+    emacs-nox \
     findutils \
     git \
     glib2-devel \
@@ -67,6 +68,7 @@ ooe.sh sudo dnf install -y \
     skopeo-containers \
     slirp4netns \
     unzip \
+    vim \
     which \
     xz
 
