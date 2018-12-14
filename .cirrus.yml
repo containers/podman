@@ -107,7 +107,7 @@ testing_task:
         zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 2
         memory: "4Gb"
-        disk: 40
+        disk: 200  # see https://developers.google.com/compute/docs/disks#performance
         # Generate multiple parallel tasks, covering all possible
         # 'matrix' combinations.
         matrix:
@@ -189,7 +189,7 @@ cache_images_task:
         zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 4
         memory: "4Gb"
-        disk: 20
+        disk: 200
         image_name: "image-builder-image-1541772081"  # Simply CentOS 7 + packer dependencies
         # Additional permissions for building GCE images, within a GCE VM
         scopes:
