@@ -6,6 +6,19 @@
 # Under some contexts these values are not set, make sure they are.
 export USER="$(whoami)"
 export HOME="$(getent passwd $USER | cut -d : -f 6)"
+
+# These are normally set by cirrus, if not use some reasonable defaults
+ENVLIB=${ENVLIB:-.bash_profile}
+CIRRUS_WORKING_DIR=${CIRRUS_WORKING_DIR:-/var/tmp/go/src/github.com/containers/libpod}
+SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
+PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
+CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
+cd "$CIRRUS_WORKING_DIR"
+CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-$(git rev-parse upstream/master || git rev-parse origin/master)}
+CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git rev-parse HEAD)}
+CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
+cd -
+
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
     export PATH="$PATH:/usr/local/bin"
