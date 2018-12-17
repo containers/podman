@@ -1,22 +1,20 @@
 #!/bin/bash
 
 set -e
+
 source $(dirname $0)/lib.sh
 
 req_env_var "
-    CIRRUS_TASK_NAME $CIRRUS_TASK_NAME
     CIRRUS_BRANCH $CIRRUS_BRANCH
-    OS_RELEASE_ID $OS_RELEASE_ID
-    OS_RELEASE_VER $OS_RELEASE_VER
-    CIRRUS_REPO_CLONE_URL $CIRRUS_REPO_CLONE_URL
+    CIRRUS_BUILD_ID $CIRRUS_BUILD_ID
 "
 
-REF_URL="$(echo $CIRRUS_REPO_CLONE_URL | sed 's/.git$//g')"
+REF=$(basename $CIRRUS_BRANCH)  # PR number or branch named
+URL="https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
+
 if [[ "$CIRRUS_BRANCH" =~ "pull" ]]
 then
-    REF_URL="$REF_URL/$CIRRUS_BRANCH"  # pull request URL
+    ircmsg "Cirrus-CI testing successful for PR #$REF: $URL"
 else
-    REF_URL="$REF_URL/commits/$CIRRUS_BRANCH"  # branch merge
+    ircmsg "Cirrus-CI testing branch $REF successful: $URL"
 fi
-
-ircmsg "Cirrus-CI $CIRRUS_TASK_NAME on $OS_RELEASE_ID-$OS_RELEASE_VER successful for $REF_URL"

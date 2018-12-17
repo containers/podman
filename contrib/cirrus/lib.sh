@@ -123,12 +123,11 @@ stub() {
 
 ircmsg() {
     req_env_var "
-        SCRIPT_BASE $SCRIPT_BASE
-        GOSRC $GOSRC
         CIRRUS_TASK_ID $CIRRUS_TASK_ID
         1 $1
     "
-    SCRIPT="$GOSRC/$SCRIPT_BASE/podbot.py"
+    # Sometimes setup_environment.sh didn't run
+    SCRIPT="$(dirname $0)/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
     NICK="${NICK:0:15}"  # Any longer will break things
     set +e
