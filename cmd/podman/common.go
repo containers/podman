@@ -422,6 +422,10 @@ var createFlags = []cli.Flag{
 		Name:  "read-only",
 		Usage: "Make containers root filesystem read-only",
 	},
+	cli.StringFlag{
+		Name:  "restart",
+		Usage: "Restart is not supported.  Please use a systemd unit file for restart",
+	},
 	cli.BoolFlag{
 		Name:  "rm",
 		Usage: "Remove container (and pod if created) after exit",
