@@ -22,7 +22,7 @@ random port is assigned by Podman in the specification.
 # OPTIONS:
 
 **s** **--service**
-Generate a service file for the resulting Pod YAML.
+Generate a Kubernetes service object in addition to the Pods.
 
 ## Examples ##
 
@@ -82,31 +82,63 @@ spec:
 status: {}
 ```
 
-Create Kubernetes service YAML for a container called `some-mariabdb`
+Create Kubernetes Pod YAML for a pod called `demoweb` and include a service.
 ```
-$ sudo podman generate kube -s some-mariadb
-# Generation of Kubenetes YAML is still under development!
+$ sudo podman generate kube -s demoweb
+# Generation of Kubernetes YAML is still under development!
 #
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
-# Created with podman-0.11.2-dev
+# Created with podman-0.12.2-dev
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: 2018-12-18T15:16:06Z
+  labels:
+    app: demoweb
+  name: demoweb-libpod
+spec:
+  containers:
+  - command:
+    - python3
+    - /root/code/graph.py
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: HOSTNAME
+    - name: container
+      value: podman
+    image: quay.io/baude/demoweb:latest
+    name: practicalarchimedes
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+    tty: true
+    workingDir: /root/code
+status: {}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: 2018-12-03T19:08:24Z
+  creationTimestamp: 2018-12-18T15:16:06Z
   labels:
-    app: some-mariadb
-  name: some-mariadb-libpod
+    app: demoweb
+  name: demoweb-libpod
 spec:
   ports:
-  - name: "3306"
-    nodePort: 30929
-    port: 3306
+  - name: "8050"
+    nodePort: 31269
+    port: 8050
     protocol: TCP
     targetPort: 0
   selector:
-    app: some-mariadb
+    app: demoweb
   type: NodePort
 status:
   loadBalancer: {}
