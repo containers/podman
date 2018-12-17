@@ -46,6 +46,13 @@ var (
 )
 
 func rmiCmd(c *cli.Context) error {
+	var (
+		lastError error
+		deleted   bool
+		deleteErr error
+		msg       string
+	)
+
 	ctx := getContext()
 	if err := validateFlags(c, rmiFlags); err != nil {
 		return err
@@ -66,20 +73,18 @@ func rmiCmd(c *cli.Context) error {
 	}
 
 	images := args[:]
-	var lastError error
-	var deleted bool
 
 	removeImage := func(img *image.Image) {
 		deleted = true
-		msg, err := runtime.RemoveImage(ctx, img, c.Bool("force"))
-		if err != nil {
-			if errors.Cause(err) == storage.ErrImageUsedByContainer {
+		msg, deleteErr = runtime.RemoveImage(ctx, img, c.Bool("force"))
+		if deleteErr != nil {
+			if errors.Cause(deleteErr) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
 			}
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = err
+			lastError = deleteErr
 		} else {
 			fmt.Println(msg)
 		}
@@ -108,6 +113,14 @@ func rmiCmd(c *cli.Context) error {
 			}
 			lastNumberofImages = len(imagesToDelete)
 			imagesToDelete, err = runtime.ImageRuntime().GetImages()
+			if err != nil {
+				return err
+			}
+			// If no images are left to delete or there is just one image left and it cannot be deleted,
+			// lets break out and display the error
+			if len(imagesToDelete) == 0 || (lastNumberofImages == 1 && lastError != nil) {
+				break
+			}
 		}
 	} else {
 		// Create image.image objects for deletion from user input.
