@@ -34,6 +34,10 @@ var (
 			Usage: "Pathname of a directory containing TLS certificates and keys used to connect to the registry",
 		},
 		cli.BoolTFlag{
+			Name:  "get-login",
+			Usage: "Return the current login user for the registry",
+		},
+		cli.BoolTFlag{
 			Name:  "tls-verify",
 			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
@@ -64,6 +68,21 @@ func loginCmd(c *cli.Context) error {
 	authfile := getAuthFile(c.String("authfile"))
 
 	sc := common.GetSystemContext("", authfile, false)
+
+	if c.IsSet("get-login") {
+		user, err := config.GetUserLoggedIn(sc, server)
+
+		if err != nil {
+			return errors.Wrapf(err, "unable to check for login user")
+		}
+
+		if user == "" {
+			return errors.Errorf("not logged into %s", server)
+		}
+
+		fmt.Printf("%s\n", user)
+		return nil
+	}
 
 	// username of user logged in to server (if one exists)
 	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)

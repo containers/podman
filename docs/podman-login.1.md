@@ -36,6 +36,10 @@ Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
+**--get-login**
+
+Return the logged-in user for the registry.  Return error if no login is found.
+
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
