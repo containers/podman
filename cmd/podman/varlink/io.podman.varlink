@@ -343,15 +343,17 @@ type ListPodContainerInfo (
 )
 
 # PodCreate is an input structure for creating pods.
-# It emulates options to podman pod create, however
-# changing pause image name and pause container
-# is not currently supported
+# It emulates options to podman pod create. The infraCommand and
+# infraImage options are currently NotSupported.
 type PodCreate (
     name: string,
     cgroupParent: string,
     labels: [string]string,
     share: []string,
-    infra: bool
+    infra: bool,
+    infraCommand: string,
+    infraImage: string,
+    publish: []string
 )
 
 # ListPodData is the returned struct for an individual pod
@@ -632,7 +634,7 @@ method HistoryImage(name: string) -> (history: []ImageHistory)
 # and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 # It will return an [ImageNotFound](#ImageNotFound) error if
 # the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
-method PushImage(name: string, tag: string, tlsverify: bool) -> (image: string)
+method PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (image: string)
 
 # TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
@@ -700,7 +702,7 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 #   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 # }
 # ~~~
-method PullImage(name: string) -> (id: string)
+method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: bool) -> (id: string)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.

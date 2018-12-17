@@ -87,9 +87,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Ping() StringResponse](#Ping)
 
-[func PullImage(name: string) string](#PullImage)
+[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: bool) string](#PullImage)
 
-[func PushImage(name: string, tag: string, tlsverify: bool) string](#PushImage)
+[func PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) string](#PushImage)
 
 [func RemoveContainer(name: string, force: bool) string](#RemoveContainer)
 
@@ -739,7 +739,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PullImage(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+method PullImage(name: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), signaturePolicy: [string](https://godoc.org/builtin#string), tlsVerify: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
 is returned.
 #### Example
@@ -752,7 +752,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "regi
 ### <a name="PushImage"></a>func PushImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 It will return an [ImageNotFound](#ImageNotFound) error if
@@ -1499,9 +1499,8 @@ reason [string](https://godoc.org/builtin#string)
 ### <a name="PodCreate"></a>type PodCreate
 
 PodCreate is an input structure for creating pods.
-It emulates options to podman pod create, however
-changing pause image name and pause container
-is not currently supported
+It emulates options to podman pod create. The infraCommand and
+infraImage options are currently NotSupported.
 
 name [string](https://godoc.org/builtin#string)
 
@@ -1512,6 +1511,12 @@ labels [map[string]](#map[string])
 share [[]string](#[]string)
 
 infra [bool](https://godoc.org/builtin#bool)
+
+infraCommand [string](https://godoc.org/builtin#string)
+
+infraImage [string](https://godoc.org/builtin#string)
+
+publish [[]string](#[]string)
 ### <a name="PodmanInfo"></a>type PodmanInfo
 
 PodmanInfo describes the Podman host and build

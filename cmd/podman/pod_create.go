@@ -3,15 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -150,7 +147,7 @@ func podCreateCmd(c *cli.Context) error {
 	}
 
 	if len(c.StringSlice("publish")) > 0 {
-		portBindings, err := CreatePortBindings(c.StringSlice("publish"))
+		portBindings, err := shared.CreatePortBindings(c.StringSlice("publish"))
 		if err != nil {
 			return err
 		}
@@ -177,37 +174,4 @@ func podCreateCmd(c *cli.Context) error {
 	fmt.Printf("%s\n", pod.ID())
 
 	return nil
-}
-
-// CreatePortBindings iterates ports mappings and exposed ports into a format CNI understands
-func CreatePortBindings(ports []string) ([]ocicni.PortMapping, error) {
-	var portBindings []ocicni.PortMapping
-	// The conversion from []string to natBindings is temporary while mheon reworks the port
-	// deduplication code.  Eventually that step will not be required.
-	_, natBindings, err := nat.ParsePortSpecs(ports)
-	if err != nil {
-		return nil, err
-	}
-	for containerPb, hostPb := range natBindings {
-		var pm ocicni.PortMapping
-		pm.ContainerPort = int32(containerPb.Int())
-		for _, i := range hostPb {
-			var hostPort int
-			var err error
-			pm.HostIP = i.HostIP
-			if i.HostPort == "" {
-				hostPort = containerPb.Int()
-			} else {
-				hostPort, err = strconv.Atoi(i.HostPort)
-				if err != nil {
-					return nil, errors.Wrapf(err, "unable to convert host port to integer")
-				}
-			}
-
-			pm.HostPort = int32(hostPort)
-			pm.Protocol = containerPb.Proto()
-			portBindings = append(portBindings, pm)
-		}
-	}
-	return portBindings, nil
 }
