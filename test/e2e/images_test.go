@@ -63,6 +63,10 @@ var _ = Describe("Podman images", func() {
 		session.LineInOutputContainsTag("foo", "c")
 		session.LineInOutputContainsTag("bar", "a")
 		session.LineInOutputContainsTag("bar", "b")
+		session = podmanTest.Podman([]string{"images", "-qn"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
 	})
 
 	It("podman images with digests", func() {

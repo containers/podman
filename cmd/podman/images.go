@@ -280,7 +280,9 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 		if !opts.noTrunc {
 			imageID = shortID(img.ID())
 		}
+
 		// get all specified repo:tag pairs and print them separately
+	outer:
 		for repo, tags := range image.ReposToMap(img.Names()) {
 			for _, tag := range tags {
 				size, err := img.Size(ctx)
@@ -302,6 +304,10 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 					Size:        sizeStr,
 				}
 				imagesOutput = append(imagesOutput, params)
+				if opts.quiet { // Show only one image ID when quiet
+					break outer
+				}
+
 			}
 		}
 	}
