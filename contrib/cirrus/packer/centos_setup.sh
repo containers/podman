@@ -29,6 +29,7 @@ ooe.sh sudo yum -y install \
     btrfs-progs-devel \
     bzip2 \
     device-mapper-devel \
+    emacs-nox \
     findutils \
     glib2-devel \
     glibc-static \
@@ -63,6 +64,7 @@ ooe.sh sudo yum -y install \
     runc \
     skopeo-containers \
     unzip \
+    vim \
     which \
     xz
 
