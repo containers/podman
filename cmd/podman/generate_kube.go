@@ -17,7 +17,7 @@ var (
 	containerKubeFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "service, s",
-			Usage: "only generate YAML for kubernetes service object",
+			Usage: "generate YAML for kubernetes service object",
 		},
 	}
 	containerKubeDescription = "Generate Kubernetes Pod YAML"
@@ -36,13 +36,14 @@ var (
 // generateKubeYAMLCmdgenerates or replays kube
 func generateKubeYAMLCmd(c *cli.Context) error {
 	var (
-		podYAML        *v1.Pod
-		container      *libpod.Container
-		err            error
-		output         []byte
-		pod            *libpod.Pod
-		mashalledBytes []byte
-		servicePorts   []v1.ServicePort
+		podYAML           *v1.Pod
+		container         *libpod.Container
+		err               error
+		output            []byte
+		pod               *libpod.Pod
+		marshalledPod     []byte
+		marshalledService []byte
+		servicePorts      []v1.ServicePort
 	)
 
 	if rootless.IsRootless() {
@@ -79,11 +80,13 @@ func generateKubeYAMLCmd(c *cli.Context) error {
 
 	if c.Bool("service") {
 		serviceYAML := libpod.GenerateKubeServiceFromV1Pod(podYAML, servicePorts)
-		mashalledBytes, err = yaml.Marshal(serviceYAML)
-	} else {
-		// Marshall the results
-		mashalledBytes, err = yaml.Marshal(podYAML)
+		marshalledService, err = yaml.Marshal(serviceYAML)
+		if err != nil {
+			return err
+		}
 	}
+	// Marshall the results
+	marshalledPod, err = yaml.Marshal(podYAML)
 	if err != nil {
 		return err
 	}
@@ -96,7 +99,11 @@ func generateKubeYAMLCmd(c *cli.Context) error {
 # Created with podman-%s
 `
 	output = append(output, []byte(fmt.Sprintf(header, podmanVersion.Version))...)
-	output = append(output, mashalledBytes...)
+	output = append(output, marshalledPod...)
+	if c.Bool("service") {
+		output = append(output, []byte("---\n")...)
+		output = append(output, marshalledService...)
+	}
 	// Output the v1.Pod with the v1.Container
 	fmt.Println(string(output))
 
