@@ -57,7 +57,7 @@ env:
     # Needed to build GCE images, within a GCE VM
     SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
     # User ID for cirrus to ssh into VMs
-    GCE_SSH_USERNAME: ENCRYPTED[a7706b9e4b8bbb47f76358df7407f4fffa2e8552531190cc0b3315180c4b50588f560c4f85731e99cb5f43a396778277]
+    GCE_SSH_USERNAME: cirrus-ci
     # Name where this repositories cloud resources are located
     GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
 
@@ -76,6 +76,7 @@ env:
         CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
         CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
         XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID
+
 
 # Every *_task runs in parallel in separate VMsd. The name prefix only for reference
 # in WebUI, and will be followed by matrix details.  This task gates all others with
@@ -134,8 +135,6 @@ testing_task:
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
 
-    success_script: $SCRIPT_BASE/success.sh
-
 
 # Because system tests are stored within the repository, it is sometimes
 # necessary to execute them within a PR to validate changes.
@@ -162,7 +161,6 @@ optional_testing_task:
 
     setup_environment_script: $SCRIPT_BASE/setup_environment.sh
     system_test_script: $SCRIPT_BASE/system_test.sh
-    success_script: $SCRIPT_BASE/success.sh
 
 
 # Build new cache-images for future PR testing, but only after a PR merge.
@@ -208,3 +206,23 @@ cache_images_task:
     #   - clone_podman_release_branch.sh
     #   - modify_cirrus_yaml_image_names.sh
     #   - commit_and_create_upstream_pr.sh
+
+
+# Post message to IRC if everything passed
+success_task:
+
+    depends_on:  # ignores any dependent task conditions
+        - "gating"
+        - "testing"
+        - "optional_testing"
+        - "cache_images"
+
+    env:
+        CIRRUS_WORKING_DIR: "/usr/src/libpod"
+
+    container:
+        image: "quay.io/libpod/gate:latest"
+        cpu: 1
+        memory: 1
+
+    success_script: $SCRIPT_BASE/success.sh
