@@ -41,6 +41,7 @@ export TMPDIR=`mktemp -d /tmp/podman.XXXXXXXXXX`
 trap "cleanup $TMPDIR" EXIT
 
 function umount {
+  set +xeuo pipefail
   # xargs -r always ran once, so write any mount points to file first
   mount |awk "/$1/"' { print $3 }' >${TMPDIR}/mounts
   if [[ -s ${TMPDIR}/mounts ]]; then
