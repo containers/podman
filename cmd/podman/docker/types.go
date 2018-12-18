@@ -125,11 +125,11 @@ type Config struct {
 // don't result in runnable images on their own.
 // github.com/docker/distribution/manifest/schema1/config_builder.go
 type V1Compatibility struct {
-	ID              string    `json:"id"`
-	Parent          string    `json:"parent,omitempty"`
-	Comment         string    `json:"comment,omitempty"`
-	Created         time.Time `json:"created"`
-	ContainerConfig struct {
+	ID      string    `json:"id"`
+	Parent  string    `json:"parent,omitempty"`
+	Comment string    `json:"comment,omitempty"`
+	Created time.Time `json:"created"`
+	Config  struct {
 		Cmd []string
 	} `json:"container_config,omitempty"`
 	Author    string `json:"author,omitempty"`

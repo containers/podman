@@ -1056,7 +1056,7 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 
 // WithLocalVolumes sets the built-in volumes of the container retrieved
 // from a container passed in to the --volumes-from flag.
-// This stores the built-in volume information in the ContainerConfig so we can
+// This stores the built-in volume information in the Config so we can
 // add them when creating the container.
 func WithLocalVolumes(volumes []string) CtrCreateOption {
 	return func(ctr *Container) error {

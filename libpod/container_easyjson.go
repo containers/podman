@@ -1238,7 +1238,7 @@ func (v *ExecSession) UnmarshalJSON(data []byte) error {
 func (v *ExecSession) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson1dbef17bDecodeGithubComContainersLibpodLibpod1(l, v)
 }
-func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, out *ContainerConfig) {
+func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, out *Config) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1720,7 +1720,7 @@ func easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(in *jlexer.Lexer, ou
 		in.Consumed()
 	}
 }
-func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer, in ContainerConfig) {
+func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer, in Config) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2415,26 +2415,26 @@ func easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(out *jwriter.Writer,
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v ContainerConfig) MarshalJSON() ([]byte, error) {
+func (v Config) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v ContainerConfig) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Config) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjson1dbef17bEncodeGithubComContainersLibpodLibpod2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *ContainerConfig) UnmarshalJSON(data []byte) error {
+func (v *Config) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *ContainerConfig) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Config) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson1dbef17bDecodeGithubComContainersLibpodLibpod2(l, v)
 }
 func easyjson1dbef17bDecodeGithubComContainersLibpodVendorGithubComCriOOcicniPkgOcicni(in *jlexer.Lexer, out *ocicni.PortMapping) {
