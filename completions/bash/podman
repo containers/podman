@@ -2217,6 +2217,7 @@ _podman_login() {
      --password
      -p
      --authfile
+     --get-login
      "
      local boolean_options="
 	  --help
