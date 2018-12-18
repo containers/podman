@@ -508,6 +508,14 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere.  By specifying the `--read-only` flag the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
+**--restart=""**
+
+Not implemented.
+
+Restart should be handled via a systemd unit files. Please add your podman
+commands to a unit file and allow systemd or your init system to handle the
+restarting of the container processes.  See example below.
+
 **--rm**=*true*|*false*
 
 Automatically remove the container when it exits. The default is *false*.
@@ -767,13 +775,28 @@ the uid and gid from the host.
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 ```
 
+### Running a podman container to restart inside of a systemd unit file
+
+
+```
+[Unit]
+Description=My App
+[Service]
+Restart=always
+ExecStart=/usr/bin/podman start -a my_app
+ExecStop=/usr/bin/podman stop -t 10 my_app
+KillMode=process
+[Install]
+WantedBy=multi-user.target
+```
+
 ## FILES
 
 **/etc/subuid**
 **/etc/subgid**
 
 ## SEE ALSO
-subgid(5), subuid(5), libpod.conf(5)
+subgid(5), subuid(5), libpod.conf(5), systemd.unit(5)
 
 ## HISTORY
 October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
