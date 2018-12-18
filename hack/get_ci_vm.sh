@@ -2,9 +2,14 @@
 
 set -e
 
-cd $(dirname $0)/../
-
-VMNAME="${USER}-twidling-$1"
+RED="\e[1;36;41m"
+YEL="\e[1;33;44m"
+NOR="\e[0m"
+USAGE_WARNING="
+${YEL}WARNING: This will not work without local sudo access to run podman,${NOR}
+         ${YEL}and prior authorization to use the libpod GCP project. Also,${NOR}
+         ${YEL}possession of the proper ssh private key is required.${NOR}
+"
 # TODO: Many/most of these values should come from .cirrus.yml
 ZONE="us-central1-a"
 CPUS="2"
@@ -12,74 +17,183 @@ MEMORY="4Gb"
 DISK="200"
 PROJECT="libpod-218412"
 GOSRC="/var/tmp/go/src/github.com/containers/libpod"
+# Command shortcuts save some typing
+PGCLOUD="sudo podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v /home/$USER:$HOME -v /tmp:/tmp:ro quay.io/cevich/gcloud_centos:latest --configuration=libpod --project=$PROJECT"
+SCP_CMD="$PGCLOUD compute scp"
 
-PGCLOUD="sudo podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER -v /home/$USER:$HOME:z quay.io/cevich/gcloud_centos:latest"
-CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=$1 --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"
-SSH_CMD="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no -F /dev/null"
-CLEANUP_CMD="$PGCLOUD compute instances delete --zone $ZONE --delete-disks=all $VMNAME"
+LIBPODROOT=$(realpath "$(dirname $0)/../")
+# else: Assume $PWD is the root of the libpod repository
+[[ "$LIBPODROOT" != "/" ]] || LIBPODROOT=$PWD
 
-# COLOR!
-RED="\e[1;36;41m"
-YEL="\e[1;33;44m"
-NOR="\e[0m"
-
-if [[ -z "$1" ]]
-then
-    echo -e "\n${RED}Error: No image-name specified.  Some possible values (from .cirrus.yml).${NOR}"
-    egrep 'image_name' ".cirrus.yml" | grep -v '#' | cut -d: -f 2 | tr -d [:blank:]
-    exit 1
-fi
-
-echo -e "\n${YEL}WARNING: This will not work without local sudo access to run podman,${NOR}"
-echo -e "         ${YEL}and prior authorization to use the libpod GCP project. Also,${NOR}"
-echo -e "         ${YEL}possession of the proper ssh private key is required.${NOR}"
-
-if [[ "$USER" =~ "root" ]]
-then
-    echo -e "\n${RED}ERROR: This script must be run as a regular user${NOR}"
-    exit 2
-fi
-
-if [[ ! -r "$HOME/.config/gcloud/active_config" ]]
-then
-    echo -e "\n${RED}ERROR: Can't find gcloud configuration, attempting to run init.${NOR}"
-    $PGCLOUD init --project=$PROJECT
-fi
-
-cleanup() {
-    echo -e "\n${YEL}Deleting $VMNAME ${RED}(Might take a minute or two)${NOR}
-+ $CLEANUP_CMD
-"
-    $CLEANUP_CMD  # prompts for Yes/No
+showrun() {
+    if [[ "$1" == "--background" ]]
+    then
+        shift
+        # Properly escape any nested spaces, so command can be copy-pasted
+        echo '+ '$(printf " %q" "$@")' &' > /dev/stderr
+        "$@" &
+        echo -e "${RED}<backgrounded>${NOR}"
+    else
+        echo '+ '$(printf " %q" "$@") > /dev/stderr
+        "$@"
+    fi
 }
 
+TEMPFILE=$(mktemp -p '' $(basename $0)_XXXXX.tar.bz2)
+cleanup() {
+    set +e
+    wait
+    rm -f "$TEMPFILE"
+}
 trap cleanup EXIT
 
-echo -e "\n${YEL}Trying to creating a VM named $VMNAME (not fatal if already exists).${NOR}"
-echo "+ $CREATE_CMD"
-$CREATE_CMD || true # allow re-running commands below when "delete: N"
+delvm() {
+    cleanup
+    echo -e "\n"
+    echo -e "\n${YEL}Offering to Delete $VMNAME ${RED}(Might take a minute or two)${NOR}"
+    showrun $CLEANUP_CMD  # prompts for Yes/No
+}
 
-echo -e "\n${YEL}Attempting to retrieve IP address of existing ${VMNAME}${NOR}."
-IP=`$PGCLOUD compute instances list --filter=name=$VMNAME --limit=1 '--format=csv(networkInterfaces.accessConfigs.natIP)' | tr --complement --delete .[:digit:]`
+show_usage(){
+    echo -e "\n${RED}ERROR: $1${NOR}"
+    echo -e "${YEL}Usage: $(basename $0) [-s | -p] <image_name>${NOR}\n"
+    if [[ -r ".cirrus.yml" ]]
+    then
+        egrep 'image_name' ".cirrus.yml" | grep -v '#' | cut -d: -f 2 | \
+            tr -d [:blank:] | sort -u > "$TEMPFILE"
+        echo -e "${YEL}Some possible image_name values (from .cirrus.yml):${NOR}"
+        cat $TEMPFILE
+        echo ""
+    fi
+    exit 1
+}
 
-echo -e "\n${YEL}Creating $GOSRC directory.${NOR}"
-SSH_MKDIR="$SSH_CMD root@$IP mkdir -vp $GOSRC"
-echo "+ $SSH_MKDIR"
-$SSH_MKDIR
+get_env_vars() {
+    python -c '
+import yaml
+env=yaml.load(open(".cirrus.yml"))["env"]
+keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
+for k,v in env.items():
+    v=str(v)
+    if "ENCRYPTED" not in v:
+        print "{0}=\"{1}\"".format(k, v),
+    '
+}
 
-echo -e "\n${YEL}Synchronizing local repository to $IP:${GOSRC}${NOR} ."
-export RSYNC_RSH="$SSH_CMD"
-RSYNC_CMD="rsync --quiet --recursive --update --links --safe-links --perms --sparse $PWD/ root@$IP:$GOSRC/"
-echo "+ export RSYNC_RSH=\"$SSH_CMD\""
-echo "+ $RSYNC_CMD"
-$RSYNC_CMD
+parse_args(){
+    if [[ -z "$1" ]]
+    then
+        show_usage "Must specify at least one command-line parameter."
+    elif [[ "$1" == "-p" ]]
+    then
+        DEPS="PACKAGE_DEPS=true SOURCE_DEPS=false"
+        IMAGE_NAME="$2"
+
+    elif [[ "$1" == "-s" ]]
+    then
+        DEPS="PACKAGE_DEPS=false SOURCE_DEPS=true"
+        IMAGE_NAME="$2"
+    else  # no -s or -p
+        DEPS="$(get_env_vars)"
+        IMAGE_NAME="$1"
+    fi
+
+    if [[ -z "$IMAGE_NAME" ]]
+    then
+        show_usage "No image-name specified."
+    fi
+
+    if [[ "$USER" =~ "root" ]]
+    then
+        show_usage "This script must be run as a regular user."
+    fi
+
+    echo -e "$USAGE_WARNING"
+
+    SETUP_CMD="env $DEPS $GOSRC/contrib/cirrus/setup_environment.sh"
+    VMNAME="${VMNAME:-${USER}-${IMAGE_NAME}}"
+    CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"
+    SSH_CMD="$PGCLOUD compute ssh root@$VMNAME"
+    CLEANUP_CMD="$PGCLOUD compute instances delete --zone $ZONE --delete-disks=all $VMNAME"
+}
+
+##### main
+
+parse_args $@
+
+cd $LIBPODROOT
+
+# Attempt to determine if named 'libpod' gcloud configuration exists
+showrun $PGCLOUD info > $TEMPFILE
+if egrep -q "Account:.*None" "$TEMPFILE"
+then
+    echo -e "\n${YEL}WARNING: Can't find gcloud configuration for libpod, running init.${NOR}"
+    echo -e "         ${RED}Please choose "#1: Re-initialize" and "login" if asked.${NOR}"
+    showrun $PGCLOUD init --project=$PROJECT --console-only --skip-diagnostics
+
+    # Verify it worked (account name == someone@example.com)
+    $PGCLOUD info > $TEMPFILE
+    if egrep -q "Account:.*None" "$TEMPFILE"
+    then
+        echo -e "${RED}ERROR: Could not initialize libpod configuration in gcloud.${NOR}"
+        exit 5
+    fi
+
+    # If this is the only config, make it the default to avoid persistent warnings from gcloud
+    [[ -r "$HOME/.config/gcloud/configurations/config_default" ]] || \
+        ln "$HOME/.config/gcloud/configurations/config_libpod" \
+           "$HOME/.config/gcloud/configurations/config_default"
+fi
+
+# Couldn't make rsync work with gcloud's ssh wrapper :(
+echo -e "\n${YEL}Packing up repository into a tarball $VMNAME.${NOR}"
+showrun --background tar cjf $TEMPFILE --warning=no-file-changed -C $LIBPODROOT .
+
+trap delvm INT  # Allow deleting VM if CTRL-C during create
+# This fails if VM already exists: permit this usage to re-init
+echo -e "\n${YEL}Trying to creating a VM named $VMNAME ${RED}(might take a minute/two.  Errors ignored).${NOR}"
+showrun $CREATE_CMD || true # allow re-running commands below when "delete: N"
+
+# Any subsequent failure should prompt for VM deletion
+trap delvm EXIT
+
+echo -e "\n${YEL}Waiting up to 30s for ssh port to open${NOR}"
+ATTEMPTS=10
+for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
+do
+    if $SSH_CMD --command "true"; then break; else sleep 3s; fi
+done
+if (( COUNT > $ATTEMPTS ))
+then
+    echo -e "\n${RED}Failed${NOR}"
+    exit 7
+fi
+echo -e "${YEL}Got it${NOR}"
+
+if $SSH_CMD --command "test -r /root/.bash_profile_original"
+then
+    echo -e "\n${YEL}Resetting environment configuration${NOR}"
+    showrun $SSH_CMD --command "cp /root/.bash_profile_original /root/.bash_profile"
+fi
+
+echo -e "\n${YEL}Removing and re-creating $GOSRC on $VMNAME.${NOR}"
+showrun $SSH_CMD --command "rm -rf $GOSRC"
+showrun $SSH_CMD --command "mkdir -p $GOSRC"
+
+echo -e "\n${YEL}Transfering tarball to $VMNAME.${NOR}"
+wait
+showrun $SCP_CMD $TEMPFILE root@$VMNAME:$TEMPFILE
+
+echo -e "\n${YEL}Unpacking tarball into $GOSRC on $VMNAME.${NOR}"
+showrun $SSH_CMD --command "tar xjf $TEMPFILE -C $GOSRC"
+
+echo -e "\n${YEL}Removing tarball on $VMNAME.${NOR}"
+showrun $SSH_CMD --command "rm -f $TEMPFILE"
 
 echo -e "\n${YEL}Executing environment setup${NOR}"
-ENV_CMD="$SSH_CMD root@$IP env CI=true $GOSRC/contrib/cirrus/setup_environment.sh"
-echo "+ $ENV_CMD"
-$SSH_CMD root@$IP $GOSRC/contrib/cirrus/setup_environment.sh
+[[ "$1" == "-p" ]] && echo -e "${RED}Using package-based dependencies.${NOR}"
+[[ "$1" == "-s" ]] && echo -e "${RED}Using source-based dependencies.${NOR}"
+showrun $SSH_CMD --command "$SETUP_CMD"
 
-echo -e "\n${YEL}Connecting to $VMNAME ${RED}(option to delete VM upon logout).${NOR}"
-SSH_CMD="$SSH_CMD -t root@$IP"
-echo "+ $SSH_CMD"
-$SSH_CMD "cd $GOSRC ; bash -il"
+echo -e "\n${YEL}Connecting to $VMNAME ${RED}(option to delete VM upon logout).${NOR}\n"
+showrun $SSH_CMD -- -t "cd $GOSRC && exec env $DEPS bash -il"
