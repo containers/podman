@@ -192,6 +192,8 @@ from the repository root, with the command:
 sudo podman build -t quay.io/libpod/gate:latest -f contrib/gate/Dockerfile .
 ```
 
+***N/B:*** **don't miss the dot (.) at the end, it's really important**
+
 The container executes 'make' by default, on a copy of the repository.
 This avoids changing or leaving build artifacts in your working directory.
 Execution does not require any special permissions from the host. However,
@@ -199,7 +201,7 @@ the repository root must be bind-mounted into the container at
 '/usr/src/libpod'. For example, running `make lint` is done (from
 the repository root) with the command:
 
-``sudo podman run -it --rm -v $PWD:/usr/src/libpod:z quay.io/libpod/gate:latest lint``
+``sudo podman run -it --rm -v $PWD:/usr/src/libpod:ro --security-opt label=disable quay.io/libpod/gate:latest lint``
 
 ### Integration Tests
 
