@@ -30,6 +30,7 @@ var cmdsNotRequiringRootless = map[string]bool{
 	"version": true,
 	"create":  true,
 	"exec":    true,
+	"export":  true,
 	// `info` must be executed in an user namespace.
 	// If this change, please also update libpod.refreshRootless()
 	"login":   true,
