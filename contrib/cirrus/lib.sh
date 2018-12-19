@@ -248,18 +248,46 @@ install_conmon(){
 }
 
 install_criu(){
+    OS_RELEASE_ID=$(os_release_id)
+    OS_RELEASE_VER=$(os_release_ver)
+    echo "Installing CRIU"
     echo "Installing CRIU from commit $CRIU_COMMIT"
+    echo "Platform is $OS_RELEASE_ID"
     req_env_var "
     CRIU_COMMIT $CRIU_COMMIT
     "
-    DEST="/tmp/criu"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
-    cd $DEST
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$CRIU_COMMIT"
-    ooe.sh make
-    sudo install -D -m 755  criu/criu /usr/sbin/
+
+    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
+        ooe.sh sudo add-apt-repository ppa:criu/ppa
+        ooe.sh sudo apt-get update
+        ooe.sh sudo apt-get -y install criu
+    elif [[ ( "$OS_RELEASE_ID" =~ "centos" || "$OS_RELEASE_ID" =~ "rhel" ) && "$OS_RELEASE_VER" =~ "7"* ]]; then
+        echo "Configuring Repositories for latest CRIU"
+        ooe.sh sudo tee /etc/yum.repos.d/adrian-criu-el7.repo <<EOF
+[adrian-criu-el7]
+name=Copr repo for criu-el7 owned by adrian
+baseurl=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/epel-7-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+EOF
+        ooe.sh sudo yum -y install criu
+    elif [[ "$OS_RELEASE_ID" =~ "fedora" ]]; then
+        echo "Using CRIU from distribution"
+    else
+        DEST="/tmp/criu"
+        rm -rf "$DEST"
+        ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
+        cd $DEST
+        ooe.sh git fetch origin --tags
+        ooe.sh git checkout -q "$CRIU_COMMIT"
+        ooe.sh make
+        sudo install -D -m 755  criu/criu /usr/sbin/
+    fi
 }
 
 # Runs in testing VM, not image building
