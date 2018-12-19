@@ -103,6 +103,9 @@ build_each_commit_task:
     depends_on:
         - "gating"
 
+    # $CIRRUS_BASE_BRANCH is only set when testing a PR
+    only_if: $CIRRUS_BRANCH != 'master'
+
     gce_instance:
         image_project: "libpod-218412"
         zone: "us-central1-a"  # Required by Cirrus for the time being
