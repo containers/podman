@@ -99,7 +99,7 @@ get_cmd_line_args (pid_t pid)
 }
 
 int
-reexec_userns_join (int userns)
+reexec_userns_join (int userns, int mountns)
 {
   pid_t ppid = getpid ();
   char uid[16];
@@ -125,6 +125,13 @@ reexec_userns_join (int userns)
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
 
   if (setns (userns, 0) < 0)
+    {
+      fprintf (stderr, "cannot setns: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  close (userns);
+
+  if (mountns >= 0 && setns (mountns, 0) < 0)
     {
       fprintf (stderr, "cannot setns: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);

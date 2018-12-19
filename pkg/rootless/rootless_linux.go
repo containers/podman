@@ -25,7 +25,7 @@ import (
 /*
 extern int reexec_in_user_namespace(int ready);
 extern int reexec_in_user_namespace_wait(int pid);
-extern int reexec_userns_join(int userns);
+extern int reexec_userns_join(int userns, int mountns);
 */
 import "C"
 
@@ -112,7 +112,40 @@ func JoinNS(pid uint) (bool, int, error) {
 	}
 	defer userNS.Close()
 
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()))
+	pidC := C.reexec_userns_join(C.int(userNS.Fd()), -1)
+	if int(pidC) < 0 {
+		return false, -1, errors.Errorf("cannot re-exec process")
+	}
+
+	ret := C.reexec_in_user_namespace_wait(pidC)
+	if ret < 0 {
+		return false, -1, errors.New("error waiting for the re-exec process")
+	}
+
+	return true, int(ret), nil
+}
+
+// JoinDirectUserAndMountNS re-exec podman in a new userNS and join the user and mount
+// namespace of the specified PID without looking up its parent.  Useful to join directly
+// the conmon process.
+func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+		return false, -1, nil
+	}
+
+	userNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/user", pid))
+	if err != nil {
+		return false, -1, err
+	}
+	defer userNS.Close()
+
+	mountNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/mnt", pid))
+	if err != nil {
+		return false, -1, err
+	}
+	defer userNS.Close()
+
+	pidC := C.reexec_userns_join(C.int(userNS.Fd()), C.int(mountNS.Fd()))
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
@@ -138,7 +171,7 @@ func JoinNSPath(path string) (bool, int, error) {
 	}
 	defer userNS.Close()
 
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()))
+	pidC := C.reexec_userns_join(C.int(userNS.Fd()), -1)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
