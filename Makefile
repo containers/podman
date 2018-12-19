@@ -5,6 +5,7 @@ HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
 PROJECT := github.com/containers/libpod
+GIT_BASE_BRANCH ?= origin/master
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN ?= $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 LIBPOD_IMAGE ?= libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -344,6 +345,10 @@ API.md: cmd/podman/varlink/io.podman.varlink
 	$(GO) generate ./docs/...
 
 validate: gofmt .gitvalidation
+
+build-all-new-commits:
+	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
+	git rebase $(GIT_BASE_BRANCH) -x make
 
 .PHONY: \
 	.gopathok \
