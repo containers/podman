@@ -2,6 +2,8 @@ package image
 
 import (
 	"io"
+	"net/url"
+	"regexp"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -116,4 +118,24 @@ func GetAdditionalTags(images []string) ([]reference.NamedTagged, error) {
 		}
 	}
 	return allTags, nil
+}
+
+// IsValidImageURI checks if image name has valid format
+func IsValidImageURI(imguri string) (bool, error) {
+	uri := "http://" + imguri
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	reg := regexp.MustCompile(`^[a-zA-Z0-9-_\.]+\/?:?[0-9]*[a-z0-9-\/:]*$`)
+	ret := reg.FindAllString(u.Host, -1)
+	if len(ret) == 0 {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	reg = regexp.MustCompile(`^[a-z0-9-:\./]*$`)
+	ret = reg.FindAllString(u.Fragment, -1)
+	if len(ret) == 0 {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	return true, nil
 }

@@ -877,3 +877,8 @@ func (r *Runtime) generateName() (string, error) {
 func (r *Runtime) ImageRuntime() *image.Runtime {
 	return r.imageRuntime
 }
+
+// SystemContext returns the imagecontext
+func (r *Runtime) SystemContext() *types.SystemContext {
+	return r.imageContext
+}
