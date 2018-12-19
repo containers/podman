@@ -1,4 +1,4 @@
-FROM fedora:28
+FROM fedora:29
 RUN dnf -y install \
       atomic-registries \
       btrfs-progs-devel \
