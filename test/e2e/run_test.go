@@ -253,6 +253,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run blkio-weight test", func() {
+		if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
+			Skip("Kernel does not support blkio.weight")
+		}
 		session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
