@@ -84,6 +84,12 @@ cd $GOPATH/src/github.com/containernetworking/plugins
 sudo mkdir -p /usr/libexec/cni
 sudo cp bin/* /usr/libexec/cni
 ```
+#### Installing CNI config
+Add a most basic network config
+```console
+mkdir -p /etc/cni/net.d
+curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf
+```
 #### Installing runc
 ```console
 git clone https://github.com/opencontainers/runc.git $GOPATH/src/github.com/opencontainers/runc
