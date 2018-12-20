@@ -31,6 +31,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
 
+[func GenerateKube() NotImplemented](#GenerateKube)
+
+[func GenerateKubeService() NotImplemented](#GenerateKubeService)
+
 [func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
 [func GetContainer(name: string) ListContainerData](#GetContainer)
@@ -98,6 +102,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func RemovePod(name: string, force: bool) string](#RemovePod)
 
 [func RenameContainer() NotImplemented](#RenameContainer)
+
+[func ReplayKube() NotImplemented](#ReplayKube)
 
 [func ResizeContainerTty() NotImplemented](#ResizeContainerTty)
 
@@ -358,6 +364,18 @@ a booleon option to force compression.  It also takes in a string array of tags 
 tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 error will be returned. See also [ImportImage](ImportImage).
+### <a name="GenerateKube"></a>func GenerateKube
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GenerateKube() [NotImplemented](#NotImplemented)</div>
+GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
+and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
+### <a name="GenerateKubeService"></a>func GenerateKubeService
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GenerateKubeService() [NotImplemented](#NotImplemented)</div>
+GenerateKubeService generates a Kubernetes v1 Service description of a Podman container or pod
+and its containers. The description is in YAML. See also [GenerateKube](GenerateKube).
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -808,6 +826,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4
 
 method RenameContainer() [NotImplemented](#NotImplemented)</div>
 This method has not be implemented yet.
+### <a name="ReplayKube"></a>func ReplayKube
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ReplayKube() [NotImplemented](#NotImplemented)</div>
+ReplayKube recreates a pod and its containers based on a Kubernetes v1 Pod description (in YAML)
+like that created by GenerateKube. See also [GenerateKube](GenerateKube).
 ### <a name="ResizeContainerTty"></a>func ResizeContainerTty
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

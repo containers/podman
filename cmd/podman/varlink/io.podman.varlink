@@ -1016,6 +1016,18 @@ method  UnmountContainer(name: string, force: bool) -> ()
 # This function is not implemented yet.
 method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
 
+# GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
+# and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
+method GenerateKube() -> (notimplemented: NotImplemented)
+
+# GenerateKubeService generates a Kubernetes v1 Service description of a Podman container or pod
+# and its containers. The description is in YAML. See also [GenerateKube](GenerateKube).
+method GenerateKubeService() -> (notimplemented: NotImplemented)
+
+# ReplayKube recreates a pod and its containers based on a Kubernetes v1 Pod description (in YAML)
+# like that created by GenerateKube. See also [GenerateKube](GenerateKube).
+method ReplayKube() -> (notimplemented: NotImplemented)
+
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)
 

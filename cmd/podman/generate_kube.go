@@ -33,7 +33,6 @@ var (
 	}
 )
 
-// generateKubeYAMLCmdgenerates or replays kube
 func generateKubeYAMLCmd(c *cli.Context) error {
 	var (
 		podYAML           *v1.Pod

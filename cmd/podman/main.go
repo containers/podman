@@ -90,6 +90,7 @@ func main() {
 		portCommand,
 		pullCommand,
 		pushCommand,
+		playCommand,
 		restartCommand,
 		rmCommand,
 		rmiCommand,

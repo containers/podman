@@ -30,7 +30,10 @@ func (c *Container) GenerateForKube() (*v1.Pod, error) {
 // one v1.Pod description
 func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
-	var servicePorts []v1.ServicePort
+	var (
+		servicePorts []v1.ServicePort
+		ports        []v1.ContainerPort
+	)
 
 	allContainers, err := p.allContainers()
 	if err != nil {
@@ -51,13 +54,13 @@ func (p *Pod) GenerateForKube() (*v1.Pod, []v1.ServicePort, error) {
 			return nil, servicePorts, err
 		}
 
-		ports, err := ocicniPortMappingToContainerPort(infraContainer.config.PortMappings)
+		ports, err = ocicniPortMappingToContainerPort(infraContainer.config.PortMappings)
 		if err != nil {
 			return nil, servicePorts, err
 		}
 		servicePorts = containerPortsToServicePorts(ports)
 	}
-	pod, err := p.podWithContainers(allContainers)
+	pod, err := p.podWithContainers(allContainers, ports)
 	return pod, servicePorts, err
 }
 
@@ -124,18 +127,27 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 	return sps
 }
 
-func (p *Pod) podWithContainers(containers []*Container) (*v1.Pod, error) {
-	var podContainers []v1.Container
+func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
+	var (
+		podContainers []v1.Container
+	)
+	first := true
 	for _, ctr := range containers {
-		result, err := containerToV1Container(ctr)
-		if err != nil {
-			return nil, err
-		}
 		if !ctr.IsInfra() {
+			result, err := containerToV1Container(ctr)
+			if err != nil {
+				return nil, err
+			}
+			// We add the original port declarations from the libpod infra container
+			// to the first kubernetes container description because otherwise we loose
+			// the original container/port bindings.
+			if first && len(ports) > 0 {
+				result.Ports = ports
+				first = false
+			}
 			podContainers = append(podContainers, result)
 		}
 	}
-
 	return addContainersToPodObject(podContainers, p.Name()), nil
 }
 
@@ -150,7 +162,7 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 	labels["app"] = removeUnderscores(podName)
 	om := v12.ObjectMeta{
 		// The name of the pod is container_name-libpod
-		Name:   fmt.Sprintf("%s-libpod", removeUnderscores(podName)),
+		Name:   fmt.Sprintf("%s", removeUnderscores(podName)),
 		Labels: labels,
 		// CreationTimestamp seems to be required, so adding it; in doing so, the timestamp
 		// will reflect time this is run (not container create time) because the conversion

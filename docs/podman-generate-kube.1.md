@@ -145,7 +145,7 @@ status:
 ```
 
 ## SEE ALSO
-podman(1), podman-container, podman-pod
+podman(1), podman-container, podman-pod, podman-play
 
 # HISTORY
 Decemeber 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)
