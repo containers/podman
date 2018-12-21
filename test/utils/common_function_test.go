@@ -36,7 +36,7 @@ var _ = Describe("Common functions test", func() {
 
 	It("Test SystemExec", func() {
 		session := SystemExec(GoechoPath, []string{})
-		Expect(session.Command.Process).ShouldNot(BeNil(), "SystemExec can not start a process")
+		Expect(session.Command.Process).ShouldNot(BeNil(), "SystemExec cannot start a process")
 	})
 
 	It("Test StringInSlice", func() {

@@ -106,7 +106,7 @@ to be long lived.  While Buildah containers are really just created to allow con
 to be added back to the container image.   An easy way to think of it is the
 `buildah run` command emulates the RUN command in a Dockerfile while the `podman run`
 command emulates the `docker run` command in functionality.  Because of this and their underlying
-storage differences, you can not see Podman containers from within Buildah or vice versa.
+storage differences, you cannot see Podman containers from within Buildah or vice versa.
 
 In short Buildah is an efficient way to create OCI images  while Podman allows
 you to manage and maintain those images and containers in a production environment using

@@ -462,7 +462,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	tty := c.Bool("tty")
 
 	if c.Bool("detach") && c.Bool("rm") {
-		return nil, errors.Errorf("--rm and --detach can not be specified together")
+		return nil, errors.Errorf("--rm and --detach cannot be specified together")
 	}
 	if c.Int64("cpu-period") != 0 && c.Float64("cpus") > 0 {
 		return nil, errors.Errorf("--cpu-period and --cpus cannot be set together")

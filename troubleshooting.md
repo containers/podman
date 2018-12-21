@@ -18,7 +18,7 @@ and retry your command before reporting the issue.
 ---
 ### 2) No such image or Bare keys cannot contain ':'
 
-When doing a `podman pull` or `podman build` command and a "common" image can not be pulled,
+When doing a `podman pull` or `podman build` command and a "common" image cannot be pulled,
 it is likely that the `/etc/containers/registries.conf` file is either not installed or possibly
 misconfigured.
 
