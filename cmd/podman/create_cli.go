@@ -144,7 +144,7 @@ func parseMounts(mounts []string) ([]spec.Mount, error) {
 				mountInfo.Options = append(mountInfo.Options, kv[1])
 			case "src", "source":
 				if mountInfo.Type == "tmpfs" {
-					return nil, errors.Errorf("can not use src= on a tmpfs file system")
+					return nil, errors.Errorf("cannot use src= on a tmpfs file system")
 				}
 				if err := validateVolumeHostDir(kv[1]); err != nil {
 					return nil, err
@@ -288,7 +288,7 @@ func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, e
 		return warnings, fmt.Errorf("minimum memory reservation allowed is 4MB")
 	}
 	if config.Resources.Memory > 0 && config.Resources.MemoryReservation > 0 && config.Resources.Memory < config.Resources.MemoryReservation {
-		return warnings, fmt.Errorf("minimum memory limit can not be less than memory reservation limit, see usage")
+		return warnings, fmt.Errorf("minimum memory limit cannot be less than memory reservation limit, see usage")
 	}
 	if config.Resources.KernelMemory > 0 && !sysInfo.KernelMemory {
 		warnings = addWarning(warnings, "Your kernel does not support kernel memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
@@ -318,14 +318,14 @@ func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, e
 		config.Resources.CPUPeriod = 0
 	}
 	if config.Resources.CPUPeriod != 0 && (config.Resources.CPUPeriod < 1000 || config.Resources.CPUPeriod > 1000000) {
-		return warnings, fmt.Errorf("CPU cfs period can not be less than 1ms (i.e. 1000) or larger than 1s (i.e. 1000000)")
+		return warnings, fmt.Errorf("CPU cfs period cannot be less than 1ms (i.e. 1000) or larger than 1s (i.e. 1000000)")
 	}
 	if config.Resources.CPUQuota > 0 && !sysInfo.CPUCfsQuota {
 		warnings = addWarning(warnings, "Your kernel does not support CPU cfs quota or the cgroup is not mounted. Quota discarded.")
 		config.Resources.CPUQuota = 0
 	}
 	if config.Resources.CPUQuota > 0 && config.Resources.CPUQuota < 1000 {
-		return warnings, fmt.Errorf("CPU cfs quota can not be less than 1ms (i.e. 1000)")
+		return warnings, fmt.Errorf("CPU cfs quota cannot be less than 1ms (i.e. 1000)")
 	}
 	// cpuset subsystem checks and adjustments
 	if (config.Resources.CPUsetCPUs != "" || config.Resources.CPUsetMems != "") && !sysInfo.Cpuset {

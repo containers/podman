@@ -84,7 +84,7 @@ func (n UTSMode) Valid() bool {
 // IpcMode represents the container ipc stack.
 type IpcMode string
 
-// IsPrivate indicates whether the container uses its own private ipc namespace which can not be shared.
+// IsPrivate indicates whether the container uses its own private ipc namespace which cannot be shared.
 func (n IpcMode) IsPrivate() bool {
 	return n == "private"
 }

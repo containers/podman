@@ -235,8 +235,8 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			}
 		}
 	} else {
-		for _, device := range config.Devices {
-			if err := addDevice(&g, device); err != nil {
+		for _, devicePath := range config.Devices {
+			if err := devicesFromPath(&g, devicePath); err != nil {
 				return nil, err
 			}
 		}

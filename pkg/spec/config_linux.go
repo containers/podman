@@ -3,7 +3,11 @@
 package createconfig
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/profiles/seccomp"
 	"github.com/opencontainers/runc/libcontainer/configs"
@@ -25,6 +29,52 @@ func Device(d *configs.Device) spec.LinuxDevice {
 		UID:      u32Ptr(int64(d.Uid)),
 		GID:      u32Ptr(int64(d.Gid)),
 	}
+}
+
+// devicesFromPath computes a list of devices
+func devicesFromPath(g *generate.Generator, devicePath string) error {
+	devs := strings.Split(devicePath, ":")
+	resolvedDevicePath := devs[0]
+	// check if it is a symbolic link
+	if src, err := os.Lstat(resolvedDevicePath); err == nil && src.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if linkedPathOnHost, err := filepath.EvalSymlinks(resolvedDevicePath); err == nil {
+			resolvedDevicePath = linkedPathOnHost
+		}
+	}
+	st, err := os.Stat(resolvedDevicePath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot stat %s", devicePath)
+	}
+	if st.IsDir() {
+		if len(devs) > 2 {
+			return errors.Wrapf(unix.EINVAL, "not allowed to specify destination with a directory %s", devicePath)
+		}
+		found := false
+		// mount the internal devices recursively
+		if err := filepath.Walk(resolvedDevicePath, func(dpath string, f os.FileInfo, e error) error {
+
+			if f.Mode()&os.ModeDevice == os.ModeDevice {
+				found = true
+				device := dpath
+
+				if len(devs) > 1 {
+					device = fmt.Sprintf("%s:%s", dpath, devs[1])
+				}
+				if err := addDevice(g, device); err != nil {
+					return errors.Wrapf(err, "failed to add %s device", dpath)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		if !found {
+			return errors.Wrapf(unix.EINVAL, "no devices found in %s", devicePath)
+		}
+		return nil
+	}
+
+	return addDevice(g, devicePath)
 }
 
 func addDevice(g *generate.Generator, device string) error {
