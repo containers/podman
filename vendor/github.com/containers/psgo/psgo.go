@@ -1,3 +1,17 @@
+// Copyright 2018 psgo authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package psgo is a ps (1) AIX-format compatible golang library extended with
 // various descriptors useful for displaying container-related data.
 //
@@ -349,7 +363,7 @@ func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][
 	for _, pid := range pids {
 		ns, err := proc.ParsePIDNamespace(pid)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if os.IsNotExist(errors.Cause(err)) {
 				// catch race conditions
 				continue
 			}
@@ -364,6 +378,10 @@ func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][
 	data := [][]string{}
 	for i, pid := range pidList {
 		pidData, err := JoinNamespaceAndProcessInfo(pid, descriptors)
+		if os.IsNotExist(errors.Cause(err)) {
+			// catch race conditions
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
