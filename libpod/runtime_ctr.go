@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -153,6 +154,10 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			}
 		}
 	}()
+
+	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
+		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
+	}
 
 	// Go through the volume mounts and check for named volumes
 	// If the named volme already exists continue, otherwise create

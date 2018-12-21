@@ -1,9 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -35,6 +39,9 @@ func exportCmd(c *cli.Context) error {
 	if err := validateFlags(c, exportFlags); err != nil {
 		return err
 	}
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
 
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
@@ -64,6 +71,38 @@ func exportCmd(c *cli.Context) error {
 	ctr, err := runtime.LookupContainer(args[0])
 	if err != nil {
 		return errors.Wrapf(err, "error looking up container %q", args[0])
+	}
+
+	if os.Geteuid() != 0 {
+		state, err := ctr.State()
+		if err != nil {
+			return errors.Wrapf(err, "cannot read container state %q", ctr.ID())
+		}
+		if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
+			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+			}
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			became, ret, err := rootless.JoinDirectUserAndMountNS(uint(conmonPid))
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		} else {
+			became, ret, err := rootless.BecomeRootInUserNS()
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		}
 	}
 
 	return ctr.Export(output)
