@@ -7,17 +7,16 @@
 export USER="$(whoami)"
 export HOME="$(getent passwd $USER | cut -d : -f 6)"
 
-# These are normally set by cirrus, if not use some reasonable defaults
+# These are normally set by cirrus, but can't be for VMs setup by hack/get_ci_vm.sh
+# Pick some reasonable defaults
 ENVLIB=${ENVLIB:-.bash_profile}
-CIRRUS_WORKING_DIR=${CIRRUS_WORKING_DIR:-/var/tmp/go/src/github.com/containers/libpod}
+CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-/var/tmp/go/src/github.com/containers/libpod}"
+GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
 SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
-cd "$CIRRUS_WORKING_DIR"
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-$(git rev-parse upstream/master || git rev-parse origin/master)}
-CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git rev-parse HEAD)}
-CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
-cd -
+CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
+CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
 
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
@@ -258,9 +257,9 @@ install_criu(){
     "
 
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
-        ooe.sh sudo add-apt-repository ppa:criu/ppa
-        ooe.sh sudo apt-get update
-        ooe.sh sudo apt-get -y install criu
+        ooe.sh sudo -E add-apt-repository -y ppa:criu/ppa
+        ooe.sh sudo -E apt-get -qq -y update
+        ooe.sh sudo -E apt-get -qq -y install criu
     elif [[ ( "$OS_RELEASE_ID" =~ "centos" || "$OS_RELEASE_ID" =~ "rhel" ) && "$OS_RELEASE_VER" =~ "7"* ]]; then
         echo "Configuring Repositories for latest CRIU"
         ooe.sh sudo tee /etc/yum.repos.d/adrian-criu-el7.repo <<EOF

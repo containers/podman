@@ -113,7 +113,7 @@ build_each_commit_task:
         memory: "4Gb"
         disk: 40
         matrix:
-            image_name: "fedora-29-libpod-0c954a67"
+            image_name: "fedora-29-libpod-9afa57a9"
 
     timeout_in: 20m
 
@@ -139,9 +139,9 @@ testing_task:
         # 'matrix' combinations.
         matrix:
             # Images are generated separately, from build_images_task (below)
-            image_name: "ubuntu-18-libpod-86d821ea"
-            image_name: "fedora-28-libpod-86d821ea"
-            image_name: "fedora-29-libpod-86d821ea"
+            image_name: fedora-29-libpod-9afa57a9
+            image_name: fedora-28-libpod-9afa57a9
+            image_name: ubuntu-18-libpod-9afa57a9
 
             # TODO: tests fail
             # image_name: "rhel-7-something-something"
@@ -176,9 +176,9 @@ optional_testing_task:
     gce_instance:
         image_project: "libpod-218412"
         matrix:
-            image_name: "ubuntu-18-libpod-86d821ea"
-            image_name: "fedora-28-libpod-86d821ea"
-            image_name: "fedora-29-libpod-86d821ea"
+            image_name: fedora-29-libpod-9afa57a9
+            image_name: fedora-28-libpod-9afa57a9
+            image_name: ubuntu-18-libpod-9afa57a9
             # TODO: Make these work (also build_images_task below)
             #image_name: "rhel-server-ec2-7-5-165-1-libpod-fce09afe"
             #image_name: "centos-7-v20180911-libpod-fce09afe"
