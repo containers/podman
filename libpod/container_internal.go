@@ -1043,12 +1043,12 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator, 
 	}
 	// Add the built-in volumes of the container passed in to --volumes-from
 	for _, vol := range c.config.LocalVolumes {
-		if imageData.ContainerConfig.Volumes == nil {
-			imageData.ContainerConfig.Volumes = map[string]struct{}{
+		if imageData.Config.Volumes == nil {
+			imageData.Config.Volumes = map[string]struct{}{
 				vol: {},
 			}
 		} else {
-			imageData.ContainerConfig.Volumes[vol] = struct{}{}
+			imageData.Config.Volumes[vol] = struct{}{}
 		}
 	}
 
@@ -1060,7 +1060,7 @@ func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator, 
 		gid = execUser.Gid
 	}
 
-	for k := range imageData.ContainerConfig.Volumes {
+	for k := range imageData.Config.Volumes {
 		mount := spec.Mount{
 			Destination: k,
 			Type:        "bind",

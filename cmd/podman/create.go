@@ -344,7 +344,7 @@ func configureEntrypoint(c *cli.Context, data *inspect.ImageData) []string {
 		return []string{c.String("entrypoint")}
 	}
 	if data != nil {
-		return data.ContainerConfig.Entrypoint
+		return data.Config.Entrypoint
 	}
 	return entrypoint
 }
@@ -474,7 +474,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	// EXPOSED PORTS
 	var portBindings map[nat.Port][]nat.PortBinding
 	if data != nil {
-		portBindings, err = cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.ContainerConfig.ExposedPorts)
+		portBindings, err = cc.ExposedPorts(c.StringSlice("expose"), c.StringSlice("publish"), c.Bool("publish-all"), data.Config.ExposedPorts)
 		if err != nil {
 			return nil, err
 		}
@@ -567,7 +567,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		if data == nil {
 			user = "0"
 		} else {
-			user = data.ContainerConfig.User
+			user = data.Config.User
 		}
 	}
 
@@ -575,7 +575,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	stopSignal := syscall.SIGTERM
 	signalString := ""
 	if data != nil {
-		signalString = data.ContainerConfig.StopSignal
+		signalString = data.Config.StopSignal
 	}
 	if c.IsSet("stop-signal") {
 		signalString = c.String("stop-signal")
@@ -590,7 +590,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	// ENVIRONMENT VARIABLES
 	env := defaultEnvVariables
 	if data != nil {
-		for _, e := range data.ContainerConfig.Env {
+		for _, e := range data.Config.Env {
 			split := strings.SplitN(e, "=", 2)
 			if len(split) > 1 {
 				env[split[0]] = split[1]
@@ -609,7 +609,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}
 	if data != nil {
-		for key, val := range data.ContainerConfig.Labels {
+		for key, val := range data.Config.Labels {
 			if _, ok := labels[key]; !ok {
 				labels[key] = val
 			}
@@ -643,8 +643,8 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	workDir := "/"
 	if c.IsSet("workdir") || c.IsSet("w") {
 		workDir = c.String("workdir")
-	} else if data != nil && data.ContainerConfig.WorkingDir != "" {
-		workDir = data.ContainerConfig.WorkingDir
+	} else if data != nil && data.Config.WorkingDir != "" {
+		workDir = data.Config.WorkingDir
 	}
 
 	entrypoint := configureEntrypoint(c, data)
@@ -656,9 +656,9 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
-	} else if data != nil && len(data.ContainerConfig.Cmd) > 0 && !c.IsSet("entrypoint") {
+	} else if data != nil && len(data.Config.Cmd) > 0 && !c.IsSet("entrypoint") {
 		// If not user command, add CMD
-		command = append(command, data.ContainerConfig.Cmd...)
+		command = append(command, data.Config.Cmd...)
 	}
 
 	if data != nil && len(command) == 0 {
@@ -697,7 +697,7 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 
 	var ImageVolumes map[string]struct{}
 	if data != nil {
-		ImageVolumes = data.ContainerConfig.Volumes
+		ImageVolumes = data.Config.Volumes
 	}
 	var imageVolType = map[string]string{
 		"bind":   "",

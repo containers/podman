@@ -48,7 +48,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 
 	ctr := new(Container)
-	ctr.config = new(ContainerConfig)
+	ctr.config = new(Config)
 	ctr.state = new(containerState)
 
 	ctr.config.ID = stringid.GenerateNonCryptoID()

@@ -140,7 +140,7 @@ class TestContainers(PodmanTestCase):
         # TODO: Test for STOPSIGNAL when supported by OCI
         # TODO: Test for message when supported by OCI
         details = self.pclient.images.get(self.alpine_ctnr.image).inspect()
-        changes = ['ENV=' + i for i in details.containerconfig['env']]
+        changes = ['ENV=' + i for i in details.config['env']]
         changes.append('CMD=/usr/bin/zsh')
         changes.append('ENTRYPOINT=/bin/sh date')
         changes.append('ENV=TEST=test_containers.TestContainers.test_commit')
@@ -158,22 +158,22 @@ class TestContainers(PodmanTestCase):
 
         details = img.inspect()
         self.assertEqual(details.author, 'Bozo the clown')
-        self.assertListEqual(['/usr/bin/zsh'], details.containerconfig['cmd'])
+        self.assertListEqual(['/usr/bin/zsh'], details.config['cmd'])
         self.assertListEqual(['/bin/sh date'],
-                             details.containerconfig['entrypoint'])
+                             details.config['entrypoint'])
         self.assertIn('TEST=test_containers.TestContainers.test_commit',
-                      details.containerconfig['env'])
+                      details.config['env'])
         self.assertTrue(
-            [e for e in details.containerconfig['env'] if 'PATH=' in e])
+            [e for e in details.config['env'] if 'PATH=' in e])
         self.assertDictEqual({
             '80': {},
             '8888': {},
-        }, details.containerconfig['exposedports'])
+        }, details.config['exposedports'])
         self.assertDictEqual({'unittest': 'test_commit'}, details.labels)
-        self.assertEqual('bozo:circus', details.containerconfig['user'])
-        self.assertEqual({'/data': {}}, details.containerconfig['volumes'])
+        self.assertEqual('bozo:circus', details.config['user'])
+        self.assertEqual({'/data': {}}, details.config['volumes'])
         self.assertEqual('/data/application',
-                         details.containerconfig['workingdir'])
+                         details.config['workingdir'])
 
     def test_remove(self):
         before = len(self.containers)

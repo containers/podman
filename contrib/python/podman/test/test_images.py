@@ -69,7 +69,7 @@ class TestImages(PodmanTestCase):
         self.assertEqual(FoldedString(ctnr.status), 'running')
 
         ctnr_details = ctnr.inspect()
-        for e in img_details.containerconfig['env']:
+        for e in img_details.config['env']:
             self.assertIn(e, ctnr_details.config['env'])
 
     def test_export(self):

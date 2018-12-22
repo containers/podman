@@ -41,8 +41,8 @@ class Image(collections.UserDict):
         details = self.inspect()
 
         config = ConfigDict(image_id=self._id, **kwargs)
-        config['command'] = details.containerconfig.get('cmd')
-        config['env'] = self._split_token(details.containerconfig.get('env'))
+        config['command'] = details.config.get('cmd')
+        config['env'] = self._split_token(details.config.get('env'))
         config['image'] = copy.deepcopy(details.repotags[0])
         config['labels'] = copy.deepcopy(details.labels)
         config['net_mode'] = 'bridge'

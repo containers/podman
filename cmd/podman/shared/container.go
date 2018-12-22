@@ -51,7 +51,7 @@ type PsOptions struct {
 // BatchContainerStruct is the return obkect from BatchContainer and contains
 // container related information
 type BatchContainerStruct struct {
-	ConConfig   *libpod.ContainerConfig
+	ConConfig   *libpod.Config
 	ConState    libpod.ContainerStatus
 	ExitCode    int32
 	Exited      bool
@@ -328,7 +328,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 // locks.
 func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStruct, error) {
 	var (
-		conConfig   *libpod.ContainerConfig
+		conConfig   *libpod.Config
 		conState    libpod.ContainerStatus
 		err         error
 		exitCode    int32

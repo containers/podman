@@ -128,7 +128,7 @@ var _ = Describe("Podman commit", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		image := inspect.InspectImageJSON()
-		_, ok := image[0].ContainerConfig.Volumes["/tmp"]
+		_, ok := image[0].Config.Volumes["/tmp"]
 		Expect(ok).To(BeTrue())
 
 		r := podmanTest.Podman([]string{"run", "newimage"})
