@@ -211,6 +211,8 @@ type Create (
     hostname: string,
     image: string,
     image_id: string,
+    init: bool,
+    init_path: string,
     builtin_imgvolumes: []string,
     id_mappings: IDMappingOptions,
     image_volume_type: string,

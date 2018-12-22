@@ -809,6 +809,16 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 		Syslog:      c.GlobalBool("syslog"),
 	}
 
+	if c.Bool("init") {
+		initPath := c.String("init-path")
+		if initPath == "" {
+			initPath = runtime.GetConfig().InitPath
+		}
+		if err := config.AddContainerInitBinary(initPath); err != nil {
+			return nil, err
+		}
+	}
+
 	if config.Privileged {
 		config.LabelOpts = label.DisableSecOpt()
 	} else {

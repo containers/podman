@@ -1169,6 +1169,10 @@ image [string](https://godoc.org/builtin#string)
 
 image_id [string](https://godoc.org/builtin#string)
 
+init [bool](https://godoc.org/builtin#bool)
+
+init_path [string](https://godoc.org/builtin#string)
+
 builtin_imgvolumes [[]string](#[]string)
 
 id_mappings [IDMappingOptions](#IDMappingOptions)

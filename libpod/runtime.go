@@ -61,6 +61,9 @@ const (
 	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
 	// DefaultInfraCommand to be run in an infra container
 	DefaultInfraCommand = "/pause"
+
+	// DefaultInitPath is the default path to the container-init binary
+	DefaultInitPath = "/usr/libexec/podman/catatonit"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -122,6 +125,8 @@ type RuntimeConfig struct {
 	// CGroupManager is the CGroup Manager to use
 	// Valid values are "cgroupfs" and "systemd"
 	CgroupManager string `toml:"cgroup_manager"`
+	// InitPath is the path to the container-init binary.
+	InitPath string `toml:"init_path"`
 	// StaticDir is the path to a persistent directory to store container
 	// files
 	StaticDir string `toml:"static_dir"`
@@ -217,6 +222,7 @@ var (
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
+		InitPath:              DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
 		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
 		TmpDir:                "",

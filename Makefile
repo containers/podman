@@ -154,10 +154,10 @@ dbuild: libpodimage
 	${CONTAINER_RUNTIME} run --name=${LIBPOD_INSTANCE} --privileged -v ${PWD}:/go/src/${PROJECT} --rm ${LIBPOD_IMAGE} make all
 
 test: libpodimage
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localunit localintegration
+	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localunit install.catatonit localintegration
 
 integration: libpodimage
-	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all localintegration
+	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make clean all install.catatonit localintegration
 
 integration.fedora:
 	DIST=Fedora sh .papr_prepare.sh
@@ -201,7 +201,10 @@ vagrant-check:
 
 binaries: varlink_generate easyjson_generate podman
 
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/goecho/goecho
+install.catatonit:
+	./hack/install_catatonit.sh
+
+test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
 
 MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
