@@ -784,6 +784,10 @@ _podman_container_kill() {
      _podman_kill
 }
 
+_podman_container_list() {
+     _podman_ls
+}
+
 _podman_container_ls() {
      _podman_ls
 }
@@ -802,6 +806,10 @@ _podman_container_pause() {
 
 _podman_container_port() {
      _podman_port
+}
+
+_podman_container_ps() {
+     _podman_ls
 }
 
 _podman_container_refresh() {
