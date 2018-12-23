@@ -207,20 +207,11 @@ var (
 	}
 	psDescription = "Prints out information about the containers"
 	psCommand     = cli.Command{
-		Name:                   "ps",
+		Name:                   "list",
+		Aliases:                []string{"ls", "ps"},
 		Usage:                  "List containers",
 		Description:            psDescription,
 		Flags:                  sortFlags(psFlags),
-		Action:                 psCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-	}
-	lsCommand = cli.Command{
-		Name:                   "ls",
-		Usage:                  "List containers",
-		Description:            psDescription,
-		Flags:                  psFlags,
 		Action:                 psCmd,
 		ArgsUsage:              "",
 		UseShortOptionHandling: true,

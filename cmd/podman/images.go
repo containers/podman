@@ -131,7 +131,8 @@ var (
 		OnUsageError:           usageErrorHandler,
 	}
 	lsImagesCommand = cli.Command{
-		Name:                   "ls",
+		Name:                   "list",
+		Aliases:                []string{"ls"},
 		Usage:                  "list images in local storage",
 		Description:            imagesDescription,
 		Flags:                  imagesFlags,

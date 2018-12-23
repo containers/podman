@@ -24,12 +24,14 @@ The container command allows you to manage containers
 | export   | [podman-export(1)](podman-export.1.md)              | Export a container's filesystem contents as a tar archive.                   |
 | inspect  | [podman-inspect(1)](podman-inspect.1.md)            | Display a container or image's configuration.                                |
 | kill     | [podman-kill(1)](podman-kill.1.md)                  | Kill the main process in one or more containers.                             |
+| list     | [podman-ps(1)](podman-ps.1.md)                 | List the containers on the system.                                     |
 | logs     | [podman-logs(1)](podman-logs.1.md)                  | Display the logs of a container.                                             |
-| ls       | [podman-ps(1)](podman-ps.1.md)                      | Prints out information about containers.                                     |
+| ls       | [podman-ps(1)](podman-ps.1.md)                 | List the containers on the system.                                     |
 | mount    | [podman-mount(1)](podman-mount.1.md)                | Mount a working container's root filesystem.                                 |
 | pause    | [podman-pause(1)](podman-pause.1.md)                | Pause one or more containers.                                                |
 | port     | [podman-port(1)](podman-port.1.md)                  | List port mappings for the container.                                        |
 | prune    | [podman-container-prune(1)](podman-container-prune.1.md)                  | Remove all stopped containers from local storage        |
+| ps       | [podman-ps(1)](podman-ps.1.md)                 | List the containers on the system.                                     |
 | refresh  | [podman-refresh(1)](podman-container-refresh.1.md)  | Refresh the state of all containers                                          |
 | restart  | [podman-restart(1)](podman-restart.1.md)            | Restart one or more containers.                                              |
 | restore  | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
@@ -40,6 +42,7 @@ The container command allows you to manage containers
 | stop     | [podman-stop(1)](podman-stop.1.md)                  | Stop one or more running containers.                                         |
 | top      | [podman-top(1)](podman-top.1.md)                    | Display the running processes of a container.                                |
 | umount   | [podman-umount(1)](podman-umount.1.md)              | Unmount a working container's root filesystem.                               |
+| unmount  | [podman-umount(1)](podman-umount.1.md)              | Unmount a working container's root filesystem.                               |
 | unpause  | [podman-unpause(1)](podman-unpause.1.md)            | Unpause one or more containers.                                              |
 | wait     | [podman-wait(1)](podman-wait.1.md)                  | Wait on one or more containers to stop and print their exit codes.           |
 

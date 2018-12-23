@@ -18,7 +18,7 @@ var (
 		inspectCommand,
 		killCommand,
 		logsCommand,
-		lsCommand,
+		psCommand,
 		mountCommand,
 		pauseCommand,
 		portCommand,
