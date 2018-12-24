@@ -851,7 +851,7 @@ func (c *Container) mountStorage() (string, error) {
 		return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
 	}
 
-	if !mounted {
+	if !mounted && !MountExists(c.config.Spec.Mounts, "/dev/shm") {
 		shmOptions := fmt.Sprintf("mode=1777,size=%d", c.config.ShmSize)
 		if err := c.mountSHM(shmOptions); err != nil {
 			return "", err
