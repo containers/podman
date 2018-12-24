@@ -614,8 +614,16 @@ $ podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
+## Troubleshooting
+
+If you are using a useradd command within a Dockerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+
+### Solution
+
+If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
+
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5)
+podman(1), buildah(1), containers-registries.conf(5), useradd(8)
 
 ## HISTORY
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>

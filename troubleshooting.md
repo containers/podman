@@ -127,3 +127,15 @@ To change its value you can use something like: `sysctl -w
 
 To make the change persistent, you'll need to add a file in
 `/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_UID`.
+
+### 5) Build hangs when the Dockerfile contains the useradd command
+
+When the Dockerfile contains a command like RUN useradd -u 99999000 -g users newuser the build can hang.
+
+#### Symptom
+
+If you are using a useradd command within a Dockerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+
+#### Solution
+
+If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--log-no-init` parameter to change it to: `RUN useradd --log-no-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
