@@ -52,6 +52,8 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	// Remove the default /dev/shm mount to ensure we overwrite it
+	g.RemoveMount("/dev/shm")
 	g.HostSpecific = true
 	addCgroup := true
 	canMountSys := true

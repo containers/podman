@@ -180,7 +180,8 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	if ctr.config.LogPath == "" {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
-	if ctr.config.ShmDir == "" {
+
+	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
 		if ctr.state.UserNSRoot == "" {
 			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		} else {

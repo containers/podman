@@ -210,9 +210,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
 	g.SetLinuxMountLabel(c.MountLabel())
-	// Remove the default /dev/shm mount to ensure we overwrite it
-	g.RemoveMount("/dev/shm")
-
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
 		newMount := spec.Mount{
@@ -221,7 +218,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			Destination: dstPath,
 			Options:     []string{"bind", "private"},
 		}
-		if c.IsReadOnly() {
+		if c.IsReadOnly() && dstPath != "/dev/shm" {
 			newMount.Options = append(newMount.Options, "ro")
 		}
 		if !MountExists(g.Mounts(), dstPath) {

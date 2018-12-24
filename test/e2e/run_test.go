@@ -669,4 +669,11 @@ USER mail`
 		numContainers := podmanTest.NumberOfContainers()
 		Expect(numContainers).To(Equal(1))
 	})
+	It("podman run readonly container should NOT mount /dev/shm read/only", func() {
+		session := podmanTest.Podman([]string{"run", "--read-only", ALPINE, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		Expect(session.OutputToString()).To(Not(ContainSubstring("/dev/shm type tmpfs (ro,")))
+	})
 })
