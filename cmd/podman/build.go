@@ -205,6 +205,10 @@ func buildCmd(c *cli.Context) error {
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
+	ociruntime := runtime.GetOCIRuntimePath()
+	if c.IsSet("runtime") {
+		ociruntime = c.String("runtime")
+	}
 	options := imagebuildah.BuildOptions{
 		ContextDirectory:        contextDir,
 		PullPolicy:              pullPolicy,
@@ -217,7 +221,7 @@ func buildCmd(c *cli.Context) error {
 		Out:                     stdout,
 		Err:                     stderr,
 		ReportWriter:            reporter,
-		Runtime:                 c.String("runtime"),
+		Runtime:                 ociruntime,
 		RuntimeArgs:             runtimeFlags,
 		OutputFormat:            format,
 		SystemContext:           systemContext,

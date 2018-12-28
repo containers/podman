@@ -180,6 +180,11 @@ func (r *Runtime) GetConmonVersion() (string, error) {
 	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
 }
 
+// GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.ociRuntimePath
+}
+
 // GetOCIRuntimeVersion returns a string representation of the oci runtimes version
 func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
 	output, err := utils.ExecCmd(r.ociRuntimePath, "--version")
