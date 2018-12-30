@@ -4,6 +4,7 @@
 /docs/*.[158]
 /docs/*.[158].gz
 *.o
+*.d
 *.orig
 /pause/pause.o
 /bin/

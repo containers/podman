@@ -58,6 +58,8 @@ endif
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
+MAKEDEPEND := ./makedepend.sh
+
 BOX="fedora_atomic"
 
 CROSS_BUILD_TARGETS := \
@@ -65,6 +67,7 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.amd64
 
 all: binaries docs
+depend: podman.d
 
 default: help
 
@@ -108,8 +111,14 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
 
-podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
-	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
+podman: .gopathok bin/podman
+
+podman.d: $(PODMAN_VARLINK_DEPENDENCIES)
+	$(MAKEDEPEND) bin/podman $(PROJECT) $(PROJECT)/cmd/podman $^ > $@
+
+-include podman.d
+bin/podman: $(PODMAN_VARLINK_DEPENDENCIES)
+	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS)
 
@@ -128,6 +137,7 @@ endif
 clean:
 	rm -rf \
 		.gopathok \
+		podman.d \
 		_output \
 		bin \
 		build \
@@ -357,7 +367,6 @@ build-all-new-commits:
 	git rebase $(GIT_BASE_BRANCH) -x make
 
 .PHONY: \
-	.gopathok \
 	binaries \
 	clean \
 	default \
