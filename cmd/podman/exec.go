@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
@@ -99,15 +98,7 @@ func execCmd(c *cli.Context) error {
 	}
 
 	// ENVIRONMENT VARIABLES
-	env := defaultEnvVariables
-	for _, e := range c.StringSlice("env") {
-		split := strings.SplitN(e, "=", 2)
-		if len(split) > 1 {
-			env[split[0]] = split[1]
-		} else {
-			env[split[0]] = ""
-		}
-	}
+	env := map[string]string{}
 
 	if err := readKVStrings(env, []string{}, c.StringSlice("env")); err != nil {
 		return errors.Wrapf(err, "unable to process environment variables")
