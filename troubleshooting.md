@@ -86,6 +86,9 @@ could not get runtime: database run root /run/user/1000/run does not match our r
 
 #### Solution
 
+This problem has been fixed in Podman release 0.12.1 and it is recommended
+to upgrade to that version.  If that is not possible use the following procedure.
+
 To work around the new default path, we can manually set the path Podman is
 expecting in a configuration file.
 
@@ -101,7 +104,7 @@ the first path in the error message Podman gave (in this case,
 `/run/user/1000/run`).
 
 ---
-### 4) rootless containers cannot ping hosts
+### 5) rootless containers cannot ping hosts
 
 When using the ping command from a non-root container, the command may
 fail because of a lack of privileges.
@@ -128,9 +131,10 @@ To change its value you can use something like: `sysctl -w
 To make the change persistent, you'll need to add a file in
 `/etc/sysctl.d` that contains `net.ipv4.ping_group_range=0 $MAX_UID`.
 
-### 5) Build hangs when the Dockerfile contains the useradd command
+---
+### 6) Build hangs when the Dockerfile contains the useradd command
 
-When the Dockerfile contains a command like RUN useradd -u 99999000 -g users newuser the build can hang.
+When the Dockerfile contains a command like `RUN useradd -u 99999000 -g users newuser` the build can hang.
 
 #### Symptom
 
