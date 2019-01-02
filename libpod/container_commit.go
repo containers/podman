@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -101,7 +102,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	}
 	// Expose ports
 	for _, p := range c.config.PortMappings {
-		importBuilder.SetPort(string(p.ContainerPort))
+		importBuilder.SetPort(fmt.Sprintf("%d", p.ContainerPort))
 	}
 	// Labels
 	for k, v := range c.Labels() {
