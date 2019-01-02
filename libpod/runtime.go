@@ -511,6 +511,11 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Reset defaults if they were not explicitly set
 	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
+		if runtime.config.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
+			runtime.config.StorageConfig.GraphDriverName != "" {
+			logrus.Errorf("User-selected graph driver %s overwritten by graph driver %s from database - delete libpod local files to resolve",
+				runtime.config.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
+		}
 		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
 	}
 	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
