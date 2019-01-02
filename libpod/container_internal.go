@@ -748,6 +748,10 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 
 // Internal, non-locking function to start a container
 func (c *Container) start() error {
+	if c.config.Spec.Process != nil {
+		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
+	}
+
 	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
 		return err
 	}
