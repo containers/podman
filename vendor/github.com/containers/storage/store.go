@@ -1070,7 +1070,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 		}
 		mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, rc)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating ID-mapped copy of layer %q", parentLayer.ID)
+			return nil, errors.Wrapf(err, "error creating ID-mapped copy of layer %q", layer.ID)
 		}
 		if err = istore.addMappedTopLayer(image.ID, mappedLayer.ID); err != nil {
 			if err2 := rlstore.Delete(mappedLayer.ID); err2 != nil {
