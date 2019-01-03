@@ -22,6 +22,18 @@ func isRegistry(name string) bool {
 	return strings.ContainsAny(name, ".:") || name == "localhost"
 }
 
+// GetImageBaseName uses decompose and string splits to obtain the base
+// name of an image.  Doing this here because it beats changing the
+// imageParts struct names to be exported as well.
+func GetImageBaseName(input string) (string, error) {
+	decomposedImage, err := decompose(input)
+	if err != nil {
+		return "", err
+	}
+	splitImageName := strings.Split(decomposedImage.name, "/")
+	return splitImageName[len(splitImageName)-1], nil
+}
+
 // decompose breaks an input name into an imageParts description
 func decompose(input string) (imageParts, error) {
 	var (
