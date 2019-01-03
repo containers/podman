@@ -540,6 +540,11 @@ func makeRuntime(runtime *Runtime) (err error) {
 		lockPath = DefaultRootlessSHMLockPath
 	}
 	if doRefresh {
+		// If SHM locks already exist, delete them and reinitialize
+		if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil && !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error deleting existing libpod SHM segment %s", lockPath)
+		}
+
 		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 		if err != nil {
 			return errors.Wrapf(err, "error creating SHM locks for libpod")
