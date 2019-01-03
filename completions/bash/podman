@@ -47,10 +47,10 @@ __podman_pods() {
 		format='{{.ID}}'
 		shift
 	elif [ "$1" = "--name" ] ; then
-		format='{{.Names}}'
+		format='{{.Name}}'
 		shift
 	else
-		format='{{.Names}}'
+		format='{{.Name}}'
 	fi
 	__podman_q pod ps --format "$format" "$@"
 }
@@ -1194,7 +1194,14 @@ _podman_import() {
 	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
 	    ;;
 	*)
-	    __podman_list_images
+	    local counter=$( __podman_pos_first_nonflag "$options_with_args" )
+	    if [ "$cword" -eq "$((counter))" ]; then
+		__podman_complete_images --repo --tag
+		return
+	    else
+		_filedir
+		return
+	    fi
 	    ;;
     esac
 }
@@ -2271,9 +2278,25 @@ _podman_generate_kube() {
     local options_with_args=""
 
     local boolean_options="
+    -h
+    --help
     -s
     --service
     "
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    COMPREPLY=( $( compgen -W "
+			  $(__podman_containers --all)
+			  $(__podman_pods)
+			  " -- "$cur" ) )
+	    __ltrim_colon_completions "$cur"
+	    ;;
+    esac
+}
 
 _podman_play_kube() {
     local options_with_args="
@@ -2290,6 +2313,16 @@ _podman_play_kube() {
     -q
     --tls-verify
     "
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    _filedir
+	    ;;
+    esac
+}
 
 _podman_container_runlabel() {
     local options_with_args="
