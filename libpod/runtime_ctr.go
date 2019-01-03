@@ -82,6 +82,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 	ctr.lock = lock
 	ctr.config.LockID = ctr.lock.ID()
+	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
 
 	ctr.valid = true
 	ctr.state.State = ContainerStateConfigured

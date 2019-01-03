@@ -499,64 +499,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 		}
 	}
 
-	// We now need to see if the system has restarted
-	// We check for the presence of a file in our tmp directory to verify this
-	// This check must be locked to prevent races
-	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
-	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
-	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
-	if err != nil {
-		return errors.Wrapf(err, "error acquiring runtime init lock")
-	}
-	// Acquire the lock and hold it until we return
-	// This ensures that no two processes will be in runtime.refresh at once
-	// TODO: we can't close the FD in this lock, so we should keep it around
-	// and use it to lock important operations
-	aliveLock.Lock()
-	locked := true
-	doRefresh := false
-	defer func() {
-		if locked {
-			aliveLock.Unlock()
-		}
-	}()
-	_, err = os.Stat(runtimeAliveFile)
-	if err != nil {
-		// If the file doesn't exist, we need to refresh the state
-		// This will trigger on first use as well, but refreshing an
-		// empty state only creates a single file
-		// As such, it's not really a performance concern
-		if os.IsNotExist(err) {
-			doRefresh = true
-		} else {
-			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
-		}
-	}
-
-	// Set up the lock manager
-	var manager lock.Manager
-	lockPath := DefaultSHMLockPath
-	if rootless.IsRootless() {
-		lockPath = DefaultRootlessSHMLockPath
-	}
-	if doRefresh {
-		// If SHM locks already exist, delete them and reinitialize
-		if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil && !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error deleting existing libpod SHM segment %s", lockPath)
-		}
-
-		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-		if err != nil {
-			return errors.Wrapf(err, "error creating SHM locks for libpod")
-		}
-	} else {
-		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
-		if err != nil {
-			return errors.Wrapf(err, "error opening libpod SHM locks")
-		}
-	}
-	runtime.lockManager = manager
-
 	// Set up the state
 	switch runtime.config.StateType {
 	case InMemoryStateStore:
@@ -714,6 +656,64 @@ func makeRuntime(runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.firewallBackend = fwBackend
+
+	// We now need to see if the system has restarted
+	// We check for the presence of a file in our tmp directory to verify this
+	// This check must be locked to prevent races
+	runtimeAliveLock := filepath.Join(runtime.config.TmpDir, "alive.lck")
+	runtimeAliveFile := filepath.Join(runtime.config.TmpDir, "alive")
+	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	if err != nil {
+		return errors.Wrapf(err, "error acquiring runtime init lock")
+	}
+	// Acquire the lock and hold it until we return
+	// This ensures that no two processes will be in runtime.refresh at once
+	// TODO: we can't close the FD in this lock, so we should keep it around
+	// and use it to lock important operations
+	aliveLock.Lock()
+	locked := true
+	doRefresh := false
+	defer func() {
+		if locked {
+			aliveLock.Unlock()
+		}
+	}()
+	_, err = os.Stat(runtimeAliveFile)
+	if err != nil {
+		// If the file doesn't exist, we need to refresh the state
+		// This will trigger on first use as well, but refreshing an
+		// empty state only creates a single file
+		// As such, it's not really a performance concern
+		if os.IsNotExist(err) {
+			doRefresh = true
+		} else {
+			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+		}
+	}
+
+	// Set up the lock manager
+	var manager lock.Manager
+	lockPath := DefaultSHMLockPath
+	if rootless.IsRootless() {
+		lockPath = DefaultRootlessSHMLockPath
+	}
+	if doRefresh {
+		// If SHM locks already exist, delete them and reinitialize
+		if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil && !os.IsNotExist(err) {
+			return errors.Wrapf(err, "error deleting existing libpod SHM segment %s", lockPath)
+		}
+
+		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+		if err != nil {
+			return errors.Wrapf(err, "error creating SHM locks for libpod")
+		}
+	} else {
+		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+		if err != nil {
+			return errors.Wrapf(err, "error opening libpod SHM locks")
+		}
+	}
+	runtime.lockManager = manager
 
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
