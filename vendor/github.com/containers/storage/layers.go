@@ -2,7 +2,6 @@ package storage
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +19,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/truncindex"
+	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -1055,7 +1055,7 @@ func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser,
 	}
 	defer tsfile.Close()
 
-	decompressor, err := gzip.NewReader(tsfile)
+	decompressor, err := pgzip.NewReader(tsfile)
 	if err != nil {
 		return nil, err
 	}
@@ -1116,9 +1116,9 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	defragmented := io.TeeReader(io.MultiReader(bytes.NewBuffer(header[:n]), diff), compressedCounter)
 
 	tsdata := bytes.Buffer{}
-	compressor, err := gzip.NewWriterLevel(&tsdata, gzip.BestSpeed)
+	compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
 	if err != nil {
-		compressor = gzip.NewWriter(&tsdata)
+		compressor = pgzip.NewWriter(&tsdata)
 	}
 	metadata := storage.NewJSONPacker(compressor)
 	uncompressed, err := archive.DecompressStream(defragmented)

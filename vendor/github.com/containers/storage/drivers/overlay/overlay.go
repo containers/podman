@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
@@ -165,6 +166,10 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		if err != nil {
 			os.Remove(filepath.Join(home, linkDir))
 			os.Remove(home)
+			patherr, ok := err.(*os.PathError)
+			if ok && patherr.Err == syscall.ENOSPC {
+				return nil, err
+			}
 			return nil, errors.Wrap(err, "kernel does not support overlay fs")
 		}
 	}
@@ -285,6 +290,12 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 	exec.Command("modprobe", "overlay").Run()
 
 	layerDir, err := ioutil.TempDir(home, "compat")
+	if err != nil {
+		patherr, ok := err.(*os.PathError)
+		if ok && patherr.Err == syscall.ENOSPC {
+			return false, err
+		}
+	}
 	if err == nil {
 		// Check if reading the directory's contents populates the d_type field, which is required
 		// for proper operation of the overlay filesystem.
