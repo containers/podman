@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/pkg/util"
@@ -75,11 +76,21 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 //func GetV1CGroups(excludes []string) ([]cgroups.Subsystem, error) {
 func GetV1CGroups(excludes []string) cgroups.Hierarchy {
 	return func() ([]cgroups.Subsystem, error) {
-		var filtered []cgroups.Subsystem
+		var (
+			filtered, subSystem []cgroups.Subsystem
+			err                 error
+		)
 
-		subSystem, err := cgroups.V1()
+		for i := 0; i < 3; i++ {
+			subSystem, err = cgroups.V1()
+			if err == nil {
+				break
+			}
+			logrus.Debug("Waiting for /proc/self/mountinfo to settle")
+			time.Sleep(time.Millisecond * 500)
+		}
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "is this the flake?")
 		}
 		for _, s := range subSystem {
 			// If the name of the subsystem is not in the list of excludes, then
