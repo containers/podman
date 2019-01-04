@@ -68,7 +68,7 @@ Default state dir is configured in /etc/containers/storage.conf.
 
 **--runtime**=**value**
 
-Path to the OCI compatible binary used to run containers
+Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
 
 **--storage-driver, -s**=**value**
 

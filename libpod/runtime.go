@@ -99,9 +99,9 @@ type Runtime struct {
 // OCIRuntimePath contains information about an OCI runtime.
 type OCIRuntimePath struct {
 	// Name of the runtime to refer to by the --runtime flag
-	Name string
+	Name string `toml:"name"`
 	// Paths to check for this executable
-	Paths []string
+	Paths []string `toml:"paths"`
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -126,8 +126,10 @@ type RuntimeConfig struct {
 	// cause conflicts in containers/storage
 	// As such this is not exposed via the config file
 	StateType RuntimeStateStore `toml:"-"`
+	// OCIRuntime is the OCI runtime to use.
+	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
-	OCIRuntimes []OCIRuntimePath `toml:"runtimes"`
+	OCIRuntimes map[string][]string `toml:"runtimes"`
 	// ConmonPath is the path to the Conmon binary used for managing
 	// containers
 	// The first path pointing to a valid file will be used
@@ -219,18 +221,16 @@ var (
 		StorageConfig:         storage.StoreOptions{},
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
-		OCIRuntimes: []OCIRuntimePath{
-			{
-				Name: "runc",
-				Paths: []string{
-					"/usr/bin/runc",
-					"/usr/sbin/runc",
-					"/usr/local/bin/runc",
-					"/usr/local/sbin/runc",
-					"/sbin/runc",
-					"/bin/runc",
-					"/usr/lib/cri-o-runc/sbin/runc",
-				},
+		OCIRuntime:            "runc",
+		OCIRuntimes: map[string][]string{
+			"runc": {
+				"/usr/bin/runc",
+				"/usr/sbin/runc",
+				"/usr/local/bin/runc",
+				"/usr/local/sbin/runc",
+				"/sbin/runc",
+				"/bin/runc",
+				"/usr/lib/cri-o-runc/sbin/runc",
 			},
 		},
 		ConmonPath: []string{
@@ -425,8 +425,9 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 	runtime.config = new(RuntimeConfig)
 	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
-	// Set two fields not in the TOML config
+	// Set three fields not in the TOML config
 	runtime.config.StateType = defaultRuntimeConfig.StateType
+	runtime.config.OCIRuntime = defaultRuntimeConfig.OCIRuntime
 	runtime.config.StorageConfig = storage.StoreOptions{}
 
 	// Check to see if the given configuration file exists
@@ -464,19 +465,29 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 func makeRuntime(runtime *Runtime) (err error) {
 	// Find a working OCI runtime binary
 	foundRuntime := false
-outer:
-	for _, oruntime := range runtime.config.OCIRuntimes {
-		for _, path := range oruntime.Paths {
-			stat, err := os.Stat(path)
-			if err != nil {
-				continue
+	// If runtime is an absolute path, then use it as it is.
+	if runtime.config.OCIRuntime[0] == '/' {
+		foundRuntime = true
+		runtime.ociRuntimePath = OCIRuntimePath{Name: filepath.Base(runtime.config.OCIRuntime), Paths: []string{runtime.config.OCIRuntime}}
+	} else {
+		// If not, look it up in the configuration.
+		paths := runtime.config.OCIRuntimes[runtime.config.OCIRuntime]
+		if paths != nil {
+			for _, path := range paths {
+				stat, err := os.Stat(path)
+				if err != nil {
+					if os.IsNotExist(err) {
+						continue
+					}
+					return errors.Wrapf(err, "cannot stat %s", path)
+				}
+				if !stat.Mode().IsRegular() {
+					continue
+				}
+				foundRuntime = true
+				runtime.ociRuntimePath = OCIRuntimePath{Name: runtime.config.OCIRuntime, Paths: []string{path}}
+				break
 			}
-			if stat.IsDir() {
-				continue
-			}
-			foundRuntime = true
-			runtime.ociRuntimePath = OCIRuntimePath{Name: oruntime.Name, Paths: []string{path}}
-			break outer
 		}
 	}
 	if !foundRuntime {
