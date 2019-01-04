@@ -226,3 +226,31 @@ and
 tracking system.
 
 [owners]: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md#owners
+
+
+### Bot Interactions
+
+The primary human-interface is through comments in pull-requests.  Some of these are outlined
+below, along with their meaning and intended usage.  Some of them require the comment
+author hold special privileges on the github repository.  Others can be used by anyone.
+
+* ``/close``: Closes an issue or PR.
+
+* ``/approve``: Mark a PR as appropriate to the project, and as close to meeting
+  met all the contribution criteria above.  Adds the *approved* label, marking
+  it as ready for review and possible future merging.
+
+* ``/lgtm``: A literal "Stamp of approval", signaling okay-to-merge.  This causes
+  the bot to ad the *lgtm* label, then attempt a merge.  In other words - Never,
+  ever, ever comment ``/lgtm``, unless a PR has actually, really, been fully
+  reviewed.  The bot isn't too smart about these things, and could merge
+  unintentionally.  Instead, just write ``LGTM``, or
+  spell it out.
+
+* ``[skip ci]``: Within the HEAD commit will cause Cirrus CI to ***NOT*** execute
+  tests on the PR.  This is useful in basically two cases:  1) You're still working
+  and don't want to waste resources.  2) You haven't modified any code that would
+  be exercised by the tests.  For example, documentation updates (outside of code).
+
+[The complete list may be found on the command-help page.](https://prow.k8s.io/command-help)
+However, not all commands are implemented for this repository.  If in doubt, ask a maintainer.
