@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	cc "github.com/containers/libpod/pkg/spec"
-	"github.com/docker/docker/pkg/sysinfo"
+	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
