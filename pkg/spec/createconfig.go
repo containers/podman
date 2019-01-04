@@ -2,6 +2,7 @@ package createconfig
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -143,6 +144,36 @@ func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
 // CreateBlockIO returns a LinuxBlockIO struct from a CreateConfig
 func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 	return c.createBlockIO()
+}
+
+// AddContainerInitBinary adds the init binary specified by path iff the
+// container will run in a private PID namespace that is not shared with the
+// host or another pre-existing container, where an init-like process is
+// already running.
+//
+// Note that AddContainerInitBinary prepends "/dev/init" "--" to the command
+// to execute the bind-mounted binary as PID 1.
+func (c *CreateConfig) AddContainerInitBinary(path string) error {
+	if path == "" {
+		return fmt.Errorf("please specify a path to the container-init binary")
+	}
+	if !c.PidMode.IsPrivate() {
+		return fmt.Errorf("cannot add init binary as PID 1 (PID namespace isn't private)")
+	}
+	if c.Systemd {
+		return fmt.Errorf("cannot use container-init binary with systemd")
+	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return errors.Wrap(err, "container-init binary not found on the host")
+	}
+	c.Command = append([]string{"/dev/init", "--"}, c.Command...)
+	c.Mounts = append(c.Mounts, spec.Mount{
+		Destination: "/dev/init",
+		Type:        "bind",
+		Source:      path,
+		Options:     []string{"bind", "ro"},
+	})
+	return nil
 }
 
 func processOptions(options []string) []string {

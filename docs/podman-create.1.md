@@ -276,6 +276,14 @@ tmpfs: The volume is mounted onto the container as a tmpfs, which allows the use
 content that disappears when the container is stopped.
 ignore: All volumes are just ignored and no action is taken.
 
+**--init**
+
+Run an init inside the container that forwards signals and reaps processes.
+
+**--init-path**=""
+
+Path to the container-init binary.
+
 **-i**, **--interactive**=*true*|*false*
 
 Keep STDIN open even if not attached. The default is *false*.

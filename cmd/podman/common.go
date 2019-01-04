@@ -321,6 +321,15 @@ var createFlags = []cli.Flag{
 		Value: "bind",
 	},
 	cli.BoolFlag{
+		Name:  "init",
+		Usage: "Run an init binary inside the container that forwards signals and reaps processes",
+	},
+	cli.StringFlag{
+		Name: "init-path",
+		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
+		Usage: fmt.Sprintf("Path to the container-init binary (default: %q)", libpod.DefaultInitPath),
+	},
+	cli.BoolFlag{
 		Name:  "interactive, i",
 		Usage: "Keep STDIN open even if not attached",
 	},
