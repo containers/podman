@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	gosignal "os/signal"
-	"os/user"
+	gouser "os/user"
 	"runtime"
 	"strconv"
 	"strings"
@@ -232,8 +232,9 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
+	groupname := username
 	if username == "" {
-		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
+		user, err := gouser.LookupId(fmt.Sprintf("%d", os.Getuid()))
 		if err != nil && !allowSingleIDMapping {
 			if os.IsNotExist(err) {
 				return false, 0, errors.Wrapf(err, "/etc/subuid or /etc/subgid does not exist, see subuid/subgid man pages for information on these files")
@@ -242,9 +243,24 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 		if err == nil {
 			username = user.Username
+			groupname = username
+			group, err := gouser.LookupGroupId(user.Gid)
+			if err == nil {
+				groupname = group.Name
+			}
+		}
+	} else {
+		user, err := gouser.Lookup(username)
+		if err == nil {
+			username = user.Username
+			groupname = username
+			group, err := gouser.LookupGroupId(user.Gid)
+			if err == nil {
+				groupname = group.Name
+			}
 		}
 	}
-	mappings, err := idtools.NewIDMappings(username, username)
+	mappings, err := idtools.NewIDMappings(username, groupname)
 	if !allowSingleIDMapping {
 		if err != nil {
 			return false, -1, err
