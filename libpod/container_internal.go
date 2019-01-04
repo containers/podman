@@ -401,7 +401,10 @@ func resetState(state *containerState) error {
 	return nil
 }
 
-// Refresh refreshes the container's state after a restart
+// Refresh refreshes the container's state after a restart.
+// Refresh cannot perform any operations that would lock another container.
+// We cannot guarantee any other container has a valid lock at the time it is
+// running.
 func (c *Container) refresh() error {
 	// Don't need a full sync, but we do need to update from the database to
 	// pick up potentially-missing container state
@@ -446,6 +449,13 @@ func (c *Container) refresh() error {
 	if c.state.UserNSRoot != "" {
 		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
 	}
+
+	// We need to pick up a new lock
+	lock, err := c.runtime.lockManager.RetrieveLock(c.config.LockID)
+	if err != nil {
+		return errors.Wrapf(err, "error acquiring lock for container %s", c.ID())
+	}
+	c.lock = lock
 
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())

@@ -3,7 +3,6 @@ package libpod
 import (
 	"bytes"
 	"encoding/json"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -288,10 +287,9 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(ctr.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for container %s", string(id))
 	}
 	ctr.lock = lock
 
@@ -324,10 +322,9 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(pod.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for pod %s", string(id))
 	}
 	pod.lock = lock
 
@@ -353,8 +350,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.runtime.lockDir, string(name))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(volume.config.LockID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving lockfile for volume %s", string(name))
 	}
