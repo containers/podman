@@ -18,13 +18,11 @@ executes Buildah to perform container builds, and as such the Buildah
 maintainers are best equipped to handle these bugs.
 -->
 
-**Is this a BUG REPORT or FEATURE REQUEST?**:
+**Is this a BUG REPORT or FEATURE REQUEST? (leave only one on its own line)**
 
-[//]: # Uncomment only one, leave it on its own line:
+/kind bug
 
-[//]: # **kind bug**
-
-[//]: # **kind feature**
+/kind feature
 
 **Description**
 
