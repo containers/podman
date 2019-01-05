@@ -92,6 +92,11 @@ func (s *ociImageSource) GetManifest(ctx context.Context, instanceDigest *digest
 	return m, mimeType, nil
 }
 
+// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
+func (s *ociImageSource) HasThreadSafeGetBlob() bool {
+	return false
+}
+
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.

@@ -4,7 +4,6 @@ package ostree
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -24,6 +23,7 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/klauspost/pgzip"
 	"github.com/opencontainers/go-digest"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/ostreedev/ostree-go/pkg/otbuiltin"
@@ -130,6 +130,11 @@ func (d *ostreeImageDestination) MustMatchRuntimeOS() bool {
 // Does not make a difference if Reference().DockerReference() is nil.
 func (d *ostreeImageDestination) IgnoresEmbeddedDockerReference() bool {
 	return false // N/A, DockerReference() returns nil.
+}
+
+// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
+func (d *ostreeImageDestination) HasThreadSafePutBlob() bool {
+	return false
 }
 
 // PutBlob writes contents of stream and returns data representing the result.
@@ -249,7 +254,7 @@ func (d *ostreeImageDestination) ostreeCommit(repo *otbuiltin.Repo, branch strin
 }
 
 func generateTarSplitMetadata(output *bytes.Buffer, file string) (digest.Digest, int64, error) {
-	mfz := gzip.NewWriter(output)
+	mfz := pgzip.NewWriter(output)
 	defer mfz.Close()
 	metaPacker := storage.NewJSONPacker(mfz)
 

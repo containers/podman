@@ -474,9 +474,6 @@ func (b *Builder) Hostname() string {
 // Note: this setting is not present in the OCIv1 image format, so it is
 // discarded when writing images using OCIv1 formats.
 func (b *Builder) SetHostname(name string) {
-	if name != "" && b.Format != Dockerv2ImageManifest {
-		logrus.Errorf("HOSTNAME is not supported for OCI image format, hostname %s will be ignored. Must use `docker` format", name)
-	}
 	b.Docker.Config.Hostname = name
 }
 

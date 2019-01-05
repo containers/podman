@@ -79,7 +79,8 @@ void _buildah_unshare(void)
 	pidfd = _buildah_unshare_parse_envint("_Buildah-pid-pipe");
 	if (pidfd != -1) {
 		snprintf(buf, sizeof(buf), "%llu", (unsigned long long) getpid());
-		if (write(pidfd, buf, strlen(buf)) != strlen(buf)) {
+		size_t size = write(pidfd, buf, strlen(buf));
+		if (size != strlen(buf)) {
 			fprintf(stderr, "Error writing PID to pipe on fd %d: %m\n", pidfd);
 			_exit(1);
 		}

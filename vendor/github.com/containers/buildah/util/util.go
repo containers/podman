@@ -395,57 +395,11 @@ func GetSubIDMappings(user, group string) ([]specs.LinuxIDMapping, []specs.Linux
 
 // ParseIDMappings parses mapping triples.
 func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap, error) {
-	nonDigitsToWhitespace := func(r rune) rune {
-		if strings.IndexRune("0123456789", r) == -1 {
-			return ' '
-		} else {
-			return r
-		}
-	}
-	parseTriple := func(spec []string) (container, host, size uint32, err error) {
-		cid, err := strconv.ParseUint(spec[0], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
-		}
-		hid, err := strconv.ParseUint(spec[1], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
-		}
-		sz, err := strconv.ParseUint(spec[2], 10, 32)
-		if err != nil {
-			return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
-		}
-		return uint32(cid), uint32(hid), uint32(sz), nil
-	}
-	parseIDMap := func(mapSpec []string, mapSetting string) (idmap []idtools.IDMap, err error) {
-		for _, idMapSpec := range mapSpec {
-			idSpec := strings.Fields(strings.Map(nonDigitsToWhitespace, idMapSpec))
-			if len(idSpec)%3 != 0 {
-				return nil, errors.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
-			}
-			for i := range idSpec {
-				if i%3 != 0 {
-					continue
-				}
-				cid, hid, size, err := parseTriple(idSpec[i : i+3])
-				if err != nil {
-					return nil, errors.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
-				}
-				mapping := idtools.IDMap{
-					ContainerID: int(cid),
-					HostID:      int(hid),
-					Size:        int(size),
-				}
-				idmap = append(idmap, mapping)
-			}
-		}
-		return idmap, nil
-	}
-	uid, err := parseIDMap(uidmap, "userns-uid-map")
+	uid, err := idtools.ParseIDMap(uidmap, "userns-uid-map")
 	if err != nil {
 		return nil, nil, err
 	}
-	gid, err := parseIDMap(gidmap, "userns-gid-map")
+	gid, err := idtools.ParseIDMap(gidmap, "userns-gid-map")
 	if err != nil {
 		return nil, nil, err
 	}

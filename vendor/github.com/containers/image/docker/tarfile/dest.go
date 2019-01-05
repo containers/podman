@@ -82,6 +82,11 @@ func (d *Destination) IgnoresEmbeddedDockerReference() bool {
 	return false // N/A, we only accept schema2 images where EmbeddedDockerReferenceConflicts() is always false.
 }
 
+// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
+func (d *Destination) HasThreadSafePutBlob() bool {
+	return false
+}
+
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.

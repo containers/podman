@@ -557,6 +557,10 @@ func (i *containerImageSource) LayerInfosForCopy(ctx context.Context) ([]types.B
 	return nil, nil
 }
 
+func (i *containerImageSource) HasThreadSafeGetBlob() bool {
+	return false
+}
+
 func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo, cache types.BlobInfoCache) (reader io.ReadCloser, size int64, err error) {
 	if blob.Digest == i.configDigest {
 		logrus.Debugf("start reading config")

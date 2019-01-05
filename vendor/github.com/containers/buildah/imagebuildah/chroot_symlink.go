@@ -131,6 +131,11 @@ func resolveModifiedTime(rootdir, filename, historyTime string) (bool, error) {
 func modTimeIsGreater(rootdir, path string, historyTime string) (bool, error) {
 	var timeIsGreater bool
 
+	// the Walk below doesn't work if rootdir and path are equal
+	if rootdir == path {
+		return false, nil
+	}
+
 	// Convert historyTime from string to time.Time for comparison
 	histTime, err := time.Parse(time.RFC3339Nano, historyTime)
 	if err != nil {
