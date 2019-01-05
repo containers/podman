@@ -161,6 +161,9 @@ func main() {
 			logrus.Info("running as rootless")
 		}
 
+		// Be sure we can create directories with 0755 mode.
+		syscall.Umask(0022)
+
 		if logLevel == "debug" {
 			debug = true
 
