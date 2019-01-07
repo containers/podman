@@ -60,8 +60,8 @@ podman ps --no-trunc | grep $ctrid
 ########
 # Containers in a pod share network namespace
 ########
-podman run -dt --pod foobar quay.io/baude/alpine_nginx:latest
-podman run -it --rm --pod foobar fedora-minimal:28 curl http://localhost
+podman run -dt --pod foobar docker.io/library/nginx:latest
+podman run -it --rm --pod foobar registry.fedoraproject.org/fedora-minimal:29 curl http://localhost
 
 ########
 # There should be 3 containers running now
@@ -91,7 +91,7 @@ podman pod stop foobar
 # Start a pod and its containers
 ########
 podman pod start foobar
-podman run -it --rm --pod foobar fedora-minimal:28 curl http://localhost
+podman run -it --rm --pod foobar registry.fedoraproject.org/fedora-minimal:29 curl http://localhost
 
 ########
 # Pause a pod and its containers
@@ -103,7 +103,7 @@ podman pod pause foobar
 # Unpause a pod and its containers
 ########
 podman pod unpause foobar
-podman run -it --rm --pod foobar fedora-minimal:28 curl http://localhost
+podman run -it --rm --pod foobar registry.fedoraproject.org/fedora-minimal:29 curl http://localhost
 
 ########
 # Kill a pod and its containers
