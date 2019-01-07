@@ -62,6 +62,8 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 	ctr.config.StopTimeout = CtrRemoveTimeout
 
+	ctr.config.OCIRuntime = r.config.OCIRuntime
+
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
 	if r.config.Namespace != "" {

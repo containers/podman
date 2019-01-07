@@ -350,6 +350,9 @@ type ContainerConfig struct {
 
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
 
+	// OCIRuntime used to create the container
+	OCIRuntime string `json:"runtime,omitempty"`
+
 	// ExitCommand is the container's exit command.
 	// This Command will be executed when the container exits
 	ExitCommand []string `json:"exitCommand,omitempty"`
