@@ -356,7 +356,10 @@ cmd/podman/varlink/iopodman.go: cmd/podman/varlink/io.podman.varlink
 API.md: cmd/podman/varlink/io.podman.varlink
 	$(GO) generate ./docs/...
 
-validate: gofmt .gitvalidation
+validate.completions: completions/bash/podman
+	. completions/bash/podman
+
+validate: gofmt .gitvalidation validate.completions
 
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
@@ -366,6 +369,7 @@ build-all-new-commits:
 	.gopathok \
 	binaries \
 	clean \
+	validate.completions \
 	default \
 	docs \
 	gofmt \
