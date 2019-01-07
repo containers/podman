@@ -65,6 +65,8 @@ func GenerateCommand(command, imageName, name string) ([]string, error) {
 		switch arg {
 		case "IMAGE":
 			newArg = imageName
+		case "$IMAGE":
+			newArg = imageName
 		case "IMAGE=IMAGE":
 			newArg = fmt.Sprintf("IMAGE=%s", imageName)
 		case "IMAGE=$IMAGE":
@@ -75,6 +77,8 @@ func GenerateCommand(command, imageName, name string) ([]string, error) {
 			newArg = fmt.Sprintf("NAME=%s", name)
 		case "NAME=$NAME":
 			newArg = fmt.Sprintf("NAME=%s", name)
+		case "$NAME":
+			newArg = name
 		default:
 			newArg = arg
 		}

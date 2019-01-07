@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/shlex"
 	"io"
 	"os"
 	"path/filepath"
@@ -640,6 +641,14 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 
 // GenerateRunlabelCommand generates the command that will eventually be execucted by podman
 func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]string, extraArgs []string) ([]string, []string, error) {
+	// If no name is provided, we use the image's basename instead
+	if name == "" {
+		baseName, err := image.GetImageBaseName(imageName)
+		if err != nil {
+			return nil, nil, err
+		}
+		name = baseName
+	}
 	// The user provided extra arguments that need to be tacked onto the label's command
 	if len(extraArgs) > 0 {
 		runLabel = fmt.Sprintf("%s %s", runLabel, strings.Join(extraArgs, " "))
@@ -665,7 +674,10 @@ func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]s
 		return ""
 	}
 	newS := os.Expand(strings.Join(cmd, " "), envmapper)
-	cmd = strings.Split(newS, " ")
+	cmd, err = shlex.Split(newS)
+	if err != nil {
+		return nil, nil, err
+	}
 	return cmd, env, nil
 }
 
