@@ -173,24 +173,6 @@ func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 	}
 }
 
-// isRegistryInsecure checks if the named registry is marked as not secure
-func isRegistryInsecure(registry string, sc *types.SystemContext) (bool, error) {
-	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
-	if err != nil {
-		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistries.RegistriesConfPath(sc))
-	}
-	if reginfo != nil {
-		if reginfo.Insecure {
-			logrus.Debugf("registry %q is marked insecure in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
-		} else {
-			logrus.Debugf("registry %q is not marked insecure in registries configuration %q", registry, sysregistries.RegistriesConfPath(sc))
-		}
-		return reginfo.Insecure, nil
-	}
-	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's secure", registry, sysregistries.RegistriesConfPath(sc))
-	return false, nil
-}
-
 // isRegistryBlocked checks if the named registry is marked as blocked
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
@@ -219,11 +201,6 @@ func isReferenceSomething(ref types.ImageReference, sc *types.SystemContext, wha
 		}
 	}
 	return false, nil
-}
-
-// isReferenceInsecure checks if the registry part of a reference is insecure
-func isReferenceInsecure(ref types.ImageReference, sc *types.SystemContext) (bool, error) {
-	return isReferenceSomething(ref, sc, isRegistryInsecure)
 }
 
 // isReferenceBlocked checks if the registry part of a reference is blocked
