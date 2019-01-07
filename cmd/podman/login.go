@@ -62,12 +62,18 @@ func loginCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments, login takes only 1 argument")
 	}
 	if len(args) == 0 {
-		return errors.Errorf("registry must be given")
+		return errors.Errorf("please specify a registry to login to")
 	}
 	server := registryFromFullName(scrubServer(args[0]))
 	authfile := getAuthFile(c.String("authfile"))
 
 	sc := common.GetSystemContext("", authfile, false)
+	if c.IsSet("tls-verify") {
+		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	}
+	if c.String("cert-dir") != "" {
+		sc.DockerCertPath = c.String("cert-dir")
+	}
 
 	if c.IsSet("get-login") {
 		user, err := config.GetUserLoggedIn(sc, server)
@@ -87,37 +93,23 @@ func loginCmd(c *cli.Context) error {
 	// username of user logged in to server (if one exists)
 	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
 	if err != nil {
-		return errors.Wrapf(err, "error getting logged-in user")
+		return errors.Wrapf(err, "error reading auth file")
 	}
 
 	ctx := getContext()
-
-	var (
-		username string
-		password string
-	)
-
-	if userFromAuthFile != "" {
-		username = userFromAuthFile
-		password = passFromAuthFile
+	// If no username and no password is specified, try to use existing ones.
+	if c.String("username") == "" && c.String("password") == "" {
 		fmt.Println("Authenticating with existing credentials...")
-		if err := docker.CheckAuth(ctx, sc, username, password, server); err == nil {
+		if err := docker.CheckAuth(ctx, sc, userFromAuthFile, passFromAuthFile, server); err == nil {
 			fmt.Println("Existing credentials are valid. Already logged in to", server)
 			return nil
 		}
 		fmt.Println("Existing credentials are invalid, please enter valid username and password")
 	}
 
-	username, password, err = getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
+	username, password, err := getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
-	}
-
-	if c.IsSet("tls-verify") {
-		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
-	}
-	if c.String("cert-dir") != "" {
-		sc.DockerCertPath = c.String("cert-dir")
 	}
 
 	if err = docker.CheckAuth(ctx, sc, username, password, server); err == nil {
@@ -131,14 +123,15 @@ func loginCmd(c *cli.Context) error {
 		fmt.Println("Login Succeeded!")
 		return nil
 	case docker.ErrUnauthorizedForCredentials:
-		return errors.Errorf("error logging into %q: invalid username/password\n", server)
+		return errors.Errorf("error logging into %q: invalid username/password", server)
 	default:
 		return errors.Wrapf(err, "error authenticating creds for %q", server)
 	}
 }
 
 // getUserAndPass gets the username and password from STDIN if not given
-// using the -u and -p flags
+// using the -u and -p flags.  If the username prompt is left empty, the
+// displayed userFromAuthFile will be used instead.
 func getUserAndPass(username, password, userFromAuthFile string) (string, string, error) {
 	var err error
 	reader := bufio.NewReader(os.Stdin)
@@ -152,7 +145,10 @@ func getUserAndPass(username, password, userFromAuthFile string) (string, string
 		if err != nil {
 			return "", "", errors.Wrapf(err, "error reading username")
 		}
-		// If no username provided, use userFromAuthFile instead.
+		// If the user just hit enter, use the displayed user from the
+		// the authentication file.  This allows to do a lazy
+		// `$ podman login -p $NEW_PASSWORD` without specifying the
+		// user.
 		if strings.TrimSpace(username) == "" {
 			username = userFromAuthFile
 		}
