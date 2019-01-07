@@ -3,7 +3,10 @@
 package lock
 
 import (
+	"syscall"
+
 	"github.com/containers/libpod/libpod/lock/shm"
+	"github.com/pkg/errors"
 )
 
 // SHMLockManager manages shared memory locks.
@@ -59,6 +62,11 @@ func (m *SHMLockManager) RetrieveLock(id uint32) (Locker, error) {
 	lock := new(SHMLock)
 	lock.lockID = id
 	lock.manager = m
+
+	if id >= m.locks.GetMaxLocks() {
+		return nil, errors.Wrapf(syscall.EINVAL, "lock ID %d is too large - max lock size is %d",
+			id, m.locks.GetMaxLocks()-1)
+	}
 
 	return lock, nil
 }
