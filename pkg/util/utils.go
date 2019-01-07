@@ -314,7 +314,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 			return storageOpts, volumePath, err
 		}
 
-		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+		storageConf := StorageConfigFile()
 		if _, err := os.Stat(storageConf); err == nil {
 			storage.ReloadConfigurationFile(storageConf, &storageOpts)
 		} else if os.IsNotExist(err) {
@@ -333,4 +333,12 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 		}
 	}
 	return storageOpts, volumePath, nil
+}
+
+// StorageConfigFile returns the path to the storage config file used
+func StorageConfigFile() string {
+	if rootless.IsRootless() {
+		return filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
+	}
+	return storage.DefaultConfigFile
 }
