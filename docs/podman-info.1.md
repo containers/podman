@@ -61,6 +61,7 @@ registries:
   - docker.io
   - registry.access.redhat.com
 store:
+  ConfigFile: /etc/containers/storage.conf
   ContainerStore:
     number: 37
   GraphDriverName: overlay

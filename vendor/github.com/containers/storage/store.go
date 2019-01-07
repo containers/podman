@@ -2992,7 +2992,8 @@ func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
 	return ret
 }
 
-const defaultConfigFile = "/etc/containers/storage.conf"
+// DefaultConfigFile path to the system wide storage.conf file
+const DefaultConfigFile = "/etc/containers/storage.conf"
 
 // ThinpoolOptionsConfig represents the "storage.options.thinpool"
 // TOML config table.
@@ -3237,7 +3238,7 @@ func init() {
 	DefaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
 	DefaultStoreOptions.GraphDriverName = ""
 
-	ReloadConfigurationFile(defaultConfigFile, &DefaultStoreOptions)
+	ReloadConfigurationFile(DefaultConfigFile, &DefaultStoreOptions)
 }
 
 func GetDefaultMountOptions() ([]string, error) {
