@@ -111,6 +111,9 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
 
+podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
+	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+
 local-cross: $(CROSS_BUILD_TARGETS)
 
 bin/podman.cross.%: .gopathok

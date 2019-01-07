@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/containers/libpod/libpod/adapter"
 	"runtime"
 
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -39,18 +39,20 @@ func infoCmd(c *cli.Context) error {
 	}
 	info := map[string]interface{}{}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	localRuntime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer localRuntime.Runtime.Shutdown(false)
 
-	infoArr, err := runtime.Info()
+	infoArr, err := localRuntime.Runtime.Info()
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}
 
-	if c.Bool("debug") {
+	// TODO This is no a problem child because we don't know if we should add information
+	// TODO about the client or the backend.  Only do for traditional podman for now.
+	if !localRuntime.Remote && c.Bool("debug") {
 		debugInfo := debugInfo(c)
 		infoArr = append(infoArr, libpod.InfoData{Type: "debug", Data: debugInfo})
 	}

@@ -102,6 +102,5 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	podmanInfo.Podman = pmaninfo
 	podmanInfo.Registries = registries
 	podmanInfo.Insecure_registries = insecureRegistries
-
 	return call.ReplyGetInfo(podmanInfo)
 }
