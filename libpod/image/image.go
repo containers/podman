@@ -460,7 +460,7 @@ func normalizeTag(tag string) (string, error) {
 	}
 	// If the input does not have a tag, we need to add one (latest)
 	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
+		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.Tag)
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
@@ -937,7 +937,7 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if dcRepoName.registry == dcImage.registry && dcImage.registry != "" {
+		if dcRepoName.Registry == dcImage.Registry && dcImage.Registry != "" {
 			count++
 		}
 		if dcRepoName.name == dcImage.name && dcImage.name != "" {
@@ -945,7 +945,7 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
 			count++
 		}
-		if dcRepoName.tag == dcImage.tag {
+		if dcRepoName.Tag == dcImage.Tag {
 			count++
 		}
 		results[count] = append(results[count], repoName)

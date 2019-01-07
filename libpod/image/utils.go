@@ -16,7 +16,7 @@ import (
 
 // findImageInRepotags takes an imageParts struct and searches images' repotags for
 // a match on name:tag
-func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, error) {
+func findImageInRepotags(search Parts, images []*Image) (*storage.Image, error) {
 	var results []*storage.Image
 	for _, image := range images {
 		for _, name := range image.Names() {
@@ -25,12 +25,12 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 			if err != nil {
 				continue
 			}
-			if d.name == search.name && d.tag == search.tag {
+			if d.name == search.name && d.Tag == search.Tag {
 				results = append(results, image.image)
 				continue
 			}
 			// account for registry:/somedir/image
-			if strings.HasSuffix(d.name, search.name) && d.tag == search.tag {
+			if strings.HasSuffix(d.name, search.name) && d.Tag == search.Tag {
 				results = append(results, image.image)
 				continue
 			}
