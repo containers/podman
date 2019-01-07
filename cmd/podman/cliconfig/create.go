@@ -20,3 +20,7 @@ type BuildValues struct {
 	*buildahcli.NameSpaceResults
 	*buildahcli.LayerResults
 }
+
+type CpValues struct {
+	PodmanCommand
+}
