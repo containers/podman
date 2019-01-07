@@ -7,10 +7,10 @@
 
 set -eo pipefail
 
-SCRIPT_PATH="$0"
+SCRIPT_BASEDIR="$(basename $0)"
 
 badusage() {
-    echo "Incorrect usage: $(basename $SCRIPT_PATH) <command> [options]" > /dev/stderr
+    echo "Incorrect usage: $SCRIPT_BASEDIR) <command> [options]" > /dev/stderr
     echo "ERROR: $1"
     exit 121
 }
@@ -18,7 +18,7 @@ badusage() {
 COMMAND="$@"
 [[ -n "$COMMAND" ]] || badusage "No command specified"
 
-OUTPUT_TMPFILE="$(mktemp -p '' $(basename $0)_output_XXXX)"
+OUTPUT_TMPFILE="$(mktemp -p '' ${SCRIPT_BASEDIR}_output_XXXX)"
 output_on_error() {
     RET=$?
     set +e
