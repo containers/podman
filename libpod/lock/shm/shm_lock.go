@@ -48,7 +48,7 @@ func CreateSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 	lockStruct := C.setup_lock_shm(cPath, C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
-		return nil, syscall.Errno(-1 * errCode)
+		return nil, errors.Wrapf(syscall.Errno(-1*errCode), "failed to create %d locks in %s", numLocks, path)
 	}
 
 	locks.lockStruct = lockStruct
@@ -77,7 +77,7 @@ func OpenSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 	lockStruct := C.open_lock_shm(cPath, C.uint32_t(numLocks), &errCode)
 	if lockStruct == nil {
 		// We got a null pointer, so something errored
-		return nil, syscall.Errno(-1 * errCode)
+		return nil, errors.Wrapf(syscall.Errno(-1*errCode), "failed to open %d locks in %s", numLocks, path)
 	}
 
 	locks.lockStruct = lockStruct

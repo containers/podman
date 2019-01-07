@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -695,7 +696,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 	var manager lock.Manager
 	lockPath := DefaultSHMLockPath
 	if rootless.IsRootless() {
-		lockPath = DefaultRootlessSHMLockPath
+		lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
 	}
 	if doRefresh {
 		// If SHM locks already exist, delete them and reinitialize
@@ -705,12 +706,12 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 		if err != nil {
-			return errors.Wrapf(err, "error creating SHM locks for libpod")
+			return err
 		}
 	} else {
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
 		if err != nil {
-			return errors.Wrapf(err, "error opening libpod SHM locks")
+			return err
 		}
 	}
 	runtime.lockManager = manager
