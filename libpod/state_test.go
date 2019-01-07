@@ -156,7 +156,7 @@ func TestGetContainerPodSameIDFails(t *testing.T) {
 
 func TestAddInvalidContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
-		err := state.AddContainer(&Container{config: &Config{ID: "1234"}})
+		err := state.AddContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
@@ -756,7 +756,7 @@ func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
 
 func TestUpdateInvalidContainerReturnsError(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
-		err := state.UpdateContainer(&Container{config: &Config{ID: "1234"}})
+		err := state.UpdateContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
@@ -780,7 +780,7 @@ func TestUpdateContainerNotInNamespaceReturnsError(t *testing.T) {
 
 func TestSaveInvalidContainerReturnsError(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
-		err := state.SaveContainer(&Container{config: &Config{ID: "1234"}})
+		err := state.SaveContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
@@ -2604,7 +2604,7 @@ func TestAddContainerToPodInvalidCtr(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		err = state.AddContainerToPod(testPod, &Container{config: &Config{ID: "1234"}})
+		err = state.AddContainerToPod(testPod, &Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 
 		ctrs, err := state.PodContainersByID(testPod)

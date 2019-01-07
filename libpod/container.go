@@ -113,7 +113,7 @@ func (ns LinuxNS) String() string {
 // syncContainer() immediately after locking.
 // ffjson: skip
 type Container struct {
-	config *Config
+	config *ContainerConfig
 
 	state *containerState
 
@@ -200,11 +200,11 @@ type ExecSession struct {
 	PID     int      `json:"pid"`
 }
 
-// Config contains all information that was used to create the
+// ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
 // easyjson:json
-type Config struct {
+type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
@@ -385,8 +385,8 @@ func (t ContainerStatus) String() string {
 // Unlocked
 
 // Config returns the configuration used to create the container
-func (c *Container) Config() *Config {
-	returnConfig := new(Config)
+func (c *Container) Config() *ContainerConfig {
+	returnConfig := new(ContainerConfig)
 	deepcopier.Copy(c.config).To(returnConfig)
 
 	return returnConfig
