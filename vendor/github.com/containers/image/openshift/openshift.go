@@ -211,6 +211,11 @@ func (s *openshiftImageSource) GetManifest(ctx context.Context, instanceDigest *
 	return s.docker.GetManifest(ctx, instanceDigest)
 }
 
+// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
+func (s *openshiftImageSource) HasThreadSafeGetBlob() bool {
+	return false
+}
+
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
@@ -376,6 +381,11 @@ func (d *openshiftImageDestination) MustMatchRuntimeOS() bool {
 // Does not make a difference if Reference().DockerReference() is nil.
 func (d *openshiftImageDestination) IgnoresEmbeddedDockerReference() bool {
 	return d.docker.IgnoresEmbeddedDockerReference()
+}
+
+// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
+func (d *openshiftImageDestination) HasThreadSafePutBlob() bool {
+	return false
 }
 
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).

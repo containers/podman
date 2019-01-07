@@ -1307,7 +1307,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (strin
 
 	var imageRef reference.Canonical
 	imageID := ""
-	if !b.layers && !b.noCache {
+
+	// Check if we have a one line Dockerfile making layers irrelevant
+	// or the user told us to ignore layers.
+	ignoreLayers := (len(stages) < 2 && len(stages[0].Node.Children) < 2) || (!b.layers && !b.noCache)
+
+	if ignoreLayers {
 		imgID, ref, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
 		if err != nil {
 			return "", nil, err

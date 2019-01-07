@@ -77,6 +77,11 @@ func (d *ociArchiveImageDestination) IgnoresEmbeddedDockerReference() bool {
 	return d.unpackedDest.IgnoresEmbeddedDockerReference()
 }
 
+// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
+func (d *ociArchiveImageDestination) HasThreadSafePutBlob() bool {
+	return false
+}
+
 // PutBlob writes contents of stream and returns data representing the result.
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.

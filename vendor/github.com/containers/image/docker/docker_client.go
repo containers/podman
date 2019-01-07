@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/containers/image/docker/reference"
@@ -84,6 +85,7 @@ type dockerClient struct {
 	registry              string
 	client                *http.Client
 	insecureSkipTLSVerify bool
+
 	// The following members are not set by newDockerClient and must be set by callers if needed.
 	username      string
 	password      string
@@ -95,8 +97,13 @@ type dockerClient struct {
 	scheme             string // Empty value also used to indicate detectProperties() has not yet succeeded.
 	challenges         []challenge
 	supportsSignatures bool
-	// Private state for setupRequestAuth
-	tokenCache map[string]bearerToken
+
+	// Private state for setupRequestAuth (key: string, value: bearerToken)
+	tokenCache sync.Map
+	// detectPropertiesError caches the initial error.
+	detectPropertiesError error
+	// detectPropertiesOnce is used to execuute detectProperties() at most once in in makeRequest().
+	detectPropertiesOnce sync.Once
 }
 
 type authScope struct {
@@ -262,7 +269,6 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 		registry:              registry,
 		client:                &http.Client{Transport: tr},
 		insecureSkipTLSVerify: skipVerify,
-		tokenCache:            map[string]bearerToken{},
 	}, nil
 }
 
@@ -473,14 +479,18 @@ func (c *dockerClient) setupRequestAuth(req *http.Request) error {
 				cacheKey = fmt.Sprintf("%s:%s", c.extraScope.remoteName, c.extraScope.actions)
 				scopes = append(scopes, *c.extraScope)
 			}
-			token, ok := c.tokenCache[cacheKey]
-			if !ok || time.Now().After(token.expirationTime) {
+			var token bearerToken
+			t, inCache := c.tokenCache.Load(cacheKey)
+			if inCache {
+				token = t.(bearerToken)
+			}
+			if !inCache || time.Now().After(token.expirationTime) {
 				t, err := c.getBearerToken(req.Context(), challenge, scopes)
 				if err != nil {
 					return err
 				}
 				token = *t
-				c.tokenCache[cacheKey] = token
+				c.tokenCache.Store(cacheKey, token)
 			}
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token.Token))
 			return nil
@@ -545,9 +555,9 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge, 
 	return newBearerTokenFromJSONBlob(tokenBlob)
 }
 
-// detectProperties detects various properties of the registry.
-// See the dockerClient documentation for members which are affected by this.
-func (c *dockerClient) detectProperties(ctx context.Context) error {
+// detectPropertiesHelper performs the work of detectProperties which executes
+// it at most once.
+func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	if c.scheme != "" {
 		return nil
 	}
@@ -602,6 +612,13 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 		}
 	}
 	return err
+}
+
+// detectProperties detects various properties of the registry.
+// See the dockerClient documentation for members which are affected by this.
+func (c *dockerClient) detectProperties(ctx context.Context) error {
+	c.detectPropertiesOnce.Do(func() { c.detectPropertiesError = c.detectPropertiesHelper(ctx) })
+	return c.detectPropertiesError
 }
 
 // getExtensionsSignatures returns signatures from the X-Registry-Supports-Signatures API extension,

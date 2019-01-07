@@ -148,6 +148,10 @@ var (
 			Name:  "loglevel",
 			Usage: "adjust logging level (range from -2 to 3)",
 		},
+		cli.StringFlag{
+			Name:  "platform",
+			Usage: "CLI compatibility: no action or effect",
+		},
 		cli.BoolTFlag{
 			Name:  "pull",
 			Usage: "pull the image if not present",

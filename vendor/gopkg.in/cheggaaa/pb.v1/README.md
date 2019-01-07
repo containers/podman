@@ -1,7 +1,8 @@
 # Terminal progress bar for Go  
 
-Simple progress bar for console programs. 
-    
+Simple progress bar for console programs.    
+   
+Please check the new version https://github.com/cheggaaa/pb/tree/v2 (currently, it's beta)
 
 ## Installation
 
@@ -170,7 +171,7 @@ The result will be as follows:
 
 ```
 $ go run example/multiple.go 
-First 141 / 1000 [===============>---------------------------------------] 14.10 % 44s
-Second 139 / 1000 [==============>---------------------------------------] 13.90 % 44s
-Third 152 / 1000 [================>--------------------------------------] 15.20 % 40s
+First  34 / 200 [=========>---------------------------------------------]  17.00% 00m08s
+Second  42 / 200 [===========>------------------------------------------]  21.00% 00m06s
+Third  36 / 200 [=========>---------------------------------------------]  18.00% 00m08s
 ```

@@ -26,6 +26,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/containers/storage/pkg/stringid"
 	units "github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -944,10 +945,25 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions)
 			g.SetHostname(options.Hostname)
 		} else if b.Hostname() != "" {
 			g.SetHostname(b.Hostname())
+		} else {
+			g.SetHostname(stringid.TruncateID(b.ContainerID))
 		}
 	} else {
 		g.SetHostname("")
 	}
+
+	found := false
+	spec := g.Spec()
+	for i := range spec.Process.Env {
+		if strings.HasPrefix(spec.Process.Env[i], "HOSTNAME=") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("HOSTNAME=%s", spec.Hostname))
+	}
+
 	return configureNetwork, configureNetworks, nil
 }
 

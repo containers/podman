@@ -3,10 +3,10 @@ package compression
 import (
 	"bytes"
 	"compress/bzip2"
-	"compress/gzip"
 	"io"
 	"io/ioutil"
 
+	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
@@ -18,7 +18,7 @@ type DecompressorFunc func(io.Reader) (io.ReadCloser, error)
 
 // GzipDecompressor is a DecompressorFunc for the gzip compression algorithm.
 func GzipDecompressor(r io.Reader) (io.ReadCloser, error) {
-	return gzip.NewReader(r)
+	return pgzip.NewReader(r)
 }
 
 // Bzip2Decompressor is a DecompressorFunc for the bzip2 compression algorithm.

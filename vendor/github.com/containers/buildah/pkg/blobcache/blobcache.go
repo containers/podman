@@ -218,6 +218,10 @@ func (s *blobCacheSource) GetManifest(ctx context.Context, instanceDigest *diges
 	return s.source.GetManifest(ctx, instanceDigest)
 }
 
+func (s *blobCacheSource) HasThreadSafeGetBlob() bool {
+	return false
+}
+
 func (s *blobCacheSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	present, size, err := s.reference.HasBlob(blobinfo)
 	if err != nil {
@@ -396,6 +400,10 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 			logrus.Debugf("error cleaning up temporary file %q for decompressed copy of blob %q: %v", tempFile.Name(), compressedDigest.String(), err3)
 		}
 	}
+}
+
+func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
+	return false
 }
 
 func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {

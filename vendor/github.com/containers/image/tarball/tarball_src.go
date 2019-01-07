@@ -2,7 +2,6 @@ package tarball
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/image/types"
-
+	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	imgspecs "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -77,7 +76,7 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 
 		// Set up to digest the file after we maybe decompress it.
 		diffIDdigester := digest.Canonical.Digester()
-		uncompressed, err := gzip.NewReader(reader)
+		uncompressed, err := pgzip.NewReader(reader)
 		if err == nil {
 			// It is compressed, so the diffID is the digest of the uncompressed version
 			reader = io.TeeReader(uncompressed, diffIDdigester.Hash())
@@ -205,6 +204,11 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 
 func (is *tarballImageSource) Close() error {
 	return nil
+}
+
+// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
+func (is *tarballImageSource) HasThreadSafeGetBlob() bool {
+	return false
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).

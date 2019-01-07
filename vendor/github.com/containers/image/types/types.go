@@ -198,6 +198,8 @@ type ImageSource interface {
 	// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 	GetBlob(context.Context, BlobInfo, BlobInfoCache) (io.ReadCloser, int64, error)
+	// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
+	HasThreadSafeGetBlob() bool
 	// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
 	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
 	// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
@@ -264,6 +266,8 @@ type ImageDestination interface {
 	// to any other readers for download using the supplied digest.
 	// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 	PutBlob(ctx context.Context, stream io.Reader, inputInfo BlobInfo, cache BlobInfoCache, isConfig bool) (BlobInfo, error)
+	// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
+	HasThreadSafePutBlob() bool
 	// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 	// info.Digest must not be empty.
