@@ -262,7 +262,7 @@ func (c *Container) Kill(signal uint) error {
 // Exec starts a new process inside the container
 // TODO allow specifying streams to attach to
 // TODO investigate allowing exec without attaching
-func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) error {
+func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string) error {
 	var capList []string
 
 	locked := false
@@ -324,7 +324,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user string) e
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 
-	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, hostUser, sessionID)
+	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID)
 	if err != nil {
 		return errors.Wrapf(err, "error exec %s", c.ID())
 	}

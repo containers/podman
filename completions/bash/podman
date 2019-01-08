@@ -1111,6 +1111,8 @@ _podman_exec() {
     --env
     --user
     -u
+    --workdir
+    -w
      "
     local boolean_options="
 	--help

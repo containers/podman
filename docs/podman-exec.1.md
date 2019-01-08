@@ -38,6 +38,14 @@ Sets the username or UID used and optionally the groupname or GID for the specif
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
 
+**--workdir**, **-w**=""
+
+Working directory inside the container
+
+The default working directory for running binaries within a container is the root directory (/).
+The image developer can set a different default with the WORKDIR instruction, which can be overridden
+when creating the container.
+
 ## SEE ALSO
 podman(1), podman-run(1)
 
