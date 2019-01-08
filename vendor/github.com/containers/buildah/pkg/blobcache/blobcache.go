@@ -52,14 +52,18 @@ type BlobCache interface {
 
 type blobCacheReference struct {
 	reference types.ImageReference
+	// WARNING: The contents of this directory may be accessed concurrently,
+	// both within this process and by multiple different processes
 	directory string
 	compress  types.LayerCompression
 }
 
 type blobCacheSource struct {
-	reference   *blobCacheReference
-	source      types.ImageSource
-	sys         types.SystemContext
+	reference *blobCacheReference
+	source    types.ImageSource
+	sys       types.SystemContext
+	// this mutex synchronizes the counters below
+	mu          sync.Mutex
 	cacheHits   int64
 	cacheMisses int64
 	cacheErrors int64
@@ -219,7 +223,7 @@ func (s *blobCacheSource) GetManifest(ctx context.Context, instanceDigest *diges
 }
 
 func (s *blobCacheSource) HasThreadSafeGetBlob() bool {
-	return false
+	return s.source.HasThreadSafeGetBlob()
 }
 
 func (s *blobCacheSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
@@ -232,16 +236,22 @@ func (s *blobCacheSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo, 
 			filename := filepath.Join(s.reference.directory, makeFilename(blobinfo.Digest, isConfig))
 			f, err := os.Open(filename)
 			if err == nil {
+				s.mu.Lock()
 				s.cacheHits++
+				s.mu.Unlock()
 				return f, size, nil
 			}
 			if !os.IsNotExist(err) {
+				s.mu.Lock()
 				s.cacheErrors++
+				s.mu.Unlock()
 				return nil, -1, errors.Wrapf(err, "error checking for cache file %q", filepath.Join(s.reference.directory, filename))
 			}
 		}
 	}
+	s.mu.Lock()
 	s.cacheMisses++
+	s.mu.Unlock()
 	rc, size, err := s.source.GetBlob(ctx, blobinfo, cache)
 	if err != nil {
 		return rc, size, errors.Wrapf(err, "error reading blob from source image %q", transports.ImageName(s.reference))
@@ -403,7 +413,7 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 }
 
 func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
-	return false
+	return s.destination.HasThreadSafePutBlob()
 }
 
 func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {

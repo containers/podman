@@ -517,6 +517,7 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 		Hostname:   config.Hostname,
 		Runtime:    b.runtime,
 		Args:       b.runtimeArgs,
+		NoPivot:    os.Getenv("BUILDAH_NOPIVOT") != "",
 		Mounts:     convertMounts(b.transientMounts),
 		Env:        config.Env,
 		User:       config.User,
