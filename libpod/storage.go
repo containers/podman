@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	istorage "github.com/containers/image/storage"
