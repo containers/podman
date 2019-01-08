@@ -17,7 +17,7 @@ import (
 
 func getTestContainer(id, name string, manager lock.Manager) (*Container, error) {
 	ctr := &Container{
-		config: &Config{
+		config: &ContainerConfig{
 			ID:              id,
 			Name:            name,
 			RootfsImageID:   id,
@@ -165,8 +165,8 @@ func testContainersEqual(t *testing.T, a, b *Container, allowedEmpty bool) {
 	require.NotNil(t, a.state)
 	require.NotNil(t, b.state)
 
-	aConfig := new(Config)
-	bConfig := new(Config)
+	aConfig := new(ContainerConfig)
+	bConfig := new(ContainerConfig)
 	aState := new(containerState)
 	bState := new(containerState)
 

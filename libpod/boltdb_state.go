@@ -322,7 +322,7 @@ func (s *BoltState) Container(id string) (*Container, error) {
 	ctrID := []byte(id)
 
 	ctr := new(Container)
-	ctr.config = new(Config)
+	ctr.config = new(ContainerConfig)
 	ctr.state = new(containerState)
 
 	db, err := s.getDBCon()
@@ -358,7 +358,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 	}
 
 	ctr := new(Container)
-	ctr.config = new(Config)
+	ctr.config = new(ContainerConfig)
 	ctr.state = new(containerState)
 
 	db, err := s.getDBCon()
@@ -751,7 +751,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			}
 
 			ctr := new(Container)
-			ctr.config = new(Config)
+			ctr.config = new(ContainerConfig)
 			ctr.state = new(containerState)
 
 			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
@@ -1137,7 +1137,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		// Iterate through all containers in the pod
 		err = podCtrs.ForEach(func(id, val []byte) error {
 			newCtr := new(Container)
-			newCtr.config = new(Config)
+			newCtr.config = new(ContainerConfig)
 			newCtr.state = new(containerState)
 			ctrs = append(ctrs, newCtr)
 
