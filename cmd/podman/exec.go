@@ -34,6 +34,7 @@ var (
 			Usage: "Sets the username or UID used and optionally the groupname or GID for the specified command",
 		},
 		LatestFlag,
+		WorkDirFlag,
 	}
 	execDescription = `
 	podman exec
@@ -108,5 +109,5 @@ func execCmd(c *cli.Context) error {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"))
+	return ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"), c.String("workdir"))
 }

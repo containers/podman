@@ -28,6 +28,10 @@ var (
 		Name:  "latest, l",
 		Usage: "act on the latest pod podman is aware of",
 	}
+	WorkDirFlag = cli.StringFlag{
+		Name:  "workdir, w",
+		Usage: "Working directory inside the container",
+	}
 )
 
 const (
@@ -522,10 +526,7 @@ var createFlags = []cli.Flag{
 		Name:  "volumes-from",
 		Usage: "Mount volumes from the specified container(s) (default [])",
 	},
-	cli.StringFlag{
-		Name:  "workdir, w",
-		Usage: "Working `directory inside the container",
-	},
+	WorkDirFlag,
 }
 
 func getFormat(c *cli.Context) (string, error) {

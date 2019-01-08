@@ -728,7 +728,7 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, user, sessionID string) (*exec.Cmd, error) {
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string) (*exec.Cmd, error) {
 	if len(cmd) == 0 {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
 	}
@@ -749,7 +749,9 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	args = append(args, "exec")
 
-	args = append(args, "--cwd", c.config.Spec.Process.Cwd)
+	if cwd != "" {
+		args = append(args, "--cwd", cwd)
+	}
 
 	args = append(args, "--pid-file", c.execPidPath(sessionID))
 
