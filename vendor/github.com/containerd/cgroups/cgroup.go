@@ -48,11 +48,12 @@ func New(hierarchy Hierarchy, path Path, resources *specs.LinuxResources) (Cgrou
 
 // Load will load an existing cgroup and allow it to be controlled
 func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
+	var activeSubsystems []Subsystem
 	subsystems, err := hierarchy()
 	if err != nil {
 		return nil, err
 	}
-	// check the the subsystems still exist
+	// check that the subsystems still exist, and keep only those that actually exist
 	for _, s := range pathers(subsystems) {
 		p, err := path(s.Name())
 		if err != nil {
@@ -63,14 +64,15 @@ func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
 		}
 		if _, err := os.Lstat(s.Path(p)); err != nil {
 			if os.IsNotExist(err) {
-				return nil, ErrCgroupDeleted
+				continue
 			}
 			return nil, err
 		}
+		activeSubsystems = append(activeSubsystems, s)
 	}
 	return &cgroup{
 		path:       path,
-		subsystems: subsystems,
+		subsystems: activeSubsystems,
 	}, nil
 }
 
@@ -317,6 +319,49 @@ func (c *cgroup) processes(subsystem Name, recursive bool) ([]Process, error) {
 		return nil
 	})
 	return processes, err
+}
+
+// Tasks returns the tasks running inside the cgroup along
+// with the subsystem used, pid, and path
+func (c *cgroup) Tasks(subsystem Name, recursive bool) ([]Task, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return nil, c.err
+	}
+	return c.tasks(subsystem, recursive)
+}
+
+func (c *cgroup) tasks(subsystem Name, recursive bool) ([]Task, error) {
+	s := c.getSubsystem(subsystem)
+	sp, err := c.path(subsystem)
+	if err != nil {
+		return nil, err
+	}
+	path := s.(pather).Path(sp)
+	var tasks []Task
+	err = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !recursive && info.IsDir() {
+			if p == path {
+				return nil
+			}
+			return filepath.SkipDir
+		}
+		dir, name := filepath.Split(p)
+		if name != cgroupTasks {
+			return nil
+		}
+		procs, err := readTasksPids(dir, subsystem)
+		if err != nil {
+			return err
+		}
+		tasks = append(tasks, procs...)
+		return nil
+	})
+	return tasks, err
 }
 
 // Freeze freezes the entire cgroup and all the processes inside it

@@ -7,7 +7,7 @@ package bidi
 import "log"
 
 // This implementation is a port based on the reference implementation found at:
-// http://www.unicode.org/Public/PROGRAMS/BidiReferenceJava/
+// https://www.unicode.org/Public/PROGRAMS/BidiReferenceJava/
 //
 // described in Unicode Bidirectional Algorithm (UAX #9).
 //
@@ -726,7 +726,7 @@ loop:
 				continue loop
 			}
 		}
-		log.Panicf("invalid bidi code %s present in assertOnly at position %d", t, s.indexes[i])
+		log.Panicf("invalid bidi code %v present in assertOnly at position %d", t, s.indexes[i])
 	}
 }
 

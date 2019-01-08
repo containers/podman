@@ -34,7 +34,7 @@ const (
 
 var (
 	canDelegate bool
-	once sync.Once
+	once        sync.Once
 )
 
 func Systemd() ([]Subsystem, error) {

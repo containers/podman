@@ -87,7 +87,7 @@ func (ce Elem) ctype() ceType {
 //   - t* is the tertiary collation value
 // 100ttttt cccccccc pppppppp pppppppp
 //   - t* is the tertiar collation value
-//   - c* is the cannonical combining class
+//   - c* is the canonical combining class
 //   - p* is the primary collation value
 // Collation elements with a secondary value are of the form
 // 1010cccc ccccssss ssssssss tttttttt, where
@@ -327,13 +327,13 @@ func splitExpandIndex(ce Elem) (index int) {
 //   - v* is the replacement tertiary weight for the first rune,
 //   - w* is the replacement tertiary weight for the second rune,
 // Tertiary weights of subsequent runes should be replaced with maxTertiary.
-// See http://www.unicode.org/reports/tr10/#Compatibility_Decompositions for more details.
+// See https://www.unicode.org/reports/tr10/#Compatibility_Decompositions for more details.
 func splitDecompose(ce Elem) (t1, t2 uint8) {
 	return uint8(ce), uint8(ce >> 8)
 }
 
 const (
-	// These constants were taken from http://www.unicode.org/versions/Unicode6.0.0/ch12.pdf.
+	// These constants were taken from https://www.unicode.org/versions/Unicode6.0.0/ch12.pdf.
 	minUnified       rune = 0x4E00
 	maxUnified            = 0x9FFF
 	minCompatibility      = 0xF900
@@ -352,7 +352,7 @@ const (
 // implicitPrimary returns the primary weight for the a rune
 // for which there is no entry for the rune in the collation table.
 // We take a different approach from the one specified in
-// http://unicode.org/reports/tr10/#Implicit_Weights,
+// https://unicode.org/reports/tr10/#Implicit_Weights,
 // but preserve the resulting relative ordering of the runes.
 func implicitPrimary(r rune) int {
 	if unicode.Is(unicode.Ideographic, r) {

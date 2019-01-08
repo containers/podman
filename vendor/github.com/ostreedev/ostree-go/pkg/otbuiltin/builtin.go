@@ -112,8 +112,8 @@ func generateError(err *C.GError) error {
 	return goErr
 }
 
-// isOk wraps a return value (gboolean/gint) into a bool.
+// isOk wraps a gboolean return value into a bool.
 // 0 is false/error, everything else is true/ok.
-func isOk(v C.int) bool {
+func isOk(v C.gboolean) bool {
 	return glib.GoBool(glib.GBoolean(v))
 }
