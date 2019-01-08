@@ -290,4 +290,40 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
+	It("podman checkpoint and restore container with same IP", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "test_name", "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		IPBefore := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.IPAddress}}"})
+		IPBefore.WaitWithDefaultTimeout()
+		Expect(IPBefore.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
+
+		result = podmanTest.Podman([]string{"container", "restore", "test_name"})
+		result.WaitWithDefaultTimeout()
+
+		IPAfter := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.IPAddress}}"})
+		IPAfter.WaitWithDefaultTimeout()
+		Expect(IPAfter.ExitCode()).To(Equal(0))
+
+		// Check that IP address did not change between checkpointing and restoring
+		Expect(IPBefore.OutputToString()).To(Equal(IPAfter.OutputToString()))
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
 })
