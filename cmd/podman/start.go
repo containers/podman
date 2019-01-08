@@ -27,9 +27,9 @@ var (
 			Name:  "interactive, i",
 			Usage: "Keep STDIN open even if not attached",
 		},
-		cli.BoolFlag{
+		cli.BoolTFlag{
 			Name:  "sig-proxy",
-			Usage: "proxy received signals to the process",
+			Usage: "proxy received signals to the process (default true if attaching, false otherwise)",
 		},
 		LatestFlag,
 	}
@@ -67,8 +67,14 @@ func startCmd(c *cli.Context) error {
 		return err
 	}
 
-	if c.Bool("sig-proxy") && !attach {
-		return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
+	sigProxy := c.BoolT("sig-proxy")
+
+	if sigProxy && !attach {
+		if c.IsSet("sig-proxy") {
+			return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
+		} else {
+			sigProxy = false
+		}
 	}
 
 	runtime, err := libpodruntime.GetRuntime(c)
@@ -111,7 +117,7 @@ func startCmd(c *cli.Context) error {
 			}
 
 			// attach to the container and also start it not already running
-			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), !ctrRunning)
+			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.String("detach-keys"), sigProxy, !ctrRunning)
 			if ctrRunning {
 				return err
 			}
