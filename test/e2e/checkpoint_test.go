@@ -199,14 +199,17 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with established tcp connections", func() {
-		Skip("Seems to not work (yet) in CI")
 		podmanTest.RestoreArtifact(redis)
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--network", "host", "-d", redis})
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", redis})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		IP := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.IPAddress}}"})
+		IP.WaitWithDefaultTimeout()
+		Expect(IP.ExitCode()).To(Equal(0))
+
 		// Open a network connection to the redis server
-		conn, err := net.Dial("tcp", "127.0.0.1:6379")
+		conn, err := net.Dial("tcp", IP.OutputToString()+":6379")
 		if err != nil {
 			os.Exit(1)
 		}
