@@ -35,7 +35,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 **--sig-proxy**=*true*|*false*
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is false.
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
 
 ## EXAMPLE
 

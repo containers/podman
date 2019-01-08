@@ -115,4 +115,14 @@ var _ = Describe("Podman start", func() {
 		numContainers := podmanTest.NumberOfContainers()
 		Expect(numContainers).To(Equal(1))
 	})
+
+	It("podman start --sig-proxy should not work without --attach", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"start", "-l", "--sig-proxy"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
 })
