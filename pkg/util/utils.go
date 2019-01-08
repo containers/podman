@@ -316,6 +316,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 
 		storageConf := StorageConfigFile()
 		if _, err := os.Stat(storageConf); err == nil {
+			storageOpts = storage.StoreOptions{}
 			storage.ReloadConfigurationFile(storageConf, &storageOpts)
 		} else if os.IsNotExist(err) {
 			os.MkdirAll(filepath.Dir(storageConf), 0755)
