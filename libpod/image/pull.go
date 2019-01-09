@@ -283,16 +283,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		destRef, err := is.Transport.ParseStoreReference(ir.store, inputName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", inputName)
-		}
-		ps := pullRefPair{
-			image:  inputName,
-			srcRef: srcRef,
-			dstRef: destRef,
-		}
-		return singlePullRefPairGoal(ps), nil
+		return ir.getSinglePullRefPairGoal(srcRef, inputName)
 	}
 
 	searchRegistries, err := registries.GetRegistries()
@@ -310,13 +301,9 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", imageName)
 		}
-		ps := pullRefPair{
-			image:  imageName,
-			srcRef: srcRef,
-		}
-		ps.dstRef, err = is.Transport.ParseStoreReference(ir.store, ps.image)
+		ps, err := ir.getPullRefPair(srcRef, imageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", ps.image)
+			return nil, err
 		}
 		refPairs = append(refPairs, ps)
 	}
