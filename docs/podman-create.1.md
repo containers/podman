@@ -29,7 +29,7 @@ option can be set multiple times.
 Add an annotation to the container. The format is key=value.
 The **--annotation** option can be set multiple times.
 
-**-a**, **--attach**=[]
+**--attach**, **-a**=[]
 
 Attach to STDIN, STDOUT or STDERR.
 
@@ -158,7 +158,7 @@ If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
 two memory nodes.
 
-**-d**, **--detach**=*true*|*false*
+**--detach**, **-d**=*true*|*false*
 
 Detached mode: run the container in the background and print the new container ID. The default is *false*.
 
@@ -230,7 +230,7 @@ ENTRYPOINT.
 
 You need to specify multi option commands in the form of a json string.
 
-**-e**, **--env**=[]
+**--env**, **-e**=[]
 
 Set environment variables
 
@@ -284,7 +284,7 @@ Run an init inside the container that forwards signals and reaps processes.
 
 Path to the container-init binary.
 
-**-i**, **--interactive**=*true*|*false*
+**--interactive**, **-i**=*true*|*false*
 
 Keep STDIN open even if not attached. The default is *false*.
 
@@ -315,7 +315,7 @@ is not limited. If you specify a limit, it may be rounded up to a multiple
 of the operating system's page size and the value can be very large,
 millions of trillions.
 
-**-l**, **--label**=[]
+**--label**, **-l**=[]
 
 Add metadata to a container (e.g., --label com.example.key=value)
 
@@ -347,7 +347,7 @@ according to RFC4862.
 
 Not currently supported
 
-**-m**, **--memory**=""
+**--memory**, **-m**=""
 
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
 
@@ -426,7 +426,7 @@ to the container with **--name** then it will generate a random
 string name. The name is useful any place you need to identify a container.
 This works for both background and foreground containers.
 
-**--net**, **--network**="*bridge*"
+**--network**, **--net**="*bridge*"
 
 Set the Network mode for the container
                 'bridge': create a network stack on the default bridge
@@ -480,7 +480,7 @@ to all devices on the host, turns off graphdriver mount options, as well as
 turning off most of the security measures protecting the host from the
 container.
 
-**-p**, **--publish**=[]
+**--publish**, **-p**=[]
 
 Publish a container's port, or range of ports, to the host
 
@@ -492,7 +492,7 @@ but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanR
 With ip: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
 Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
-**-P**, **--publish-all**=*true*|*false*
+**--publish-all**, **-P**=*true*|*false*
 
 Publish all exposed ports to random ports on the host interfaces. The default is *false*.
 
@@ -621,7 +621,7 @@ options are the same as the Linux default `mount` flags. If you do not specify
 any options, the systems uses the following options:
 `rw,noexec,nosuid,nodev,size=65536k`.
 
-**-t**, **--tty**=*true*|*false*
+**--tty**, **-t**=*true*|*false*
 
 Allocate a pseudo-TTY. The default is *false*.
 
@@ -642,7 +642,7 @@ The following example maps uids 0-2000 in the container to the uids 30000-31999 
 
 Ulimit options
 
-**-u**, **--user**=""
+**--user**, **-u**=""
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 
@@ -665,7 +665,7 @@ Set the UTS mode for the container
     **ns**: specify the usernamespace to use.
     Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
-**-v**|**--volume**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
+**--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman
@@ -764,7 +764,7 @@ If the location of the volume from the source container overlaps with
 data residing on a target container, then the volume hides
 that data on the target.
 
-**-w**, **--workdir**=""
+**--workdir**, **-w**=""
 
 Working directory inside the container
 
