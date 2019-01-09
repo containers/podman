@@ -288,7 +288,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
 		} else {
-			imageName = decomposedImage.assembleWithTransport()
+			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, decomposedImage.assemble())
 		}
 		srcRef, err := alltransports.ParseImageName(imageName)
 		if err != nil {
@@ -318,7 +318,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
 		decomposedImage.registry = registry
-		imageName := decomposedImage.assembleWithTransport()
+		imageName := fmt.Sprintf("%s%s", decomposedImage.transport, decomposedImage.assemble())
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
 		}

@@ -87,8 +87,3 @@ func (ip *imageParts) assemble() string {
 	}
 	return spec
 }
-
-// assemble concatenates an image's parts with transport into a string
-func (ip *imageParts) assembleWithTransport() string {
-	return fmt.Sprintf("%s%s", ip.transport, ip.assemble())
-}
