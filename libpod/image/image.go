@@ -460,7 +460,11 @@ func normalizeTag(tag string) (string, error) {
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
-		tag = fmt.Sprintf("%s/%s", DefaultLocalRegistry, tag)
+		ref, err := decomposedTag.referenceWithRegistry(DefaultLocalRegistry)
+		if err != nil {
+			return "", err
+		}
+		tag = ref.String()
 	}
 	// If the input does not have a tag, we need to add one (latest)
 	if !decomposedTag.isTagged {
