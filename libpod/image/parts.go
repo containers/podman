@@ -1,7 +1,6 @@
 package image
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/containers/image/docker/reference"
@@ -92,14 +91,4 @@ func (ip *imageParts) referenceWithRegistry(registry string) (reference.Named, e
 		return nil, errors.Wrapf(err, "error normalizing registry+unqualified reference %#v", qualified)
 	}
 	return ref, nil
-}
-
-// assemble concatenates an image's parts into a string
-func (ip *imageParts) assemble() string {
-	spec := fmt.Sprintf("%s:%s", ip.name, ip.tag)
-
-	if ip.registry != "" {
-		spec = fmt.Sprintf("%s/%s", ip.registry, spec)
-	}
-	return spec
 }
