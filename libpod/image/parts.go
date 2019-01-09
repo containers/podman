@@ -10,7 +10,6 @@ import (
 // imageParts describes the parts of an image's name
 type imageParts struct {
 	unnormalizedRef reference.Named // WARNING: Did not go through docker.io[/library] normalization
-	transport       string
 	registry        string
 	name            string
 	tag             string
@@ -74,7 +73,6 @@ func decompose(input string) (imageParts, error) {
 		name:            imageName,
 		tag:             tag,
 		isTagged:        isTagged,
-		transport:       DefaultTransport,
 	}, nil
 }
 
