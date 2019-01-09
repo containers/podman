@@ -1,3 +1,3 @@
 FROM registry.fedoraproject.org/fedora:29
 
-RUN dnf install -y rpms/noarch/* rpms/x86_64/*
+RUN dnf install -y rpms/x86_64/*

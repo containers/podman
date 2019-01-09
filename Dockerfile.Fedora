@@ -20,10 +20,6 @@ RUN dnf -y install btrfs-progs-devel \
               runc \
               make \
               ostree-devel \
-              python \
-              python3-dateutil \
-              python3-psutil \
-              python3-pytoml \
               lsof \
               which\
               golang-github-cpuguy83-go-md2man \
