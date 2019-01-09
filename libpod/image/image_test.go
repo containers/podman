@@ -257,7 +257,7 @@ func Test_stripSha256(t *testing.T) {
 	assert.Equal(t, stripSha256("sha256:a"), "a")
 }
 
-func TestNormalizeTag(t *testing.T) {
+func TestNormalizedTag(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	for _, c := range []struct{ input, expected string }{
@@ -270,12 +270,12 @@ func TestNormalizeTag(t *testing.T) {
 		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace
 		{"docker.io/busybox:latest", "docker.io/library/busybox:latest"},                                 // docker.io without /library/
 	} {
-		res, err := normalizeTag(c.input)
+		res, err := normalizedTag(c.input)
 		if c.expected == "" {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			assert.Equal(t, c.expected, res)
+			assert.Equal(t, c.expected, res.String())
 		}
 	}
 }

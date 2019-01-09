@@ -452,42 +452,42 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + digest.Hex(), nil
 }
 
-// normalizeTag returns the canonical version of tag for use in Image.Names()
-func normalizeTag(tag string) (string, error) {
+// normalizedTag returns the canonical version of tag for use in Image.Names()
+func normalizedTag(tag string) (reference.Named, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	var ref reference.Named
 	if !decomposedTag.hasRegistry {
 		ref, err = decomposedTag.referenceWithRegistry(DefaultLocalRegistry)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	} else {
 		ref, err = decomposedTag.normalizedReference()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	// If the input does not have a tag, we need to add one (latest)
 	ref = reference.TagNameOnly(ref)
-	return ref.String(), nil
+	return ref, nil
 }
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
 	i.reloadImage()
-	tag, err := normalizeTag(tag)
+	ref, err := normalizedTag(tag)
 	if err != nil {
 		return err
 	}
 	tags := i.Names()
-	if util.StringInSlice(tag, tags) {
+	if util.StringInSlice(ref.String(), tags) {
 		return nil
 	}
-	tags = append(tags, tag)
+	tags = append(tags, ref.String())
 	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
 		return err
 	}
