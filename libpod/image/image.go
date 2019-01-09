@@ -226,7 +226,6 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		i.InputName = dest.DockerReference().String()
 	}
 
-	var taggedName string
 	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
 	if err == nil {
 		return img.image, err
@@ -238,15 +237,6 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	decomposedImage, err := decompose(i.InputName)
 	if err != nil {
 		return nil, err
-	}
-
-	// the inputname isn't tagged, so we assume latest and try again
-	if !decomposedImage.isTagged {
-		taggedName = fmt.Sprintf("%s:latest", i.InputName)
-		img, err = i.imageruntime.getImage(taggedName)
-		if err == nil {
-			return img.image, nil
-		}
 	}
 
 	// The image has a registry name in it and we made sure we looked for it locally
