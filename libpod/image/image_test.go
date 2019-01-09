@@ -264,7 +264,7 @@ func TestNormalizeTag(t *testing.T) {
 		{"#", ""}, // Clearly invalid
 		{"example.com/busybox", "example.com/busybox:latest"},                                            // Qualified name-only
 		{"example.com/busybox:notlatest", "example.com/busybox:notlatest"},                               // Qualified name:tag
-		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix + ":none"},           // Qualified name@digest; FIXME: The result is not even syntactically valid!
+		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix},                     // Qualified name@digest; FIXME? Should we allow tagging with a digest at all?
 		{"example.com/busybox:notlatest" + digestSuffix, "example.com/busybox:notlatest" + digestSuffix}, // Qualified name:tag@digest
 		{"busybox:latest", "localhost/busybox:latest"},                                                   // Unqualified name-only
 		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace

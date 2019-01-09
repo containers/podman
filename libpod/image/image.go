@@ -471,12 +471,9 @@ func normalizeTag(tag string) (string, error) {
 			return "", err
 		}
 	}
-	tag = ref.String()
 	// If the input does not have a tag, we need to add one (latest)
-	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
-	}
-	return tag, nil
+	ref = reference.TagNameOnly(ref)
+	return ref.String(), nil
 }
 
 // TagImage adds a tag to the given image
