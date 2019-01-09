@@ -201,6 +201,9 @@ func parseVolumesFrom(volumesFrom []string) error {
 }
 
 func validateVolumeHostDir(hostDir string) error {
+	if len(hostDir) == 0 {
+		return errors.Errorf("host directory cannot be empty")
+	}
 	if filepath.IsAbs(hostDir) {
 		if _, err := os.Stat(hostDir); err != nil {
 			return errors.Wrapf(err, "error checking path %q", hostDir)
@@ -212,6 +215,9 @@ func validateVolumeHostDir(hostDir string) error {
 }
 
 func validateVolumeCtrDir(ctrDir string) error {
+	if len(ctrDir) == 0 {
+		return errors.Errorf("container directory cannot be empty")
+	}
 	if !filepath.IsAbs(ctrDir) {
 		return errors.Errorf("invalid container path, must be an absolute path %q", ctrDir)
 	}

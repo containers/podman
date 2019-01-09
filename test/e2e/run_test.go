@@ -596,6 +596,21 @@ USER mail`
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman run --volumes flag with empty host dir", func() {
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--volume", ":/myvol1:z", ALPINE, "touch", "/myvol2/foo.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("directory cannot be empty"))
+		session = podmanTest.Podman([]string{"run", "--volume", vol1 + ":", ALPINE, "touch", "/myvol2/foo.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(Equal(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("directory cannot be empty"))
+	})
+
 	It("podman run --mount flag with multiple mounts", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
