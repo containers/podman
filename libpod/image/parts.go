@@ -10,10 +10,6 @@ import (
 // imageParts describes the parts of an image's name
 type imageParts struct {
 	unnormalizedRef reference.Named // WARNING: Did not go through docker.io[/library] normalization
-	registry        string
-	name            string
-	tag             string
-	isTagged        bool
 	hasRegistry     bool
 }
 
@@ -37,45 +33,18 @@ func GetImageBaseName(input string) (string, error) {
 
 // decompose breaks an input name into an imageParts description
 func decompose(input string) (imageParts, error) {
-	var (
-		parts       imageParts
-		hasRegistry bool
-		tag         string
-	)
 	imgRef, err := reference.Parse(input)
 	if err != nil {
-		return parts, err
+		return imageParts{}, err
 	}
 	unnormalizedNamed := imgRef.(reference.Named)
-	ntag, isTagged := imgRef.(reference.NamedTagged)
-	if !isTagged {
-		tag = "latest"
-		if _, hasDigest := imgRef.(reference.Digested); hasDigest {
-			tag = "none"
-		}
-	} else {
-		tag = ntag.Tag()
-	}
-	registry := reference.Domain(unnormalizedNamed)
-	imageName := reference.Path(unnormalizedNamed)
 	// ip.unnormalizedRef, because it uses reference.Parse and not reference.ParseNormalizedNamed,
 	// does not use the standard heuristics for domains vs. namespaces/repos, so we need to check
 	// explicitly.
-	if isRegistry(registry) {
-		hasRegistry = true
-	} else {
-		if registry != "" {
-			imageName = registry + "/" + imageName
-			registry = ""
-		}
-	}
+	hasRegistry := isRegistry(reference.Domain(unnormalizedNamed))
 	return imageParts{
 		unnormalizedRef: unnormalizedNamed,
-		registry:        registry,
 		hasRegistry:     hasRegistry,
-		name:            imageName,
-		tag:             tag,
-		isTagged:        isTagged,
 	}, nil
 }
 

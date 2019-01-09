@@ -13,30 +13,30 @@ func TestDecompose(t *testing.T) {
 	for _, c := range []struct {
 		input                                       string
 		registry, name, suspiciousTagValueForSearch string
-		isTagged, hasRegistry                       bool
+		hasRegistry                                 bool
 	}{
-		{"#", "", "", "", false, false}, // Entirely invalid input
+		{"#", "", "", "", false}, // Entirely invalid input
 		{ // Fully qualified docker.io, name-only input
-			"docker.io/library/busybox", "docker.io", "library/busybox", "latest", false, true,
+			"docker.io/library/busybox", "docker.io", "library/busybox", "latest", true,
 		},
 		{ // Fully qualified example.com, name-only input
-			"example.com/ns/busybox", "example.com", "ns/busybox", "latest", false, true,
+			"example.com/ns/busybox", "example.com", "ns/busybox", "latest", true,
 		},
 		{ // Unqualified single-name input
-			"busybox", "", "busybox", "latest", false, false,
+			"busybox", "", "busybox", "latest", false,
 		},
 		{ // Unqualified namespaced input
-			"ns/busybox", "", "ns/busybox", "latest", false, false,
+			"ns/busybox", "", "ns/busybox", "latest", false,
 		},
 		{ // name:tag
-			"example.com/ns/busybox:notlatest", "example.com", "ns/busybox", "notlatest", true, true,
+			"example.com/ns/busybox:notlatest", "example.com", "ns/busybox", "notlatest", true,
 		},
 		{ // name@digest
 			// FIXME? .suspiciousTagValueForSearch == "none"
-			"example.com/ns/busybox" + digestSuffix, "example.com", "ns/busybox", "none", false, true,
+			"example.com/ns/busybox" + digestSuffix, "example.com", "ns/busybox", "none", true,
 		},
 		{ // name:tag@digest
-			"example.com/ns/busybox:notlatest" + digestSuffix, "example.com", "ns/busybox", "notlatest", true, true,
+			"example.com/ns/busybox:notlatest" + digestSuffix, "example.com", "ns/busybox", "notlatest", true,
 		},
 	} {
 		parts, err := decompose(c.input)
@@ -48,7 +48,6 @@ func TestDecompose(t *testing.T) {
 			assert.Equal(t, c.registry, registry, c.input)
 			assert.Equal(t, c.name, name, c.input)
 			assert.Equal(t, c.suspiciousTagValueForSearch, suspiciousTagValueForSearch, c.input)
-			assert.Equal(t, c.isTagged, parts.isTagged, c.input)
 			assert.Equal(t, c.hasRegistry, parts.hasRegistry, c.input)
 		}
 	}
