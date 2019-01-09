@@ -30,7 +30,7 @@ func GetImageBaseName(input string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	splitImageName := strings.Split(decomposedImage.name, "/")
+	splitImageName := strings.Split(decomposedImage.unnormalizedRef.Name(), "/")
 	return splitImageName[len(splitImageName)-1], nil
 }
 
