@@ -76,9 +76,7 @@ func TestGetPullRefPair(t *testing.T) {
 		},
 		{ // name, no registry, no tag:
 			"dir:/dev/this-does-not-exist", "from-directory",
-			// FIXME(?) Adding a registry also adds a :latest tag.  OTOH that actually matches the used destination.
-			// Either way it is surprising that the localhost/ addition changes this.  (mitr hoping to remove the "image" member).
-			"localhost/from-directory:latest", "localhost/from-directory:latest",
+			"localhost/from-directory", "localhost/from-directory:latest",
 		},
 		{ // registry/name:tag :
 			"dir:/dev/this-does-not-exist", "example.com/from-directory:notlatest",
@@ -90,8 +88,7 @@ func TestGetPullRefPair(t *testing.T) {
 		},
 		{ // name@digest, no registry:
 			"dir:/dev/this-does-not-exist", "from-directory" + digestSuffix,
-			// FIXME?! Why is this dropping the digest, and adding :none?!
-			"localhost/from-directory:none", "localhost/from-directory:none",
+			"localhost/from-directory" + digestSuffix, "localhost/from-directory" + digestSuffix,
 		},
 		{ // registry/name@digest:
 			"dir:/dev/this-does-not-exist", "example.com/from-directory" + digestSuffix,
@@ -211,14 +208,13 @@ func TestPullGoalFromImageReference(t *testing.T) {
 			false,
 		},
 		{ // Relative path, single element.
-			// FIXME? Note the :latest difference in .image.
 			"dir:this-does-not-exist",
-			[]expected{{"localhost/this-does-not-exist:latest", "localhost/this-does-not-exist:latest"}},
+			[]expected{{"localhost/this-does-not-exist", "localhost/this-does-not-exist:latest"}},
 			false,
 		},
 		{ // Relative path, multiple elements.
 			"dir:testdata/this-does-not-exist",
-			[]expected{{"localhost/testdata/this-does-not-exist:latest", "localhost/testdata/this-does-not-exist:latest"}},
+			[]expected{{"localhost/testdata/this-does-not-exist", "localhost/testdata/this-does-not-exist:latest"}},
 			false,
 		},
 

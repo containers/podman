@@ -76,9 +76,11 @@ func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) 
 	decomposedDest, err := decompose(destName)
 	if err == nil && !decomposedDest.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
-		decomposedDest.registry = DefaultLocalRegistry
-		decomposedDest.hasRegistry = true
-		destName = decomposedDest.assemble()
+		ref, err := decomposedDest.referenceWithRegistry(DefaultLocalRegistry)
+		if err != nil {
+			return pullRefPair{}, err
+		}
+		destName = ref.String()
 	}
 
 	reference := destName
