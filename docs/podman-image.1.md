@@ -27,7 +27,8 @@ The image command allows you to manage images
 | rm       | [podman-rm(1)](podman-rmi.1.md)           | Removes one or more locally stored images.                                     |
 | save     | [podman-save(1)](podman-save.1.md)        | Save an image to docker-archive or oci.                                        |
 | tag      | [podman-tag(1)](podman-tag.1.md)          | Add an additional name to a local image.                                       |
-| trust    | [podman-image-trust(1)](podman-image-trust.1.md)  | Manage container image trust policy.
+| trust    | [podman-image-trust(1)](podman-image-trust.1.md)  | Manage container image trust policy.                                   |
+| sign    | [podman-image-sign(1)](podman-image-sign.1.md)  | Sign an image.                                                            |
 
 ## SEE ALSO
 podman
