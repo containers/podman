@@ -93,3 +93,31 @@ func TestImagePartsReferenceWithRegistry(t *testing.T) {
 	_, err = parts.referenceWithRegistry("invalid@domain")
 	assert.Error(t, err)
 }
+
+func TestImagePartsNormalizedReference(t *testing.T) {
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct{ input, expected string }{
+		{"busybox", ""}, // Unqualified input is invalid
+		{"docker.io/busybox", "docker.io/library/busybox"},                                 // docker.io single-name
+		{"example.com/busybox", "example.com/busybox"},                                     // example.com single-name
+		{"docker.io/ns/busybox", "docker.io/ns/busybox"},                                   // docker.io namespaced
+		{"example.com/ns/busybox", "example.com/ns/busybox"},                               // example.com namespaced
+		{"example.com/ns/busybox:notlatest", "example.com/ns/busybox:notlatest"},           // name:tag
+		{"example.com/ns/busybox" + digestSuffix, "example.com/ns/busybox" + digestSuffix}, // name@digest
+		{ // name:tag@digest
+			"example.com/ns/busybox:notlatest" + digestSuffix, "example.com/ns/busybox:notlatest" + digestSuffix,
+		},
+	} {
+		parts, err := decompose(c.input)
+		require.NoError(t, err)
+		if c.expected == "" {
+			_, err := parts.normalizedReference()
+			assert.Error(t, err, c.input)
+		} else {
+			ref, err := parts.normalizedReference()
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.expected, ref.String())
+		}
+	}
+}

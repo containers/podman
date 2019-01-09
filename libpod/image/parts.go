@@ -92,3 +92,17 @@ func (ip *imageParts) referenceWithRegistry(registry string) (reference.Named, e
 	}
 	return ref, nil
 }
+
+// normalizedReference returns a (normalized) reference for ip (with ip.hasRegistry)
+func (ip *imageParts) normalizedReference() (reference.Named, error) {
+	if !ip.hasRegistry {
+		return nil, errors.Errorf("internal error: normalizedReference called on imageParts without a registry (%#v)", *ip)
+	}
+	// We need to round-trip via a string to get the right normalization of docker.io/library
+	s := ip.unnormalizedRef.String()
+	ref, err := reference.ParseNormalizedNamed(s)
+	if err != nil { // Should never happen
+		return nil, errors.Wrapf(err, "error normalizing qualified reference %#v", s)
+	}
+	return ref, nil
+}
