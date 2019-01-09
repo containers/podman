@@ -243,12 +243,14 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
 		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
-
 	}
-
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
-	img, err = i.imageruntime.getImage(fmt.Sprintf("%s/%s", DefaultLocalRegistry, i.InputName))
+	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
+	if err != nil {
+		return nil, err
+	}
+	img, err = i.imageruntime.getImage(ref.String())
 	if err == nil {
 		return img.image, err
 	}
