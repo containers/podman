@@ -41,13 +41,18 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 	for _, image := range images {
 		labels, _ := image.Labels(getContext())
 		containers, _ := image.Containers()
+		repoDigests, err := image.RepoDigests()
+		if err != nil {
+			return err
+		}
+
 		size, _ := image.Size(getContext())
 
 		i := iopodman.ImageInList{
 			Id:          image.ID(),
 			ParentId:    image.Parent,
 			RepoTags:    image.Names(),
-			RepoDigests: image.RepoDigests(),
+			RepoDigests: repoDigests,
 			Created:     image.Created().String(),
 			Size:        int64(*size),
 			VirtualSize: image.VirtualSize,
@@ -73,6 +78,10 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
 	if err != nil {
 		return err
 	}
+	repoDigests, err := newImage.RepoDigests()
+	if err != nil {
+		return err
+	}
 	size, err := newImage.Size(getContext())
 	if err != nil {
 		return err
@@ -82,7 +91,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
 		Id:          newImage.ID(),
 		ParentId:    newImage.Parent,
 		RepoTags:    newImage.Names(),
-		RepoDigests: newImage.RepoDigests(),
+		RepoDigests: repoDigests,
 		Created:     newImage.Created().String(),
 		Size:        int64(*size),
 		VirtualSize: newImage.VirtualSize,

@@ -305,12 +305,24 @@ func (i *Image) Names() []string {
 }
 
 // RepoDigests returns a string array of repodigests associated with the image
-func (i *Image) RepoDigests() []string {
+func (i *Image) RepoDigests() ([]string, error) {
 	var repoDigests []string
+	digest := i.Digest()
+
 	for _, name := range i.Names() {
-		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+		named, err := reference.ParseNormalizedNamed(name)
+		if err != nil {
+			return nil, err
+		}
+
+		canonical, err := reference.WithDigest(reference.TrimNamed(named), digest)
+		if err != nil {
+			return nil, err
+		}
+
+		repoDigests = append(repoDigests, canonical.String())
 	}
-	return repoDigests
+	return repoDigests, nil
 }
 
 // Created returns the time the image was created
