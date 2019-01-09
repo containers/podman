@@ -286,11 +286,11 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	if decomposedImage.hasRegistry {
 		var imageName, destName string
 		if hasShaInInputName(inputName) {
-			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
+			imageName = inputName
 		} else {
-			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, decomposedImage.assemble())
+			imageName = decomposedImage.assemble()
 		}
-		srcRef, err := alltransports.ParseImageName(imageName)
+		srcRef, err := alltransports.ParseImageName(fmt.Sprintf("%s%s", decomposedImage.transport, imageName))
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
@@ -318,11 +318,11 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
 		decomposedImage.registry = registry
-		imageName := fmt.Sprintf("%s%s", decomposedImage.transport, decomposedImage.assemble())
+		imageName := decomposedImage.assemble()
 		if hasShaInInputName(inputName) {
-			imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
+			imageName = fmt.Sprintf("%s/%s", registry, inputName)
 		}
-		srcRef, err := alltransports.ParseImageName(imageName)
+		srcRef, err := alltransports.ParseImageName(fmt.Sprintf("%s%s", decomposedImage.transport, imageName))
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
