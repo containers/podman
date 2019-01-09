@@ -284,24 +284,13 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		var imageName, destName string
-		if hasShaInInputName(inputName) {
-			imageName = inputName
-		} else {
-			imageName = decomposedImage.assemble()
-		}
-		srcRef, err := docker.ParseReference("//" + imageName)
+		srcRef, err := docker.ParseReference("//" + inputName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		if hasShaInInputName(inputName) {
-			destName = decomposedImage.assemble()
-		} else {
-			destName = inputName
-		}
-		destRef, err := is.Transport.ParseStoreReference(ir.store, destName)
+		destRef, err := is.Transport.ParseStoreReference(ir.store, inputName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
+			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", inputName)
 		}
 		ps := pullRefPair{
 			image:  inputName,

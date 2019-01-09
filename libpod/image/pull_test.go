@@ -324,8 +324,7 @@ func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 		{ // Qualified example.com, name@digest.
 			"example.com/ns/busybox" + digestSuffix,
 			[]pullRefStrings{{"example.com/ns/busybox" + digestSuffix, "docker://example.com/ns/busybox" + digestSuffix,
-				// FIXME?! Why is .dstName dropping the digest, and adding :none?!
-				"example.com/ns/busybox:none"}},
+				"example.com/ns/busybox" + digestSuffix}},
 			false,
 		},
 		// Qualified example.com, name:tag@digest.  This code is happy to try, but .srcRef parsing currently rejects such input.
