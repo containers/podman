@@ -268,6 +268,7 @@ func TestNormalizeTag(t *testing.T) {
 		{"example.com/busybox:notlatest" + digestSuffix, "example.com/busybox:notlatest" + digestSuffix}, // Qualified name:tag@digest
 		{"busybox:latest", "localhost/busybox:latest"},                                                   // Unqualified name-only
 		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace
+		{"docker.io/busybox:latest", "docker.io/library/busybox:latest"},                                 // docker.io without /library/
 	} {
 		res, err := normalizeTag(c.input)
 		if c.expected == "" {
