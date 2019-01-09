@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/pkg/errors"
 )
 
 // imageParts describes the parts of an image's name
@@ -74,6 +75,23 @@ func decompose(input string) (imageParts, error) {
 		tag:             tag,
 		isTagged:        isTagged,
 	}, nil
+}
+
+// referenceWithRegistry returns a (normalized) reference.Named composed of ip (with !ip.hasRegistry)
+// qualified with registry.
+func (ip *imageParts) referenceWithRegistry(registry string) (reference.Named, error) {
+	if ip.hasRegistry {
+		return nil, errors.Errorf("internal error: referenceWithRegistry called on imageParts with a registry (%#v)", *ip)
+	}
+	// We could build a reference.WithName+WithTag/WithDigest here, but we need to round-trip via a string
+	// and a ParseNormalizedNamed anyway to get the right normalization of docker.io/library, so
+	// just use a string directly.
+	qualified := registry + "/" + ip.unnormalizedRef.String()
+	ref, err := reference.ParseNormalizedNamed(qualified)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error normalizing registry+unqualified reference %#v", qualified)
+	}
+	return ref, nil
 }
 
 // assemble concatenates an image's parts into a string

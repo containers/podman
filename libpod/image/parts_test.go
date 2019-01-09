@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecompose(t *testing.T) {
@@ -61,4 +62,45 @@ func TestDecompose(t *testing.T) {
 			assert.Equal(t, c.assembled, parts.assemble(), c.input)
 		}
 	}
+}
+
+func TestImagePartsReferenceWithRegistry(t *testing.T) {
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct {
+		input                     string
+		withDocker, withNonDocker string
+	}{
+		{"example.com/ns/busybox", "", ""},                                                                            // Fully-qualified input is invalid.
+		{"busybox", "docker.io/library/busybox", "example.com/busybox"},                                               // Single-name input
+		{"ns/busybox", "docker.io/ns/busybox", "example.com/ns/busybox"},                                              // Namespaced input
+		{"ns/busybox:notlatest", "docker.io/ns/busybox:notlatest", "example.com/ns/busybox:notlatest"},                // name:tag
+		{"ns/busybox" + digestSuffix, "docker.io/ns/busybox" + digestSuffix, "example.com/ns/busybox" + digestSuffix}, // name@digest
+		{ // name:tag@digest
+			"ns/busybox:notlatest" + digestSuffix,
+			"docker.io/ns/busybox:notlatest" + digestSuffix, "example.com/ns/busybox:notlatest" + digestSuffix,
+		},
+	} {
+		parts, err := decompose(c.input)
+		require.NoError(t, err)
+		if c.withDocker == "" {
+			_, err := parts.referenceWithRegistry("docker.io")
+			assert.Error(t, err, c.input)
+			_, err = parts.referenceWithRegistry("example.com")
+			assert.Error(t, err, c.input)
+		} else {
+			ref, err := parts.referenceWithRegistry("docker.io")
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.withDocker, ref.String())
+			ref, err = parts.referenceWithRegistry("example.com")
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.withNonDocker, ref.String())
+		}
+	}
+
+	// Invalid registry value
+	parts, err := decompose("busybox")
+	require.NoError(t, err)
+	_, err = parts.referenceWithRegistry("invalid@domain")
+	assert.Error(t, err)
 }
