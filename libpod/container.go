@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -405,6 +407,30 @@ func (c *Container) Spec() *spec.Spec {
 	deepcopier.Copy(c.config.Spec).To(returnSpec)
 
 	return returnSpec
+}
+
+// specFromState returns the unmarshalled json config of the container.  If the
+// config does not exist (e.g., because the container was never started) return
+// the spec from the config.
+func (c *Container) specFromState() (*spec.Spec, error) {
+	spec := c.config.Spec
+
+	if f, err := os.Open(c.state.ConfigPath); err == nil {
+		content, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading container config")
+		}
+		if err := json.Unmarshal([]byte(content), &spec); err != nil {
+			return nil, errors.Wrapf(err, "error unmarshalling container config")
+		}
+	} else {
+		// ignore when the file does not exist
+		if !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "error opening container config")
+		}
+	}
+
+	return spec, nil
 }
 
 // ID returns the container's ID

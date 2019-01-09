@@ -20,6 +20,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
@@ -184,6 +185,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
 		}
 	}
+
+	// Apply AppArmor checks and load the default profile if needed.
+	updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
+	if err != nil {
+		return nil, err
+	}
+	g.SetProcessApparmorProfile(updatedProfile)
 
 	if err := c.makeBindMounts(); err != nil {
 		return nil, err

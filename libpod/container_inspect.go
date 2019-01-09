@@ -12,7 +12,10 @@ import (
 func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data) (*inspect.ContainerInspectData, error) {
 	config := c.config
 	runtimeInfo := c.state
-	spec := c.config.Spec
+	spec, err := c.specFromState()
+	if err != nil {
+		return nil, err
+	}
 
 	// Process is allowed to be nil in the spec
 	args := []string{}

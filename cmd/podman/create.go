@@ -15,13 +15,11 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
-	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
-	libpodVersion "github.com/containers/libpod/version"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -162,83 +160,9 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	return ctr, createConfig, nil
 }
 
-// Checks if a user-specified AppArmor profile is loaded, or loads the default profile if
-// AppArmor is enabled.
-// Any interaction with AppArmor requires root permissions.
-func loadAppArmor(config *cc.CreateConfig) error {
-	if rootless.IsRootless() {
-		noAAMsg := "AppArmor security is not available in rootless mode"
-		switch config.ApparmorProfile {
-		case "":
-			logrus.Warn(noAAMsg)
-		case "unconfined":
-		default:
-			return fmt.Errorf(noAAMsg)
-		}
-		return nil
-	}
-
-	if config.ApparmorProfile == "" && apparmor.IsEnabled() {
-		// Unless specified otherwise, make sure that the default AppArmor
-		// profile is installed.  To avoid redundantly loading the profile
-		// on each invocation, check if it's loaded before installing it.
-		// Suffix the profile with the current libpod version to allow
-		// loading the new, potentially updated profile after an update.
-		profile := fmt.Sprintf("%s-%s", apparmor.DefaultLibpodProfile, libpodVersion.Version)
-
-		loadProfile := func() error {
-			isLoaded, err := apparmor.IsLoaded(profile)
-			if err != nil {
-				return err
-			}
-			if !isLoaded {
-				err = apparmor.InstallDefault(profile)
-				if err != nil {
-					return err
-				}
-
-			}
-			return nil
-		}
-
-		if err := loadProfile(); err != nil {
-			switch err {
-			case apparmor.ErrApparmorUnsupported:
-				// do not set the profile when AppArmor isn't supported
-				logrus.Debugf("AppArmor is not supported: setting empty profile")
-			default:
-				return err
-			}
-		} else {
-			logrus.Infof("Sucessfully loaded AppAmor profile '%s'", profile)
-			config.ApparmorProfile = profile
-		}
-	} else if config.ApparmorProfile != "" && config.ApparmorProfile != "unconfined" {
-		if !apparmor.IsEnabled() {
-			return fmt.Errorf("Profile specified but AppArmor is disabled on the host")
-		}
-
-		isLoaded, err := apparmor.IsLoaded(config.ApparmorProfile)
-		if err != nil {
-			switch err {
-			case apparmor.ErrApparmorUnsupported:
-				return fmt.Errorf("Profile specified but AppArmor is not supported")
-			default:
-				return fmt.Errorf("Error checking if AppArmor profile is loaded: %v", err)
-			}
-		}
-		if !isLoaded {
-			return fmt.Errorf("The specified AppArmor profile '%s' is not loaded", config.ApparmorProfile)
-		}
-	}
-
-	return nil
-}
-
 func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	var (
 		labelOpts []string
-		err       error
 	)
 
 	if config.PidMode.IsHost() {
@@ -283,10 +207,6 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		}
 	}
 
-	if err := loadAppArmor(config); err != nil {
-		return err
-	}
-
 	if config.SeccompProfilePath == "" {
 		if _, err := os.Stat(libpod.SeccompOverridePath); err == nil {
 			config.SeccompProfilePath = libpod.SeccompOverridePath
@@ -304,7 +224,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		}
 	}
 	config.LabelOpts = labelOpts
-	return err
+	return nil
 }
 
 // isPortInPortBindings determines if an exposed host port is in user
