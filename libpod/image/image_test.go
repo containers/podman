@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/containers/storage"
+	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -190,6 +191,51 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	assert.Equal(t, "localhost/foo:bar", repoTag)
 	// Shutdown the runtime and remove the temporary storage
 	cleanup(workdir, ir)
+}
+
+// TestImage_RepoDigests tests RepoDigest generation.
+func TestImage_RepoDigests(t *testing.T) {
+	dgst, err := digest.Parse("sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		name     string
+		names    []string
+		expected []string
+	}{
+		{
+			name:     "empty",
+			names:    []string{},
+			expected: nil,
+		},
+		{
+			name:     "tagged",
+			names:    []string{"docker.io/library/busybox:latest"},
+			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+		},
+		{
+			name:     "digest",
+			names:    []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			image := &Image{
+				image: &storage.Image{
+					Names:  test.names,
+					Digest: dgst,
+				},
+			}
+			actual, err := image.RepoDigests()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, actual)
+		})
+	}
 }
 
 // Test_splitString tests the splitString function in image that

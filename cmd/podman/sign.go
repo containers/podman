@@ -126,7 +126,10 @@ func signCmd(c *cli.Context) error {
 			sigStoreDir = SignatureStoreDir
 		}
 
-		repos := newImage.RepoDigests()
+		repos, err := newImage.RepoDigests()
+		if err != nil {
+			return errors.Wrapf(err, "error calculating repo digests for %s", signimage)
+		}
 		if len(repos) == 0 {
 			logrus.Errorf("no repodigests associated with the image %s", signimage)
 			continue
