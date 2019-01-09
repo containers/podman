@@ -549,10 +549,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 		}
 		if IP != nil {
-			env := fmt.Sprintf("IP=%s", IP)
 			// Tell CNI which IP address we want.
-			os.Setenv("CNI_ARGS", env)
-			logrus.Debugf("Restoring container with %s", env)
+			c.requestedIP = IP
 		}
 	}
 
@@ -567,12 +565,6 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err := c.prepare(); err != nil {
 		return err
 	}
-
-	// TODO: use existing way to request static IPs, once it is merged in ocicni
-	// https://github.com/cri-o/ocicni/pull/23/
-
-	// CNI_ARGS was used to request a certain IP address. Unconditionally remove it.
-	os.Unsetenv("CNI_ARGS")
 
 	// Read config
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")

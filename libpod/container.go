@@ -128,6 +128,11 @@ type Container struct {
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
+
+	// A restored container should have the same IP address as before
+	// being checkpointed. If requestedIP is set it will be used instead
+	// of config.StaticIP.
+	requestedIP net.IP
 }
 
 // containerState contains the current state of the container
