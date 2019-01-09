@@ -21,7 +21,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
-	libpodVersion "github.com/containers/libpod/version"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -182,9 +181,10 @@ func loadAppArmor(config *cc.CreateConfig) error {
 		// Unless specified otherwise, make sure that the default AppArmor
 		// profile is installed.  To avoid redundantly loading the profile
 		// on each invocation, check if it's loaded before installing it.
-		// Suffix the profile with the current libpod version to allow
-		// loading the new, potentially updated profile after an update.
-		profile := fmt.Sprintf("%s-%s", apparmor.DefaultLibpodProfile, libpodVersion.Version)
+		// Note that updates to the default AppArmor profile require
+		// to remove the `libpod-default` profile manually or via a
+		// reboot.
+		profile := apparmor.DefaultLibpodProfile
 
 		loadProfile := func() error {
 			isLoaded, err := apparmor.IsLoaded(profile)
