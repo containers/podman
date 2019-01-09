@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/directory"
@@ -272,12 +271,6 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	return images, nil
 }
 
-// hasShaInInputName returns a bool as to whether the user provided an image name that includes
-// a reference to a specific sha
-func hasShaInInputName(inputName string) bool {
-	return strings.Contains(inputName, "@sha256:")
-}
-
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
 func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullGoal, error) {
@@ -308,17 +301,17 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	}
 	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
-		decomposedImage.registry = registry
-		imageName := decomposedImage.assemble()
-		if hasShaInInputName(inputName) {
-			imageName = fmt.Sprintf("%s/%s", registry, inputName)
+		ref, err := decomposedImage.referenceWithRegistry(registry)
+		if err != nil {
+			return nil, err
 		}
+		imageName := ref.String()
 		srcRef, err := docker.ParseReference("//" + imageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
+			return nil, errors.Wrapf(err, "unable to parse '%s'", imageName)
 		}
 		ps := pullRefPair{
-			image:  decomposedImage.assemble(),
+			image:  imageName,
 			srcRef: srcRef,
 		}
 		ps.dstRef, err = is.Transport.ParseStoreReference(ir.store, ps.image)

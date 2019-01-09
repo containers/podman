@@ -328,16 +328,16 @@ func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 		{ // Unqualified, single-name, name-only
 			"busybox",
 			[]pullRefStrings{
-				{"example.com/busybox:latest", "docker://example.com/busybox:latest", "example.com/busybox:latest"},
+				{"example.com/busybox", "docker://example.com/busybox:latest", "example.com/busybox:latest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:latest", "docker://busybox:latest", "docker.io/library/busybox:latest"},
+				{"docker.io/library/busybox", "docker://busybox:latest", "docker.io/library/busybox:latest"},
 			},
 			true,
 		},
 		{ // Unqualified, namespaced, name-only
 			"ns/busybox",
 			[]pullRefStrings{
-				{"example.com/ns/busybox:latest", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox:latest"},
+				{"example.com/ns/busybox", "docker://example.com/ns/busybox:latest", "example.com/ns/busybox:latest"},
 			},
 			true,
 		},
@@ -346,17 +346,16 @@ func TestPullGoalFromPossiblyUnqualifiedName(t *testing.T) {
 			[]pullRefStrings{
 				{"example.com/busybox:notlatest", "docker://example.com/busybox:notlatest", "example.com/busybox:notlatest"},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:notlatest", "docker://busybox:notlatest", "docker.io/library/busybox:notlatest"},
+				{"docker.io/library/busybox:notlatest", "docker://busybox:notlatest", "docker.io/library/busybox:notlatest"},
 			},
 			true,
 		},
 		{ // Unqualified, name@digest
 			"busybox" + digestSuffix,
 			[]pullRefStrings{
-				// FIXME?! Why is .input and .dstName dropping the digest, and adding :none?!
-				{"example.com/busybox:none", "docker://example.com/busybox" + digestSuffix, "example.com/busybox:none"},
+				{"example.com/busybox" + digestSuffix, "docker://example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix},
 				// (The docker:// representation is shortened by c/image/docker.Reference but it refers to "docker.io/library".)
-				{"docker.io/busybox:none", "docker://busybox" + digestSuffix, "docker.io/library/busybox:none"},
+				{"docker.io/library/busybox" + digestSuffix, "docker://busybox" + digestSuffix, "docker.io/library/busybox" + digestSuffix},
 			},
 			true,
 		},
