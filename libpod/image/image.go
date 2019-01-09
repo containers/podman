@@ -930,21 +930,23 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	imageRegistry, imageName, imageSuspiciousTagValueForSearch := dcImage.suspiciousRefNameTagValuesForSearch()
 	for _, repoName := range i.Names() {
 		count := 0
 		dcRepoName, err := decompose(repoName)
 		if err != nil {
 			return "", err
 		}
-		if dcRepoName.registry == dcImage.registry && dcImage.registry != "" {
+		repoNameRegistry, repoNameName, repoNameSuspiciousTagValueForSearch := dcRepoName.suspiciousRefNameTagValuesForSearch()
+		if repoNameRegistry == imageRegistry && imageRegistry != "" {
 			count++
 		}
-		if dcRepoName.name == dcImage.name && dcImage.name != "" {
+		if repoNameName == imageName && imageName != "" {
 			count++
-		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
+		} else if splitString(repoNameName) == splitString(imageName) {
 			count++
 		}
-		if dcRepoName.tag == dcImage.tag {
+		if repoNameSuspiciousTagValueForSearch == imageSuspiciousTagValueForSearch {
 			count++
 		}
 		results[count] = append(results[count], repoName)

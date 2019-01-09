@@ -76,6 +76,30 @@ func decompose(input string) (imageParts, error) {
 	}, nil
 }
 
+// suspiciousRefNameTagValuesForSearch returns a "tag" value used in a previous implementation.
+// This exists only to preserve existing behavior in heuristic code; it’s dubious that that behavior is correct,
+// gespecially for the tag value.
+func (ip *imageParts) suspiciousRefNameTagValuesForSearch() (string, string, string) {
+	registry := reference.Domain(ip.unnormalizedRef)
+	imageName := reference.Path(ip.unnormalizedRef)
+	// ip.unnormalizedRef, because it uses reference.Parse and not reference.ParseNormalizedNamed,
+	// does not use the standard heuristics for domains vs. namespaces/repos.
+	if registry != "" && !isRegistry(registry) {
+		imageName = registry + "/" + imageName
+		registry = ""
+	}
+
+	var tag string
+	if tagged, isTagged := ip.unnormalizedRef.(reference.NamedTagged); isTagged {
+		tag = tagged.Tag()
+	} else if _, hasDigest := ip.unnormalizedRef.(reference.Digested); hasDigest {
+		tag = "none"
+	} else {
+		tag = "latest"
+	}
+	return registry, imageName, tag
+}
+
 // referenceWithRegistry returns a (normalized) reference.Named composed of ip (with !ip.hasRegistry)
 // qualified with registry.
 func (ip *imageParts) referenceWithRegistry(registry string) (reference.Named, error) {

@@ -11,9 +11,9 @@ func TestDecompose(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	for _, c := range []struct {
-		input                 string
-		registry, name, tag   string
-		isTagged, hasRegistry bool
+		input                                       string
+		registry, name, suspiciousTagValueForSearch string
+		isTagged, hasRegistry                       bool
 	}{
 		{"#", "", "", "", false, false}, // Entirely invalid input
 		{ // Fully qualified docker.io, name-only input
@@ -32,7 +32,7 @@ func TestDecompose(t *testing.T) {
 			"example.com/ns/busybox:notlatest", "example.com", "ns/busybox", "notlatest", true, true,
 		},
 		{ // name@digest
-			// FIXME? .tag == "none"
+			// FIXME? .suspiciousTagValueForSearch == "none"
 			"example.com/ns/busybox" + digestSuffix, "example.com", "ns/busybox", "none", false, true,
 		},
 		{ // name:tag@digest
@@ -44,9 +44,10 @@ func TestDecompose(t *testing.T) {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			assert.Equal(t, c.registry, parts.registry, c.input)
-			assert.Equal(t, c.name, parts.name, c.input)
-			assert.Equal(t, c.tag, parts.tag, c.input)
+			registry, name, suspiciousTagValueForSearch := parts.suspiciousRefNameTagValuesForSearch()
+			assert.Equal(t, c.registry, registry, c.input)
+			assert.Equal(t, c.name, name, c.input)
+			assert.Equal(t, c.suspiciousTagValueForSearch, suspiciousTagValueForSearch, c.input)
 			assert.Equal(t, c.isTagged, parts.isTagged, c.input)
 			assert.Equal(t, c.hasRegistry, parts.hasRegistry, c.input)
 		}
