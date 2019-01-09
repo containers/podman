@@ -1181,6 +1181,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
+// Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
 	var locale string
 	var ok bool
@@ -1209,13 +1210,13 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
+	allHooks := make(map[string][]spec.Hook)
 	if c.runtime.config.HooksDir == nil {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
-		allHooks := make(map[string][]spec.Hook)
 		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			manager, err := hooks.New(ctx, []string{hDir}, []string{"poststop"}, lang)
+			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "poststop"}, lang)
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue
@@ -1233,19 +1234,32 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 				allHooks[i] = hook
 			}
 		}
-		return allHooks, nil
+	} else {
+		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"}, lang)
+		if err != nil {
+			if os.IsNotExist(err) {
+				logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)
+				return nil, nil
+			}
+			return nil, err
+		}
+
+		allHooks, err = manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"poststop"}, lang)
+	hookErr, err := exec.RuntimeConfigFilter(ctx, allHooks["precreate"], config, exec.DefaultPostKillTimeout)
 	if err != nil {
-		if os.IsNotExist(err) {
-			logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)
-			return nil, nil
+		logrus.Warnf("container %s: precreate hook: %v", c.ID(), err)
+		if hookErr != nil && hookErr != err {
+			logrus.Debugf("container %s: precreate hook (hook error): %v", c.ID(), hookErr)
 		}
 		return nil, err
 	}
 
-	return manager.Hooks(config, c.Spec().Annotations, len(c.config.UserVolumes) > 0)
+	return allHooks, nil
 }
 
 // mount mounts the container's root filesystem
