@@ -290,7 +290,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		} else {
 			imageName = decomposedImage.assemble()
 		}
-		srcRef, err := alltransports.ParseImageName(fmt.Sprintf("%s%s", DefaultTransport, imageName))
+		srcRef, err := docker.ParseReference("//" + imageName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
@@ -322,7 +322,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s/%s", registry, inputName)
 		}
-		srcRef, err := alltransports.ParseImageName(fmt.Sprintf("%s%s", DefaultTransport, imageName))
+		srcRef, err := docker.ParseReference("//" + imageName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
