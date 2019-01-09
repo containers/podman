@@ -17,7 +17,8 @@ type imageParts struct {
 	hasRegistry     bool
 }
 
-// Registries must contain a ":" or a "." or be localhost
+// Registries must contain a ":" or a "." or be localhost; this helper exists for users of reference.Parse.
+// For inputs that should use the docker.io[/library] normalization, use reference.ParseNormalizedNamed instead.
 func isRegistry(name string) bool {
 	return strings.ContainsAny(name, ".:") || name == "localhost"
 }
@@ -57,7 +58,9 @@ func decompose(input string) (imageParts, error) {
 	}
 	registry := reference.Domain(unnormalizedNamed)
 	imageName := reference.Path(unnormalizedNamed)
-	// Is this a registry or a repo?
+	// ip.unnormalizedRef, because it uses reference.Parse and not reference.ParseNormalizedNamed,
+	// does not use the standard heuristics for domains vs. namespaces/repos, so we need to check
+	// explicitly.
 	if isRegistry(registry) {
 		hasRegistry = true
 	} else {
