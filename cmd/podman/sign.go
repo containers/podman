@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -138,7 +138,7 @@ func signCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "error creating new signature")
 		}
 
-		sigStoreDir = fmt.Sprintf("%s/%s", sigStoreDir, strings.Replace(repos[0][strings.Index(repos[0], "/")+1:len(repos[0])], ":", "=", 1))
+		sigStoreDir = filepath.Join(sigStoreDir, strings.Replace(repos[0][strings.Index(repos[0], "/")+1:len(repos[0])], ":", "=", 1))
 		if err := os.MkdirAll(sigStoreDir, 0751); err != nil {
 			// The directory is allowed to exist
 			if !os.IsExist(err) {
@@ -151,7 +151,7 @@ func signCmd(c *cli.Context) error {
 			logrus.Errorf("error creating sigstore file: %v", err)
 			continue
 		}
-		err = ioutil.WriteFile(sigStoreDir+"/"+sigFilename, newSig, 0644)
+		err = ioutil.WriteFile(filepath.Join(sigStoreDir, sigFilename), newSig, 0644)
 		if err != nil {
 			logrus.Errorf("error storing signature for %s", rawSource.Reference().DockerReference().String())
 			continue
