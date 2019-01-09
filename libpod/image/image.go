@@ -458,13 +458,13 @@ func normalizeTag(tag string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// If the input does not have a tag, we need to add one (latest)
-	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
-	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
 		tag = fmt.Sprintf("%s/%s", DefaultLocalRegistry, tag)
+	}
+	// If the input does not have a tag, we need to add one (latest)
+	if !decomposedTag.isTagged {
+		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
 	}
 	return tag, nil
 }
