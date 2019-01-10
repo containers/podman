@@ -11,6 +11,7 @@ import (
 
 var _ = Describe("Podman top", func() {
 	var (
+		result     int
 		tempdir    string
 		err        error
 		podmanTest *PodmanTestIntegration
@@ -111,7 +112,7 @@ var _ = Describe("Podman top", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(3))
-	})
+	}, "Result was: %v", result)
 
 	It("podman pod top on pod with containers in different namespace", func() {
 		_, ec, podid := podmanTest.CreatePod("")
@@ -129,5 +130,5 @@ var _ = Describe("Podman top", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(3))
-	})
+	}, "Result was: %v", result)
 })
