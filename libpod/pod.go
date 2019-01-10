@@ -3,7 +3,7 @@ package libpod
 import (
 	"time"
 
-	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
@@ -26,7 +26,7 @@ type Pod struct {
 
 	valid   bool
 	runtime *Runtime
-	lock    lock.Locker
+	lock    storage.Locker
 }
 
 // PodConfig represents a pod's static configuration
@@ -60,9 +60,6 @@ type PodConfig struct {
 
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
-
-	// ID of the pod's lock
-	LockID uint32 `json:"lockID"`
 }
 
 // podState represents a pod's state

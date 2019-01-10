@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 // Creates a new, empty pod
-func newPod(runtime *Runtime) (*Pod, error) {
+func newPod(lockDir string, runtime *Runtime) (*Pod, error) {
 	pod := new(Pod)
 	pod.config = new(PodConfig)
 	pod.config.ID = stringid.GenerateNonCryptoID()
@@ -22,6 +23,15 @@ func newPod(runtime *Runtime) (*Pod, error) {
 	pod.config.InfraContainer = new(InfraContainerConfig)
 	pod.state = new(podState)
 	pod.runtime = runtime
+
+	// Path our lock file will reside at
+	lockPath := filepath.Join(lockDir, pod.config.ID)
+	// Grab a lockfile at the given path
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating lockfile for new pod")
+	}
+	pod.lock = lock
 
 	return pod, nil
 }
@@ -45,8 +55,6 @@ func (p *Pod) save() error {
 }
 
 // Refresh a pod's state after restart
-// This cannot lock any other pod, but may lock individual containers, as those
-// will have refreshed by the time pod refresh runs.
 func (p *Pod) refresh() error {
 	// Need to to an update from the DB to pull potentially-missing state
 	if err := p.runtime.state.UpdatePod(p); err != nil {
@@ -56,13 +64,6 @@ func (p *Pod) refresh() error {
 	if !p.valid {
 		return ErrPodRemoved
 	}
-
-	// Retrieve the pod's lock
-	lock, err := p.runtime.lockManager.RetrieveLock(p.config.LockID)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving lock for pod %s", p.ID())
-	}
-	p.lock = lock
 
 	// We need to recreate the pod's cgroup
 	if p.config.UsePodCgroup {

@@ -115,7 +115,7 @@ build_each_commit_task:
         matrix:
             image_name: "fedora-29-libpod-9afa57a9"
 
-    timeout_in: 30m
+    timeout_in: 20m
 
     script:
         - $SCRIPT_BASE/setup_environment.sh

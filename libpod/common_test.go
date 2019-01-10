@@ -3,19 +3,20 @@ package libpod
 import (
 	"encoding/json"
 	"net"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getTestContainer(id, name string, manager lock.Manager) (*Container, error) {
+func getTestContainer(id, name, locksDir string) (*Container, error) {
 	ctr := &Container{
 		config: &ContainerConfig{
 			ID:              id,
@@ -89,18 +90,18 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 
 	ctr.config.Labels["test"] = "testing"
 
-	// Allocate a lock for the container
-	lock, err := manager.AllocateLock()
+	// Must make lockfile or container will error on being retrieved from DB
+	lockPath := filepath.Join(locksDir, id)
+	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return nil, err
 	}
 	ctr.lock = lock
-	ctr.config.LockID = lock.ID()
 
 	return ctr, nil
 }
 
-func getTestPod(id, name string, manager lock.Manager) (*Pod, error) {
+func getTestPod(id, name, locksDir string) (*Pod, error) {
 	pod := &Pod{
 		config: &PodConfig{
 			ID:           id,
@@ -114,39 +115,38 @@ func getTestPod(id, name string, manager lock.Manager) (*Pod, error) {
 		valid: true,
 	}
 
-	// Allocate a lock for the pod
-	lock, err := manager.AllocateLock()
+	lockPath := filepath.Join(locksDir, id)
+	lock, err := storage.GetLockfile(lockPath)
 	if err != nil {
 		return nil, err
 	}
 	pod.lock = lock
-	pod.config.LockID = lock.ID()
 
 	return pod, nil
 }
 
-func getTestCtrN(n string, manager lock.Manager) (*Container, error) {
-	return getTestContainer(strings.Repeat(n, 32), "test"+n, manager)
+func getTestCtrN(n, lockPath string) (*Container, error) {
+	return getTestContainer(strings.Repeat(n, 32), "test"+n, lockPath)
 }
 
-func getTestCtr1(manager lock.Manager) (*Container, error) {
-	return getTestCtrN("1", manager)
+func getTestCtr1(lockPath string) (*Container, error) {
+	return getTestCtrN("1", lockPath)
 }
 
-func getTestCtr2(manager lock.Manager) (*Container, error) {
-	return getTestCtrN("2", manager)
+func getTestCtr2(lockPath string) (*Container, error) {
+	return getTestCtrN("2", lockPath)
 }
 
-func getTestPodN(n string, manager lock.Manager) (*Pod, error) {
-	return getTestPod(strings.Repeat(n, 32), "test"+n, manager)
+func getTestPodN(n, lockPath string) (*Pod, error) {
+	return getTestPod(strings.Repeat(n, 32), "test"+n, lockPath)
 }
 
-func getTestPod1(manager lock.Manager) (*Pod, error) {
-	return getTestPodN("1", manager)
+func getTestPod1(lockPath string) (*Pod, error) {
+	return getTestPodN("1", lockPath)
 }
 
-func getTestPod2(manager lock.Manager) (*Pod, error) {
-	return getTestPodN("2", manager)
+func getTestPod2(lockPath string) (*Pod, error) {
+	return getTestPodN("2", lockPath)
 }
 
 // This horrible hack tests if containers are equal in a way that should handle
@@ -173,8 +173,6 @@ func testContainersEqual(t *testing.T, a, b *Container, allowedEmpty bool) {
 	blankState := new(containerState)
 
 	assert.Equal(t, a.valid, b.valid)
-
-	assert.Equal(t, a.lock.ID(), b.lock.ID())
 
 	aConfigJSON, err := json.Marshal(a.config)
 	assert.NoError(t, err)
@@ -224,8 +222,6 @@ func testPodsEqual(t *testing.T, a, b *Pod, allowedEmpty bool) {
 	require.NotNil(t, b.state)
 
 	assert.Equal(t, a.valid, b.valid)
-
-	assert.Equal(t, a.lock.ID(), b.lock.ID())
 
 	assert.EqualValues(t, a.config, b.config)
 

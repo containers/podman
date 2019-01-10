@@ -501,8 +501,6 @@ func easyjsonBe091417DecodeGithubComContainersLibpodLibpod4(in *jlexer.Lexer, ou
 			if data := in.Raw(); in.Ok() {
 				in.AddError((out.CreatedTime).UnmarshalJSON(data))
 			}
-		case "lockID":
-			out.LockID = uint32(in.Uint32())
 		default:
 			in.SkipRecursive()
 		}
@@ -676,16 +674,6 @@ func easyjsonBe091417EncodeGithubComContainersLibpodLibpod4(out *jwriter.Writer,
 			out.RawString(prefix)
 		}
 		out.Raw((in.CreatedTime).MarshalJSON())
-	}
-	{
-		const prefix string = ",\"lockID\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.Uint32(uint32(in.LockID))
 	}
 	out.RawByte('}')
 }

@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,7 +11,6 @@ import (
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/firewall"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
@@ -66,11 +64,6 @@ const (
 
 	// DefaultInitPath is the default path to the container-init binary
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
-
-	// DefaultSHMLockPath is the default path for SHM locks
-	DefaultSHMLockPath = "/libpod_lock"
-	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
-	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -85,6 +78,7 @@ type Runtime struct {
 	storageService  *storageService
 	imageContext    *types.SystemContext
 	ociRuntime      *OCIRuntime
+	lockDir         string
 	netPlugin       ocicni.CNIPlugin
 	ociRuntimePath  string
 	conmonPath      string
@@ -92,7 +86,6 @@ type Runtime struct {
 	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
-	lockManager     lock.Manager
 	configuredFrom  *runtimeConfiguredFrom
 }
 
@@ -172,7 +165,6 @@ type RuntimeConfig struct {
 	// and all containers and pods will be visible.
 	// The default namespace is "".
 	Namespace string `toml:"namespace,omitempty"`
-
 	// InfraImage is the image a pod infra container will use to manage namespaces
 	InfraImage string `toml:"infra_image"`
 	// InfraCommand is the command run to start up a pod infra container
@@ -187,10 +179,6 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
-
-	// NumLocks is the number of locks to make available for containers and
-	// pods.
-	NumLocks uint32 `toml:"num_locks,omitempty"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -246,7 +234,6 @@ var (
 		InfraImage:            DefaultInfraImage,
 		EnablePortReservation: true,
 		EnableLabeling:        true,
-		NumLocks:              2048,
 	}
 )
 
@@ -629,6 +616,17 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	runtime.ociRuntime = ociRuntime
 
+	// Make a directory to hold container lockfiles
+	lockDir := filepath.Join(runtime.config.TmpDir, "lock")
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating runtime lockfiles directory %s",
+				lockDir)
+		}
+	}
+	runtime.lockDir = lockDir
+
 	// Make the per-boot files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
@@ -673,7 +671,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// and use it to lock important operations
 	aliveLock.Lock()
 	locked := true
-	doRefresh := false
 	defer func() {
 		if locked {
 			aliveLock.Unlock()
@@ -686,49 +683,19 @@ func makeRuntime(runtime *Runtime) (err error) {
 		// empty state only creates a single file
 		// As such, it's not really a performance concern
 		if os.IsNotExist(err) {
-			doRefresh = true
+			if os.Geteuid() != 0 {
+				aliveLock.Unlock()
+				locked = false
+				if err2 := runtime.refreshRootless(); err2 != nil {
+					return err2
+				}
+			} else {
+				if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+					return err2
+				}
+			}
 		} else {
 			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
-		}
-	}
-
-	// Set up the lock manager
-	var manager lock.Manager
-	lockPath := DefaultSHMLockPath
-	if rootless.IsRootless() {
-		lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
-	}
-	if doRefresh {
-		// If SHM locks already exist, delete them and reinitialize
-		if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil && !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error deleting existing libpod SHM segment %s", lockPath)
-		}
-
-		manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-		if err != nil {
-			return err
-		}
-	} else {
-		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
-		if err != nil {
-			return err
-		}
-	}
-	runtime.lockManager = manager
-
-	// If we need to refresh the state, do it now - things are guaranteed to
-	// be set up by now.
-	if doRefresh {
-		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			locked = false
-			if err2 := runtime.refreshRootless(); err2 != nil {
-				return err2
-			}
-		} else {
-			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-				return err2
-			}
 		}
 	}
 
@@ -827,22 +794,19 @@ func (r *Runtime) refresh(alivePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
-	// No locks are taken during pod and container refresh.
-	// Furthermore, the pod and container refresh() functions are not
-	// allowed to take locks themselves.
-	// We cannot assume that any pod or container has a valid lock until
-	// after this function has returned.
-	// The runtime alive lock should suffice to provide mutual exclusion
-	// until this has run.
 	for _, ctr := range ctrs {
+		ctr.lock.Lock()
 		if err := ctr.refresh(); err != nil {
 			logrus.Errorf("Error refreshing container %s: %v", ctr.ID(), err)
 		}
+		ctr.lock.Unlock()
 	}
 	for _, pod := range pods {
+		pod.lock.Lock()
 		if err := pod.refresh(); err != nil {
 			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
 		}
+		pod.lock.Unlock()
 	}
 
 	// Create a file indicating the runtime is alive and ready
