@@ -59,7 +59,7 @@ func signCmd(c *cli.Context) error {
 
 	signby := c.String("sign-by")
 	if signby == "" {
-		return errors.Errorf("You must provide an identity")
+		return errors.Errorf("please provide an identity")
 	}
 
 	var sigStoreDir string
@@ -72,11 +72,11 @@ func signCmd(c *cli.Context) error {
 
 	mech, err := signature.NewGPGSigningMechanism()
 	if err != nil {
-		return errors.Wrap(err, "Error initializing GPG")
+		return errors.Wrap(err, "error initializing GPG")
 	}
 	defer mech.Close()
 	if err := mech.SupportsSigning(); err != nil {
-		return errors.Wrap(err, "Signing is not supported")
+		return errors.Wrap(err, "signing is not supported")
 	}
 
 	systemRegistriesDirPath := trust.RegistriesDirPath(runtime.SystemContext())
@@ -100,7 +100,7 @@ func signCmd(c *cli.Context) error {
 		}
 		dockerReference := rawSource.Reference().DockerReference()
 		if dockerReference == nil {
-			return errors.Errorf("Cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
+			return errors.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
 		}
 
 		// create the signstore file
@@ -190,7 +190,7 @@ func isValidSigStoreDir(sigStoreDir string) (string, error) {
 	}
 	_, exists := writeURIs[url.Scheme]
 	if !exists {
-		return sigStoreDir, errors.Errorf("Writing to %s is not supported. Use a supported scheme", sigStoreDir)
+		return sigStoreDir, errors.Errorf("writing to %s is not supported. Use a supported scheme", sigStoreDir)
 	}
 	sigStoreDir = url.Path
 	return sigStoreDir, nil
