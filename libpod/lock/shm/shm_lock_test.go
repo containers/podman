@@ -256,13 +256,13 @@ func TestLockSemaphoreActuallyLocks(t *testing.T) {
 // Ensures that runtime.LockOSThread() is doing its job
 func TestLockAndUnlockTwoSemaphore(t *testing.T) {
 	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
-		err := locks.LockSemaphore(5)
+		err := locks.LockSemaphore(0)
 		assert.NoError(t, err)
 
-		err = locks.LockSemaphore(6)
+		err = locks.LockSemaphore(1)
 		assert.NoError(t, err)
 
-		err = locks.UnlockSemaphore(6)
+		err = locks.UnlockSemaphore(1)
 		assert.NoError(t, err)
 
 		// Now yield scheduling
@@ -272,7 +272,7 @@ func TestLockAndUnlockTwoSemaphore(t *testing.T) {
 		// And unlock the last semaphore
 		// If we are in a different OS thread, this should fail.
 		// However, runtime.UnlockOSThread() should guarantee we are not
-		err = locks.UnlockSemaphore(5)
+		err = locks.UnlockSemaphore(0)
 		assert.NoError(t, err)
 	})
 }

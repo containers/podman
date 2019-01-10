@@ -43,9 +43,6 @@ type Locker interface {
 	// encounters a fatal error.
 	// All errors must be handled internally, as they are not returned. For
 	// the most part, panicking should be appropriate.
-	// Some lock implementations may require that Lock() and Unlock() occur
-	// within the same goroutine (SHM locking, for example). The usual Go
-	// Lock()/defer Unlock() pattern will still work fine in these cases.
 	Lock()
 	// Unlock unlocks the lock.
 	// All errors must be handled internally, as they are not returned. For
