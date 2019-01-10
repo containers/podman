@@ -116,7 +116,7 @@ var _ = Describe("Podman top", func() {
 
 	It("podman pod top on pod with containers in different namespace", func() {
 		_, ec, podid := podmanTest.CreatePod("")
-		Expect(ec).To(Equal(0))
+		Expect(ec).To(Equal(99999))
 
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
 		session.WaitWithDefaultTimeout()
