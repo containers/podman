@@ -141,7 +141,8 @@ func signCmd(c *cli.Context) error {
 			return errors.Wrapf(err, "error creating new signature")
 		}
 
-		sigStoreDir = filepath.Join(sigStoreDir, strings.Replace(repos[0][strings.Index(repos[0], "/")+1:len(repos[0])], ":", "=", 1))
+		trimmedDigest := strings.TrimPrefix(repos[0], strings.Split(repos[0], "/")[0])
+		sigStoreDir = filepath.Join(sigStoreDir, strings.Replace(trimmedDigest, ":", "=", 1))
 		if err := os.MkdirAll(sigStoreDir, 0751); err != nil {
 			// The directory is allowed to exist
 			if !os.IsExist(err) {
