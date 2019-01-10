@@ -13,7 +13,6 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/trust"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -132,7 +131,7 @@ func showTrustCmd(c *cli.Context) error {
 	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
 		return errors.Errorf("could not read trust policies")
 	}
-	policyJSON, err := trust.GetPolicyJSON(policyContentStruct, systemRegistriesDirPath)
+	policyJSON, showOutputMap, err := trust.GetPolicy(policyContentStruct, systemRegistriesDirPath)
 	if err != nil {
 		return errors.Wrapf(err, "error reading registry config file")
 	}
@@ -144,31 +143,12 @@ func showTrustCmd(c *cli.Context) error {
 	}
 
 	sortedRepos := sortPolicyJSONKey(policyJSON)
-	type policydefault struct {
-		Repo      string
-		Trusttype string
-		GPGid     string
-		Sigstore  string
-	}
-	var policyoutput []policydefault
-	for _, repo := range sortedRepos {
-		repoval := policyJSON[repo]
-		var defaultstruct policydefault
-		defaultstruct.Repo = repo
-		if repoval["type"] != nil {
-			defaultstruct.Trusttype = trustTypeDescription(repoval["type"].(string))
-		}
-		if repoval["keys"] != nil && len(repoval["keys"].([]string)) > 0 {
-			defaultstruct.GPGid = trust.GetGPGId(repoval["keys"].([]string))
-		}
-		if repoval["sigstore"] != nil {
-			defaultstruct.Sigstore = repoval["sigstore"].(string)
-		}
-		policyoutput = append(policyoutput, defaultstruct)
-	}
 	var output []interface{}
-	for _, ele := range policyoutput {
-		output = append(output, interface{}(ele))
+	for _, reponame := range sortedRepos {
+		showOutput, exists := showOutputMap[reponame]
+		if exists {
+			output = append(output, interface{}(showOutput))
+		}
 	}
 	out := formats.StdoutTemplateArray{Output: output, Template: "{{.Repo}}\t{{.Trusttype}}\t{{.GPGid}}\t{{.Sigstore}}"}
 	return formats.Writer(out).Out()
@@ -209,14 +189,19 @@ func setTrustCmd(c *cli.Context) error {
 		policyPath = trust.DefaultPolicyPath(runtime.SystemContext())
 	}
 	var policyContentStruct trust.PolicyContent
+	policyFileExists := false
 	_, err = os.Stat(policyPath)
 	if !os.IsNotExist(err) {
+		policyFileExists = true
 		policyContent, err := ioutil.ReadFile(policyPath)
 		if err != nil {
 			return errors.Wrapf(err, "unable to read %s", policyPath)
 		}
 		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
 			return errors.Errorf("could not read trust policies")
+		}
+		if args[0] != "default" && len(policyContentStruct.Default) == 0 {
+			return errors.Errorf("Default trust policy must be set.")
 		}
 	}
 	var newReposContent []trust.RepoContent
@@ -230,15 +215,18 @@ func setTrustCmd(c *cli.Context) error {
 	if args[0] == "default" {
 		policyContentStruct.Default = newReposContent
 	} else {
-		exists := false
+		if policyFileExists == false && len(policyContentStruct.Default) == 0 {
+			return errors.Errorf("Default trust policy must be set to create the policy file.")
+		}
+		registryExists := false
 		for transport, transportval := range policyContentStruct.Transports {
-			_, exists = transportval[args[0]]
-			if exists {
+			_, registryExists = transportval[args[0]]
+			if registryExists {
 				policyContentStruct.Transports[transport][args[0]] = newReposContent
 				break
 			}
 		}
-		if !exists {
+		if !registryExists {
 			if policyContentStruct.Transports == nil {
 				policyContentStruct.Transports = make(map[string]trust.RepoMap)
 			}
@@ -258,16 +246,6 @@ func setTrustCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error setting trust policy")
 	}
 	return nil
-}
-
-var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
-
-func trustTypeDescription(trustType string) string {
-	trustDescription, exist := typeDescription[trustType]
-	if !exist {
-		logrus.Warnf("invalid trust type %s", trustType)
-	}
-	return trustDescription
 }
 
 func sortPolicyJSONKey(m map[string]map[string]interface{}) []string {

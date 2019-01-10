@@ -2,6 +2,7 @@ package trust
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"unsafe"
 
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
@@ -50,6 +50,14 @@ type RegistryConfiguration struct {
 type RegistryNamespace struct {
 	SigStore        string `json:"sigstore"`         // For reading, and if SigStoreStaging is not present, for writing.
 	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
+}
+
+// ShowOutput keep the fields for image trust show command
+type ShowOutput struct {
+	Repo      string
+	Trusttype string
+	GPGid     string
+	Sigstore  string
 }
 
 // DefaultPolicyPath returns a path to the default policy of the system.
@@ -167,84 +175,127 @@ func CreateTmpFile(dir, pattern string, content []byte) (string, error) {
 	return tmpfile.Name(), nil
 }
 
-// GetGPGId return GPG identity, either bracketed <email> or ID string
-// comma separated if more than one key
-func GetGPGId(keys []string) string {
-	for _, k := range keys {
-		if _, err := os.Stat(k); err != nil {
-			decodeKey, err := base64.StdEncoding.DecodeString(k)
-			if err != nil {
-				logrus.Warnf("error decoding key data")
-				continue
-			}
-			tmpfileName, err := CreateTmpFile("/run/", "", decodeKey)
-			if err != nil {
-				logrus.Warnf("error creating key date temp file %s", err)
-			}
-			defer os.Remove(tmpfileName)
-			k = tmpfileName
-		}
+func getGPGIdFromKeyPath(path []string) []string {
+	var uids []string
+	for _, k := range path {
 		cmd := exec.Command("gpg2", "--with-colons", k)
 		results, err := cmd.Output()
 		if err != nil {
 			logrus.Warnf("error get key identity: %s", err)
 			continue
 		}
-		resultsStr := *(*string)(unsafe.Pointer(&results))
-		scanner := bufio.NewScanner(strings.NewReader(resultsStr))
-		var parseduids []string
-		for scanner.Scan() {
-			line := scanner.Text()
-			if strings.HasPrefix(line, "uid:") || strings.HasPrefix(line, "pub:") {
-				uid := strings.Split(line, ":")[9]
-				if uid == "" {
-					continue
-				}
-				parseduid := uid
-				if strings.Contains(uid, "<") && strings.Contains(uid, ">") {
-					parseduid = strings.SplitN(strings.SplitAfterN(uid, "<", 2)[1], ">", 2)[0]
-				}
-				parseduids = append(parseduids, parseduid)
-			}
-		}
-		return strings.Join(parseduids, ",")
+		uids = append(uids, parseUids(results)...)
 	}
-	return ""
+	return uids
 }
 
-// GetPolicyJSON return the struct to show policy.json in json format
-func GetPolicyJSON(policyContentStruct PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, error) {
+func getGPGIdFromKeyData(keys []string) []string {
+	var uids []string
+	for _, k := range keys {
+		decodeKey, err := base64.StdEncoding.DecodeString(k)
+		if err != nil {
+			logrus.Warnf("error decoding key data")
+			continue
+		}
+		tmpfileName, err := CreateTmpFile("", "", decodeKey)
+		if err != nil {
+			logrus.Warnf("error creating key date temp file %s", err)
+		}
+		defer os.Remove(tmpfileName)
+		k = tmpfileName
+		cmd := exec.Command("gpg2", "--with-colons", k)
+		results, err := cmd.Output()
+		if err != nil {
+			logrus.Warnf("error get key identity: %s", err)
+			continue
+		}
+		uids = append(uids, parseUids(results)...)
+	}
+	return uids
+}
+
+func parseUids(colonDelimitKeys []byte) []string {
+	var parseduids []string
+	scanner := bufio.NewScanner(bytes.NewReader(colonDelimitKeys))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "uid:") || strings.HasPrefix(line, "pub:") {
+			uid := strings.Split(line, ":")[9]
+			if uid == "" {
+				continue
+			}
+			parseduid := uid
+			if strings.Contains(uid, "<") && strings.Contains(uid, ">") {
+				parseduid = strings.SplitN(strings.SplitAfterN(uid, "<", 2)[1], ">", 2)[0]
+			}
+			parseduids = append(parseduids, parseduid)
+		}
+	}
+	return parseduids
+}
+
+var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
+
+func trustTypeDescription(trustType string) string {
+	trustDescription, exist := typeDescription[trustType]
+	if !exist {
+		logrus.Warnf("invalid trust type %s", trustType)
+	}
+	return trustDescription
+}
+
+// GetPolicy return the struct to show policy.json in json format and a map (reponame, ShowOutput) pair for image trust show command
+func GetPolicy(policyContentStruct PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, map[string]ShowOutput, error) {
 	registryConfigs, err := LoadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	trustShowOutputMap := make(map[string]ShowOutput)
 	policyJSON := make(map[string]map[string]interface{})
 	if len(policyContentStruct.Default) > 0 {
 		policyJSON["* (default)"] = make(map[string]interface{})
 		policyJSON["* (default)"]["type"] = policyContentStruct.Default[0].Type
+
+		var defaultPolicyStruct ShowOutput
+		defaultPolicyStruct.Repo = "default"
+		defaultPolicyStruct.Trusttype = trustTypeDescription(policyContentStruct.Default[0].Type)
+		trustShowOutputMap["* (default)"] = defaultPolicyStruct
 	}
 	for transname, transval := range policyContentStruct.Transports {
 		for repo, repoval := range transval {
+			tempTrustShowOutput := ShowOutput{
+				Repo:      repo,
+				Trusttype: repoval[0].Type,
+			}
 			policyJSON[repo] = make(map[string]interface{})
 			policyJSON[repo]["type"] = repoval[0].Type
 			policyJSON[repo]["transport"] = transname
+			keyDataArr := []string{}
+			keyPathArr := []string{}
+			keyarr := []string{}
 			for _, repoele := range repoval {
-				keyarr := []string{}
 				if len(repoele.KeyPath) > 0 {
 					keyarr = append(keyarr, repoele.KeyPath)
+					keyPathArr = append(keyPathArr, repoele.KeyPath)
 				}
 				if len(repoele.KeyData) > 0 {
 					keyarr = append(keyarr, string(repoele.KeyData))
+					keyDataArr = append(keyDataArr, string(repoele.KeyData))
 				}
-				policyJSON[repo]["keys"] = keyarr
 			}
+			policyJSON[repo]["keys"] = keyarr
+			uids := append(getGPGIdFromKeyPath(keyPathArr), getGPGIdFromKeyData(keyDataArr)...)
+			tempTrustShowOutput.GPGid = strings.Join(uids, ",")
+
 			policyJSON[repo]["sigstore"] = ""
 			registryNamespace := HaveMatchRegistry(repo, registryConfigs)
 			if registryNamespace != nil {
 				policyJSON[repo]["sigstore"] = registryNamespace.SigStore
+				tempTrustShowOutput.Sigstore = registryNamespace.SigStore
 			}
+			trustShowOutputMap[repo] = tempTrustShowOutput
 		}
 	}
-	return policyJSON, nil
+	return policyJSON, trustShowOutputMap, nil
 }
