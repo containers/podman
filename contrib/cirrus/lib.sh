@@ -17,6 +17,7 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
 CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
+START_STAMP_FILEPATH="${START_STAMP_FILEPATH:-/var/tmp/start.timestamp}"
 
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
@@ -133,6 +134,13 @@ ircmsg() {
     $SCRIPT $NICK $1
     echo "Ignoring exit($?)"
     set -e
+}
+
+start_timestamp() {
+    req_env_var "START_STAMP_FILEPATH $START_STAMP_FILEPATH"
+    [[ -r "$START_STAMP_FILEPATH" ]] || \
+        echo -e ".\nThe time at the tone will be:\n$(date --iso-8601=seconds | \
+            tee $START_STAMP_FILEPATH)\nBLEEEEEEEEEEP!\n.\n"  # Cirrus strips blank lines from output
 }
 
 # Run sudo in directory with GOPATH set
