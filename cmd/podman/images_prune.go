@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -30,5 +30,16 @@ func pruneImagesCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	return shared.Prune(runtime.ImageRuntime())
+	pruneImages, err := runtime.ImageRuntime().GetPruneImages()
+	if err != nil {
+		return err
+	}
+
+	for _, i := range pruneImages {
+		if err := i.Remove(true); err != nil {
+			return errors.Wrapf(err, "failed to remove %s", i.ID())
+		}
+		fmt.Println(i.ID())
+	}
+	return nil
 }
