@@ -11,7 +11,6 @@ import (
 
 var _ = Describe("Podman top", func() {
 	var (
-		result     int
 		tempdir    string
 		err        error
 		podmanTest *PodmanTestIntegration
