@@ -518,7 +518,9 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 	if c.CgroupParent != "" {
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
-	if c.Detach {
+	// For a rootless container always cleanup the storage/network as they
+	// run in a different namespace thus not reusable when we restart.
+	if c.Detach || rootless.IsRootless() {
 		options = append(options, libpod.WithExitCommand(c.createExitCommand()))
 	}
 
