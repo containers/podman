@@ -26,8 +26,6 @@ ifneq (,$(findstring varlink,$(BUILDTAGS)))
 endif
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 
-HAS_PYTHON3 := $(shell command -v python3 2>/dev/null)
-
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
@@ -88,9 +86,6 @@ endif
 lint: .gopathok varlink_generate
 	@echo "checking lint"
 	@./.tool/lint
-	# Not ready
-	# @$(MAKE) -C contrib/python/podman lint
-	# @$(MAKE) -C contrib/python/pypodman lint
 
 gofmt:
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
@@ -122,12 +117,6 @@ bin/podman.cross.%: .gopathok
 	GOARCH="$${TARGET##*.}" \
 	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
-python:
-ifdef HAS_PYTHON3
-	$(MAKE) -C contrib/python/podman python-podman
-	$(MAKE) -C contrib/python/pypodman python-pypodman
-endif
-
 clean:
 	rm -rf \
 		.gopathok \
@@ -147,8 +136,6 @@ clean:
 		$(MANPAGES) ||:
 	find . -name \*~ -delete
 	find . -name \#\* -delete
-	$(MAKE) -C contrib/python/podman clean
-	$(MAKE) -C contrib/python/pypodman clean
 
 libpodimage:
 	${CONTAINER_RUNTIME} build -t ${LIBPOD_IMAGE} .
@@ -181,17 +168,13 @@ localunit: test/goecho/goecho varlink_generate
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
-localintegration: varlink_generate test-binaries clientintegration ginkgo
+localintegration: varlink_generate test-binaries ginkgo
 
 localsystem: .install.ginkgo .install.gomega
 	ginkgo -v -noColor test/system/
 
 system.test-binary: .install.ginkgo .install.gomega
 	$(GO) test -c ./test/system
-
-clientintegration:
-	$(MAKE) -C contrib/python/podman integration
-	$(MAKE) -C contrib/python/pypodman integration
 
 perftest:
 	$ cd contrib/perftest;go build
@@ -230,7 +213,7 @@ changelog:
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
-install: .gopathok install.bin install.man install.cni install.systemd install.python
+install: .gopathok install.bin install.man install.cni install.systemd
 
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(BINDIR)
@@ -268,10 +251,6 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${SYSTEMDDIR}/io.podman.service
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
 
-install.python:
-	$(MAKE) DESTDIR=${DESTDIR} -C contrib/python/podman install
-	$(MAKE) DESTDIR=${DESTDIR} -C contrib/python/pypodman install
-
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man1/$$(basename $${i}); \
@@ -279,8 +258,6 @@ uninstall:
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
 	done
-	$(MAKE) -C contrib/python/pypodman uninstall
-	$(MAKE) -C contrib/python/podman uninstall
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
@@ -382,5 +359,3 @@ build-all-new-commits:
 	changelog \
 	validate \
 	install.libseccomp.sudo \
-	python \
-	clientintegration

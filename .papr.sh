@@ -25,14 +25,12 @@ pwd
 # -t integration test
 # -u unit test
 # -v validate
-# -p run python tests
 
 build=0
 install=0
 integrationtest=0
 unittest=0
 validate=0
-runpython=0
 options=0
 install_tools_made=0
 
@@ -44,9 +42,6 @@ while getopts "biptuv" opt; do
     i) install=1
        options=1
        ;;
-    p) runpython=1
-       options=1
-        ;;
     t) integrationtest=1
        options=1
        ;;
@@ -124,18 +119,11 @@ if [ $install -eq 1 ]; then
     make TAGS="${TAGS}" install.man PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.cni PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.systemd PREFIX=/usr ETCDIR=/etc
-    if [ $runpython -eq 1 ]; then
-        make TAGS="${TAGS}" install.python PREFIX=/usr ETCDIR=/etc
-    fi
-
 fi
 
 # Run integration tests
 if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
     make varlink_generate GOPATH=/go
-    if [ $runpython -eq 1 ]; then
-        make clientintegration GOPATH=/go
-    fi
     make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
 fi

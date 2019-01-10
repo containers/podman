@@ -1,5 +1,0 @@
-humanize
-podman
-pytoml
-PyYAML
-setuptools>=39

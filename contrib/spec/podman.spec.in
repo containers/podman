@@ -185,37 +185,6 @@ Provides: bundled(golang(k8s.io/utils)) = 258e2a2fa64568210fbd6267cf1d8fd87c3cb8
 %{repo} provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
-%if %{with varlink}
-%package -n python3-%{name}
-BuildArch: noarch
-BuildRequires: python3-devel
-BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
-Requires: python3-setuptools
-Requires: python3-varlink
-Requires: python3-dateutil
-Requires: python3-humanize
-Provides: python3-%{name} = %{version}-%{release}
-Summary: Python 3 bindings for %{name}
-
-%description -n python3-%{name}
-This package contains Python 3 bindings for %{name}.
-
-%package -n python3-py%{name}
-BuildArch: noarch
-BuildRequires: python3-devel
-BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
-Requires: python3-setuptools
-Requires: python3-varlink
-Requires: python3-dateutil
-Requires: python3-psutil
-Summary: Python 3 tool for %{name}
-
-%description -n python3-py%{name}
-This package contains Python 3 tool for %{name}.
-%endif # varlink
-
 %if 0%{?with_devel}
 %package devel
 Summary:       Library for applications looking to use Container Pods
@@ -421,10 +390,6 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{build
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
-%if %{with varlink}
-PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} install.python
-%endif # varlink
-
 # install libpod.conf
 install -dp %{buildroot}%{_datadir}/containers
 install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
@@ -513,23 +478,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_unitdir}/io.podman.service
 %{_unitdir}/io.podman.socket
 %{_usr}/lib/tmpfiles.d/%{name}.conf
-
-%if %{with varlink}
-%files -n python3-%{name}
-%license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
-%dir %{python3_sitelib}/%{name}
-%{python3_sitelib}/%{name}/*
-%{python3_sitelib}/%{name}*.egg-info
-
-%files -n python3-py%{name}
-%license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
-%dir %{python3_sitelib}/py%{name}
-%{python3_sitelib}/py%{name}/*
-%{python3_sitelib}/py%{name}*.egg-info
-%{_bindir}/py%{name}
-%endif # varlink
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list

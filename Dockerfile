@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     protobuf-c-compiler \
     protobuf-compiler \
-    python-minimal \
     libglib2.0-dev \
     libapparmor-dev \
     btrfs-tools \
@@ -37,11 +36,6 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     netcat \
     socat \
-    python3-pip \
-    python3-dateutil \
-    python3-setuptools \
-    python3-psutil \
-    python3-pytoml \
     lsof \
     xz-utils \
     --no-install-recommends \
@@ -128,9 +122,6 @@ COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-
-# Install python3 varlink module from pypi
-RUN pip3 install varlink
 
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
