@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -60,6 +61,15 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 	ctr.state.BindMounts = make(map[string]string)
 
+	// Path our lock file will reside at
+	lockPath := filepath.Join(r.lockDir, ctr.config.ID)
+	// Grab a lockfile at the given path
+	lock, err := storage.GetLockfile(lockPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating lockfile for new container")
+	}
+	ctr.lock = lock
+
 	ctr.config.StopTimeout = CtrRemoveTimeout
 
 	// Set namespace based on current runtime namespace
@@ -74,19 +84,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
-
-	// Allocate a lock for the container
-	lock, err := r.lockManager.AllocateLock()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error allocating lock for new container")
-	}
-	ctr.lock = lock
-	ctr.config.LockID = ctr.lock.ID()
-	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
-
-	ctr.valid = true
-	ctr.state.State = ContainerStateConfigured
-	ctr.runtime = r
 
 	ctr.valid = true
 	ctr.state.State = ContainerStateConfigured
@@ -379,15 +376,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 			} else {
 				logrus.Errorf("delete container: %v", err)
 			}
-		}
-	}
-
-	// Deallocate the container's lock
-	if err := c.lock.Free(); err != nil {
-		if cleanupErr == nil {
-			cleanupErr = err
-		} else {
-			logrus.Errorf("free container lock: %v", err)
 		}
 	}
 

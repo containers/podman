@@ -1,6 +1,6 @@
 GO ?= go
 DESTDIR ?= /
-EPOCH_TEST_COMMIT ?= e1732a5213147e3c0b7bf60b55a332c3720ecb4b
+EPOCH_TEST_COMMIT ?= 76c57f55cacb7916ca451e378d181b1c30c94032
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -168,7 +168,7 @@ localunit: test/goecho/goecho varlink_generate
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
-localintegration: varlink_generate test-binaries ginkgo
+localintegration: varlink_generate test-binaries clientintegration ginkgo
 
 localsystem: .install.ginkgo .install.gomega
 	ginkgo -v -noColor test/system/

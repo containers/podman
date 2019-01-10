@@ -23,7 +23,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r)
+	pod, err := newPod(r.lockDir, r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
@@ -47,14 +47,6 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		}
 		pod.config.Name = name
 	}
-
-	// Allocate a lock for the pod
-	lock, err := r.lockManager.AllocateLock()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error allocating lock for new pod")
-	}
-	pod.lock = lock
-	pod.config.LockID = pod.lock.ID()
 
 	pod.valid = true
 
@@ -246,11 +238,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			if err := ctr.delete(ctx); err != nil {
 				return err
 			}
-		}
-
-		// Free the container's lock
-		if err := ctr.lock.Free(); err != nil {
-			return err
 		}
 	}
 

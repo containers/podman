@@ -1,9 +1,10 @@
 package libpod
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/containers/libpod/libpod/lock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,12 +17,11 @@ func TestBuildContainerGraphNoCtrsIsEmpty(t *testing.T) {
 }
 
 func TestBuildContainerGraphOneCtr(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
 
 	graph, err := buildContainerGraph([]*Container{ctr1})
@@ -39,14 +39,13 @@ func TestBuildContainerGraphOneCtr(t *testing.T) {
 }
 
 func TestBuildContainerGraphTwoCtrNoEdge(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
-
-	ctr1, err := getTestCtr1(manager)
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	defer os.RemoveAll(tmpDir)
+
+	ctr1, err := getTestCtr1(tmpDir)
+	assert.NoError(t, err)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
 
 	graph, err := buildContainerGraph([]*Container{ctr1, ctr2})
@@ -65,14 +64,13 @@ func TestBuildContainerGraphTwoCtrNoEdge(t *testing.T) {
 }
 
 func TestBuildContainerGraphTwoCtrOneEdge(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
-
-	ctr1, err := getTestCtr1(manager)
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	defer os.RemoveAll(tmpDir)
+
+	ctr1, err := getTestCtr1(tmpDir)
+	assert.NoError(t, err)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
 	ctr2.config.UserNsCtr = ctr1.config.ID
 
@@ -87,14 +85,13 @@ func TestBuildContainerGraphTwoCtrOneEdge(t *testing.T) {
 }
 
 func TestBuildContainerGraphTwoCtrCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
-
-	ctr1, err := getTestCtr1(manager)
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	defer os.RemoveAll(tmpDir)
+
+	ctr1, err := getTestCtr1(tmpDir)
+	assert.NoError(t, err)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
 	ctr2.config.UserNsCtr = ctr1.config.ID
 	ctr1.config.NetNsCtr = ctr2.config.ID
@@ -104,16 +101,15 @@ func TestBuildContainerGraphTwoCtrCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphThreeCtrNoEdges(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
 
 	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3})
@@ -136,16 +132,15 @@ func TestBuildContainerGraphThreeCtrNoEdges(t *testing.T) {
 }
 
 func TestBuildContainerGraphThreeContainersTwoInCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
 	ctr1.config.UserNsCtr = ctr2.config.ID
 	ctr2.config.IPCNsCtr = ctr1.config.ID
@@ -155,16 +150,15 @@ func TestBuildContainerGraphThreeContainersTwoInCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphThreeContainersCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
 	ctr1.config.UserNsCtr = ctr2.config.ID
 	ctr2.config.IPCNsCtr = ctr3.config.ID
@@ -175,16 +169,15 @@ func TestBuildContainerGraphThreeContainersCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphThreeContainersNoCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
 	ctr1.config.UserNsCtr = ctr2.config.ID
 	ctr1.config.NetNsCtr = ctr3.config.ID
@@ -201,18 +194,17 @@ func TestBuildContainerGraphThreeContainersNoCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphFourContainersNoEdges(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
-	ctr4, err := getTestCtrN("4", manager)
+	ctr4, err := getTestCtrN("4", tmpDir)
 	assert.NoError(t, err)
 
 	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
@@ -239,20 +231,18 @@ func TestBuildContainerGraphFourContainersNoEdges(t *testing.T) {
 }
 
 func TestBuildContainerGraphFourContainersTwoInCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
-	ctr4, err := getTestCtrN("4", manager)
+	ctr4, err := getTestCtrN("4", tmpDir)
 	assert.NoError(t, err)
-
 	ctr1.config.IPCNsCtr = ctr2.config.ID
 	ctr2.config.UserNsCtr = ctr1.config.ID
 
@@ -261,20 +251,18 @@ func TestBuildContainerGraphFourContainersTwoInCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphFourContainersAllInCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
-	ctr4, err := getTestCtrN("4", manager)
+	ctr4, err := getTestCtrN("4", tmpDir)
 	assert.NoError(t, err)
-
 	ctr1.config.IPCNsCtr = ctr2.config.ID
 	ctr2.config.UserNsCtr = ctr3.config.ID
 	ctr3.config.NetNsCtr = ctr4.config.ID
@@ -285,20 +273,18 @@ func TestBuildContainerGraphFourContainersAllInCycle(t *testing.T) {
 }
 
 func TestBuildContainerGraphFourContainersNoneInCycle(t *testing.T) {
-	manager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		t.Fatalf("Error setting up locks: %v", err)
-	}
+	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
-	ctr1, err := getTestCtr1(manager)
+	ctr1, err := getTestCtr1(tmpDir)
 	assert.NoError(t, err)
-	ctr2, err := getTestCtr2(manager)
+	ctr2, err := getTestCtr2(tmpDir)
 	assert.NoError(t, err)
-	ctr3, err := getTestCtrN("3", manager)
+	ctr3, err := getTestCtrN("3", tmpDir)
 	assert.NoError(t, err)
-	ctr4, err := getTestCtrN("4", manager)
+	ctr4, err := getTestCtrN("4", tmpDir)
 	assert.NoError(t, err)
-
 	ctr1.config.IPCNsCtr = ctr2.config.ID
 	ctr1.config.NetNsCtr = ctr3.config.ID
 	ctr2.config.UserNsCtr = ctr3.config.ID
