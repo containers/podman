@@ -316,8 +316,20 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 
 		storageConf := StorageConfigFile()
 		if _, err := os.Stat(storageConf); err == nil {
+			defaultRootlessRunRoot := storageOpts.RunRoot
+			defaultRootlessGraphRoot := storageOpts.GraphRoot
 			storageOpts = storage.StoreOptions{}
 			storage.ReloadConfigurationFile(storageConf, &storageOpts)
+
+			// If the file did not specify a graphroot or runroot,
+			// set sane defaults so we don't try and use root-owned
+			// directories
+			if storageOpts.RunRoot == "" {
+				storageOpts.RunRoot = defaultRootlessRunRoot
+			}
+			if storageOpts.GraphRoot == "" {
+				storageOpts.GraphRoot = defaultRootlessGraphRoot
+			}
 		} else if os.IsNotExist(err) {
 			os.MkdirAll(filepath.Dir(storageConf), 0755)
 			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
