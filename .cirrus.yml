@@ -104,7 +104,7 @@ build_each_commit_task:
         - "gating"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
-    only_if: $CIRRUS_BRANCH != 'master'
+    only_if: $CIRRUS_BRANCH != 'v1.0'
 
     gce_instance:
         image_project: "libpod-218412"
@@ -170,7 +170,7 @@ optional_testing_task:
     # in the PR description.  Post-merge system testing is assumed to happen
     # later from OS distribution's build systems.
     only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_BRANCH != 'v1.0' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
     gce_instance:
@@ -197,7 +197,7 @@ cache_images_task:
     # Only produce new cache-images after a PR merge, and if a magic string
     # is present in the most recent commit-message.
     only_if: >-
-        $CIRRUS_BRANCH == 'master' &&
+        $CIRRUS_BRANCH == 'v1.0' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
 
     # Require tests to pass first.
