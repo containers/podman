@@ -36,7 +36,7 @@ type SHMLocks struct { // nolint
 // size used by the underlying implementation.
 func CreateSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 	if numLocks == 0 {
-		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be greater than 0")
+		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must greater than 0 0")
 	}
 
 	locks := new(SHMLocks)
@@ -65,7 +65,7 @@ func CreateSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 // segment was created with.
 func OpenSHMLock(path string, numLocks uint32) (*SHMLocks, error) {
 	if numLocks == 0 {
-		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must be greater than 0")
+		return nil, errors.Wrapf(syscall.EINVAL, "number of locks must greater than 0")
 	}
 
 	locks := new(SHMLocks)
