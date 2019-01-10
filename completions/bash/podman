@@ -32,6 +32,9 @@ __podman_containers() {
 	__podman_q ps --format "$format" "$@"
 }
 
+__podman_list_registries() {
+        sed -n -e '/registries.*=/ {s/.*\[\([^]]*\).*/\1/p;q}' /etc/containers/registries.conf  | sed -e "s/[,']//g"
+}
 
 # __podman_pods returns a list of pods. Additional options to
 # `podman pod ps` may be specified in order to filter the list, e.g.
@@ -365,6 +368,7 @@ __podman_subcommands() {
 	local subcommands="$1"
 
 	local counter=$(($command_pos + 1))
+
 	while [ $counter -lt $cword ]; do
 		case "${words[$counter]}" in
 			$(__podman_to_extglob "$subcommands") )
@@ -1296,7 +1300,9 @@ _podman_image() {
 	 push
 	 rm
 	 save
+	 sign
 	 tag
+	 trust
      "
      local aliases="
 	 list
@@ -2356,6 +2362,92 @@ _podman_container_runlabel() {
     esac
 }
 
+_podman_image_sign() {
+    local options_with_args="
+	-d
+	--directory
+	--sign-by
+    "
+    local boolean_options="
+	--help
+	-h
+    "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images
+	    ;;
+    esac
+}
+
+_podman_image_trust_set() {
+    echo hello
+    local options_with_args="
+	-f
+	--type
+	--pubkeysfile
+    "
+    local boolean_options="
+	--help
+	-h
+    "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    COMPREPLY=($(compgen -W "default $( __podman_list_registries )" -- "$cur"))
+	    ;;
+    esac
+}
+
+_podman_image_trust_show() {
+    local options_with_args="
+    "
+    local boolean_options="
+	--help
+	-h
+	-j
+	--json
+	--raw
+    "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images
+	    ;;
+    esac
+}
+
+_podman_image_trust() {
+    local boolean_options="
+	--help
+	-h
+     "
+     subcommands="
+	 set
+	 show
+     "
+     local aliases="
+	 list
+     "
+     command=image_trust
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
+
 _podman_images_prune() {
     local options_with_args="
     "
@@ -2364,6 +2456,11 @@ _podman_images_prune() {
      -h
 	 --help
   "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
 }
 
 _podman_container_prune() {
@@ -2382,6 +2479,15 @@ _podman_container_exists() {
 
     local boolean_options="
   "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    __podman_complete_images
+	    ;;
+    esac
+
 }
 
 _podman_pod_exists() {
@@ -2813,6 +2919,7 @@ _podman_podman() {
     export
     generate
     history
+    image
     images
     import
     info

@@ -5,8 +5,8 @@ podman-image-sign- Create a signature for an image
 
 # SYNOPSIS
 **podman image sign**
-[**-h**|**--help**]
-[**-d**, **--directory**]
+[**--help**|**-h**]
+[**--directory**|**-d**]
 [**--sign-by**]
 [ IMAGE... ]
 
@@ -16,10 +16,10 @@ been pulled from a registry. The signature will be written to a directory
 derived from the registry configuration files in /etc/containers/registries.d. By default, the signature will be written into /var/lib/containers/sigstore directory.
 
 # OPTIONS
-**-h** **--help**
+**--help** **-h**
   Print usage statement.
 
-**-d** **--directory**
+**--directory** **-d**
   Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
 
 **--sign-by**
@@ -28,7 +28,7 @@ derived from the registry configuration files in /etc/containers/registries.d. B
 # EXAMPLES
 Sign the busybox image with the identify of foo@bar.com with a user's keyring and save the signature in /tmp/signatures/.
 
-   sudo podman image sign --sign-by foo@bar.com -d /tmp/signatures transport://privateregistry.example.com/foobar
+   sudo podman image sign --sign-by foo@bar.com --directory /tmp/signatures docker://privateregistry.example.com/foobar
 
 # RELATED CONFIGURATION
 
@@ -36,7 +36,7 @@ The write (and read) location for signatures is defined in YAML-based
 configuration files in /etc/containers/registries.d/.  When you sign
 an image, podman will use those configuration files to determine
 where to write the signature based on the the name of the originating
-registry or a default storage value unless overriden with the -d
+registry or a default storage value unless overriden with the --directory
 option. For example, consider the following configuration file.
 
 docker:
