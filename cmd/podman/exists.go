@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -66,13 +67,15 @@ func imageExistsCmd(c *cli.Context) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one image at a time")
 	}
-	runtime, err := libpodruntime.GetRuntime(c)
+	localRuntime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
-	if _, err := runtime.ImageRuntime().NewFromLocal(args[0]); err != nil {
-		if errors.Cause(err) == image.ErrNoSuchImage {
+	defer localRuntime.Runtime.Shutdown(false)
+	if _, err := localRuntime.NewImageFromLocal(args[0]); err != nil {
+		//TODO we need to ask about having varlink defined errors exposed
+		//so we can reuse them
+		if errors.Cause(err) == image.ErrNoSuchImage || err.Error() == "io.podman.ImageNotFound" {
 			os.Exit(1)
 		}
 		return err

@@ -1,6 +1,6 @@
 GO ?= go
 DESTDIR ?= /
-EPOCH_TEST_COMMIT ?= e1732a5213147e3c0b7bf60b55a332c3720ecb4b
+EPOCH_TEST_COMMIT ?= bd40dcfc2bc7c9014ea1f33482fb63aacbcdfe87
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -108,6 +108,9 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
 	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+
+podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES)
+	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS)
 

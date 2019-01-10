@@ -1,3 +1,5 @@
+//+build linux
+
 package libpod
 
 import (
@@ -26,25 +28,6 @@ const (
 	AttachPipeStdout = 2
 	AttachPipeStderr = 3
 )
-
-// AttachStreams contains streams that will be attached to the container
-type AttachStreams struct {
-	// OutputStream will be attached to container's STDOUT
-	OutputStream io.WriteCloser
-	// ErrorStream will be attached to container's STDERR
-	ErrorStream io.WriteCloser
-	// InputStream will be attached to container's STDIN
-	InputStream io.Reader
-	// AttachOutput is whether to attach to STDOUT
-	// If false, stdout will not be attached
-	AttachOutput bool
-	// AttachError is whether to attach to STDERR
-	// If false, stdout will not be attached
-	AttachError bool
-	// AttachInput is whether to attach to STDIN
-	// If false, stdout will not be attached
-	AttachInput bool
-}
 
 // Attach to the given container
 // Does not check if state is appropriate

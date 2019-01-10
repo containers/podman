@@ -66,6 +66,7 @@ type remoteImage struct {
 	Names       []string
 	Digest      digest.Digest
 	isParent    bool
+	Runtime     *LocalRuntime
 }
 
 // GetImages returns a slice of containerimages over a varlink connection
@@ -80,7 +81,7 @@ func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 		if len(i.RepoTags) > 1 {
 			name = i.RepoTags[0]
 		}
-		newImage, err := imageInListToContainerImage(i, name)
+		newImage, err := imageInListToContainerImage(i, name, r)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +90,7 @@ func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 	return newImages, nil
 }
 
-func imageInListToContainerImage(i iopodman.ImageInList, name string) (*ContainerImage, error) {
+func imageInListToContainerImage(i iopodman.ImageInList, name string, runtime *LocalRuntime) (*ContainerImage, error) {
 	imageParts, err := image.DecomposeString(name)
 	if err != nil {
 		return nil, err
@@ -111,6 +112,7 @@ func imageInListToContainerImage(i iopodman.ImageInList, name string) (*Containe
 		Repository:  imageParts.Registry,
 		Names:       i.RepoTags,
 		isParent:    i.IsParent,
+		Runtime:     runtime,
 	}
 	return &ContainerImage{ri}, nil
 }
@@ -121,7 +123,7 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return imageInListToContainerImage(img, name)
+	return imageInListToContainerImage(img, name, r)
 
 }
 
@@ -172,4 +174,14 @@ func (ci *ContainerImage) Labels(ctx context.Context) (map[string]string, error)
 // Dangling returns a bool if the image is "dangling"
 func (ci *ContainerImage) Dangling() bool {
 	return len(ci.Names()) == 0
+}
+
+// TagImage ...
+func (ci *ContainerImage) TagImage(tag string) error {
+	_, err := iopodman.TagImage().Call(ci.Runtime.Conn, ci.ID(), tag)
+	return err
+}
+
+func (r RemoteRuntime) RemoveImage(force bool) error {
+	return nil
 }
