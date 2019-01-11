@@ -175,43 +175,30 @@ func CreateTmpFile(dir, pattern string, content []byte) (string, error) {
 	return tmpfile.Name(), nil
 }
 
-func getGPGIdFromKeyPath(path []string) []string {
-	var uids []string
-	for _, k := range path {
-		cmd := exec.Command("gpg2", "--with-colons", k)
-		results, err := cmd.Output()
-		if err != nil {
-			logrus.Warnf("error get key identity: %s", err)
-			continue
-		}
-		uids = append(uids, parseUids(results)...)
+// GetGPGIdFromKeyPath return user keyring from key path
+func GetGPGIdFromKeyPath(path string) []string {
+	cmd := exec.Command("gpg2", "--with-colons", path)
+	results, err := cmd.Output()
+	if err != nil {
+		logrus.Errorf("error getting key identity: %s", err)
+		return nil
 	}
-	return uids
+	return parseUids(results)
 }
 
-func getGPGIdFromKeyData(keys []string) []string {
-	var uids []string
-	for _, k := range keys {
-		decodeKey, err := base64.StdEncoding.DecodeString(k)
-		if err != nil {
-			logrus.Warnf("error decoding key data")
-			continue
-		}
-		tmpfileName, err := CreateTmpFile("", "", decodeKey)
-		if err != nil {
-			logrus.Warnf("error creating key date temp file %s", err)
-		}
-		defer os.Remove(tmpfileName)
-		k = tmpfileName
-		cmd := exec.Command("gpg2", "--with-colons", k)
-		results, err := cmd.Output()
-		if err != nil {
-			logrus.Warnf("error get key identity: %s", err)
-			continue
-		}
-		uids = append(uids, parseUids(results)...)
+// GetGPGIdFromKeyData return user keyring from keydata
+func GetGPGIdFromKeyData(key string) []string {
+	decodeKey, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		logrus.Errorf("%s, error decoding key data", err)
+		return nil
 	}
-	return uids
+	tmpfileName, err := CreateTmpFile("", "", decodeKey)
+	if err != nil {
+		logrus.Errorf("error creating key date temp file %s", err)
+	}
+	defer os.Remove(tmpfileName)
+	return GetGPGIdFromKeyPath(tmpfileName)
 }
 
 func parseUids(colonDelimitKeys []byte) []string {
@@ -234,68 +221,15 @@ func parseUids(colonDelimitKeys []byte) []string {
 	return parseduids
 }
 
-var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
-
-func trustTypeDescription(trustType string) string {
-	trustDescription, exist := typeDescription[trustType]
-	if !exist {
-		logrus.Warnf("invalid trust type %s", trustType)
-	}
-	return trustDescription
-}
-
-// GetPolicy return the struct to show policy.json in json format and a map (reponame, ShowOutput) pair for image trust show command
-func GetPolicy(policyContentStruct PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, map[string]ShowOutput, error) {
-	registryConfigs, err := LoadAndMergeConfig(systemRegistriesDirPath)
+// GetPolicy parse policy.json into PolicyContent struct
+func GetPolicy(policyPath string) (PolicyContent, error) {
+	var policyContentStruct PolicyContent
+	policyContent, err := ioutil.ReadFile(policyPath)
 	if err != nil {
-		return nil, nil, err
+		return policyContentStruct, errors.Wrapf(err, "unable to read policy file %s", policyPath)
 	}
-
-	trustShowOutputMap := make(map[string]ShowOutput)
-	policyJSON := make(map[string]map[string]interface{})
-	if len(policyContentStruct.Default) > 0 {
-		policyJSON["* (default)"] = make(map[string]interface{})
-		policyJSON["* (default)"]["type"] = policyContentStruct.Default[0].Type
-
-		var defaultPolicyStruct ShowOutput
-		defaultPolicyStruct.Repo = "default"
-		defaultPolicyStruct.Trusttype = trustTypeDescription(policyContentStruct.Default[0].Type)
-		trustShowOutputMap["* (default)"] = defaultPolicyStruct
+	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
+		return policyContentStruct, errors.Wrapf(err, "could not parse trust policies")
 	}
-	for transname, transval := range policyContentStruct.Transports {
-		for repo, repoval := range transval {
-			tempTrustShowOutput := ShowOutput{
-				Repo:      repo,
-				Trusttype: repoval[0].Type,
-			}
-			policyJSON[repo] = make(map[string]interface{})
-			policyJSON[repo]["type"] = repoval[0].Type
-			policyJSON[repo]["transport"] = transname
-			keyDataArr := []string{}
-			keyPathArr := []string{}
-			keyarr := []string{}
-			for _, repoele := range repoval {
-				if len(repoele.KeyPath) > 0 {
-					keyarr = append(keyarr, repoele.KeyPath)
-					keyPathArr = append(keyPathArr, repoele.KeyPath)
-				}
-				if len(repoele.KeyData) > 0 {
-					keyarr = append(keyarr, string(repoele.KeyData))
-					keyDataArr = append(keyDataArr, string(repoele.KeyData))
-				}
-			}
-			policyJSON[repo]["keys"] = keyarr
-			uids := append(getGPGIdFromKeyPath(keyPathArr), getGPGIdFromKeyData(keyDataArr)...)
-			tempTrustShowOutput.GPGid = strings.Join(uids, ",")
-
-			policyJSON[repo]["sigstore"] = ""
-			registryNamespace := HaveMatchRegistry(repo, registryConfigs)
-			if registryNamespace != nil {
-				policyJSON[repo]["sigstore"] = registryNamespace.SigStore
-				tempTrustShowOutput.Sigstore = registryNamespace.SigStore
-			}
-			trustShowOutputMap[repo] = tempTrustShowOutput
-		}
-	}
-	return policyJSON, trustShowOutputMap, nil
+	return policyContentStruct, nil
 }
