@@ -3,6 +3,7 @@ package varlink
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 )
@@ -18,6 +19,7 @@ const (
 
 // Error is a varlink error returned from a method call.
 type Error struct {
+	error
 	Name       string
 	Parameters interface{}
 }
@@ -189,6 +191,11 @@ func NewConnection(address string) (*Connection, error) {
 	var err error
 
 	words := strings.SplitN(address, ":", 2)
+
+	if len(words) != 2 {
+		return nil, fmt.Errorf("Protocol missing")
+	}
+
 	protocol := words[0]
 	addr := words[1]
 
