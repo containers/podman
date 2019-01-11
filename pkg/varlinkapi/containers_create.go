@@ -25,7 +25,7 @@ func (i *LibpodAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.C
 	rtc := i.Runtime.GetConfig()
 	ctx := getContext()
 
-	newImage, err := i.Runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false)
+	newImage, err := i.Runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, nil)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

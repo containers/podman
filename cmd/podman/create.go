@@ -134,7 +134,7 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 			writer = os.Stderr
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false)
+		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false, nil)
 		if err != nil {
 			return nil, nil, err
 		}

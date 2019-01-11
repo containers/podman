@@ -146,7 +146,7 @@ func playKubeYAMLCmd(c *cli.Context) error {
 	}
 
 	for _, container := range podYAML.Spec.Containers {
-		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, false)
+		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.String("signature-policy"), c.String("authfile"), writer, &dockerRegistryOptions, image2.SigningOptions{}, false, nil)
 		if err != nil {
 			return err
 		}

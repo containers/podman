@@ -573,7 +573,7 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 		}
 		imageID = newImage[0].ID()
 	} else {
-		newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", nil, &dockerRegistryOptions, so, false)
+		newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", nil, &dockerRegistryOptions, so, false, nil)
 		if err != nil {
 			return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
 		}
@@ -610,15 +610,15 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 
 	runLabel, imageName, err := shared.GetRunlabel(input.Label, input.Image, ctx, i.Runtime, input.Pull, input.Creds, dockerRegistryOptions, input.Authfile, input.SignaturePolicyPath, nil)
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	if runLabel == "" {
-		return nil
+		return call.ReplyErrorOccurred(fmt.Sprintf("%s does not contain the label %s", input.Image, input.Label))
 	}
 
 	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs)
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	if err := utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...); err != nil {
 		return call.ReplyErrorOccurred(err.Error())

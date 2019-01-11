@@ -26,6 +26,9 @@ If the container image has a LABEL INSTALL instruction like the following:
 
 `podman container runlabel` will set the following environment variables for use in the command:
 
+If the container image does not have the desired label, an error message will be displayed along with a non-zero
+return code.
+
 Note: Podman will always ensure that `podman` is the first argument of the command being executed.
 
 **LABEL**

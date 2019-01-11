@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"strings"
 	"time"
@@ -156,7 +157,10 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 }
 
 // New calls into local storage to look for an image in local storage or to pull it
-func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool) (*ContainerImage, error) {
+func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
+	if label != nil {
+		return nil, errors.New("the remote client function does not support checking a remote image for a label")
+	}
 	// TODO Creds needs to be figured out here too, like above
 	tlsBool := dockeroptions.DockerInsecureSkipTLSVerify
 	// Remember SkipTlsVerify is the opposite of tlsverify
