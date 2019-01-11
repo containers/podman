@@ -168,7 +168,7 @@ localunit: test/goecho/goecho varlink_generate
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
-localintegration: varlink_generate test-binaries clientintegration ginkgo
+localintegration: varlink_generate test-binaries ginkgo
 
 localsystem: .install.ginkgo .install.gomega
 	ginkgo -v -noColor test/system/
