@@ -185,7 +185,7 @@ run-perftest: perftest
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate easyjson_generate podman
+binaries: varlink_generate podman
 
 install.catatonit:
 	./hack/install_catatonit.sh
@@ -265,7 +265,7 @@ uninstall:
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.easyjson .install.ginkgo .install.gomega
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.gomega
 
 .install.gomega: .gopathok
 	$(GO) get github.com/onsi/gomega/...
@@ -294,11 +294,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		   $(GO) get -u github.com/cpuguy83/go-md2man; \
 	fi
 
-.install.easyjson: .gopathok
-	if [ ! -x "$(GOBIN)/easyffjson" ]; then \
-		  $(GO) get -u github.com/mailru/easyjson/...; \
-	fi
-
 .install.ostree: .gopathok
 	if ! pkg-config ostree-1 2> /dev/null ; then \
 		git clone https://github.com/ostreedev/ostree $(FIRST_GOPATH)/src/github.com/ostreedev/ostree ; \
@@ -309,16 +304,6 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
 varlink_api_generate: .gopathok API.md
-
-easyjson_generate: .gopathok libpod/container_easyjson.go libpod/pod_easyjson.go
-
-libpod/container_easyjson.go: libpod/container.go
-	rm -f libpod/container_easyjson.go
-	cd "$(GOPKGDIR)" && easyjson -build_tags "$(BUILDTAGS)" ./libpod/container.go
-
-libpod/pod_easyjson.go: libpod/pod.go
-	rm -f libpod/pod_easyjson.go
-	cd "$(GOPKGDIR)" && easyjson -build_tags "$(BUILDTAGS)" ./libpod/pod.go
 
 .PHONY: install.libseccomp.sudo
 install.libseccomp.sudo:

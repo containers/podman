@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"

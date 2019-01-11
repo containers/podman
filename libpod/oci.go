@@ -3,7 +3,6 @@ package libpod
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"

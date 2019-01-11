@@ -2,14 +2,16 @@ package libpod
 
 import (
 	"bytes"
-	"encoding/json"
 	"strings"
 	"sync"
 
 	"github.com/boltdb/bolt"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // BoltState is a state implementation backed by a Bolt DB
 type BoltState struct {

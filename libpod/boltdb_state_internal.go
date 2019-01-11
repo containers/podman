@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"bytes"
-	"encoding/json"
 	"runtime"
 	"strings"
 
