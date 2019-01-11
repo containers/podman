@@ -121,6 +121,19 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	return ctrNS, networkStatus, err
 }
 
+type slirp4netnsCmdArg struct {
+	Proto     string `json:"proto,omitempty"`
+	HostAddr  string `json:"host_addr"`
+	HostPort  int32  `json:"host_port"`
+	GuestAddr string `json:"guest_addr"`
+	GuestPort int32  `json:"guest_port"`
+}
+
+type slirp4netnsCmd struct {
+	Execute string            `json:"execute"`
+	Args    slirp4netnsCmdArg `json:"arguments"`
+}
+
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer ctr.rootlessSlirpSyncR.Close()
@@ -139,7 +152,15 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer syncR.Close()
 	defer syncW.Close()
 
-	cmd := exec.Command(path, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	havePortMapping := len(ctr.Config().PortMappings) > 0
+	apiSocket := filepath.Join(r.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+	var cmd *exec.Cmd
+	if havePortMapping {
+		// if we need ports to be mapped from the host, create a API socket to use for communicating with slirp4netns.
+		cmd = exec.Command(path, "-c", "-e", "3", "-r", "4", "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	} else {
+		cmd = exec.Command(path, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+	}
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -162,17 +183,97 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 			if os.IsTimeout(err) {
 				// Check if the process is still running.
 				var status syscall.WaitStatus
-				_, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
 				if err != nil {
 					return errors.Wrapf(err, "failed to read slirp4netns process status")
+				}
+				if pid != cmd.Process.Pid {
+					continue
 				}
 				if status.Exited() || status.Signaled() {
 					return errors.New("slirp4netns failed")
 				}
-
 				continue
 			}
 			return errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+		}
+	}
+
+	if havePortMapping {
+		const pidWaitTimeout = 60 * time.Second
+		chWait := make(chan error)
+		go func() {
+			interval := 25 * time.Millisecond
+			for i := time.Duration(0); i < pidWaitTimeout; i += interval {
+				// Check if the process is still running.
+				var status syscall.WaitStatus
+				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+				if err != nil {
+					break
+				}
+				if pid != cmd.Process.Pid {
+					continue
+				}
+				if status.Exited() || status.Signaled() {
+					chWait <- fmt.Errorf("slirp4netns exited with status %d", status.ExitStatus())
+				}
+				time.Sleep(interval)
+			}
+		}()
+		defer close(chWait)
+
+		// wait that API socket file appears before trying to use it.
+		if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout*time.Millisecond); err != nil {
+			return errors.Wrapf(err, "waiting for slirp4nets to create the api socket file %s", apiSocket)
+		}
+
+		// for each port we want to add we need to open a connection to the slirp4netns control socket
+		// and send the add_hostfwd command.
+		for _, i := range ctr.config.PortMappings {
+			conn, err := net.Dial("unix", apiSocket)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
+			}
+			defer conn.Close()
+			hostIP := i.HostIP
+			if hostIP == "" {
+				hostIP = "0.0.0.0"
+			}
+			cmd := slirp4netnsCmd{
+				Execute: "add_hostfwd",
+				Args: slirp4netnsCmdArg{
+					Proto:     i.Protocol,
+					HostAddr:  hostIP,
+					HostPort:  i.HostPort,
+					GuestPort: i.ContainerPort,
+				},
+			}
+			// create the JSON payload and send it.  Mark the end of request shutting down writes
+			// to the socket, as requested by slirp4netns.
+			data, err := json.Marshal(&cmd)
+			if err != nil {
+				return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
+			}
+			if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
+				return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
+			}
+			if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
+				return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
+			}
+			buf := make([]byte, 2048)
+			len, err := conn.Read(buf)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
+			}
+			// if there is no 'error' key in the received JSON data, then the operation was
+			// successful.
+			var y map[string]interface{}
+			if err := json.Unmarshal(buf[0:len], &y); err != nil {
+				return errors.Wrapf(err, "error parsing error status from slirp4netns")
+			}
+			if e, found := y["error"]; found {
+				return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
+			}
 		}
 	}
 	return nil
