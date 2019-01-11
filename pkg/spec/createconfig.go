@@ -341,10 +341,9 @@ func (c *CreateConfig) createExitCommand() []string {
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
-func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
+func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
-	var pod *libpod.Pod
 	var err error
 
 	if c.Interactive {
@@ -358,12 +357,14 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime) ([]lib
 		logrus.Debugf("appending name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
-	if c.Pod != "" {
-		logrus.Debugf("adding container to pod %s", c.Pod)
-		pod, err = runtime.LookupPod(c.Pod)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
+	if c.Pod != "" || pod != nil {
+		if pod == nil {
+			pod, err = runtime.LookupPod(c.Pod)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
+			}
 		}
+		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
 	}
 	if len(c.PortBindings) > 0 {

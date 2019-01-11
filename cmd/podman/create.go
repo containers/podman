@@ -144,7 +144,7 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 		return nil, nil, err
 	}
 
-	ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx)
+	ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -817,17 +817,16 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 	return rootless.BecomeRootInUserNS()
 }
 
-func createContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context) (*libpod.Container, error) {
+func createContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	options, err := createConfig.GetContainerCreateOptions(r)
+	options, err := createConfig.GetContainerCreateOptions(r, pod)
 	if err != nil {
 		return nil, err
 	}
-
 	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, r)
 	if err != nil {
 		return nil, err

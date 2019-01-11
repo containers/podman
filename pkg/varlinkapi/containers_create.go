@@ -41,7 +41,9 @@ func (i *LibpodAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.C
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
-	options, err := createConfig.GetContainerCreateOptions(i.Runtime)
+	// TODO fix when doing remote client and dealing with the ability to create a container
+	// within a non-existing pod (i.e. --pod new:foobar)
+	options, err := createConfig.GetContainerCreateOptions(i.Runtime, nil)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

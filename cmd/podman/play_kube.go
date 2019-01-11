@@ -154,7 +154,7 @@ func playKubeYAMLCmd(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx)
+		ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 		if err != nil {
 			return err
 		}
