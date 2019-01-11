@@ -1,3 +1,100 @@
+- Changelog for v1.0.0 (2018-1-11)
+  * Update release notes for v1.0
+  * Remove clientintegration from Makefile
+  * Regenerate EasyJSON to fix JSON issues
+  * Update gitvalidation to avoid reverts w/o signoffs
+  * Cirrus: Post-Merge Testing for v1.0 Branch
+  * Move python code from contrib to it's own repo python-podman
+  * Use defaults if paths are not specified in storage.conf
+  * (Minor) Cirrus: Print timestamp at start
+  * fix up sigstore path
+  * Trivial readme updates
+  * podman: bump RLIMIT_NOFILE also without CAP_SYS_RESOURCE
+  * Fix handling of nil volumes
+  * sign: make all error messages lowercase
+  * sign: use filepath.Join instead of fmt.Sprintf
+  * createconfig: always cleanup a rootless container
+  * Fix 'image trust' from PR1899
+  * libpod/image: Use ParseNormalizedNamed in RepoDigests
+  * apparmor: apply default profile at container initialization
+  * Fix up image sign and trust
+  * List the long variant of each option before its shorter counterpart
+  * Use existing interface to request IP address during restore
+  * Added checkpoint/restore test for same IP
+  * Enable checkpoint test with established TCP connections
+  * .github/ISSUE_TEMPLATE: Suggest '/kind bug' and '/kind feature'
+  * pkg/hooks/exec: Include failed command in hook errors
+  * hooks/exec/runtimeconfigfilter: Log config changes
+  * hooks: Add pre-create hooks for runtime-config manipulation
+  * Add Validate completions
+  * Add a --workdir option to 'podman exec'
+  * Default --sig-proxy to true for 'podman start --attach'
+  * Test that 'podman start --sig-proxy' does not work without --attach
+  * [WIP]Support podman image sign
+  * vendor latest buildah
+  * Honor image environment variables with exec
+  * Minor: Remove redundant basename command in ooe.sh
+  * Rename libpod.Config back to ContainerConfig
+  * Add ability to build golang remote client
+  * vendor latest buildah
+  * Add the configuration file used to setup storage to podman info
+  * podman: set umask to 022
+  * podman-login: adhere to user input
+  * Vendor in latest containers/buildah code
+  * Readd Python testing
+  * Update vendor of runc
+  * [skip ci] Docs: Add Bot Interactions section
+  * container runlabel NAME implementation
+  * Bump time for build_each_commit step
+  * add container-init support
+  * If local storage file exists, then use it rather then defaults.
+  * vendor in new containers/storage
+  * Fix completions
+  * Touch up some troubleshooting nits
+  * Log container command before starting the container
+  * Use sprintf to generate port numbers while committing
+  * Add troubleshooting for sparse files
+  * Fix handling of symbolic links
+  * podman build is not using the default oci-runtime
+  * Re-enable checkpoint/restore CI tests on Fedora
+  * Fixes to handle /dev/shm correctly.
+  * rootless tests using stop is more reliable
+  * Allow alias for list, ls, ps to work
+  * Refactor: use idtools.ParseIDMap instead of bundling own version
+  * cirrus: Use updated images including new crui
+  * Switch all referencs to image.ContainerConfig to image.Config
+  * Allow users to specify a directory for additonal devices
+  * Change all 'can not' to 'cannot' for proper usage
+  * Invalid index for array
+  * Vendor in latest psgo code to fix race conditions
+  * test: add test for rootless export
+  * export: fix usage with rootless containers
+  * rootless: add function to join user and mount namespace
+  * libpod: always store the conmon pid file
+  * Use existing CRIU packages in CI setup
+  * skip test for blkio.weight when kernel does not support it
+  * Add Play
+  * Cirrus: Skip build all commits test on master
+  * prepare for move to validate on 1.11 only
+  * [skip ci] Gate: Update docs w/ safer local command
+  * Support podman image trust command
+  * Makefile: validate that each commit can at least build
+  * perf test a stress test to profile CPU load of podman
+  * all flakes must die
+  * Add information on --restart
+  * generate service object inline
+  * Cirrus: One IRC notice only
+  * docs/tutorials: add a basic network config
+  * display proper error when rmi -fa with infra containers
+  * add --get-login command to podman-login.
+  * Show image only once with images -q
+  * Add script to create CI VMs for debugging
+  * Cirrus: Migrate PAPR testing of F28 to Cirrus
+  * Skip checkpoint tests on Fedora <30
+  * Cirrus: Add text editors to cache-images
+  * Clean up some existing varlink endpoints
+  * mount: allow mount only when using vfs
+
 - Changelog for v0.12.1.2 (2018-12-13)
   * Add release notes for 0.12.1.2
   * runlabel should sub podman for docker|/usr/bin/docker
