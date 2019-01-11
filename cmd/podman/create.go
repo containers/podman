@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -421,6 +422,16 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 	if c.IsSet("pod") {
 		if strings.HasPrefix(originalPodName, "new:") {
+			if rootless.IsRootless() {
+				// To create a new pod, we must immediately create the userns.
+				became, ret, err := rootless.BecomeRootInUserNS()
+				if err != nil {
+					return nil, err
+				}
+				if became {
+					os.Exit(ret)
+				}
+			}
 			// pod does not exist; lets make it
 			var podOptions []libpod.PodCreateOption
 			podOptions = append(podOptions, libpod.WithPodName(podName), libpod.WithInfraContainer(), libpod.WithPodCgroups())
@@ -785,11 +796,15 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 			if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
 				continue
 			}
-			pid, err := prevCtr.PID()
+			data, err := ioutil.ReadFile(prevCtr.Config().ConmonPidFile)
 			if err != nil {
-				return false, -1, err
+				return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", prevCtr.Config().ConmonPidFile)
 			}
-			return rootless.JoinNS(uint(pid))
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			return rootless.JoinDirectUserAndMountNS(uint(conmonPid))
 		}
 	}
 

@@ -226,7 +226,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			Options:     []string{"bind", "private"},
 		}
 		if c.IsReadOnly() && dstPath != "/dev/shm" {
-			newMount.Options = append(newMount.Options, "ro")
+			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if !MountExists(g.Mounts(), dstPath) {
 			g.AddMount(newMount)
