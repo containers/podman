@@ -55,9 +55,9 @@ func TestDecompose(t *testing.T) {
 		} else {
 			assert.NoError(t, err, c.input)
 			assert.Equal(t, c.transport, parts.transport, c.input)
-			assert.Equal(t, c.registry, parts.registry, c.input)
+			assert.Equal(t, c.registry, parts.Registry, c.input)
 			assert.Equal(t, c.name, parts.name, c.input)
-			assert.Equal(t, c.tag, parts.tag, c.input)
+			assert.Equal(t, c.tag, parts.Tag, c.input)
 			assert.Equal(t, c.isTagged, parts.isTagged, c.input)
 			assert.Equal(t, c.hasRegistry, parts.hasRegistry, c.input)
 			assert.Equal(t, c.assembled, parts.assemble(), c.input)

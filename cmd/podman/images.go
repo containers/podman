@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/containers/libpod/cmd/podman/imagefilters"
+	"github.com/containers/libpod/libpod/adapter"
 	"reflect"
 	"sort"
 	"strings"
@@ -9,11 +11,9 @@ import (
 	"unicode"
 
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/docker/go-units"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -145,20 +145,20 @@ var (
 
 func imagesCmd(c *cli.Context) error {
 	var (
-		filterFuncs []image.ResultFilter
-		newImage    *image.Image
+		filterFuncs []imagefilters.ResultFilter
+		newImage    *adapter.ContainerImage
 	)
 	if err := validateFlags(c, imagesFlags); err != nil {
 		return err
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	localRuntime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer localRuntime.Runtime.Shutdown(false)
 	if len(c.Args()) == 1 {
-		newImage, err = runtime.ImageRuntime().NewFromLocal(c.Args().Get(0))
+		newImage, err = localRuntime.NewImageFromLocal(c.Args().Get(0))
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func imagesCmd(c *cli.Context) error {
 	ctx := getContext()
 
 	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c, newImage)
+		filterFuncs, err = CreateFilterFuncs(ctx, localRuntime, c, newImage)
 		if err != nil {
 			return err
 		}
@@ -195,20 +195,20 @@ func imagesCmd(c *cli.Context) error {
 		children to the image once built. until buildah supports caching builds,
 		it will not generate these intermediate images.
 	*/
-	images, err := runtime.ImageRuntime().GetImages()
+	images, err := localRuntime.GetImages()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
 	}
 
-	var filteredImages []*image.Image
-	// filter the images
+	var filteredImages []*adapter.ContainerImage
+	//filter the images
 	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filteredImages = image.FilterImages(images, filterFuncs)
+		filteredImages = imagefilters.FilterImages(images, filterFuncs)
 	} else {
 		filteredImages = images
 	}
 
-	return generateImagesOutput(ctx, runtime, filteredImages, opts)
+	return generateImagesOutput(ctx, filteredImages, opts)
 }
 
 func (i imagesOptions) setOutputFormat() string {
@@ -263,7 +263,7 @@ func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) (imagesOutput imagesSorted) {
+func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) (imagesOutput imagesSorted) {
 	for _, img := range images {
 		// If all is false and the image doesn't have a name, check to see if the top layer of the image is a parent
 		// to another image's top layer. If it is, then it is an intermediate image so don't print out if the --all flag
@@ -319,7 +319,7 @@ func getImagesTemplateOutput(ctx context.Context, runtime *libpod.Runtime, image
 }
 
 // getImagesJSONOutput returns the images information in its raw form
-func getImagesJSONOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image) (imagesOutput []imagesJSONParams) {
+func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) (imagesOutput []imagesJSONParams) {
 	for _, img := range images {
 		size, err := img.Size(ctx)
 		if err != nil {
@@ -339,7 +339,7 @@ func getImagesJSONOutput(ctx context.Context, runtime *libpod.Runtime, images []
 
 // generateImagesOutput generates the images based on the format provided
 
-func generateImagesOutput(ctx context.Context, runtime *libpod.Runtime, images []*image.Image, opts imagesOptions) error {
+func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -347,10 +347,10 @@ func generateImagesOutput(ctx context.Context, runtime *libpod.Runtime, images [
 
 	switch opts.format {
 	case formats.JSONString:
-		imagesOutput := getImagesJSONOutput(ctx, runtime, images)
+		imagesOutput := getImagesJSONOutput(ctx, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
-		imagesOutput := getImagesTemplateOutput(ctx, runtime, images, opts)
+		imagesOutput := getImagesTemplateOutput(ctx, images, opts)
 		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: imagesOutput[0].HeaderMap()}
 	}
 	return formats.Writer(out).Out()
@@ -375,34 +375,34 @@ func (i *imagesTemplateParams) HeaderMap() map[string]string {
 
 // CreateFilterFuncs returns an array of filter functions based on the user inputs
 // and is later used to filter images for output
-func CreateFilterFuncs(ctx context.Context, r *libpod.Runtime, c *cli.Context, img *image.Image) ([]image.ResultFilter, error) {
-	var filterFuncs []image.ResultFilter
+func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, c *cli.Context, img *adapter.ContainerImage) ([]imagefilters.ResultFilter, error) {
+	var filterFuncs []imagefilters.ResultFilter
 	for _, filter := range c.StringSlice("filter") {
 		splitFilter := strings.Split(filter, "=")
 		switch splitFilter[0] {
 		case "before":
-			before, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
+			before, err := r.NewImageFromLocal(splitFilter[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, image.CreatedBeforeFilter(before.Created()))
+			filterFuncs = append(filterFuncs, imagefilters.CreatedBeforeFilter(before.Created()))
 		case "after":
-			after, err := r.ImageRuntime().NewFromLocal(splitFilter[1])
+			after, err := r.NewImageFromLocal(splitFilter[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
-			filterFuncs = append(filterFuncs, image.CreatedAfterFilter(after.Created()))
+			filterFuncs = append(filterFuncs, imagefilters.CreatedAfterFilter(after.Created()))
 		case "dangling":
-			filterFuncs = append(filterFuncs, image.DanglingFilter())
+			filterFuncs = append(filterFuncs, imagefilters.DanglingFilter())
 		case "label":
 			labelFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, image.LabelFilter(ctx, labelFilter))
+			filterFuncs = append(filterFuncs, imagefilters.LabelFilter(ctx, labelFilter))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}
 	}
 	if img != nil {
-		filterFuncs = append(filterFuncs, image.OutputImageFilter(img))
+		filterFuncs = append(filterFuncs, imagefilters.OutputImageFilter(img))
 	}
 	return filterFuncs, nil
 }

@@ -47,6 +47,10 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 		}
 
 		size, _ := image.Size(getContext())
+		isParent, err := image.IsParent()
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
 
 		i := iopodman.ImageInList{
 			Id:          image.ID(),
@@ -58,6 +62,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			VirtualSize: image.VirtualSize,
 			Containers:  int64(len(containers)),
 			Labels:      labels,
+			IsParent:    isParent,
 		}
 		imageList = append(imageList, i)
 	}

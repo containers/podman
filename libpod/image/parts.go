@@ -7,12 +7,12 @@ import (
 	"github.com/containers/image/docker/reference"
 )
 
-// imageParts describes the parts of an image's name
-type imageParts struct {
+// Parts describes the parts of an image's name
+type Parts struct {
 	transport   string
-	registry    string
+	Registry    string
 	name        string
-	tag         string
+	Tag         string
 	isTagged    bool
 	hasRegistry bool
 }
@@ -34,10 +34,16 @@ func GetImageBaseName(input string) (string, error) {
 	return splitImageName[len(splitImageName)-1], nil
 }
 
+// DecomposeString decomposes a string name into imageParts description. This
+// is a wrapper for decompose
+func DecomposeString(input string) (Parts, error) {
+	return decompose(input)
+}
+
 // decompose breaks an input name into an imageParts description
-func decompose(input string) (imageParts, error) {
+func decompose(input string) (Parts, error) {
 	var (
-		parts       imageParts
+		parts       Parts
 		hasRegistry bool
 		tag         string
 	)
@@ -56,7 +62,7 @@ func decompose(input string) (imageParts, error) {
 	}
 	registry := reference.Domain(imgRef.(reference.Named))
 	imageName := reference.Path(imgRef.(reference.Named))
-	// Is this a registry or a repo?
+	// Is this a Registry or a repo?
 	if isRegistry(registry) {
 		hasRegistry = true
 	} else {
@@ -65,27 +71,27 @@ func decompose(input string) (imageParts, error) {
 			registry = ""
 		}
 	}
-	return imageParts{
-		registry:    registry,
+	return Parts{
+		Registry:    registry,
 		hasRegistry: hasRegistry,
 		name:        imageName,
-		tag:         tag,
+		Tag:         tag,
 		isTagged:    isTagged,
 		transport:   DefaultTransport,
 	}, nil
 }
 
 // assemble concatenates an image's parts into a string
-func (ip *imageParts) assemble() string {
-	spec := fmt.Sprintf("%s:%s", ip.name, ip.tag)
+func (ip *Parts) assemble() string {
+	spec := fmt.Sprintf("%s:%s", ip.name, ip.Tag)
 
-	if ip.registry != "" {
-		spec = fmt.Sprintf("%s/%s", ip.registry, spec)
+	if ip.Registry != "" {
+		spec = fmt.Sprintf("%s/%s", ip.Registry, spec)
 	}
 	return spec
 }
 
 // assemble concatenates an image's parts with transport into a string
-func (ip *imageParts) assembleWithTransport() string {
+func (ip *Parts) assembleWithTransport() string {
 	return fmt.Sprintf("%s%s", ip.transport, ip.assemble())
 }

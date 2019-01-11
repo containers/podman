@@ -37,7 +37,8 @@ type ImageInList (
   size: int,
   virtualSize: int,
   containers: int,
-  labels: [string]string
+  labels: [string]string,
+  isParent: bool
 )
 
 # ImageHistory describes the returned structure from ImageHistory.
