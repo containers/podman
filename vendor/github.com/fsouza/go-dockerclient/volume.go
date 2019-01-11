@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 )
 
 var (
@@ -28,6 +29,7 @@ type Volume struct {
 	Mountpoint string            `json:"Mountpoint,omitempty" yaml:"Mountpoint,omitempty" toml:"Mountpoint,omitempty"`
 	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty" toml:"Labels,omitempty"`
 	Options    map[string]string `json:"Options,omitempty" yaml:"Options,omitempty" toml:"Options,omitempty"`
+	CreatedAt  time.Time         `json:"CreatedAt,omitempty" yaml:"CreatedAt,omitempty" toml:"CreatedAt,omitempty"`
 }
 
 // ListVolumesOptions specify parameters to the ListVolumes function.

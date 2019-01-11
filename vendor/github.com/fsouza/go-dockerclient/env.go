@@ -156,7 +156,7 @@ func (env *Env) SetAuto(key string, value interface{}) {
 
 // Map returns the map representation of the env.
 func (env *Env) Map() map[string]string {
-	if len(*env) == 0 {
+	if env == nil || len(*env) == 0 {
 		return nil
 	}
 	m := make(map[string]string)

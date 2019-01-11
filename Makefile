@@ -327,6 +327,9 @@ build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
 	git rebase $(GIT_BASE_BRANCH) -x make
 
+vendor:
+	vndr -whitelist "github.com/varlink/go"
+
 .PHONY: \
 	.gopathok \
 	binaries \
@@ -344,3 +347,4 @@ build-all-new-commits:
 	changelog \
 	validate \
 	install.libseccomp.sudo \
+	vendor

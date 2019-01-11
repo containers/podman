@@ -160,8 +160,8 @@ type Linux struct {
 	ReadonlyPaths []string `json:"readonlyPaths,omitempty"`
 	// MountLabel specifies the selinux context for the mounts in the container.
 	MountLabel string `json:"mountLabel,omitempty"`
-	// IntelRdt contains Intel Resource Director Technology (RDT) information
-	// for handling resource constraints (e.g., L3 cache) for the container
+	// IntelRdt contains Intel Resource Director Technology (RDT) information for
+	// handling resource constraints (e.g., L3 cache, memory bandwidth) for the container
 	IntelRdt *LinuxIntelRdt `json:"intelRdt,omitempty"`
 }
 
@@ -503,6 +503,8 @@ type WindowsNetwork struct {
 	DNSSearchList []string `json:"DNSSearchList,omitempty"`
 	// Name (ID) of the container that we will share with the network stack.
 	NetworkSharedContainerName string `json:"networkSharedContainerName,omitempty"`
+	// name (ID) of the network namespace that will be used for the container.
+	NetworkNamespace string `json:"networkNamespace,omitempty"`
 }
 
 // WindowsHyperV contains information for configuring a container to run with Hyper-V isolation.
@@ -526,7 +528,7 @@ type VMHypervisor struct {
 	// Path is the host path to the hypervisor used to manage the virtual machine.
 	Path string `json:"path"`
 	// Parameters specifies parameters to pass to the hypervisor.
-	Parameters string `json:"parameters,omitempty"`
+	Parameters []string `json:"parameters,omitempty"`
 }
 
 // VMKernel contains information about the kernel to use for a virtual machine.
@@ -534,7 +536,7 @@ type VMKernel struct {
 	// Path is the host path to the kernel used to boot the virtual machine.
 	Path string `json:"path"`
 	// Parameters specifies parameters to pass to the kernel.
-	Parameters string `json:"parameters,omitempty"`
+	Parameters []string `json:"parameters,omitempty"`
 	// InitRD is the host path to an initial ramdisk to be used by the kernel.
 	InitRD string `json:"initrd,omitempty"`
 }
@@ -621,10 +623,18 @@ type LinuxSyscall struct {
 	Args   []LinuxSeccompArg  `json:"args,omitempty"`
 }
 
-// LinuxIntelRdt has container runtime resource constraints
-// for Intel RDT/CAT which introduced in Linux 4.10 kernel
+// LinuxIntelRdt has container runtime resource constraints for Intel RDT
+// CAT and MBA features which introduced in Linux 4.10 and 4.12 kernel
 type LinuxIntelRdt struct {
+	// The identity for RDT Class of Service
+	ClosID string `json:"closID,omitempty"`
 	// The schema for L3 cache id and capacity bitmask (CBM)
 	// Format: "L3:<cache_id0>=<cbm0>;<cache_id1>=<cbm1>;..."
 	L3CacheSchema string `json:"l3CacheSchema,omitempty"`
+
+	// The schema of memory bandwidth per L3 cache id
+	// Format: "MB:<cache_id0>=bandwidth0;<cache_id1>=bandwidth1;..."
+	// The unit of memory bandwidth is specified in "percentages" by
+	// default, and in "MBps" if MBA Software Controller is enabled.
+	MemBwSchema string `json:"memBwSchema,omitempty"`
 }

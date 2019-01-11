@@ -90,6 +90,13 @@ func (p *JsonPointer) Set(document interface{}, value interface{}) (interface{},
 
 }
 
+// Uses the pointer to delete a value from a JSON document
+func (p *JsonPointer) Delete(document interface{}) (interface{}, error) {
+	is := &implStruct{mode: "DEL", inDocument: document}
+	p.implementation(is)
+	return document, is.outError
+}
+
 // Both Get and Set functions use the same implementation to avoid code duplication
 func (p *JsonPointer) implementation(i *implStruct) {
 
@@ -106,9 +113,14 @@ func (p *JsonPointer) implementation(i *implStruct) {
 
 	node := i.inDocument
 
+	previousNodes := make([]interface{}, len(p.referenceTokens))
+	previousTokens := make([]string, len(p.referenceTokens))
+
 	for ti, token := range p.referenceTokens {
 
 		isLastToken := ti == len(p.referenceTokens)-1
+		previousNodes[ti] = node
+		previousTokens[ti] = token
 
 		switch v := node.(type) {
 
@@ -118,7 +130,11 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				node = v[decodedToken]
 				if isLastToken && i.mode == "SET" {
 					v[decodedToken] = i.setInValue
+				} else if isLastToken && i.mode =="DEL" {
+					delete(v,decodedToken)
 				}
+			} else if (isLastToken && i.mode == "SET") {
+				v[decodedToken] = i.setInValue
 			} else {
 				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
 				i.getOutKind = reflect.Map
@@ -144,6 +160,11 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			node = v[tokenIndex]
 			if isLastToken && i.mode == "SET" {
 				v[tokenIndex] = i.setInValue
+			}  else if isLastToken && i.mode =="DEL" {
+				v[tokenIndex] = v[len(v)-1]
+				v[len(v)-1] = nil
+				v = v[:len(v)-1]
+				previousNodes[ti-1].(map[string]interface{})[previousTokens[ti-1]] = v
 			}
 
 		default:

@@ -1,7 +1,8 @@
 package distribution
 
 import (
-	"github.com/docker/distribution/context"
+	"context"
+
 	"github.com/docker/distribution/reference"
 )
 

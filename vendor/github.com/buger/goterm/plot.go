@@ -242,10 +242,10 @@ func (c *LineChart) DrawLine(x0, y0, x1, y1 int, symbol string) {
 }
 
 func getBoundaryValues(data *DataTable, index int) (maxX, minX, maxY, minY float64) {
-	maxX = data.rows[0][0]
-	minX = data.rows[0][0]
-	maxY = data.rows[0][1]
-	minY = data.rows[0][1]
+	maxX = math.Inf(-1)
+	minX = math.Inf(1)
+	maxY = math.Inf(-1)
+	minY = math.Inf(1)
 
 	for _, r := range data.rows {
 		maxX = math.Max(maxX, r[0])

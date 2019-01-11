@@ -1746,7 +1746,7 @@ type CSIPersistentVolumeSource struct {
 
 	// Filesystem type to mount.
 	// Must be a filesystem type supported by the host operating system.
-	// Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+	// Ex. "ext4", "xfs", "ntfs".
 	// +optional
 	FSType string `json:"fsType,omitempty" protobuf:"bytes,4,opt,name=fsType"`
 
@@ -1821,9 +1821,8 @@ type VolumeMount struct {
 	SubPath string `json:"subPath,omitempty" protobuf:"bytes,4,opt,name=subPath"`
 	// mountPropagation determines how mounts are propagated from the host
 	// to container and the other way around.
-	// When not set, MountPropagationHostToContainer is used.
-	// This field is alpha in 1.8 and can be reworked or removed in a future
-	// release.
+	// When not set, MountPropagationNone is used.
+	// This field is beta in 1.10.
 	// +optional
 	MountPropagation *MountPropagationMode `json:"mountPropagation,omitempty" protobuf:"bytes,5,opt,name=mountPropagation,casttype=MountPropagationMode"`
 }
@@ -1832,6 +1831,12 @@ type VolumeMount struct {
 type MountPropagationMode string
 
 const (
+	// MountPropagationNone means that the volume in a container will
+	// not receive new mounts from the host or other containers, and filesystems
+	// mounted inside the container won't be propagated to the host or other
+	// containers.
+	// Note that this mode corresponds to "private" in Linux terminology.
+	MountPropagationNone MountPropagationMode = "None"
 	// MountPropagationHostToContainer means that the volume in a container will
 	// receive new mounts from the host or other containers, but filesystems
 	// mounted inside the container won't be propagated to the host or other
@@ -2983,6 +2988,13 @@ type PodSecurityContext struct {
 	// for that container.
 	// +optional
 	RunAsUser *int64 `json:"runAsUser,omitempty" protobuf:"varint,2,opt,name=runAsUser"`
+	// The GID to run the entrypoint of the container process.
+	// Uses runtime default if unset.
+	// May also be set in SecurityContext.  If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence
+	// for that container.
+	// +optional
+	RunAsGroup *int64 `json:"runAsGroup,omitempty" protobuf:"varint,6,opt,name=runAsGroup"`
 	// Indicates that the container must run as a non-root user.
 	// If true, the Kubelet will validate the image at runtime to ensure that it
 	// does not run as UID 0 (root) and fail to start the container if it does.
@@ -5165,6 +5177,12 @@ type SecurityContext struct {
 	// PodSecurityContext, the value specified in SecurityContext takes precedence.
 	// +optional
 	RunAsUser *int64 `json:"runAsUser,omitempty" protobuf:"varint,4,opt,name=runAsUser"`
+	// The GID to run the entrypoint of the container process.
+	// Uses runtime default if unset.
+	// May also be set in PodSecurityContext.  If set in both SecurityContext and
+	// PodSecurityContext, the value specified in SecurityContext takes precedence.
+	// +optional
+	RunAsGroup *int64 `json:"runAsGroup,omitempty" protobuf:"varint,8,opt,name=runAsGroup"`
 	// Indicates that the container must run as a non-root user.
 	// If true, the Kubelet will validate the image at runtime to ensure that it
 	// does not run as UID 0 (root) and fail to start the container if it does.
