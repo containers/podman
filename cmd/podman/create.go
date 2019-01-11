@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -785,11 +786,15 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 			if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
 				continue
 			}
-			pid, err := prevCtr.PID()
+			data, err := ioutil.ReadFile(prevCtr.Config().ConmonPidFile)
 			if err != nil {
-				return false, -1, err
+				return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", prevCtr.Config().ConmonPidFile)
 			}
-			return rootless.JoinNS(uint(pid))
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			return rootless.JoinDirectUserAndMountNS(uint(conmonPid))
 		}
 	}
 
