@@ -4,17 +4,15 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts := new(storage.StoreOptions)
 	options := []libpod.RuntimeOption{}
 
-	_, volumePath, err := util.GetDefaultStoreOptions()
+	storageOpts, volumePath, err := util.GetDefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +42,7 @@ func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
 		storageOpts.GraphDriverOptions = c.GlobalStringSlice("storage-opt")
 	}
 
-	options = append(options, libpod.WithStorageConfig(*storageOpts))
+	options = append(options, libpod.WithStorageConfig(storageOpts))
 
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
