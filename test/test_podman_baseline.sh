@@ -60,7 +60,7 @@ podman ps --all
 ########
 # Run ls in redis container, this should work
 ########
-ctrid=$(podman pull registry.access.redhat.com/rhscl/redis-32-rhel7)
+ctrid=$(podman pull docker.io/library/redis:4-alpine3.8)
 podman run $ctrid ls /
 
 ########
@@ -72,7 +72,7 @@ podman rmi --all
 ########
 # Create Fedora based image
 ########
-image=$(podman pull fedora)
+image=$(podman pull registry.fedoraproject.org/fedora:latest)
 echo $image
 
 ########
@@ -113,7 +113,7 @@ podman images
 ########
 # Create Fedora based container
 ########
-image=$(podman pull fedora)
+image=$(podman pull registry.fedoraproject.org/fedora:latest)
 echo $image
 podman run $image ls /
 
@@ -207,7 +207,7 @@ mount -t xfs -o prjquota $device $TMPDIR
 ########
 # Expected to succeed
 ########
-podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048576 bs=1'
+podman $PODMANBASE run --security-opt label=disable docker.io/library/alpine:latest sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048576 bs=1'
 rc=$?
 if [ $rc == 0 ];
 then
@@ -221,7 +221,7 @@ fi
 ########
 
 if [ "$showerror" -ne 1 ]; then
-    podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
+    podman $PODMANBASE run --security-opt label=disable docker.io/library/alpine:latest sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
     rc=$?
     if [ $rc != 0 ];
     then
@@ -283,7 +283,7 @@ chmod +x $FILE
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM debian
+FROM docker.io/library/debian:latest
 ADD ./runtest.sh /runtest.sh
 EOM
 chmod +x $FILE
@@ -327,7 +327,7 @@ rm -f ./Dockerfile
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM alpine
+FROM docker.io/library/alpine:latest
 RUN touch /foo
 ONBUILD RUN touch /bar
 EOM
@@ -363,7 +363,7 @@ rm ./Dockerfile*
 ########
 if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
     # Expected to succeed
-    sudo -u "#1000" podman run alpine echo hello
+    sudo -u "#1000" podman run docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with no AppArmor profile "
     if [ $rc == 0 ]; then
@@ -373,7 +373,7 @@ if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
     fi
 
     # Expected to succeed
-    sudo -u "#1000" podman run --security-opt apparmor=unconfined alpine echo hello
+    sudo -u "#1000" podman run --security-opt apparmor=unconfined docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with unconfined AppArmor profile "
     if [ $rc == 0 ]; then
@@ -402,7 +402,7 @@ EOF
     apparmor_parser -Kr $aaFile
 
     #Expected to pass (as root)
-    podman run --security-opt apparmor=$aaProfile alpine echo hello
+    podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "root with specified AppArmor profile: "
     if [ $rc == 0 ]; then
@@ -412,7 +412,7 @@ EOF
     fi
 
     #Expected to fail (as rootless)
-    sudo -u "#1000" podman run --security-opt apparmor=$aaProfile alpine echo hello
+    sudo -u "#1000" podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with specified AppArmor profile: "
     if [ $rc != 0 ]; then
@@ -437,7 +437,7 @@ fi
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM docker/whalesay:latest
+FROM pharshal/whalesay:latest
 RUN apt-get -y update && apt-get install -y fortunes
 CMD /usr/games/fortune -a | cowsay
 EOM
