@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -23,13 +23,13 @@ func tagCmd(c *cli.Context) error {
 	if len(args) < 2 {
 		return errors.Errorf("image name and at least one new name must be specified")
 	}
-	runtime, err := libpodruntime.GetRuntime(c)
+	localRuntime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer localRuntime.Runtime.Shutdown(false)
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(args[0])
+	newImage, err := localRuntime.NewImageFromLocal(args[0])
 	if err != nil {
 		return err
 	}

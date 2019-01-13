@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -411,6 +412,25 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	}
 
 	return waitErr
+}
+
+// AttachStreams contains streams that will be attached to the container
+type AttachStreams struct {
+	// OutputStream will be attached to container's STDOUT
+	OutputStream io.WriteCloser
+	// ErrorStream will be attached to container's STDERR
+	ErrorStream io.WriteCloser
+	// InputStream will be attached to container's STDIN
+	InputStream io.Reader
+	// AttachOutput is whether to attach to STDOUT
+	// If false, stdout will not be attached
+	AttachOutput bool
+	// AttachError is whether to attach to STDERR
+	// If false, stdout will not be attached
+	AttachError bool
+	// AttachInput is whether to attach to STDIN
+	// If false, stdout will not be attached
+	AttachInput bool
 }
 
 // Attach attaches to a container

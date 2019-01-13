@@ -120,7 +120,7 @@ func main() {
 			os.Exit(1)
 		}
 		args := c.Args()
-		if args.Present() {
+		if args.Present() && rootless.IsRootless() {
 			if _, notRequireRootless := cmdsNotRequiringRootless[args.First()]; !notRequireRootless {
 				became, ret, err := rootless.BecomeRootInUserNS()
 				if err != nil {
@@ -265,11 +265,10 @@ func main() {
 			Usage: "output logging information to syslog as well as the console",
 		},
 	}
-	if _, err := os.Stat("/etc/containers/registries.conf"); err != nil {
-		if os.IsNotExist(err) {
-			logrus.Warn("unable to find /etc/containers/registries.conf. some podman (image shortnames) commands may be limited")
-		}
-	}
+	// Check if /etc/containers/registries.conf exists when running in
+	// in a local environment.
+	CheckForRegistries()
+
 	if err := app.Run(os.Args); err != nil {
 		if debug {
 			logrus.Errorf(err.Error())
