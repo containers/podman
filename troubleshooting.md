@@ -9,7 +9,7 @@
 
 A large number of issues reported against Podman are often found to already be fixed
 in more current versions of the project.  Before reporting an issue, please verify the
-version you are running with `podman version` and compare it to the lastest release
+version you are running with `podman version` and compare it to the latest release
 documented on the top of Podman's [README.md](README.md).
 
 If they differ, please update your version of PODMAN to the latest possible
@@ -143,3 +143,21 @@ If you are using a useradd command within a Dockerfile with a large UID/GID, it 
 #### Solution
 
 If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--log-no-init` parameter to change it to: `RUN useradd --log-no-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
+
+### 7) Permission denied when running Podman commands
+
+When rootless podman attempts to execute a container on a non exec home directory a permission error will be raised.
+
+#### Symptom
+
+If you are running podman or buildah on a home directory that is mounted noexec,
+then they will fail. With a message like:
+
+```
+podman run centos:7
+standard_init_linux.go:203: exec user process caused "permission denied"
+```
+
+#### Solution
+
+Since the administrator of the system setup your home directory to be noexec, you will not be allowed to execute containers from storage in your home directory. It is possible to work around this by manually specifying a container storage path that is not on a noexec mount. Simply copy the file /etc/containers/storage.conf to ~/.config/containers/ (creating the directory if necessary). Specify a graphroot directory which is not on a noexec mount point and to which you have read/write privileges.  You will need to modify other fields to writable directories as well.
