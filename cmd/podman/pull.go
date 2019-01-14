@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/containers/libpod/libpod/adapter"
 	"io"
 	"os"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -64,11 +64,11 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
 func pullCmd(c *cli.Context) error {
-	runtime, err := libpodruntime.GetRuntime(c)
+	localRuntime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer localRuntime.Runtime.Shutdown(false)
 
 	args := c.Args()
 	if len(args) == 0 {
@@ -116,14 +116,14 @@ func pullCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "error parsing %q", image)
 		}
-		newImage, err := runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, c.String("signature-policy"), writer)
+		newImage, err := localRuntime.LoadFromArchiveReference(getContext(), srcRef, c.String("signature-policy"), writer)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image from %q", image)
 		}
 		imgID = newImage[0].ID()
 	} else {
 		authfile := getAuthFile(c.String("authfile"))
-		newImage, err := runtime.ImageRuntime().New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
+		newImage, err := localRuntime.New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", image)
 		}

@@ -24,6 +24,8 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
     centos-7) ;&
     rhel-7)
         make install PREFIX=/usr ETCDIR=/etc
+        make podman-remote
+        install bin/podman-remote /usr/bin
         make test-binaries
         make localintegration
         ;;

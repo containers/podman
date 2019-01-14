@@ -5,10 +5,13 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
+	"github.com/containers/image/types"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod/image"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/urfave/cli"
 	"github.com/varlink/go/varlink"
@@ -117,6 +120,42 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 	}
 	return imageInListToContainerImage(img, name, r)
 
+}
+
+// LoadFromArchiveReference creates an image from a local archive
+func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
+	// TODO We need to find a way to leak certDir, creds, and the tlsverify into this function, normally this would
+	// come from cli options but we don't want want those in here either.
+	imageID, err := iopodman.PullImage().Call(r.Conn, srcRef.DockerReference().String(), "", "", signaturePolicyPath, true)
+	if err != nil {
+		return nil, err
+	}
+	newImage, err := r.NewImageFromLocal(imageID)
+	if err != nil {
+		return nil, err
+	}
+	return []*ContainerImage{newImage}, nil
+}
+
+// New calls into local storage to look for an image in local storage or to pull it
+func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool) (*ContainerImage, error) {
+	// TODO Creds needs to be figured out here too, like above
+	tlsBool := dockeroptions.DockerInsecureSkipTLSVerify
+	// Remember SkipTlsVerify is the opposite of tlsverify
+	// If tlsBook is true or undefined, we do not skip
+	SkipTlsVerify := false
+	if tlsBool == types.OptionalBoolFalse {
+		SkipTlsVerify = true
+	}
+	imageID, err := iopodman.PullImage().Call(r.Conn, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, SkipTlsVerify)
+	if err != nil {
+		return nil, err
+	}
+	newImage, err := r.NewImageFromLocal(imageID)
+	if err != nil {
+		return nil, err
+	}
+	return newImage, nil
 }
 
 func splitStringDate(d string) (time.Time, error) {
