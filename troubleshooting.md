@@ -161,3 +161,15 @@ standard_init_linux.go:203: exec user process caused "permission denied"
 #### Solution
 
 Since the administrator of the system setup your home directory to be noexec, you will not be allowed to execute containers from storage in your home directory. It is possible to work around this by manually specifying a container storage path that is not on a noexec mount. Simply copy the file /etc/containers/storage.conf to ~/.config/containers/ (creating the directory if necessary). Specify a graphroot directory which is not on a noexec mount point and to which you have read/write privileges.  You will need to modify other fields to writable directories as well.
+
+For example
+
+```
+cat ~/.config/containers/storage.conf
+[storage]
+  driver = "overlay"
+  runroot = "/run/user/1000"
+  graphroot = "/execdir/myuser/storage"
+  [storage.options]
+    mount_program = "/bin/fuse-overlayfs"
+```
