@@ -1,5 +1,43 @@
 # Release Notes
 
+## 1.0.0
+### Features
+- The `podman exec` command now includes a `--workdir` option to set working directory for the executed command
+- The `podman create` and `podman run` commands now support the `--init` flag to use a minimal init process in the container
+- Added the `podman image sign` command to GPG sign images
+- The `podman run --device` flag now accepts directories, and will added any device nodes in the directory to the container
+- Added the `podman play kube` command to create pods and containers from Kubernetes pod YAML
+
+### Bugfixes
+- Fixed a bug where passing `podman create` or `podman run` volumes with an empty host or container path could cause a segfault
+- Fixed a bug where `storage.conf` was sometimes ignored for rootless containers
+- Fixed a bug where Podman run as root would error if CAP_SYS_RESOURCE was not available
+- Fixed a bug where Podman would fail to start containers after a system restart due to an out-of-date default Apparmor profile
+- Fixed a bug where Podman's bash completions were not working
+- Fixed a bug where `podman login` would use existing login credentials even if new credentials were provided
+- Fixed a bug where Podman could create some directories with the wrong permissions, breaking containers with user namespaces
+- Fixed a bug where `podman runlabel` was not properly setting container names when the `--name` was specified
+- Fixed a bug where `podman runlabel` sometimes included extra spaces in command output
+- Fixed a bug where `podman commit` was including invalid port numbers in created images when committing containers with published ports
+- Fixed a bug where `podman exec` was not honoring the container's environment variables
+- Fixed a bug where `podman run --device` would fail when a symlink to a device was specified
+- Fixed a bug where `podman build` was not properly picking up OCI runtime paths specified in `libpod.conf`
+- Fixed a bug where Podman would mount `/dev/shm` into the container read-only for read-only containers (`/dev/shm` should always be read-write)
+- Fixed a bug where Podman would ignore any mount whose container mountpoint was `/dev/shm`
+- Fixed a bug where `podman export` did not work with the default `fuse-overlayfs` storage driver
+- Fixed a bug where `podman inspect -f '{{ json .Config }}'` on images would not output anything (it now prints the image's config)
+- Fixed a bug where `podman rmi -fa` displayed the wrong error message when trying to remove images used by pod infra containers
+
+### Misc
+- Rootless containers now unconditionally use postrun cleanup processes, ensuring resources are freed when the container stops
+- A new version of Buildah is included for `podman build`, featuring improved build speed and numerous bugfixes
+- Pulling images has been parallelized, allowing individual layers to be pulled in parallel
+- The `podman start --attach` command now defaults the `sig-proxy` option to `true`, matching `podman create` and `podman run`
+- The `podman info` command now prints the path of the configuration file controlling container storage
+- Added `podman list` and `podman ls` as aliases for `podman ps`, and `podman container ps` and `podman container list` as aliases for `podman container ls`
+- Changed `podman generate kube` to generate Kubernetes service YAML in the same file as pod YAML, generating a single file instead of two
+- To improve compatability with the Docker command line, `podman inspect -f '{{ json .ContainerConfig }}'` on images is no longer valid; please use `podman inspect -f '{{ json .Config }}'` instead
+
 ## 0.12.1.2
 ### Bugfixes
 - Fixed a bug where an empty path for named volumes could make it impossible to create containers
