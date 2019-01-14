@@ -110,6 +110,7 @@ fi
 if [ $build -eq 1 ]; then
     make_install_tools
     make TAGS="${TAGS}" GOPATH=$GOPATH
+    make podman-remote TAGS="${TAGS}" GOPATH=$GOPATH
 fi
 
 # Install Podman
@@ -126,4 +127,5 @@ if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
     make varlink_generate GOPATH=/go
     make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
+    make ginkgo-remote GOPATH=/go $INTEGRATION_TEST_ENVS
 fi

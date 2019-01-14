@@ -171,7 +171,10 @@ localunit: test/goecho/goecho varlink_generate
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
-localintegration: varlink_generate test-binaries ginkgo
+ginkgo-remote:
+	ginkgo -v -tags "$(BUILDTAGS) remoteclient" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+
+localintegration: varlink_generate test-binaries ginkgo ginkgo-remote
 
 localsystem: .install.ginkgo .install.gomega
 	ginkgo -v -noColor test/system/
@@ -188,7 +191,7 @@ run-perftest: perftest
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman
+binaries: varlink_generate podman podman-remote
 
 install.catatonit:
 	./hack/install_catatonit.sh
