@@ -25,7 +25,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -460,7 +460,7 @@ func normalizeTag(tag string) (string, error) {
 	}
 	// If the input does not have a tag, we need to add one (latest)
 	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.Tag)
+		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.tag)
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
 	if !decomposedTag.hasRegistry {
@@ -937,7 +937,7 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if dcRepoName.Registry == dcImage.Registry && dcImage.Registry != "" {
+		if dcRepoName.registry == dcImage.registry && dcImage.registry != "" {
 			count++
 		}
 		if dcRepoName.name == dcImage.name && dcImage.name != "" {
@@ -945,7 +945,7 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
 			count++
 		}
-		if dcRepoName.Tag == dcImage.Tag {
+		if dcRepoName.tag == dcImage.tag {
 			count++
 		}
 		results[count] = append(results[count], repoName)

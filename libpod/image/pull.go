@@ -76,7 +76,7 @@ func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) 
 	decomposedDest, err := decompose(destName)
 	if err == nil && !decomposedDest.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
-		decomposedDest.Registry = DefaultLocalRegistry
+		decomposedDest.registry = DefaultLocalRegistry
 		decomposedDest.hasRegistry = true
 		destName = decomposedDest.assemble()
 	}
@@ -317,7 +317,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	}
 	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
-		decomposedImage.Registry = registry
+		decomposedImage.registry = registry
 		imageName := decomposedImage.assembleWithTransport()
 		if hasShaInInputName(inputName) {
 			imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
