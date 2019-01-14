@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -113,6 +111,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image that is a parent of another image", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -150,6 +149,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image that is created from another named imaged", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -185,6 +185,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -254,6 +255,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
+		SkipIfRemote()
 		dockerfile := `FROM docker.io/library/alpine:latest AS base
 RUN touch /1
 ENV LOCAL=/1

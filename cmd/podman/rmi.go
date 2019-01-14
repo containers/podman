@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/adapter"
 	"os"
 
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -57,11 +57,11 @@ func rmiCmd(c *cli.Context) error {
 		return err
 	}
 	removeAll := c.Bool("all")
-	localRuntime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer localRuntime.Runtime.Shutdown(false)
+	defer runtime.Runtime.Shutdown(false)
 
 	args := c.Args()
 	if len(args) == 0 && !removeAll {
@@ -75,7 +75,7 @@ func rmiCmd(c *cli.Context) error {
 
 	removeImage := func(img *adapter.ContainerImage) {
 		deleted = true
-		msg, deleteErr = localRuntime.RemoveImage(ctx, img, c.Bool("force"))
+		msg, deleteErr = runtime.RemoveImage(ctx, img, c.Bool("force"))
 		if deleteErr != nil {
 			if errors.Cause(deleteErr) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
@@ -91,7 +91,7 @@ func rmiCmd(c *cli.Context) error {
 
 	if removeAll {
 		var imagesToDelete []*adapter.ContainerImage
-		imagesToDelete, err = localRuntime.GetImages()
+		imagesToDelete, err = runtime.GetImages()
 		if err != nil {
 			return errors.Wrapf(err, "unable to query local images")
 		}
@@ -111,7 +111,7 @@ func rmiCmd(c *cli.Context) error {
 				removeImage(i)
 			}
 			lastNumberofImages = len(imagesToDelete)
-			imagesToDelete, err = localRuntime.GetImages()
+			imagesToDelete, err = runtime.GetImages()
 			if err != nil {
 				return err
 			}
@@ -129,7 +129,7 @@ func rmiCmd(c *cli.Context) error {
 		// See https://github.com/containers/libpod/issues/930 as
 		// an exemplary inconsistency issue.
 		for _, i := range images {
-			newImage, err := localRuntime.NewImageFromLocal(i)
+			newImage, err := runtime.NewImageFromLocal(i)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				continue
