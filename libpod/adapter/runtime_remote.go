@@ -216,3 +216,8 @@ func (ci *ContainerImage) TagImage(tag string) error {
 func (r RemoteRuntime) RemoveImage(force bool) error {
 	return nil
 }
+
+// RemoveImage calls varlink to remove an image
+func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
+	return iopodman.RemoveImage().Call(r.Conn, img.InputName, force)
+}

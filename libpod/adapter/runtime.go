@@ -80,3 +80,8 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 	}
 	return &ContainerImage{img}, nil
 }
+
+// RemoveImage calls into local storage and removes an image
+func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
+	return r.Runtime.RemoveImage(ctx, img.Image, force)
+}
