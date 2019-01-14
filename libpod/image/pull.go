@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/directory"
@@ -76,9 +75,11 @@ func (ir *Runtime) getPullRefPair(srcRef types.ImageReference, destName string) 
 	decomposedDest, err := decompose(destName)
 	if err == nil && !decomposedDest.hasRegistry {
 		// If the image doesn't have a registry, set it as the default repo
-		decomposedDest.Registry = DefaultLocalRegistry
-		decomposedDest.hasRegistry = true
-		destName = decomposedDest.assemble()
+		ref, err := decomposedDest.referenceWithRegistry(DefaultLocalRegistry)
+		if err != nil {
+			return pullRefPair{}, err
+		}
+		destName = ref.String()
 	}
 
 	reference := destName
@@ -270,12 +271,6 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	return images, nil
 }
 
-// hasShaInInputName returns a bool as to whether the user provided an image name that includes
-// a reference to a specific sha
-func hasShaInInputName(inputName string) bool {
-	return strings.Contains(inputName, "@sha256:")
-}
-
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible
 // image references to try pulling in combination with the registries.conf file as well
 func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullGoal, error) {
@@ -284,31 +279,11 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 		return nil, err
 	}
 	if decomposedImage.hasRegistry {
-		var imageName, destName string
-		if hasShaInInputName(inputName) {
-			imageName = fmt.Sprintf("%s%s", decomposedImage.transport, inputName)
-		} else {
-			imageName = decomposedImage.assembleWithTransport()
-		}
-		srcRef, err := alltransports.ParseImageName(imageName)
+		srcRef, err := docker.ParseReference("//" + inputName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
 		}
-		if hasShaInInputName(inputName) {
-			destName = decomposedImage.assemble()
-		} else {
-			destName = inputName
-		}
-		destRef, err := is.Transport.ParseStoreReference(ir.store, destName)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", destName)
-		}
-		ps := pullRefPair{
-			image:  inputName,
-			srcRef: srcRef,
-			dstRef: destRef,
-		}
-		return singlePullRefPairGoal(ps), nil
+		return ir.getSinglePullRefPairGoal(srcRef, inputName)
 	}
 
 	searchRegistries, err := registries.GetRegistries()
@@ -317,22 +292,18 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	}
 	var refPairs []pullRefPair
 	for _, registry := range searchRegistries {
-		decomposedImage.Registry = registry
-		imageName := decomposedImage.assembleWithTransport()
-		if hasShaInInputName(inputName) {
-			imageName = fmt.Sprintf("%s%s/%s", decomposedImage.transport, registry, inputName)
-		}
-		srcRef, err := alltransports.ParseImageName(imageName)
+		ref, err := decomposedImage.referenceWithRegistry(registry)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
+			return nil, err
 		}
-		ps := pullRefPair{
-			image:  decomposedImage.assemble(),
-			srcRef: srcRef,
-		}
-		ps.dstRef, err = is.Transport.ParseStoreReference(ir.store, ps.image)
+		imageName := ref.String()
+		srcRef, err := docker.ParseReference("//" + imageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing dest reference name %#v", ps.image)
+			return nil, errors.Wrapf(err, "unable to parse '%s'", imageName)
+		}
+		ps, err := ir.getPullRefPair(srcRef, imageName)
+		if err != nil {
+			return nil, err
 		}
 		refPairs = append(refPairs, ps)
 	}

@@ -5,13 +5,13 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/varlink"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/opencontainers/go-digest"
-	"github.com/urfave/cli"
-	"github.com/varlink/go/varlink"
 	"strings"
 	"time"
+
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	digest "github.com/opencontainers/go-digest"
+	"github.com/urfave/cli"
+	"github.com/varlink/go/varlink"
 )
 
 // ImageRuntime is wrapper for image runtime
@@ -59,8 +59,6 @@ type remoteImage struct {
 	RepoDigests []string
 	Parent      string
 	Size        int64
-	Tag         string
-	Repository  string
 	Created     time.Time
 	InputName   string
 	Names       []string
@@ -91,10 +89,6 @@ func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 }
 
 func imageInListToContainerImage(i iopodman.ImageInList, name string, runtime *LocalRuntime) (*ContainerImage, error) {
-	imageParts, err := image.DecomposeString(name)
-	if err != nil {
-		return nil, err
-	}
 	created, err := splitStringDate(i.Created)
 	if err != nil {
 		return nil, err
@@ -108,8 +102,6 @@ func imageInListToContainerImage(i iopodman.ImageInList, name string, runtime *L
 		Parent:      i.ParentId,
 		Size:        i.Size,
 		Created:     created,
-		Tag:         imageParts.Tag,
-		Repository:  imageParts.Registry,
 		Names:       i.RepoTags,
 		isParent:    i.IsParent,
 		Runtime:     runtime,

@@ -25,7 +25,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -226,7 +226,6 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		i.InputName = dest.DockerReference().String()
 	}
 
-	var taggedName string
 	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
 	if err == nil {
 		return img.image, err
@@ -240,25 +239,18 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		return nil, err
 	}
 
-	// the inputname isn't tagged, so we assume latest and try again
-	if !decomposedImage.isTagged {
-		taggedName = fmt.Sprintf("%s:latest", i.InputName)
-		img, err = i.imageruntime.getImage(taggedName)
-		if err == nil {
-			return img.image, nil
-		}
-	}
-
 	// The image has a registry name in it and we made sure we looked for it locally
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
 		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
-
 	}
-
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
-	img, err = i.imageruntime.getImage(fmt.Sprintf("%s/%s", DefaultLocalRegistry, i.InputName))
+	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
+	if err != nil {
+		return nil, err
+	}
+	img, err = i.imageruntime.getImage(ref.String())
 	if err == nil {
 		return img.image, err
 	}
@@ -452,35 +444,42 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	return "@" + digest.Hex(), nil
 }
 
-// normalizeTag returns the canonical version of tag for use in Image.Names()
-func normalizeTag(tag string) (string, error) {
+// normalizedTag returns the canonical version of tag for use in Image.Names()
+func normalizedTag(tag string) (reference.Named, error) {
 	decomposedTag, err := decompose(tag)
 	if err != nil {
-		return "", err
-	}
-	// If the input does not have a tag, we need to add one (latest)
-	if !decomposedTag.isTagged {
-		tag = fmt.Sprintf("%s:%s", tag, decomposedTag.Tag)
+		return nil, err
 	}
 	// If the input doesn't specify a registry, set the registry to localhost
+	var ref reference.Named
 	if !decomposedTag.hasRegistry {
-		tag = fmt.Sprintf("%s/%s", DefaultLocalRegistry, tag)
+		ref, err = decomposedTag.referenceWithRegistry(DefaultLocalRegistry)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ref, err = decomposedTag.normalizedReference()
+		if err != nil {
+			return nil, err
+		}
 	}
-	return tag, nil
+	// If the input does not have a tag, we need to add one (latest)
+	ref = reference.TagNameOnly(ref)
+	return ref, nil
 }
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
 	i.reloadImage()
-	tag, err := normalizeTag(tag)
+	ref, err := normalizedTag(tag)
 	if err != nil {
 		return err
 	}
 	tags := i.Names()
-	if util.StringInSlice(tag, tags) {
+	if util.StringInSlice(ref.String(), tags) {
 		return nil
 	}
-	tags = append(tags, tag)
+	tags = append(tags, ref.String())
 	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
 		return err
 	}
@@ -931,21 +930,23 @@ func (i *Image) MatchRepoTag(input string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	imageRegistry, imageName, imageSuspiciousTagValueForSearch := dcImage.suspiciousRefNameTagValuesForSearch()
 	for _, repoName := range i.Names() {
 		count := 0
 		dcRepoName, err := decompose(repoName)
 		if err != nil {
 			return "", err
 		}
-		if dcRepoName.Registry == dcImage.Registry && dcImage.Registry != "" {
+		repoNameRegistry, repoNameName, repoNameSuspiciousTagValueForSearch := dcRepoName.suspiciousRefNameTagValuesForSearch()
+		if repoNameRegistry == imageRegistry && imageRegistry != "" {
 			count++
 		}
-		if dcRepoName.name == dcImage.name && dcImage.name != "" {
+		if repoNameName == imageName && imageName != "" {
 			count++
-		} else if splitString(dcRepoName.name) == splitString(dcImage.name) {
+		} else if splitString(repoNameName) == splitString(imageName) {
 			count++
 		}
-		if dcRepoName.Tag == dcImage.Tag {
+		if repoNameSuspiciousTagValueForSearch == imageSuspiciousTagValueForSearch {
 			count++
 		}
 		results[count] = append(results[count], repoName)
