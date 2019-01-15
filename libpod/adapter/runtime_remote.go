@@ -221,3 +221,28 @@ func (r RemoteRuntime) RemoveImage(force bool) error {
 func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
 	return iopodman.RemoveImage().Call(r.Conn, img.InputName, force)
 }
+
+// History returns the history of an image and its layers
+func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error) {
+	var imageHistories []*image.History
+
+	reply, err := iopodman.HistoryImage().Call(ci.Runtime.Conn, ci.InputName)
+	if err != nil {
+		return nil, err
+	}
+	for _, h := range reply {
+		created, err := splitStringDate(h.Created)
+		if err != nil {
+			return nil, err
+		}
+		ih := image.History{
+			ID:        h.Id,
+			Created:   &created,
+			CreatedBy: h.CreatedBy,
+			Size:      h.Size,
+			Comment:   h.Comment,
+		}
+		imageHistories = append(imageHistories, &ih)
+	}
+	return imageHistories, nil
+}

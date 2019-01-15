@@ -1,15 +1,15 @@
 package main
 
 import (
+	"github.com/containers/libpod/libpod/adapter"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -72,11 +72,11 @@ func historyCmd(c *cli.Context) error {
 		return err
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.Runtime.Shutdown(false)
 
 	format := genHistoryFormat(c.String("format"), c.Bool("quiet"))
 
@@ -88,7 +88,7 @@ func historyCmd(c *cli.Context) error {
 		return errors.Errorf("podman history takes at most 1 argument")
 	}
 
-	image, err := runtime.ImageRuntime().NewFromLocal(args[0])
+	image, err := runtime.NewImageFromLocal(args[0])
 	if err != nil {
 		return err
 	}
