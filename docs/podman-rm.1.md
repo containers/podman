@@ -11,13 +11,13 @@ podman\-rm - Remove one or more containers
 
 ## OPTIONS
 
-**--force, f**
-
-Force the removal of a running and paused containers
-
 **--all, a**
 
 Remove all containers.  Can be used in conjunction with -f as well.
+
+**--force, f**
+
+Force the removal of a running and paused containers
 
 **--latest, -l**
 

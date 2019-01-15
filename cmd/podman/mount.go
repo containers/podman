@@ -24,13 +24,18 @@ var (
 
 	mountFlags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "notruncate",
-			Usage: "do not truncate output",
+			Name:  "all, a",
+			Usage: "Mount all containers",
 		},
 		cli.StringFlag{
 			Name:  "format",
 			Usage: "Change the output format to Go template",
 		},
+		cli.BoolFlag{
+			Name:  "notruncate",
+			Usage: "do not truncate output",
+		},
+		LatestFlag,
 	}
 	mountCommand = cli.Command{
 		Name:         "mount",
@@ -80,33 +85,36 @@ func mountCmd(c *cli.Context) error {
 		}
 	}
 
+	if c.Bool("all") && c.Bool("latest") {
+		return errors.Errorf("--all and --latest cannot be used together")
+	}
+
+	mountContainers, err := getAllOrLatestContainers(c, runtime, -1, "all")
+	if err != nil {
+		if len(mountContainers) == 0 {
+			return err
+		}
+		fmt.Println(err.Error())
+	}
+
 	formats := map[string]bool{
 		"":            true,
 		of.JSONString: true,
 	}
 
-	args := c.Args()
 	json := c.String("format") == of.JSONString
 	if !formats[c.String("format")] {
 		return errors.Errorf("%q is not a supported format", c.String("format"))
 	}
 
 	var lastError error
-	if len(args) > 0 {
-		for _, name := range args {
+	if len(mountContainers) > 0 {
+		for _, ctr := range mountContainers {
 			if json {
 				if lastError != nil {
 					logrus.Error(lastError)
 				}
 				lastError = errors.Wrapf(err, "json option cannot be used with a container id")
-				continue
-			}
-			ctr, err := runtime.LookupContainer(name)
-			if err != nil {
-				if lastError != nil {
-					logrus.Error(lastError)
-				}
-				lastError = errors.Wrapf(err, "error looking up container %q", name)
 				continue
 			}
 			mountPoint, err := ctr.Mount()

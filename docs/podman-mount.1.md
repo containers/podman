@@ -19,9 +19,19 @@ returned.
 
 ## OPTIONS
 
+**--all, a**
+
+Mount all containers.
+
 **--format**
 
 Print the mounted containers in specified format (json)
+
+**--latest, -l**
+
+Instead of providing the container name or ID, use the last created container.
+If you use methods other than Podman to run containers such as CRI-O, the last
+started container could be from either of those methods.
 
 **--notruncate**
 
