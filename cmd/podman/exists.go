@@ -67,12 +67,12 @@ func imageExistsCmd(c *cli.Context) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one image at a time")
 	}
-	localRuntime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer localRuntime.Runtime.Shutdown(false)
-	if _, err := localRuntime.NewImageFromLocal(args[0]); err != nil {
+	defer runtime.Runtime.Shutdown(false)
+	if _, err := runtime.NewImageFromLocal(args[0]); err != nil {
 		//TODO we need to ask about having varlink defined errors exposed
 		//so we can reuse them
 		if errors.Cause(err) == image.ErrNoSuchImage || err.Error() == "io.podman.ImageNotFound" {
