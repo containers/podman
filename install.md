@@ -1,5 +1,61 @@
 # libpod Installation Instructions
 
+## Installing packaged versions of Podman
+
+#### [Arch Linux](https://www.archlinux.org)
+
+Podman is available in the AUR through the [libpod package](https://aur.archlinux.org/packages/libpod/)
+
+#### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
+
+```bash
+sudo yum -y install podman
+```
+
+
+#### [Fedora-CoreOS](https://coreos.fedoraproject.org), [Fedora SilverBlue](https://silverblue.fedoraproject.org)
+
+Built-in, no need to install
+
+#### [Gentoo](https://www.gentoo.org)
+
+```bash
+sudo emerge app-emulation/libpod
+```
+
+#### [openSUSE](https://www.opensuse.org)
+
+```bash
+sudo zypper install podman
+```
+
+#### [RHEL7](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux)
+
+Subscribe, then enable Extras channel and install podman.
+
+```bash
+sudo subscription-manager repos --enable=rhel-7-server-extras-rpms
+sudo yum -y install podman
+```
+
+#### [RHEL8 Beta](https://www.redhat.com/en/blog/powering-its-future-while-preserving-present-introducing-red-hat-enterprise-linux-8-beta?intcmp=701f2000001Cz6OAAS)
+
+```bash
+sudo yum module enable -y container-tools:1.0
+sudo yum module install -y container-tools:1.0
+```
+
+#### [Ubuntu](https://www.ubuntu.com)
+
+```bash
+sudo apt-get update -qq
+sudo apt-get install -qq -y software-properties-common
+sudo add-apt-repository -y ppa:projectatomic/ppa
+sudo apt-get -qq -y install podman
+```
+
+## Building from scratch
+
 ### Prerequisites
 
 #### runc installed
