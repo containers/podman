@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/onsi/ginkgo"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,13 +14,16 @@ import (
 	"strings"
 )
 
+func SkipIfRemote() {
+	ginkgo.Skip("This function is not enabled for remote podman")
+}
+
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
 	p.StopVarlink()
 	// TODO
 	// Stop all containers
 	// Rm all containers
-	// Rm all  images
 
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
