@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/containers/libpod/cmd/podman/imagefilters"
-	"github.com/containers/libpod/libpod/adapter"
 	"reflect"
 	"sort"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/containers/libpod/cmd/podman/imagefilters"
+	"github.com/containers/libpod/libpod/adapter"
 
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/image"

@@ -22,7 +22,11 @@ type RemoteImageRuntime struct{}
 
 // RemoteRuntime describes a wrapper runtime struct
 type RemoteRuntime struct {
+	Conn *varlink.Connection
 }
+
+//func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
+// if _, err := runtime.Runtime.LookupContainer(args[0]); err != nil {
 
 // LocalRuntime describes a typical libpod runtime
 type LocalRuntime struct {
@@ -38,6 +42,7 @@ func GetRuntime(c *cli.Context) (*LocalRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
+	runtime.Conn = conn
 	return &LocalRuntime{
 		Runtime: &runtime,
 		Remote:  true,
@@ -68,6 +73,30 @@ type remoteImage struct {
 	Digest      digest.Digest
 	isParent    bool
 	Runtime     *LocalRuntime
+}
+
+// Container ...
+type Container struct {
+	remoteContainer
+}
+
+// remoteContainer ....
+type remoteContainer struct {
+	ID         string
+	Image      string
+	ImageID    string
+	Command    []string
+	Created    time.Time
+	RunningFor string
+	Status     string
+	//Ports            []ocicni.PortMapping
+	RootFsSize int64
+	RWSize     int64
+	Names      string
+	Labels     []map[string]string
+	//	Mounts           []string
+	// ContainerRunning bool
+	//Namespaces       []LinuxNameSpace
 }
 
 // GetImages returns a slice of containerimages over a varlink connection
@@ -213,10 +242,6 @@ func (ci *ContainerImage) TagImage(tag string) error {
 	return err
 }
 
-func (r RemoteRuntime) RemoveImage(force bool) error {
-	return nil
-}
-
 // RemoveImage calls varlink to remove an image
 func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
 	return iopodman.RemoveImage().Call(r.Conn, img.InputName, force)
@@ -245,4 +270,45 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 		imageHistories = append(imageHistories, &ih)
 	}
 	return imageHistories, nil
+}
+
+// LookupContainer ...
+func (r *RemoteRuntime) LookupContainer(idOrName string) (*Container, error) {
+	container, err := iopodman.GetContainer().Call(r.Conn, idOrName)
+	if err != nil {
+		return nil, err
+	}
+
+	ctr, err := listContainerDataToContainer(container)
+	if err != nil {
+		return nil, err
+	}
+	return ctr, nil
+}
+
+// listContainerDataToContainer takes a varlink listcontainerData struct and makes
+// an "adapted" Container
+func listContainerDataToContainer(listData iopodman.ListContainerData) (*Container, error) {
+	created, err := splitStringDate(listData.Createdat)
+	if err != nil {
+		return nil, err
+	}
+	rc := remoteContainer{
+		ID:         listData.Id,
+		Image:      listData.Image,
+		ImageID:    listData.Imageid,
+		Command:    listData.Command,
+		Created:    created,
+		RunningFor: listData.Runningfor,
+		Status:     listData.Status,
+		//ports: //map[ocicni.portmapping]
+		RootFsSize: listData.Rootfssize,
+		RWSize:     listData.Rwsize,
+		Names:      listData.Names,
+		//Labels:
+		//Mounts
+		//ContainerRunning: listData.r
+		//namespaces:
+	}
+	return &Container{rc}, nil
 }
