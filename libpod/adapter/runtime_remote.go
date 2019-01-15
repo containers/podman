@@ -22,17 +22,13 @@ type RemoteImageRuntime struct{}
 
 // RemoteRuntime describes a wrapper runtime struct
 type RemoteRuntime struct {
-	Conn *varlink.Connection
+	Conn   *varlink.Connection
+	Remote bool
 }
-
-//func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
-// if _, err := runtime.Runtime.LookupContainer(args[0]); err != nil {
 
 // LocalRuntime describes a typical libpod runtime
 type LocalRuntime struct {
-	Runtime *RemoteRuntime
-	Remote  bool
-	Conn    *varlink.Connection
+	*RemoteRuntime
 }
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
@@ -42,12 +38,14 @@ func GetRuntime(c *cli.Context) (*LocalRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
-	runtime.Conn = conn
-	return &LocalRuntime{
-		Runtime: &runtime,
-		Remote:  true,
-		Conn:    conn,
-	}, nil
+	rr := RemoteRuntime{
+		Conn:   conn,
+		Remote: true,
+	}
+	foo := LocalRuntime{
+		&rr,
+	}
+	return &foo, nil
 }
 
 // Shutdown is a bogus wrapper for compat with the libpod runtime
@@ -272,18 +270,14 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 	return imageHistories, nil
 }
 
-// LookupContainer ...
+// LookupContainer gets basic information about container over a varlink
+// connection and then translates it to a *Container
 func (r *RemoteRuntime) LookupContainer(idOrName string) (*Container, error) {
 	container, err := iopodman.GetContainer().Call(r.Conn, idOrName)
 	if err != nil {
 		return nil, err
 	}
-
-	ctr, err := listContainerDataToContainer(container)
-	if err != nil {
-		return nil, err
-	}
-	return ctr, nil
+	return listContainerDataToContainer(container)
 }
 
 // listContainerDataToContainer takes a varlink listcontainerData struct and makes
@@ -294,6 +288,8 @@ func listContainerDataToContainer(listData iopodman.ListContainerData) (*Contain
 		return nil, err
 	}
 	rc := remoteContainer{
+		// TODO commented out attributes will be populated when podman-remote ps
+		// is implemented.   They are not needed yet for basic container operations.
 		ID:         listData.Id,
 		Image:      listData.Image,
 		ImageID:    listData.Imageid,
@@ -301,13 +297,13 @@ func listContainerDataToContainer(listData iopodman.ListContainerData) (*Contain
 		Created:    created,
 		RunningFor: listData.Runningfor,
 		Status:     listData.Status,
-		//ports: //map[ocicni.portmapping]
+		//ports:
 		RootFsSize: listData.Rootfssize,
 		RWSize:     listData.Rwsize,
 		Names:      listData.Names,
 		//Labels:
 		//Mounts
-		//ContainerRunning: listData.r
+		//ContainerRunning:
 		//namespaces:
 	}
 	return &Container{rc}, nil

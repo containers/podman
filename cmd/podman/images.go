@@ -8,10 +8,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/imagefilters"
 	"github.com/containers/libpod/libpod/adapter"
-
-	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/go-digest"
@@ -157,7 +156,7 @@ func imagesCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 	if len(c.Args()) == 1 {
 		newImage, err = runtime.NewImageFromLocal(c.Args().Get(0))
 		if err != nil {

@@ -27,7 +27,7 @@ func tagCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 
 	newImage, err := runtime.NewImageFromLocal(args[0])
 	if err != nil {

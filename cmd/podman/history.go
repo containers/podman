@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/containers/libpod/libpod/adapter"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/formats"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -76,7 +76,7 @@ func historyCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 
 	format := genHistoryFormat(c.String("format"), c.Bool("quiet"))
 

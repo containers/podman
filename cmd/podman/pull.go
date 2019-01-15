@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/adapter"
 	"io"
 	"os"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/adapter"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -68,7 +68,7 @@ func pullCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 
 	args := c.Args()
 	if len(args) == 0 {

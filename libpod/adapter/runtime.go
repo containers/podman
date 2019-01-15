@@ -15,8 +15,8 @@ import (
 
 // LocalRuntime describes a typical libpod runtime
 type LocalRuntime struct {
-	Runtime *libpod.Runtime
-	Remote  bool
+	*libpod.Runtime
+	Remote bool
 }
 
 // ContainerImage ...
