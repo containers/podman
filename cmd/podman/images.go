@@ -152,13 +152,13 @@ func imagesCmd(c *cli.Context) error {
 		return err
 	}
 
-	localRuntime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer localRuntime.Runtime.Shutdown(false)
+	defer runtime.Runtime.Shutdown(false)
 	if len(c.Args()) == 1 {
-		newImage, err = localRuntime.NewImageFromLocal(c.Args().Get(0))
+		newImage, err = runtime.NewImageFromLocal(c.Args().Get(0))
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func imagesCmd(c *cli.Context) error {
 	ctx := getContext()
 
 	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filterFuncs, err = CreateFilterFuncs(ctx, localRuntime, c, newImage)
+		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c, newImage)
 		if err != nil {
 			return err
 		}
@@ -195,7 +195,7 @@ func imagesCmd(c *cli.Context) error {
 		children to the image once built. until buildah supports caching builds,
 		it will not generate these intermediate images.
 	*/
-	images, err := localRuntime.GetImages()
+	images, err := runtime.GetImages()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
 	}

@@ -39,20 +39,20 @@ func infoCmd(c *cli.Context) error {
 	}
 	info := map[string]interface{}{}
 
-	localRuntime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer localRuntime.Runtime.Shutdown(false)
+	defer runtime.Runtime.Shutdown(false)
 
-	infoArr, err := localRuntime.Runtime.Info()
+	infoArr, err := runtime.Runtime.Info()
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}
 
 	// TODO This is no a problem child because we don't know if we should add information
 	// TODO about the client or the backend.  Only do for traditional podman for now.
-	if !localRuntime.Remote && c.Bool("debug") {
+	if !runtime.Remote && c.Bool("debug") {
 		debugInfo := debugInfo(c)
 		infoArr = append(infoArr, libpod.InfoData{Type: "debug", Data: debugInfo})
 	}

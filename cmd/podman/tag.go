@@ -23,13 +23,13 @@ func tagCmd(c *cli.Context) error {
 	if len(args) < 2 {
 		return errors.Errorf("image name and at least one new name must be specified")
 	}
-	localRuntime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer localRuntime.Runtime.Shutdown(false)
+	defer runtime.Runtime.Shutdown(false)
 
-	newImage, err := localRuntime.NewImageFromLocal(args[0])
+	newImage, err := runtime.NewImageFromLocal(args[0])
 	if err != nil {
 		return err
 	}
