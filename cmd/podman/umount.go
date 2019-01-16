@@ -21,6 +21,7 @@ var (
 			Name:  "force, f",
 			Usage: "force the complete umount all of the currently mounted containers",
 		},
+		LatestFlag,
 	}
 
 	description = `
@@ -51,59 +52,37 @@ func umountCmd(c *cli.Context) error {
 
 	force := c.Bool("force")
 	umountAll := c.Bool("all")
-	args := c.Args()
-	if len(args) == 0 && !umountAll {
-		return errors.Errorf("container ID must be specified")
+	if err := checkAllAndLatest(c); err != nil {
+		return err
 	}
-	if len(args) > 0 && umountAll {
-		return errors.Errorf("when using the --all switch, you may not pass any container IDs")
+
+	containers, err := getAllOrLatestContainers(c, runtime, -1, "all")
+	if err != nil {
+		if len(containers) == 0 {
+			return err
+		}
+		fmt.Println(err.Error())
 	}
 
 	umountContainerErrStr := "error unmounting container"
 	var lastError error
-	if len(args) > 0 {
-		for _, name := range args {
-			ctr, err := runtime.LookupContainer(name)
-			if err != nil {
-				if lastError != nil {
-					logrus.Error(lastError)
-				}
-				lastError = errors.Wrapf(err, "%s %s", umountContainerErrStr, name)
-				continue
-			}
+	for _, ctr := range containers {
+		ctrState, err := ctr.State()
+		if ctrState == libpod.ContainerStateRunning || err != nil {
+			continue
+		}
 
-			if err = ctr.Unmount(force); err != nil {
-				if lastError != nil {
-					logrus.Error(lastError)
-				}
-				lastError = errors.Wrapf(err, "%s %s", umountContainerErrStr, name)
+		if err = ctr.Unmount(force); err != nil {
+			if umountAll && errors.Cause(err) == storage.ErrLayerNotMounted {
 				continue
 			}
-			fmt.Printf("%s\n", ctr.ID())
-		}
-	} else {
-		containers, err := runtime.GetContainers()
-		if err != nil {
-			return errors.Wrapf(err, "error reading Containers")
-		}
-		for _, ctr := range containers {
-			ctrState, err := ctr.State()
-			if ctrState == libpod.ContainerStateRunning || err != nil {
-				continue
+			if lastError != nil {
+				logrus.Error(lastError)
 			}
-
-			if err = ctr.Unmount(force); err != nil {
-				if umountAll && errors.Cause(err) == storage.ErrLayerNotMounted {
-					continue
-				}
-				if lastError != nil {
-					logrus.Error(lastError)
-				}
-				lastError = errors.Wrapf(err, "%s %s", umountContainerErrStr, ctr.ID())
-				continue
-			}
-			fmt.Printf("%s\n", ctr.ID())
+			lastError = errors.Wrapf(err, "%s %s", umountContainerErrStr, ctr.ID())
+			continue
 		}
+		fmt.Printf("%s\n", ctr.ID())
 	}
 	return lastError
 }

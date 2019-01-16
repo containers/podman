@@ -1514,6 +1514,8 @@ _podman_umount() {
 	-h
 	--force
 	-f
+	--latest
+	-l
     "
     local options_with_args="
     "
@@ -1531,8 +1533,12 @@ _podman_umount() {
 
 _podman_mount() {
     local boolean_options="
+       --all
+       -a
        --help
        -h
+       -l
+       --latest
        --notruncate
     "
 
