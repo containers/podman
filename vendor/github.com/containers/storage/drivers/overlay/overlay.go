@@ -793,6 +793,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		mountTarget = path.Join(id, "merged")
 	}
 	flags, data := mount.ParseOptions(mountData)
+	logrus.Debugf("overlay: mount_data=%s", mountData)
 	if err := mountFunc("overlay", mountTarget, "overlay", uintptr(flags), data); err != nil {
 		return "", fmt.Errorf("error creating overlay mount to %s: %v", mountTarget, err)
 	}
@@ -986,6 +987,7 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 	// Mount the new layer and handle ownership changes and possible copy_ups in it.
 	options := graphdriver.MountOpts{
 		MountLabel: mountLabel,
+		Options:    strings.Split(d.options.mountOptions, ","),
 	}
 	layerFs, err := d.get(id, true, options)
 	if err != nil {
