@@ -137,17 +137,17 @@ func WithStateType(storeType RuntimeStateStore) RuntimeOption {
 }
 
 // WithOCIRuntime specifies an OCI runtime to use for running containers.
-func WithOCIRuntime(runtimePath string) RuntimeOption {
+func WithOCIRuntime(runtime string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
 
-		if runtimePath == "" {
+		if runtime == "" {
 			return errors.Wrapf(ErrInvalidArg, "must provide a valid path")
 		}
 
-		rt.config.RuntimePath = []string{runtimePath}
+		rt.config.OCIRuntime = runtime
 
 		return nil
 	}

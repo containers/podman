@@ -75,10 +75,10 @@ type syncInfo struct {
 }
 
 // Make a new OCI runtime with provided options
-func newOCIRuntime(name string, path string, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
+func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
-	runtime.name = name
-	runtime.path = path
+	runtime.name = oruntime.Name
+	runtime.path = oruntime.Paths[0]
 	runtime.conmonPath = conmonPath
 	runtime.conmonEnv = conmonEnv
 	runtime.cgroupManager = cgroupManager
