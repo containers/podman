@@ -71,7 +71,7 @@ func imageExistsCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 	if _, err := runtime.NewImageFromLocal(args[0]); err != nil {
 		//TODO we need to ask about having varlink defined errors exposed
 		//so we can reuse them
@@ -88,13 +88,13 @@ func containerExistsCmd(c *cli.Context) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one container at a time")
 	}
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 	if _, err := runtime.LookupContainer(args[0]); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr || err.Error() == "io.podman.ContainerNotFound" {
 			os.Exit(1)
 		}
 		return err

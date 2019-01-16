@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/containers/libpod/libpod/adapter"
 	"runtime"
 
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -43,9 +43,9 @@ func infoCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Runtime.Shutdown(false)
+	defer runtime.Shutdown(false)
 
-	infoArr, err := runtime.Runtime.Info()
+	infoArr, err := runtime.Info()
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}

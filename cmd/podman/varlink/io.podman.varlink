@@ -61,7 +61,7 @@ type ImageSearch (
     star_count: int
 )
 
-# ListContainer is the returned struct for an individual container
+# ListContainerData is the returned struct for an individual container
 type ListContainerData (
     id: string,
     image: string,

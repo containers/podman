@@ -15,13 +15,18 @@ import (
 
 // LocalRuntime describes a typical libpod runtime
 type LocalRuntime struct {
-	Runtime *libpod.Runtime
-	Remote  bool
+	*libpod.Runtime
+	Remote bool
 }
 
 // ContainerImage ...
 type ContainerImage struct {
 	*image.Image
+}
+
+// Container ...
+type Container struct {
+	*libpod.Container
 }
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
@@ -84,4 +89,13 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 // RemoveImage calls into local storage and removes an image
 func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
 	return r.Runtime.RemoveImage(ctx, img.Image, force)
+}
+
+// LookupContainer ...
+func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
+	ctr, err := r.Runtime.LookupContainer(idOrName)
+	if err != nil {
+		return nil, err
+	}
+	return &Container{ctr}, nil
 }
