@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -45,6 +43,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect bogus container", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"inspect", "foobar4321"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
@@ -68,6 +67,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container with size", func() {
+		SkipIfRemote()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
@@ -79,6 +79,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container and image", func() {
+		SkipIfRemote()
 		ls, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
@@ -90,6 +91,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect -l with additional input should fail", func() {
+		SkipIfRemote()
 		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))

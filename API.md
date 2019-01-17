@@ -9,13 +9,21 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) string](#Commit)
 
+[func ContainerArtifacts(name: string, artifactName: string) string](#ContainerArtifacts)
+
 [func ContainerCheckpoint(name: string, keep: bool, leaveRunning: bool, tcpEstablished: bool) string](#ContainerCheckpoint)
 
+[func ContainerConfig(name: string) string](#ContainerConfig)
+
 [func ContainerExists(name: string) int](#ContainerExists)
+
+[func ContainerInspectData(name: string) string](#ContainerInspectData)
 
 [func ContainerRestore(name: string, keep: bool, tcpEstablished: bool) string](#ContainerRestore)
 
 [func ContainerRunlabel(runlabel: Runlabel) ](#ContainerRunlabel)
+
+[func ContainerStateData(name: string) string](#ContainerStateData)
 
 [func CreateContainer(create: Create) string](#CreateContainer)
 
@@ -239,12 +247,24 @@ attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOL
 container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
 the resulting image's ID will be returned as a string.
+### <a name="ContainerArtifacts"></a>func ContainerArtifacts
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerArtifacts(name: [string](https://godoc.org/builtin#string), artifactName: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+ContainerArtifacts returns a container's artifacts in string form.  This call is for
+development of Podman only and generally should not be used.
 ### <a name="ContainerCheckpoint"></a>func ContainerCheckpoint
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method ContainerCheckpoint(name: [string](https://godoc.org/builtin#string), keep: [bool](https://godoc.org/builtin#bool), leaveRunning: [bool](https://godoc.org/builtin#bool), tcpEstablished: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 ContainerCheckPoint performs a checkpopint on a container by its name or full/partial container
 ID.  On successful checkpoint, the id of the checkpointed container is returned.
+### <a name="ContainerConfig"></a>func ContainerConfig
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerConfig(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+ContainerConfig returns a container's config in string form. This call is for
+development of Podman only and generally should not be used.
 ### <a name="ContainerExists"></a>func ContainerExists
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -258,6 +278,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ContainerExists '{"name":
   "exists": 0
 }
 ~~~
+### <a name="ContainerInspectData"></a>func ContainerInspectData
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerInspectData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+ContainerInspectData returns a container's inspect data in string form.  This call is for
+development of Podman only and generally should not be used.
 ### <a name="ContainerRestore"></a>func ContainerRestore
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -270,6 +296,12 @@ of the container's ID.
 
 method ContainerRunlabel(runlabel: [Runlabel](#Runlabel)) </div>
 ContainerRunlabel runs executes a command as described by a given container image label.
+### <a name="ContainerStateData"></a>func ContainerStateData
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ContainerStateData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+ContainerStateData returns a container's state config in string form.  This call is for
+development of Podman only and generally should not be used.
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1373,6 +1405,8 @@ virtualSize [int](https://godoc.org/builtin#int)
 containers [int](https://godoc.org/builtin#int)
 
 labels [map[string]](#map[string])
+
+isParent [bool](https://godoc.org/builtin#bool)
 ### <a name="ImageSearch"></a>type ImageSearch
 
 ImageSearch is the returned structure for SearchImage.  It is returned
@@ -1460,7 +1494,7 @@ graph_status [InfoGraphStatus](#InfoGraphStatus)
 run_root [string](https://godoc.org/builtin#string)
 ### <a name="ListContainerData"></a>type ListContainerData
 
-ListContainer is the returned struct for an individual container
+ListContainerData is the returned struct for an individual container
 
 id [string](https://godoc.org/builtin#string)
 

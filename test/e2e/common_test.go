@@ -1,17 +1,19 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
-	. "github.com/containers/libpod/test/utils"
 	"os"
 	"os/exec"
-
-	"github.com/containers/storage/pkg/reexec"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/containers/libpod/pkg/inspect"
+	. "github.com/containers/libpod/test/utils"
+	"github.com/containers/storage/pkg/reexec"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var (
@@ -226,4 +228,13 @@ func (p *PodmanTestIntegration) CreateArtifact(image string) error {
 		fmt.Printf(" already exists.\n")
 	}
 	return nil
+}
+
+// InspectImageJSON takes the session output of an inspect
+// image and returns json
+func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
+	var i []inspect.ImageData
+	err := json.Unmarshal(s.Out.Contents(), &i)
+	Expect(err).To(BeNil())
+	return i
 }

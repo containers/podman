@@ -3,15 +3,22 @@
 package adapter
 
 import (
-	"github.com/containers/libpod/libpod"
+	"context"
+	"encoding/json"
+
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/inspect"
 )
 
-// Images returns information for the host system and its components
-func (r RemoteRuntime) Images() ([]libpod.InfoData, error) {
-	conn, err := r.Connect()
+// Inspect returns returns an ImageData struct from over a varlink connection
+func (i *ContainerImage) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	reply, err := iopodman.InspectImage().Call(i.Runtime.Conn, i.ID())
 	if err != nil {
 		return nil, err
 	}
-	_ = conn
-	return nil, nil
+	data := inspect.ImageData{}
+	if err := json.Unmarshal([]byte(reply), &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

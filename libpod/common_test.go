@@ -48,7 +48,7 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 				},
 			},
 		},
-		state: &containerState{
+		state: &ContainerState{
 			State:      ContainerStateRunning,
 			ConfigPath: "/does/not/exist/specs/" + id,
 			RunDir:     "/does/not/exist/tmp/",
@@ -166,10 +166,10 @@ func testContainersEqual(t *testing.T, a, b *Container, allowedEmpty bool) {
 
 	aConfig := new(ContainerConfig)
 	bConfig := new(ContainerConfig)
-	aState := new(containerState)
-	bState := new(containerState)
+	aState := new(ContainerState)
+	bState := new(ContainerState)
 
-	blankState := new(containerState)
+	blankState := new(ContainerState)
 
 	assert.Equal(t, a.valid, b.valid)
 

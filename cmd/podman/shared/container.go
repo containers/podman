@@ -2,7 +2,6 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/google/shlex"
 	"io"
@@ -446,8 +445,7 @@ func getStrFromSquareBrackets(cmd string) string {
 
 // GetCtrInspectInfo takes container inspect data and collects all its info into a ContainerData
 // structure for inspection related methods
-func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerInspectData) (*inspect.ContainerData, error) {
-	config := ctr.Config()
+func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *inspect.ContainerInspectData, createArtifact *cc.CreateConfig) (*inspect.ContainerData, error) {
 	spec := config.Spec
 
 	cpus, mems, period, quota, realtimePeriod, realtimeRuntime, shares := getCPUInfo(spec)
@@ -455,16 +453,6 @@ func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 	memKernel, memReservation, memSwap, memSwappiness, memDisableOOMKiller := getMemoryInfo(spec)
 	pidsLimit := getPidsInfo(spec)
 	cgroup := getCgroup(spec)
-
-	var createArtifact cc.CreateConfig
-	artifact, err := ctr.GetArtifact("create-config")
-	if err == nil {
-		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-			return nil, err
-		}
-	} else {
-		logrus.Errorf("couldn't get some inspect information, error getting artifact %q: %v", ctr.ID(), err)
-	}
 
 	data := &inspect.ContainerData{
 		ctrInspectData,
@@ -493,7 +481,7 @@ func GetCtrInspectInfo(ctr *libpod.Container, ctrInspectData *inspect.ContainerI
 			PidsLimit:            pidsLimit,
 			Privileged:           config.Privileged,
 			ReadonlyRootfs:       spec.Root.Readonly,
-			Runtime:              ctr.RuntimeName(),
+			Runtime:              config.OCIRuntime,
 			NetworkMode:          string(createArtifact.NetMode),
 			IpcMode:              string(createArtifact.IpcMode),
 			Cgroup:               cgroup,

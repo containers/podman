@@ -1035,6 +1035,22 @@ method GenerateKubeService() -> (notimplemented: NotImplemented)
 # like that created by GenerateKube. See also [GenerateKube](GenerateKube).
 method ReplayKube() -> (notimplemented: NotImplemented)
 
+# ContainerConfig returns a container's config in string form. This call is for
+# development of Podman only and generally should not be used.
+method ContainerConfig(name: string) -> (config: string)
+
+# ContainerArtifacts returns a container's artifacts in string form.  This call is for
+# development of Podman only and generally should not be used.
+method ContainerArtifacts(name: string, artifactName: string) -> (config: string)
+
+# ContainerInspectData returns a container's inspect data in string form.  This call is for
+# development of Podman only and generally should not be used.
+method ContainerInspectData(name: string) -> (config: string)
+
+# ContainerStateData returns a container's state config in string form.  This call is for
+# development of Podman only and generally should not be used.
+method ContainerStateData(name: string) -> (config: string)
+
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)
 
