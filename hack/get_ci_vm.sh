@@ -54,15 +54,19 @@ delvm() {
     showrun $CLEANUP_CMD  # prompts for Yes/No
 }
 
-show_usage(){
+image_hints() {
+    egrep '[[:space:]]+[[:alnum:]].+_CACHE_IMAGE_NAME:[[:space:]+"[[:print:]]+"' \
+        "$LIBPODROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]' | \
+        grep -v 'notready' | grep -v 'image-builder' | sort -u
+}
+
+show_usage() {
     echo -e "\n${RED}ERROR: $1${NOR}"
     echo -e "${YEL}Usage: $(basename $0) [-s | -p] <image_name>${NOR}\n"
     if [[ -r ".cirrus.yml" ]]
     then
-        egrep 'image_name' ".cirrus.yml" | grep -v '#' | cut -d: -f 2 | \
-            tr -d [:blank:] | sort -u > "$TEMPFILE"
         echo -e "${YEL}Some possible image_name values (from .cirrus.yml):${NOR}"
-        cat $TEMPFILE
+        image_hints
         echo ""
     fi
     exit 1
