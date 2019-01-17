@@ -72,6 +72,9 @@ type ProtoDriver interface {
 	// specified id and parent and options passed in opts. Parent
 	// may be "" and opts may be nil.
 	Create(id, parent string, opts *CreateOpts) error
+	// CreateFromTemplate creates a new filesystem layer with the specified id
+	// and parent, with contents identical to the specified template layer.
+	CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *CreateOpts, readWrite bool) error
 	// Remove attempts to remove the filesystem layer with this id.
 	Remove(id string) error
 	// Get returns the mountpoint for the layered filesystem referred

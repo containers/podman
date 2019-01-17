@@ -123,6 +123,11 @@ func (d *Driver) Cleanup() error {
 	return err
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	return d.Create(id, template, opts)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {

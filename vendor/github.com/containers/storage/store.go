@@ -482,6 +482,10 @@ type LayerOptions struct {
 	// inherit settings from its parent layer or, if it has no parent
 	// layer, the Store object.
 	IDMappingOptions
+	// TemplateLayer is the ID of a layer whose contents will be used to
+	// initialize this layer.  If set, it should be a child of the layer
+	// which we want to use as the parent of the new layer.
+	TemplateLayer string
 }
 
 // ImageOptions is used for passing options to a Store's CreateImage() method.
@@ -973,7 +977,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 	return ristore.Create(id, names, layer, metadata, creationDate, options.Digest)
 }
 
-func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, readWrite bool, rlstore LayerStore, lstores []ROLayerStore, options IDMappingOptions) (*Layer, error) {
+func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, createMappedLayer bool, rlstore LayerStore, lstores []ROLayerStore, options IDMappingOptions) (*Layer, error) {
 	layerMatchesMappingOptions := func(layer *Layer, options IDMappingOptions) bool {
 		// If the driver supports shifting and the layer has no mappings, we can use it.
 		if s.graphDriver.SupportsShifting() && len(layer.UIDMap) == 0 && len(layer.GIDMap) == 0 {
@@ -994,7 +998,6 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 		return reflect.DeepEqual(layer.UIDMap, options.UIDMap) && reflect.DeepEqual(layer.GIDMap, options.GIDMap)
 	}
 	var layer, parentLayer *Layer
-	var layerHomeStore ROLayerStore
 	// Locate the image's top layer and its parent, if it has one.
 	for _, store := range append([]ROLayerStore{rlstore}, lstores...) {
 		if store != rlstore {
@@ -1027,7 +1030,6 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 				if layer == nil {
 					layer = cLayer
 					parentLayer = cParentLayer
-					layerHomeStore = store
 				}
 			}
 		}
@@ -1037,27 +1039,25 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 	}
 	// The top layer's mappings don't match the ones we want, but it's in a read-only
 	// image store, so we can't create and add a mapped copy of the layer to the image.
-	if !readWrite {
+	// We'll have to do the mapping for the container itself, elsewhere.
+	if !createMappedLayer {
 		return layer, nil
 	}
 	// The top layer's mappings don't match the ones we want, and it's in an image store
 	// that lets us edit image metadata...
 	if istore, ok := ristore.(*imageStore); ok {
-		// ... so extract the layer's contents, create a new copy of it with the
-		// desired mappings, and register it as an alternate top layer in the image.
-		noCompression := archive.Uncompressed
-		diffOptions := DiffOptions{
-			Compression: &noCompression,
-		}
-		rc, err := layerHomeStore.Diff("", layer.ID, &diffOptions)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading layer %q to create an ID-mapped version of it", layer.ID)
-		}
-		defer rc.Close()
-
+		// ... so create a duplicate of the layer with the desired mappings, and
+		// register it as an alternate top layer in the image.
 		var layerOptions LayerOptions
 		if s.graphDriver.SupportsShifting() {
-			layerOptions = LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+			layerOptions = LayerOptions{
+				IDMappingOptions: IDMappingOptions{
+					HostUIDMapping: true,
+					HostGIDMapping: true,
+					UIDMap:         nil,
+					GIDMap:         nil,
+				},
+			}
 		} else {
 			layerOptions = LayerOptions{
 				IDMappingOptions: IDMappingOptions{
@@ -1068,9 +1068,10 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, read
 				},
 			}
 		}
-		mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, rc)
+		layerOptions.TemplateLayer = layer.ID
+		mappedLayer, _, err := rlstore.Put("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, nil)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating ID-mapped copy of layer %q", layer.ID)
+			return nil, errors.Wrapf(err, "error creating an ID-mapped copy of layer %q", layer.ID)
 		}
 		if err = istore.addMappedTopLayer(image.ID, mappedLayer.ID); err != nil {
 			if err2 := rlstore.Delete(mappedLayer.ID); err2 != nil {
@@ -1144,7 +1145,9 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 		imageID = cimage.ID
 
-		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, imageHomeStore == istore, rlstore, lstores, idMappingsOptions)
+		createMappedLayer := imageHomeStore == istore
+
+		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -1170,7 +1173,14 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	}
 	var layerOptions *LayerOptions
 	if s.graphDriver.SupportsShifting() {
-		layerOptions = &LayerOptions{IDMappingOptions: IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}}
+		layerOptions = &LayerOptions{
+			IDMappingOptions: IDMappingOptions{
+				HostUIDMapping: true,
+				HostGIDMapping: true,
+				UIDMap:         nil,
+				GIDMap:         nil,
+			},
+		}
 	} else {
 		layerOptions = &LayerOptions{
 			IDMappingOptions: IDMappingOptions{
@@ -2091,10 +2101,10 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 				break
 			}
 			lastRemoved = layer
-			layersToRemove = append(layersToRemove, lastRemoved)
 			if layer == image.TopLayer {
 				layersToRemove = append(layersToRemove, image.MappedTopLayers...)
 			}
+			layersToRemove = append(layersToRemove, lastRemoved)
 			layer = parent
 		}
 	} else {
@@ -3064,9 +3074,6 @@ type OptionsConfig struct {
 	// Size
 	Size string `toml:"size"`
 
-	// OverrideKernelCheck
-	OverrideKernelCheck string `toml:"override_kernel_check"`
-
 	// RemapUIDs is a list of default UID mappings to use for layers.
 	RemapUIDs string `toml:"remap-uids"`
 	// RemapGIDs is a list of default GID mappings to use for layers.
@@ -3190,9 +3197,6 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	}
 	if config.Storage.Options.MountOpt != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.MountOpt))
-	}
-	if config.Storage.Options.OverrideKernelCheck != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.override_kernel_check=%s", config.Storage.Driver, config.Storage.Options.OverrideKernelCheck))
 	}
 	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup == "" {
 		config.Storage.Options.RemapGroup = config.Storage.Options.RemapUser

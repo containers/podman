@@ -253,6 +253,11 @@ func (a *Driver) AdditionalImageStores() []string {
 	return nil
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (a *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	return graphdriver.NaiveCreateFromTemplate(a, id, template, templateIDMappings, parent, parentIDMappings, opts, readWrite)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (a *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {

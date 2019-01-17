@@ -42,7 +42,9 @@ type Image struct {
 
 	// MappedTopLayers are the IDs of alternate versions of the top layer
 	// which have the same contents and parent, and which differ from
-	// TopLayer only in which ID mappings they use.
+	// TopLayer only in which ID mappings they use.  When the image is
+	// to be removed, they should be removed before the TopLayer, as the
+	// graph driver may depend on that.
 	MappedTopLayers []string `json:"mapped-layers,omitempty"`
 
 	// Metadata is data we keep for the convenience of the caller.  It is not
