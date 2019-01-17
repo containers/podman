@@ -29,6 +29,10 @@ sudo emerge app-emulation/libpod
 sudo zypper install podman
 ```
 
+#### [openSUSE Kubic](https://kubic.opensuse.org)
+
+Built-in, no need to install
+
 #### [RHEL7](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux)
 
 Subscribe, then enable Extras channel and install podman.
