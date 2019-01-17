@@ -9,6 +9,8 @@ OS_RELEASE_ID $OS_RELEASE_ID
 OS_RELEASE_VER $OS_RELEASE_VER
 "
 
+record_timestamp "integration test start"
+
 clean_env
 
 set -x
@@ -31,3 +33,5 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
         ;;
     *) bad_os_id_ver ;;
 esac
+
+record_timestamp "integration test end"

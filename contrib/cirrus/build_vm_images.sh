@@ -23,6 +23,8 @@ SCRIPT_BASE $SCRIPT_BASE
 PACKER_BASE $PACKER_BASE
 "
 
+record_timestamp "cache-image build start"
+
 show_env_vars
 
 # Everything here is running on the 'image-builder-image' GCE image
@@ -50,3 +52,5 @@ make libpod_images \
     SCRIPT_BASE=$SCRIPT_BASE \
     PACKER_BASE=$PACKER_BASE \
     BUILT_IMAGE_SUFFIX=$BUILT_IMAGE_SUFFIX
+
+record_timestamp "cache-image build end"
