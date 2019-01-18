@@ -172,7 +172,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
-		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
 	}
 
 	if config.IpcMode.IsHost() {
@@ -182,7 +186,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
-		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
 	}
 
 	for _, opt := range securityOpts {

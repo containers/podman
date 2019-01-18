@@ -52,6 +52,8 @@ var (
 	ErrMCSAlreadyExists = errors.New("MCS label already exists")
 	// ErrEmptyPath is returned when an empty path has been specified.
 	ErrEmptyPath = errors.New("empty path")
+	// InvalidLabel is returned when an invalid label is specified.
+	InvalidLabel = errors.New("Invalid Label")
 
 	assignRegex = regexp.MustCompile(`^([^=]+)=(.*)$`)
 	roFileLabel string
@@ -405,11 +407,14 @@ func (c Context) Get() string {
 }
 
 // NewContext creates a new Context struct from the specified label
-func NewContext(label string) Context {
+func NewContext(label string) (Context, error) {
 	c := make(Context)
 
 	if len(label) != 0 {
 		con := strings.SplitN(label, ":", 4)
+		if len(con) < 3 {
+			return c, InvalidLabel
+		}
 		c["user"] = con[0]
 		c["role"] = con[1]
 		c["type"] = con[2]
@@ -417,7 +422,7 @@ func NewContext(label string) Context {
 			c["level"] = con[3]
 		}
 	}
-	return c
+	return c, nil
 }
 
 // ClearLabels clears all reserved labels
@@ -630,12 +635,12 @@ func ContainerLabels() (processLabel string, fileLabel string) {
 		roFileLabel = fileLabel
 	}
 exit:
-	scon := NewContext(processLabel)
+	scon, _ := NewContext(processLabel)
 	if scon["level"] != "" {
 		mcs := uniqMcs(1024)
 		scon["level"] = mcs
 		processLabel = scon.Get()
-		scon = NewContext(fileLabel)
+		scon, _ = NewContext(fileLabel)
 		scon["level"] = mcs
 		fileLabel = scon.Get()
 	}
@@ -661,8 +666,14 @@ func CopyLevel(src, dest string) (string, error) {
 	if err := SecurityCheckContext(dest); err != nil {
 		return "", err
 	}
-	scon := NewContext(src)
-	tcon := NewContext(dest)
+	scon, err := NewContext(src)
+	if err != nil {
+		return "", err
+	}
+	tcon, err := NewContext(dest)
+	if err != nil {
+		return "", err
+	}
 	mcsDelete(tcon["level"])
 	mcsAdd(scon["level"])
 	tcon["level"] = scon["level"]
@@ -714,15 +725,18 @@ func Chcon(fpath string, label string, recurse bool) error {
 
 // DupSecOpt takes an SELinux process label and returns security options that
 // can be used to set the SELinux Type and Level for future container processes.
-func DupSecOpt(src string) []string {
+func DupSecOpt(src string) ([]string, error) {
 	if src == "" {
-		return nil
+		return nil, nil
 	}
-	con := NewContext(src)
+	con, err := NewContext(src)
+	if err != nil {
+		return nil, err
+	}
 	if con["user"] == "" ||
 		con["role"] == "" ||
 		con["type"] == "" {
-		return nil
+		return nil, nil
 	}
 	dup := []string{"user:" + con["user"],
 		"role:" + con["role"],
@@ -733,7 +747,7 @@ func DupSecOpt(src string) []string {
 		dup = append(dup, "level:"+con["level"])
 	}
 
-	return dup
+	return dup, nil
 }
 
 // DisableSecOpt returns a security opt that can be used to disable SELinux
