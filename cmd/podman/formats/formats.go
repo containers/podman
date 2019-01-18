@@ -20,6 +20,8 @@ const (
 	JSONString = "json"
 	// IDString const to save on duplicates for Go templates
 	IDString = "{{.ID}}"
+
+	parsingErrorStr = "Template parsing error"
 )
 
 // Writer interface for outputs
@@ -96,7 +98,7 @@ func (t StdoutTemplateArray) Out() error {
 		t.Template = strings.Replace(strings.TrimSpace(t.Template[5:]), " ", "\t", -1)
 		headerTmpl, err := template.New("header").Funcs(headerFunctions).Parse(t.Template)
 		if err != nil {
-			return errors.Wrapf(err, "Template parsing error")
+			return errors.Wrapf(err, parsingErrorStr)
 		}
 		err = headerTmpl.Execute(w, t.Fields)
 		if err != nil {
@@ -107,13 +109,12 @@ func (t StdoutTemplateArray) Out() error {
 	t.Template = strings.Replace(t.Template, " ", "\t", -1)
 	tmpl, err := template.New("image").Funcs(basicFunctions).Parse(t.Template)
 	if err != nil {
-		return errors.Wrapf(err, "Template parsing error")
+		return errors.Wrapf(err, parsingErrorStr)
 	}
-	for i, img := range t.Output {
+	for i, raw := range t.Output {
 		basicTmpl := tmpl.Funcs(basicFunctions)
-		err = basicTmpl.Execute(w, img)
-		if err != nil {
-			return err
+		if err := basicTmpl.Execute(w, raw); err != nil {
+			return errors.Wrapf(err, parsingErrorStr)
 		}
 		if i != len(t.Output)-1 {
 			fmt.Fprintln(w, "")
