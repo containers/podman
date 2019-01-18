@@ -415,14 +415,15 @@ func (c *Container) Spec() *spec.Spec {
 // config does not exist (e.g., because the container was never started) return
 // the spec from the config.
 func (c *Container) specFromState() (*spec.Spec, error) {
-	spec := c.config.Spec
+	returnSpec := c.config.Spec
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
+		returnSpec = new(spec.Spec)
 		content, err := ioutil.ReadAll(f)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading container config")
 		}
-		if err := json.Unmarshal([]byte(content), &spec); err != nil {
+		if err := json.Unmarshal([]byte(content), &returnSpec); err != nil {
 			return nil, errors.Wrapf(err, "error unmarshalling container config")
 		}
 	} else {
@@ -432,7 +433,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		}
 	}
 
-	return spec, nil
+	return returnSpec, nil
 }
 
 // ID returns the container's ID
