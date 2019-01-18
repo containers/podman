@@ -376,6 +376,10 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
+	if config.PidMode.IsHost() && rootless.IsRootless() {
+		return
+	}
+
 	if !config.Privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
