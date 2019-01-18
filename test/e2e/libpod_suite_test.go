@@ -213,5 +213,24 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	return PodmanTestCreateUtil(tempDir, false)
 }
 
-//func (p *PodmanTestIntegration) StartVarlink() {}
-//func (p *PodmanTestIntegration) StopVarlink() {}
+//MakeOptions assembles all the podman main options
+func (p *PodmanTestIntegration) makeOptions(args []string) []string {
+	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
+		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
+	if os.Getenv("HOOK_OPTION") != "" {
+		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
+	}
+	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	podmanOptions = append(podmanOptions, args...)
+	return podmanOptions
+}
+
+// RestoreArtifact puts the cached image into our test store
+func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	restore := p.Podman([]string{"load", "-q", "-i", destName})
+	restore.Wait(90)
+	return nil
+}

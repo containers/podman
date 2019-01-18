@@ -143,7 +143,7 @@ func (p *PodmanTestIntegration) StartVarlink() {
 		os.MkdirAll("/run/podman", 0755)
 	}
 	args := []string{"varlink", "--timeout", "0", "unix:/run/podman/io.podman"}
-	podmanOptions := p.MakeOptions(args)
+	podmanOptions := getVarlinkOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
@@ -154,4 +154,35 @@ func (p *PodmanTestIntegration) StopVarlink() {
 	varlinkSession := p.VarlinkSession
 	varlinkSession.Kill()
 	varlinkSession.Wait()
+}
+
+//MakeOptions assembles all the podman main options
+func (p *PodmanTestIntegration) makeOptions(args []string) []string {
+	return args
+}
+
+//MakeOptions assembles all the podman main options
+func getVarlinkOptions(p *PodmanTestIntegration, args []string) []string {
+	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s",
+		p.CrioRoot, p.RunRoot, p.RunCBinary, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager), " ")
+	if os.Getenv("HOOK_OPTION") != "" {
+		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
+	}
+	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	podmanOptions = append(podmanOptions, args...)
+	return podmanOptions
+}
+
+// RestoreArtifact puts the cached image into our test store
+func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	args := []string{"load", "-q", "-i", destName}
+	podmanOptions := getVarlinkOptions(p, args)
+	command := exec.Command(p.PodmanBinary, podmanOptions...)
+	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
+	command.Start()
+	command.Wait()
+	return nil
 }

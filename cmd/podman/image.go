@@ -1,36 +1,36 @@
 package main
 
 import (
+	"sort"
+
 	"github.com/urfave/cli"
 )
 
 var (
 	imageSubCommands = []cli.Command{
-		buildCommand,
 		historyCommand,
-		importCommand,
 		imageExistsCommand,
 		inspectCommand,
-		loadCommand,
 		lsImagesCommand,
 		pruneImagesCommand,
 		pullCommand,
-		pushCommand,
 		rmImageCommand,
-		saveCommand,
 		tagCommand,
-		trustCommand,
-		signCommand,
 	}
-
 	imageDescription = "Manage images"
 	imageCommand     = cli.Command{
 		Name:                   "image",
 		Usage:                  "Manage images",
 		Description:            imageDescription,
 		ArgsUsage:              "",
-		Subcommands:            imageSubCommands,
+		Subcommands:            getImageSubCommandsSorted(),
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
 	}
 )
+
+func getImageSubCommandsSorted() []cli.Command {
+	imageSubCommands = append(imageSubCommands, getImageSubCommands()...)
+	sort.Sort(commandSortedAlpha{imageSubCommands})
+	return imageSubCommands
+}
