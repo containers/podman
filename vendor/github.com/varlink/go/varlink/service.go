@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -110,58 +108,6 @@ func (s *Service) handleMessage(writer *bufio.Writer, request []byte) error {
 	return iface.VarlinkDispatch(c, methodname)
 }
 
-func activationListener() net.Listener {
-	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
-	if err != nil || pid != os.Getpid() {
-		return nil
-	}
-
-	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
-	if err != nil || nfds < 1 {
-		return nil
-	}
-
-	fd := -1
-
-	// If more than one file descriptor is passed, find the
-	// "varlink" tag. The first file descriptor is always 3.
-	if nfds > 1 {
-		fdnames, set := os.LookupEnv("LISTEN_FDNAMES")
-		if !set {
-			return nil
-		}
-
-		names := strings.Split(fdnames, ":")
-		if len(names) != nfds {
-			return nil
-		}
-
-		for i, name := range names {
-			if name == "varlink" {
-				fd = 3 + i
-				break
-			}
-		}
-
-		if fd < 0 {
-			return nil
-		}
-
-	} else {
-		fd = 3
-	}
-
-	syscall.CloseOnExec(fd)
-
-	file := os.NewFile(uintptr(fd), "varlink")
-	listener, err := net.FileListener(file)
-	if err != nil {
-		return nil
-	}
-
-	return listener
-}
-
 // Shutdown shuts down the listener of a running service.
 func (s *Service) Shutdown() {
 	s.running = false
@@ -253,18 +199,17 @@ func getListener(protocol string, address string) (net.Listener, error) {
 }
 
 func (s *Service) refreshTimeout(timeout time.Duration) error {
-	switch s.protocol {
-	case "unix":
-		if err := s.listener.(*net.UnixListener).SetDeadline(time.Now().Add(timeout)); err != nil {
+	switch l := s.listener.(type) {
+	case *net.UnixListener:
+		if err:= l.SetDeadline(time.Now().Add(timeout)); err != nil {
+			return err
+		}
+	case *net.TCPListener:
+		if err:= l.SetDeadline(time.Now().Add(timeout)); err != nil {
 			return err
 		}
 
-	case "tcp":
-		if err := s.listener.(*net.TCPListener).SetDeadline(time.Now().Add(timeout)); err != nil {
-			return err
-		}
 	}
-
 	return nil
 }
 
