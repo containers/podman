@@ -551,9 +551,20 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		}
 	}
 	parent := ""
-	var parentMappings *idtools.IDMappings
 	if parentLayer != nil {
 		parent = parentLayer.ID
+	}
+	var parentMappings, templateIDMappings, oldMappings *idtools.IDMappings
+	if moreOptions.TemplateLayer != "" {
+		templateLayer, ok := r.lookup(moreOptions.TemplateLayer)
+		if !ok {
+			return nil, -1, ErrLayerUnknown
+		}
+		templateIDMappings = idtools.NewIDMappingsFromMaps(templateLayer.UIDMap, templateLayer.GIDMap)
+	} else {
+		templateIDMappings = &idtools.IDMappings{}
+	}
+	if parentLayer != nil {
 		parentMappings = idtools.NewIDMappingsFromMaps(parentLayer.UIDMap, parentLayer.GIDMap)
 	} else {
 		parentMappings = &idtools.IDMappings{}
@@ -566,23 +577,34 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		MountLabel: mountLabel,
 		StorageOpt: options,
 	}
-	if writeable {
-		if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+	if moreOptions.TemplateLayer != "" {
+		if err = r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
 			if id != "" {
-				return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
+				return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q with ID %q", moreOptions.TemplateLayer, id)
 			}
-			return nil, -1, errors.Wrapf(err, "error creating read-write layer")
+			return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q", moreOptions.TemplateLayer)
 		}
+		oldMappings = templateIDMappings
 	} else {
-		if err = r.driver.Create(id, parent, &opts); err != nil {
-			if id != "" {
-				return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
+		if writeable {
+			if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+				if id != "" {
+					return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
+				}
+				return nil, -1, errors.Wrapf(err, "error creating read-write layer")
 			}
-			return nil, -1, errors.Wrapf(err, "error creating layer")
+		} else {
+			if err = r.driver.Create(id, parent, &opts); err != nil {
+				if id != "" {
+					return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
+				}
+				return nil, -1, errors.Wrapf(err, "error creating layer")
+			}
 		}
+		oldMappings = parentMappings
 	}
-	if !reflect.DeepEqual(parentMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(parentMappings.GIDs(), idMappings.GIDs()) {
-		if err = r.driver.UpdateLayerIDMap(id, parentMappings, idMappings, mountLabel); err != nil {
+	if !reflect.DeepEqual(oldMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(oldMappings.GIDs(), idMappings.GIDs()) {
+		if err = r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
 			// We don't have a record of this layer, but at least
 			// try to clean it up underneath us.
 			r.driver.Remove(id)
