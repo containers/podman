@@ -87,6 +87,9 @@ func inspectCmd(c *cli.Context) error {
 	}
 
 	inspectedObjects, iterateErr := iterateInput(getContext(), c, args, runtime, inspectType)
+	if iterateErr != nil {
+		return iterateErr
+	}
 
 	var out formats.Writer
 	if outputFormat != "" && outputFormat != formats.JSONString {
@@ -97,8 +100,7 @@ func inspectCmd(c *cli.Context) error {
 		out = formats.JSONStructArray{Output: inspectedObjects}
 	}
 
-	formats.Writer(out).Out()
-	return iterateErr
+	return formats.Writer(out).Out()
 }
 
 // func iterateInput iterates the images|containers the user has requested and returns the inspect data and error
