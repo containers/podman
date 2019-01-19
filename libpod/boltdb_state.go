@@ -205,7 +205,7 @@ func (s *BoltState) Refresh() error {
 				return errors.Wrapf(ErrInternal, "container %s missing state in DB", string(id))
 			}
 
-			state := new(containerState)
+			state := new(ContainerState)
 
 			if err := json.Unmarshal(stateBytes, state); err != nil {
 				return errors.Wrapf(err, "error unmarshalling state for container %s", string(id))
@@ -325,7 +325,7 @@ func (s *BoltState) Container(id string) (*Container, error) {
 
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerState)
+	ctr.state = new(ContainerState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -361,7 +361,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
-	ctr.state = new(containerState)
+	ctr.state = new(ContainerState)
 
 	db, err := s.getDBCon()
 	if err != nil {
@@ -542,7 +542,7 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
 	}
 
-	newState := new(containerState)
+	newState := new(ContainerState)
 	netNSPath := ""
 
 	ctrID := []byte(ctr.ID())
@@ -754,7 +754,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 
 			ctr := new(Container)
 			ctr.config = new(ContainerConfig)
-			ctr.state = new(containerState)
+			ctr.state = new(ContainerState)
 
 			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
 				// If the error is a namespace mismatch, we can
@@ -1140,7 +1140,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		err = podCtrs.ForEach(func(id, val []byte) error {
 			newCtr := new(Container)
 			newCtr.config = new(ContainerConfig)
-			newCtr.state = new(containerState)
+			newCtr.state = new(ContainerState)
 			ctrs = append(ctrs, newCtr)
 
 			return s.getContainerFromDB(id, newCtr, ctrBkt)

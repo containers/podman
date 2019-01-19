@@ -118,15 +118,6 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() libpod.PodInspect {
 	return i
 }
 
-// InspectImageJSON takes the session output of an inspect
-// image and returns json
-func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
-	var i []inspect.ImageData
-	err := json.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
-	return i
-}
-
 // CreatePod creates a pod with no infra container
 // it optionally takes a pod name
 func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {

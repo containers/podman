@@ -55,10 +55,10 @@ func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionInteg
 
 // InspectImageJSON takes the session output of an inspect
 // image and returns json
-func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
-	// TODO
-	return nil
-}
+//func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
+//	// TODO
+//	return nil
+//}
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")

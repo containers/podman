@@ -116,7 +116,7 @@ func (ns LinuxNS) String() string {
 type Container struct {
 	config *ContainerConfig
 
-	state *containerState
+	state *ContainerState
 
 	// Batched indicates that a container has been locked as part of a
 	// Batch() operation
@@ -136,10 +136,10 @@ type Container struct {
 	requestedIP net.IP
 }
 
-// containerState contains the current state of the container
+// ContainerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
 // easyjson:json
-type containerState struct {
+type ContainerState struct {
 	// The current state of the running container
 	State ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container
@@ -1062,4 +1062,19 @@ func networkDisabled(c *Container) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// ContainerState returns containerstate struct
+func (c *Container) ContainerState() (*ContainerState, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	returnConfig := new(ContainerState)
+	deepcopier.Copy(c.state).To(returnConfig)
+	return c.state, nil
 }

@@ -4,15 +4,18 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
 	"github.com/containers/image/types"
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/varlink/go/varlink"
 )
@@ -80,21 +83,9 @@ type Container struct {
 
 // remoteContainer ....
 type remoteContainer struct {
-	ID         string
-	Image      string
-	ImageID    string
-	Command    []string
-	Created    time.Time
-	RunningFor string
-	Status     string
-	//Ports            []ocicni.PortMapping
-	RootFsSize int64
-	RWSize     int64
-	Names      string
-	Labels     []map[string]string
-	//	Mounts           []string
-	// ContainerRunning bool
-	//Namespaces       []LinuxNameSpace
+	Runtime *LocalRuntime
+	config  *libpod.ContainerConfig
+	state   *libpod.ContainerState
 }
 
 // GetImages returns a slice of containerimages over a varlink connection
@@ -272,39 +263,60 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 
 // LookupContainer gets basic information about container over a varlink
 // connection and then translates it to a *Container
-func (r *RemoteRuntime) LookupContainer(idOrName string) (*Container, error) {
-	container, err := iopodman.GetContainer().Call(r.Conn, idOrName)
+func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
+	state, err := r.ContainerState(idOrName)
 	if err != nil {
 		return nil, err
 	}
-	return listContainerDataToContainer(container)
+	config := r.Config(idOrName)
+	if err != nil {
+		return nil, err
+	}
+
+	rc := remoteContainer{
+		r,
+		config,
+		state,
+	}
+
+	c := Container{
+		rc,
+	}
+	return &c, nil
 }
 
-// listContainerDataToContainer takes a varlink listcontainerData struct and makes
-// an "adapted" Container
-func listContainerDataToContainer(listData iopodman.ListContainerData) (*Container, error) {
-	created, err := splitStringDate(listData.Createdat)
+func (r *LocalRuntime) GetLatestContainer() (*Container, error) {
+	return nil, libpod.ErrNotImplemented
+}
+
+// ContainerState returns the "state" of the container.
+func (r *LocalRuntime) ContainerState(name string) (*libpod.ContainerState, error) { //no-lint
+	reply, err := iopodman.ContainerStateData().Call(r.Conn, name)
 	if err != nil {
 		return nil, err
 	}
-	rc := remoteContainer{
-		// TODO commented out attributes will be populated when podman-remote ps
-		// is implemented.   They are not needed yet for basic container operations.
-		ID:         listData.Id,
-		Image:      listData.Image,
-		ImageID:    listData.Imageid,
-		Command:    listData.Command,
-		Created:    created,
-		RunningFor: listData.Runningfor,
-		Status:     listData.Status,
-		//ports:
-		RootFsSize: listData.Rootfssize,
-		RWSize:     listData.Rwsize,
-		Names:      listData.Names,
-		//Labels:
-		//Mounts
-		//ContainerRunning:
-		//namespaces:
+	data := libpod.ContainerState{}
+	if err := json.Unmarshal([]byte(reply), &data); err != nil {
+		return nil, err
 	}
-	return &Container{rc}, nil
+	return &data, err
+
+}
+
+// Config returns a container config
+func (r *LocalRuntime) Config(name string) *libpod.ContainerConfig {
+	// TODO the Spec being returned is not populated.  Matt and I could not figure out why.  Will defer
+	// further looking into it for after devconf.
+	// The libpod function for this has no errors so we are kind of in a tough
+	// spot here.  Logging the errors for now.
+	reply, err := iopodman.ContainerConfig().Call(r.Conn, name)
+	if err != nil {
+		logrus.Error("call to container.config failed")
+	}
+	data := libpod.ContainerConfig{}
+	if err := json.Unmarshal([]byte(reply), &data); err != nil {
+		logrus.Error("failed to unmarshal container inspect data")
+	}
+	return &data
+
 }
