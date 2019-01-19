@@ -163,4 +163,20 @@ var _ = Describe("Podman pull", func() {
 
 		Expect(pull.OutputToString()).To(ContainSubstring(shortImageId))
 	})
+
+	It("podman pull check all tags", func() {
+		session := podmanTest.Podman([]string{"pull", "--all-tags", "alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOuputStartsWith("Pulled Images:")).To(BeTrue())
+
+		session = podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 4))
+
+		rmi := podmanTest.Podman([]string{"rmi", "-a", "-f"})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+	})
 })

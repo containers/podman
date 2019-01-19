@@ -6,11 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/adapter"
+	"github.com/containers/libpod/libpod/common"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -41,6 +43,7 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 func init() {
 	pullCommand.Command = _pullCommand
 	flags := pullCommand.Flags()
+	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images inthe repository will be pulled")
 	flags.StringVar(&pullCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
@@ -69,6 +72,15 @@ func pullCmd(c *cliconfig.PullValues) error {
 		logrus.Errorf("too many arguments. Requires exactly 1")
 		return nil
 	}
+
+	arr := strings.SplitN(args[0], ":", 2)
+	if len(arr) == 2 {
+		if c.Bool("all-tags") {
+			logrus.Errorf("tag can't be used with --all-tags")
+			return nil
+		}
+	}
+	ctx := getContext()
 	image := args[0]
 
 	var registryCreds *types.DockerAuthConfig
@@ -83,7 +95,6 @@ func pullCmd(c *cliconfig.PullValues) error {
 
 	var (
 		writer io.Writer
-		imgID  string
 	)
 	if !c.Quiet {
 		writer = os.Stderr
@@ -107,18 +118,58 @@ func pullCmd(c *cliconfig.PullValues) error {
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image from %q", image)
 		}
-		imgID = newImage[0].ID()
+		fmt.Println(newImage[0].ID())
 	} else {
-		authfile := getAuthFile(c.Authfile)
-		newImage, err := runtime.New(getContext(), image, c.SignaturePolicy, authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, nil)
+		authfile := getAuthFile(c.String("authfile"))
+		spec := image
+		systemContext := common.GetSystemContext("", authfile, false)
+		srcRef, err := alltransports.ParseImageName(spec)
 		if err != nil {
+			dockerTransport := "docker://"
+			logrus.Debugf("error parsing image name %q, trying with transport %q: %v", spec, dockerTransport, err)
+			spec = dockerTransport + spec
+			srcRef2, err2 := alltransports.ParseImageName(spec)
+			if err2 != nil {
+				return errors.Wrapf(err2, "error parsing image name %q", image)
+			}
+			srcRef = srcRef2
+		}
+		var names []string
+		if c.Bool("all-tags") {
+			if srcRef.DockerReference() == nil {
+				return errors.New("Non-docker transport is currently not supported")
+			}
+			tags, err := docker.GetRepositoryTags(ctx, systemContext, srcRef)
+			if err != nil {
+				return errors.Wrapf(err, "error getting repository tags")
+			}
+			for _, tag := range tags {
+				name := spec + ":" + tag
+				names = append(names, name)
+			}
+		} else {
+			names = append(names, spec)
+		}
+		var foundIDs []string
+		foundImage := true
+		for _, name := range names {
+			newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, nil)
+			if err != nil {
+				println(errors.Wrapf(err, "error pulling image %q", name))
+				foundImage = false
+				continue
+			}
+			foundIDs = append(foundIDs, newImage.ID())
+		}
+		if len(names) == 1 && !foundImage {
 			return errors.Wrapf(err, "error pulling image %q", image)
 		}
-		imgID = newImage.ID()
-	}
-
-	// Intentionally choosing to ignore if there is an error because
-	// outputting the image ID is a NTH and not integral to the pull
-	fmt.Println(imgID)
+		if len(names) > 1 {
+			fmt.Println("Pulled Images:")
+		}
+		for _, id := range foundIDs {
+			fmt.Println(id)
+		}
+	} // end else if strings.HasPrefix(image, dockerarchive.Transport.Name()+":")
 	return nil
 }

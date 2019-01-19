@@ -334,6 +334,7 @@ type PsValues struct {
 
 type PullValues struct {
 	PodmanCommand
+	AllTags         bool
 	Authfile        string
 	CertDir         string
 	Creds           string
