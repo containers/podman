@@ -1,52 +1,29 @@
 package main
 
 import (
+	"sort"
+
 	"github.com/urfave/cli"
 )
 
 var (
-	subCommands = []cli.Command{
-		attachCommand,
-		checkpointCommand,
-		cleanupCommand,
-		containerExistsCommand,
-		commitCommand,
-		createCommand,
-		diffCommand,
-		execCommand,
-		exportCommand,
+	containerSubCommands = []cli.Command{
 		inspectCommand,
-		killCommand,
-		logsCommand,
-		psCommand,
-		mountCommand,
-		pauseCommand,
-		portCommand,
-		pruneContainersCommand,
-		refreshCommand,
-		restartCommand,
-		restoreCommand,
-		rmCommand,
-		runCommand,
-		runlabelCommand,
-		startCommand,
-		statsCommand,
-		stopCommand,
-		topCommand,
-		umountCommand,
-		unpauseCommand,
-		//		updateCommand,
-		waitCommand,
 	}
-
 	containerDescription = "Manage containers"
 	containerCommand     = cli.Command{
 		Name:                   "container",
 		Usage:                  "Manage Containers",
 		Description:            containerDescription,
 		ArgsUsage:              "",
-		Subcommands:            subCommands,
+		Subcommands:            getContainerSubCommandsSorted(),
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
 	}
 )
+
+func getContainerSubCommandsSorted() []cli.Command {
+	containerSubCommands = append(containerSubCommands, getContainerSubCommands()...)
+	sort.Sort(commandSortedAlpha{containerSubCommands})
+	return containerSubCommands
+}

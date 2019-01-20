@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime/pprof"
+	"sort"
 	"syscall"
 
 	"github.com/containers/libpod/libpod"
@@ -47,6 +48,28 @@ var cmdsNotRequiringRootless = map[string]bool{
 	"top":     true,
 }
 
+type commandSorted []cli.Command
+
+func (a commandSorted) Len() int      { return len(a) }
+func (a commandSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type commandSortedAlpha struct{ commandSorted }
+
+func (a commandSortedAlpha) Less(i, j int) bool {
+	return a.commandSorted[i].Name < a.commandSorted[j].Name
+}
+
+type flagSorted []cli.Flag
+
+func (a flagSorted) Len() int      { return len(a) }
+func (a flagSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type flagSortedAlpha struct{ flagSorted }
+
+func (a flagSortedAlpha) Less(i, j int) bool {
+	return a.flagSorted[i].GetName() < a.flagSorted[j].GetName()
+}
+
 func main() {
 	debug := false
 	cpuProfile := false
@@ -64,51 +87,19 @@ func main() {
 	app.Version = version.Version
 
 	app.Commands = []cli.Command{
-		attachCommand,
-		commitCommand,
 		containerCommand,
-		buildCommand,
-		createCommand,
-		diffCommand,
-		execCommand,
-		exportCommand,
 		historyCommand,
 		imageCommand,
 		imagesCommand,
-		importCommand,
 		infoCommand,
 		inspectCommand,
-		killCommand,
-		kubeCommand,
-		loadCommand,
-		loginCommand,
-		logoutCommand,
-		logsCommand,
-		mountCommand,
-		pauseCommand,
-		psCommand,
-		podCommand,
-		portCommand,
 		pullCommand,
-		pushCommand,
-		playCommand,
-		restartCommand,
-		rmCommand,
 		rmiCommand,
-		runCommand,
-		saveCommand,
-		searchCommand,
-		startCommand,
-		statsCommand,
-		stopCommand,
 		tagCommand,
-		topCommand,
-		umountCommand,
-		unpauseCommand,
-		versionCommand,
-		volumeCommand,
-		waitCommand,
 	}
+
+	app.Commands = append(app.Commands, getAppCommands()...)
+	sort.Sort(commandSortedAlpha{app.Commands})
 
 	if varlinkCommand != nil {
 		app.Commands = append(app.Commands, *varlinkCommand)
@@ -192,39 +183,13 @@ func main() {
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "cgroup-manager",
-			Usage: "cgroup manager to use (cgroupfs or systemd, default systemd)",
-		},
-		cli.StringFlag{
-			Name:  "cni-config-dir",
-			Usage: "path of the configuration directory for CNI networks",
-		},
-		cli.StringFlag{
 			Name:   "config, c",
 			Usage:  "path of a libpod config file detailing container server configuration options",
 			Hidden: true,
 		},
 		cli.StringFlag{
-			Name:  "conmon",
-			Usage: "path of the conmon binary",
-		},
-		cli.StringFlag{
 			Name:  "cpu-profile",
 			Usage: "path for the cpu profiling results",
-		},
-		cli.StringFlag{
-			Name:   "default-mounts-file",
-			Usage:  "path to default mounts file",
-			Hidden: true,
-		},
-		cli.StringSliceFlag{
-			Name:  "hooks-dir",
-			Usage: "set the OCI hooks directory path (may be set multiple times)",
-		},
-		cli.IntFlag{
-			Name:   "max-workers",
-			Usage:  "the maximum number of workers for parallel operations",
-			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "log-level",
@@ -232,39 +197,14 @@ func main() {
 			Value: "error",
 		},
 		cli.StringFlag{
-			Name:  "namespace",
-			Usage: "set the libpod namespace, used to create separate views of the containers and pods on the system",
-			Value: "",
-		},
-		cli.StringFlag{
-			Name:  "root",
-			Usage: "path to the root directory in which data, including images, is stored",
-		},
-		cli.StringFlag{
 			Name:  "tmpdir",
 			Usage: "path to the tmp directory",
 		},
-		cli.StringFlag{
-			Name:  "runroot",
-			Usage: "path to the 'run directory' where all state information is stored",
-		},
-		cli.StringFlag{
-			Name:  "runtime",
-			Usage: "path to the OCI-compatible binary used to run containers, default is /usr/bin/runc",
-		},
-		cli.StringFlag{
-			Name:  "storage-driver, s",
-			Usage: "select which storage driver is used to manage storage of images and containers (default is overlay)",
-		},
-		cli.StringSliceFlag{
-			Name:  "storage-opt",
-			Usage: "used to pass an option to the storage driver",
-		},
-		cli.BoolFlag{
-			Name:  "syslog",
-			Usage: "output logging information to syslog as well as the console",
-		},
 	}
+
+	app.Flags = append(app.Flags, getMainAppFlags()...)
+	sort.Sort(flagSortedAlpha{app.Flags})
+
 	// Check if /etc/containers/registries.conf exists when running in
 	// in a local environment.
 	CheckForRegistries()
