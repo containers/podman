@@ -323,7 +323,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
-	if r.reservePorts {
+	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)
 		if err != nil {
 			return err
