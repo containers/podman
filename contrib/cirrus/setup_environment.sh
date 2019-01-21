@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-start_timestamp
+record_timestamp "env. setup start"
 
 req_env_var "
 USER $USER
@@ -85,3 +85,5 @@ then
     # Only testing-VMs need deps installed
     [[ -n "$PACKER_BUILDS" ]] || install_testing_dependencies  # must exist in $GOPATH
 fi
+
+record_timestamp "env. setup end"
