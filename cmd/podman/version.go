@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/formats"
@@ -26,20 +28,22 @@ func versionCmd(c *cli.Context) error {
 		default:
 			out = formats.StdoutTemplate{Output: output, Template: versionOutputFormat}
 		}
-		formats.Writer(out).Out()
-		return nil
+		return formats.Writer(out).Out()
 	}
-	fmt.Println("Version:      ", output.Version)
-	fmt.Println("Go Version:   ", output.GoVersion)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	defer w.Flush()
+	fmt.Fprintf(w, "Version:\t%s\n", output.Version)
+	fmt.Fprintf(w, "RemoteAPI Version:\t%d\n", output.RemoteAPIVersion)
+	fmt.Fprintf(w, "Go Version:\t%s\n", output.GoVersion)
 	if output.GitCommit != "" {
-		fmt.Println("Git Commit:   ", output.GitCommit)
+		fmt.Fprintf(w, "Git Commit:\t%s\n", output.GitCommit)
 	}
 	// Prints out the build time in readable format
 	if output.Built != 0 {
-		fmt.Println("Built:        ", time.Unix(output.Built, 0).Format(time.ANSIC))
+		fmt.Fprintf(w, "Built:\t%s\n", time.Unix(output.Built, 0).Format(time.ANSIC))
 	}
 
-	fmt.Println("OS/Arch:      ", output.OsArch)
+	fmt.Fprintf(w, "OS/Arch:\t%s\n", output.OsArch)
 	return nil
 }
 

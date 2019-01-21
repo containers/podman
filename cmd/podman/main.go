@@ -96,6 +96,7 @@ func main() {
 		pullCommand,
 		rmiCommand,
 		tagCommand,
+		versionCommand,
 	}
 
 	app.Commands = append(app.Commands, getAppCommands()...)

@@ -16,11 +16,12 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 	}
 
 	return call.ReplyGetVersion(iopodman.Version{
-		Version:    versionInfo.Version,
-		Go_version: versionInfo.GoVersion,
-		Git_commit: versionInfo.GitCommit,
-		Built:      versionInfo.Built,
-		Os_arch:    versionInfo.OsArch,
+		Remote_api_version: versionInfo.RemoteAPIVersion,
+		Version:            versionInfo.Version,
+		Go_version:         versionInfo.GoVersion,
+		Git_commit:         versionInfo.GitCommit,
+		Built:              versionInfo.Built,
+		Os_arch:            versionInfo.OsArch,
 	})
 }
 

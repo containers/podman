@@ -1654,6 +1654,8 @@ git_commit [string](https://godoc.org/builtin#string)
 built [int](https://godoc.org/builtin#int)
 
 os_arch [string](https://godoc.org/builtin#string)
+
+remote_api_version [int](https://godoc.org/builtin#int)
 ## Errors
 ### <a name="ContainerNotFound"></a>type ContainerNotFound
 
