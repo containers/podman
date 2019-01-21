@@ -45,9 +45,12 @@ ooe.sh sudo yum -y install \
     qemu-kvm-tools \
     qemu-user \
     rsync \
+    rng-tools \
     unzip \
     util-linux \
     vim
+
+sudo systemctl enable rngd
 
 sudo ln -s /usr/libexec/qemu-kvm /usr/bin/
 

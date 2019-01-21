@@ -16,6 +16,8 @@ req_env_var "
 
 install_ooe
 
+rhsm_enable
+
 echo "Setting up repos"
 # Frequently needed
 ooe.sh sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
@@ -32,12 +34,15 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOM
 
-rhsm_enable
+echo "Updating all packages"
+ooe.sh sudo yum -y update
 
 echo "Installing/removing packages"
-ooe.sh sudo yum -y install google-compute-engine google-compute-engine-oslogin
-ooe.sh sudo yum -y erase "cloud-init" "rh-amazon-rhui-client*" || true
+ooe.sh sudo yum -y install rng-tools google-compute-engine google-compute-engine-oslogin
+
+echo "Enabling critical services"
 ooe.sh sudo systemctl enable \
+    rngd \
     google-accounts-daemon \
     google-clock-skew-daemon \
     google-instance-setup \
@@ -46,6 +51,29 @@ ooe.sh sudo systemctl enable \
     google-startup-scripts
 
 rhel_exit_handler  # release subscription!
+
+echo "Configuring boot"
+cat << "EOF" | sudo tee /etc/default/grub
+GRUB_TIMEOUT=0
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL="serial console"
+GRUB_SERIAL_COMMAND="serial --speed=38400"
+GRUB_CMDLINE_LINUX="crashkernel=auto console=ttyS0,38400n8"
+GRUB_DISABLE_RECOVERY="true"
+EOF
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+echo "Configuring networking"
+ooe.sh sudo nmcli connection modify 'System eth0' 802-3-ethernet.mtu 1460
+ooe.sh sudo nmcli connection modify 'System eth0' connection.autoconnect yes
+ooe.sh sudo nmcli connection modify 'System eth0' connection.autoconnect-priority
+ooe.sh sudo nmcli connection modify 'System eth0' ipv4.method auto
+ooe.sh sudo nmcli connection modify 'System eth0' ipv4.dhcp-send-hostname yes
+ooe.sh sudo nmcli connection modify 'System eth0' ipv4.dhcp-timeout 0
+ooe.sh sudo nmcli connection modify 'System eth0' ipv4.never-default no
+ooe.sh /usr/bin/google_instance_setup
 
 rh_finalize
 
