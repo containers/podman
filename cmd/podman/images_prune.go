@@ -11,7 +11,7 @@ var (
 	pruneImagesDescription = `
 	podman image prune
 
-	Removes all unnamed images from local storage
+	Removes all unused images from local storage
 `
 
 	pruneImagesCommand = cli.Command{
