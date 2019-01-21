@@ -772,7 +772,11 @@ func (r *Runtime) refreshRootless() error {
 	// Take advantage of a command that requires a new userns
 	// so that we are running as the root user and able to use refresh()
 	cmd := exec.Command(os.Args[0], "info")
-	return cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		return errors.Wrapf(err, "Error running %s info while refreshing state", os.Args[0])
+	}
+	return nil
 }
 
 // Reconfigures the runtime after a reboot
