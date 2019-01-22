@@ -27,12 +27,12 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-9afa57a9"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-9afa57a9"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-9afa57a9"
-    RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-notready"
-    CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-7f4cd1f7"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-7f4cd1f7"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-7f4cd1f7"
+    # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
+    # PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
+    # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
