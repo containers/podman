@@ -38,7 +38,6 @@ func getAppCommands() []cli.Command {
 		topCommand,
 		umountCommand,
 		unpauseCommand,
-		versionCommand,
 		volumeCommand,
 		waitCommand,
 	}

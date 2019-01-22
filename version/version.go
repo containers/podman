@@ -5,3 +5,8 @@ package version
 // of the top-level README.md file when this is
 // bumped.
 const Version = "1.0.1-dev"
+
+// RemoteAPIVersion is the version for the remote
+// client API.  It is used to determine compatibility
+// between a remote podman client and its backend
+const RemoteAPIVersion = 1

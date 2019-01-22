@@ -9,7 +9,8 @@ type Version (
   go_version: string,
   git_commit: string,
   built: int,
-  os_arch: string
+  os_arch: string,
+  remote_api_version: int
 )
 
 type NotImplemented (
