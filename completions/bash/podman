@@ -2453,6 +2453,8 @@ _podman_images_prune() {
     "
 
     local boolean_options="
+    -a
+    --all
      -h
 	 --help
   "

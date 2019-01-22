@@ -39,6 +39,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman container prune containers", func() {
+		SkipIfRemote()
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
 		Expect(top.ExitCode()).To(Equal(0))
@@ -55,6 +56,7 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman image prune none images", func() {
+		SkipIfRemote()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
 		none := podmanTest.Podman([]string{"images", "-a"})
@@ -72,10 +74,11 @@ var _ = Describe("Podman rm", func() {
 		Expect(none.ExitCode()).To(Equal(0))
 		hasNoneAfter, _ := after.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeFalse())
+		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
 	})
 
 	It("podman image prune unused images", func() {
-		prune := podmanTest.Podman([]string{"image", "prune"})
+		prune := podmanTest.Podman([]string{"image", "prune", "-a"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 

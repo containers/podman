@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -13,13 +14,19 @@ var (
 
 	Removes all unnamed images from local storage
 `
-
+	pruneImageFlags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "remove all unused images, not just dangling ones",
+		},
+	}
 	pruneImagesCommand = cli.Command{
 		Name:         "prune",
 		Usage:        "Remove unused images",
 		Description:  pruneImagesDescription,
 		Action:       pruneImagesCmd,
 		OnUsageError: usageErrorHandler,
+		Flags:        pruneImageFlags,
 	}
 )
 
@@ -30,16 +37,13 @@ func pruneImagesCmd(c *cli.Context) error {
 	}
 	defer runtime.Shutdown(false)
 
-	pruneImages, err := runtime.ImageRuntime().GetPruneImages()
-	if err != nil {
-		return err
-	}
-
-	for _, i := range pruneImages {
-		if err := i.Remove(true); err != nil {
-			return errors.Wrapf(err, "failed to remove %s", i.ID())
+	// Call prune; if any cids are returned, print them and then
+	// return err in case an error also came up
+	pruneCids, err := runtime.ImageRuntime().PruneImages(c.Bool("all"))
+	if len(pruneCids) > 0 {
+		for _, cid := range pruneCids {
+			fmt.Println(cid)
 		}
-		fmt.Println(i.ID())
 	}
-	return nil
+	return err
 }

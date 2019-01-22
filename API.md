@@ -57,7 +57,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ImageExists(name: string) int](#ImageExists)
 
-[func ImagesPrune() []string](#ImagesPrune)
+[func ImagesPrune(all: bool) []string](#ImagesPrune)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string) string](#ImportImage)
 
@@ -548,7 +548,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageExists '{"name": "im
 ### <a name="ImagesPrune"></a>func ImagesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ImagesPrune() [[]string](#[]string)</div>
+method ImagesPrune(all: [bool](https://godoc.org/builtin#bool)) [[]string](#[]string)</div>
 ImagesPrune removes all unused images from the local store.  Upon successful pruning,
 the IDs of the removed images are returned.
 ### <a name="ImportImage"></a>func ImportImage

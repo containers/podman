@@ -1017,7 +1017,7 @@ method  UnmountContainer(name: string, force: bool) -> ()
 
 # ImagesPrune removes all unused images from the local store.  Upon successful pruning,
 # the IDs of the removed images are returned.
-method ImagesPrune() -> (pruned: []string)
+method ImagesPrune(all: bool) -> (pruned: []string)
 
 # This function is not implemented yet.
 method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
