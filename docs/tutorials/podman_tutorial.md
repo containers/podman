@@ -112,7 +112,7 @@ sudo make install PREFIX=/usr
 This sample container will run a very basic httpd server that serves only its index
 page.
 ```console
-sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
+podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                   -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                   -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
                   registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
@@ -123,7 +123,7 @@ will print the container ID after it has run.
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
 ```console
-sudo podman ps
+podman ps
 ```
 
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
