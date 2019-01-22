@@ -627,19 +627,10 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 }
 
 // ImagesPrune ....
-func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall) error {
-	var (
-		pruned []string
-	)
-	pruneImages, err := i.Runtime.ImageRuntime().GetPruneImages()
+func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
+	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(all)
 	if err != nil {
-		return err
+		return call.ReplyErrorOccurred(err.Error())
 	}
-	for _, i := range pruneImages {
-		if err := i.Remove(true); err != nil {
-			return call.ReplyErrorOccurred(err.Error())
-		}
-		pruned = append(pruned, i.ID())
-	}
-	return call.ReplyImagesPrune(pruned)
+	return call.ReplyImagesPrune(prunedImages)
 }

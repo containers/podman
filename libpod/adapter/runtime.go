@@ -99,3 +99,8 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 	}
 	return &Container{ctr}, nil
 }
+
+// PruneImages is wrapper into PruneImages within the image pkg
+func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
+	return r.ImageRuntime().PruneImages(all)
+}
