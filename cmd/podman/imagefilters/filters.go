@@ -1,3 +1,6 @@
+// +build refactored_out_code
+
+
 package imagefilters
 
 import (
@@ -17,7 +20,7 @@ type ResultFilter func(*adapter.ContainerImage) bool
 // return will include the image, a false return will exclude it.
 type Filter func(*adapter.ContainerImage, *inspect.ImageData) bool
 
-// CreatedBeforeFilter allows you to filter on images created before
+// CreatedBeforeFilter allows you to filterable on images created before
 // the given time.Time
 func CreatedBeforeFilter(createTime time.Time) ResultFilter {
 	return func(i *adapter.ContainerImage) bool {
@@ -25,7 +28,7 @@ func CreatedBeforeFilter(createTime time.Time) ResultFilter {
 	}
 }
 
-// CreatedAfterFilter allows you to filter on images created after
+// CreatedAfterFilter allows you to filterable on images created after
 // the given time.Time
 func CreatedAfterFilter(createTime time.Time) ResultFilter {
 	return func(i *adapter.ContainerImage) bool {
@@ -33,14 +36,14 @@ func CreatedAfterFilter(createTime time.Time) ResultFilter {
 	}
 }
 
-// DanglingFilter allows you to filter images for dangling images
+// DanglingFilter allows you to filterable images for dangling images
 func DanglingFilter() ResultFilter {
 	return func(i *adapter.ContainerImage) bool {
 		return i.Dangling()
 	}
 }
 
-// LabelFilter allows you to filter by images labels key and/or value
+// LabelFilter allows you to filterable by images labels key and/or value
 func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 	// We need to handle both label=key and label=key=value
 	return func(i *adapter.ContainerImage) bool {
@@ -50,10 +53,7 @@ func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 		if len(splitFilter) > 1 {
 			value = splitFilter[1]
 		}
-		labels, err := i.Labels(ctx)
-		if err != nil {
-			return false
-		}
+		labels := i.Labels(ctx)
 		if len(strings.TrimSpace(labels[key])) > 0 && len(strings.TrimSpace(value)) == 0 {
 			return true
 		}
@@ -61,14 +61,14 @@ func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 	}
 }
 
-// OutputImageFilter allows you to filter by an a specific image name
+// OutputImageFilter allows you to filterable by an a specific image name
 func OutputImageFilter(userImage *adapter.ContainerImage) ResultFilter {
 	return func(i *adapter.ContainerImage) bool {
 		return userImage.ID() == i.ID()
 	}
 }
 
-// FilterImages filters images using a set of predefined filter funcs
+// FilterImages filters images using a set of predefined filterable funcs
 func FilterImages(images []*adapter.ContainerImage, filters []ResultFilter) []*adapter.ContainerImage {
 	var filteredImages []*adapter.ContainerImage
 	for _, image := range images {

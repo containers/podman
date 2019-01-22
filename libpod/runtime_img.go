@@ -29,7 +29,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		return "", ErrRuntimeStopped
 	}
 
-	// Get all containers, filter to only those using the image, and remove those containers
+	// Get all containers, filterable to only those using the image, and remove those containers
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return "", err

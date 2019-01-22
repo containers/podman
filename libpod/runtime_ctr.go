@@ -461,7 +461,7 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
+func (r *Runtime) GetContainers(filters ...Filter) ([]*Container, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -497,10 +497,7 @@ func (r *Runtime) GetAllContainers() ([]*Container, error) {
 
 // GetRunningContainers is a helper function for GetContainers
 func (r *Runtime) GetRunningContainers() ([]*Container, error) {
-	running := func(c *Container) bool {
-		state, _ := c.State()
-		return state == ContainerStateRunning
-	}
+	running, _ := StatusFilter("running")
 	return r.GetContainers(running)
 }
 

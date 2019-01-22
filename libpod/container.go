@@ -14,7 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/ulule/deepcopier"
 )
@@ -192,7 +192,7 @@ type ContainerState struct {
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
-	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
+	ExtensionStageHooks map[string][]rspec.Hook `json:"extensionStageHooks,omitempty"`
 
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
@@ -211,7 +211,7 @@ type ExecSession struct {
 // It is stored, read-only, on disk
 // easyjson:json
 type ContainerConfig struct {
-	Spec *spec.Spec `json:"spec"`
+	Spec *rspec.Spec `json:"spec"`
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
 	// Full ID of the pood the container belongs to
@@ -403,8 +403,8 @@ func (c *Container) Config() *ContainerConfig {
 // Spec returns the container's OCI runtime spec
 // The spec returned is the one used to create the container. The running
 // spec may differ slightly as mounts are added based on the image
-func (c *Container) Spec() *spec.Spec {
-	returnSpec := new(spec.Spec)
+func (c *Container) Spec() *rspec.Spec {
+	returnSpec := new(rspec.Spec)
 	deepcopier.Copy(c.config.Spec).To(returnSpec)
 
 	return returnSpec
@@ -413,11 +413,11 @@ func (c *Container) Spec() *spec.Spec {
 // specFromState returns the unmarshalled json config of the container.  If the
 // config does not exist (e.g., because the container was never started) return
 // the spec from the config.
-func (c *Container) specFromState() (*spec.Spec, error) {
+func (c *Container) specFromState() (*rspec.Spec, error) {
 	returnSpec := c.config.Spec
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
-		returnSpec = new(spec.Spec)
+		returnSpec = new(rspec.Spec)
 		content, err := ioutil.ReadAll(f)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading container config")
@@ -677,6 +677,11 @@ func (c *Container) LogPath() string {
 // RuntimeName returns the name of the runtime
 func (c *Container) RuntimeName() string {
 	return c.runtime.ociRuntime.name
+}
+
+// Dangling returns false. Provided to satisfy filterable.
+func (c *Container) Dangling() bool {
+	return false
 }
 
 // Runtime spec accessors
@@ -1063,7 +1068,7 @@ func networkDisabled(c *Container) (bool, error) {
 	}
 	if !c.config.PostConfigureNetNS {
 		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
+			if ns.Type == rspec.NetworkNamespace {
 				return ns.Path == "", nil
 			}
 		}
@@ -1084,4 +1089,22 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 	returnConfig := new(ContainerState)
 	deepcopier.Copy(c.state).To(returnConfig)
 	return c.state, nil
+}
+
+
+// Ancestors returns the ImageId and ImageName for the Rootfs of the container
+func (c Container) Ancestors() []string {
+	return []string{
+		c.config.RootfsImageID,
+		c.config.RootfsImageName,
+	}
+}
+
+// Mounts returns the mounts for the container
+func (c Container) Mounts() []rspec.Mount {
+	mounts := make([]rspec.Mount, len(c.config.Spec.Mounts))
+	for _, mount := range c.config.Spec.Mounts {
+		mounts = append(mounts, mount)
+	}
+	return mounts
 }

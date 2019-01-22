@@ -48,14 +48,13 @@ func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
-	rr := RemoteRuntime{
-		Conn:   conn,
-		Remote: true,
-	}
-	foo := LocalRuntime{
-		&rr,
-	}
-	return &foo, nil
+
+	return &LocalRuntime{
+		&RemoteRuntime{
+			Conn:   conn,
+			Remote: true,
+		},
+	}, nil
 }
 
 // Shutdown is a bogus wrapper for compat with the libpod runtime
@@ -239,8 +238,8 @@ func (ci *ContainerImage) Digest() digest.Digest {
 }
 
 // Labels returns a map of the image's labels
-func (ci *ContainerImage) Labels(ctx context.Context) (map[string]string, error) {
-	return ci.remoteImage.Labels, nil
+func (ci *ContainerImage) Labels(ctx context.Context) map[string]string {
+	return ci.remoteImage.Labels
 }
 
 // Dangling returns a bool if the image is "dangling"
@@ -292,20 +291,14 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 		return nil, err
 	}
 	config := r.Config(idOrName)
-	if err != nil {
-		return nil, err
-	}
 
-	rc := remoteContainer{
-		r,
-		config,
-		state,
-	}
-
-	c := Container{
-		rc,
-	}
-	return &c, nil
+	return &Container{
+		remoteContainer{
+			r,
+			config,
+			state,
+		},
+	}, nil
 }
 
 func (r *LocalRuntime) GetLatestContainer() (*Container, error) {
@@ -313,7 +306,7 @@ func (r *LocalRuntime) GetLatestContainer() (*Container, error) {
 }
 
 // ContainerState returns the "state" of the container.
-func (r *LocalRuntime) ContainerState(name string) (*libpod.ContainerState, error) { //no-lint
+func (r *LocalRuntime) ContainerState(name string) (*libpod.ContainerState, error) { // no-lint
 	reply, err := iopodman.ContainerStateData().Call(r.Conn, name)
 	if err != nil {
 		return nil, err
@@ -544,7 +537,7 @@ func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libpod.Container, error) {
+func (r *LocalRuntime) GetContainers(filters ...libpod.Filter) ([]*Container, error) {
 	return nil, libpod.ErrNotImplemented
 }
 
