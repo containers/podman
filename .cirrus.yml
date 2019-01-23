@@ -27,11 +27,17 @@ env:
     ####
     #### Cache-image names to test with
     ###
+    ACTIVE_CACHE_IMAGE_NAMES: >-
+        fedora-29-libpod-d6d53e40
+        fedora-28-libpod-d6d53e40
+        ubuntu-18-libpod-d6d53e40
+        rhel-7-libpod-7f4cd1f7
+        image-builder-image-1541772081
     FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-d6d53e40"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-d6d53e40"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-d6d53e40"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-d6d53e40"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
     ####
@@ -108,6 +114,7 @@ gating_task:
     gate_script:
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
+        - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/test/test_dot_cirrus_yaml.py'
 
     # This task runs `make vendor` followed by ./hack/tree_status.sh to check
     # whether the git tree is clean.  The reasoning for that is to make sure
@@ -147,6 +154,30 @@ build_each_commit_task:
         - $SCRIPT_BASE/setup_environment.sh
         - git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH
         - env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH
+
+
+# Update metadata on VM images referenced by this repository state
+meta_task:
+
+    depends_on:
+        - "gating"
+
+    container:
+        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
+        cpu: 1
+        memory: 1
+
+    env:
+        # Space-separated list of images used by this repository state
+        IMGNAMES: "${ACTIVE_CACHE_IMAGE_NAMES}"
+        BUILDID: "${CIRRUS_BUILD_ID}"
+        REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
+        GCPJSON: ENCRYPTED[950d9c64ad78f7b1f0c7e499b42dc058d2b23aa67e38b315e68f557f2aba0bf83068d4734f7b1e1bdd22deabe99629df]
+        GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
+        GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+        CIRRUS_CLONE_DEPTH: 1  # source not used
+
+    script: /usr/local/bin/entrypoint.sh
 
 
 # This task does the unit and integration testing for every platform

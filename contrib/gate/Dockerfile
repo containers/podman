@@ -29,6 +29,7 @@ RUN dnf -y install \
       python3-dateutil \
       python3-psutil \
       python3-pytoml \
+      python3-pyyaml \
       python3-varlink \
       skopeo-containers \
       slirp4netns \
