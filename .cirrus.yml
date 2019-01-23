@@ -109,7 +109,6 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
 
-
 build_each_commit_task:
 
     depends_on:
@@ -133,6 +132,7 @@ build_each_commit_task:
         - $SCRIPT_BASE/setup_environment.sh
         - git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH
         - env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH
+
 
 # This task does the unit and integration testing for every platform
 testing_task:
