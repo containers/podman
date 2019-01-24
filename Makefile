@@ -224,6 +224,7 @@ install: .gopathok install.bin install.man install.cni install.systemd
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(BINDIR)/podman
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(BINDIR)/podman bin/podman
 
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
