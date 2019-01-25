@@ -14,6 +14,17 @@ Fedora 27 and later provide Podman via the package manager.
 sudo dnf install -y podman
 ```
 
+*Optional*: If you've already installed podman on Fedora and you're feeling
+adventerous, you can test the very latest podman in Fedora's `updates-testing`
+repository before it goes out to all Fedora users.
+```console
+sudo yum distro-sync --enablerepo=updates-testing podman
+```
+
+If you use a newer podman package from Fedora's `updates-testing`, we would
+appreciate your `+1` feedback in [Bodhi, Fedora's update management
+system](https://bodhi.fedoraproject.org/updates/?packages=podman).
+
 ## Install Podman on Fedora from Source
 Many of the basic components to run Podman are readily available from the Fedora RPM repositories.
 In this section, we will help you install all the runtime and build dependencies for Podman,
