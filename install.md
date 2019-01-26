@@ -4,7 +4,9 @@
 
 #### [Arch Linux](https://www.archlinux.org)
 
-Podman is available in the AUR through the [libpod package](https://aur.archlinux.org/packages/libpod/)
+```bash
+sudo pacman -S podman
+```
 
 #### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
 
