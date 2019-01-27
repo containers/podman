@@ -1,5 +1,42 @@
 package varlink
 
+// The requested interface was not found.
+type InterfaceNotFound struct {
+	Interface string `json:"interface"`
+}
+
+func (e InterfaceNotFound) Error() string {
+	return "org.varlink.service.InterfaceNotFound"
+}
+
+// The requested method was not found
+type MethodNotFound struct {
+	Method string `json:"method"`
+}
+
+func (e MethodNotFound) Error() string {
+	return "org.varlink.service.MethodNotFound"
+}
+
+// The interface defines the requested method, but the service does not
+// implement it.
+type MethodNotImplemented struct {
+	Method string `json:"method"`
+}
+
+func (e MethodNotImplemented) Error() string {
+	return "org.varlink.service.MethodNotImplemented"
+}
+
+// One of the passed parameters is invalid.
+type InvalidParameter struct {
+	Parameter string `json:"parameter"`
+}
+
+func (e InvalidParameter) Error() string {
+	return "org.varlink.service.InvalidParameter"
+}
+
 func doReplyError(c *Call, name string, parameters interface{}) error {
 	return c.sendMessage(&serviceReply{
 		Error:      name,
@@ -9,36 +46,28 @@ func doReplyError(c *Call, name string, parameters interface{}) error {
 
 // ReplyInterfaceNotFound sends a org.varlink.service errror reply to this method call
 func (c *Call) ReplyInterfaceNotFound(interfaceA string) error {
-	var out struct {
-		Interface string `json:"interface,omitempty"`
-	}
+	var out InterfaceNotFound
 	out.Interface = interfaceA
 	return doReplyError(c, "org.varlink.service.InterfaceNotFound", &out)
 }
 
 // ReplyMethodNotFound sends a org.varlink.service errror reply to this method call
 func (c *Call) ReplyMethodNotFound(method string) error {
-	var out struct {
-		Method string `json:"method,omitempty"`
-	}
+	var out MethodNotFound
 	out.Method = method
 	return doReplyError(c, "org.varlink.service.MethodNotFound", &out)
 }
 
 // ReplyMethodNotImplemented sends a org.varlink.service errror reply to this method call
 func (c *Call) ReplyMethodNotImplemented(method string) error {
-	var out struct {
-		Method string `json:"method,omitempty"`
-	}
+	var out MethodNotImplemented
 	out.Method = method
 	return doReplyError(c, "org.varlink.service.MethodNotImplemented", &out)
 }
 
 // ReplyInvalidParameter sends a org.varlink.service errror reply to this method call
 func (c *Call) ReplyInvalidParameter(parameter string) error {
-	var out struct {
-		Parameter string `json:"parameter,omitempty"`
-	}
+	var out InvalidParameter
 	out.Parameter = parameter
 	return doReplyError(c, "org.varlink.service.InvalidParameter", &out)
 }

@@ -88,9 +88,11 @@ func main() {
 
 	app.Commands = []cli.Command{
 		containerCommand,
+		exportCommand,
 		historyCommand,
 		imageCommand,
 		imagesCommand,
+		importCommand,
 		infoCommand,
 		inspectCommand,
 		pullCommand,

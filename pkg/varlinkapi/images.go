@@ -500,7 +500,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 }
 
 // ImportImage imports an image from a tarball to the image store
-func (i *LibpodAPI) ImportImage(call iopodman.VarlinkCall, source, reference, message string, changes []string) error {
+func (i *LibpodAPI) ImportImage(call iopodman.VarlinkCall, source, reference, message string, changes []string, delete bool) error {
 	configChanges, err := util.GetImageConfig(changes)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -516,6 +516,12 @@ func (i *LibpodAPI) ImportImage(call iopodman.VarlinkCall, source, reference, me
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+	if delete {
+		if err := os.Remove(source); err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+	}
+
 	return call.ReplyImportImage(newImage.ID())
 }
 

@@ -3,9 +3,16 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"github.com/opencontainers/image-spec/specs-go/v1"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
@@ -131,4 +138,76 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
 	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
 	return err
+}
+
+// Import is called as an intermediary to the image library Import
+func (r *Runtime) Import(ctx context.Context, source string, reference string, changes []string, history string, quiet bool) (string, error) {
+	var (
+		writer io.Writer
+		err    error
+	)
+
+	ic := v1.ImageConfig{}
+	if len(changes) > 0 {
+		ic, err = util.GetImageConfig(changes)
+		if err != nil {
+			return "", errors.Wrapf(err, "error adding config changes to image %q", source)
+		}
+	}
+
+	hist := []v1.History{
+		{Comment: history},
+	}
+
+	config := v1.Image{
+		Config:  ic,
+		History: hist,
+	}
+
+	writer = nil
+	if !quiet {
+		writer = os.Stderr
+	}
+
+	// if source is a url, download it and save to a temp file
+	u, err := url.ParseRequestURI(source)
+	if err == nil && u.Scheme != "" {
+		file, err := downloadFromURL(source)
+		if err != nil {
+			return "", err
+		}
+		defer os.Remove(file)
+		source = file
+	}
+
+	newImage, err := r.imageRuntime.Import(ctx, source, reference, writer, image.SigningOptions{}, config)
+	if err != nil {
+		return "", err
+	}
+	return newImage.ID(), nil
+}
+
+// donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
+// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
+func downloadFromURL(source string) (string, error) {
+	fmt.Printf("Downloading from %q\n", source)
+
+	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	if err != nil {
+		return "", errors.Wrap(err, "error creating file")
+	}
+	defer outFile.Close()
+
+	response, err := http.Get(source)
+	if err != nil {
+		return "", errors.Wrapf(err, "error downloading %q", source)
+	}
+	defer response.Body.Close()
+
+	_, err = io.Copy(outFile, response.Body)
+	if err != nil {
+		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
+	}
+
+	return outFile.Name(), nil
 }

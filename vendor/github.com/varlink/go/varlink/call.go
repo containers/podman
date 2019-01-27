@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -11,14 +12,21 @@ import (
 // client can be terminated by returning an error from the call instead
 // of sending a reply or error reply.
 type Call struct {
-	writer    *bufio.Writer
+	*bufio.Reader
+	*bufio.Writer
 	in        *serviceCall
 	Continues bool
+	Upgrade   bool
 }
 
 // WantsMore indicates if the calling client accepts more than one reply to this method call.
 func (c *Call) WantsMore() bool {
 	return c.in.More
+}
+
+// WantsUpgrade indicates that the calling client wants the connection to be upgraded.
+func (c *Call) WantsUpgrade() bool {
+	return c.in.Upgrade
 }
 
 // IsOneway indicate that the calling client does not expect a reply.
@@ -45,11 +53,18 @@ func (c *Call) sendMessage(r *serviceReply) error {
 	}
 
 	b = append(b, 0)
-	_, e = c.writer.Write(b)
+	_, e = c.Writer.Write(b)
 	if e != nil {
+		if e == io.EOF {
+			return io.ErrUnexpectedEOF
+		}
 		return e
 	}
-	return c.writer.Flush()
+	e = c.Writer.Flush()
+	if e == io.EOF {
+		return io.ErrUnexpectedEOF
+	}
+	return e
 }
 
 // Reply sends a reply to this method call.

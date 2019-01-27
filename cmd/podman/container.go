@@ -8,6 +8,7 @@ import (
 
 var (
 	containerSubCommands = []cli.Command{
+		exportCommand,
 		inspectCommand,
 	}
 	containerDescription = "Manage containers"

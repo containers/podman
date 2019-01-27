@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 )
@@ -15,13 +16,57 @@ const (
 	More      = 1 << iota
 	Oneway    = 1 << iota
 	Continues = 1 << iota
+	Upgrade   = 1 << iota
 )
 
 // Error is a varlink error returned from a method call.
 type Error struct {
-	error
 	Name       string
 	Parameters interface{}
+}
+
+func (e *Error) DispatchError() error {
+	errorRawParameters := e.Parameters.(*json.RawMessage)
+
+	switch e.Name {
+	case "org.varlink.service.InterfaceNotFound":
+		var param InterfaceNotFound
+		if errorRawParameters != nil {
+			err := json.Unmarshal(*errorRawParameters, &param)
+			if err != nil {
+				return e
+			}
+		}
+		return &param
+	case "org.varlink.service.MethodNotFound":
+		var param MethodNotFound
+		if errorRawParameters != nil {
+			err := json.Unmarshal(*errorRawParameters, &param)
+			if err != nil {
+				return e
+			}
+		}
+		return &param
+	case "org.varlink.service.MethodNotImplemented":
+		var param MethodNotImplemented
+		if errorRawParameters != nil {
+			err := json.Unmarshal(*errorRawParameters, &param)
+			if err != nil {
+				return e
+			}
+		}
+		return &param
+	case "org.varlink.service.InvalidParameter":
+		var param InvalidParameter
+		if errorRawParameters != nil {
+			err := json.Unmarshal(*errorRawParameters, &param)
+			if err != nil {
+				return e
+			}
+		}
+		return &param
+	}
+	return e
 }
 
 // Error returns the fully-qualified varlink error name.
@@ -31,10 +76,11 @@ func (e *Error) Error() string {
 
 // Connection is a connection from a client to a service.
 type Connection struct {
+	io.Closer
 	address string
 	conn    net.Conn
-	reader  *bufio.Reader
-	writer  *bufio.Writer
+	Reader  *bufio.Reader
+	Writer  *bufio.Writer
 }
 
 // Send sends a method call. It returns a receive() function which is called to retrieve the method reply.
@@ -46,6 +92,7 @@ func (c *Connection) Send(method string, parameters interface{}, flags uint64) (
 		Parameters interface{} `json:"parameters,omitempty"`
 		More       bool        `json:"more,omitempty"`
 		Oneway     bool        `json:"oneway,omitempty"`
+		Upgrade    bool        `json:"upgrade,omitempty"`
 	}
 
 	if (flags&More != 0) && (flags&Oneway != 0) {
@@ -55,11 +102,19 @@ func (c *Connection) Send(method string, parameters interface{}, flags uint64) (
 		}
 	}
 
+	if (flags&More != 0) && (flags&Upgrade != 0) {
+		return nil, &Error{
+			Name:       "org.varlink.InvalidParameter",
+			Parameters: "more",
+		}
+	}
+
 	m := call{
 		Method:     method,
 		Parameters: parameters,
 		More:       flags&More != 0,
 		Oneway:     flags&Oneway != 0,
+		Upgrade:    flags&Upgrade != 0,
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -67,13 +122,19 @@ func (c *Connection) Send(method string, parameters interface{}, flags uint64) (
 	}
 
 	b = append(b, 0)
-	_, err = c.writer.Write(b)
+	_, err = c.Writer.Write(b)
 	if err != nil {
+		if err == io.EOF {
+			return nil, io.ErrUnexpectedEOF
+		}
 		return nil, err
 	}
 
-	err = c.writer.Flush()
+	err = c.Writer.Flush()
 	if err != nil {
+		if err == io.EOF {
+			return nil, io.ErrUnexpectedEOF
+		}
 		return nil, err
 	}
 
@@ -84,8 +145,11 @@ func (c *Connection) Send(method string, parameters interface{}, flags uint64) (
 			Error      string           `json:"error"`
 		}
 
-		out, err := c.reader.ReadBytes('\x00')
+		out, err := c.Reader.ReadBytes('\x00')
 		if err != nil {
+			if err == io.EOF {
+				return 0, io.ErrUnexpectedEOF
+			}
 			return 0, err
 		}
 
@@ -96,11 +160,11 @@ func (c *Connection) Send(method string, parameters interface{}, flags uint64) (
 		}
 
 		if m.Error != "" {
-			err = &Error{
+			e := &Error{
 				Name:       m.Error,
 				Parameters: m.Parameters,
 			}
-			return 0, err
+			return 0, e.DispatchError()
 		}
 
 		if m.Parameters != nil {
@@ -220,8 +284,8 @@ func NewConnection(address string) (*Connection, error) {
 	}
 
 	c.address = address
-	c.reader = bufio.NewReader(c.conn)
-	c.writer = bufio.NewWriter(c.conn)
+	c.Reader = bufio.NewReader(c.conn)
+	c.Writer = bufio.NewWriter(c.conn)
 
 	return &c, nil
 }

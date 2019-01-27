@@ -4,12 +4,17 @@ package adapter
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"io"
+	"io/ioutil"
+	"os"
+	"strconv"
 
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/urfave/cli"
 )
 
@@ -103,4 +108,50 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 // PruneImages is wrapper into PruneImages within the image pkg
 func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
 	return r.ImageRuntime().PruneImages(all)
+}
+
+// Export is a wrapper to container export to a tarfile
+func (r *LocalRuntime) Export(name string, path string) error {
+	ctr, err := r.Runtime.LookupContainer(name)
+	if err != nil {
+		return errors.Wrapf(err, "error looking up container %q", name)
+	}
+	if os.Geteuid() != 0 {
+		state, err := ctr.State()
+		if err != nil {
+			return errors.Wrapf(err, "cannot read container state %q", ctr.ID())
+		}
+		if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
+			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+			}
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			became, ret, err := rootless.JoinDirectUserAndMountNS(uint(conmonPid))
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		} else {
+			became, ret, err := rootless.BecomeRootInUserNS()
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		}
+	}
+
+	return ctr.Export(path)
+}
+
+// Import is a wrapper to import a container image
+func (r *LocalRuntime) Import(ctx context.Context, source, reference string, changes []string, history string, quiet bool) (string, error) {
+	return r.Runtime.Import(ctx, source, reference, changes, history, quiet)
 }

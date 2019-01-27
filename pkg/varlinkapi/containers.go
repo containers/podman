@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"syscall"
 	"time"
@@ -194,15 +195,25 @@ func (i *LibpodAPI) ListContainerChanges(call iopodman.VarlinkCall, name string)
 }
 
 // ExportContainer ...
-func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, path string) error {
+func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, outPath string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	if err := ctr.Export(path); err != nil {
+	outputFile, err := ioutil.TempFile("", "varlink_recv")
+	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyExportContainer(path)
+
+	defer outputFile.Close()
+	if outPath == "" {
+		outPath = outputFile.Name()
+	}
+	if err := ctr.Export(outPath); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyExportContainer(outPath)
+
 }
 
 // GetContainerStats ...

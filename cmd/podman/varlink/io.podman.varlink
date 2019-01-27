@@ -688,7 +688,7 @@ method Commit(name: string, image_name: string, changes: []string, author: strin
 
 # ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 # descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
-method ImportImage(source: string, reference: string, message: string, changes: []string) -> (image: string)
+method ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) -> (image: string)
 
 # ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
 # a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
@@ -1049,6 +1049,9 @@ method ContainerInspectData(name: string) -> (config: string)
 # ContainerStateData returns a container's state config in string form.  This call is for
 # development of Podman only and generally should not be used.
 method ContainerStateData(name: string) -> (config: string)
+
+method SendFile(type: string, length: int) -> (file_handle: string)
+method ReceiveFile(path: string, delete: bool) -> (len: int)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)

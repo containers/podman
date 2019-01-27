@@ -3,13 +3,13 @@ package varlink
 import (
 	"bufio"
 	"io"
-	"log"
 	"net"
 	"os/exec"
 )
 
 type PipeCon struct {
 	net.Conn
+	cmd    *exec.Cmd
 	reader *io.ReadCloser
 	writer *io.WriteCloser
 }
@@ -23,6 +23,8 @@ func (p PipeCon) Close() error {
 	if err2 != nil {
 		return err2
 	}
+	p.cmd.Wait()
+
 	return nil
 }
 
@@ -40,18 +42,15 @@ func NewBridge(bridge string) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.conn = PipeCon{nil, &r, &w}
+	c.conn = PipeCon{nil, cmd, &r, &w}
 	c.address = ""
 	c.reader = bufio.NewReader(r)
 	c.writer = bufio.NewWriter(w)
 
-	go func() {
-		err := cmd.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
 
 	return &c, nil
 }
-
