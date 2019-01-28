@@ -199,7 +199,7 @@ install_runc_from_git(){
     cd "$DEST"
     ooe.sh git fetch origin --tags
     ooe.sh git checkout -q "$RUNC_COMMIT"
-    ooe.sh make static BUILDTAGS="seccomp selinux"
+    ooe.sh make static BUILDTAGS="seccomp apparmor selinux"
     sudo install -m 755 runc /usr/bin/runc
     cd $wd
 }
