@@ -385,6 +385,28 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
 		}
+	} else if rootless.IsRootless() {
+		// If the configuration file was not found but we are running in rootless, a subset of the
+		// global config file is used.
+		for _, path := range []string{OverrideConfigPath, ConfigPath} {
+			contents, err := ioutil.ReadFile(OverrideConfigPath)
+			if err != nil {
+				// Ignore any error, the file might not be readable by us.
+				continue
+			}
+			tmpConfig := new(RuntimeConfig)
+			if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
+				return nil, errors.Wrapf(err, "error decoding configuration file %s", path)
+			}
+
+			// Cherry pick the settings we want from the global configuration
+			runtime.config.ConmonPath = tmpConfig.ConmonPath
+			runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
+			runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
+			runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
+			break
+		}
 	}
 
 	// Overwrite config with user-given configuration options
