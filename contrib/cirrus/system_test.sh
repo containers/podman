@@ -15,11 +15,7 @@ set -x
 cd "$GOSRC"
 
 case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-    ubuntu-18)
-        make install.tools "BUILDTAGS=$BUILDTAGS"
-        make "BUILDTAGS=$BUILDTAGS"
-        make test-binaries "BUILDTAGS=$BUILDTAGS"
-        ;;
+    ubuntu-18) ;&  # Continue to the next item
     fedora-28) ;&
     centos-7) ;&
     rhel-7)
