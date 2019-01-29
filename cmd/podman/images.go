@@ -188,13 +188,6 @@ func imagesCmd(c *cli.Context) error {
 	}
 
 	opts.outputformat = opts.setOutputFormat()
-	/*
-		podman does not implement --all for images
-
-		intermediate images are only generated during the build process.  they are
-		children to the image once built. until buildah supports caching builds,
-		it will not generate these intermediate images.
-	*/
 	images, err := runtime.GetImages()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")

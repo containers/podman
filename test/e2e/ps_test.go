@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	"github.com/docker/go-units"
@@ -148,10 +149,12 @@ var _ = Describe("Podman ps", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--format", "\"table {{.ID}} {{.Image}} {{.Labels}}\""})
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.ID}} {{.Image}} {{.Labels}}"})
 		result.WaitWithDefaultTimeout()
+		Expect(strings.Contains(result.OutputToStringArray()[0], "table")).To(BeFalse())
+		Expect(strings.Contains(result.OutputToStringArray()[0], "ID")).To(BeTrue())
+		Expect(strings.Contains(result.OutputToStringArray()[1], "alpine:latest")).To(BeTrue())
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(result.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman ps ancestor filter flag", func() {
