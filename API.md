@@ -81,7 +81,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ListContainerChanges(name: string) ContainerChanges](#ListContainerChanges)
 
-[func ListContainerMounts() []string](#ListContainerMounts)
+[func ListContainerMounts() map[string]](#ListContainerMounts)
 
 [func ListContainerPorts(name: string) NotImplemented](#ListContainerPorts)
 
@@ -643,19 +643,17 @@ its base image. It returns a struct of changed, deleted, and added path names.
 ### <a name="ListContainerMounts"></a>func ListContainerMounts
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ListContainerMounts() [[]string](#[]string)</div>
+method ListContainerMounts() [map[string]](#map[string])</div>
 ListContainerMounts gathers all the mounted container mount points and returns them as an array
 of strings
 #### Example
 ~~~
-$ varlink call -m unix:/run/podman/io.podman/io.podman.ListContainerMounts
+$ varlink call unix:/run/podman/io.podman/io.podman.ListContainerMounts
 {
-  "mounts": [
-    "/var/lib/containers/storage/overlay/b215fb622c65ba3b06c6d2341be80b76a9de7ae415ce419e65228873d4f0dcc8/merged",
-    "/var/lib/containers/storage/overlay/5eaf806073f79c0ed9a695180ad598e34f963f7407da1d2ccf3560bdab49b26f/merged",
-    "/var/lib/containers/storage/overlay/1ecb6b1dbb251737c7a24a31869096839c3719d8b250bf075f75172ddcc701e1/merged",
-    "/var/lib/containers/storage/overlay/7137b28a3c422165fe920cba851f2f8da271c6b5908672c451ebda03ad3919e2/merged"
-  ]
+  "mounts": {
+    "04e4c255269ed2545e7f8bd1395a75f7949c50c223415c00c1d54bfa20f3b3d9": "/var/lib/containers/storage/overlay/a078925828f57e20467ca31cfca8a849210d21ec7e5757332b72b6924f441c17/merged",
+    "1d58c319f9e881a644a5122ff84419dccf6d138f744469281446ab243ef38924": "/var/lib/containers/storage/overlay/948fcf93f8cb932f0f03fd52e3180a58627d547192ffe3b88e0013b98ddcd0d2/merged"
+  }
 }
 ~~~
 ### <a name="ListContainerPorts"></a>func ListContainerPorts
