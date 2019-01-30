@@ -1219,6 +1219,7 @@ _podman_info() {
 	 --debug
      "
     local options_with_args="
+    -f
     --format
   "
 
