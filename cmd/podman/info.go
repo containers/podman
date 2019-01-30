@@ -29,7 +29,7 @@ var (
 			Usage: "display additional debug information",
 		},
 		cli.StringFlag{
-			Name:  "format",
+			Name:  "format, f",
 			Usage: "Change the output format to JSON or a Go template",
 		},
 	}
