@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -128,7 +129,12 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	var data *inspect.ImageData = nil
 
 	if rootfs == "" && !rootless.SkipStorageSetup() {
-		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false)
+		var writer io.Writer
+		if !c.Bool("quiet") {
+			writer = os.Stderr
+		}
+
+		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false)
 		if err != nil {
 			return nil, nil, err
 		}
