@@ -57,7 +57,6 @@ then
         ubuntu-18)
             # Always install runc on Ubuntu
             install_runc_from_git
-            envstr='export BUILDTAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) varlink exclude_graphdriver_devicemapper"'
             ;;
         fedora-29) ;&  # Continue to the next item
         fedora-28)
@@ -67,11 +66,9 @@ then
             ;&  # Continue to the next item
         centos-7) ;&
         rhel-7)
-            envstr='unset BUILDTAGS'  # Use default from Makefile
             ;;
         *) bad_os_id_ver ;;
     esac
-    X=$(echo "$envstr" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
 
     # Do the same for golang env. vars
     go env | while read envline
