@@ -320,3 +320,6 @@ func (r *LocalRuntime) Config(name string) *libpod.ContainerConfig {
 	return &data
 
 }
+func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
+	return iopodman.ImagesPrune().Call(r.Conn, all)
+}
