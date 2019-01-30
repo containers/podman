@@ -32,7 +32,7 @@ var (
 			Usage: "Change the output format to a Go template",
 		},
 		cli.BoolFlag{
-			Name:  "size",
+			Name:  "size, s",
 			Usage: "Display total file size if the type is container",
 		},
 		LatestFlag,
