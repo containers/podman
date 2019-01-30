@@ -24,7 +24,7 @@ var (
 	}
 	rmiCommand = cli.Command{
 		Name:                   "rmi",
-		Usage:                  "Removes one or more images from local storage",
+		Usage:                  "Remove one or more images from local storage",
 		Description:            rmiDescription,
 		Action:                 rmiCmd,
 		ArgsUsage:              "IMAGE-NAME-OR-ID [...]",
