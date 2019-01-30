@@ -57,7 +57,7 @@ var (
 	}
 	versionFlags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "format",
+			Name:  "format, f",
 			Usage: "Change the output format to JSON or a Go template",
 		},
 	}

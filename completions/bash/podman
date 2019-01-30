@@ -2038,6 +2038,7 @@ _podman_version() {
     "
     local options_with_args="
      --format
+     -f
     "
     local all_options="$options_with_args $boolean_options"
 
