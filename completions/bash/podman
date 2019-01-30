@@ -1366,6 +1366,7 @@ _podman_inspect() {
      --type
      -t
      --size
+     -s
   "
 
   local all_options="$options_with_args $boolean_options"
