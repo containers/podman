@@ -824,9 +824,9 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		return nil, err
 	}
 
-	var repoDigests []string
-	for _, name := range i.Names() {
-		repoDigests = append(repoDigests, strings.SplitN(name, ":", 2)[0]+"@"+i.Digest().String())
+	repoDigests, err := i.RepoDigests()
+	if err != nil {
+		return nil, err
 	}
 
 	driver, err := i.DriverData()
