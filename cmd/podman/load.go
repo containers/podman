@@ -9,45 +9,44 @@ import (
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
 	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	loadFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "input, i",
-			Usage: "Read from archive file, default is STDIN",
-			Value: "/dev/stdin",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress the output",
-		},
-		cli.StringFlag{
-			Name:  "signature-policy",
-			Usage: "`pathname` of signature policy file (not usually used)",
-		},
-	}
+	loadCommand cliconfig.LoadValues
+
 	loadDescription = "Loads the image from docker-archive stored on the local machine."
-	loadCommand     = cli.Command{
-		Name:         "load",
-		Usage:        "Load an image from docker archive",
-		Description:  loadDescription,
-		Flags:        sortFlags(loadFlags),
-		Action:       loadCmd,
-		ArgsUsage:    "",
-		OnUsageError: usageErrorHandler,
+	_loadCommand    = &cobra.Command{
+		Use:   "load",
+		Short: "Load an image from docker archive",
+		Long:  loadDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			loadCommand.InputArgs = args
+			loadCommand.GlobalFlags = MainGlobalOpts
+			return loadCmd(&loadCommand)
+		},
 	}
 )
 
+func init() {
+	loadCommand.Command = _loadCommand
+	flags := loadCommand.Flags()
+	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file, default is STDIN")
+	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
+	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
+
+	rootCmd.AddCommand(loadCommand.Command)
+}
+
 // loadCmd gets the image/file to be loaded from the command line
 // and calls loadImage to load the image to containers-storage
-func loadCmd(c *cli.Context) error {
+func loadCmd(c *cliconfig.LoadValues) error {
 
-	args := c.Args()
+	args := c.InputArgs
 	var imageName string
 
 	if len(args) == 1 {
@@ -56,17 +55,14 @@ func loadCmd(c *cli.Context) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments. Requires exactly 1")
 	}
-	if err := validateFlags(c, loadFlags); err != nil {
-		return err
-	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	input := c.String("input")
+	input := c.Input
 
 	if input == "/dev/stdin" {
 		fi, err := os.Stdin.Stat()
@@ -101,7 +97,7 @@ func loadCmd(c *cli.Context) error {
 	}
 
 	var writer io.Writer
-	if !c.Bool("quiet") {
+	if !c.Quiet {
 		writer = os.Stderr
 	}
 
@@ -110,18 +106,18 @@ func loadCmd(c *cli.Context) error {
 	var newImages []*image.Image
 	src, err := dockerarchive.ParseReference(input) // FIXME? We should add dockerarchive.NewReference()
 	if err == nil {
-		newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
+		newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
 	}
 	if err != nil {
 		// generate full src name with specified image:tag
 		src, err := ociarchive.NewReference(input, imageName) // imageName may be ""
 		if err == nil {
-			newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
+			newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
 		}
 		if err != nil {
 			src, err := directory.NewReference(input)
 			if err == nil {
-				newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.String("signature-policy"), writer)
+				newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
 			}
 			if err != nil {
 				return errors.Wrapf(err, "error pulling %q", input)

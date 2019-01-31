@@ -4,46 +4,45 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podKillFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Kill all containers in all pods",
-		},
-		cli.StringFlag{
-			Name:  "signal, s",
-			Usage: "Signal to send to the containers in the pod",
-			Value: "KILL",
-		},
-		LatestPodFlag,
-	}
+	podKillCommand     cliconfig.PodKillValues
 	podKillDescription = "The main process of each container inside the specified pod will be sent SIGKILL, or any signal specified with option --signal."
-	podKillCommand     = cli.Command{
-		Name:                   "kill",
-		Usage:                  "Send the specified signal or SIGKILL to containers in pod",
-		Description:            podKillDescription,
-		Flags:                  sortFlags(podKillFlags),
-		Action:                 podKillCmd,
-		ArgsUsage:              "[POD_NAME_OR_ID]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_podKillCommand    = &cobra.Command{
+		Use:   "kill",
+		Short: "Send the specified signal or SIGKILL to containers in pod",
+		Long:  podKillDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podKillCommand.InputArgs = args
+			podKillCommand.GlobalFlags = MainGlobalOpts
+			return podKillCmd(&podKillCommand)
+		},
+		Example: "[POD_NAME_OR_ID]",
 	}
 )
 
+func init() {
+	podKillCommand.Command = _podKillCommand
+	flags := podKillCommand.Flags()
+	flags.BoolVarP(&podKillCommand.All, "all", "a", false, "Kill all containers in all pods")
+	flags.BoolVarP(&podKillCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	flags.StringVarP(&podKillCommand.Signal, "signal", "s", "KILL", "Signal to send to the containers in the pod")
+}
+
 // podKillCmd kills one or more pods with a signal
-func podKillCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
+func podKillCmd(c *cliconfig.PodKillValues) error {
+	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -51,10 +50,10 @@ func podKillCmd(c *cli.Context) error {
 
 	var killSignal uint = uint(syscall.SIGTERM)
 
-	if c.String("signal") != "" {
+	if c.Signal != "" {
 		// Check if the signalString provided by the user is valid
 		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.String("signal"))
+		sysSignal, err := signal.ParseSignal(c.Signal)
 		if err != nil {
 			return err
 		}
@@ -64,7 +63,7 @@ func podKillCmd(c *cli.Context) error {
 	// getPodsFromContext returns an error when a requested pod
 	// isn't found. The only fatal error scenerio is when there are no pods
 	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	pods, lastError := getPodsFromContext(&c.PodmanCommand, runtime)
 
 	for _, pod := range pods {
 		ctr_errs, err := pod.Kill(killSignal)

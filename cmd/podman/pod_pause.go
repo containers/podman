@@ -2,43 +2,42 @@ package main
 
 import (
 	"fmt"
-
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podPauseFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Pause all running pods",
+	podPauseCommand     cliconfig.PodPauseValues
+	podPauseDescription = `Pauses one or more pods.  The pod name or ID can be used.`
+	_podPauseCommand    = &cobra.Command{
+		Use:   "pause",
+		Short: "Pause one or more pods",
+		Long:  podPauseDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podPauseCommand.InputArgs = args
+			podPauseCommand.GlobalFlags = MainGlobalOpts
+			return podPauseCmd(&podPauseCommand)
 		},
-		LatestPodFlag,
-	}
-	podPauseDescription = `
-   Pauses one or more pods.  The pod name or ID can be used.
-`
-
-	podPauseCommand = cli.Command{
-		Name:                   "pause",
-		Usage:                  "Pause one or more pods",
-		Description:            podPauseDescription,
-		Flags:                  sortFlags(podPauseFlags),
-		Action:                 podPauseCmd,
-		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+		Example: "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
 	}
 )
 
-func podPauseCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
+func init() {
+	podPauseCommand.Command = _podPauseCommand
+	flags := podPauseCommand.Flags()
+	flags.BoolVarP(&podPauseCommand.All, "all", "a", false, "Pause all running pods")
+	flags.BoolVarP(&podPauseCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+}
+
+func podPauseCmd(c *cliconfig.PodPauseValues) error {
+	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -47,7 +46,7 @@ func podPauseCmd(c *cli.Context) error {
 	// getPodsFromContext returns an error when a requested pod
 	// isn't found. The only fatal error scenerio is when there are no pods
 	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	pods, lastError := getPodsFromContext(&c.PodmanCommand, runtime)
 
 	for _, pod := range pods {
 		ctr_errs, err := pod.Pause()

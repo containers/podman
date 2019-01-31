@@ -3,75 +3,70 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
-var volumeCreateDescription = `
+var (
+	volumeCreateCommand     cliconfig.VolumeCreateValues
+	volumeCreateDescription = `
 podman volume create
 
 Creates a new volume. If using the default driver, "local", the volume will
 be created at.`
 
-var volumeCreateFlags = []cli.Flag{
-	cli.StringFlag{
-		Name:  "driver",
-		Usage: "Specify volume driver name (default local)",
-	},
-	cli.StringSliceFlag{
-		Name:  "label, l",
-		Usage: "Set metadata for a volume (default [])",
-	},
-	cli.StringSliceFlag{
-		Name:  "opt, o",
-		Usage: "Set driver specific options (default [])",
-	},
+	_volumeCreateCommand = &cobra.Command{
+		Use:   "create",
+		Short: "Create a new volume",
+		Long:  volumeCreateDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			volumeCreateCommand.InputArgs = args
+			volumeCreateCommand.GlobalFlags = MainGlobalOpts
+			return volumeCreateCmd(&volumeCreateCommand)
+		},
+		Example: "[VOLUME-NAME]",
+	}
+)
+
+func init() {
+	volumeCreateCommand.Command = _volumeCreateCommand
+	flags := volumeCreateCommand.Flags()
+	flags.StringVar(&volumeCreateCommand.Driver, "driver", "", "Specify volume driver name (default local)")
+	flags.StringSliceVarP(&volumeCreateCommand.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")
+	flags.StringSliceVarP(&volumeCreateCommand.Opt, "opt", "o", []string{}, "Set driver specific options (default [])")
+
 }
 
-var volumeCreateCommand = cli.Command{
-	Name:                   "create",
-	Usage:                  "Create a new volume",
-	Description:            volumeCreateDescription,
-	Flags:                  volumeCreateFlags,
-	Action:                 volumeCreateCmd,
-	SkipArgReorder:         true,
-	ArgsUsage:              "[VOLUME-NAME]",
-	UseShortOptionHandling: true,
-}
-
-func volumeCreateCmd(c *cli.Context) error {
+func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
 	var (
 		options []libpod.VolumeCreateOption
 		err     error
 		volName string
 	)
 
-	if err = validateFlags(c, volumeCreateFlags); err != nil {
-		return err
-	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if len(c.Args()) > 1 {
+	if len(c.InputArgs) > 1 {
 		return errors.Errorf("too many arguments, create takes at most 1 argument")
 	}
 
-	if len(c.Args()) > 0 {
-		volName = c.Args()[0]
+	if len(c.InputArgs) > 0 {
+		volName = c.InputArgs[0]
 		options = append(options, libpod.WithVolumeName(volName))
 	}
 
-	if c.IsSet("driver") {
+	if c.Flag("driver").Changed {
 		options = append(options, libpod.WithVolumeDriver(c.String("driver")))
 	}
 
-	labels, err := getAllLabels([]string{}, c.StringSlice("label"))
+	labels, err := getAllLabels([]string{}, c.Label)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
@@ -79,7 +74,7 @@ func volumeCreateCmd(c *cli.Context) error {
 		options = append(options, libpod.WithVolumeLabels(labels))
 	}
 
-	opts, err := getAllLabels([]string{}, c.StringSlice("opt"))
+	opts, err := getAllLabels([]string{}, c.Opt)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process options")
 	}

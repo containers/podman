@@ -5,38 +5,44 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	portFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Display port information for all containers",
-		},
-		LatestFlag,
-	}
+	portCommand     cliconfig.PortValues
 	portDescription = `
    podman port
 
 	List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
-
-	portCommand = cli.Command{
-		Name:         "port",
-		Usage:        "List port mappings or a specific mapping for the container",
-		Description:  portDescription,
-		Flags:        sortFlags(portFlags),
-		Action:       portCmd,
-		ArgsUsage:    "CONTAINER-NAME [mapping]",
-		OnUsageError: usageErrorHandler,
+	_portCommand = &cobra.Command{
+		Use:   "port",
+		Short: "List port mappings or a specific mapping for the container",
+		Long:  portDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			portCommand.InputArgs = args
+			portCommand.GlobalFlags = MainGlobalOpts
+			return portCmd(&portCommand)
+		},
+		Example: "CONTAINER-NAME [mapping]",
 	}
 )
 
-func portCmd(c *cli.Context) error {
+func init() {
+	portCommand.Command = _portCommand
+	flags := portCommand.Flags()
+
+	flags.BoolVarP(&portCommand.All, "all", "a", false, "Display port information for all containers")
+	flags.BoolVarP(&portCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+
+	rootCmd.AddCommand(portCommand.Command)
+}
+
+func portCmd(c *cliconfig.PortValues) error {
 	var (
 		userProto, containerName string
 		userPort                 int
@@ -44,29 +50,26 @@ func portCmd(c *cli.Context) error {
 		containers               []*libpod.Container
 	)
 
-	args := c.Args()
-	if err := validateFlags(c, portFlags); err != nil {
-		return err
-	}
+	args := c.InputArgs
 
-	if c.Bool("latest") && c.Bool("all") {
+	if c.Latest && c.All {
 		return errors.Errorf("the 'all' and 'latest' options cannot be used together")
 	}
-	if c.Bool("all") && len(args) > 0 {
+	if c.All && len(args) > 0 {
 		return errors.Errorf("no additional arguments can be used with 'all'")
 	}
-	if len(args) == 0 && !c.Bool("latest") && !c.Bool("all") {
+	if len(args) == 0 && !c.Latest && !c.All {
 		return errors.Errorf("you must supply a running container name or id")
 	}
-	if !c.Bool("latest") && !c.Bool("all") {
+	if !c.Latest && !c.All {
 		containerName = args[0]
 	}
 
 	port := ""
-	if len(args) > 1 && !c.Bool("latest") {
+	if len(args) > 1 && !c.Latest {
 		port = args[1]
 	}
-	if len(args) == 1 && c.Bool("latest") {
+	if len(args) == 1 && c.Latest {
 		port = args[0]
 	}
 	if port != "" {
@@ -90,19 +93,19 @@ func portCmd(c *cli.Context) error {
 		}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if !c.Bool("latest") && !c.Bool("all") {
+	if !c.Latest && !c.All {
 		container, err = runtime.LookupContainer(containerName)
 		if err != nil {
 			return errors.Wrapf(err, "unable to find container %s", containerName)
 		}
 		containers = append(containers, container)
-	} else if c.Bool("latest") {
+	} else if c.Latest {
 		container, err = runtime.GetLatestContainer()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get last created container")
@@ -119,7 +122,7 @@ func portCmd(c *cli.Context) error {
 		if state, _ := con.State(); state != libpod.ContainerStateRunning {
 			continue
 		}
-		if c.Bool("all") {
+		if c.All {
 			fmt.Println(con.ID())
 		}
 		// Iterate mappings

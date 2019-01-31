@@ -5,111 +5,81 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
 	// Kernel namespaces shared by default within a pod
 	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
+	podCreateCommand        cliconfig.PodCreateValues
+
+	podCreateDescription = "Creates a new empty pod. The pod ID is then" +
+		" printed to stdout. You can then start it at any time with the" +
+		" podman pod start <pod_id> command. The pod will be created with the" +
+		" initial state 'created'."
+
+	_podCreateCommand = &cobra.Command{
+		Use:   "create",
+		Short: "Create a new empty pod",
+		Long:  podCreateDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podCreateCommand.InputArgs = args
+			podCreateCommand.GlobalFlags = MainGlobalOpts
+			return podCreateCmd(&podCreateCommand)
+		},
+	}
 )
 
-var podCreateDescription = "Creates a new empty pod. The pod ID is then" +
-	" printed to stdout. You can then start it at any time with the" +
-	" podman pod start <pod_id> command. The pod will be created with the" +
-	" initial state 'created'."
+func init() {
+	podCreateCommand.Command = _podCreateCommand
+	flags := podCreateCommand.Flags()
+	flags.SetInterspersed(false)
 
-var podCreateFlags = []cli.Flag{
-	cli.StringFlag{
-		Name:  "cgroup-parent",
-		Usage: "Set parent cgroup for the pod",
-	},
-	cli.BoolTFlag{
-		Name:  "infra",
-		Usage: "Create an infra container associated with the pod to share namespaces with",
-	},
-	cli.StringFlag{
-		Name:  "infra-image",
-		Usage: "The image of the infra container to associate with the pod",
-		Value: libpod.DefaultInfraImage,
-	},
-	cli.StringFlag{
-		Name:  "infra-command",
-		Usage: "The command to run on the infra container when the pod is started",
-		Value: libpod.DefaultInfraCommand,
-	},
-	cli.StringSliceFlag{
-		Name:  "label-file",
-		Usage: "Read in a line delimited file of labels (default [])",
-	},
-	cli.StringSliceFlag{
-		Name:  "label, l",
-		Usage: "Set metadata on pod (default [])",
-	},
-	cli.StringFlag{
-		Name:  "name, n",
-		Usage: "Assign a name to the pod",
-	},
-	cli.StringFlag{
-		Name:  "pod-id-file",
-		Usage: "Write the pod ID to the file",
-	},
-	cli.StringSliceFlag{
-		Name:  "publish, p",
-		Usage: "Publish a container's port, or a range of ports, to the host (default [])",
-	},
-	cli.StringFlag{
-		Name:  "share",
-		Usage: "A comma delimited list of kernel namespaces the pod will share",
-		Value: DefaultKernelNamespaces,
-	},
+	flags.StringVar(&podCreateCommand.CgroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
+	flags.BoolVar(&podCreateCommand.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
+	flags.StringVar(&podCreateCommand.InfraImage, "infra-image", libpod.DefaultInfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&podCreateCommand.InfraCommand, "infra-command", libpod.DefaultInfraCommand, "The command to run on the infra container when the pod is started")
+	flags.StringSliceVar(&podCreateCommand.LabelFile, "label-file", []string{}, "Read in a line delimited file of labels")
+	flags.StringSliceVarP(&podCreateCommand.Labels, "label", "l", []string{}, "Set metadata on pod (default [])")
+	flags.StringVarP(&podCreateCommand.Name, "name", "n", "", "Assign a name to the pod")
+	flags.StringVar(&podCreateCommand.PodIDFile, "pod-id-file", "", "Write the pod ID to the file")
+	flags.StringSliceVarP(&podCreateCommand.Publish, "publish", "p", []string{}, "Publish a container's port, or a range of ports, to the host (default [])")
+	flags.StringVar(&podCreateCommand.Share, "share", DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+
 }
 
-var podCreateCommand = cli.Command{
-	Name:                   "create",
-	Usage:                  "Create a new empty pod",
-	Description:            podCreateDescription,
-	Flags:                  sortFlags(podCreateFlags),
-	Action:                 podCreateCmd,
-	SkipArgReorder:         true,
-	UseShortOptionHandling: true,
-	OnUsageError:           usageErrorHandler,
-}
-
-func podCreateCmd(c *cli.Context) error {
+func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	var options []libpod.PodCreateOption
 	var err error
 
-	if err = validateFlags(c, createFlags); err != nil {
-		return err
-	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	var podIdFile *os.File
-	if c.IsSet("pod-id-file") && os.Geteuid() == 0 {
-		podIdFile, err = libpod.OpenExclusiveFile(c.String("pod-id-file"))
+	if c.Flag("pod-id-file").Changed && os.Geteuid() == 0 {
+		podIdFile, err = libpod.OpenExclusiveFile(c.PodIDFile)
 		if err != nil && os.IsExist(err) {
-			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", c.String("pod-id-file"))
+			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", c.PodIDFile)
 		}
 		if err != nil {
-			return errors.Errorf("error opening pod-id-file %s", c.String("pod-id-file"))
+			return errors.Errorf("error opening pod-id-file %s", c.PodIDFile)
 		}
 		defer podIdFile.Close()
 		defer podIdFile.Sync()
 	}
 
-	if len(c.StringSlice("publish")) > 0 {
-		if !c.BoolT("infra") {
+	if len(c.Publish) > 0 {
+		if !c.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
 		}
 		if rootless.IsRootless() {
@@ -117,15 +87,15 @@ func podCreateCmd(c *cli.Context) error {
 		}
 	}
 
-	if !c.BoolT("infra") && c.IsSet("share") && c.String("share") != "none" && c.String("share") != "" {
+	if !c.Infra && c.Flag("share").Changed && c.Share != "none" && c.Share != "" {
 		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
 	}
 
-	if c.IsSet("cgroup-parent") {
-		options = append(options, libpod.WithPodCgroupParent(c.String("cgroup-parent")))
+	if c.Flag("cgroup-parent").Changed {
+		options = append(options, libpod.WithPodCgroupParent(c.CgroupParent))
 	}
 
-	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("label"))
+	labels, err := getAllLabels(c.LabelFile, c.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
@@ -133,21 +103,21 @@ func podCreateCmd(c *cli.Context) error {
 		options = append(options, libpod.WithPodLabels(labels))
 	}
 
-	if c.IsSet("name") {
-		options = append(options, libpod.WithPodName(c.String("name")))
+	if c.Flag("name").Changed {
+		options = append(options, libpod.WithPodName(c.Name))
 	}
 
-	if c.BoolT("infra") {
+	if c.Infra {
 		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(strings.Split(c.String("share"), ","))
+		nsOptions, err := shared.GetNamespaceOptions(strings.Split(c.Share, ","))
 		if err != nil {
 			return err
 		}
 		options = append(options, nsOptions...)
 	}
 
-	if len(c.StringSlice("publish")) > 0 {
-		portBindings, err := shared.CreatePortBindings(c.StringSlice("publish"))
+	if len(c.Publish) > 0 {
+		portBindings, err := shared.CreatePortBindings(c.Publish)
 		if err != nil {
 			return err
 		}

@@ -1,29 +1,23 @@
 package main
 
 import (
-	"sort"
-
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
 var (
-	systemSubCommands = []cli.Command{
-		pruneSystemCommand,
-	}
 	systemDescription = "Manage podman"
-	systemCommand     = cli.Command{
-		Name:                   "system",
-		Usage:                  "Manage podman",
-		Description:            systemDescription,
-		ArgsUsage:              "",
-		Subcommands:            getSystemSubCommandsSorted(),
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+
+	systemCommand = cliconfig.PodmanCommand{
+		Command: &cobra.Command{
+			Use:   "system",
+			Short: "Manage podman",
+			Long:  systemDescription,
+		},
 	}
 )
 
-func getSystemSubCommandsSorted() []cli.Command {
-	systemSubCommands = append(systemSubCommands, getSystemSubCommands()...)
-	sort.Sort(commandSortedAlpha{systemSubCommands})
-	return systemSubCommands
+func init() {
+	systemCommand.AddCommand(getSystemSubCommands()...)
+	rootCmd.AddCommand(systemCommand.Command)
 }

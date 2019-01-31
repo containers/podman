@@ -574,3 +574,50 @@ func (b *Builder) SetHealthcheck(config *docker.HealthConfig) {
 		}
 	}
 }
+
+// AddPrependedEmptyLayer adds an item to the history that we'll create when
+// commiting the image, after any history we inherit from the base image, but
+// before the history item that we'll use to describe the new layer that we're
+// adding.
+func (b *Builder) AddPrependedEmptyLayer(created *time.Time, createdBy, author, comment string) {
+	if created != nil {
+		copiedTimestamp := *created
+		created = &copiedTimestamp
+	}
+	b.PrependedEmptyLayers = append(b.PrependedEmptyLayers, ociv1.History{
+		Created:    created,
+		CreatedBy:  createdBy,
+		Author:     author,
+		Comment:    comment,
+		EmptyLayer: true,
+	})
+}
+
+// ClearPrependedEmptyLayers clears the list of history entries that we'll add
+// to the committed image before the entry for the layer that we're adding.
+func (b *Builder) ClearPrependedEmptyLayers() {
+	b.PrependedEmptyLayers = nil
+}
+
+// AddAppendedEmptyLayer adds an item to the history that we'll create when
+// commiting the image, after the history item that we'll use to describe the
+// new layer that we're adding.
+func (b *Builder) AddAppendedEmptyLayer(created *time.Time, createdBy, author, comment string) {
+	if created != nil {
+		copiedTimestamp := *created
+		created = &copiedTimestamp
+	}
+	b.AppendedEmptyLayers = append(b.AppendedEmptyLayers, ociv1.History{
+		Created:    created,
+		CreatedBy:  createdBy,
+		Author:     author,
+		Comment:    comment,
+		EmptyLayer: true,
+	})
+}
+
+// ClearAppendedEmptyLayers clears the list of history entries that we'll add
+// to the committed image after the entry for the layer that we're adding.
+func (b *Builder) ClearAppendedEmptyLayers() {
+	b.AppendedEmptyLayers = nil
+}

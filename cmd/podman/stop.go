@@ -3,27 +3,18 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	stopFlags = []cli.Flag{
-		cli.UintFlag{
-			Name:  "timeout, time, t",
-			Usage: "Seconds to wait for stop before killing the container",
-			Value: libpod.CtrRemoveTimeout,
-		},
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Stop all running containers",
-		}, LatestFlag,
-	}
+	stopCommand     cliconfig.StopValues
 	stopDescription = `
    podman stop
 
@@ -31,36 +22,44 @@ var (
    A timeout to forcibly stop the container can also be set but defaults to 10
    seconds otherwise.
 `
-
-	stopCommand = cli.Command{
-		Name:         "stop",
-		Usage:        "Stop one or more containers",
-		Description:  stopDescription,
-		Flags:        sortFlags(stopFlags),
-		Action:       stopCmd,
-		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
-		OnUsageError: usageErrorHandler,
+	_stopCommand = &cobra.Command{
+		Use:   "stop",
+		Short: "Stop one or more containers",
+		Long:  stopDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			stopCommand.InputArgs = args
+			stopCommand.GlobalFlags = MainGlobalOpts
+			return stopCmd(&stopCommand)
+		},
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func stopCmd(c *cli.Context) error {
+func init() {
+	stopCommand.Command = _stopCommand
+	flags := stopCommand.Flags()
+	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")
+	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.UintVar(&stopCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 
-	if err := checkAllAndLatest(c); err != nil {
-		return err
-	}
+	rootCmd.AddCommand(stopCommand.Command)
+}
 
-	if err := validateFlags(c, stopFlags); err != nil {
+func stopCmd(c *cliconfig.StopValues) error {
+
+	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
 	}
 
 	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 	if err != nil {
 		if len(containers) == 0 {
 			return err
@@ -72,8 +71,8 @@ func stopCmd(c *cli.Context) error {
 	for _, ctr := range containers {
 		con := ctr
 		var stopTimeout uint
-		if c.IsSet("timeout") {
-			stopTimeout = c.Uint("timeout")
+		if c.Flag("timeout").Changed {
+			stopTimeout = c.Timeout
 		} else {
 			stopTimeout = ctr.StopTimeout()
 		}
@@ -92,7 +91,7 @@ func stopCmd(c *cli.Context) error {
 
 	maxWorkers := shared.Parallelize("stop")
 	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalInt("max-workers")
+		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 

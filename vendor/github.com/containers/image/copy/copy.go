@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -23,7 +22,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sync/semaphore"
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
@@ -86,7 +84,6 @@ type copier struct {
 	dest             types.ImageDestination
 	rawSource        types.ImageSource
 	reportWriter     io.Writer
-	progressOutput   io.Writer
 	progressInterval time.Duration
 	progress         chan types.ProgressProperties
 	blobInfoCache    types.BlobInfoCache
@@ -155,19 +152,11 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		}
 	}()
 
-	// If reportWriter is not a TTY (e.g., when piping to a file), do not
-	// print the progress bars to avoid long and hard to parse output.
-	// createProgressBar() will print a single line instead.
-	progressOutput := reportWriter
-	if !isTTY(reportWriter) {
-		progressOutput = ioutil.Discard
-	}
 	copyInParallel := dest.HasThreadSafePutBlob() && rawSource.HasThreadSafeGetBlob()
 	c := &copier{
 		dest:             dest,
 		rawSource:        rawSource,
 		reportWriter:     reportWriter,
-		progressOutput:   progressOutput,
 		progressInterval: options.ProgressInterval,
 		progress:         options.Progress,
 		copyInParallel:   copyInParallel,
@@ -405,28 +394,15 @@ func shortDigest(d digest.Digest) string {
 	return d.Encoded()[:12]
 }
 
-// createProgressBar creates a pb.ProgressBar.  Note that if the copier's
-// reportWriter is ioutil.Discard, the progress bar's output will be discarded
-// and a single line will be printed instead.
-func (c *copier) createProgressBar(srcInfo types.BlobInfo, kind string) *pb.ProgressBar {
+// createProgressBar creates a pb.ProgressBar.
+func createProgressBar(srcInfo types.BlobInfo, kind string, writer io.Writer) *pb.ProgressBar {
 	bar := pb.New(int(srcInfo.Size)).SetUnits(pb.U_BYTES)
 	bar.SetMaxWidth(80)
 	bar.ShowTimeLeft = false
 	bar.ShowPercent = false
 	bar.Prefix(fmt.Sprintf("Copying %s %s:", kind, shortDigest(srcInfo.Digest)))
-	bar.Output = c.progressOutput
-	if bar.Output == ioutil.Discard {
-		c.Printf("Copying %s %s\n", kind, srcInfo.Digest)
-	}
+	bar.Output = writer
 	return bar
-}
-
-// isTTY returns true if the io.Writer is a file and a tty.
-func isTTY(w io.Writer) bool {
-	if f, ok := w.(*os.File); ok {
-		return terminal.IsTerminal(int(f.Fd()))
-	}
-	return false
 }
 
 // copyLayers copies layers from ic.src/ic.c.rawSource to dest, using and updating ic.manifestUpdates if necessary and ic.canModifyManifest.
@@ -480,7 +456,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 				bar.Finish()
 			} else {
 				cld.destInfo = srcLayer
-				logrus.Debugf("Skipping foreign layer %q copy to %s", cld.destInfo.Digest, ic.c.dest.Reference().Transport().Name())
+				logrus.Debugf("Skipping foreign layer %q copy to %s\n", cld.destInfo.Digest, ic.c.dest.Reference().Transport().Name())
 				bar.Prefix(fmt.Sprintf("Skipping blob %s (foreign layer):", shortDigest(srcLayer.Digest)))
 				bar.Add64(bar.Total)
 				bar.Finish()
@@ -493,13 +469,12 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	progressBars := make([]*pb.ProgressBar, numLayers)
 	for i, srcInfo := range srcInfos {
-		bar := ic.c.createProgressBar(srcInfo, "blob")
+		bar := createProgressBar(srcInfo, "blob", nil)
 		progressBars[i] = bar
 	}
 
 	progressPool := pb.NewPool(progressBars...)
-	progressPool.Output = ic.c.progressOutput
-
+	progressPool.Output = ic.c.reportWriter
 	if err := progressPool.Start(); err != nil {
 		return errors.Wrapf(err, "error creating progress-bar pool")
 	}
@@ -593,7 +568,7 @@ func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 		if err != nil {
 			return errors.Wrapf(err, "Error reading config blob %s", srcInfo.Digest)
 		}
-		bar := c.createProgressBar(srcInfo, "config")
+		bar := createProgressBar(srcInfo, "config", c.reportWriter)
 		defer bar.Finish()
 		bar.Start()
 		destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, nil, false, true, bar)

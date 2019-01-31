@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -11,68 +12,66 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	killFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Signal all running containers",
-		},
-		cli.StringFlag{
-			Name:  "signal, s",
-			Usage: "Signal to send to the container",
-			Value: "KILL",
-		},
-		LatestFlag,
-	}
+	killCommand cliconfig.KillValues
+
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
-	killCommand     = cli.Command{
-		Name:                   "kill",
-		Usage:                  "Kill one or more running containers with a specific signal",
-		Description:            killDescription,
-		Flags:                  sortFlags(killFlags),
-		Action:                 killCmd,
-		ArgsUsage:              "CONTAINER-NAME [CONTAINER-NAME ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_killCommand    = &cobra.Command{
+		Use:   "kill",
+		Short: "Kill one or more running containers with a specific signal",
+		Long:  killDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			killCommand.InputArgs = args
+			killCommand.GlobalFlags = MainGlobalOpts
+			return killCmd(&killCommand)
+		},
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
+func init() {
+	killCommand.Command = _killCommand
+	flags := killCommand.Flags()
+
+	flags.BoolVarP(&killCommand.All, "all", "a", false, "Signal all running containers")
+	flags.StringVarP(&killCommand.Signal, "signal", "s", "KILL", "Signal to send to the container")
+	flags.BoolVarP(&killCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+
+	rootCmd.AddCommand(killCommand.Command)
+}
+
 // killCmd kills one or more containers with a signal
-func killCmd(c *cli.Context) error {
+func killCmd(c *cliconfig.KillValues) error {
 	var (
 		killFuncs  []shared.ParallelWorkerInput
 		killSignal uint = uint(syscall.SIGTERM)
 	)
 
-	if err := checkAllAndLatest(c); err != nil {
-		return err
-	}
-
-	if err := validateFlags(c, killFlags); err != nil {
+	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
 	}
 
 	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if c.String("signal") != "" {
+	if c.Signal != "" {
 		// Check if the signalString provided by the user is valid
 		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.String("signal"))
+		sysSignal, err := signal.ParseSignal(c.Signal)
 		if err != nil {
 			return err
 		}
 		killSignal = uint(sysSignal)
 	}
 
-	containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 	if err != nil {
 		if len(containers) == 0 {
 			return err
@@ -94,7 +93,7 @@ func killCmd(c *cli.Context) error {
 
 	maxWorkers := shared.Parallelize("kill")
 	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalInt("max-workers")
+		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 

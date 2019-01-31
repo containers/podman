@@ -5,70 +5,67 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	checkpointCommand     cliconfig.CheckpointValues
 	checkpointDescription = `
    podman container checkpoint
 
    Checkpoints one or more running containers. The container name or ID can be used.
 `
-	checkpointFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "keep, k",
-			Usage: "Keep all temporary checkpoint files",
+	_checkpointCommand = &cobra.Command{
+		Use:   "checkpoint",
+		Short: "Checkpoints one or more containers",
+		Long:  checkpointDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			checkpointCommand.InputArgs = args
+			checkpointCommand.GlobalFlags = MainGlobalOpts
+			return checkpointCmd(&checkpointCommand)
 		},
-		cli.BoolFlag{
-			Name:  "leave-running, R",
-			Usage: "Leave the container running after writing checkpoint to disk",
-		},
-		cli.BoolFlag{
-			Name:  "tcp-established",
-			Usage: "Checkpoint a container with established TCP connections",
-		},
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Checkpoint all running containers",
-		},
-		LatestFlag,
-	}
-	checkpointCommand = cli.Command{
-		Name:        "checkpoint",
-		Usage:       "Checkpoints one or more containers",
-		Description: checkpointDescription,
-		Flags:       sortFlags(checkpointFlags),
-		Action:      checkpointCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func checkpointCmd(c *cli.Context) error {
+func init() {
+	checkpointCommand.Command = _checkpointCommand
+
+	flags := checkpointCommand.Flags()
+	flags.BoolVarP(&checkpointCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
+	flags.BoolVarP(&checkpointCommand.LeaveRunning, "leave-running", "R", false, "Leave the container running after writing checkpoint to disk")
+	flags.BoolVar(&checkpointCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+	flags.BoolVarP(&checkpointCommand.All, "all", "a", false, "Checkpoint all running containers")
+	flags.BoolVarP(&checkpointCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+}
+
+func checkpointCmd(c *cliconfig.CheckpointValues) error {
 	if rootless.IsRootless() {
 		return errors.New("checkpointing a container requires root")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Bool("keep"),
-		KeepRunning:    c.Bool("leave-running"),
-		TCPEstablished: c.Bool("tcp-established"),
+		Keep:           c.Keep,
+		KeepRunning:    c.LeaveRunning,
+		TCPEstablished: c.TcpEstablished,
 	}
 
-	if err := checkAllAndLatest(c); err != nil {
+	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {
 		if err = ctr.Checkpoint(context.TODO(), options); err != nil {

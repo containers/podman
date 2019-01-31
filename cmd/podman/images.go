@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/imagefilters"
 	"github.com/containers/libpod/libpod/adapter"
@@ -16,7 +17,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 type imagesTemplateParams struct {
@@ -83,108 +84,79 @@ func (a imagesSortedSize) Less(i, j int) bool {
 }
 
 var (
-	imagesFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Show all images (default hides intermediate images)",
-		},
-		cli.BoolFlag{
-			Name:  "digests",
-			Usage: "Show digests",
-		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "Filter output based on conditions provided (default [])",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format to JSON or a Go template",
-		},
-		cli.BoolFlag{
-			Name:  "noheading, n",
-			Usage: "Do not print column headings",
-		},
-		cli.BoolFlag{
-			Name:  "no-trunc, notruncate",
-			Usage: "Do not truncate output",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Display only image IDs",
-		},
-		cli.StringFlag{
-			Name:  "sort",
-			Usage: "Sort by created, id, repository, size, or tag",
-			Value: "Created",
-		},
-	}
-
+	imagesCommand     cliconfig.ImagesValues
 	imagesDescription = "lists locally stored images."
-	imagesCommand     = cli.Command{
-		Name:                   "images",
-		Usage:                  "List images in local storage",
-		Description:            imagesDescription,
-		Flags:                  sortFlags(imagesFlags),
-		Action:                 imagesCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-	}
-	lsImagesCommand = cli.Command{
-		Name:                   "list",
-		Aliases:                []string{"ls"},
-		Usage:                  "List images in local storage",
-		Description:            imagesDescription,
-		Flags:                  imagesFlags,
-		Action:                 imagesCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+
+	_imagesCommand = &cobra.Command{
+		Use:   "images",
+		Short: "List images in local storage",
+		Long:  imagesDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			imagesCommand.InputArgs = args
+			imagesCommand.GlobalFlags = MainGlobalOpts
+			return imagesCmd(&imagesCommand)
+		},
+		Example: "",
 	}
 )
 
-func imagesCmd(c *cli.Context) error {
+func init() {
+	imagesCommand.Command = _imagesCommand
+	flags := imagesCommand.Flags()
+	flags.BoolVarP(&imagesCommand.All, "all", "a", false, "Show all images (default hides intermediate images)")
+	flags.BoolVar(&imagesCommand.Digests, "digests", false, "Show digests")
+	flags.StringSliceVarP(&imagesCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringVar(&imagesCommand.Format, "format", "", "Change the output format to JSON or a Go template")
+	flags.BoolVarP(&imagesCommand.Noheading, "noheading", "n", false, "Do not print column headings")
+	// TODO Need to learn how to deal with second name being a string instead of a char.
+	// This needs to be "no-trunc, notruncate"
+	flags.BoolVar(&imagesCommand.NoTrunc, "no-trunc", false, "Do not truncate output")
+	flags.BoolVarP(&imagesCommand.Quiet, "quiet", "q", false, "Display only image IDs")
+	flags.StringVar(&imagesCommand.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
+
+	rootCmd.AddCommand(imagesCommand.Command)
+
+}
+
+func imagesCmd(c *cliconfig.ImagesValues) error {
 	var (
 		filterFuncs []imagefilters.ResultFilter
 		newImage    *adapter.ContainerImage
 	)
-	if err := validateFlags(c, imagesFlags); err != nil {
-		return err
-	}
 
-	runtime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-	if len(c.Args()) == 1 {
-		newImage, err = runtime.NewImageFromLocal(c.Args().Get(0))
+	if len(c.InputArgs) == 1 {
+		newImage, err = runtime.NewImageFromLocal(c.InputArgs[0])
 		if err != nil {
 			return err
 		}
 	}
 
-	if len(c.Args()) > 1 {
+	if len(c.InputArgs) > 1 {
 		return errors.New("'podman images' requires at most 1 argument")
 	}
 
 	ctx := getContext()
 
-	if len(c.StringSlice("filter")) > 0 || newImage != nil {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c, newImage)
+	if len(c.Filter) > 0 || newImage != nil {
+		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c.Filter, newImage)
 		if err != nil {
 			return err
 		}
 	}
 
 	opts := imagesOptions{
-		quiet:     c.Bool("quiet"),
-		noHeading: c.Bool("noheading"),
-		noTrunc:   c.Bool("no-trunc"),
-		digests:   c.Bool("digests"),
-		format:    c.String("format"),
-		sort:      c.String("sort"),
-		all:       c.Bool("all"),
+		quiet:     c.Quiet,
+		noHeading: c.Noheading,
+		noTrunc:   c.NoTrunc,
+		digests:   c.Digests,
+		format:    c.Format,
+		sort:      c.Sort,
+		all:       c.All,
 	}
 
 	opts.outputformat = opts.setOutputFormat()
@@ -195,7 +167,7 @@ func imagesCmd(c *cli.Context) error {
 
 	var filteredImages []*adapter.ContainerImage
 	//filter the images
-	if len(c.StringSlice("filter")) > 0 || newImage != nil {
+	if len(c.Filter) > 0 || newImage != nil {
 		filteredImages = imagefilters.FilterImages(images, filterFuncs)
 	} else {
 		filteredImages = images
@@ -368,9 +340,9 @@ func (i *imagesTemplateParams) HeaderMap() map[string]string {
 
 // CreateFilterFuncs returns an array of filter functions based on the user inputs
 // and is later used to filter images for output
-func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, c *cli.Context, img *adapter.ContainerImage) ([]imagefilters.ResultFilter, error) {
+func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []string, img *adapter.ContainerImage) ([]imagefilters.ResultFilter, error) {
 	var filterFuncs []imagefilters.ResultFilter
-	for _, filter := range c.StringSlice("filter") {
+	for _, filter := range filters {
 		splitFilter := strings.Split(filter, "=")
 		switch splitFilter[0] {
 		case "before":

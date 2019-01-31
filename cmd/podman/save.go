@@ -12,12 +12,13 @@ import (
 	"github.com/containers/image/manifest"
 	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -26,67 +27,58 @@ const (
 )
 
 var (
-	saveFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "compress",
-			Usage: "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)",
-		},
-		cli.StringFlag{
-			Name:  "output, o",
-			Usage: "Write to a file, default is STDOUT",
-			Value: "/dev/stdout",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress the output",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)",
-		},
-	}
+	saveCommand     cliconfig.SaveValues
 	saveDescription = `
 	Save an image to docker-archive or oci-archive on the local machine.
 	Default is docker-archive`
 
-	saveCommand = cli.Command{
-		Name:           "save",
-		Usage:          "Save image to an archive",
-		Description:    saveDescription,
-		Flags:          sortFlags(saveFlags),
-		Action:         saveCmd,
-		ArgsUsage:      "",
-		SkipArgReorder: true,
-		OnUsageError:   usageErrorHandler,
+	_saveCommand = &cobra.Command{
+		Use:   "save",
+		Short: "Save image to an archive",
+		Long:  saveDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			saveCommand.InputArgs = args
+			saveCommand.GlobalFlags = MainGlobalOpts
+			return saveCmd(&saveCommand)
+		},
+		Example: "",
 	}
 )
 
+func init() {
+	saveCommand.Command = _saveCommand
+	flags := saveCommand.Flags()
+	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
+	flags.StringVar(&saveCommand.Format, "format", "", "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)")
+	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
+	flags.BoolVarP(&saveCommand.Quiet, "quiet", "q", false, "Suppress the output")
+
+	rootCmd.AddCommand(saveCommand.Command)
+}
+
 // saveCmd saves the image to either docker-archive or oci
-func saveCmd(c *cli.Context) error {
-	args := c.Args()
+func saveCmd(c *cliconfig.SaveValues) error {
+	args := c.InputArgs
 	if len(args) == 0 {
 		return errors.Errorf("need at least 1 argument")
 	}
-	if err := validateFlags(c, saveFlags); err != nil {
-		return err
-	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if c.IsSet("compress") && (c.String("format") != ociManifestDir && c.String("format") != v2s2ManifestDir && c.String("format") == "") {
+	if c.Flag("compress").Changed && (c.Format != ociManifestDir && c.Format != v2s2ManifestDir && c.Format == "") {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 
 	var writer io.Writer
-	if !c.Bool("quiet") {
+	if !c.Quiet {
 		writer = os.Stderr
 	}
 
-	output := c.String("output")
+	output := c.Output
 	if output == "/dev/stdout" {
 		fi := os.Stdout
 		if logrus.IsTerminal(fi) {
@@ -105,7 +97,7 @@ func saveCmd(c *cli.Context) error {
 
 	var destRef types.ImageReference
 	var manifestType string
-	switch c.String("format") {
+	switch c.Format {
 	case "oci-archive":
 		destImageName := imageNameForSaveDestination(newImage, source)
 		destRef, err = ociarchive.NewReference(output, destImageName) // destImageName may be ""

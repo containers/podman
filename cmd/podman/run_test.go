@@ -4,24 +4,19 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/inspect"
 	cc "github.com/containers/libpod/pkg/spec"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli"
 )
 
 var (
-	cmd         = []string{"podman", "test", "alpine"}
-	CLI         *cli.Context
-	testCommand = cli.Command{
-		Name:     "test",
-		Flags:    sortFlags(createFlags),
-		Action:   testCmd,
-		HideHelp: true,
-	}
+	cmd = []string{"podman", "test", "alpine"}
+	CLI *cliconfig.PodmanCommand
 )
 
 // generates a mocked ImageData structure based on alpine
@@ -53,23 +48,29 @@ func generateAlpineImageData() *inspect.ImageData {
 }
 
 // sets a global CLI
-func testCmd(c *cli.Context) error {
-	CLI = c
+func testCmd(c *cobra.Command) error {
+	CLI = &cliconfig.PodmanCommand{Command: c}
 	return nil
 }
 
 // creates the mocked cli pointing to our create flags
 // global flags like log-level are not implemented
-func createCLI() cli.App {
-	a := cli.App{
-		Commands: []cli.Command{
-			testCommand,
+func createCLI(args []string) *cliconfig.PodmanCommand {
+	var testCommand = &cliconfig.PodmanCommand{
+		Command: &cobra.Command{
+			Use: "test",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return testCmd(cmd)
+			},
 		},
 	}
-	return a
+	rootCmd := testCommand
+	getCreateFlags(rootCmd)
+	rootCmd.ParseFlags(args)
+	return rootCmd
 }
 
-func getRuntimeSpec(c *cli.Context) (*spec.Spec, error) {
+func getRuntimeSpec(c *cliconfig.PodmanCommand) (*spec.Spec, error) {
 	/*
 		TODO: This test has never worked. Need to install content
 		runtime, err := getRuntime(c)
@@ -98,10 +99,11 @@ func TestPIDsLimit(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
-	a := createCLI()
 	args := []string{"--pids-limit", "22"}
-	a.Run(append(cmd, args...))
-	runtimeSpec, err := getRuntimeSpec(CLI)
+	a := createCLI(args)
+	a.InputArgs = args
+	//a.Run(append(cmd, args...))
+	runtimeSpec, err := getRuntimeSpec(a)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -116,10 +118,10 @@ func TestBLKIOWeightDevice(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
-	a := createCLI()
 	args := []string{"--blkio-weight-device", "/dev/zero:100"}
-	a.Run(append(cmd, args...))
-	runtimeSpec, err := getRuntimeSpec(CLI)
+	a := createCLI(args)
+	a.InputArgs = args
+	runtimeSpec, err := getRuntimeSpec(a)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -134,10 +136,11 @@ func TestMemorySwap(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
-	a := createCLI()
 	args := []string{"--memory-swap", "45m", "--memory", "40m"}
-	a.Run(append(cmd, args...))
-	runtimeSpec, err := getRuntimeSpec(CLI)
+	a := createCLI(args)
+	a.InputArgs = args
+	//a.Run(append(cmd, args...))
+	runtimeSpec, err := getRuntimeSpec(a)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

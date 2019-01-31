@@ -58,6 +58,8 @@ type containerImageRef struct {
 	tarPath               func(path string) (io.ReadCloser, error)
 	parent                string
 	blobDirectory         string
+	preEmptyLayers        []v1.History
+	postEmptyLayers       []v1.History
 }
 
 type containerImageSource struct {
@@ -396,6 +398,35 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	}
 
 	// Build history notes in the image configurations.
+	appendHistory := func(history []v1.History) {
+		for i := range history {
+			var created *time.Time
+			if history[i].Created != nil {
+				copiedTimestamp := *history[i].Created
+				created = &copiedTimestamp
+			}
+			onews := v1.History{
+				Created:    created,
+				CreatedBy:  history[i].CreatedBy,
+				Author:     history[i].Author,
+				Comment:    history[i].Comment,
+				EmptyLayer: true,
+			}
+			oimage.History = append(oimage.History, onews)
+			if created == nil {
+				created = &time.Time{}
+			}
+			dnews := docker.V2S2History{
+				Created:    *created,
+				CreatedBy:  history[i].CreatedBy,
+				Author:     history[i].Author,
+				Comment:    history[i].Comment,
+				EmptyLayer: true,
+			}
+			dimage.History = append(dimage.History, dnews)
+		}
+	}
+	appendHistory(i.preEmptyLayers)
 	onews := v1.History{
 		Created:    &i.created,
 		CreatedBy:  i.createdBy,
@@ -412,6 +443,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		EmptyLayer: false,
 	}
 	dimage.History = append(dimage.History, dnews)
+	appendHistory(i.postEmptyLayers)
 	dimage.Parent = docker.ID(digest.FromString(i.parent))
 
 	// Sanity check that we didn't just create a mismatch between non-empty layers in the
@@ -603,7 +635,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 	return ioutils.NewReadCloserWrapper(layerFile, closer), size, nil
 }
 
-func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squash bool, blobDirectory string, compress archive.Compression, historyTimestamp *time.Time) (types.ImageReference, error) {
+func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squash bool, blobDirectory string, compress archive.Compression, historyTimestamp *time.Time, omitTimestamp bool) (types.ImageReference, error) {
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
@@ -630,6 +662,10 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 		created = historyTimestamp.UTC()
 	}
 
+	if omitTimestamp {
+		created = time.Unix(0, 0)
+	}
+
 	ref := &containerImageRef{
 		store:                 b.store,
 		compression:           compress,
@@ -650,6 +686,8 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 		tarPath:               b.tarPath(),
 		parent:                parent,
 		blobDirectory:         blobDirectory,
+		preEmptyLayers:        b.PrependedEmptyLayers,
+		postEmptyLayers:       b.AppendedEmptyLayers,
 	}
 	return ref, nil
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"strings"
@@ -13,57 +15,43 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 )
 
 var (
-	commitFlags = []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "change, c",
-			Usage: fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")),
-		},
-		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "`format` of the image manifest and metadata",
-			Value: "oci",
-		},
-		cli.StringFlag{
-			Name:  "message, m",
-			Usage: "Set commit message for imported image",
-		},
-		cli.StringFlag{
-			Name:  "author, a",
-			Usage: "Set the author for the image committed",
-		},
-		cli.BoolTFlag{
-			Name:  "pause, p",
-			Usage: "Pause container during commit",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress output",
-		},
-	}
+	commitCommand     cliconfig.CommitValues
 	commitDescription = `Create an image from a container's changes.
 	 Optionally tag the image created, set the author with the --author flag,
 	 set the commit message with the --message flag,
 	 and make changes to the instructions with the --change flag.`
-	commitCommand = cli.Command{
-		Name:         "commit",
-		Usage:        "Create new image based on the changed container",
-		Description:  commitDescription,
-		Flags:        sortFlags(commitFlags),
-		Action:       commitCmd,
-		ArgsUsage:    "CONTAINER [REPOSITORY[:TAG]]",
-		OnUsageError: usageErrorHandler,
+
+	_commitCommand = &cobra.Command{
+		Use:   "commit",
+		Short: "Create new image based on the changed container",
+		Long:  commitDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			commitCommand.InputArgs = args
+			commitCommand.GlobalFlags = MainGlobalOpts
+			return commitCmd(&commitCommand)
+		},
+		Example: "CONTAINER [REPOSITORY[:TAG]]",
 	}
 )
 
-func commitCmd(c *cli.Context) error {
-	if err := validateFlags(c, commitFlags); err != nil {
-		return err
-	}
-	runtime, err := libpodruntime.GetRuntime(c)
+func init() {
+	commitCommand.Command = _commitCommand
+	flags := commitCommand.Flags()
+	flags.StringSliceVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")))
+	flags.StringVarP(&commitCommand.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
+	flags.StringVarP(&commitCommand.Message, "message", "m", "", "Set commit message for imported image")
+	flags.StringVarP(&commitCommand.Author, "author", "a", "", "Set the author for the image committed")
+	flags.BoolVarP(&commitCommand.Pause, "pause", "p", false, "Pause container during commit")
+	flags.BoolVarP(&commitCommand.Quiet, "quiet", "q", false, "Suppress output")
+
+	rootCmd.AddCommand(commitCommand.Command)
+}
+
+func commitCmd(c *cliconfig.CommitValues) error {
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -73,26 +61,26 @@ func commitCmd(c *cli.Context) error {
 		writer   io.Writer
 		mimeType string
 	)
-	args := c.Args()
+	args := c.InputArgs
 	if len(args) != 2 {
 		return errors.Errorf("you must provide a container name or ID and a target image name")
 	}
 
-	switch c.String("format") {
+	switch c.Format {
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest
-		if c.IsSet("message") || c.IsSet("m") {
+		if c.Flag("message").Changed {
 			return errors.Errorf("messages are only compatible with the docker image format (-f docker)")
 		}
 	case "docker":
 		mimeType = manifest.DockerV2Schema2MediaType
 	default:
-		return errors.Errorf("unrecognized image format %q", c.String("format"))
+		return errors.Errorf("unrecognized image format %q", c.Format)
 	}
 	container := args[0]
 	reference := args[1]
-	if c.IsSet("change") || c.IsSet("c") {
-		for _, change := range c.StringSlice("change") {
+	if c.Flag("change").Changed {
+		for _, change := range c.Change {
 			splitChange := strings.Split(strings.ToUpper(change), "=")
 			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
 				return errors.Errorf("invalid syntax for --change: %s", change)
@@ -100,7 +88,7 @@ func commitCmd(c *cli.Context) error {
 		}
 	}
 
-	if !c.Bool("quiet") {
+	if !c.Quiet {
 		writer = os.Stderr
 	}
 	ctr, err := runtime.LookupContainer(container)
@@ -117,10 +105,10 @@ func commitCmd(c *cli.Context) error {
 	}
 	options := libpod.ContainerCommitOptions{
 		CommitOptions: coptions,
-		Pause:         c.Bool("pause"),
-		Message:       c.String("message"),
-		Changes:       c.StringSlice("change"),
-		Author:        c.String("author"),
+		Pause:         c.Pause,
+		Message:       c.Message,
+		Changes:       c.Change,
+		Author:        c.Author,
 	}
 	newImage, err := ctr.Commit(getContext(), reference, options)
 	if err != nil {

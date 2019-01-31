@@ -351,21 +351,6 @@ func runUsingChrootMain() {
 		defer stdoutRead.Close()
 		defer stderrRead.Close()
 	}
-	// A helper that returns false if err is an error that would cause us
-	// to give up.
-	logIfNotRetryable := func(err error, what string) (retry bool) {
-		if err == nil {
-			return true
-		}
-		if errno, isErrno := err.(syscall.Errno); isErrno {
-			switch errno {
-			case syscall.EINTR, syscall.EAGAIN:
-				return true
-			}
-		}
-		logrus.Error(what)
-		return false
-	}
 	for readFd, writeFd := range relays {
 		if err := unix.SetNonblock(readFd, true); err != nil {
 			logrus.Errorf("error setting descriptor %d (%s) non-blocking: %v", readFd, fdDesc[readFd], err)
@@ -388,7 +373,7 @@ func runUsingChrootMain() {
 				fds = append(fds, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN | unix.POLLHUP})
 			}
 			_, err := unix.Poll(fds, pollTimeout)
-			if !logIfNotRetryable(err, fmt.Sprintf("poll: %v", err)) {
+			if !util.LogIfNotRetryable(err, fmt.Sprintf("poll: %v", err)) {
 				return
 			}
 			removeFds := make(map[int]struct{})
@@ -405,7 +390,7 @@ func runUsingChrootMain() {
 				}
 				b := make([]byte, 8192)
 				nread, err := unix.Read(int(rfd.Fd), b)
-				logIfNotRetryable(err, fmt.Sprintf("read %s: %v", fdDesc[int(rfd.Fd)], err))
+				util.LogIfNotRetryable(err, fmt.Sprintf("read %s: %v", fdDesc[int(rfd.Fd)], err))
 				if nread > 0 {
 					if wfd, ok := relays[int(rfd.Fd)]; ok {
 						nwritten, err := buffers[wfd].Write(b[:nread])
@@ -422,7 +407,7 @@ func runUsingChrootMain() {
 					// from this descriptor, read as much as there is to read.
 					for rfd.Revents&unix.POLLHUP == unix.POLLHUP {
 						nr, err := unix.Read(int(rfd.Fd), b)
-						logIfNotRetryable(err, fmt.Sprintf("read %s: %v", fdDesc[int(rfd.Fd)], err))
+						util.LogIfUnexpectedWhileDraining(err, fmt.Sprintf("read %s: %v", fdDesc[int(rfd.Fd)], err))
 						if nr <= 0 {
 							break
 						}
@@ -447,7 +432,7 @@ func runUsingChrootMain() {
 			for wfd, buffer := range buffers {
 				if buffer.Len() > 0 {
 					nwritten, err := unix.Write(wfd, buffer.Bytes())
-					logIfNotRetryable(err, fmt.Sprintf("write %s: %v", fdDesc[wfd], err))
+					util.LogIfNotRetryable(err, fmt.Sprintf("write %s: %v", fdDesc[wfd], err))
 					if nwritten >= 0 {
 						_ = buffer.Next(nwritten)
 					}

@@ -8,12 +8,13 @@ import (
 	"time"
 
 	tm "github.com/buger/goterm"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 type statsOutputParams struct {
@@ -28,48 +29,41 @@ type statsOutputParams struct {
 }
 
 var (
-	statsFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Show all containers. Only running containers are shown by default. The default is false",
-		},
-		cli.BoolFlag{
-			Name:  "no-stream",
-			Usage: "Disable streaming stats and only pull the first result, default setting is false",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Pretty-print container statistics to JSON or using a Go template",
-		},
-		cli.BoolFlag{
-			Name:  "no-reset",
-			Usage: "Disable resetting the screen between intervals",
-		}, LatestFlag,
-	}
+	statsCommand cliconfig.StatsValues
 
-	statsDescription = "Display a live stream of one or more containers' resource usage statistics"
-	statsCommand     = cli.Command{
-		Name:         "stats",
-		Usage:        "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
-		Description:  statsDescription,
-		Flags:        sortFlags(statsFlags),
-		Action:       statsCmd,
-		ArgsUsage:    "",
-		OnUsageError: usageErrorHandler,
+	statsDescription = "display a live stream of one or more containers' resource usage statistics"
+	_statsCommand    = &cobra.Command{
+		Use:   "stats",
+		Short: "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
+		Long:  statsDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			statsCommand.InputArgs = args
+			statsCommand.GlobalFlags = MainGlobalOpts
+			return statsCmd(&statsCommand)
+		},
+		Example: "",
 	}
 )
 
-func statsCmd(c *cli.Context) error {
-	if err := validateFlags(c, statsFlags); err != nil {
-		return err
-	}
+func init() {
+	statsCommand.Command = _statsCommand
+	flags := statsCommand.Flags()
+	flags.BoolVarP(&statsCommand.All, "all", "a", false, "Show all containers. Only running containers are shown by default. The default is false")
+	flags.StringVar(&statsCommand.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
+	flags.BoolVarP(&statsCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&statsCommand.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
+	flags.BoolVar(&statsCommand.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
 
+	rootCmd.AddCommand(statsCommand.Command)
+}
+
+func statsCmd(c *cliconfig.StatsValues) error {
 	if os.Geteuid() != 0 {
 		return errors.New("stats is not supported for rootless containers")
 	}
 
-	all := c.Bool("all")
-	latest := c.Bool("latest")
+	all := c.All
+	latest := c.Latest
 	ctr := 0
 	if all {
 		ctr += 1
@@ -77,7 +71,7 @@ func statsCmd(c *cli.Context) error {
 	if latest {
 		ctr += 1
 	}
-	if len(c.Args()) > 0 {
+	if len(c.InputArgs) > 0 {
 		ctr += 1
 	}
 
@@ -87,14 +81,14 @@ func statsCmd(c *cli.Context) error {
 		return errors.Errorf("you must specify --all, --latest, or at least one container")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	times := -1
-	if c.Bool("no-stream") {
+	if c.NoStream {
 		times = 1
 	}
 
@@ -102,8 +96,8 @@ func statsCmd(c *cli.Context) error {
 	var containerFunc func() ([]*libpod.Container, error)
 
 	containerFunc = runtime.GetRunningContainers
-	if len(c.Args()) > 0 {
-		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.Args()) }
+	if len(c.InputArgs) > 0 {
+		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.InputArgs) }
 	} else if latest {
 		containerFunc = func() ([]*libpod.Container, error) {
 			lastCtr, err := runtime.GetLatestContainer()
@@ -126,7 +120,7 @@ func statsCmd(c *cli.Context) error {
 		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
 			// when doing "all", dont worry about containers that are not running
-			if c.Bool("all") && errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			if c.All && errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
 				continue
 			}
 			return err
@@ -134,7 +128,7 @@ func statsCmd(c *cli.Context) error {
 		containerStats[ctr.ID()] = initialStats
 	}
 
-	format := genStatsFormat(c.String("format"))
+	format := genStatsFormat(c.Format)
 
 	step := 1
 	if times == -1 {
@@ -168,7 +162,7 @@ func statsCmd(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		if strings.ToLower(format) != formats.JSONString && !c.Bool("no-reset") {
+		if strings.ToLower(format) != formats.JSONString && !c.NoReset {
 			tm.Clear()
 			tm.MoveCursor(1, 1)
 			tm.Flush()

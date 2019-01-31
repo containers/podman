@@ -9,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -418,4 +419,33 @@ func GetPolicyContext(ctx *types.SystemContext) (*signature.PolicyContext, error
 		return nil, err
 	}
 	return policyContext, nil
+}
+
+// logIfNotErrno logs the error message unless err is either nil or one of the
+// listed syscall.Errno values.  It returns true if it logged an error.
+func logIfNotErrno(err error, what string, ignores ...syscall.Errno) (logged bool) {
+	if err == nil {
+		return false
+	}
+	if errno, isErrno := err.(syscall.Errno); isErrno {
+		for _, ignore := range ignores {
+			if errno == ignore {
+				return false
+			}
+		}
+	}
+	logrus.Error(what)
+	return true
+}
+
+// LogIfNotRetryable logs "what" if err is set and is not an EINTR or EAGAIN
+// syscall.Errno.  Returns "true" if we can continue.
+func LogIfNotRetryable(err error, what string) (retry bool) {
+	return !logIfNotErrno(err, what, syscall.EINTR, syscall.EAGAIN)
+}
+
+// LogIfUnexpectedWhileDraining logs "what" if err is set and is not an EINTR
+// or EAGAIN or EIO syscall.Errno.
+func LogIfUnexpectedWhileDraining(err error, what string) {
+	logIfNotErrno(err, what, syscall.EINTR, syscall.EAGAIN, syscall.EIO)
 }

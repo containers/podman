@@ -8,13 +8,14 @@ import (
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -23,45 +24,35 @@ const (
 )
 
 var (
-	searchFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
-		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "Filter output based on conditions provided (default [])",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format to a Go template",
-		},
-		cli.IntFlag{
-			Name:  "limit",
-			Usage: "Limit the number of results",
-		},
-		cli.BoolFlag{
-			Name:  "no-trunc",
-			Usage: "Do not truncate the output",
-		},
-		cli.BoolTFlag{
-			Name:  "tls-verify",
-			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
-		},
-	}
+	searchCommand     cliconfig.SearchValues
 	searchDescription = `
 	Search registries for a given image. Can search all the default registries or a specific registry.
 	Can limit the number of results, and filter the output based on certain conditions.`
-	searchCommand = cli.Command{
-		Name:         "search",
-		Usage:        "Search registry for image",
-		Description:  searchDescription,
-		Flags:        sortFlags(searchFlags),
-		Action:       searchCmd,
-		ArgsUsage:    "TERM",
-		OnUsageError: usageErrorHandler,
+	_searchCommand = &cobra.Command{
+		Use:   "search",
+		Short: "Search registry for image",
+		Long:  searchDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			searchCommand.InputArgs = args
+			searchCommand.GlobalFlags = MainGlobalOpts
+			return searchCmd(&searchCommand)
+		},
+		Example: "TERM",
 	}
 )
+
+func init() {
+	searchCommand.Command = _searchCommand
+	flags := searchCommand.Flags()
+	flags.StringVar(&searchCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringSliceVarP(&searchCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringVar(&searchCommand.Format, "format", "", "Change the output format to a Go template")
+	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
+	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
+	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+
+	rootCmd.AddCommand(searchCommand.Command)
+}
 
 type searchParams struct {
 	Index       string
@@ -87,8 +78,8 @@ type searchFilterParams struct {
 	isOfficial  *bool
 }
 
-func searchCmd(c *cli.Context) error {
-	args := c.Args()
+func searchCmd(c *cliconfig.SearchValues) error {
+	args := c.InputArgs
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments. Requires exactly 1")
 	}
@@ -106,20 +97,16 @@ func searchCmd(c *cli.Context) error {
 		term = term[len(registry)+1:]
 	}
 
-	if err := validateFlags(c, searchFlags); err != nil {
-		return err
-	}
-
-	format := genSearchFormat(c.String("format"))
+	format := genSearchFormat(c.Format)
 	opts := searchOpts{
 		format:   format,
-		noTrunc:  c.Bool("no-trunc"),
-		limit:    c.Int("limit"),
-		filter:   c.StringSlice("filter"),
-		authfile: getAuthFile(c.String("authfile")),
+		noTrunc:  c.NoTrunc,
+		limit:    c.Limit,
+		filter:   c.Filter,
+		authfile: getAuthFile(c.Authfile),
 	}
-	if c.IsSet("tls-verify") {
-		opts.insecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	if c.Flag("tls-verify").Changed {
+		opts.insecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 	registries, err := getRegistries(registry)
 	if err != nil {

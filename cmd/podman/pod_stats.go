@@ -7,54 +7,49 @@ import (
 
 	"encoding/json"
 	tm "github.com/buger/goterm"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	"github.com/ulule/deepcopier"
-	"github.com/urfave/cli"
 )
 
 var (
-	podStatsFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Show stats for all pods.  Only running pods are shown by default.",
-		},
-		cli.BoolFlag{
-			Name:  "no-stream",
-			Usage: "Disable streaming stats and only pull the first result, default setting is false",
-		},
-		cli.BoolFlag{
-			Name:  "no-reset",
-			Usage: "Disable resetting the screen between intervals",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Pretty-print container statistics to JSON or using a Go template",
-		}, LatestPodFlag,
-	}
+	podStatsCommand     cliconfig.PodStatsValues
 	podStatsDescription = "Display a live stream of resource usage statistics for the containers in or more pods"
-	podStatsCommand     = cli.Command{
-		Name:                   "stats",
-		Usage:                  "Display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one or more pods",
-		Description:            podStatsDescription,
-		Flags:                  sortFlags(podStatsFlags),
-		Action:                 podStatsCmd,
-		ArgsUsage:              "[POD_NAME_OR_ID]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_podStatsCommand    = &cobra.Command{
+		Use:   "stats",
+		Short: "Display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one or more pods",
+		Long:  podStatsDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podStatsCommand.InputArgs = args
+			podStatsCommand.GlobalFlags = MainGlobalOpts
+			return podStatsCmd(&podStatsCommand)
+		},
+		Example: "[POD_NAME_OR_ID]",
 	}
 )
 
-func podStatsCmd(c *cli.Context) error {
+func init() {
+	podStatsCommand.Command = _podStatsCommand
+	flags := podStatsCommand.Flags()
+	flags.BoolVarP(&podStatsCommand.All, "all", "a", false, "Provide stats for all running pods")
+	flags.StringVar(&podStatsCommand.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")
+	flags.BoolVarP(&podStatsCommand.Latest, "latest", "l", false, "Provide stats on the latest pod podman is aware of")
+	flags.BoolVar(&podStatsCommand.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
+	flags.BoolVar(&podStatsCommand.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
+}
+
+func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	var (
 		podFunc func() ([]*libpod.Pod, error)
 	)
 
-	format := c.String("format")
-	all := c.Bool("all")
-	latest := c.Bool("latest")
+	format := c.Format
+	all := c.All
+	latest := c.Latest
 	ctr := 0
 	if all {
 		ctr += 1
@@ -62,7 +57,7 @@ func podStatsCmd(c *cli.Context) error {
 	if latest {
 		ctr += 1
 	}
-	if len(c.Args()) > 0 {
+	if len(c.InputArgs) > 0 {
 		ctr += 1
 	}
 
@@ -73,19 +68,19 @@ func podStatsCmd(c *cli.Context) error {
 		all = true
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	times := -1
-	if c.Bool("no-stream") {
+	if c.NoStream {
 		times = 1
 	}
 
-	if len(c.Args()) > 0 {
-		podFunc = func() ([]*libpod.Pod, error) { return getPodsByList(c.Args(), runtime) }
+	if len(c.InputArgs) > 0 {
+		podFunc = func() ([]*libpod.Pod, error) { return getPodsByList(c.InputArgs, runtime) }
 	} else if latest {
 		podFunc = func() ([]*libpod.Pod, error) {
 			latestPod, err := runtime.GetLatestPod()
@@ -159,7 +154,7 @@ func podStatsCmd(c *cli.Context) error {
 			newStats = append(newStats, &newPod)
 		}
 		//Output
-		if strings.ToLower(format) != formats.JSONString && !c.Bool("no-reset") {
+		if strings.ToLower(format) != formats.JSONString && !c.NoReset {
 			tm.Clear()
 			tm.MoveCursor(1, 1)
 			tm.Flush()

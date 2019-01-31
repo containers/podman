@@ -6,12 +6,12 @@ import (
 	"os"
 	gosignal "os/signal"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -158,11 +158,8 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return bytes, err
 }
 
-func checkMutuallyExclusiveFlags(c *cli.Context) error {
+func checkMutuallyExclusiveFlags(c *cliconfig.PodmanCommand) error {
 	if err := checkAllAndLatest(c); err != nil {
-		return err
-	}
-	if err := validateFlags(c, startFlags); err != nil {
 		return err
 	}
 	return nil
@@ -174,8 +171,8 @@ func checkMutuallyExclusiveFlags(c *cli.Context) error {
 // will hold all of the successful pods, and error will hold the last error.
 // The remaining errors will be logged. On success, pods will hold all pods and
 // error will be nil.
-func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error) {
-	args := c.Args()
+func getPodsFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpod.Pod, error) {
+	args := c.InputArgs
 	var pods []*libpod.Pod
 	var lastError error
 	var err error
@@ -209,8 +206,8 @@ func getPodsFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Pod, error
 	return pods, lastError
 }
 
-func getVolumesFromContext(c *cli.Context, r *libpod.Runtime) ([]*libpod.Volume, error) {
-	args := c.Args()
+func getVolumesFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpod.Volume, error) {
+	args := c.InputArgs
 	var (
 		vols      []*libpod.Volume
 		lastError error

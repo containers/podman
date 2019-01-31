@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/adapter"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -21,38 +22,37 @@ const (
 )
 
 var (
-	inspectFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "type, t",
-			Value: inspectAll,
-			Usage: "Return JSON for specified type, (e.g image, container or task)",
-		},
-		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "Change the output format to a Go template",
-		},
-		cli.BoolFlag{
-			Name:  "size, s",
-			Usage: "Display total file size if the type is container",
-		},
-		LatestFlag,
-	}
+	inspectCommand cliconfig.InspectValues
+
 	inspectDescription = "This displays the low-level information on containers and images identified by name or ID. By default, this will render all results in a JSON array. If the container and image have the same name, this will return container JSON for unspecified type."
-	inspectCommand     = cli.Command{
-		Name:         "inspect",
-		Usage:        "Display the configuration of a container or image",
-		Description:  inspectDescription,
-		Flags:        sortFlags(inspectFlags),
-		Action:       inspectCmd,
-		ArgsUsage:    "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
-		OnUsageError: usageErrorHandler,
+	_inspectCommand    = &cobra.Command{
+		Use:   "inspect",
+		Short: "Display the configuration of a container or image",
+		Long:  inspectDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inspectCommand.InputArgs = args
+			inspectCommand.GlobalFlags = MainGlobalOpts
+			return inspectCmd(&inspectCommand)
+		},
+		Example: "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
 	}
 )
 
-func inspectCmd(c *cli.Context) error {
-	args := c.Args()
-	inspectType := c.String("type")
-	latestContainer := c.Bool("latest")
+func init() {
+	inspectCommand.Command = _inspectCommand
+	flags := inspectCommand.Flags()
+	flags.StringVarP(&inspectCommand.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (e.g image, container or task)")
+	flags.StringVarP(&inspectCommand.Format, "format", "f", "", "Change the output format to a Go template")
+	flags.BoolVarP(&inspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of if the type is a container")
+	flags.BoolVarP(&inspectCommand.Size, "size", "s", false, "Display total file size if the type is container")
+
+	rootCmd.AddCommand(inspectCommand.Command)
+}
+
+func inspectCmd(c *cliconfig.InspectValues) error {
+	args := c.InputArgs
+	inspectType := c.TypeObject
+	latestContainer := c.Latest
 	if len(args) == 0 && !latestContainer {
 		return errors.Errorf("container or image name must be specified: podman inspect [options [...]] name")
 	}
@@ -60,11 +60,8 @@ func inspectCmd(c *cli.Context) error {
 	if len(args) > 0 && latestContainer {
 		return errors.Errorf("you cannot provide additional arguments with --latest")
 	}
-	if err := validateFlags(c, inspectFlags); err != nil {
-		return err
-	}
 
-	runtime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -74,7 +71,7 @@ func inspectCmd(c *cli.Context) error {
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
 	}
 
-	outputFormat := c.String("format")
+	outputFormat := c.Format
 	if strings.Contains(outputFormat, "{{.Id}}") {
 		outputFormat = strings.Replace(outputFormat, "{{.Id}}", formats.IDString, -1)
 	}
@@ -87,7 +84,7 @@ func inspectCmd(c *cli.Context) error {
 		inspectType = inspectTypeContainer
 	}
 
-	inspectedObjects, iterateErr := iterateInput(getContext(), c, args, runtime, inspectType)
+	inspectedObjects, iterateErr := iterateInput(getContext(), c.Size, args, runtime, inspectType)
 	if iterateErr != nil {
 		return iterateErr
 	}
@@ -105,7 +102,7 @@ func inspectCmd(c *cli.Context) error {
 }
 
 // func iterateInput iterates the images|containers the user has requested and returns the inspect data and error
-func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *adapter.LocalRuntime, inspectType string) ([]interface{}, error) {
+func iterateInput(ctx context.Context, size bool, args []string, runtime *adapter.LocalRuntime, inspectType string) ([]interface{}, error) {
 	var (
 		data           interface{}
 		inspectedItems []interface{}
@@ -120,7 +117,7 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *a
 				inspectError = errors.Wrapf(err, "error looking up container %q", input)
 				break
 			}
-			libpodInspectData, err := ctr.Inspect(c.Bool("size"))
+			libpodInspectData, err := ctr.Inspect(size)
 			if err != nil {
 				inspectError = errors.Wrapf(err, "error getting libpod container inspect data %s", ctr.ID())
 				break
@@ -160,7 +157,7 @@ func iterateInput(ctx context.Context, c *cli.Context, args []string, runtime *a
 					break
 				}
 			} else {
-				libpodInspectData, err := ctr.Inspect(c.Bool("size"))
+				libpodInspectData, err := ctr.Inspect(size)
 				if err != nil {
 					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %s", ctr.ID())
 					break

@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"github.com/varlink/go/varlink"
 )
 
@@ -38,7 +38,7 @@ type LocalRuntime struct {
 }
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
-func GetRuntime(c *cli.Context) (*LocalRuntime, error) {
+func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	runtime := RemoteRuntime{}
 	conn, err := runtime.Connect()
 	if err != nil {
