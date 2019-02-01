@@ -38,6 +38,7 @@ BUILD_INFO ?= $(shell date +%s)
 LIBPOD := ${PROJECT}/libpod
 LDFLAGS_PODMAN ?= $(LDFLAGS) -X $(LIBPOD).gitCommit=$(GIT_COMMIT) -X $(LIBPOD).buildInfo=$(BUILD_INFO)
 ISODATE ?= $(shell date --iso-8601)
+#Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 
 # If GOPATH not specified, use one in the local directory
