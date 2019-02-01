@@ -82,7 +82,7 @@ OPTIONS:
 var helpCommand = Command{
 	Name:      "help",
 	Aliases:   []string{"h"},
-	Usage:     "Shows a list of commands or help for one command",
+	Usage:     "Show a list of commands or help for one command",
 	ArgsUsage: "[command]",
 	Action: func(c *Context) error {
 		args := c.Args()

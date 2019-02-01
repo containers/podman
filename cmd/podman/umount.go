@@ -34,7 +34,7 @@ An unmount can be forced with the --force flag.
 	umountCommand = cli.Command{
 		Name:         "umount",
 		Aliases:      []string{"unmount"},
-		Usage:        "Unmounts working container's root filesystem",
+		Usage:        "Unmount working container's root filesystem",
 		Description:  description,
 		Flags:        sortFlags(umountFlags),
 		Action:       umountCmd,

@@ -25,7 +25,7 @@ var (
 `
 	pauseCommand = cli.Command{
 		Name:         "pause",
-		Usage:        "Pauses all the processes in one or more containers",
+		Usage:        "Pause all the processes in one or more containers",
 		Description:  pauseDescription,
 		Flags:        pauseFlags,
 		Action:       pauseCmd,
