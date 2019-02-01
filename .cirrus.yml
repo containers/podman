@@ -31,7 +31,7 @@ env:
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-7f4cd1f7"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-7f4cd1f7"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
-    # PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
     ####
@@ -45,9 +45,9 @@ env:
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
     RUNC_COMMIT: "25f3f893c86d07426df93b7aa172f33fdf093fbd"
     # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
-    PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28"  # TODO: fah-29,rhel-7,centos-7
+    PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28,rhel-7"  # TODO: rhel-8,centos-7
     # Version of packer to use
-    PACKER_VER: "1.3.1"
+    PACKER_VER: "1.3.2"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
     # Google-maintained base-image names
@@ -58,7 +58,7 @@ env:
     PRIOR_FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-1544474897"
     FAH_BASE_IMAGE:  "fedora-atomichost-29-20181025-1-1541787861"
     # RHEL image must be imported, google bills extra for their native image.
-    RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1541783972"
+    RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1548099756"
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -134,6 +134,7 @@ build_each_commit_task:
         - git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH
         - env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH
 
+
 # This task does the unit and integration testing for every platform
 testing_task:
 
@@ -154,10 +155,10 @@ testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
 
             # TODO: tests fail
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}
+            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
             # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
@@ -191,9 +192,9 @@ optional_testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
             # TODO: Make these work (also build_images_task below)
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}
+            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
             # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
     timeout_in: 60m

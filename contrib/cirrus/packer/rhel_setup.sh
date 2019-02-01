@@ -31,6 +31,7 @@ ooe.sh sudo subscription-manager repos \
 ooe.sh sudo yum -y update
 
 ooe.sh sudo yum -y install \
+    PyYAML \
     atomic-registries \
     btrfs-progs-devel \
     bzip2 \
@@ -64,9 +65,11 @@ ooe.sh sudo yum -y install \
     protobuf-python \
     python \
     python2-future \
+    python2-pyyaml \
     python34-dateutil \
     python34-psutil \
     python34-pytoml \
+    python34-PyYAML \
     runc \
     skopeo-containers \
     unzip \

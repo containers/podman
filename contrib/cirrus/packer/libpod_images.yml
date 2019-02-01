@@ -29,6 +29,10 @@ variables:
     SERVICE_ACCOUNT: '{{env `SERVICE_ACCOUNT`}}'
     GOOGLE_APPLICATION_CREDENTIALS: '{{env `GOOGLE_APPLICATION_CREDENTIALS`}}'
 
+    # Used to separate images produced during PR testing from those
+    # produced from post-merge testing.  Must be empty for PR testing.
+    POST_MERGE_BUCKET_SUFFIX: ''
+
 # Don't leak sensitive values in error messages / output
 sensitive-variables:
     - 'GCE_SSH_USERNAME'
@@ -84,13 +88,18 @@ provisioners:
     - type: 'shell'
       script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
       environment_vars:
-          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
+          - 'GOSRC=/tmp/libpod'
           - 'CNI_COMMIT={{user `CNI_COMMIT`}}'
           - 'FEDORA_CNI_COMMIT={{user `FEDORA_CNI_COMMIT`}}'
           - 'CRIO_COMMIT={{user `CRIO_COMMIT`}}'
           - 'CRIU_COMMIT={{user `CRIU_COMMIT`}}'
           - 'RUNC_COMMIT={{user `RUNC_COMMIT`}}'
+          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
           - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
 
 post-processors:
-    - - type: 'manifest'
+    # Store VM disk in GCP storage, where it will expire based on a defined
+    # lifecycle. This prevents GCE from filling with disused images.
+    - - type: 'googlecompute-export'
+        paths: ['gs://packer-import{{user `POST_MERGE_BUCKET_SUFFIX`}}/{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}.tar.gz']
+      - type: 'manifest'  # writes packer-manifest.json

@@ -105,7 +105,7 @@ builders:
       ssh_username: 'root'
 
     - <<: *nested_virt
-      name: 'prior_fedora'
+      name: 'prior-fedora'
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
@@ -161,7 +161,7 @@ provisioners:
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'prior_fedora', 'fah', 'rhel']
+        only: ['fedora', 'prior-fedora', 'fah', 'rhel']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -171,12 +171,12 @@ post-processors:
         project_id: '{{user `GCP_PROJECT_ID`}}'
         account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
         bucket: '{{user `XFERBUCKET`}}'
-        gcs_object_name: '{{build_name}}-{{user `TIMESTAMP`}}-{{uuid}}.tar.gz'
+        gcs_object_name: '{{build_name}}-{{user `TIMESTAMP`}}.tar.gz'
         image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
         image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
       - <<: *gcp_import
-        only: ['prior_fedora']
+        only: ['prior-fedora']
         image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'
