@@ -89,7 +89,7 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	path := fmt.Sprintf(manifestPath, reference.Path(s.ref.ref), tagOrDigest)
 	headers := make(map[string][]string)
 	headers["Accept"] = manifest.DefaultRequestedManifestMIMETypes
-	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil, v2Auth)
+	res, err := s.c.makeRequest(ctx, "GET", path, headers, nil, v2Auth, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -137,7 +137,7 @@ func (s *dockerImageSource) getExternalBlob(ctx context.Context, urls []string) 
 		err  error
 	)
 	for _, url := range urls {
-		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth)
+		resp, err = s.c.makeRequestToResolvedURL(ctx, "GET", url, nil, nil, -1, noAuth, nil)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
 				err = errors.Errorf("error fetching external blob from %q: %d (%s)", url, resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -176,7 +176,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 
 	path := fmt.Sprintf(blobsPath, reference.Path(s.ref.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
-	res, err := s.c.makeRequest(ctx, "GET", path, nil, nil, v2Auth)
+	res, err := s.c.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -340,7 +340,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	getPath := fmt.Sprintf(manifestPath, reference.Path(ref.ref), refTail)
-	get, err := c.makeRequest(ctx, "GET", getPath, headers, nil, v2Auth)
+	get, err := c.makeRequest(ctx, "GET", getPath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -362,7 +362,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 
 	// When retrieving the digest from a registry >= 2.3 use the following header:
 	//   "Accept": "application/vnd.docker.distribution.manifest.v2+json"
-	delete, err := c.makeRequest(ctx, "DELETE", deletePath, headers, nil, v2Auth)
+	delete, err := c.makeRequest(ctx, "DELETE", deletePath, headers, nil, v2Auth, nil)
 	if err != nil {
 		return err
 	}
