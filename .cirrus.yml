@@ -289,11 +289,6 @@ testing_task:
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
-            # TODO: Make these work (also optional_testing_task below)
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
-
     timeout_in: 120m
 
     # Every *_script runs in sequence, for each task. The name prefix is for
@@ -367,10 +362,8 @@ optional_testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            # TODO: Make these work (also testing_task above)
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
+            image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
     timeout_in: 60m
 

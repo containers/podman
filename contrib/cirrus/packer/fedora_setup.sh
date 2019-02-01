@@ -22,6 +22,7 @@ ooe.sh sudo dnf install -y \
     bats \
     btrfs-progs-devel \
     bzip2 \
+    criu \
     device-mapper-devel \
     emacs-nox \
     findutils \
@@ -74,8 +75,6 @@ install_cni_plugins
 install_buildah
 
 install_conmon
-
-install_criu
 
 install_packer_copied_files
 

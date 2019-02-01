@@ -46,26 +46,17 @@ then
         X=$(echo "$envstr" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
     done
 
-    # Some setup needs to vary between distros
+    # Some environment setup needs to vary between distros
+    # Note: This should only be used for environment variables, and minor details.
+    #       Anything that could vary from one run to the next, should go into
+    #       contrib/cirrus/packer/*_setup.sh and be incorporated into VM cache-images
+    #       (see docs)
     case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-        ubuntu-18)
-            # Always install runc on Ubuntu
-            install_runc_from_git
-            ;;
-        fedora-29)
-            CON_SEL="https://kojipkgs.fedoraproject.org/packages/container-selinux/2.100/1.git3b78187.fc29/noarch/container-selinux-2.100-1.git3b78187.fc29.noarch.rpm"
-            echo ">>>>> OVERRIDING container-selinux WITH $CON_SEL <<<<<"
-            dnf -y install $CON_SEL
-            echo ">>>>> OVERRIDING criu and selinux-policy with latest package <<<<<"
-            dnf -y upgrade criu selinux-policy
-            ;&  # Continue to the next item
-        fedora-28)
-            echo ">>>>> OVERRIDING source-built runc with latest package <<<<<"
-            dnf update -y runc
-            ;&  # Continue to the next item
-        centos-7) ;&
-        rhel-7)
-            ;;
+        ubuntu-18) ;;
+        fedora-29) ;;
+        fedora-28) ;;
+        centos-7) ;;
+        rhel-7) ;;
         *) bad_os_id_ver ;;
     esac
 
