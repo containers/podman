@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/formats"
@@ -13,6 +14,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/trust"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -103,6 +105,7 @@ func showTrustCmd(c *cli.Context) error {
 	var (
 		policyPath              string
 		systemRegistriesDirPath string
+		outjson                 interface{}
 	)
 	if c.IsSet("policypath") {
 		policyPath = c.String("policypath")
@@ -127,30 +130,26 @@ func showTrustCmd(c *cli.Context) error {
 		return nil
 	}
 
-	var policyContentStruct trust.PolicyContent
-	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-		return errors.Errorf("could not read trust policies")
-	}
-	policyJSON, showOutputMap, err := trust.GetPolicy(policyContentStruct, systemRegistriesDirPath)
+	policyContentStruct, err := trust.GetPolicy(policyPath)
 	if err != nil {
-		return errors.Wrapf(err, "error reading registry config file")
+		return errors.Wrapf(err, "could not read trust policies")
 	}
+
 	if c.Bool("json") {
-		var outjson interface{}
+		policyJSON, err := getPolicyJSON(policyContentStruct, systemRegistriesDirPath)
+		if err != nil {
+			return errors.Wrapf(err, "could not show trust policies in JSON format")
+		}
 		outjson = policyJSON
 		out := formats.JSONStruct{Output: outjson}
 		return formats.Writer(out).Out()
 	}
 
-	sortedRepos := sortPolicyJSONKey(policyJSON)
-	var output []interface{}
-	for _, reponame := range sortedRepos {
-		showOutput, exists := showOutputMap[reponame]
-		if exists {
-			output = append(output, interface{}(showOutput))
-		}
+	showOutputMap, err := getPolicyShowOutput(policyContentStruct, systemRegistriesDirPath)
+	if err != nil {
+		return errors.Wrapf(err, "could not show trust policies")
 	}
-	out := formats.StdoutTemplateArray{Output: output, Template: "{{.Repo}}\t{{.Trusttype}}\t{{.GPGid}}\t{{.Sigstore}}"}
+	out := formats.StdoutTemplateArray{Output: showOutputMap, Template: "{{.Repo}}\t{{.Trusttype}}\t{{.GPGid}}\t{{.Sigstore}}"}
 	return formats.Writer(out).Out()
 }
 
@@ -159,7 +158,11 @@ func setTrustCmd(c *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-
+	var (
+		policyPath          string
+		policyContentStruct trust.PolicyContent
+		newReposContent     []trust.RepoContent
+	)
 	args := c.Args()
 	if len(args) != 1 {
 		return errors.Errorf("default or a registry name must be specified")
@@ -182,17 +185,13 @@ func setTrustCmd(c *cli.Context) error {
 		return errors.Errorf("At least one public key must be defined for type 'signedBy'")
 	}
 
-	var policyPath string
 	if c.IsSet("policypath") {
 		policyPath = c.String("policypath")
 	} else {
 		policyPath = trust.DefaultPolicyPath(runtime.SystemContext())
 	}
-	var policyContentStruct trust.PolicyContent
-	policyFileExists := false
 	_, err = os.Stat(policyPath)
 	if !os.IsNotExist(err) {
-		policyFileExists = true
 		policyContent, err := ioutil.ReadFile(policyPath)
 		if err != nil {
 			return errors.Wrapf(err, "unable to read %s", policyPath)
@@ -200,11 +199,7 @@ func setTrustCmd(c *cli.Context) error {
 		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
 			return errors.Errorf("could not read trust policies")
 		}
-		if args[0] != "default" && len(policyContentStruct.Default) == 0 {
-			return errors.Errorf("Default trust policy must be set.")
-		}
 	}
-	var newReposContent []trust.RepoContent
 	if len(pubkeysfile) != 0 {
 		for _, filepath := range pubkeysfile {
 			newReposContent = append(newReposContent, trust.RepoContent{Type: trusttype, KeyType: "GPGKeys", KeyPath: filepath})
@@ -215,8 +210,8 @@ func setTrustCmd(c *cli.Context) error {
 	if args[0] == "default" {
 		policyContentStruct.Default = newReposContent
 	} else {
-		if policyFileExists == false && len(policyContentStruct.Default) == 0 {
-			return errors.Errorf("Default trust policy must be set to create the policy file.")
+		if len(policyContentStruct.Default) == 0 {
+			return errors.Errorf("Default trust policy must be set.")
 		}
 		registryExists := false
 		for transport, transportval := range policyContentStruct.Transports {
@@ -248,7 +243,7 @@ func setTrustCmd(c *cli.Context) error {
 	return nil
 }
 
-func sortPolicyJSONKey(m map[string]map[string]interface{}) []string {
+func sortShowOutputMapKey(m map[string]trust.ShowOutput) []string {
 	keys := make([]string, len(m))
 	i := 0
 	for k := range m {
@@ -268,4 +263,107 @@ func isValidTrustType(t string) bool {
 
 func getDefaultPolicyPath() string {
 	return trust.DefaultPolicyPath(&types.SystemContext{})
+}
+
+func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, error) {
+	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	policyJSON := make(map[string]map[string]interface{})
+	if len(policyContentStruct.Default) > 0 {
+		policyJSON["* (default)"] = make(map[string]interface{})
+		policyJSON["* (default)"]["type"] = policyContentStruct.Default[0].Type
+	}
+	for transname, transval := range policyContentStruct.Transports {
+		for repo, repoval := range transval {
+			policyJSON[repo] = make(map[string]interface{})
+			policyJSON[repo]["type"] = repoval[0].Type
+			policyJSON[repo]["transport"] = transname
+			keyarr := []string{}
+			uids := []string{}
+			for _, repoele := range repoval {
+				if len(repoele.KeyPath) > 0 {
+					keyarr = append(keyarr, repoele.KeyPath)
+					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
+				}
+				if len(repoele.KeyData) > 0 {
+					keyarr = append(keyarr, string(repoele.KeyData))
+					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+				}
+			}
+			policyJSON[repo]["keys"] = keyarr
+			policyJSON[repo]["sigstore"] = ""
+			registryNamespace := trust.HaveMatchRegistry(repo, registryConfigs)
+			if registryNamespace != nil {
+				policyJSON[repo]["sigstore"] = registryNamespace.SigStore
+			}
+		}
+	}
+	return policyJSON, nil
+}
+
+var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
+
+func trustTypeDescription(trustType string) string {
+	trustDescription, exist := typeDescription[trustType]
+	if !exist {
+		logrus.Warnf("invalid trust type %s", trustType)
+	}
+	return trustDescription
+}
+
+func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) ([]interface{}, error) {
+	var output []interface{}
+
+	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	trustShowOutputMap := make(map[string]trust.ShowOutput)
+	if len(policyContentStruct.Default) > 0 {
+		defaultPolicyStruct := trust.ShowOutput{
+			Repo:      "default",
+			Trusttype: trustTypeDescription(policyContentStruct.Default[0].Type),
+		}
+		trustShowOutputMap["* (default)"] = defaultPolicyStruct
+	}
+	for _, transval := range policyContentStruct.Transports {
+		for repo, repoval := range transval {
+			tempTrustShowOutput := trust.ShowOutput{
+				Repo:      repo,
+				Trusttype: repoval[0].Type,
+			}
+			keyarr := []string{}
+			uids := []string{}
+			for _, repoele := range repoval {
+				if len(repoele.KeyPath) > 0 {
+					keyarr = append(keyarr, repoele.KeyPath)
+					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
+				}
+				if len(repoele.KeyData) > 0 {
+					keyarr = append(keyarr, string(repoele.KeyData))
+					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+				}
+			}
+			tempTrustShowOutput.GPGid = strings.Join(uids, ", ")
+
+			registryNamespace := trust.HaveMatchRegistry(repo, registryConfigs)
+			if registryNamespace != nil {
+				tempTrustShowOutput.Sigstore = registryNamespace.SigStore
+			}
+			trustShowOutputMap[repo] = tempTrustShowOutput
+		}
+	}
+
+	sortedRepos := sortShowOutputMapKey(trustShowOutputMap)
+	for _, reponame := range sortedRepos {
+		showOutput, exists := trustShowOutputMap[reponame]
+		if exists {
+			output = append(output, interface{}(showOutput))
+		}
+	}
+	return output, nil
 }
