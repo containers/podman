@@ -53,21 +53,17 @@ then
         X=$(echo "$envstr" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
     done
 
-    # Some setup needs to vary between distros
+    # Some environment setup needs to vary between distros
+    # Note: This should only be used for environment variables, and minor details.
+    #       Anything that could vary from one run to the next, should go into
+    #       contrib/cirrus/packer/*_setup.sh and be incorporated into VM cache-images
+    #       (see docs)
     case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-        ubuntu-18)
-            # Always install runc on Ubuntu
-            install_runc_from_git
-            ;;
-        fedora-29) ;&  # Continue to the next item
-        fedora-28)
-            RUNC="https://kojipkgs.fedoraproject.org/packages/runc/1.0.0/55.dev.git578fe65.fc${OS_RELEASE_VER}/x86_64/runc-1.0.0-55.dev.git578fe65.fc${OS_RELEASE_VER}.x86_64.rpm"
-            echo ">>>>> OVERRIDING RUNC WITH $RUNC <<<<<"
-            dnf -y install "$RUNC"
-            ;&  # Continue to the next item
-        centos-7) ;&
-        rhel-7)
-            ;;
+        ubuntu-18) ;;
+        fedora-29) ;;
+        fedora-28) ;;
+        centos-7) ;;
+        rhel-7) ;;
         *) bad_os_id_ver ;;
     esac
 
@@ -81,7 +77,6 @@ then
         make install.catatonit
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
-        dnf -y update runc
     fi
 fi
 
