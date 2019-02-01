@@ -113,7 +113,7 @@ func (c *sizeCounter) Write(p []byte) (n int, err error) {
 
 // HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
 func (d *dockerImageDestination) HasThreadSafePutBlob() bool {
-	return false
+	return true
 }
 
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
@@ -140,7 +140,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	// FIXME? Chunked upload, progress reporting, etc.
 	uploadPath := fmt.Sprintf(blobUploadPath, reference.Path(d.ref.ref))
 	logrus.Debugf("Uploading %s", uploadPath)
-	res, err := d.c.makeRequest(ctx, "POST", uploadPath, nil, nil, v2Auth)
+	res, err := d.c.makeRequest(ctx, "POST", uploadPath, nil, nil, v2Auth, nil)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -157,7 +157,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	digester := digest.Canonical.Digester()
 	sizeCounter := &sizeCounter{}
 	tee := io.TeeReader(stream, io.MultiWriter(digester.Hash(), sizeCounter))
-	res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, v2Auth)
+	res, err = d.c.makeRequestToResolvedURL(ctx, "PATCH", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, tee, inputInfo.Size, v2Auth, nil)
 	if err != nil {
 		logrus.Debugf("Error uploading layer chunked, response %#v", res)
 		return types.BlobInfo{}, err
@@ -176,7 +176,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	// TODO: check inputInfo.Digest == computedDigest https://github.com/containers/image/pull/70#discussion_r77646717
 	locationQuery.Set("digest", computedDigest.String())
 	uploadLocation.RawQuery = locationQuery.Encode()
-	res, err = d.c.makeRequestToResolvedURL(ctx, "PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, v2Auth)
+	res, err = d.c.makeRequestToResolvedURL(ctx, "PUT", uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, v2Auth, nil)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -194,10 +194,10 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 // blobExists returns true iff repo contains a blob with digest, and if so, also its size.
 // If the destination does not contain the blob, or it is unknown, blobExists ordinarily returns (false, -1, nil);
 // it returns a non-nil error only on an unexpected failure.
-func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.Named, digest digest.Digest) (bool, int64, error) {
+func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.Named, digest digest.Digest, extraScope *authScope) (bool, int64, error) {
 	checkPath := fmt.Sprintf(blobsPath, reference.Path(repo), digest.String())
 	logrus.Debugf("Checking %s", checkPath)
-	res, err := d.c.makeRequest(ctx, "HEAD", checkPath, nil, nil, v2Auth)
+	res, err := d.c.makeRequest(ctx, "HEAD", checkPath, nil, nil, v2Auth, extraScope)
 	if err != nil {
 		return false, -1, err
 	}
@@ -218,7 +218,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 }
 
 // mountBlob tries to mount blob srcDigest from srcRepo to the current destination.
-func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo reference.Named, srcDigest digest.Digest) error {
+func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo reference.Named, srcDigest digest.Digest, extraScope *authScope) error {
 	u := url.URL{
 		Path: fmt.Sprintf(blobUploadPath, reference.Path(d.ref.ref)),
 		RawQuery: url.Values{
@@ -228,7 +228,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 	}
 	mountPath := u.String()
 	logrus.Debugf("Trying to mount %s", mountPath)
-	res, err := d.c.makeRequest(ctx, "POST", mountPath, nil, nil, v2Auth)
+	res, err := d.c.makeRequest(ctx, "POST", mountPath, nil, nil, v2Auth, extraScope)
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 			return errors.Wrap(err, "Error determining upload URL after a mount attempt")
 		}
 		logrus.Debugf("... started an upload instead of mounting, trying to cancel at %s", uploadLocation.String())
-		res2, err := d.c.makeRequestToResolvedURL(ctx, "DELETE", uploadLocation.String(), nil, nil, -1, v2Auth)
+		res2, err := d.c.makeRequestToResolvedURL(ctx, "DELETE", uploadLocation.String(), nil, nil, -1, v2Auth, extraScope)
 		if err != nil {
 			logrus.Debugf("Error trying to cancel an inadvertent upload: %s", err)
 		} else {
@@ -276,7 +276,7 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 	}
 
 	// First, check whether the blob happens to already exist at the destination.
-	exists, size, err := d.blobExists(ctx, d.ref.ref, info.Digest)
+	exists, size, err := d.blobExists(ctx, d.ref.ref, info.Digest, nil)
 	if err != nil {
 		return false, types.BlobInfo{}, err
 	}
@@ -286,15 +286,6 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 	}
 
 	// Then try reusing blobs from other locations.
-
-	// Checking candidateRepo, and mounting from it, requires an expanded token scope.
-	// We still want to reuse the ping information and other aspects of the client, so rather than make a fresh copy, there is this a bit ugly extraScope hack.
-	if d.c.extraScope != nil {
-		return false, types.BlobInfo{}, errors.New("Internal error: dockerClient.extraScope was set before TryReusingBlob")
-	}
-	defer func() {
-		d.c.extraScope = nil
-	}()
 	for _, candidate := range cache.CandidateLocations(d.ref.Transport(), bicTransportScope(d.ref), info.Digest, canSubstitute) {
 		candidateRepo, err := parseBICLocationReference(candidate.Location)
 		if err != nil {
@@ -314,7 +305,10 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 		}
 
 		// Whatever happens here, don't abort the entire operation.  It's likely we just don't have permissions, and if it is a critical network error, we will find out soon enough anyway.
-		d.c.extraScope = &authScope{
+
+		// Checking candidateRepo, and mounting from it, requires an
+		// expanded token scope.
+		extraScope := &authScope{
 			remoteName: reference.Path(candidateRepo),
 			actions:    "pull",
 		}
@@ -325,7 +319,7 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 		// Even worse, docker/distribution does not actually reasonably implement canceling uploads
 		// (it would require a "delete" action in the token, and Quay does not give that to anyone, so we can't ask);
 		// so, be a nice client and don't create unnecesary upload sessions on the server.
-		exists, size, err := d.blobExists(ctx, candidateRepo, candidate.Digest)
+		exists, size, err := d.blobExists(ctx, candidateRepo, candidate.Digest, extraScope)
 		if err != nil {
 			logrus.Debugf("... Failed: %v", err)
 			continue
@@ -335,7 +329,7 @@ func (d *dockerImageDestination) TryReusingBlob(ctx context.Context, info types.
 			continue // logrus.Debug() already happened in blobExists
 		}
 		if candidateRepo.Name() != d.ref.ref.Name() {
-			if err := d.mountBlob(ctx, candidateRepo, candidate.Digest); err != nil {
+			if err := d.mountBlob(ctx, candidateRepo, candidate.Digest, extraScope); err != nil {
 				logrus.Debugf("... Mount failed: %v", err)
 				continue
 			}
@@ -369,7 +363,7 @@ func (d *dockerImageDestination) PutManifest(ctx context.Context, m []byte) erro
 	if mimeType != "" {
 		headers["Content-Type"] = []string{mimeType}
 	}
-	res, err := d.c.makeRequest(ctx, "PUT", path, headers, bytes.NewReader(m), v2Auth)
+	res, err := d.c.makeRequest(ctx, "PUT", path, headers, bytes.NewReader(m), v2Auth, nil)
 	if err != nil {
 		return err
 	}
@@ -574,7 +568,7 @@ sigExists:
 		}
 
 		path := fmt.Sprintf(extensionsSignaturePath, reference.Path(d.ref.ref), d.manifestDigest.String())
-		res, err := d.c.makeRequest(ctx, "PUT", path, nil, bytes.NewReader(body), v2Auth)
+		res, err := d.c.makeRequest(ctx, "PUT", path, nil, bytes.NewReader(body), v2Auth, nil)
 		if err != nil {
 			return err
 		}
