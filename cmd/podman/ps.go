@@ -606,19 +606,50 @@ func portsToString(ports []ocicni.PortMapping) string {
 }
 
 func printFormat(format string, containers []shared.PsContainerOutput) error {
-	out := template.New("output")
-	out, err := out.Parse(format + "\n")
+	// return immediately if no containers are present
+	if len(containers) == 0 {
+		return nil
+	}
 
+	// Use a tabwriter to align column format
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+	// Make a map of the field names for the headers
+	headerNames := make(map[string]string)
+	v := reflect.ValueOf(containers[0])
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		headerNames[t.Field(i).Name] = t.Field(i).Name
+	}
+
+	// Spit out the header if "table" is present in the format
+	if strings.HasPrefix(format, "table") {
+		hformat := strings.Replace(strings.TrimSpace(format[5:]), " ", "\t", -1)
+		format = hformat
+		headerTmpl, err := template.New("header").Parse(hformat)
+		if err != nil {
+			return err
+		}
+		if err := headerTmpl.Execute(w, headerNames); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "")
+	}
+
+	// Spit out the data rows now
+	dataTmpl, err := template.New("data").Parse(format)
 	if err != nil {
 		return err
 	}
+
 	for _, container := range containers {
-		if err := out.Execute(os.Stdout, container); err != nil {
+		if err := dataTmpl.Execute(w, container); err != nil {
 			return err
 		}
-
+		fmt.Fprintln(w, "")
 	}
-	return nil
+	// Flush the writer
+	return w.Flush()
 }
 
 func dumpJSON(containers []shared.PsContainerOutput) error {
