@@ -1,19 +1,21 @@
 % podman(1)
 
 ## NAME
-podman - Simple management tool for containers and images
+podman - Simple management tool for pods, containers and images
 
 ## SYNOPSIS
 **podman** [*options*] *command*
 
 ## DESCRIPTION
-podman is a simple client only tool to help with debugging issues when daemons
-such as CRI runtime and the kubelet are not responding or failing. A shared API
-layer could be created to share code between the daemon and podman. podman does not
-require any daemon running. podman utilizes the same underlying components that
-crio uses i.e. containers/image, container/storage, oci-runtime-tool/generate,
-runc or any other OCI compatible runtime. podman shares state with crio and so
-has the capability to debug pods/images created by crio.
+Podman (Pod Manager) is a fully featured container engine that is a simple daemonless tool.
+Podman provides a Docker-CLI comparable command line that eases the transition from other
+container engines and allows the management of pods, containers and images.  Simply put: `alias docker=podman`.
+Most Podman commands can be run as a regular user, without requiring additional
+privileges.
+
+Podman uses Buildah(1) internally to create container images. Both tools share image
+(not container) storage, hence each can use or manipulate images (but not containers)
+created by the other.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -220,7 +222,7 @@ Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home di
 Currently the slirp4netns package is required to be installed to create a network device, otherwise rootless containers need to run in the network namespace of the host.
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `crio(8)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
