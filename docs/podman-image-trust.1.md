@@ -9,22 +9,24 @@ podman\-trust - Manage container registry image trust policy
 [**-h**|**--help**]
 [**-j**|**--json**]
 [**--raw**]
-[**-f**|**--pubkeysfile** KEY1 [**f**|**--pubkeysfile** KEY2,...]]
+[**-f**|**--pubkeysfile** KEY1 [**-f**|**--pubkeysfile** KEY2,...]]
 [**-t**|**--type** signedBy|accept|reject]
 REGISTRY[/REPOSITORY]
 
 # DESCRIPTION
-Manages the trust policy of the host system. Trust policy describes
-a registry scope (registry and/or repository) that must be signed by public keys. Trust
-is defined in **/etc/containers/policy.json**. Trust is enforced when a user attempts to pull
-an image from a registry.
+Manages which registries you trust as a source of container images based on its location.  The location is determined by the transport and the registry host of the image.  Using this container image `docker://docker.io/library/busybox` as an example, `docker` is the transport and `docker.io` is the registry host.
 
-Trust scope is evaluated by most specific to least specific. In other words, policy may
-be defined for an entire registry, but refined for a particular repository in that
-registry. See below for examples.
+The trust policy describes a registry scope (registry and/or repository).  This trust can use public keys for signed images.
 
-Trust **type** provides a way to whitelist ("accept") or blacklist
-("reject") registries.
+Trust is defined in **/etc/containers/policy.json** and is enforced when a user attempts to pull an image from a registry that is managed by policy.json.
+
+The scope of the trust is evaluated from most specific to the least specific. In other words, a policy may be defined for an entire registry.  Or it could be defined for a particular repository in that registry. Or it could be defined down to a specific signed image inside of the registry.  See below for examples.
+
+Trust **type** provides a way to:
+
+Whitelist ("accept") or
+Blacklist ("reject") registries.
+
 
 Trust may be updated using the command **podman image trust set** for an existing trust scope.
 
@@ -34,10 +36,10 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 **-f** **--pubkeysfile**
   A path to an exported public key on the local system. Key paths
-  will be referenced in policy.json. Any path may be used but path
-  **/etc/pki/containers** is recommended. Option may be used multiple times to
-  require an image be sigend by multiple keys. One of **--pubkeys** or
-  **--pubkeysfile** is required for **signedBy** type.
+  will be referenced in policy.json. Any path may be used but the path
+  **/etc/pki/containers** is recommended. Options may be used multiple times to
+  require an image be signed by multiple keys. One of **--pubkeys** or
+  **--pubkeysfile** is required for the **signedBy** type.
 
 **-t** **--type**
   The trust type for this policy entry. Accepted values:
@@ -59,23 +61,30 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 Accept all unsigned images from a registry
 
-    podman image trust set --type accept docker.io
+    sudo podman image trust set --type accept docker.io
 
 Modify default trust policy
 
-    podman image trust set -t reject default
+    sudo podman image trust set -t reject default
 
 Display system trust policy
 
-    podman image trust show
+    sudo podman image trust show
 
 Display trust policy file
 
-    podman image trust show --raw
+   sudo podman image trust show --raw
 
 Display trust as JSON
 
-    podman image trust show --json
+   sudo podman image trust show --json
+
+# SEE ALSO
+
+policy-json(5)
 
 # HISTORY
+
+January 2019, updated by Tom Sweeney (tsweeney at redhat dot com)
+
 December 2018, originally compiled by Qi Wang (qiwan at redhat dot com)
