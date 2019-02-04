@@ -111,7 +111,7 @@ func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 	return newImages, nil
 }
 
-func imageInListToContainerImage(i iopodman.ImageInList, name string, runtime *LocalRuntime) (*ContainerImage, error) {
+func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRuntime) (*ContainerImage, error) {
 	created, err := time.ParseInLocation(time.RFC3339, i.Created, time.UTC)
 	if err != nil {
 		return nil, err

@@ -37,7 +37,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get list of images %q", err))
 	}
-	var imageList []iopodman.ImageInList
+	var imageList []iopodman.Image
 	for _, image := range images {
 		labels, _ := image.Labels(getContext())
 		containers, _ := image.Containers()
@@ -52,7 +52,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			return call.ReplyErrorOccurred(err.Error())
 		}
 
-		i := iopodman.ImageInList{
+		i := iopodman.Image{
 			Id:          image.ID(),
 			ParentId:    image.Parent,
 			RepoTags:    image.Names(),
@@ -69,11 +69,11 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 	return call.ReplyListImages(imageList)
 }
 
-// GetImage returns a single image in the form of a ImageInList
-func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
-	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
+// GetImage returns a single image in the form of a Image
+func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(id)
 	if err != nil {
-		return call.ReplyImageNotFound(err.Error())
+		return call.ReplyImageNotFound(id)
 	}
 	labels, err := newImage.Labels(getContext())
 	if err != nil {
@@ -92,7 +92,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
 		return err
 	}
 
-	il := iopodman.ImageInList{
+	il := iopodman.Image{
 		Id:          newImage.ID(),
 		ParentId:    newImage.Parent,
 		RepoTags:    newImage.Names(),

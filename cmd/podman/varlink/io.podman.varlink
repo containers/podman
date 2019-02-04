@@ -23,9 +23,7 @@ type VolumeRemoveOpts (
    force: bool
 )
 
-# ImageInList describes the structure that is returned in
-# ListImages.
-type ImageInList (
+type Image (
   id: string,
   parentId: string,
   repoTags: []string,
@@ -598,13 +596,13 @@ method RemoveContainer(name: string, force: bool) -> (container: string)
 # ~~~
 method DeleteStoppedContainers() -> (containers: []string)
 
-# ListImages returns an array of ImageInList structures which provide basic information about
-# an image currently in storage.  See also [InspectImage](InspectImage).
-method ListImages() -> (images: []ImageInList)
+# ListImages returns information about the images that are currently in storage.
+# See also [InspectImage](InspectImage).
+method ListImages() -> (images: []Image)
 
-# GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
-# If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
-method GetImage(name: string) -> (image: ImageInList)
+# GetImage returns information about a single image in storage.
+# If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will be returned.
+method GetImage(id: string) -> (image: Image)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
 # 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
@@ -1049,7 +1047,7 @@ method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
-error ImageNotFound (name: string)
+error ImageNotFound (id: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
 error ContainerNotFound (name: string)
