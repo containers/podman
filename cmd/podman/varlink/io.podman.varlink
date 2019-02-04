@@ -8,7 +8,7 @@ type Version (
   version: string,
   go_version: string,
   git_commit: string,
-  built: int,
+  built: string, # as RFC3339
   os_arch: string,
   remote_api_version: int
 )
@@ -40,7 +40,7 @@ type ImageInList (
   parentId: string,
   repoTags: []string,
   repoDigests: []string,
-  created: string,
+  created: string, # as RFC3339
   size: int,
   virtualSize: int,
   containers: int,
@@ -51,7 +51,7 @@ type ImageInList (
 # ImageHistory describes the returned structure from ImageHistory.
 type ImageHistory (
     id: string,
-    created: string,
+    created: string, # as RFC3339
     createdBy: string,
     tags: []string,
     size: int,
@@ -74,7 +74,7 @@ type ListContainerData (
     image: string,
     imageid: string,
     command: []string,
-    createdat: string,
+    createdat: string, # as RFC3339
     runningfor: string,
     status: string,
     ports: []ContainerPortMappings,

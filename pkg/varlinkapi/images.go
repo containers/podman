@@ -57,7 +57,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			ParentId:    image.Parent,
 			RepoTags:    image.Names(),
 			RepoDigests: repoDigests,
-			Created:     image.Created().String(),
+			Created:     image.Created().Format(time.RFC3339),
 			Size:        int64(*size),
 			VirtualSize: image.VirtualSize,
 			Containers:  int64(len(containers)),
@@ -97,7 +97,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, name string) error {
 		ParentId:    newImage.Parent,
 		RepoTags:    newImage.Names(),
 		RepoDigests: repoDigests,
-		Created:     newImage.Created().String(),
+		Created:     newImage.Created().Format(time.RFC3339),
 		Size:        int64(*size),
 		VirtualSize: newImage.VirtualSize,
 		Containers:  int64(len(containers)),
@@ -309,7 +309,7 @@ func (i *LibpodAPI) HistoryImage(call iopodman.VarlinkCall, name string) error {
 	for _, hist := range history {
 		imageHistory := iopodman.ImageHistory{
 			Id:        hist.ID,
-			Created:   hist.Created.String(),
+			Created:   hist.Created.Format(time.RFC3339),
 			CreatedBy: hist.CreatedBy,
 			Tags:      newImage.Names(),
 			Size:      hist.Size,

@@ -3,6 +3,7 @@ package varlinkapi
 import (
 	goruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
@@ -20,7 +21,7 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 		Version:            versionInfo.Version,
 		Go_version:         versionInfo.GoVersion,
 		Git_commit:         versionInfo.GitCommit,
-		Built:              versionInfo.Built,
+		Built:              time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 		Os_arch:            versionInfo.OsArch,
 	})
 }
