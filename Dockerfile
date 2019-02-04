@@ -41,9 +41,16 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && apt-get clean
 
-ADD . /go/src/github.com/containers/libpod
-
-RUN set -x && cd /go/src/github.com/containers/libpod && make install.libseccomp.sudo
+ENV LIBSECCOMP_COMMIT release-2.3
+RUN set -x \
+       && git clone https://github.com/seccomp/libseccomp "$GOPATH/src/github.com/seccomp/libseccomp" \
+       && cd "$GOPATH/src/github.com/seccomp/libseccomp" \
+       && git fetch origin --tags \
+       && git checkout -q "$LIBSECCOMP_COMMIT" \
+       && ./autogen.sh \
+       && ./configure --prefix=/usr \
+       && make all \
+       && make install
 
 # Install runc
 ENV RUNC_COMMIT 96ec2177ae841256168fcf76954f7177af9446eb
@@ -125,5 +132,9 @@ RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectat
 
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
+
+ADD . /go/src/github.com/containers/libpod
+
+RUN set -x && cd /go/src/github.com/containers/libpod
 
 WORKDIR /go/src/github.com/containers/libpod
