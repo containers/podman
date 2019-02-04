@@ -82,7 +82,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms, 0 means never timeout)", c.Int64("timeout"))
 			return nil
 		default:
-			return errors.Errorf("unable to start varlink service")
+			return errors.Wrapf(err, "unable to start varlink service")
 		}
 	}
 
