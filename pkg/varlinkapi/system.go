@@ -25,14 +25,6 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 	})
 }
 
-// Ping returns a simple string "OK" response for clients to make sure
-// the service is working.
-func (i *LibpodAPI) Ping(call iopodman.VarlinkCall) error {
-	return call.ReplyPing(iopodman.StringResponse{
-		Message: "OK",
-	})
-}
-
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	versionInfo, err := libpod.GetVersion()

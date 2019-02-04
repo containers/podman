@@ -13,9 +13,6 @@ type Version (
   remote_api_version: int
 )
 
-type StringResponse (
-    message: string
-)
 # ContainerChanges describes the return struct for ListContainerChanges
 type ContainerChanges (
    changed: []string,
@@ -401,18 +398,6 @@ type Runlabel(
     extraArgs: []string,
     opts: [string]string
 )
-
-# Ping provides a response for developers to ensure their varlink setup is working.
-# #### Example
-# ~~~
-# $ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
-# {
-#   "ping": {
-#     "message": "OK"
-#   }
-# }
-# ~~~
-method Ping() -> (ping: StringResponse)
 
 # GetVersion returns a Version structure describing the libpod setup on their
 # system.
