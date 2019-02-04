@@ -247,11 +247,6 @@ func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) er
 	return call.ReplyGetContainerStats(cs)
 }
 
-// ResizeContainerTty ...
-func (i *LibpodAPI) ResizeContainerTty(call iopodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("ResizeContainerTty")
-}
-
 // StartContainer ...
 func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
@@ -324,16 +319,6 @@ func (i *LibpodAPI) KillContainer(call iopodman.VarlinkCall, name string, signal
 	return call.ReplyKillContainer(ctr.ID())
 }
 
-// UpdateContainer ...
-func (i *LibpodAPI) UpdateContainer(call iopodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("UpdateContainer")
-}
-
-// RenameContainer ...
-func (i *LibpodAPI) RenameContainer(call iopodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("RenameContainer")
-}
-
 // PauseContainer ...
 func (i *LibpodAPI) PauseContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
@@ -356,12 +341,6 @@ func (i *LibpodAPI) UnpauseContainer(call iopodman.VarlinkCall, name string) err
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyUnpauseContainer(ctr.ID())
-}
-
-// AttachToContainer ...
-// TODO: DO we also want a different one for websocket?
-func (i *LibpodAPI) AttachToContainer(call iopodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("AttachToContainer")
 }
 
 // WaitContainer ...

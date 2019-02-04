@@ -276,12 +276,6 @@ func build(runtime *libpod.Runtime, options imagebuildah.BuildOptions, dockerfil
 	return c
 }
 
-// CreateImage ...
-// TODO With Pull being added, should we skip Create?
-func (i *LibpodAPI) CreateImage(call iopodman.VarlinkCall) error {
-	return call.ReplyMethodNotImplemented("CreateImage")
-}
-
 // InspectImage returns an image's inspect information as a string that can be serialized.
 // Requires an image ID or name
 func (i *LibpodAPI) InspectImage(call iopodman.VarlinkCall, name string) error {

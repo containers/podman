@@ -13,10 +13,6 @@ type Version (
   remote_api_version: int
 )
 
-type NotImplemented (
-    comment: string
-)
-
 type StringResponse (
     message: string
 )
@@ -521,7 +517,7 @@ method ExportContainer(name: string, path: string) -> (tarfile: string)
 method GetContainerStats(name: string) -> (container: ContainerStats)
 
 # This method has not be implemented yet.
-method ResizeContainerTty() -> (notimplemented: NotImplemented)
+# method ResizeContainerTty() -> (notimplemented: NotImplemented)
 
 # StartContainer starts a created or stopped container. It takes the name or ID of container.  It returns
 # the container ID once started.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
@@ -553,10 +549,10 @@ method RestartContainer(name: string, timeout: int) -> (container: string)
 method KillContainer(name: string, signal: int) -> (container: string)
 
 # This method has not be implemented yet.
-method UpdateContainer() -> (notimplemented: NotImplemented)
+# method UpdateContainer() -> (notimplemented: NotImplemented)
 
 # This method has not be implemented yet.
-method RenameContainer() -> (notimplemented: NotImplemented)
+# method RenameContainer() -> (notimplemented: NotImplemented)
 
 # PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
 # a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
@@ -569,7 +565,7 @@ method PauseContainer(name: string) -> (container: string)
 method UnpauseContainer(name: string) -> (container: string)
 
 # This method has not be implemented yet.
-method AttachToContainer() -> (notimplemented: NotImplemented)
+# method AttachToContainer() -> (notimplemented: NotImplemented)
 
 # GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
 # to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
@@ -635,7 +631,7 @@ method GetImage(name: string) -> (image: ImageInList)
 method BuildImage(build: BuildInfo) -> (image: BuildResponse)
 
 # This function is not implemented yet.
-method CreateImage() -> (notimplemented: NotImplemented)
+# method CreateImage() -> (notimplemented: NotImplemented)
 
 # InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
 #image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
@@ -926,10 +922,10 @@ method UnpausePod(name: string) -> (pod: string)
 method RemovePod(name: string, force: bool) -> (pod: string)
 
 # This method has not be implemented yet.
-method WaitPod() -> (notimplemented: NotImplemented)
+# method WaitPod() -> (notimplemented: NotImplemented)
 
 # This method has not been implemented yet.
-method TopPod() -> (notimplemented: NotImplemented)
+# method TopPod() -> (notimplemented: NotImplemented)
 
 # GetPodStats takes the name or ID of a pod and returns a pod name and slice of ContainerStats structure which
 # contains attributes like memory and cpu usage.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
@@ -1033,19 +1029,19 @@ method  UnmountContainer(name: string, force: bool) -> ()
 method ImagesPrune(all: bool) -> (pruned: []string)
 
 # This function is not implemented yet.
-method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
+# method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
 
 # GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
 # and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
-method GenerateKube() -> (notimplemented: NotImplemented)
+# method GenerateKube() -> (notimplemented: NotImplemented)
 
 # GenerateKubeService generates a Kubernetes v1 Service description of a Podman container or pod
 # and its containers. The description is in YAML. See also [GenerateKube](GenerateKube).
-method GenerateKubeService() -> (notimplemented: NotImplemented)
+# method GenerateKubeService() -> (notimplemented: NotImplemented)
 
 # ReplayKube recreates a pod and its containers based on a Kubernetes v1 Pod description (in YAML)
 # like that created by GenerateKube. See also [GenerateKube](GenerateKube).
-method ReplayKube() -> (notimplemented: NotImplemented)
+# method ReplayKube() -> (notimplemented: NotImplemented)
 
 # ContainerConfig returns a container's config in string form. This call is for
 # development of Podman only and generally should not be used.
