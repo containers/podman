@@ -3,16 +3,6 @@
 interface io.podman
 
 
-# Version is the structure returned by GetVersion
-type Version (
-  version: string,
-  go_version: string,
-  git_commit: string,
-  built: string, # as RFC3339
-  os_arch: string,
-  remote_api_version: int
-)
-
 # ContainerChanges describes the return struct for ListContainerChanges
 type ContainerChanges (
    changed: []string,
@@ -399,9 +389,15 @@ type Runlabel(
     opts: [string]string
 )
 
-# GetVersion returns a Version structure describing the libpod setup on their
-# system.
-method GetVersion() -> (version: Version)
+# GetVersion returns version and build information of the podman service
+method GetVersion() -> (
+    version: string,
+    go_version: string,
+    git_commit: string,
+    built: string, # as RFC3339
+    os_arch: string,
+    remote_api_version: int
+)
 
 # GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
 # build information of Podman, and system-wide registries.
