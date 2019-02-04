@@ -109,7 +109,6 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
 
-
 build_each_commit_task:
 
     depends_on:
