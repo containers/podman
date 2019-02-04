@@ -56,8 +56,7 @@ type ImageSearch (
     star_count: int
 )
 
-# ListContainerData is the returned struct for an individual container
-type ListContainerData (
+type Container (
     id: string,
     image: string,
     imageid: string,
@@ -401,14 +400,15 @@ method GetVersion() -> (
 # build information of Podman, and system-wide registries.
 method GetInfo() -> (info: PodmanInfo)
 
-# ListContainers returns a list of containers in no particular order.  There are
-# returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
-method ListContainers() -> (containers: []ListContainerData)
+# ListContainers returns information about all containers.
+# See also [GetContainer](#GetContainer).
+method ListContainers() -> (containers: []Container)
 
-# GetContainer takes a name or ID of a container and returns single ListContainerData
-# structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
-# See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
-method GetContainer(name: string) -> (container: ListContainerData)
+# GetContainer returns information about a single container.  If a container
+# with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.  See also [ListContainers](ListContainers) and
+# [InspectContainer](#InspectContainer).
+method GetContainer(id: string) -> (container: Container)
 
 # CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
 # input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
@@ -1050,7 +1050,7 @@ method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 error ImageNotFound (id: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
-error ContainerNotFound (name: string)
+error ContainerNotFound (id: string)
 
 # NoContainerRunning means none of the containers requested are running in a command that requires a running container.
 error NoContainerRunning ()

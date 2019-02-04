@@ -21,7 +21,7 @@ import (
 // ListContainers ...
 func (i *LibpodAPI) ListContainers(call iopodman.VarlinkCall) error {
 	var (
-		listContainers []iopodman.ListContainerData
+		listContainers []iopodman.Container
 	)
 
 	containers, err := i.Runtime.GetAllContainers()
@@ -44,10 +44,10 @@ func (i *LibpodAPI) ListContainers(call iopodman.VarlinkCall) error {
 }
 
 // GetContainer ...
-func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, name string) error {
-	ctr, err := i.Runtime.LookupContainer(name)
+func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
+	ctr, err := i.Runtime.LookupContainer(id)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(id)
 	}
 	opts := shared.PsOptions{
 		Namespace: true,

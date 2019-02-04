@@ -15,7 +15,7 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.ListContainerData {
+func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.Container {
 	var (
 		mounts []iopodman.ContainerMount
 		ports  []iopodman.ContainerPortMappings
@@ -56,7 +56,7 @@ func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct
 		Ipc:    ns.IPC,
 	}
 
-	lc := iopodman.ListContainerData{
+	lc := iopodman.Container{
 		Id:               containerID,
 		Image:            batchInfo.ConConfig.RootfsImageName,
 		Imageid:          batchInfo.ConConfig.RootfsImageID,
