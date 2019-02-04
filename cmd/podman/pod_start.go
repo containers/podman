@@ -13,7 +13,7 @@ var (
 	podStartFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "start all running pods",
+			Usage: "Start all running pods",
 		},
 		LatestPodFlag,
 	}

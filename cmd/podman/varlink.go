@@ -24,7 +24,7 @@ var (
 	varlinkFlags = []cli.Flag{
 		cli.IntFlag{
 			Name:  "timeout, t",
-			Usage: "time until the varlink session expires in milliseconds.  Use 0 to disable the timeout.",
+			Usage: "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout.",
 			Value: 1000,
 		},
 	}

@@ -32,11 +32,11 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
-			Usage: "`pathname` of a directory containing TLS certificates and keys",
+			Usage: "`Pathname` of a directory containing TLS certificates and keys",
 		},
 		cli.StringFlag{
 			Name:  "creds",
-			Usage: "`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+			Usage: "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
 		},
 		cli.BoolFlag{
 			Name:  "quiet, q",
@@ -44,11 +44,11 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",
-			Usage: "`pathname` of signature policy file (not usually used)",
+			Usage: "`Pathname` of signature policy file (not usually used)",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 	playKubeDescription = "Play a Pod and its containers based on a Kubrernetes YAML"
@@ -58,7 +58,7 @@ var (
 		Description:            playKubeDescription,
 		Action:                 playKubeYAMLCmd,
 		Flags:                  sortFlags(playKubeFlags),
-		ArgsUsage:              "kubernetes YAML file",
+		ArgsUsage:              "Kubernetes YAML file",
 		UseShortOptionHandling: true,
 		OnUsageError:           usageErrorHandler,
 	}

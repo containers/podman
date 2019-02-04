@@ -15,7 +15,7 @@ var (
 	portFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "display port information for all containers",
+			Usage: "Display port information for all containers",
 		},
 		LatestFlag,
 	}

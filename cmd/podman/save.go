@@ -29,7 +29,7 @@ var (
 	saveFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "compress",
-			Usage: "compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)",
+			Usage: "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)",
 		},
 		cli.StringFlag{
 			Name:  "output, o",

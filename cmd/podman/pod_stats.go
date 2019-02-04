@@ -19,22 +19,22 @@ var (
 	podStatsFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "show stats for all pods.  Only running pods are shown by default.",
+			Usage: "Show stats for all pods.  Only running pods are shown by default.",
 		},
 		cli.BoolFlag{
 			Name:  "no-stream",
-			Usage: "disable streaming stats and only pull the first result, default setting is false",
+			Usage: "Disable streaming stats and only pull the first result, default setting is false",
 		},
 		cli.BoolFlag{
 			Name:  "no-reset",
-			Usage: "disable resetting the screen between intervals",
+			Usage: "Disable resetting the screen between intervals",
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "pretty-print container statistics to JSON or using a Go template",
+			Usage: "Pretty-print container statistics to JSON or using a Go template",
 		}, LatestPodFlag,
 	}
-	podStatsDescription = "display a live stream of resource usage statistics for the containers in or more pods"
+	podStatsDescription = "Display a live stream of resource usage statistics for the containers in or more pods"
 	podStatsCommand     = cli.Command{
 		Name:                   "stats",
 		Usage:                  "Display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one or more pods",

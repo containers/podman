@@ -14,10 +14,10 @@ var (
 	podInspectFlags = []cli.Flag{
 		LatestPodFlag,
 	}
-	podInspectDescription = "display the configuration for a pod by name or id"
+	podInspectDescription = "Display the configuration for a pod by name or id"
 	podInspectCommand     = cli.Command{
 		Name:                   "inspect",
-		Usage:                  "displays a pod configuration",
+		Usage:                  "Displays a pod configuration",
 		Description:            podInspectDescription,
 		Flags:                  sortFlags(podInspectFlags),
 		Action:                 podInspectCmd,

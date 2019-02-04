@@ -17,7 +17,7 @@ var (
 	containerKubeFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "service, s",
-			Usage: "generate YAML for kubernetes service object",
+			Usage: "Generate YAML for kubernetes service object",
 		},
 	}
 	containerKubeDescription = "Generate Kubernetes Pod YAML"

@@ -17,7 +17,7 @@ var (
 	pruneImageFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "remove all unused images, not just dangling ones",
+			Usage: "Remove all unused images, not just dangling ones",
 		},
 	}
 	pruneImagesCommand = cli.Command{

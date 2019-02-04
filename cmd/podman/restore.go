@@ -21,18 +21,18 @@ var (
 	restoreFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "keep, k",
-			Usage: "keep all temporary checkpoint files",
+			Usage: "Keep all temporary checkpoint files",
 		},
 		// restore --all would make more sense if there would be
 		// dedicated state for container which are checkpointed.
 		// TODO: add ContainerStateCheckpointed
 		cli.BoolFlag{
 			Name:  "tcp-established",
-			Usage: "checkpoint a container with established TCP connections",
+			Usage: "Checkpoint a container with established TCP connections",
 		},
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "restore all checkpointed containers",
+			Usage: "Restore all checkpointed containers",
 		},
 		LatestFlag,
 	}

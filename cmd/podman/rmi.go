@@ -15,11 +15,11 @@ var (
 	rmiFlags       = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "remove all images",
+			Usage: "Remove all images",
 		},
 		cli.BoolFlag{
 			Name:  "force, f",
-			Usage: "force removal of the image",
+			Usage: "Force removal of the image",
 		},
 	}
 	rmiCommand = cli.Command{
@@ -34,7 +34,7 @@ var (
 	}
 	rmImageCommand = cli.Command{
 		Name:                   "rm",
-		Usage:                  "removes one or more images from local storage",
+		Usage:                  "Removes one or more images from local storage",
 		Description:            rmiDescription,
 		Action:                 rmiCmd,
 		ArgsUsage:              "IMAGE-NAME-OR-ID [...]",

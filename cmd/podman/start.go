@@ -29,7 +29,7 @@ var (
 		},
 		cli.BoolTFlag{
 			Name:  "sig-proxy",
-			Usage: "proxy received signals to the process (default true if attaching, false otherwise)",
+			Usage: "Proxy received signals to the process (default true if attaching, false otherwise)",
 		},
 		LatestFlag,
 	}

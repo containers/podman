@@ -188,21 +188,21 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "config, c",
-			Usage:  "path of a libpod config file detailing container server configuration options",
+			Usage:  "Path of a libpod config file detailing container server configuration options",
 			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "cpu-profile",
-			Usage: "path for the cpu profiling results",
+			Usage: "Path for the cpu profiling results",
 		},
 		cli.StringFlag{
 			Name:  "log-level",
-			Usage: "log messages above specified level: debug, info, warn, error (default), fatal or panic",
+			Usage: "Log messages above specified level: debug, info, warn, error (default), fatal or panic",
 			Value: "error",
 		},
 		cli.StringFlag{
 			Name:  "tmpdir",
-			Usage: "path to the tmp directory",
+			Usage: "Path to the tmp directory",
 		},
 	}
 

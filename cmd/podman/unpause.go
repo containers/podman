@@ -15,7 +15,7 @@ var (
 	unpauseFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "unpause all paused containers",
+			Usage: "Unpause all paused containers",
 		},
 	}
 	unpauseDescription = `

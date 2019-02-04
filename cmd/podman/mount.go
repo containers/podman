@@ -33,7 +33,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "notruncate",
-			Usage: "do not truncate output",
+			Usage: "Do not truncate output",
 		},
 		LatestFlag,
 	}

@@ -41,7 +41,7 @@ var (
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 

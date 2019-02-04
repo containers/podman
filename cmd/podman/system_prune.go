@@ -22,7 +22,7 @@ var (
 	pruneSystemFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "remove all unused data",
+			Usage: "Remove all unused data",
 		},
 		cli.BoolFlag{
 			Name:  "force, f",
