@@ -399,17 +399,21 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 	return call.ReplyRemoveImage(newImage.ID())
 }
 
-// SearchImage searches all registries configured in /etc/containers/registries.conf for an image
+// SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
-func (i *LibpodAPI) SearchImage(call iopodman.VarlinkCall, name string, limit int64) error {
+func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64) error {
 	sc := image.GetSystemContext("", "", false)
 	registries, err := sysreg.GetRegistries()
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
 	}
-	var imageResults []iopodman.ImageSearch
+	var imageResults []iopodman.ImageSearchResult
 	for _, reg := range registries {
-		results, err := docker.SearchRegistry(getContext(), sc, reg, name, int(limit))
+		var lim = 1000
+		if limit != nil {
+			lim = int(*limit)
+		}
+		results, err := docker.SearchRegistry(getContext(), sc, reg, query, lim)
 		if err != nil {
 			// If we are searching multiple registries, don't make something like an
 			// auth error fatal. Unfortunately we cannot differentiate between auth
@@ -420,7 +424,7 @@ func (i *LibpodAPI) SearchImage(call iopodman.VarlinkCall, name string, limit in
 			return call.ReplyErrorOccurred(err.Error())
 		}
 		for _, result := range results {
-			i := iopodman.ImageSearch{
+			i := iopodman.ImageSearchResult{
 				Description:  result.Description,
 				Is_official:  result.IsOfficial,
 				Is_automated: result.IsAutomated,
@@ -430,7 +434,7 @@ func (i *LibpodAPI) SearchImage(call iopodman.VarlinkCall, name string, limit in
 			imageResults = append(imageResults, i)
 		}
 	}
-	return call.ReplySearchImage(imageResults)
+	return call.ReplySearchImages(imageResults)
 }
 
 // DeleteUnusedImages deletes any images that do not have containers associated with it.

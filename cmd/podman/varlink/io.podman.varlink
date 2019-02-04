@@ -46,9 +46,8 @@ type ImageHistory (
     comment: string
 )
 
-# ImageSearch is the returned structure for SearchImage.  It is returned
-# in array form.
-type ImageSearch (
+# Represents a single search result from SearchImages
+type ImageSearchResult (
     description: string,
     is_official: bool,
     is_automated: bool,
@@ -644,10 +643,10 @@ method TagImage(name: string, tagged: string) -> (image: string)
 # ~~~
 method RemoveImage(name: string, force: bool) -> (image: string)
 
-# SearchImage takes the string of an image name and a limit of searches from each registries to be returned.  SearchImage
-# will then use a glob-like match to find the image you are searching for.  The images are returned in an array of
-# ImageSearch structures which contain information about the image as well as its fully-qualified name.
-method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
+# SearchImages searches available registries for images that contain the
+# contents of "query" in their name. If "limit" is given, limits the amount of
+# search results per registry.
+method SearchImages(query: string, limit: ?int) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
