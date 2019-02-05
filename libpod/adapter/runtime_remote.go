@@ -3,11 +3,13 @@
 package adapter
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -324,6 +326,84 @@ func (r *LocalRuntime) Config(name string) *libpod.ContainerConfig {
 	return &data
 
 }
+
+// PruneImages is the wrapper call for a remote-client to prune images
 func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
 	return iopodman.ImagesPrune().Call(r.Conn, all)
+}
+
+// Export is a wrapper to container export to a tarfile
+func (r *LocalRuntime) Export(name string, path string) error {
+	tempPath, err := iopodman.ExportContainer().Call(r.Conn, name, "")
+	if err != nil {
+		return err
+	}
+
+	outputFile, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	writer := bufio.NewWriter(outputFile)
+	defer writer.Flush()
+
+	reply, err := iopodman.ReceiveFile().Send(r.Conn, varlink.Upgrade, tempPath, true)
+	if err != nil {
+		return err
+	}
+
+	length, _, err := reply()
+	if err != nil {
+		return errors.Wrap(err, "unable to get file length for transfer")
+	}
+
+	reader := r.Conn.Reader
+	if _, err := io.CopyN(writer, reader, length); err != nil {
+		return errors.Wrap(err, "file transer failed")
+	}
+
+	return nil
+}
+
+// Import implements the remote calls required to import a container image to the store
+func (r *LocalRuntime) Import(ctx context.Context, source, reference string, changes []string, history string, quiet bool) (string, error) {
+	// First we send the file to the host
+	fs, err := os.Open(source)
+	if err != nil {
+		return "", err
+	}
+
+	fileInfo, err := fs.Stat()
+	if err != nil {
+		return "", err
+	}
+	reply, err := iopodman.SendFile().Send(r.Conn, varlink.Upgrade, "", int64(fileInfo.Size()))
+	if err != nil {
+		return "", err
+	}
+	_, _, err = reply()
+	if err != nil {
+		return "", err
+	}
+
+	reader := bufio.NewReader(fs)
+	_, err = reader.WriteTo(r.Conn.Writer)
+	if err != nil {
+		return "", err
+	}
+	r.Conn.Writer.Flush()
+
+	// All was sent, wait for the ACK from the server
+	tempFile, err := r.Conn.Reader.ReadString(':')
+	if err != nil {
+		return "", err
+	}
+
+	// r.Conn is kaput at this point due to the upgrade
+	if err := r.RemoteRuntime.RefreshConnection(); err != nil {
+		return "", err
+
+	}
+	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
 }

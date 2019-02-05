@@ -12,8 +12,6 @@ func getAppCommands() []cli.Command {
 		createCommand,
 		diffCommand,
 		execCommand,
-		exportCommand,
-		importCommand,
 		killCommand,
 		kubeCommand,
 		loadCommand,

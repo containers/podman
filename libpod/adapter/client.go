@@ -34,3 +34,14 @@ func (r RemoteRuntime) Connect() (*varlink.Connection, error) {
 	}
 	return connection, nil
 }
+
+// RefreshConnection is used to replace the current r.Conn after things like
+// using an upgraded varlink connection
+func (r RemoteRuntime) RefreshConnection() error {
+	newConn, err := r.Connect()
+	if err != nil {
+		return err
+	}
+	r.Conn = newConn
+	return nil
+}

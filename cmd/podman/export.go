@@ -1,12 +1,9 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
-	"strconv"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -43,7 +40,7 @@ func exportCmd(c *cli.Context) error {
 		rootless.SetSkipStorageSetup(true)
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -58,52 +55,18 @@ func exportCmd(c *cli.Context) error {
 	}
 
 	output := c.String("output")
+	if runtime.Remote && (output == "/dev/stdout" || len(output) == 0) {
+		return errors.New("remote client usage must specify an output file (-o)")
+	}
 	if output == "/dev/stdout" {
 		file := os.Stdout
 		if logrus.IsTerminal(file) {
 			return errors.Errorf("refusing to export to terminal. Use -o flag or redirect")
 		}
 	}
+
 	if err := validateFileName(output); err != nil {
 		return err
 	}
-
-	ctr, err := runtime.LookupContainer(args[0])
-	if err != nil {
-		return errors.Wrapf(err, "error looking up container %q", args[0])
-	}
-
-	if os.Geteuid() != 0 {
-		state, err := ctr.State()
-		if err != nil {
-			return errors.Wrapf(err, "cannot read container state %q", ctr.ID())
-		}
-		if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
-			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-			if err != nil {
-				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
-			}
-			conmonPid, err := strconv.Atoi(string(data))
-			if err != nil {
-				return errors.Wrapf(err, "cannot parse PID %q", data)
-			}
-			became, ret, err := rootless.JoinDirectUserAndMountNS(uint(conmonPid))
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		} else {
-			became, ret, err := rootless.BecomeRootInUserNS()
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		}
-	}
-
-	return ctr.Export(output)
+	return runtime.Export(args[0], c.String("output"))
 }

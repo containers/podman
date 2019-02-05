@@ -8,6 +8,7 @@ import (
 
 var (
 	imageSubCommands = []cli.Command{
+		importCommand,
 		historyCommand,
 		imageExistsCommand,
 		inspectCommand,

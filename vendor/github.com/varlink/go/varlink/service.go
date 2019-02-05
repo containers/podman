@@ -22,6 +22,7 @@ type serviceCall struct {
 	Parameters *json.RawMessage `json:"parameters,omitempty"`
 	More       bool             `json:"more,omitempty"`
 	Oneway     bool             `json:"oneway,omitempty"`
+	Upgrade    bool             `json:"upgrade,omitempty"`
 }
 
 type serviceReply struct {
@@ -50,7 +51,7 @@ type Service struct {
 }
 
 // ServiceTimoutError helps API users to special-case timeouts.
-type ServiceTimeoutError struct {}
+type ServiceTimeoutError struct{}
 
 func (ServiceTimeoutError) Error() string {
 	return "service timeout"
@@ -73,7 +74,7 @@ func (s *Service) getInterfaceDescription(c Call, name string) error {
 	return c.replyGetInterfaceDescription(description)
 }
 
-func (s *Service) handleMessage(writer *bufio.Writer, request []byte) error {
+func (s *Service) handleMessage(reader *bufio.Reader, writer *bufio.Writer, request []byte) error {
 	var in serviceCall
 
 	err := json.Unmarshal(request, &in)
@@ -83,7 +84,8 @@ func (s *Service) handleMessage(writer *bufio.Writer, request []byte) error {
 	}
 
 	c := Call{
-		writer: writer,
+		Reader: reader,
+		Writer: writer,
 		in:     &in,
 	}
 
@@ -129,7 +131,7 @@ func (s *Service) handleConnection(conn net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 
-		err = s.handleMessage(writer, request[:len(request)-1])
+		err = s.handleMessage(reader, writer, request[:len(request)-1])
 		if err != nil {
 			// FIXME: report error
 			//fmt.Fprintf(os.Stderr, "handleMessage: %v", err)
@@ -201,11 +203,11 @@ func getListener(protocol string, address string) (net.Listener, error) {
 func (s *Service) refreshTimeout(timeout time.Duration) error {
 	switch l := s.listener.(type) {
 	case *net.UnixListener:
-		if err:= l.SetDeadline(time.Now().Add(timeout)); err != nil {
+		if err := l.SetDeadline(time.Now().Add(timeout)); err != nil {
 			return err
 		}
 	case *net.TCPListener:
-		if err:= l.SetDeadline(time.Now().Add(timeout)); err != nil {
+		if err := l.SetDeadline(time.Now().Add(timeout)); err != nil {
 			return err
 		}
 

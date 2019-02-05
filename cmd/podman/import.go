@@ -2,16 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -51,7 +43,7 @@ func importCmd(c *cli.Context) error {
 		return err
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(c)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -60,7 +52,6 @@ func importCmd(c *cli.Context) error {
 	var (
 		source    string
 		reference string
-		writer    io.Writer
 	)
 
 	args := c.Args()
@@ -80,67 +71,13 @@ func importCmd(c *cli.Context) error {
 		return err
 	}
 
-	changes := v1.ImageConfig{}
-	if c.IsSet("change") || c.IsSet("c") {
-		changes, err = util.GetImageConfig(c.StringSlice("change"))
-		if err != nil {
-			return errors.Wrapf(err, "error adding config changes to image %q", source)
-		}
+	quiet := c.Bool("quiet")
+	if runtime.Remote {
+		quiet = false
 	}
-
-	history := []v1.History{
-		{Comment: c.String("message")},
-	}
-
-	config := v1.Image{
-		Config:  changes,
-		History: history,
-	}
-
-	writer = nil
-	if !c.Bool("quiet") {
-		writer = os.Stderr
-	}
-
-	// if source is a url, download it and save to a temp file
-	u, err := url.ParseRequestURI(source)
-	if err == nil && u.Scheme != "" {
-		file, err := downloadFromURL(source)
-		if err != nil {
-			return err
-		}
-		defer os.Remove(file)
-		source = file
-	}
-
-	newImage, err := runtime.ImageRuntime().Import(getContext(), source, reference, writer, image.SigningOptions{}, config)
+	iid, err := runtime.Import(getContext(), source, reference, c.StringSlice("change"), c.String("message"), quiet)
 	if err == nil {
-		fmt.Println(newImage.ID())
+		fmt.Println(iid)
 	}
 	return err
-}
-
-// donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
-func downloadFromURL(source string) (string, error) {
-	fmt.Printf("Downloading from %q\n", source)
-
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
-	if err != nil {
-		return "", errors.Wrap(err, "error creating file")
-	}
-	defer outFile.Close()
-
-	response, err := http.Get(source)
-	if err != nil {
-		return "", errors.Wrapf(err, "error downloading %q", source)
-	}
-	defer response.Body.Close()
-
-	_, err = io.Copy(outFile, response.Body)
-	if err != nil {
-		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
-	}
-
-	return outFile.Name(), nil
 }
