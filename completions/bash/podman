@@ -979,6 +979,51 @@ _podman_container() {
      esac
 }
 
+_podman_system_info() {
+   _podman_info
+}
+
+_podman_system_prune() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+     -a
+     --all
+     -f
+     --force
+     -h
+     --help
+     --volumes
+  "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
+_podman_system() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	info
+	prune
+     "
+     __podman_subcommands "$subcommands" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
+
 _podman_commit() {
     local options_with_args="
 	--author
@@ -2482,6 +2527,11 @@ _podman_container_prune() {
      -h
 	 --help
   "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
 }
 
 _podman_container_exists() {

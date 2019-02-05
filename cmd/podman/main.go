@@ -97,6 +97,7 @@ func main() {
 		inspectCommand,
 		pullCommand,
 		rmiCommand,
+		systemCommand,
 		tagCommand,
 		versionCommand,
 	}

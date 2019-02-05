@@ -76,7 +76,10 @@ There are other equivalents for these tools
 | `docker volume ls`     | [`podman volume ls`](./docs/podman-volume-ls.1.md)          |
 | `docker volume prune`  | [`podman volume prune`](./docs/podman-volume-prune.1.md)    |
 | `docker volume rm`     | [`podman volume rm`](./docs/podman-volume-rm.1.md)          |
-| `docker wait`    | [`podman wait`](./docs/podman-wait.1.md)				|
+| `docker system`        | [`podman system`](./docs/podman-system.1.md)                |
+| `docker system prune`  | [`podman system prune`](./docs/podman-system-prune.1.md)    |
+| `docker system info`   | [`podman system info`](./docs/podman-system-info.1.md)      |
+| `docker wait`          | [`podman wait`](./docs/podman-wait.1.md)		       |
 
 **** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/podman-cp.1.md) for more information.
 
@@ -95,7 +98,6 @@ Those Docker commands currently do not have equivalents in `podman`:
 | `docker service`  ||
 | `docker stack`    ||
 | `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/kubernetes-sigs/cri-o).|
-| `docker system`   ||
 | `docker volume`   | podman currently supports file volumes.  Future enhancement planned to support Docker Volumes Plugins
 
 ## Missing commands in Docker

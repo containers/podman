@@ -131,6 +131,7 @@ func runCmd(c *cli.Context) error {
 			ctrExitCode, err := readExitFile(runtime.GetConfig().TmpDir, ctr.ID())
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
+				exitCode = 127
 			} else {
 				exitCode = ctrExitCode
 			}

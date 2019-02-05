@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"

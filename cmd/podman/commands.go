@@ -53,6 +53,10 @@ func getImageSubCommands() []cli.Command {
 	}
 }
 
+func getSystemSubCommands() []cli.Command {
+	return []cli.Command{infoCommand}
+}
+
 func getContainerSubCommands() []cli.Command {
 	return []cli.Command{
 		attachCommand,

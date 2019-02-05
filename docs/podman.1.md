@@ -162,6 +162,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-start(1)](podman-start.1.md)      | Starts one or more containers.                                                 |
 | [podman-stats(1)](podman-stats.1.md)      | Display a live stream of one or more container's resource usage statistics.    |
 | [podman-stop(1)](podman-stop.1.md)        | Stop one or more running containers.                                           |
+| [podman-system(1)](podman-system.1.md)    | Manage podman.                                                                 |
 | [podman-tag(1)](podman-tag.1.md)          | Add an additional name to a local image.                                       |
 | [podman-top(1)](podman-top.1.md)          | Display the running processes of a container.                                  |
 | [podman-umount(1)](podman-umount.1.md)    | Unmount a working container's root filesystem.                                 |
