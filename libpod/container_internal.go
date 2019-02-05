@@ -393,7 +393,9 @@ func resetState(state *containerState) error {
 	state.PID = 0
 	state.Mountpoint = ""
 	state.Mounted = false
-	state.State = ContainerStateConfigured
+	if state.State != ContainerStateExited {
+		state.State = ContainerStateConfigured
+	}
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
