@@ -173,3 +173,21 @@ cat ~/.config/containers/storage.conf
   [storage.options]
     mount_program = "/bin/fuse-overlayfs"
 ```
+
+### 8) Permission denied when running systemd within a Podman container
+
+When running systemd as PID 1 inside of a container on an SELinux
+separated machine, it needs to write to the cgroup file system.
+
+#### Symptom
+
+Systemd gets permission denied when attempting to write to the cgroup file
+system, and AVC messages start to show up in the audit.log file or journal on
+the system.
+
+#### Solution
+
+SELinux provides a boolean `container_manage_cgroup`, which allows container
+processes to write to the cgroup file system. Turn on this boolean, on SELinux separated systems, to allow systemd to run properly in the container.
+
+`setsebool -P container_manage_cgroup true`

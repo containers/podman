@@ -612,6 +612,12 @@ It will also set the default stop signal to SIGRTMIN+3.
 
 This allow systemd to run in a confined container without any modifications.
 
+Note: On `SELinux` systems, systemd attempts to write to the cgroup
+file system.  Containers writing to the cgroup file system are denied by default.
+The `container_manage_cgroup` boolean must be enabled for this to be allowed on an SELinux separated system.
+
+`setsebool -P container_manage_cgroup true`
+
 **--tmpfs**=[] Create a tmpfs mount
 
 Mount a temporary filesystem (`tmpfs`) mount into a container, for example:
@@ -1096,7 +1102,7 @@ WantedBy=multi-user.target
 **/etc/subgid**
 
 ## SEE ALSO
-subgid(5), subuid(5), libpod.conf(5), systemd.unit(5)
+subgid(5), subuid(5), libpod.conf(5), systemd.unit(5), setsebool(8)
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
