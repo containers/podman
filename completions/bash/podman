@@ -742,6 +742,10 @@ _podman_container_attach() {
 }
 
 _podman_container_checkpoint() {
+     local options_with_args="
+     -e
+     --export
+     "
      local boolean_options="
      -a
      --all
@@ -755,9 +759,15 @@ _podman_container_checkpoint() {
      --leave-running
      --tcp-established
      "
+     case "$prev" in
+        -e|--export)
+            _filedir
+            return
+            ;;
+     esac
      case "$cur" in
 	-*)
-	    COMPREPLY=($(compgen -W "$boolean_options" -- "$cur"))
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
 	    ;;
 	*)
 	    __podman_complete_containers_running
@@ -844,6 +854,10 @@ _podman_container_restart() {
 }
 
 _podman_container_restore() {
+     local options_with_args="
+     -i
+     --import
+     "
      local boolean_options="
 	  -a
 	  --all
@@ -855,9 +869,15 @@ _podman_container_restore() {
 	  --latest
 	  --tcp-established
      "
+     case "$prev" in
+        -i|--import)
+            _filedir
+            return
+            ;;
+     esac
      case "$cur" in
 	-*)
-	    COMPREPLY=($(compgen -W "$boolean_options" -- "$cur"))
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
 	    ;;
 	*)
 	    __podman_complete_containers_created
