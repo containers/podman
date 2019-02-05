@@ -42,6 +42,12 @@ If the checkpoint image does not contain established TCP connections this
 option is ignored. Defaults to not restoring containers with established TCP
 connections.
 
+**--import, -i**
+
+Import a checkpoint tar.gz file, which was exported by Podman. This can be used
+to import a checkpointed container from another host. It is not necessary to specify
+a container when restoring from an exported checkpoint.
+
 ## EXAMPLE
 
 podman container restore mywebserver
