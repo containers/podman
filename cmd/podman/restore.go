@@ -43,8 +43,7 @@ func init() {
 	flags.BoolVarP(&restoreCommand.All, "all", "a", false, "Restore all checkpointed containers")
 	flags.BoolVarP(&restoreCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVarP(&restoreCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	// TODO: add ContainerStateCheckpointed
-	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Restore a container with established TCP connections")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
