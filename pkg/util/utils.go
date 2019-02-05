@@ -301,36 +301,36 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 // for the volume API
 // It also returns the path where all named volumes will be created using the volume API
 func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
+	var (
+		defaultRootlessRunRoot   string
+		defaultRootlessGraphRoot string
+		err                      error
+	)
 	storageOpts := storage.DefaultStoreOptions
 	volumePath := "/var/lib/containers/storage"
+
 	if rootless.IsRootless() {
-		var err error
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
 			return storageOpts, volumePath, err
 		}
+
 		volumePath, err = GetRootlessVolumeInfo()
 		if err != nil {
 			return storageOpts, volumePath, err
 		}
+	}
 
-		storageConf := StorageConfigFile()
-		if _, err := os.Stat(storageConf); err == nil {
-			defaultRootlessRunRoot := storageOpts.RunRoot
-			defaultRootlessGraphRoot := storageOpts.GraphRoot
-			storageOpts = storage.StoreOptions{}
-			storage.ReloadConfigurationFile(storageConf, &storageOpts)
+	storageConf := StorageConfigFile()
+	if _, err = os.Stat(storageConf); err == nil {
+		defaultRootlessRunRoot = storageOpts.RunRoot
+		defaultRootlessGraphRoot = storageOpts.GraphRoot
+		storageOpts = storage.StoreOptions{}
+		storage.ReloadConfigurationFile(storageConf, &storageOpts)
+	}
 
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
-		} else if os.IsNotExist(err) {
+	if rootless.IsRootless() {
+		if os.IsNotExist(err) {
 			os.MkdirAll(filepath.Dir(storageConf), 0755)
 			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil {
@@ -342,6 +342,16 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 			enc := toml.NewEncoder(file)
 			if err := enc.Encode(tomlConfiguration); err != nil {
 				os.Remove(storageConf)
+			}
+		} else if err == nil {
+			// If the file did not specify a graphroot or runroot,
+			// set sane defaults so we don't try and use root-owned
+			// directories
+			if storageOpts.RunRoot == "" {
+				storageOpts.RunRoot = defaultRootlessRunRoot
+			}
+			if storageOpts.GraphRoot == "" {
+				storageOpts.GraphRoot = defaultRootlessGraphRoot
 			}
 		}
 	}
