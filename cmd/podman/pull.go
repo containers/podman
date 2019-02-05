@@ -123,7 +123,7 @@ func pullCmd(c *cli.Context) error {
 		imgID = newImage[0].ID()
 	} else {
 		authfile := getAuthFile(c.String("authfile"))
-		newImage, err := runtime.New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true)
+		newImage, err := runtime.New(getContext(), image, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, nil)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", image)
 		}

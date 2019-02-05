@@ -166,7 +166,7 @@ func runlabelCmd(c *cli.Context) error {
 		return err
 	}
 	if runLabel == "" {
-		return nil
+		return errors.Errorf("%s does not have a label of %s", runlabelImage, label)
 	}
 
 	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.String("name"), opts, extraArgs)
