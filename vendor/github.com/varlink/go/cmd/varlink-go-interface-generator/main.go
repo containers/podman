@@ -109,6 +109,36 @@ func generateTemplate(description string) (string, []byte, error) {
 		b.WriteString("\n\n")
 	}
 
+	for _, a := range midl.Errors {
+		writeDocString(&b, a.Doc)
+		b.WriteString("type " + a.Name + " ")
+		writeType(&b, a.Type, true, 0)
+		b.WriteString("\nfunc (e " + a.Name + ") Error() string {\n")
+		b.WriteString("\treturn \"" + midl.Name + "." + a.Name + "\"\n")
+		b.WriteString("}\n\n")
+	}
+
+	b.WriteString("func Dispatch_Error(err error) error {\n")
+	b.WriteString("\tif e, ok := err.(*varlink.Error); ok {\n")
+	b.WriteString("\t\tswitch e.Name {\n")
+	for _, a := range midl.Errors {
+		b.WriteString("\t\tcase \"" + midl.Name + "." + a.Name + "\":\n")
+		b.WriteString("\t\t\terrorRawParameters := e.Parameters.(*json.RawMessage)\n")
+		b.WriteString("\t\t\tif errorRawParameters == nil {\n")
+		b.WriteString("\t\t\t\treturn e\n")
+		b.WriteString("\t\t\t}\n")
+		b.WriteString("\t\t\tvar param " + a.Name + "\n")
+		b.WriteString("\t\t\terr := json.Unmarshal(*errorRawParameters, &param)\n")
+		b.WriteString("\t\t\tif err != nil {\n")
+		b.WriteString("\t\t\t\treturn e\n")
+		b.WriteString("\t\t\t}\n")
+		b.WriteString("\t\t\treturn &param\n")
+	}
+	b.WriteString("\t\t}\n")
+	b.WriteString("\t}\n")
+	b.WriteString("\treturn err\n")
+	b.WriteString("}\n\n")
+
 	b.WriteString("// Generated client method calls\n\n")
 
 	for _, m := range midl.Methods {
@@ -175,9 +205,9 @@ func generateTemplate(description string) (string, []byte, error) {
 		} else {
 			b.WriteString("\treceive, err := c.Send(\"" + midl.Name + "." + m.Name + "\", nil, flags)\n")
 		}
-		b.WriteString("if err != nil {\n" +
-			"\treturn nil, err\n" +
-			"}\n")
+		b.WriteString("\tif err != nil {\n" +
+			"\t\treturn nil, err\n" +
+			"\t}\n")
 		b.WriteString("\treturn func() (")
 		for _, field := range m.Out.Fields {
 			b.WriteString(field.Name + "_out_ ")
@@ -194,6 +224,7 @@ func generateTemplate(description string) (string, []byte, error) {
 			b.WriteString("\t\tflags, err = receive(nil)\n")
 		}
 		b.WriteString("\t\tif err != nil {\n" +
+			"\t\t\terr = Dispatch_Error(err)\n" +
 			"\t\t\treturn\n" +
 			"\t\t}\n")
 		for _, field := range m.Out.Fields {
@@ -242,10 +273,8 @@ func generateTemplate(description string) (string, []byte, error) {
 			writeType(&b, field.Type, false, 1)
 		}
 		b.WriteString(") error {\n")
+		b.WriteString("\tvar out " + e.Name + "\n")
 		if len(e.Type.Fields) > 0 {
-			b.WriteString("\tvar out ")
-			writeType(&b, e.Type, true, 1)
-			b.WriteString("\n")
 			for _, field := range e.Type.Fields {
 				switch field.Type.Kind {
 				case idl.TypeStruct, idl.TypeArray, idl.TypeMap:
@@ -257,10 +286,8 @@ func generateTemplate(description string) (string, []byte, error) {
 					b.WriteString("\tout." + strings.Title(field.Name) + " = " + field.Name + "_\n")
 				}
 			}
-			b.WriteString("\treturn c.ReplyError(\"" + midl.Name + "." + e.Name + "\", &out)\n")
-		} else {
-			b.WriteString("\treturn c.ReplyError(\"" + midl.Name + "." + e.Name + "\", nil)\n")
 		}
+		b.WriteString("\treturn c.ReplyError(\"" + midl.Name + "." + e.Name + "\", &out)\n")
 		b.WriteString("}\n\n")
 	}
 

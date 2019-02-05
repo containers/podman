@@ -109,6 +109,16 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
 
+    # This task runs `make vendor` followed by ./hack/tree_status.sh to check
+    # whether the git tree is clean.  The reasoning for that is to make sure
+    # that the vendor.conf, the code and the vendored packages in ./vendor are
+    # in sync at all times.
+    vendor_script:
+        - '/usr/local/bin/entrypoint.sh .install.vndr'
+        - '/usr/local/bin/entrypoint.sh vendor'
+        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
+
+
 build_each_commit_task:
 
     depends_on:
@@ -252,6 +262,7 @@ success_task:
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
+        - "vendor_check"
         - "testing"
         - "optional_testing"
         - "cache_images"

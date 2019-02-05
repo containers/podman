@@ -12,7 +12,7 @@ import (
 )
 
 var bold = color.New(color.Bold)
-var errorBoldRed = bold.Sprint(color.New(color.FgRed).Sprint("Error:"))
+var errorBoldRed string
 var bridge string
 
 func ErrPrintf(format string, a ...interface{}) {
@@ -71,7 +71,7 @@ func varlink_call(args []string) {
 			os.Exit(2)
 		}
 		address = "bridge:" + bridge
-		methodName =  callFlags.Arg(0)
+		methodName = callFlags.Arg(0)
 	} else {
 		uri := callFlags.Arg(0)
 		if uri == "" {
@@ -126,20 +126,18 @@ func varlink_call(args []string) {
 	f.NullColor = color.New(color.FgMagenta)
 
 	if err != nil {
-		ErrPrintf("Error calling '%s': %v\n", methodName, err)
-		switch e := err.(type) {
-		case *varlink.Error:
-			println(e.Name)
+		if e, ok := err.(*varlink.Error); ok {
+			ErrPrintf("Call failed with error: %v\n", color.New(color.FgRed).Sprint(e.Name))
 			errorRawParameters := e.Parameters.(*json.RawMessage)
-
-			if errorRawParameters == nil {
-				break
+			if errorRawParameters != nil {
+				var param map[string]interface{}
+				_ = json.Unmarshal(*errorRawParameters, &param)
+				c, _ := f.Marshal(param)
+				fmt.Fprintf(os.Stderr, "%v\n", string(c))
 			}
-			var param map[string]interface{}
-			_ = json.Unmarshal(*errorRawParameters, &param)
-			c, _ := f.Marshal(param)
-			ErrPrintf("%v\n", string(c))
+			os.Exit(2)
 		}
+		ErrPrintf("Error calling '%s': %v\n", methodName, err)
 		os.Exit(2)
 	}
 	c, _ := f.Marshal(retval)
@@ -173,7 +171,7 @@ func varlink_help(args []string) {
 			os.Exit(2)
 		}
 		address = "bridge:" + bridge
-		interfaceName =  helpFlags.Arg(0)
+		interfaceName = helpFlags.Arg(0)
 	} else {
 		uri := helpFlags.Arg(0)
 		if uri == "" && bridge == "" {
@@ -281,6 +279,8 @@ func main() {
 	if colorMode != "on" && (os.Getenv("TERM") == "" || colorMode == "off") {
 		color.NoColor = true // disables colorized output
 	}
+
+	errorBoldRed = bold.Sprint(color.New(color.FgRed).Sprint("Error:"))
 
 	switch flag.Arg(0) {
 	case "info":

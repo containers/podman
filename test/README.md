@@ -34,27 +34,14 @@ between Ginkgo and the Go test framework.
 ## Installing dependencies
 The dependencies for integration really consists of three things:
 * ginkgo binary
-* ginkgo sources
-* gomega sources
 
 The following instructions assume your GOPATH is ~/go. Adjust as needed for your
 environment.
 
 ### Installing ginkgo
-Fetch and build ginkgo with the following command:
+Build ginkgo and install it under $GOPATH/bin with the following command:
 ```
-GOPATH=~/go go get -u github.com/onsi/ginkgo/ginkgo
-```
-Now install the ginkgo binary into your path:
-```
-install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
-```
-You now have a ginkgo binary and its sources in your GOPATH.
-
-### Install gomega sources
-The gomega sources can be simply installed with the command:
-```
-GOPATH=~/go go get github.com/onsi/gomega/...
+GOPATH=~/go make .install.ginkgo
 ```
 
 # Integration Tests
