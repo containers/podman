@@ -9,6 +9,7 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -43,6 +44,18 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 		return mounts
 	}
 	return configMount
+}
+
+func getAvailableGids() (int64, error) {
+	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+	if err != nil {
+		return 0, err
+	}
+	count := int64(0)
+	for _, r := range idMap {
+		count += r.Count
+	}
+	return count, nil
 }
 
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
@@ -91,14 +104,21 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.AddMount(sysMnt)
 	}
 	if isRootless {
-		g.RemoveMount("/dev/pts")
-		devPts := spec.Mount{
-			Destination: "/dev/pts",
-			Type:        "devpts",
-			Source:      "devpts",
-			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		nGids, err := getAvailableGids()
+		if err != nil {
+			return nil, err
 		}
-		g.AddMount(devPts)
+		if nGids < 5 {
+			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
+			g.RemoveMount("/dev/pts")
+			devPts := spec.Mount{
+				Destination: "/dev/pts",
+				Type:        "devpts",
+				Source:      "devpts",
+				Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+			}
+			g.AddMount(devPts)
+		}
 	}
 	if inUserNS && config.IpcMode.IsHost() {
 		g.RemoveMount("/dev/mqueue")
