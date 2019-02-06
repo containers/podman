@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,7 @@ import (
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
-	"github.com/docker/go-units"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -110,83 +111,46 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 // BuildImage ...
 func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildInfo) error {
 	var (
-		memoryLimit int64
-		memorySwap  int64
-		namespace   []buildah.NamespaceOption
-		err         error
+		namespace []buildah.NamespaceOption
+		err       error
 	)
 
 	systemContext := types.SystemContext{}
-	dockerfiles := config.Dockerfile
-	contextDir := ""
+	contextDir := config.ContextDir
 
-	for i := range dockerfiles {
-		if strings.HasPrefix(dockerfiles[i], "http://") ||
-			strings.HasPrefix(dockerfiles[i], "https://") ||
-			strings.HasPrefix(dockerfiles[i], "git://") ||
-			strings.HasPrefix(dockerfiles[i], "github.com/") {
-			continue
-		}
-		absFile, err := filepath.Abs(dockerfiles[i])
-		if err != nil {
-			return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
-		}
-		contextDir = filepath.Dir(absFile)
-		dockerfiles[i], err = filepath.Rel(contextDir, absFile)
-		if err != nil {
-			return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
-		}
-		break
+	newContextDir, err := ioutil.TempDir("", "buildTarball")
+	if err != nil {
+		call.ReplyErrorOccurred("unable to create tempdir")
 	}
+	logrus.Debugf("created new context dir at %s", newContextDir)
 
-	pullPolicy := imagebuildah.PullNever
-	if config.Pull {
-		pullPolicy = imagebuildah.PullIfMissing
+	reader, err := os.Open(contextDir)
+	if err != nil {
+		logrus.Errorf("failed to open the context dir tar file %s", contextDir)
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to open context dir tar file %s", contextDir))
 	}
+	defer reader.Close()
+	if err := archive.Untar(reader, newContextDir, &archive.TarOptions{}); err != nil {
+		logrus.Errorf("fail to untar the context dir tarball (%s) to the context dir (%s)", contextDir, newContextDir)
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to untar context dir %s", contextDir))
+	}
+	logrus.Debugf("untar of %s successful", contextDir)
 
-	if config.Pull_always {
-		pullPolicy = imagebuildah.PullAlways
-	}
-	manifestType := "oci" //nolint
-	if config.Image_format != "" {
-		manifestType = config.Image_format
-	}
-
-	if strings.HasPrefix(manifestType, "oci") {
-		manifestType = buildah.OCIv1ImageManifest
-	} else if strings.HasPrefix(manifestType, "docker") {
-		manifestType = buildah.Dockerv2ImageManifest
-	} else {
-		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image type %q", manifestType))
-	}
-
-	if config.Memory != "" {
-		memoryLimit, err = units.RAMInBytes(config.Memory)
-		if err != nil {
-			return call.ReplyErrorOccurred(err.Error())
-		}
-	}
-
-	if config.Memory_swap != "" {
-		memorySwap, err = units.RAMInBytes(config.Memory_swap)
-		if err != nil {
-			return call.ReplyErrorOccurred(err.Error())
-		}
-	}
-
+	// All output (stdout, stderr) is captured in output as well
 	output := bytes.NewBuffer([]byte{})
+
 	commonOpts := &buildah.CommonBuildOptions{
-		AddHost:      config.Add_hosts,
-		CgroupParent: config.Cgroup_parent,
-		CPUPeriod:    uint64(config.Cpu_period),
-		CPUQuota:     config.Cpu_quota,
-		CPUSetCPUs:   config.Cpuset_cpus,
-		CPUSetMems:   config.Cpuset_mems,
-		Memory:       memoryLimit,
-		MemorySwap:   memorySwap,
-		ShmSize:      config.Shm_size,
-		Ulimit:       config.Ulimit,
-		Volumes:      config.Volume,
+		AddHost:      config.BuildOptions.AddHosts,
+		CgroupParent: config.BuildOptions.CgroupParent,
+		CPUPeriod:    uint64(config.BuildOptions.CpuPeriod),
+		CPUQuota:     config.BuildOptions.CpuQuota,
+		CPUSetCPUs:   config.BuildOptions.CpusetCpus,
+		CPUSetMems:   config.BuildOptions.CpusetMems,
+		Memory:       config.BuildOptions.Memory,
+		MemorySwap:   config.BuildOptions.MemorySwap,
+		ShmSize:      config.BuildOptions.ShmSize,
+		Ulimit:       config.BuildOptions.Ulimit,
+		Volumes:      config.BuildOptions.Volume,
 	}
 
 	hostNetwork := buildah.NamespaceOption{
@@ -197,37 +161,68 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	namespace = append(namespace, hostNetwork)
 
 	options := imagebuildah.BuildOptions{
-		ContextDirectory: contextDir,
-		PullPolicy:       pullPolicy,
-		Compression:      imagebuildah.Gzip,
-		Quiet:            false,
-		//SignaturePolicyPath:
-		Args: config.Build_args,
-		//Output:
-		AdditionalTags: config.Tags,
-		//Runtime: runtime.
-		//RuntimeArgs: ,
-		OutputFormat:     manifestType,
-		SystemContext:    &systemContext,
-		CommonBuildOpts:  commonOpts,
-		Squash:           config.Squash,
-		Labels:           config.Label,
-		Annotations:      config.Annotations,
-		ReportWriter:     output,
-		NamespaceOptions: namespace,
+		CommonBuildOpts:         commonOpts,
+		AdditionalTags:          config.AdditionalTags,
+		Annotations:             config.Annotations,
+		Args:                    config.BuildArgs,
+		CNIConfigDir:            config.CniConfigDir,
+		CNIPluginPath:           config.CniPluginDir,
+		Compression:             stringCompressionToArchiveType(config.Compression),
+		ContextDirectory:        newContextDir,
+		DefaultMountsFilePath:   config.DefaultsMountFilePath,
+		Err:                     output,
+		ForceRmIntermediateCtrs: config.ForceRmIntermediateCtrs,
+		IIDFile:                 config.Iidfile,
+		Labels:                  config.Label,
+		Layers:                  config.Layers,
+		NoCache:                 config.Nocache,
+		Out:                     output,
+		Output:                  config.Output,
+		NamespaceOptions:        namespace,
+		OutputFormat:            config.OutputFormat,
+		PullPolicy:              stringPullPolicyToType(config.PullPolicy),
+		Quiet:                   config.Quiet,
+		RemoveIntermediateCtrs:  config.RemoteIntermediateCtrs,
+		ReportWriter:            output,
+		RuntimeArgs:             config.RuntimeArgs,
+		SignaturePolicyPath:     config.SignaturePolicyPath,
+		Squash:                  config.Squash,
+		SystemContext:           &systemContext,
 	}
 
 	if call.WantsMore() {
 		call.Continues = true
 	}
 
-	c := build(i.Runtime, options, config.Dockerfile)
+	var newPathDockerFiles []string
+
+	for _, d := range config.Dockerfiles {
+		if strings.HasPrefix(d, "http://") ||
+			strings.HasPrefix(d, "https://") ||
+			strings.HasPrefix(d, "git://") ||
+			strings.HasPrefix(d, "github.com/") {
+			newPathDockerFiles = append(newPathDockerFiles, d)
+			continue
+		}
+		base := filepath.Base(d)
+		newPathDockerFiles = append(newPathDockerFiles, filepath.Join(newContextDir, base))
+	}
+
+	c := build(i.Runtime, options, newPathDockerFiles)
 	var log []string
 	done := false
 	for {
-		line, err := output.ReadString('\n')
+		outputLine, err := output.ReadString('\n')
 		if err == nil {
-			log = append(log, line)
+			log = append(log, outputLine)
+			if call.WantsMore() {
+				//	 we want to reply with what we have
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				call.ReplyBuildImage(br)
+				log = []string{}
+			}
 			continue
 		} else if err == io.EOF {
 			select {
@@ -237,15 +232,10 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 				}
 				done = true
 			default:
-				if !call.WantsMore() {
+				if call.WantsMore() {
 					time.Sleep(1 * time.Second)
 					break
 				}
-				br := iopodman.MoreResponse{
-					Logs: log,
-				}
-				call.ReplyBuildImage(br)
-				log = []string{}
 			}
 		} else {
 			return call.ReplyErrorOccurred(err.Error())
@@ -255,7 +245,8 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		}
 	}
 	call.Continues = false
-	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(config.Tags[0])
+
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(config.Output)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

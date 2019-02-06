@@ -135,6 +135,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type BuildInfo](#BuildInfo)
 
+[type BuildOptions](#BuildOptions)
+
 [type Container](#Container)
 
 [type ContainerChanges](#ContainerChanges)
@@ -972,53 +974,84 @@ a [ContainerNotFound](#ContainerNotFound) error is returned.
 
 BuildInfo is used to describe user input for building images
 
-dockerfile [[]string](#[]string)
+additionalTags [[]string](#[]string)
 
-tags [[]string](#[]string)
+annotations [[]string](#[]string)
 
-add_hosts [[]string](#[]string)
+buildArgs [map[string]](#map[string])
 
-cgroup_parent [string](https://godoc.org/builtin#string)
+buildOptions [BuildOptions](#BuildOptions)
 
-cpu_period [int](https://godoc.org/builtin#int)
+cniConfigDir [string](https://godoc.org/builtin#string)
 
-cpu_quota [int](https://godoc.org/builtin#int)
+cniPluginDir [string](https://godoc.org/builtin#string)
 
-cpu_shares [int](https://godoc.org/builtin#int)
+compression [string](https://godoc.org/builtin#string)
 
-cpuset_cpus [string](https://godoc.org/builtin#string)
+contextDir [string](https://godoc.org/builtin#string)
 
-cpuset_mems [string](https://godoc.org/builtin#string)
+defaultsMountFilePath [string](https://godoc.org/builtin#string)
 
-memory [string](https://godoc.org/builtin#string)
+dockerfiles [[]string](#[]string)
 
-memory_swap [string](https://godoc.org/builtin#string)
+err [string](https://godoc.org/builtin#string)
 
-security_opts [[]string](#[]string)
+forceRmIntermediateCtrs [bool](https://godoc.org/builtin#bool)
 
-shm_size [string](https://godoc.org/builtin#string)
+iidfile [string](https://godoc.org/builtin#string)
+
+label [[]string](#[]string)
+
+layers [bool](https://godoc.org/builtin#bool)
+
+nocache [bool](https://godoc.org/builtin#bool)
+
+out [string](https://godoc.org/builtin#string)
+
+output [string](https://godoc.org/builtin#string)
+
+outputFormat [string](https://godoc.org/builtin#string)
+
+pullPolicy [string](https://godoc.org/builtin#string)
+
+quiet [bool](https://godoc.org/builtin#bool)
+
+remoteIntermediateCtrs [bool](https://godoc.org/builtin#bool)
+
+reportWriter [string](https://godoc.org/builtin#string)
+
+runtimeArgs [[]string](#[]string)
+
+signaturePolicyPath [string](https://godoc.org/builtin#string)
+
+squash [bool](https://godoc.org/builtin#bool)
+### <a name="BuildOptions"></a>type BuildOptions
+
+BuildOptions are are used to describe describe physical attributes of the build
+
+addHosts [[]string](#[]string)
+
+cgroupParent [string](https://godoc.org/builtin#string)
+
+cpuPeriod [int](https://godoc.org/builtin#int)
+
+cpuQuota [int](https://godoc.org/builtin#int)
+
+cpuShares [int](https://godoc.org/builtin#int)
+
+cpusetCpus [string](https://godoc.org/builtin#string)
+
+cpusetMems [string](https://godoc.org/builtin#string)
+
+memory [int](https://godoc.org/builtin#int)
+
+memorySwap [int](https://godoc.org/builtin#int)
+
+shmSize [string](https://godoc.org/builtin#string)
 
 ulimit [[]string](#[]string)
 
 volume [[]string](#[]string)
-
-squash [bool](https://godoc.org/builtin#bool)
-
-pull [bool](https://godoc.org/builtin#bool)
-
-pull_always [bool](https://godoc.org/builtin#bool)
-
-force_rm [bool](https://godoc.org/builtin#bool)
-
-rm [bool](https://godoc.org/builtin#bool)
-
-label [[]string](#[]string)
-
-annotations [[]string](#[]string)
-
-build_args [map[string]](#map[string])
-
-image_format [string](https://godoc.org/builtin#string)
 ### <a name="Container"></a>type Container
 
 

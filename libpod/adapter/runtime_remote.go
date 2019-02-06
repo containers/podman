@@ -7,19 +7,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"
 )
@@ -376,6 +379,108 @@ func (r *LocalRuntime) Export(name string, path string) error {
 // Import implements the remote calls required to import a container image to the store
 func (r *LocalRuntime) Import(ctx context.Context, source, reference string, changes []string, history string, quiet bool) (string, error) {
 	// First we send the file to the host
+	tempFile, err := r.SendFileOverVarlink(source)
+	if err != nil {
+		return "", err
+	}
+	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
+}
+
+func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) error {
+	buildOptions := iopodman.BuildOptions{
+		AddHosts:     options.CommonBuildOpts.AddHost,
+		CgroupParent: options.CommonBuildOpts.CgroupParent,
+		CpuPeriod:    int64(options.CommonBuildOpts.CPUPeriod),
+		CpuQuota:     options.CommonBuildOpts.CPUQuota,
+		CpuShares:    int64(options.CommonBuildOpts.CPUShares),
+		CpusetCpus:   options.CommonBuildOpts.CPUSetMems,
+		CpusetMems:   options.CommonBuildOpts.CPUSetMems,
+		Memory:       options.CommonBuildOpts.Memory,
+		MemorySwap:   options.CommonBuildOpts.MemorySwap,
+		ShmSize:      options.CommonBuildOpts.ShmSize,
+		Ulimit:       options.CommonBuildOpts.Ulimit,
+		Volume:       options.CommonBuildOpts.Volumes,
+	}
+
+	buildinfo := iopodman.BuildInfo{
+		AdditionalTags:        options.AdditionalTags,
+		Annotations:           options.Annotations,
+		BuildArgs:             options.Args,
+		BuildOptions:          buildOptions,
+		CniConfigDir:          options.CNIConfigDir,
+		CniPluginDir:          options.CNIPluginPath,
+		Compression:           string(options.Compression),
+		DefaultsMountFilePath: options.DefaultMountsFilePath,
+		Dockerfiles:           dockerfiles,
+		//Err: string(options.Err),
+		ForceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
+		Iidfile:                 options.IIDFile,
+		Label:                   options.Labels,
+		Layers:                  options.Layers,
+		Nocache:                 options.NoCache,
+		//Out:
+		Output:                 options.Output,
+		OutputFormat:           options.OutputFormat,
+		PullPolicy:             options.PullPolicy.String(),
+		Quiet:                  options.Quiet,
+		RemoteIntermediateCtrs: options.RemoveIntermediateCtrs,
+		//ReportWriter:
+		RuntimeArgs:         options.RuntimeArgs,
+		SignaturePolicyPath: options.SignaturePolicyPath,
+		Squash:              options.Squash,
+	}
+	// tar the file
+	logrus.Debugf("creating tarball of context dir %s", options.ContextDirectory)
+	input, err := archive.Tar(options.ContextDirectory, archive.Uncompressed)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create tarball of context dir %s", options.ContextDirectory)
+	}
+
+	// Write the tarball to the fs
+	// TODO we might considering sending this without writing to the fs for the sake of performance
+	// under given conditions like memory availability.
+	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+	logrus.Debugf("writing context dir tarball to %s", outputFile.Name())
+
+	_, err = io.Copy(outputFile, input)
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("completed writing context dir tarball %s", outputFile.Name())
+	// Send the context dir tarball over varlink.
+	tempFile, err := r.SendFileOverVarlink(outputFile.Name())
+	if err != nil {
+		return err
+	}
+	buildinfo.ContextDir = strings.Replace(tempFile, ":", "", -1)
+
+	reply, err := iopodman.BuildImage().Send(r.Conn, varlink.More, buildinfo)
+	if err != nil {
+		return err
+	}
+
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return err
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	return err
+}
+
+// SendFileOverVarlink sends a file over varlink in an upgraded connection
+func (r *LocalRuntime) SendFileOverVarlink(source string) (string, error) {
 	fs, err := os.Open(source)
 	if err != nil {
 		return "", err
@@ -385,6 +490,7 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 	if err != nil {
 		return "", err
 	}
+	logrus.Debugf("sending %s over varlink connection", source)
 	reply, err := iopodman.SendFile().Send(r.Conn, varlink.Upgrade, "", int64(fileInfo.Size()))
 	if err != nil {
 		return "", err
@@ -399,6 +505,7 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 	if err != nil {
 		return "", err
 	}
+	logrus.Debugf("file transfer complete for %s", source)
 	r.Conn.Writer.Flush()
 
 	// All was sent, wait for the ACK from the server
@@ -412,7 +519,8 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 		return "", err
 
 	}
-	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
+
+	return tempFile, nil
 }
 
 // GetAllVolumes retrieves all the volumes
