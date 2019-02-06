@@ -2,12 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -37,34 +38,8 @@ var volumePruneCommand = cli.Command{
 	UseShortOptionHandling: true,
 }
 
-func volumePruneCmd(c *cli.Context) error {
+func volumePrune(runtime *adapter.LocalRuntime, ctx context.Context) error {
 	var lastError error
-
-	if err := validateFlags(c, volumePruneFlags); err != nil {
-		return err
-	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
-	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
-	}
-	defer runtime.Shutdown(false)
-
-	ctx := getContext()
-
-	// Prompt for confirmation if --force is not set
-	if !c.Bool("force") {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
-		fmt.Print("Are you sure you want to continue? [y/N] ")
-		ans, err := reader.ReadString('\n')
-		if err != nil {
-			return errors.Wrapf(err, "error reading input")
-		}
-		if strings.ToLower(ans)[0] != 'y' {
-			return nil
-		}
-	}
 
 	volumes, err := runtime.GetAllVolumes()
 	if err != nil {
@@ -83,4 +58,33 @@ func volumePruneCmd(c *cli.Context) error {
 		}
 	}
 	return lastError
+}
+
+func volumePruneCmd(c *cli.Context) error {
+
+	if err := validateFlags(c, volumePruneFlags); err != nil {
+		return err
+	}
+
+	runtime, err := adapter.GetRuntime(c)
+	if err != nil {
+		return errors.Wrapf(err, "error creating libpod runtime")
+	}
+	defer runtime.Shutdown(false)
+
+	// Prompt for confirmation if --force is not set
+	if !c.Bool("force") {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
+		fmt.Print("Are you sure you want to continue? [y/N] ")
+		ans, err := reader.ReadString('\n')
+		if err != nil {
+			return errors.Wrapf(err, "error reading input")
+		}
+		if strings.ToLower(ans)[0] != 'y' {
+			return nil
+		}
+	}
+
+	return volumePrune(runtime, getContext())
 }

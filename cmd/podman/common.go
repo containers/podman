@@ -22,11 +22,11 @@ var (
 	stores     = make(map[storage.Store]struct{})
 	LatestFlag = cli.BoolFlag{
 		Name:  "latest, l",
-		Usage: "act on the latest container podman is aware of",
+		Usage: "Act on the latest container podman is aware of",
 	}
 	LatestPodFlag = cli.BoolFlag{
 		Name:  "latest, l",
-		Usage: "act on the latest pod podman is aware of",
+		Usage: "Act on the latest pod podman is aware of",
 	}
 	WorkDirFlag = cli.StringFlag{
 		Name:  "workdir, w",
@@ -213,7 +213,7 @@ var createFlags = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "conmon-pidfile",
-		Usage: "path to the file that will receive the PID of conmon",
+		Usage: "Path to the file that will receive the PID of conmon",
 	},
 	cli.Uint64Flag{
 		Name:  "cpu-period",

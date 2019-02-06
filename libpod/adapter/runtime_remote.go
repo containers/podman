@@ -407,3 +407,28 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 	}
 	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
 }
+
+// GetAllVolumes retrieves all the volumes
+func (r *LocalRuntime) GetAllVolumes() ([]*libpod.Volume, error) {
+	return nil, libpod.ErrNotImplemented
+}
+
+// RemoveVolume removes a volumes
+func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force, prune bool) error {
+	return libpod.ErrNotImplemented
+}
+
+// GetContainers retrieves all containers from the state
+// Filters can be provided which will determine what containers are included in
+// the output. Multiple filters are handled by ANDing their output, so only
+// containers matching all filters are returned
+func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libpod.Container, error) {
+	return nil, libpod.ErrNotImplemented
+}
+
+// RemoveContainer removes the given container
+// If force is specified, the container will be stopped first
+// Otherwise, RemoveContainer will return an error if the container is running
+func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force bool) error {
+	return libpod.ErrNotImplemented
+}

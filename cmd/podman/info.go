@@ -26,7 +26,7 @@ var (
 	infoFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug, D",
-			Usage: "display additional debug information",
+			Usage: "Display additional debug information",
 		},
 		cli.StringFlag{
 			Name:  "format, f",

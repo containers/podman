@@ -90,11 +90,11 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "digests",
-			Usage: "show digests",
+			Usage: "Show digests",
 		},
 		cli.StringSliceFlag{
 			Name:  "filter, f",
-			Usage: "filter output based on conditions provided (default [])",
+			Usage: "Filter output based on conditions provided (default [])",
 		},
 		cli.StringFlag{
 			Name:  "format",
@@ -102,20 +102,20 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "noheading, n",
-			Usage: "do not print column headings",
+			Usage: "Do not print column headings",
 		},
 		cli.BoolFlag{
 			Name:  "no-trunc, notruncate",
-			Usage: "do not truncate output",
+			Usage: "Do not truncate output",
 		},
 		cli.BoolFlag{
 			Name:  "quiet, q",
-			Usage: "display only image IDs",
+			Usage: "Display only image IDs",
 		},
 		cli.StringFlag{
 			Name:  "sort",
 			Usage: "Sort by created, id, repository, size, or tag",
-			Value: "created",
+			Value: "Created",
 		},
 	}
 
@@ -133,7 +133,7 @@ var (
 	lsImagesCommand = cli.Command{
 		Name:                   "list",
 		Aliases:                []string{"ls"},
-		Usage:                  "list images in local storage",
+		Usage:                  "List images in local storage",
 		Description:            imagesDescription,
 		Flags:                  imagesFlags,
 		Action:                 imagesCmd,

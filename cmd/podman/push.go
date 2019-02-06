@@ -21,40 +21,40 @@ var (
 	pushFlags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "signature-policy",
-			Usage:  "`pathname` of signature policy file (not usually used)",
+			Usage:  "`Pathname` of signature policy file (not usually used)",
 			Hidden: true,
 		},
 		cli.StringFlag{
 			Name:  "creds",
-			Usage: "`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+			Usage: "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
-			Usage: "`pathname` of a directory containing TLS certificates and keys",
+			Usage: "`Pathname` of a directory containing TLS certificates and keys",
 		},
 		cli.BoolFlag{
 			Name:  "compress",
-			Usage: "compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)",
+			Usage: "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)",
 		},
 		cli.StringFlag{
 			Name:  "format, f",
-			Usage: "manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)",
+			Usage: "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 		cli.BoolFlag{
 			Name:  "remove-signatures",
-			Usage: "discard any pre-existing signatures in the image",
+			Usage: "Discard any pre-existing signatures in the image",
 		},
 		cli.StringFlag{
 			Name:  "sign-by",
-			Usage: "add a signature at the destination using the specified key",
+			Usage: "Add a signature at the destination using the specified key",
 		},
 		cli.BoolFlag{
 			Name:  "quiet, q",
-			Usage: "don't output progress information when pushing images",
+			Usage: "Don't output progress information when pushing images",
 		},
 		cli.StringFlag{
 			Name:  "authfile",

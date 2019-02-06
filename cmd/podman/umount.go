@@ -15,11 +15,11 @@ var (
 	umountFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "umount all of the currently mounted containers",
+			Usage: "Umount all of the currently mounted containers",
 		},
 		cli.BoolFlag{
 			Name:  "force, f",
-			Usage: "force the complete umount all of the currently mounted containers",
+			Usage: "Force the complete umount all of the currently mounted containers",
 		},
 		LatestFlag,
 	}

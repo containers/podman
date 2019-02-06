@@ -24,15 +24,15 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "display",
-			Usage: "preview the command that the label would run",
+			Usage: "Preview the command that the label would run",
 		},
 		cli.StringFlag{
 			Name:  "cert-dir",
-			Usage: "`pathname` of a directory containing TLS certificates and keys",
+			Usage: "`Pathname` of a directory containing TLS certificates and keys",
 		},
 		cli.StringFlag{
 			Name:  "creds",
-			Usage: "`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+			Usage: "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
 		},
 		cli.StringFlag{
 			Name:  "name",
@@ -59,15 +59,15 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "pull, p",
-			Usage: "pull the image if it does not exist locally prior to executing the label contents",
+			Usage: "Pull the image if it does not exist locally prior to executing the label contents",
 		},
 		cli.StringFlag{
 			Name:  "signature-policy",
-			Usage: "`pathname` of signature policy file (not usually used)",
+			Usage: "`Pathname` of signature policy file (not usually used)",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 

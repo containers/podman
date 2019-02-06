@@ -20,7 +20,7 @@ var runDescription = "Runs a command in a new container from the given image"
 
 var runFlags []cli.Flag = append(createFlags, cli.BoolTFlag{
 	Name:  "sig-proxy",
-	Usage: "proxy received signals to the process (default true)",
+	Usage: "Proxy received signals to the process (default true)",
 })
 
 var runCommand = cli.Command{
@@ -131,6 +131,7 @@ func runCmd(c *cli.Context) error {
 			ctrExitCode, err := readExitFile(runtime.GetConfig().TmpDir, ctr.ID())
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
+				exitCode = 127
 			} else {
 				exitCode = ctrExitCode
 			}

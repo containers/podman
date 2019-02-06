@@ -30,23 +30,23 @@ var (
 		},
 		cli.StringSliceFlag{
 			Name:  "filter, f",
-			Usage: "filter output based on conditions provided (default [])",
+			Usage: "Filter output based on conditions provided (default [])",
 		},
 		cli.StringFlag{
 			Name:  "format",
-			Usage: "change the output format to a Go template",
+			Usage: "Change the output format to a Go template",
 		},
 		cli.IntFlag{
 			Name:  "limit",
-			Usage: "limit the number of results",
+			Usage: "Limit the number of results",
 		},
 		cli.BoolFlag{
 			Name:  "no-trunc",
-			Usage: "do not truncate the output",
+			Usage: "Do not truncate the output",
 		},
 		cli.BoolTFlag{
 			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
+			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
 		},
 	}
 	searchDescription = `

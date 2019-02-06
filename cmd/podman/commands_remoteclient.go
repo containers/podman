@@ -16,6 +16,10 @@ func getContainerSubCommands() []cli.Command {
 	return []cli.Command{}
 }
 
+func getSystemSubCommands() []cli.Command {
+	return []cli.Command{}
+}
+
 func getMainAppFlags() []cli.Flag {
 	return []cli.Flag{}
 }

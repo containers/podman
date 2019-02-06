@@ -9,10 +9,10 @@ var (
 		containerKubeCommand,
 	}
 
-	generateDescription = "generate structured data based for a containers and pods"
+	generateDescription = "Generate structured data based for a containers and pods"
 	kubeCommand         = cli.Command{
 		Name:                   "generate",
-		Usage:                  "generated structured data",
+		Usage:                  "Generate structured data",
 		Description:            generateDescription,
 		ArgsUsage:              "",
 		Subcommands:            generateSubCommands,

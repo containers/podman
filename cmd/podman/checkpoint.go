@@ -21,19 +21,19 @@ var (
 	checkpointFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "keep, k",
-			Usage: "keep all temporary checkpoint files",
+			Usage: "Keep all temporary checkpoint files",
 		},
 		cli.BoolFlag{
 			Name:  "leave-running, R",
-			Usage: "leave the container running after writing checkpoint to disk",
+			Usage: "Leave the container running after writing checkpoint to disk",
 		},
 		cli.BoolFlag{
 			Name:  "tcp-established",
-			Usage: "checkpoint a container with established TCP connections",
+			Usage: "Checkpoint a container with established TCP connections",
 		},
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "checkpoint all running containers",
+			Usage: "Checkpoint all running containers",
 		},
 		LatestFlag,
 	}

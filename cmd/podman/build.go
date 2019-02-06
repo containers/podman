@@ -25,7 +25,7 @@ var (
 		},
 		cli.BoolTFlag{
 			Name:  "layers",
-			Usage: "cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. ",
+			Usage: "Cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. ",
 		},
 	}
 	buildDescription = "Builds an OCI or Docker image using instructions from one\n" +

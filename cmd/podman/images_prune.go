@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -16,7 +17,7 @@ var (
 	pruneImageFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "remove all unused images, not just dangling ones",
+			Usage: "Remove all unused images, not just dangling ones",
 		},
 	}
 	pruneImagesCommand = cli.Command{

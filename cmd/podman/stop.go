@@ -21,7 +21,7 @@ var (
 		},
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "stop all running containers",
+			Usage: "Stop all running containers",
 		}, LatestFlag,
 	}
 	stopDescription = `

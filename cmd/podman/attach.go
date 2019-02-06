@@ -21,7 +21,7 @@ var (
 		},
 		cli.BoolTFlag{
 			Name:  "sig-proxy",
-			Usage: "proxy received signals to the process (default true)",
+			Usage: "Proxy received signals to the process (default true)",
 		},
 		LatestFlag,
 	}

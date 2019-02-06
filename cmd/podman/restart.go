@@ -17,11 +17,11 @@ var (
 	restartFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "restart all non-running containers",
+			Usage: "Restart all non-running containers",
 		},
 		cli.BoolFlag{
 			Name:  "running",
-			Usage: "restart only running containers when --all is used",
+			Usage: "Restart only running containers when --all is used",
 		},
 		cli.UintFlag{
 			Name:  "timeout, time, t",

@@ -1,8 +1,8 @@
-% podman-version(1)
+% podman-info(1)
 
 ## NAME
+podman\-system\-info - Display system information
 podman\-info - Display system information
-
 
 ## SYNOPSIS
 **podman info** [*options*]

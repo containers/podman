@@ -13,7 +13,7 @@ var (
 	podUnpauseFlags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all, a",
-			Usage: "unpause all paused pods",
+			Usage: "Unpause all paused pods",
 		},
 		LatestPodFlag,
 	}
