@@ -1311,16 +1311,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (strin
 
 	// Check if we have a one line Dockerfile making layers irrelevant
 	// or the user told us to ignore layers.
-	singleLineDockerfile := (len(stages) < 2 && len(stages[0].Node.Children) < 1)
-	ignoreLayers := singleLineDockerfile || !b.layers && !b.noCache
+	ignoreLayers := (len(stages) < 2 && len(stages[0].Node.Children) < 2) || (!b.layers && !b.noCache)
 
 	if ignoreLayers {
 		imgID, ref, err := stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "")
 		if err != nil {
 			return "", nil, err
-		}
-		if singleLineDockerfile {
-			b.log("COMMIT %s", ref)
 		}
 		imageID = imgID
 		imageRef = ref
@@ -1529,17 +1525,6 @@ func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
 		}
 	}
 	return lastErr
-}
-
-func (b *Executor) EnsureContainerPath(path string) error {
-	_, err := os.Stat(filepath.Join(b.mountPoint, path))
-	if err != nil && os.IsNotExist(err) {
-		err = os.MkdirAll(filepath.Join(b.mountPoint, path), 0755)
-	}
-	if err != nil {
-		return errors.Wrapf(err, "error ensuring container path %q", path)
-	}
-	return nil
 }
 
 // preprocessDockerfileContents runs CPP(1) in preprocess-only mode on the input
