@@ -85,7 +85,7 @@ help:
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
-	ln -s "$(CURDIR)" "$(GOPKGBASEDIR)"
+	ln -sf "$(CURDIR)" "$(GOPKGBASEDIR)"
 endif
 	touch $@
 
@@ -182,10 +182,10 @@ ginkgo-remote:
 
 localintegration: varlink_generate test-binaries ginkgo ginkgo-remote
 
-localsystem: .install.ginkgo .install.gomega
+localsystem: .install.ginkgo
 	ginkgo -v -noColor test/system/
 
-system.test-binary: .install.ginkgo .install.gomega
+system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
 perftest:
