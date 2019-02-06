@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ type CtrCreateOption func(*Container) error
 // A true return will include the container, a false return will exclude it.
 type ContainerFilter func(*Container) bool
 
-// NewContainer creates a new container from a given OCI config
+// NewContainer creates a new container from a given OCI config.
 func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -44,28 +45,44 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	return r.newContainer(ctx, rSpec, options...)
 }
 
-func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
-	span.SetTag("type", "runtime")
-	defer span.Finish()
+// RestoreContainer re-creates a container from an imported checkpoint
+func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if !r.valid {
+		return nil, ErrRuntimeStopped
+	}
 
+	ctr, err := r.initContainerVariables(rSpec, config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error initializing container variables")
+	}
+	return r.setupContainer(ctx, ctr, true)
+}
+
+func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
 	if rSpec == nil {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
-
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
 	ctr.state = new(ContainerState)
 
-	ctr.config.ID = stringid.GenerateNonCryptoID()
+	if config == nil {
+		ctr.config.ID = stringid.GenerateNonCryptoID()
+		ctr.config.ShmSize = DefaultShmSize
+	} else {
+		// This is a restore from an imported checkpoint
+		if err := JSONDeepCopy(config, ctr.config); err != nil {
+			return nil, errors.Wrapf(err, "error copying container config for restore")
+		}
+	}
 
 	ctr.config.Spec = new(spec.Spec)
 	if err := JSONDeepCopy(rSpec, ctr.config.Spec); err != nil {
 		return nil, errors.Wrapf(err, "error copying runtime spec while creating container")
 	}
 	ctr.config.CreatedTime = time.Now()
-
-	ctr.config.ShmSize = DefaultShmSize
 
 	ctr.state.BindMounts = make(map[string]string)
 
@@ -80,12 +97,29 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 
 	ctr.runtime = r
+
+	return ctr, nil
+}
+
+func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
+	ctr, err := r.initContainerVariables(rSpec, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error initializing container variables")
+	}
+
 	for _, option := range options {
 		if err := option(ctr); err != nil {
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
+	return r.setupContainer(ctx, ctr, false)
+}
 
+func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bool) (c *Container, err error) {
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -152,6 +186,14 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 	default:
 		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+	}
+
+	if restore {
+		// Remove information about /dev/shm mount
+		// for new container from imported checkpoint
+		g := generate.Generator{Config: ctr.config.Spec}
+		g.RemoveMount("/dev/shm")
+		ctr.config.ShmDir = ""
 	}
 
 	// Set up storage for the container

@@ -1346,7 +1346,7 @@ func (c *Container) appendStringToRundir(destFile, output string) (string, error
 	return filepath.Join(c.state.RunDir, destFile), nil
 }
 
-// Save OCI spec to disk, replacing any existing specs for the container
+// saveSpec saves the OCI spec to disk, replacing any existing specs for the container
 func (c *Container) saveSpec(spec *spec.Spec) error {
 	// If the OCI spec already exists, we need to replace it
 	// Cannot guarantee some things, e.g. network namespaces, have the same

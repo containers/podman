@@ -499,6 +499,9 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 }
 
 func (c *Container) exportCheckpoint(dest string) (err error) {
+	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
+		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
+	}
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), dest)
 	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
 		Compression:      archive.Gzip,
@@ -587,6 +590,12 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
+	if options.TargetFile != "" {
+		if err = c.exportCheckpoint(options.TargetFile); err != nil {
+			return err
+		}
+	}
+
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
 	if !options.KeepRunning {
@@ -653,6 +662,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
+	if options.TargetFile != "" {
+		if err = c.importCheckpoint(options.TargetFile); err != nil {
+			return err
+		}
+	}
+
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
@@ -710,23 +725,44 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
+	// Restoring from an import means that we are doing migration
+	if options.TargetFile != "" {
+		g.SetRootPath(c.state.Mountpoint)
+	}
+
 	// We want to have the same network namespace as before.
 	if c.config.CreateNetNS {
 		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
-	}
-
-	// Save the OCI spec to disk
-	if err := c.saveSpec(g.Spec()); err != nil {
-		return err
 	}
 
 	if err := c.makeBindMounts(); err != nil {
 		return err
 	}
 
+	if options.TargetFile != "" {
+		for dstPath, srcPath := range c.state.BindMounts {
+			newMount := spec.Mount{
+				Type:        "bind",
+				Source:      srcPath,
+				Destination: dstPath,
+				Options:     []string{"bind", "private"},
+			}
+			if c.IsReadOnly() && dstPath != "/dev/shm" {
+				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
+			}
+			if !MountExists(g.Mounts(), dstPath) {
+				g.AddMount(newMount)
+			}
+		}
+	}
+
 	// Cleanup for a working restore.
 	c.removeConmonFiles()
 
+	// Save the OCI spec to disk
+	if err := c.saveSpec(g.Spec()); err != nil {
+		return err
+	}
 	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
 		return err
 	}

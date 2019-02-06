@@ -825,6 +825,13 @@ type ContainerCheckpointOptions struct {
 // Checkpoint checkpoints a container
 func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
 	logrus.Debugf("Trying to checkpoint container %s", c.ID())
+
+	if options.TargetFile != "" {
+		if err := c.prepareCheckpointExport(); err != nil {
+			return err
+		}
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

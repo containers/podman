@@ -526,7 +526,7 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.
 }
 
 // Restore one or more containers
-func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
 	var (
 		containers     []*libpod.Container
 		err, lastError error
@@ -538,7 +538,9 @@ func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.Contai
 		return state == libpod.ContainerStateExited
 	})
 
-	if c.All {
+	if c.Import != "" {
+		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import)
+	} else if c.All {
 		containers, err = r.GetContainers(filterFuncs...)
 	} else {
 		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)

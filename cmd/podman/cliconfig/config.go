@@ -89,6 +89,7 @@ type CheckpointValues struct {
 	TcpEstablished bool
 	All            bool
 	Latest         bool
+	Export         string
 }
 
 type CommitValues struct {
@@ -426,6 +427,7 @@ type RestoreValues struct {
 	Keep           bool
 	Latest         bool
 	TcpEstablished bool
+	Import         string
 }
 
 type RmValues struct {

@@ -24,10 +24,10 @@ var (
 			restoreCommand.InputArgs = args
 			restoreCommand.GlobalFlags = MainGlobalOpts
 			restoreCommand.Remote = remoteclient
-			return restoreCmd(&restoreCommand)
+			return restoreCmd(&restoreCommand, cmd)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllAndLatest(cmd, args, true)
 		},
 		Example: `podman container restore ctrID
   podman container restore --latest
@@ -44,11 +44,12 @@ func init() {
 	flags.BoolVarP(&restoreCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVarP(&restoreCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Restore a container with established TCP connections")
+	flags.StringVarP(&restoreCommand.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
-func restoreCmd(c *cliconfig.RestoreValues) error {
+func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
@@ -62,6 +63,11 @@ func restoreCmd(c *cliconfig.RestoreValues) error {
 	options := libpod.ContainerCheckpointOptions{
 		Keep:           c.Keep,
 		TCPEstablished: c.TcpEstablished,
+		TargetFile:     c.Import,
 	}
-	return runtime.Restore(c, options)
+
+	if (c.Import != "") && (c.All || c.Latest) {
+		return errors.Errorf("Cannot use --import and --all or --latest at the same time")
+	}
+	return runtime.Restore(getContext(), c, options)
 }
