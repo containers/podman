@@ -20,6 +20,8 @@ At a high level, the scope of libpod and podman is the following:
 * Resource isolation of containers and pods.
 * Integration with CRI-O to share containers and backend code.
 
+This project tests all builds against each supported version of Fedora, the latest released version of Red Hat Enterprise Linux, and the latest Ubuntu Long Term Support release. The community has also reported success with other Linux flavors.
+
 ## Roadmap
 
 1. Allow the Podman CLI to use a Varlink backend to connect to remote Podman instances
