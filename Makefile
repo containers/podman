@@ -274,14 +274,14 @@ uninstall:
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.gomega
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo
 
-.install.gomega: .gopathok
-	$(GO) get github.com/onsi/gomega/...
+.install.vndr: .gopathok
+	$(GO) get github.com/LK4D4/vndr
 
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
-		$(GO) get -u github.com/onsi/ginkgo/ginkgo; \
+		$(GO) build -o ${GOPATH}/bin/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo ; \
 	fi
 
 .install.gitvalidation: .gopathok
@@ -337,7 +337,9 @@ build-all-new-commits:
 	git rebase $(GIT_BASE_BRANCH) -x make
 
 vendor:
-	vndr -whitelist "github.com/varlink/go"
+	vndr -whitelist "github.com/varlink/go"  \
+	     -whitelist "github.com/onsi/ginkgo" \
+	     -whitelist "github.com/onsi/gomega"
 
 .PHONY: \
 	.gopathok \
