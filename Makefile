@@ -42,6 +42,10 @@ ISODATE ?= $(shell date --iso-8601)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 
+# Rarely if ever should integration tests take more than 50min,
+# caller may override in special circumstances if needed.
+GINKGOTIMEOUT ?= -timeout=50m
+
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -171,10 +175,10 @@ localunit: test/goecho/goecho varlink_generate
 	$(MAKE) -C contrib/cirrus/packer test
 
 ginkgo:
-	ginkgo -v -tags "$(BUILDTAGS)" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 ginkgo-remote:
-	ginkgo -v -tags "$(BUILDTAGS) remoteclient" -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 localintegration: varlink_generate test-binaries ginkgo ginkgo-remote
 
