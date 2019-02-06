@@ -34,7 +34,7 @@ type PodmanTestIntegration struct {
 	ConmonBinary        string
 	CrioRoot            string
 	CNIConfigDir        string
-	RunCBinary          string
+	OCIRuntime          string
 	RunRoot             string
 	StorageOptions      string
 	SignaturePolicyPath string
@@ -136,12 +136,16 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		cgroupManager = "cgroupfs"
 	}
 
-	runCBinary, err := exec.LookPath("runc")
-	// If we cannot find the runc binary, setting to something static as we have no way
-	// to return an error.  The tests will fail and point out that the runc binary could
-	// not be found nicely.
-	if err != nil {
-		runCBinary = "/usr/bin/runc"
+	ociRuntime := os.Getenv("OCI_RUNTIME")
+	if ociRuntime == "" {
+		var err error
+		ociRuntime, err = exec.LookPath("runc")
+		// If we cannot find the runc binary, setting to something static as we have no way
+		// to return an error.  The tests will fail and point out that the runc binary could
+		// not be found nicely.
+		if err != nil {
+			ociRuntime = "/usr/bin/runc"
+		}
 	}
 
 	CNIConfigDir := "/etc/cni/net.d"
@@ -156,7 +160,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),
 		CNIConfigDir:        CNIConfigDir,
-		RunCBinary:          runCBinary,
+		OCIRuntime:          ociRuntime,
 		RunRoot:             filepath.Join(tempDir, "crio-run"),
 		StorageOptions:      storageOptions,
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
