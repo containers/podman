@@ -5,6 +5,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -496,6 +498,42 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
+func (c *Container) exportCheckpoint(dest string) (err error) {
+	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), dest)
+	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
+		Compression:      archive.Gzip,
+		IncludeSourceDir: true,
+		IncludeFiles: []string{
+			"checkpoint",
+			"artifacts",
+			"ctr.log",
+			"config.dump",
+			"spec.dump",
+			"network.status"},
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "error reading checkpoint directory %q", c.ID())
+	}
+
+	outFile, err := os.Create(dest)
+	if err != nil {
+		return errors.Wrapf(err, "error creating checkpoint export file %q", dest)
+	}
+	defer outFile.Close()
+
+	if err := os.Chmod(dest, 0600); err != nil {
+		return errors.Wrapf(err, "cannot chmod %q", dest)
+	}
+
+	_, err = io.Copy(outFile, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Container) checkpointRestoreSupported() (err error) {
 	if !criu.CheckForCriu() {
 		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
@@ -561,13 +599,48 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if !options.Keep {
-		// Remove log file
-		os.Remove(filepath.Join(c.bundlePath(), "dump.log"))
-		// Remove statistic file
-		os.Remove(filepath.Join(c.bundlePath(), "stats-dump"))
+		cleanup := []string{
+			"dump.log",
+			"stats-dump",
+			"config.dump",
+			"spec.dump",
+		}
+		for _, delete := range cleanup {
+			file := filepath.Join(c.bundlePath(), delete)
+			os.Remove(file)
+		}
 	}
 
 	return c.save()
+}
+
+func (c *Container) importCheckpoint(input string) (err error) {
+	archiveFile, err := os.Open(input)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
+	}
+
+	defer archiveFile.Close()
+	options := &archive.TarOptions{
+		ExcludePatterns: []string{
+			// config.dump and spec.dump are only required
+			// container creation
+			"config.dump",
+			"spec.dump",
+		},
+	}
+	err = archive.Untar(archiveFile, c.bundlePath(), options)
+	if err != nil {
+		return errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
+	}
+
+	// Make sure the newly created config.json exists on disk
+	g := generate.NewFromSpec(c.config.Spec)
+	if err = c.saveSpec(g.Spec()); err != nil {
+		return errors.Wrap(err, "Saving imported container specification for restore failed")
+	}
+
+	return nil
 }
 
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {

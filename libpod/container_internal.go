@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -1497,6 +1498,43 @@ func (c *Container) checkReadyForRemoval() error {
 
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+	}
+
+	return nil
+}
+
+// writeJSONFile marshalls and writes the given data to a JSON file
+// in the bundle path
+func (c *Container) writeJSONFile(v interface{}, file string) (err error) {
+	fileJSON, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return errors.Wrapf(err, "error writing JSON to %s for container %s", file, c.ID())
+	}
+	file = filepath.Join(c.bundlePath(), file)
+	if err := ioutil.WriteFile(file, fileJSON, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// prepareCheckpointExport writes the config and spec to
+// JSON files for later export
+func (c *Container) prepareCheckpointExport() (err error) {
+	// save live config
+	if err := c.writeJSONFile(c.Config(), "config.dump"); err != nil {
+		return err
+	}
+
+	// save spec
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	g, err := generate.NewFromFile(jsonPath)
+	if err != nil {
+		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
+		return err
+	}
+	if err := c.writeJSONFile(g.Spec(), "spec.dump"); err != nil {
+		return err
 	}
 
 	return nil

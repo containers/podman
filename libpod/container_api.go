@@ -815,6 +815,11 @@ type ContainerCheckpointOptions struct {
 	// TCPEstablished tells the API to checkpoint a container
 	// even if it contains established TCP connections
 	TCPEstablished bool
+	// Export tells the API to write the checkpoint image to
+	// the filename set in TargetFile
+	// Import tells the API to read the checkpoint image from
+	// the filename set in TargetFile
+	TargetFile string
 }
 
 // Checkpoint checkpoints a container
