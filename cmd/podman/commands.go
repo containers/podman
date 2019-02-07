@@ -31,6 +31,7 @@ func getContainerSubCommands() []*cobra.Command {
 		_exportCommand,
 		_killCommand,
 		_logsCommand,
+		_patchCommand,
 		_psCommand,
 		_mountCommand,
 		_pauseCommand,

@@ -38,6 +38,7 @@
 | [podman-logout(1)](/docs/podman-logout.1.md)             | Logout of a container registry                                            |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
 | [podman-mount(1)](/docs/podman-mount.1.md)               | Mount a working container's root filesystem                               |[![...](/docs/play.png)](https://asciinema.org/a/YSP6hNvZo0RGeMHDA97PhPAf3)|
+| [podman-patch(1)](/docs/podman-patch.1.md)               | Patch one or more running containers                                      ||
 | [podman-pause(1)](/docs/podman-pause.1.md)               | Pause one or more running containers                                      |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-pod(1)](/docs/podman-pod.1.md)                   | Simple management tool for groups of containers, called pods              ||
 | [podman-pod-create(1)](/docs/podman-pod-create.1.md)     | Create a new pod                                                          ||

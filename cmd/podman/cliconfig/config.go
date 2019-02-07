@@ -80,6 +80,15 @@ type CommitValues struct {
 	Quiet   bool
 }
 
+type PatchValues struct {
+	PodmanCommand
+	DST     string
+	PATCH   string
+	Change  []string
+	All     bool
+	Ignore  bool
+}
+
 type ContainersPrune struct {
 	PodmanCommand
 }
