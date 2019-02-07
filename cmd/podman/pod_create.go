@@ -19,10 +19,11 @@ var (
 	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
 )
 
-var podCreateDescription = "Creates a new empty pod. The pod ID is then" +
-	" printed to stdout. You can then start it at any time with the" +
-	" podman pod start <pod_id> command. The pod will be created with the" +
-	" initial state 'created'."
+var podCreateDescription = "Creates a new pod. The pod ID is then" +
+	" printed to stdout. If an infra container is attached to the pod (as is default)," +
+	" the pod will have an initial state of 'running', as the infra container is started after it's created." +
+    " Otherwise, the pod will have an initial state of 'created', and can be started with 'podman pod start <POD ID>'" +
+    " after containers are attached to it."
 
 var podCreateFlags = []cli.Flag{
 	cli.StringFlag{
@@ -152,7 +153,6 @@ func podCreateCmd(c *cli.Context) error {
 			return err
 		}
 		options = append(options, libpod.WithInfraContainerPorts(portBindings))
-
 	}
 	// always have containers use pod cgroups
 	// User Opt out is not yet supported
