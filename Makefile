@@ -323,7 +323,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		make all install; \
 	fi
 
-varlink_generate: .gopathok cmd/podman/varlink/iopodman.go
+varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
 varlink_api_generate: .gopathok API.md
 
 .PHONY: install.libseccomp.sudo
