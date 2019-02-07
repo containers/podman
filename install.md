@@ -220,6 +220,18 @@ make BUILDTAGS='seccomp apparmor'
 | selinux   | selinux process and mount labeling | libselinux  |
 | apparmor  | apparmor profile support           | libapparmor |
 
+### Vendoring - Dependency Management
+
+This project is using [vndr](https://github.com/LK4D4/vndr) for managing dependencies, which is a tedious and error-prone task. Doing it manually is likely to cause inconsistencies between the `./vendor` directory (i.e., the downloaded dependencies), the source code that imports those dependencies and the `vendor.conf` configuration file that describes which packages in which version (e.g., a release or git commit) are a dependency.
+
+To ease updating dependencies, we provide the `make vendor` target, which fetches all dependencies mentioned in `vendor.conf`.  `make vendor` whitelists certain packages to prevent the `vndr` tool from removing packages that the test suite (see `./test`) imports.
+
+The CI of this project makes sure that each pull request leaves a clean vendor state behind by first running the aforementioned `make vendor` followed by running `./hack/tree_status.sh` which checks if any file in the git tree has changed.
+
+##### Vendor Troubleshooting
+
+If the CI is complaining about a pull request leaving behind an unclean state, it is very likely right about it. Make sure to run `make vendor` and add all the changes to the commit. Also make sure that your local git tree does not include files not under version control that may reference other go packages. If some dependencies are removed but they should not, for instance, because the CI is needing them, then whitelist those dependencies in the `make vendor` target of the Makefile.  Whitelisting a package will instruct `vndr` to not remove if during its cleanup phase.
+
 ## Configuration files
 
 ### [registries.conf](https://src.fedoraproject.org/rpms/skopeo/blob/master/f/registries.conf)
