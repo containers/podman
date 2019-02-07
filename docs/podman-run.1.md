@@ -663,7 +663,7 @@ Without this argument the command will be run as root in the container.
 **--userns**=host
 **--userns**=ns:my_namespace
 
-Set the user namespace for the container.
+Set the user namespace mode for the container. The use of userns is disabled by default.
 
 - `host`: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
 - `ns`: run the container in the given existing user namespace.
@@ -675,7 +675,7 @@ This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 Set the UTS mode for the container
 
 `host`: use the host's UTS namespace inside the container.
-`ns`: specify the usernamespace to use.
+`ns`: specify the user namespace to use.
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
@@ -708,6 +708,20 @@ Current supported mount TYPES are bind, and tmpfs.
               · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
 
               · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+
+**--userns**=""
+
+Set the user namespace mode for the container. The use of userns is disabled by default.
+
+    **host**: use the host user namespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
+    **ns**: specify the user namespace to use.
+
+**--uts**=*host*
+
+Set the UTS mode for the container
+    **host**: use the host's UTS namespace inside the container.
+    **ns**: specify the user namespace to use.
+    Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
 **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
@@ -1074,8 +1088,8 @@ supported sysctls.
 
 ### Set UID/GID mapping in a new user namespace
 
-If you want to run the container in a new user namespace and define the mapping of
-the uid and gid from the host.
+Running a container in a new user namespace requires a mapping of
+the uids and gids from the host.
 
 ```
 $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
@@ -1096,13 +1110,27 @@ KillMode=process
 WantedBy=multi-user.target
 ```
 
+### Rootless Containers
+
+Podman runs as a non root user on most systems. This feature requires that a new enough version of shadow-utils
+be installed.  The shadow-utils package must include the newuidmap and newgidmap executables.
+
+Note: RHEL7 and Centos 7 will not have this feature until RHEL7.7 is released.
+
+In order for users to run rootless, there must be an entry for their username in /etc/subuid and /etc/subgid which lists the UIDs for their user namespace.
+
+Rootless podman works better if the fuse-overlayfs and slirp4netns packages are installed.
+The fuse-overlay package provides a userspace overlay storage driver, otherwise users need to use
+the vfs storage driver, which is diskspace expensive and does not perform well. slirp4netns is
+required for VPN, without it containers need to be run with the --net=host flag.
+
 ## FILES
 
 **/etc/subuid**
 **/etc/subgid**
 
 ## SEE ALSO
-subgid(5), subuid(5), libpod.conf(5), systemd.unit(5), setsebool(8)
+subgid(5), subuid(5), libpod.conf(5), systemd.unit(5), setsebool(8), slirp4netns(1), fuse-overlayfs(1)
 
 ## HISTORY
 September 2018, updated by Kunal Kushwaha <kushwaha_kunal_v7@lab.ntt.co.jp>
