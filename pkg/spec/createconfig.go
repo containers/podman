@@ -331,6 +331,9 @@ func (c *CreateConfig) createExitCommand() []string {
 		"--cgroup-manager", config.CgroupManager,
 		"--tmpdir", config.TmpDir,
 	}
+	if config.OCIRuntime != "" {
+		command = append(command, []string{"--runtime", config.OCIRuntime}...)
+	}
 	if config.StorageConfig.GraphDriverName != "" {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
 	}
