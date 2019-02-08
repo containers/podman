@@ -284,11 +284,6 @@ func (s storageTransport) GetStoreImage(store storage.Store, ref types.ImageRefe
 		}
 	}
 	if sref, ok := ref.(*storageReference); ok {
-		if sref.id != "" {
-			if img, err := store.Image(sref.id); err == nil {
-				return img, nil
-			}
-		}
 		tmpRef := *sref
 		if img, err := tmpRef.resolveImage(); err == nil {
 			return img, nil
