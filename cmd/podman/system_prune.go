@@ -6,50 +6,50 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	pruneSystemCommand     cliconfig.SystemPruneValues
 	pruneSystemDescription = `
 	podman system prune
 
         Remove unused data
 `
-	pruneSystemFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Remove all unused data",
+	_pruneSystemCommand = &cobra.Command{
+		Use:   "prune",
+		Short: "Remove unused data",
+		Long:  pruneSystemDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pruneSystemCommand.InputArgs = args
+			pruneSystemCommand.GlobalFlags = MainGlobalOpts
+			return pruneSystemCmd(&pruneSystemCommand)
 		},
-		cli.BoolFlag{
-			Name:  "force, f",
-			Usage: "Do not prompt for confirmation",
-		},
-		cli.BoolFlag{
-			Name:  "volumes",
-			Usage: "Prune volumes",
-		},
-	}
-	pruneSystemCommand = cli.Command{
-		Name:         "prune",
-		Usage:        "Remove unused data",
-		Description:  pruneSystemDescription,
-		Action:       pruneSystemCmd,
-		OnUsageError: usageErrorHandler,
-		Flags:        pruneSystemFlags,
 	}
 )
 
-func pruneSystemCmd(c *cli.Context) error {
+func init() {
+
+	pruneSystemCommand.Command = _pruneSystemCommand
+	flags := pruneSystemCommand.Flags()
+	flags.BoolVarP(&pruneSystemCommand.All, "all", "a", false, "Remove all unused data")
+	flags.BoolVarP(&pruneSystemCommand.Force, "force", "f", false, "Do not prompt for confirmation")
+	flags.BoolVar(&pruneSystemCommand.Volume, "volumes", false, "Prune volumes")
+
+}
+
+func pruneSystemCmd(c *cliconfig.SystemPruneValues) error {
 
 	// Prompt for confirmation if --force is not set
-	if !c.Bool("force") {
+	if !c.Force {
 		reader := bufio.NewReader(os.Stdin)
 		volumeString := ""
-		if c.Bool("volumes") {
+		if c.Volume {
 			volumeString = `
         - all volumes not used by at least one container`
 		}
@@ -68,7 +68,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		}
 	}
 
-	runtime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -90,7 +90,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up
-	pruneCids, err := runtime.PruneImages(c.Bool("all"))
+	pruneCids, err := runtime.PruneImages(c.All)
 	if len(pruneCids) > 0 {
 		fmt.Println("Deleted Images")
 		for _, cid := range pruneCids {

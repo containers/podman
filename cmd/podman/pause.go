@@ -3,38 +3,44 @@ package main
 import (
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	pauseFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Pause all running containers",
-		},
-	}
+	pauseCommand     cliconfig.PauseValues
 	pauseDescription = `
    podman pause
 
    Pauses one or more running containers.  The container name or ID can be used.
 `
-	pauseCommand = cli.Command{
-		Name:         "pause",
-		Usage:        "Pause all the processes in one or more containers",
-		Description:  pauseDescription,
-		Flags:        pauseFlags,
-		Action:       pauseCmd,
-		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
-		OnUsageError: usageErrorHandler,
+	_pauseCommand = &cobra.Command{
+		Use:   "pause",
+		Short: "Pause all the processes in one or more containers",
+		Long:  pauseDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pauseCommand.InputArgs = args
+			pauseCommand.GlobalFlags = MainGlobalOpts
+			return pauseCmd(&pauseCommand)
+		},
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func pauseCmd(c *cli.Context) error {
+func init() {
+	pauseCommand.Command = _pauseCommand
+	flags := pauseCommand.Flags()
+	flags.BoolVarP(&pauseCommand.All, "all", "a", false, "Pause all running containers")
+
+	rootCmd.AddCommand(pauseCommand.Command)
+}
+
+func pauseCmd(c *cliconfig.PauseValues) error {
 	var (
 		pauseContainers []*libpod.Container
 		pauseFuncs      []shared.ParallelWorkerInput
@@ -43,18 +49,18 @@ func pauseCmd(c *cli.Context) error {
 		return errors.New("pause is not supported for rootless containers")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
-	if len(args) < 1 && !c.Bool("all") {
+	args := c.InputArgs
+	if len(args) < 1 && !c.All {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
-	if c.Bool("all") {
-		containers, err := getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+	if c.All {
+		containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 		if err != nil {
 			return err
 		}
@@ -84,7 +90,7 @@ func pauseCmd(c *cli.Context) error {
 
 	maxWorkers := shared.Parallelize("pause")
 	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalInt("max-workers")
+		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 

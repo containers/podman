@@ -5,43 +5,49 @@ import (
 	"os"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	waitCommand cliconfig.WaitValues
+
 	waitDescription = `
 	podman wait
 
 	Block until one or more containers stop and then print their exit codes
 `
-	waitFlags = []cli.Flag{
-		cli.UintFlag{
-			Name:  "interval, i",
-			Usage: "Milliseconds to wait before polling for completion",
-			Value: 250,
+	_waitCommand = &cobra.Command{
+		Use:   "wait",
+		Short: "Block on one or more containers",
+		Long:  waitDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			waitCommand.InputArgs = args
+			waitCommand.GlobalFlags = MainGlobalOpts
+			return waitCmd(&waitCommand)
 		},
-		LatestFlag,
-	}
-	waitCommand = cli.Command{
-		Name:         "wait",
-		Usage:        "Block on one or more containers",
-		Description:  waitDescription,
-		Flags:        sortFlags(waitFlags),
-		Action:       waitCmd,
-		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
-		OnUsageError: usageErrorHandler,
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func waitCmd(c *cli.Context) error {
-	args := c.Args()
-	if len(args) < 1 && !c.Bool("latest") {
+func init() {
+	waitCommand.Command = _waitCommand
+	flags := waitCommand.Flags()
+	flags.UintVarP(&waitCommand.Interval, "interval", "i", 250, "Milliseconds to wait before polling for completion")
+	flags.BoolVarP(&waitCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+
+	rootCmd.AddCommand(waitCommand.Command)
+}
+
+func waitCmd(c *cliconfig.WaitValues) error {
+	args := c.InputArgs
+	if len(args) < 1 && !c.Latest {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -52,7 +58,7 @@ func waitCmd(c *cli.Context) error {
 	}
 
 	var lastError error
-	if c.Bool("latest") {
+	if c.Latest {
 		latestCtr, err := runtime.GetLatestContainer()
 		if err != nil {
 			return errors.Wrapf(err, "unable to wait on latest container")
@@ -65,10 +71,10 @@ func waitCmd(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to find container %s", container)
 		}
-		if c.Uint("interval") == 0 {
+		if c.Interval == 0 {
 			return errors.Errorf("interval must be greater then 0")
 		}
-		returnCode, err := ctr.WaitWithInterval(time.Duration(c.Uint("interval")) * time.Millisecond)
+		returnCode, err := ctr.WaitWithInterval(time.Duration(c.Interval) * time.Millisecond)
 		if err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)

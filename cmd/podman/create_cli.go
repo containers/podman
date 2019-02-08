@@ -80,19 +80,22 @@ func addWarning(warnings []string, msg string) []string {
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ..
 func parseMounts(mounts []string) ([]spec.Mount, error) {
+	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
+	//                  to allow a more robust parsing of the mount format and to give
+	//                  precise errors regarding supported format versus suppored options.
 	var mountList []spec.Mount
-	errInvalidSyntax := errors.Errorf("incorrect mount format : should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>,[options]")
+	errInvalidSyntax := errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>[,options]")
 	for _, mount := range mounts {
 		var tokenCount int
 		var mountInfo spec.Mount
 
 		arr := strings.SplitN(mount, ",", 2)
 		if len(arr) < 2 {
-			return nil, errInvalidSyntax
+			return nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
 		}
 		kv := strings.Split(arr[0], "=")
 		if kv[0] != "type" {
-			return nil, errInvalidSyntax
+			return nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
 		}
 		switch kv[1] {
 		case "bind":
@@ -168,7 +171,7 @@ func parseVolumes(volumes []string) error {
 	for _, volume := range volumes {
 		arr := strings.SplitN(volume, ":", 3)
 		if len(arr) < 2 {
-			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir:[option]", volume)
+			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
 		}
 		if err := validateVolumeHostDir(arr[0]); err != nil {
 			return err

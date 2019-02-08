@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -21,7 +22,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/fields"
 )
 
@@ -153,112 +154,78 @@ func (a psSortedSize) Less(i, j int) bool {
 }
 
 var (
-	psFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Show all the containers, default is only running containers",
-		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "Filter output based on conditions given",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Pretty-print containers to JSON or using a Go template",
-		},
-		cli.IntFlag{
-			Name:  "last, n",
-			Usage: "Print the n last created containers (all states)",
-			Value: -1,
-		},
-		cli.BoolFlag{
-			Name:  "latest, l",
-			Usage: "Show the latest container created (all states)",
-		},
-		cli.BoolFlag{
-			Name:  "namespace, ns",
-			Usage: "Display namespace information",
-		},
-		cli.BoolFlag{
-			Name:  "no-trunc",
-			Usage: "Display the extended information",
-		},
-		cli.BoolFlag{
-			Name:  "pod, p",
-			Usage: "Print the ID and name of the pod the containers are associated with",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Print the numeric IDs of the containers only",
-		},
-		cli.BoolFlag{
-			Name:  "size, s",
-			Usage: "Display the total file sizes",
-		},
-		cli.StringFlag{
-			Name:  "sort",
-			Usage: "Sort output by command, created, id, image, names, runningfor, size, or status",
-			Value: "created",
-		},
-		cli.BoolFlag{
-			Name:  "sync",
-			Usage: "Sync container state with OCI runtime",
-		},
-	}
+	psCommand     cliconfig.PsValues
 	psDescription = "Prints out information about the containers"
-	psCommand     = cli.Command{
-		Name:                   "list",
-		Aliases:                []string{"ls", "ps"},
-		Usage:                  "List containers",
-		Description:            psDescription,
-		Flags:                  sortFlags(psFlags),
-		Action:                 psCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_psCommand    = &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls", "ps"},
+		Short:   "List containers",
+		Long:    psDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			psCommand.InputArgs = args
+			psCommand.GlobalFlags = MainGlobalOpts
+			return psCmd(&psCommand)
+		},
+		Example: "",
 	}
 )
 
-func psCmd(c *cli.Context) error {
+func init() {
+	psCommand.Command = _psCommand
+	flags := psCommand.Flags()
+	flags.BoolVarP(&psCommand.All, "all", "a", false, "Show all the containers, default is only running containers")
+	flags.StringSliceVarP(&psCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions given")
+	flags.StringVar(&psCommand.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
+	flags.IntVarP(&psCommand.Last, "last", "n", -1, "Print the n last created containers (all states)")
+	flags.BoolVarP(&psCommand.Latest, "latest", "l", false, "Show the latest container created (all states)")
+	flags.BoolVar(&psCommand.Namespace, "namespace", false, "Display namespace information")
+	flags.BoolVar(&psCommand.Namespace, "ns", false, "Display namespace information")
+	flags.BoolVar(&psCommand.NoTrunct, "no-trunc", false, "Display the extended information")
+	flags.BoolVarP(&psCommand.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
+	flags.BoolVarP(&psCommand.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
+	flags.BoolVarP(&psCommand.Size, "size", "s", false, "Display the total file sizes")
+	flags.StringVar(&psCommand.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
+	flags.BoolVar(&psCommand.Sync, "sync", false, "Sync container state with OCI runtime")
+
+	rootCmd.AddCommand(psCommand.Command)
+
+}
+func psCmd(c *cliconfig.PsValues) error {
 	var (
 		filterFuncs      []libpod.ContainerFilter
 		outputContainers []*libpod.Container
 	)
 
-	if err := validateFlags(c, psFlags); err != nil {
-		return err
-	}
-
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 
 	defer runtime.Shutdown(false)
 
-	if len(c.Args()) > 0 {
+	if len(c.InputArgs) > 0 {
 		return errors.Errorf("too many arguments, ps takes no arguments")
 	}
 
 	opts := shared.PsOptions{
-		All:       c.Bool("all"),
-		Format:    c.String("format"),
-		Last:      c.Int("last"),
-		Latest:    c.Bool("latest"),
-		NoTrunc:   c.Bool("no-trunc"),
-		Pod:       c.Bool("pod"),
-		Quiet:     c.Bool("quiet"),
-		Size:      c.Bool("size"),
-		Namespace: c.Bool("namespace"),
-		Sort:      c.String("sort"),
-		Sync:      c.Bool("sync"),
+		All:       c.All,
+		Format:    c.Format,
+		Last:      c.Last,
+		Latest:    c.Latest,
+		NoTrunc:   c.NoTrunct,
+		Pod:       c.Pod,
+		Quiet:     c.Quiet,
+		Size:      c.Size,
+		Namespace: c.Namespace,
+		Sort:      c.Sort,
+		Sync:      c.Sync,
 	}
 
-	filters := c.StringSlice("filter")
+	filters := c.Filter
 	if len(filters) > 0 {
 		for _, f := range filters {
 			filterSplit := strings.SplitN(f, "=", 2)
@@ -299,7 +266,7 @@ func psCmd(c *cli.Context) error {
 
 	maxWorkers := shared.Parallelize("ps")
 	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalInt("max-workers")
+		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
@@ -384,20 +351,20 @@ func printQuiet(containers []shared.PsContainerOutput) error {
 }
 
 // checkFlagsPassed checks if mutually exclusive flags are passed together
-func checkFlagsPassed(c *cli.Context) error {
+func checkFlagsPassed(c *cliconfig.PsValues) error {
 	// latest, and last are mutually exclusive.
-	if c.Int("last") >= 0 && c.Bool("latest") {
+	if c.Last >= 0 && c.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
 	// Quiet conflicts with size, namespace, and format with a Go template
-	if c.Bool("quiet") {
-		if c.Bool("size") || c.Bool("namespace") || (c.IsSet("format") &&
-			c.String("format") != formats.JSONString) {
+	if c.Quiet {
+		if c.Size || c.Namespace || (c.Flag("format").Changed &&
+			c.Format != formats.JSONString) {
 			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
 		}
 	}
 	// Size and namespace conflict with each other
-	if c.Bool("size") && c.Bool("namespace") {
+	if c.Size && c.Namespace {
 		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil

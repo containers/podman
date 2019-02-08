@@ -1,26 +1,23 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
-var (
-	volumeDescription = `Manage volumes.
+var volumeDescription = `Manage volumes.
 
 Volumes are created in and can be shared between containers.`
 
-	volumeSubCommands = []cli.Command{
-		volumeCreateCommand,
-		volumeLsCommand,
-		volumeRmCommand,
-		volumeInspectCommand,
-		volumePruneCommand,
-	}
-	volumeCommand = cli.Command{
-		Name:                   "volume",
-		Usage:                  "Manage volumes",
-		Description:            volumeDescription,
-		UseShortOptionHandling: true,
-		Subcommands:            volumeSubCommands,
-	}
-)
+var volumeCommand = cliconfig.PodmanCommand{
+	Command: &cobra.Command{
+		Use:   "volume",
+		Short: "Manage volumes",
+		Long:  volumeDescription,
+	},
+}
+
+func init() {
+	volumeCommand.AddCommand(getVolumeSubCommands()...)
+	rootCmd.AddCommand(volumeCommand.Command)
+}

@@ -2,24 +2,47 @@
 
 package main
 
-import "github.com/urfave/cli"
+import (
+	"github.com/spf13/cobra"
+)
 
-func getAppCommands() []cli.Command {
-	return []cli.Command{}
+//import "github.com/urfave/cli"
+//
+func getAppCommands() []*cobra.Command {
+	return []*cobra.Command{}
 }
 
-func getImageSubCommands() []cli.Command {
-	return []cli.Command{}
+func getImageSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
 }
 
-func getContainerSubCommands() []cli.Command {
-	return []cli.Command{}
+func getContainerSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
 }
 
-func getSystemSubCommands() []cli.Command {
-	return []cli.Command{}
+func getPodSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
 }
 
-func getMainAppFlags() []cli.Flag {
-	return []cli.Flag{}
+func getVolumeSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
+}
+
+func getGenerateSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
+}
+
+func getPlaySubCommands() []*cobra.Command {
+	return []*cobra.Command{}
+}
+
+func getTrustSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
+}
+
+//func getMainAppFlags() []cli.Flag {
+//	return []cli.Flag{}
+//}
+func getSystemSubCommands() []*cobra.Command {
+	return []*cobra.Command{}
 }

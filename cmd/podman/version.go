@@ -6,20 +6,41 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
+var (
+	versionCommand  cliconfig.VersionValues
+	_versionCommand = &cobra.Command{
+		Use:   "version",
+		Short: "Display the Podman Version Information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			versionCommand.InputArgs = args
+			versionCommand.GlobalFlags = MainGlobalOpts
+			return versionCmd(&versionCommand)
+		},
+	}
+)
+
+func init() {
+	versionCommand.Command = _versionCommand
+	flags := versionCommand.Flags()
+	flags.StringVarP(&versionCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
+	rootCmd.AddCommand(versionCommand.Command)
+}
+
 // versionCmd gets and prints version info for version command
-func versionCmd(c *cli.Context) error {
+func versionCmd(c *cliconfig.VersionValues) error {
 	output, err := libpod.GetVersion()
 	if err != nil {
 		errors.Wrapf(err, "unable to determine version")
 	}
 
-	versionOutputFormat := c.String("format")
+	versionOutputFormat := c.Format
 	if versionOutputFormat != "" {
 		var out formats.Writer
 		switch versionOutputFormat {
@@ -46,19 +67,3 @@ func versionCmd(c *cli.Context) error {
 	fmt.Fprintf(w, "OS/Arch:\t%s\n", output.OsArch)
 	return nil
 }
-
-// Cli command to print out the full version of podman
-var (
-	versionCommand = cli.Command{
-		Name:   "version",
-		Usage:  "Display the Podman Version Information",
-		Action: versionCmd,
-		Flags:  versionFlags,
-	}
-	versionFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "Change the output format to JSON or a Go template",
-		},
-	}
-)

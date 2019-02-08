@@ -4,50 +4,52 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	cleanupFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Cleans up all containers",
-		},
-		LatestFlag,
-	}
+	cleanupCommand     cliconfig.CleanupValues
 	cleanupDescription = `
    podman container cleanup
 
    Cleans up mount points and network stacks on one or more containers from the host. The container name or ID can be used. This command is used internally when running containers, but can also be used if container cleanup has failed when a container exits.
 `
-	cleanupCommand = cli.Command{
-		Name:         "cleanup",
-		Usage:        "Cleanup network and mountpoints of one or more containers",
-		Description:  cleanupDescription,
-		Flags:        sortFlags(cleanupFlags),
-		Action:       cleanupCmd,
-		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
-		OnUsageError: usageErrorHandler,
+	_cleanupCommand = &cobra.Command{
+		Use:   "cleanup",
+		Short: "Cleanup network and mountpoints of one or more containers",
+		Long:  cleanupDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cleanupCommand.InputArgs = args
+			cleanupCommand.GlobalFlags = MainGlobalOpts
+			return cleanupCmd(&cleanupCommand)
+		},
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func cleanupCmd(c *cli.Context) error {
-	if err := validateFlags(c, cleanupFlags); err != nil {
-		return err
-	}
-	runtime, err := libpodruntime.GetRuntime(c)
+func init() {
+	cleanupCommand.Command = _cleanupCommand
+	flags := cleanupCommand.Flags()
+
+	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
+	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+}
+
+func cleanupCmd(c *cliconfig.CleanupValues) error {
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if err := checkAllAndLatest(c); err != nil {
+	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	cleanupContainers, lastError := getAllOrLatestContainers(c, runtime, -1, "all")
+	cleanupContainers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 
 	ctx := getContext()
 

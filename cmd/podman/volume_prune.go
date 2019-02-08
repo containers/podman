@@ -7,35 +7,39 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
-var volumePruneDescription = `
+var (
+	volumePruneCommand     cliconfig.VolumePruneValues
+	volumePruneDescription = `
 podman volume prune
 
 Remove all unused volumes. Will prompt for confirmation if not
 using force.
 `
+	_volumePruneCommand = &cobra.Command{
+		Use:   "prune",
+		Short: "Remove all unused volumes",
+		Long:  volumePruneDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			volumePruneCommand.InputArgs = args
+			volumePruneCommand.GlobalFlags = MainGlobalOpts
+			return volumePruneCmd(&volumePruneCommand)
+		},
+	}
+)
 
-var volumePruneFlags = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "force, f",
-		Usage: "Do not prompt for confirmation",
-	},
-}
+func init() {
+	volumePruneCommand.Command = _volumePruneCommand
+	flags := volumePruneCommand.Flags()
 
-var volumePruneCommand = cli.Command{
-	Name:                   "prune",
-	Usage:                  "Remove all unused volumes",
-	Description:            volumePruneDescription,
-	Flags:                  volumePruneFlags,
-	Action:                 volumePruneCmd,
-	SkipArgReorder:         true,
-	UseShortOptionHandling: true,
+	flags.BoolVarP(&volumePruneCommand.Force, "force", "f", false, "Do not prompt for confirmation")
 }
 
 func volumePrune(runtime *adapter.LocalRuntime, ctx context.Context) error {
@@ -60,20 +64,15 @@ func volumePrune(runtime *adapter.LocalRuntime, ctx context.Context) error {
 	return lastError
 }
 
-func volumePruneCmd(c *cli.Context) error {
-
-	if err := validateFlags(c, volumePruneFlags); err != nil {
-		return err
-	}
-
-	runtime, err := adapter.GetRuntime(c)
+func volumePruneCmd(c *cliconfig.VolumePruneValues) error {
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	// Prompt for confirmation if --force is not set
-	if !c.Bool("force") {
+	if !c.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
 		fmt.Print("Are you sure you want to continue? [y/N] ")

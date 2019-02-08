@@ -9,55 +9,48 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/containers/image/pkg/docker/config"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/common"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
-	loginFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "password, p",
-			Usage: "Password for registry",
-		},
-		cli.StringFlag{
-			Name:  "username, u",
-			Usage: "Username for registry",
-		},
-		cli.StringFlag{
-			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
-		},
-		cli.StringFlag{
-			Name:  "cert-dir",
-			Usage: "Pathname of a directory containing TLS certificates and keys used to connect to the registry",
-		},
-		cli.BoolTFlag{
-			Name:  "get-login",
-			Usage: "Return the current login user for the registry",
-		},
-		cli.BoolTFlag{
-			Name:  "tls-verify",
-			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
-		},
-	}
+	loginCommand cliconfig.LoginValues
+
 	loginDescription = "Login to a container registry on a specified server."
-	loginCommand     = cli.Command{
-		Name:         "login",
-		Usage:        "Login to a container registry",
-		Description:  loginDescription,
-		Flags:        sortFlags(loginFlags),
-		Action:       loginCmd,
-		ArgsUsage:    "REGISTRY",
-		OnUsageError: usageErrorHandler,
+	_loginCommand    = &cobra.Command{
+		Use:   "login",
+		Short: "Login to a container registry",
+		Long:  loginDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			loginCommand.InputArgs = args
+			loginCommand.GlobalFlags = MainGlobalOpts
+			return loginCmd(&loginCommand)
+		},
+		Example: "REGISTRY",
 	}
 )
 
+func init() {
+	loginCommand.Command = _loginCommand
+	flags := loginCommand.Flags()
+
+	flags.StringVar(&loginCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
+	flags.BoolVar(&loginCommand.GetLogin, "get-login", true, "Return the current login user for the registry")
+	flags.StringVarP(&loginCommand.Password, "password", "p", "", "Password for registry")
+	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
+
+	rootCmd.AddCommand(loginCommand.Command)
+}
+
 // loginCmd uses the authentication package to store a user's authenticated credentials
 // in an auth.json file for future use
-func loginCmd(c *cli.Context) error {
-	args := c.Args()
+func loginCmd(c *cliconfig.LoginValues) error {
+	args := c.InputArgs
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments, login takes only 1 argument")
 	}
@@ -65,17 +58,17 @@ func loginCmd(c *cli.Context) error {
 		return errors.Errorf("please specify a registry to login to")
 	}
 	server := registryFromFullName(scrubServer(args[0]))
-	authfile := getAuthFile(c.String("authfile"))
+	authfile := getAuthFile(c.Authfile)
 
 	sc := common.GetSystemContext("", authfile, false)
-	if c.IsSet("tls-verify") {
-		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	if c.Flag("tls-verify").Changed {
+		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
-	if c.String("cert-dir") != "" {
-		sc.DockerCertPath = c.String("cert-dir")
+	if c.CertDir != "" {
+		sc.DockerCertPath = c.CertDir
 	}
 
-	if c.IsSet("get-login") {
+	if c.Flag("get-login").Changed {
 		user, err := config.GetUserLoggedIn(sc, server)
 
 		if err != nil {
@@ -98,7 +91,7 @@ func loginCmd(c *cli.Context) error {
 
 	ctx := getContext()
 	// If no username and no password is specified, try to use existing ones.
-	if c.String("username") == "" && c.String("password") == "" {
+	if c.Username == "" && c.Password == "" {
 		fmt.Println("Authenticating with existing credentials...")
 		if err := docker.CheckAuth(ctx, sc, userFromAuthFile, passFromAuthFile, server); err == nil {
 			fmt.Println("Existing credentials are valid. Already logged in to", server)
@@ -107,7 +100,7 @@ func loginCmd(c *cli.Context) error {
 		fmt.Println("Existing credentials are invalid, please enter valid username and password")
 	}
 
-	username, password, err := getUserAndPass(c.String("username"), c.String("password"), userFromAuthFile)
+	username, password, err := getUserAndPass(c.Username, c.Password, userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
 	}

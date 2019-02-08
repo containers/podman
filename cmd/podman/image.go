@@ -1,37 +1,35 @@
 package main
 
 import (
-	"sort"
-
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
 var (
-	imageSubCommands = []cli.Command{
-		importCommand,
-		historyCommand,
-		imageExistsCommand,
-		inspectCommand,
-		lsImagesCommand,
-		pruneImagesCommand,
-		pullCommand,
-		rmImageCommand,
-		tagCommand,
-	}
 	imageDescription = "Manage images"
-	imageCommand     = cli.Command{
-		Name:                   "image",
-		Usage:                  "Manage images",
-		Description:            imageDescription,
-		ArgsUsage:              "",
-		Subcommands:            getImageSubCommandsSorted(),
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	imageCommand     = cliconfig.PodmanCommand{
+		Command: &cobra.Command{
+			Use:   "image",
+			Short: "Manage images",
+			Long:  imageDescription,
+		},
 	}
 )
 
-func getImageSubCommandsSorted() []cli.Command {
-	imageSubCommands = append(imageSubCommands, getImageSubCommands()...)
-	sort.Sort(commandSortedAlpha{imageSubCommands})
-	return imageSubCommands
+//imageSubCommands are implemented both in local and remote clients
+var imageSubCommands = []*cobra.Command{
+	_historyCommand,
+	_imageExistsCommand,
+	_inspectCommand,
+	_imagesCommand,
+	_pruneImagesCommand,
+	_pushCommand,
+	_rmiCommand,
+	_tagCommand,
+}
+
+func init() {
+	imageCommand.AddCommand(imageSubCommands...)
+	imageCommand.AddCommand(getImageSubCommands()...)
+	rootCmd.AddCommand(imageCommand.Command)
 }

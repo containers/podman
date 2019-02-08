@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containers/storage/pkg/fileutils"
@@ -23,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	gzip "github.com/klauspost/pgzip"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -1331,3 +1333,108 @@ const (
 	// HeaderSize is the size in bytes of a tar header
 	HeaderSize = 512
 )
+
+// NewArchiver returns a new Archiver
+func NewArchiver(idMappings *idtools.IDMappings) *Archiver {
+	if idMappings == nil {
+		idMappings = &idtools.IDMappings{}
+	}
+	return &Archiver{Untar: Untar, TarIDMappings: idMappings, UntarIDMappings: idMappings}
+}
+
+// NewArchiverWithChown returns a new Archiver which uses Untar and the provided ID mapping configuration on both ends
+func NewArchiverWithChown(tarIDMappings *idtools.IDMappings, chownOpts *idtools.IDPair, untarIDMappings *idtools.IDMappings) *Archiver {
+	if tarIDMappings == nil {
+		tarIDMappings = &idtools.IDMappings{}
+	}
+	if untarIDMappings == nil {
+		untarIDMappings = &idtools.IDMappings{}
+	}
+	return &Archiver{Untar: Untar, TarIDMappings: tarIDMappings, ChownOpts: chownOpts, UntarIDMappings: untarIDMappings}
+}
+
+// CopyFileWithTarAndChown returns a function which copies a single file from outside
+// of any container into our working container, mapping permissions using the
+// container's ID maps, possibly overridden using the passed-in chownOpts
+func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap []idtools.IDMap, gidmap []idtools.IDMap) func(src, dest string) error {
+	untarMappings := idtools.NewIDMappingsFromMaps(uidmap, gidmap)
+	archiver := NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *TarOptions) error {
+			contentReader, contentWriter, err := os.Pipe()
+			if err != nil {
+				return errors.Wrapf(err, "error creating pipe extract data to %q", dest)
+			}
+			defer contentReader.Close()
+			defer contentWriter.Close()
+			var hashError error
+			var hashWorker sync.WaitGroup
+			hashWorker.Add(1)
+			go func() {
+				t := tar.NewReader(contentReader)
+				_, err := t.Next()
+				if err != nil {
+					hashError = err
+				}
+				if _, err = io.Copy(hasher, t); err != nil && err != io.EOF {
+					hashError = err
+				}
+				hashWorker.Done()
+			}()
+			if err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options); err != nil {
+				err = errors.Wrapf(err, "error extracting data to %q while copying", dest)
+			}
+			hashWorker.Wait()
+			if err == nil {
+				err = errors.Wrapf(hashError, "error calculating digest of data for %q while copying", dest)
+			}
+			return err
+		}
+	}
+	return archiver.CopyFileWithTar
+}
+
+// CopyWithTarAndChown returns a function which copies a directory tree from outside of
+// any container into our working container, mapping permissions using the
+// container's ID maps, possibly overridden using the passed-in chownOpts
+func CopyWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap []idtools.IDMap, gidmap []idtools.IDMap) func(src, dest string) error {
+	untarMappings := idtools.NewIDMappingsFromMaps(uidmap, gidmap)
+	archiver := NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *TarOptions) error {
+			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
+		}
+	}
+	return archiver.CopyWithTar
+}
+
+// UntarPathAndChown returns a function which extracts an archive in a specified
+// location into our working container, mapping permissions using the
+// container's ID maps, possibly overridden using the passed-in chownOpts
+func UntarPathAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap []idtools.IDMap, gidmap []idtools.IDMap) func(src, dest string) error {
+	untarMappings := idtools.NewIDMappingsFromMaps(uidmap, gidmap)
+	archiver := NewArchiverWithChown(nil, chownOpts, untarMappings)
+	if hasher != nil {
+		originalUntar := archiver.Untar
+		archiver.Untar = func(tarArchive io.Reader, dest string, options *TarOptions) error {
+			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
+		}
+	}
+	return archiver.UntarPath
+}
+
+// TarPath returns a function which creates an archive of a specified
+// location in the container's filesystem, mapping permissions using the
+// container's ID maps
+func TarPath(uidmap []idtools.IDMap, gidmap []idtools.IDMap) func(path string) (io.ReadCloser, error) {
+	tarMappings := idtools.NewIDMappingsFromMaps(uidmap, gidmap)
+	return func(path string) (io.ReadCloser, error) {
+		return TarWithOptions(path, &TarOptions{
+			Compression: Uncompressed,
+			UIDMaps:     tarMappings.UIDs(),
+			GIDMaps:     tarMappings.GIDs(),
+		})
+	}
+}

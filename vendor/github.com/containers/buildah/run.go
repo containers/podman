@@ -1130,10 +1130,14 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	case IsolationChroot:
 		err = chroot.RunUsingChroot(spec, path, options.Stdin, options.Stdout, options.Stderr)
 	case IsolationOCIRootless:
+		moreCreateArgs := []string{"--no-new-keyring"}
+		if options.NoPivot {
+			moreCreateArgs = append(moreCreateArgs, "--no-pivot")
+		}
 		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID); err != nil {
 			return err
 		}
-		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, []string{"--no-new-keyring"}, spec, mountPoint, path, Package+"-"+filepath.Base(path))
+		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
 	default:
 		err = errors.Errorf("don't know how to run this command")
 	}
@@ -1912,21 +1916,6 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 			logrus.Errorf("error setting descriptor %d (%s) blocking: %v", wfd, writeDesc[wfd], err)
 		}
 	}
-	// A helper that returns false if err is an error that would cause us
-	// to give up.
-	logIfNotRetryable := func(err error, what string) (retry bool) {
-		if err == nil {
-			return true
-		}
-		if errno, isErrno := err.(syscall.Errno); isErrno {
-			switch errno {
-			case syscall.EINTR, syscall.EAGAIN:
-				return true
-			}
-		}
-		logrus.Errorf("%s: %v", what, err)
-		return false
-	}
 	// Pass data back and forth.
 	pollTimeout := -1
 	for len(relayMap) > 0 {
@@ -1941,7 +1930,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 		buf := make([]byte, 8192)
 		// Wait for new data from any input descriptor, or a notification that we're done.
 		_, err := unix.Poll(pollFds, pollTimeout)
-		if !logIfNotRetryable(err, fmt.Sprintf("error waiting for stdio/terminal data to relay: %v", err)) {
+		if !util.LogIfNotRetryable(err, fmt.Sprintf("error waiting for stdio/terminal data to relay: %v", err)) {
 			return
 		}
 		removes := make(map[int]struct{})
@@ -1971,7 +1960,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 			writeFD, needToRelay := relayMap[readFD]
 			if needToRelay {
 				n, err := unix.Read(readFD, buf)
-				if !logIfNotRetryable(err, fmt.Sprintf("unable to read %s data: %v", readDesc[readFD], err)) {
+				if !util.LogIfNotRetryable(err, fmt.Sprintf("unable to read %s data: %v", readDesc[readFD], err)) {
 					return
 				}
 				// If it's zero-length on our stdin and we're
@@ -1996,7 +1985,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 					// descriptor, read all that there is to read.
 					for pollFd.Revents&unix.POLLHUP == unix.POLLHUP {
 						nr, err := unix.Read(readFD, buf)
-						logIfNotRetryable(err, fmt.Sprintf("read %s: %v", readDesc[readFD], err))
+						util.LogIfUnexpectedWhileDraining(err, fmt.Sprintf("read %s: %v", readDesc[readFD], err))
 						if nr <= 0 {
 							break
 						}
@@ -2019,7 +2008,7 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 		for writeFD := range relayBuffer {
 			if relayBuffer[writeFD].Len() > 0 {
 				n, err := unix.Write(writeFD, relayBuffer[writeFD].Bytes())
-				if !logIfNotRetryable(err, fmt.Sprintf("unable to write %s data: %v", writeDesc[writeFD], err)) {
+				if !util.LogIfNotRetryable(err, fmt.Sprintf("unable to write %s data: %v", writeDesc[writeFD], err)) {
 					return
 				}
 				if n > 0 {

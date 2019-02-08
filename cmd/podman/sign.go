@@ -11,60 +11,63 @@ import (
 	"github.com/containers/image/signature"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/trust"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	signFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "sign-by",
-			Usage: "Name of the signing key",
-		},
-		cli.StringFlag{
-			Name:  "directory, d",
-			Usage: "Define an alternate directory to store signatures",
-		},
-	}
-
+	signCommand     cliconfig.SignValues
 	signDescription = "Create a signature file that can be used later to verify the image"
-	signCommand     = cli.Command{
-		Name:         "sign",
-		Usage:        "Sign an image",
-		Description:  signDescription,
-		Flags:        sortFlags(signFlags),
-		Action:       signCmd,
-		ArgsUsage:    "IMAGE-NAME [IMAGE-NAME ...]",
-		OnUsageError: usageErrorHandler,
+	_signCommand    = &cobra.Command{
+		Use:   "sign",
+		Short: "Sign an image",
+		Long:  signDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			signCommand.InputArgs = args
+			signCommand.GlobalFlags = MainGlobalOpts
+			return signCmd(&signCommand)
+		},
+		Example: "IMAGE-NAME [IMAGE-NAME ...]",
 	}
 )
+
+func init() {
+	signCommand.Command = _signCommand
+	flags := signCommand.Flags()
+	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")
+	flags.StringVar(&signCommand.SignBy, "sign-by", "", "Name of the signing key")
+
+	rootCmd.AddCommand(signCommand.Command)
+
+}
 
 // SignatureStoreDir defines default directory to store signatures
 const SignatureStoreDir = "/var/lib/containers/sigstore"
 
-func signCmd(c *cli.Context) error {
-	args := c.Args()
+func signCmd(c *cliconfig.SignValues) error {
+	args := c.InputArgs
 	if len(args) < 1 {
 		return errors.Errorf("at least one image name must be specified")
 	}
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	signby := c.String("sign-by")
+	signby := c.SignBy
 	if signby == "" {
 		return errors.Errorf("please provide an identity")
 	}
 
 	var sigStoreDir string
-	if c.IsSet("directory") {
-		sigStoreDir = c.String("directory")
+	if c.Flag("directory").Changed {
+		sigStoreDir = c.Directory
 		if _, err := os.Stat(sigStoreDir); err != nil {
 			return errors.Wrapf(err, "invalid directory %s", sigStoreDir)
 		}

@@ -11,11 +11,11 @@ import (
 	"strconv"
 
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/urfave/cli"
 )
 
 // LocalRuntime describes a typical libpod runtime
@@ -35,7 +35,7 @@ type Container struct {
 }
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
-func GetRuntime(c *cli.Context) (*LocalRuntime, error) {
+func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	runtime, err := libpodruntime.GetRuntime(c)
 	if err != nil {
 		return nil, err

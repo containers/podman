@@ -4,47 +4,39 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	rmiCommand     cliconfig.RmiValues
 	rmiDescription = "Removes one or more locally stored images."
-	rmiFlags       = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Remove all images",
+	_rmiCommand    = &cobra.Command{
+		Use:   "rmi",
+		Short: "Removes one or more images from local storage",
+		Long:  rmiDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rmiCommand.InputArgs = args
+			rmiCommand.GlobalFlags = MainGlobalOpts
+			return rmiCmd(&rmiCommand)
 		},
-		cli.BoolFlag{
-			Name:  "force, f",
-			Usage: "Force removal of the image",
-		},
-	}
-	rmiCommand = cli.Command{
-		Name:                   "rmi",
-		Usage:                  "Remove one or more images from local storage",
-		Description:            rmiDescription,
-		Action:                 rmiCmd,
-		ArgsUsage:              "IMAGE-NAME-OR-ID [...]",
-		Flags:                  sortFlags(rmiFlags),
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-	}
-	rmImageCommand = cli.Command{
-		Name:                   "rm",
-		Usage:                  "Removes one or more images from local storage",
-		Description:            rmiDescription,
-		Action:                 rmiCmd,
-		ArgsUsage:              "IMAGE-NAME-OR-ID [...]",
-		Flags:                  rmiFlags,
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+		Example: "IMAGE-NAME-OR-ID [...]",
 	}
 )
 
-func rmiCmd(c *cli.Context) error {
+func init() {
+	rmiCommand.Command = _rmiCommand
+	flags := rmiCommand.Flags()
+	flags.BoolVarP(&rmiCommand.All, "all", "a", false, "Remove all images")
+	flags.BoolVarP(&rmiCommand.Force, "force", "f", false, "Force Removal of the image")
+
+	rootCmd.AddCommand(rmiCommand.Command)
+}
+
+func rmiCmd(c *cliconfig.RmiValues) error {
 	var (
 		lastError error
 		deleted   bool
@@ -53,17 +45,14 @@ func rmiCmd(c *cli.Context) error {
 	)
 
 	ctx := getContext()
-	if err := validateFlags(c, rmiFlags); err != nil {
-		return err
-	}
-	removeAll := c.Bool("all")
-	runtime, err := adapter.GetRuntime(c)
+	removeAll := c.All
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
+	args := c.InputArgs
 	if len(args) == 0 && !removeAll {
 		return errors.Errorf("image name or ID must be specified")
 	}
@@ -75,7 +64,7 @@ func rmiCmd(c *cli.Context) error {
 
 	removeImage := func(img *adapter.ContainerImage) {
 		deleted = true
-		msg, deleteErr = runtime.RemoveImage(ctx, img, c.Bool("force"))
+		msg, deleteErr = runtime.RemoveImage(ctx, img, c.Force)
 		if deleteErr != nil {
 			if errors.Cause(deleteErr) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())

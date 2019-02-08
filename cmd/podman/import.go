@@ -3,47 +3,44 @@ package main
 import (
 	"fmt"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	importFlags = []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "change, c",
-			Usage: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR",
-		},
-		cli.StringFlag{
-			Name:  "message, m",
-			Usage: "Set commit message for imported image",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress output",
-		},
-	}
+	importCommand cliconfig.ImportValues
+
 	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
 	 Note remote tar balls can be specified, via web address.
 	 Optionally tag the image. You can specify the instructions using the --change option.
 	`
-	importCommand = cli.Command{
-		Name:         "import",
-		Usage:        "Import a tarball to create a filesystem image",
-		Description:  importDescription,
-		Flags:        sortFlags(importFlags),
-		Action:       importCmd,
-		ArgsUsage:    "TARBALL [REFERENCE]",
-		OnUsageError: usageErrorHandler,
+	_importCommand = &cobra.Command{
+		Use:   "import",
+		Short: "Import a tarball to create a filesystem image",
+		Long:  importDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			importCommand.InputArgs = args
+			importCommand.GlobalFlags = MainGlobalOpts
+			return importCmd(&importCommand)
+		},
+		Example: "TARBALL [REFERENCE]",
 	}
 )
 
-func importCmd(c *cli.Context) error {
-	if err := validateFlags(c, importFlags); err != nil {
-		return err
-	}
+func init() {
+	importCommand.Command = _importCommand
+	flags := importCommand.Flags()
+	flags.StringSliceVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
+	flags.StringVarP(&importCommand.Message, "message", "m", "", "Set commit message for imported image")
+	flags.BoolVarP(&importCommand.Quiet, "quiet", "q", false, "Suppress output")
 
-	runtime, err := adapter.GetRuntime(c)
+	rootCmd.AddCommand(importCommand.Command)
+}
+
+func importCmd(c *cliconfig.ImportValues) error {
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -54,7 +51,7 @@ func importCmd(c *cli.Context) error {
 		reference string
 	)
 
-	args := c.Args()
+	args := c.InputArgs
 	switch len(args) {
 	case 0:
 		return errors.Errorf("need to give the path to the tarball, or must specify a tarball of '-' for stdin")
@@ -71,7 +68,7 @@ func importCmd(c *cli.Context) error {
 		return err
 	}
 
-	quiet := c.Bool("quiet")
+	quiet := c.Quiet
 	if runtime.Remote {
 		quiet = false
 	}

@@ -18,7 +18,7 @@ const TypeLayers = "layers"
 const V2S2MediaTypeUncompressedLayer = "application/vnd.docker.image.rootfs.diff.tar"
 
 // github.com/moby/moby/image/rootfs.go
-// RootFS describes images root filesystem
+// V2S2RootFS describes images root filesystem
 // This is currently a placeholder that only supports layers. In the future
 // this can be made into an interface that supports different implementations.
 type V2S2RootFS struct {
@@ -27,7 +27,7 @@ type V2S2RootFS struct {
 }
 
 // github.com/moby/moby/image/image.go
-// History stores build commands that were used to create an image
+// V2S2History stores build commands that were used to create an image
 type V2S2History struct {
 	// Created is the timestamp at which the image was created
 	Created time.Time `json:"created"`
@@ -158,7 +158,7 @@ type V1Image struct {
 }
 
 // github.com/moby/moby/image/image.go
-// Image stores the image configuration
+// V2Image stores the image configuration
 type V2Image struct {
 	V1Image
 	Parent     ID            `json:"parent,omitempty"`
@@ -176,7 +176,7 @@ type V2Image struct {
 }
 
 // github.com/docker/distribution/manifest/versioned.go
-// Versioned provides a struct with the manifest schemaVersion and mediaType.
+// V2Versioned provides a struct with the manifest schemaVersion and mediaType.
 // Incoming content with unknown schema version can be decoded against this
 // struct to check the version.
 type V2Versioned struct {
@@ -188,21 +188,21 @@ type V2Versioned struct {
 }
 
 // github.com/docker/distribution/manifest/schema1/manifest.go
-// FSLayer is a container struct for BlobSums defined in an image manifest
+// V2S1FSLayer is a container struct for BlobSums defined in an image manifest
 type V2S1FSLayer struct {
 	// BlobSum is the tarsum of the referenced filesystem image layer
 	BlobSum digest.Digest `json:"blobSum"`
 }
 
 // github.com/docker/distribution/manifest/schema1/manifest.go
-// History stores unstructured v1 compatibility information
+// V2S1History stores unstructured v1 compatibility information
 type V2S1History struct {
 	// V1Compatibility is the raw v1 compatibility information
 	V1Compatibility string `json:"v1Compatibility"`
 }
 
 // github.com/docker/distribution/manifest/schema1/manifest.go
-// Manifest provides the base accessible fields for working with V2 image
+// V2S1Manifest provides the base accessible fields for working with V2 image
 // format in the registry.
 type V2S1Manifest struct {
 	V2Versioned
@@ -225,7 +225,7 @@ type V2S1Manifest struct {
 }
 
 // github.com/docker/distribution/blobs.go
-// Descriptor describes targeted content. Used in conjunction with a blob
+// V2S2Descriptor describes targeted content. Used in conjunction with a blob
 // store, a descriptor can be used to fetch, store and target any kind of
 // blob. The struct also describes the wire protocol format. Fields should
 // only be added but never changed.
@@ -250,7 +250,7 @@ type V2S2Descriptor struct {
 }
 
 // github.com/docker/distribution/manifest/schema2/manifest.go
-// Manifest defines a schema2 manifest.
+// V2S2Manifest defines a schema2 manifest.
 type V2S2Manifest struct {
 	V2Versioned
 

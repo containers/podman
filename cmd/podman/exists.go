@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -8,66 +10,78 @@ import (
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 )
 
 var (
+	imageExistsCommand     cliconfig.ImageExistsValues
+	containerExistsCommand cliconfig.ContainerExistsValues
+	podExistsCommand       cliconfig.PodExistsValues
+
 	imageExistsDescription = `
 	podman image exists
 
 	Check if an image exists in local storage
 `
-
-	imageExistsCommand = cli.Command{
-		Name:         "exists",
-		Usage:        "Check if an image exists in local storage",
-		Description:  imageExistsDescription,
-		Action:       imageExistsCmd,
-		ArgsUsage:    "IMAGE-NAME",
-		OnUsageError: usageErrorHandler,
-	}
-)
-
-var (
 	containerExistsDescription = `
 	podman container exists
 
 	Check if a container exists in local storage
 `
-
-	containerExistsCommand = cli.Command{
-		Name:         "exists",
-		Usage:        "Check if a container exists in local storage",
-		Description:  containerExistsDescription,
-		Action:       containerExistsCmd,
-		ArgsUsage:    "CONTAINER-NAME",
-		OnUsageError: usageErrorHandler,
-	}
-)
-
-var (
 	podExistsDescription = `
 	podman pod exists
 
 	Check if a pod exists in local storage
 `
+	_imageExistsCommand = &cobra.Command{
+		Use:   "exists",
+		Short: "Check if an image exists in local storage",
+		Long:  imageExistsDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			imageExistsCommand.InputArgs = args
+			imageExistsCommand.GlobalFlags = MainGlobalOpts
+			return imageExistsCmd(&imageExistsCommand)
+		},
+		Example: "IMAGE-NAME",
+	}
 
-	podExistsCommand = cli.Command{
-		Name:         "exists",
-		Usage:        "Check if a pod exists in local storage",
-		Description:  podExistsDescription,
-		Action:       podExistsCmd,
-		ArgsUsage:    "POD-NAME",
-		OnUsageError: usageErrorHandler,
+	_containerExistsCommand = &cobra.Command{
+		Use:   "exists",
+		Short: "Check if a container exists in local storage",
+		Long:  containerExistsDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			containerExistsCommand.InputArgs = args
+			containerExistsCommand.GlobalFlags = MainGlobalOpts
+			return containerExistsCmd(&containerExistsCommand)
+
+		},
+		Example: "CONTAINER-NAME",
+	}
+
+	_podExistsCommand = &cobra.Command{
+		Use:   "exists",
+		Short: "Check if a pod exists in local storage",
+		Long:  podExistsDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podExistsCommand.InputArgs = args
+			podExistsCommand.GlobalFlags = MainGlobalOpts
+			return podExistsCmd(&podExistsCommand)
+		},
+		Example: "POD-NAME",
 	}
 )
 
-func imageExistsCmd(c *cli.Context) error {
-	args := c.Args()
+func init() {
+	imageExistsCommand.Command = _imageExistsCommand
+	containerExistsCommand.Command = _containerExistsCommand
+	podExistsCommand.Command = _podExistsCommand
+}
+
+func imageExistsCmd(c *cliconfig.ImageExistsValues) error {
+	args := c.InputArgs
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one image at a time")
 	}
-	runtime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -83,12 +97,12 @@ func imageExistsCmd(c *cli.Context) error {
 	return nil
 }
 
-func containerExistsCmd(c *cli.Context) error {
-	args := c.Args()
+func containerExistsCmd(c *cliconfig.ContainerExistsValues) error {
+	args := c.InputArgs
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one container at a time")
 	}
-	runtime, err := adapter.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -102,12 +116,12 @@ func containerExistsCmd(c *cli.Context) error {
 	return nil
 }
 
-func podExistsCmd(c *cli.Context) error {
-	args := c.Args()
+func podExistsCmd(c *cliconfig.PodExistsValues) error {
+	args := c.InputArgs
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one pod at a time")
 	}
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

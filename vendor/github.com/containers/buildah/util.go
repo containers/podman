@@ -1,10 +1,8 @@
 package buildah
 
 import (
-	"archive/tar"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/sysregistries"
@@ -15,6 +13,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -41,6 +40,28 @@ func copyStringSlice(s []string) []string {
 	t := make([]string, len(s))
 	copy(t, s)
 	return t
+}
+
+func copyHistory(history []v1.History) []v1.History {
+	if len(history) == 0 {
+		return nil
+	}
+	h := make([]v1.History, 0, len(history))
+	for _, entry := range history {
+		created := entry.Created
+		if created != nil {
+			timestamp := *created
+			created = &timestamp
+		}
+		h = append(h, v1.History{
+			Created:    created,
+			CreatedBy:  entry.CreatedBy,
+			Author:     entry.Author,
+			Comment:    entry.Comment,
+			EmptyLayer: entry.EmptyLayer,
+		})
+	}
+	return h
 }
 
 func convertStorageIDMaps(UIDMap, GIDMap []idtools.IDMap) ([]rspec.LinuxIDMapping, []rspec.LinuxIDMapping) {
@@ -88,42 +109,7 @@ func convertRuntimeIDMaps(UIDMap, GIDMap []rspec.LinuxIDMapping) ([]idtools.IDMa
 // container's ID maps, possibly overridden using the passed-in chownOpts
 func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
-	if hasher != nil {
-		originalUntar := archiver.Untar
-		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
-			contentReader, contentWriter, err := os.Pipe()
-			if err != nil {
-				return errors.Wrapf(err, "error creating pipe extract data to %q", dest)
-			}
-			defer contentReader.Close()
-			defer contentWriter.Close()
-			var hashError error
-			var hashWorker sync.WaitGroup
-			hashWorker.Add(1)
-			go func() {
-				t := tar.NewReader(contentReader)
-				_, err := t.Next()
-				if err != nil {
-					hashError = err
-				}
-				if _, err = io.Copy(hasher, t); err != nil && err != io.EOF {
-					hashError = err
-				}
-				hashWorker.Done()
-			}()
-			if err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options); err != nil {
-				err = errors.Wrapf(err, "error extracting data to %q while copying", dest)
-			}
-			hashWorker.Wait()
-			if err == nil {
-				err = errors.Wrapf(hashError, "error calculating digest of data for %q while copying", dest)
-			}
-			return err
-		}
-	}
-	return archiver.CopyFileWithTar
+	return chrootarchive.CopyFileWithTarAndChown(chownOpts, hasher, convertedUIDMap, convertedGIDMap)
 }
 
 // copyWithTar returns a function which copies a directory tree from outside of
@@ -131,15 +117,7 @@ func (b *Builder) copyFileWithTar(chownOpts *idtools.IDPair, hasher io.Writer) f
 // container's ID maps, possibly overridden using the passed-in chownOpts
 func (b *Builder) copyWithTar(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
-	if hasher != nil {
-		originalUntar := archiver.Untar
-		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
-			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
-		}
-	}
-	return archiver.CopyWithTar
+	return chrootarchive.CopyWithTarAndChown(chownOpts, hasher, convertedUIDMap, convertedGIDMap)
 }
 
 // untarPath returns a function which extracts an archive in a specified
@@ -147,15 +125,7 @@ func (b *Builder) copyWithTar(chownOpts *idtools.IDPair, hasher io.Writer) func(
 // container's ID maps, possibly overridden using the passed-in chownOpts
 func (b *Builder) untarPath(chownOpts *idtools.IDPair, hasher io.Writer) func(src, dest string) error {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	untarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	archiver := chrootarchive.NewArchiverWithChown(nil, chownOpts, untarMappings)
-	if hasher != nil {
-		originalUntar := archiver.Untar
-		archiver.Untar = func(tarArchive io.Reader, dest string, options *archive.TarOptions) error {
-			return originalUntar(io.TeeReader(tarArchive, hasher), dest, options)
-		}
-	}
-	return archiver.UntarPath
+	return chrootarchive.UntarPathAndChown(chownOpts, hasher, convertedUIDMap, convertedGIDMap)
 }
 
 // tarPath returns a function which creates an archive of a specified
@@ -163,14 +133,7 @@ func (b *Builder) untarPath(chownOpts *idtools.IDPair, hasher io.Writer) func(sr
 // container's ID maps
 func (b *Builder) tarPath() func(path string) (io.ReadCloser, error) {
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
-	tarMappings := idtools.NewIDMappingsFromMaps(convertedUIDMap, convertedGIDMap)
-	return func(path string) (io.ReadCloser, error) {
-		return archive.TarWithOptions(path, &archive.TarOptions{
-			Compression: archive.Uncompressed,
-			UIDMaps:     tarMappings.UIDs(),
-			GIDMaps:     tarMappings.GIDs(),
-		})
-	}
+	return archive.TarPath(convertedUIDMap, convertedGIDMap)
 }
 
 // isRegistryBlocked checks if the named registry is marked as blocked

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/containers/buildah/docker"
 	"github.com/containers/buildah/util"
@@ -25,7 +26,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.6-dev"
+	Version = "1.7-dev"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -175,6 +176,15 @@ type Builder struct {
 	// after processing the AddCapabilities set, when running commands in the container.
 	// If a capability appears in both lists, it will be dropped.
 	DropCapabilities []string
+	// PrependedEmptyLayers are history entries that we'll add to a
+	// committed image, after any history items that we inherit from a base
+	// image, but before the history item for the layer that we're
+	// committing.
+	PrependedEmptyLayers []v1.History
+	// AppendedEmptyLayers are history entries that we'll add to a
+	// committed image after the history item for the layer that we're
+	// committing.
+	AppendedEmptyLayers []v1.History
 
 	CommonBuildOpts *CommonBuildOptions
 	// TopLayer is the top layer of the image
@@ -209,11 +219,24 @@ type BuilderInfo struct {
 	DefaultCapabilities   []string
 	AddCapabilities       []string
 	DropCapabilities      []string
+	History               []v1.History
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
 // This is used in the inspect command to display Manifest and Config as string and not []byte.
 func GetBuildInfo(b *Builder) BuilderInfo {
+	history := copyHistory(b.OCIv1.History)
+	history = append(history, copyHistory(b.PrependedEmptyLayers)...)
+	now := time.Now().UTC()
+	created := &now
+	history = append(history, v1.History{
+		Created:    created,
+		CreatedBy:  b.ImageCreatedBy,
+		Author:     b.Maintainer(),
+		Comment:    b.ImageHistoryComment,
+		EmptyLayer: false,
+	})
+	history = append(history, copyHistory(b.AppendedEmptyLayers)...)
 	return BuilderInfo{
 		Type:                  b.Type,
 		FromImage:             b.FromImage,
@@ -239,6 +262,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		DefaultCapabilities:   append([]string{}, util.DefaultCapabilities...),
 		AddCapabilities:       append([]string{}, b.AddCapabilities...),
 		DropCapabilities:      append([]string{}, b.DropCapabilities...),
+		History:               history,
 	}
 }
 

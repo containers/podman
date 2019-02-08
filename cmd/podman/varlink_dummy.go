@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 )
 
-var varlinkCommand *cli.Command
+var varlinkCommand *cliconfig.PodmanCommand

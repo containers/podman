@@ -5,68 +5,67 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	restoreCommand     cliconfig.RestoreValues
 	restoreDescription = `
    podman container restore
 
    Restores a container from a checkpoint. The container name or ID can be used.
 `
-	restoreFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "keep, k",
-			Usage: "Keep all temporary checkpoint files",
+	_restoreCommand = &cobra.Command{
+		Use:   "restore",
+		Short: "Restores one or more containers from a checkpoint",
+		Long:  restoreDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			restoreCommand.InputArgs = args
+			restoreCommand.GlobalFlags = MainGlobalOpts
+			return restoreCmd(&restoreCommand)
 		},
-		// restore --all would make more sense if there would be
-		// dedicated state for container which are checkpointed.
-		// TODO: add ContainerStateCheckpointed
-		cli.BoolFlag{
-			Name:  "tcp-established",
-			Usage: "Checkpoint a container with established TCP connections",
-		},
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Restore all checkpointed containers",
-		},
-		LatestFlag,
-	}
-	restoreCommand = cli.Command{
-		Name:        "restore",
-		Usage:       "Restores one or more containers from a checkpoint",
-		Description: restoreDescription,
-		Flags:       sortFlags(restoreFlags),
-		Action:      restoreCmd,
-		ArgsUsage:   "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
 	}
 )
 
-func restoreCmd(c *cli.Context) error {
+func init() {
+	restoreCommand.Command = _restoreCommand
+	flags := restoreCommand.Flags()
+	flags.BoolVarP(&restoreCommand.All, "all", "a", false, "Restore all checkpointed containers")
+	flags.BoolVarP(&restoreCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
+	flags.BoolVarP(&restoreCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	// TODO: add ContainerStateCheckpointed
+	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+
+	rootCmd.AddCommand(restoreCommand.Command)
+}
+
+func restoreCmd(c *cliconfig.RestoreValues) error {
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Bool("keep"),
-		TCPEstablished: c.Bool("tcp-established"),
+		Keep:           c.Keep,
+		TCPEstablished: c.TcpEstablished,
 	}
 
-	if err := checkAllAndLatest(c); err != nil {
+	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	containers, lastError := getAllOrLatestContainers(c, runtime, libpod.ContainerStateExited, "checkpointed")
+	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateExited, "checkpointed")
 
 	for _, ctr := range containers {
 		if err = ctr.Restore(context.TODO(), options); err != nil {

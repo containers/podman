@@ -352,7 +352,8 @@ vendor: .install.vndr
 	$(GOPATH)/bin/vndr \
 		-whitelist "github.com/varlink/go"  \
 		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/onsi/gomega"
+		-whitelist "github.com/onsi/gomega" \
+		-whitelist "gopkg.in/fsnotify.v1"
 
 .PHONY: \
 	.gopathok \

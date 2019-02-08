@@ -1,30 +1,21 @@
 package main
 
 import (
-	"sort"
-
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
-var (
-	containerSubCommands = []cli.Command{
-		exportCommand,
-		inspectCommand,
-	}
-	containerDescription = "Manage containers"
-	containerCommand     = cli.Command{
-		Name:                   "container",
-		Usage:                  "Manage Containers",
-		Description:            containerDescription,
-		ArgsUsage:              "",
-		Subcommands:            getContainerSubCommandsSorted(),
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-	}
-)
+var containerDescription = "Manage containers"
+var containerCommand = cliconfig.PodmanCommand{
+	Command: &cobra.Command{
+		Use:              "container",
+		Short:            "Manage Containers",
+		Long:             containerDescription,
+		TraverseChildren: true,
+	},
+}
 
-func getContainerSubCommandsSorted() []cli.Command {
-	containerSubCommands = append(containerSubCommands, getContainerSubCommands()...)
-	sort.Sort(commandSortedAlpha{containerSubCommands})
-	return containerSubCommands
+func init() {
+	containerCommand.AddCommand(getContainerSubCommands()...)
+	rootCmd.AddCommand(containerCommand.Command)
 }

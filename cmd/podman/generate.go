@@ -1,23 +1,21 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
-var (
-	generateSubCommands = []cli.Command{
-		containerKubeCommand,
-	}
+var generateDescription = "Generate structured data based for a containers and pods"
+var generateCommand = cliconfig.PodmanCommand{
 
-	generateDescription = "Generate structured data based for a containers and pods"
-	kubeCommand         = cli.Command{
-		Name:                   "generate",
-		Usage:                  "Generate structured data",
-		Description:            generateDescription,
-		ArgsUsage:              "",
-		Subcommands:            generateSubCommands,
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-		Hidden:                 true,
-	}
-)
+	Command: &cobra.Command{
+		Use:   "generate",
+		Short: "Generated structured data",
+		Long:  generateDescription,
+	},
+}
+
+func init() {
+	generateCommand.AddCommand(getGenerateSubCommands()...)
+	rootCmd.AddCommand(generateCommand.Command)
+}

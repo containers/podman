@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	of "github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
+	mountCommand cliconfig.MountValues
+
 	mountDescription = `
    podman mount
    Lists all mounted containers mount points
@@ -22,31 +25,28 @@ var (
    Mounts the specified container and outputs the mountpoint
 `
 
-	mountFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Mount all containers",
+	_mountCommand = &cobra.Command{
+		Use:   "mount",
+		Short: "Mount a working container's root filesystem",
+		Long:  mountDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			mountCommand.InputArgs = args
+			mountCommand.GlobalFlags = MainGlobalOpts
+			return mountCmd(&mountCommand)
 		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format to Go template",
-		},
-		cli.BoolFlag{
-			Name:  "notruncate",
-			Usage: "Do not truncate output",
-		},
-		LatestFlag,
-	}
-	mountCommand = cli.Command{
-		Name:         "mount",
-		Usage:        "Mount a working container's root filesystem",
-		Description:  mountDescription,
-		Action:       mountCmd,
-		ArgsUsage:    "[CONTAINER-NAME-OR-ID [...]]",
-		Flags:        sortFlags(mountFlags),
-		OnUsageError: usageErrorHandler,
 	}
 )
+
+func init() {
+	mountCommand.Command = _mountCommand
+	flags := mountCommand.Flags()
+	flags.BoolVarP(&mountCommand.All, "all", "a", false, "Mount all containers")
+	flags.StringVar(&mountCommand.Format, "format", "", "Change the output format to Go template")
+	flags.BoolVarP(&mountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&mountCommand.NoTrunc, "notruncate", false, "Do not truncate output")
+
+	rootCmd.AddCommand(mountCommand.Command)
+}
 
 // jsonMountPoint stores info about each container
 type jsonMountPoint struct {
@@ -55,15 +55,12 @@ type jsonMountPoint struct {
 	MountPoint string   `json:"mountpoint"`
 }
 
-func mountCmd(c *cli.Context) error {
-	if err := validateFlags(c, mountFlags); err != nil {
-		return err
-	}
+func mountCmd(c *cliconfig.MountValues) error {
 	if os.Geteuid() != 0 {
 		rootless.SetSkipStorageSetup(true)
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -85,11 +82,11 @@ func mountCmd(c *cli.Context) error {
 		}
 	}
 
-	if c.Bool("all") && c.Bool("latest") {
+	if c.All && c.Latest {
 		return errors.Errorf("--all and --latest cannot be used together")
 	}
 
-	mountContainers, err := getAllOrLatestContainers(c, runtime, -1, "all")
+	mountContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 	if err != nil {
 		if len(mountContainers) == 0 {
 			return err
@@ -102,9 +99,9 @@ func mountCmd(c *cli.Context) error {
 		of.JSONString: true,
 	}
 
-	json := c.String("format") == of.JSONString
-	if !formats[c.String("format")] {
-		return errors.Errorf("%q is not a supported format", c.String("format"))
+	json := c.Format == of.JSONString
+	if !formats[c.Format] {
+		return errors.Errorf("%q is not a supported format", c.Format)
 	}
 
 	var lastError error
@@ -149,7 +146,7 @@ func mountCmd(c *cli.Context) error {
 				continue
 			}
 
-			if c.Bool("notruncate") {
+			if c.NoTrunc {
 				fmt.Printf("%-64s %s\n", container.ID(), mountPoint)
 			} else {
 				fmt.Printf("%-12.12s %s\n", container.ID(), mountPoint)

@@ -4,47 +4,45 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	restartFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Restart all non-running containers",
-		},
-		cli.BoolFlag{
-			Name:  "running",
-			Usage: "Restart only running containers when --all is used",
-		},
-		cli.UintFlag{
-			Name:  "timeout, time, t",
-			Usage: "Seconds to wait for stop before killing the container",
-			Value: libpod.CtrRemoveTimeout,
-		},
-		LatestFlag,
-	}
+	restartCommand     cliconfig.RestartValues
 	restartDescription = `Restarts one or more running containers. The container ID or name can be used. A timeout before forcibly stopping can be set, but defaults to 10 seconds`
-
-	restartCommand = cli.Command{
-		Name:                   "restart",
-		Usage:                  "Restart one or more containers",
-		Description:            restartDescription,
-		Flags:                  sortFlags(restartFlags),
-		Action:                 restartCmd,
-		ArgsUsage:              "CONTAINER [CONTAINER ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_restartCommand    = &cobra.Command{
+		Use:   "restart",
+		Short: "Restart one or more containers",
+		Long:  restartDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			restartCommand.InputArgs = args
+			restartCommand.GlobalFlags = MainGlobalOpts
+			return restartCmd(&restartCommand)
+		},
+		Example: "CONTAINER [CONTAINER ...]",
 	}
 )
 
-func restartCmd(c *cli.Context) error {
+func init() {
+	restartCommand.Command = _restartCommand
+	flags := restartCommand.Flags()
+	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
+	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&restartCommand.Running, "running", false, "Restart only running containers when --all is used")
+	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&restartCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+
+	rootCmd.AddCommand(restartCommand.Command)
+}
+
+func restartCmd(c *cliconfig.RestartValues) error {
 	var (
 		restartFuncs      []shared.ParallelWorkerInput
 		containers        []*libpod.Container
@@ -55,34 +53,31 @@ func restartCmd(c *cli.Context) error {
 		rootless.SetSkipStorageSetup(true)
 	}
 
-	args := c.Args()
-	runOnly := c.Bool("running")
-	all := c.Bool("all")
-	if len(args) < 1 && !c.Bool("latest") && !all {
+	args := c.InputArgs
+	runOnly := c.Running
+	all := c.All
+	if len(args) < 1 && !c.Latest && !all {
 		return errors.Wrapf(libpod.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
-	if err := validateFlags(c, restartFlags); err != nil {
-		return err
-	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	timeout := c.Uint("timeout")
-	useTimeout := c.IsSet("timeout")
+	timeout := c.Timeout
+	useTimeout := c.Flag("timeout").Changed
 
 	// Handle --latest
-	if c.Bool("latest") {
+	if c.Latest {
 		lastCtr, err := runtime.GetLatestContainer()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get latest container")
 		}
 		restartContainers = append(restartContainers, lastCtr)
 	} else if runOnly {
-		containers, err = getAllOrLatestContainers(c, runtime, libpod.ContainerStateRunning, "running")
+		containers, err = getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 		if err != nil {
 			return err
 		}
@@ -105,7 +100,7 @@ func restartCmd(c *cli.Context) error {
 
 	maxWorkers := shared.Parallelize("restart")
 	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalInt("max-workers")
+		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)

@@ -8,49 +8,57 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
-var runDescription = "Runs a command in a new container from the given image"
+var (
+	runCommmand cliconfig.RunValues
 
-var runFlags []cli.Flag = append(createFlags, cli.BoolTFlag{
-	Name:  "sig-proxy",
-	Usage: "Proxy received signals to the process (default true)",
-})
+	runDescription = "Runs a command in a new container from the given image"
+	_runCommmand   = &cobra.Command{
+		Use:   "run",
+		Short: "Run a command in a new container",
+		Long:  runDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			runCommmand.InputArgs = args
+			runCommmand.GlobalFlags = MainGlobalOpts
+			return runCmd(&runCommmand)
+		},
+		Example: "IMAGE [COMMAND [ARG...]]",
+	}
+)
 
-var runCommand = cli.Command{
-	Name:                   "run",
-	Usage:                  "Run a command in a new container",
-	Description:            runDescription,
-	Flags:                  sortFlags(runFlags),
-	Action:                 runCmd,
-	ArgsUsage:              "IMAGE [COMMAND [ARG...]]",
-	HideHelp:               true,
-	SkipArgReorder:         true,
-	UseShortOptionHandling: true,
-	OnUsageError:           usageErrorHandler,
+func init() {
+	runCommmand.Command = _runCommmand
+	flags := runCommmand.Flags()
+	flags.SetInterspersed(false)
+	flags.Bool("sig-proxy", true, "Proxy received signals to the process (default true)")
+	getCreateFlags(&runCommmand.PodmanCommand)
+
+	rootCmd.AddCommand(runCommmand.Command)
 }
 
-func runCmd(c *cli.Context) error {
-	if err := createInit(c); err != nil {
+func runCmd(c *cliconfig.RunValues) error {
+	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
 	if os.Geteuid() != 0 {
 		rootless.SetSkipStorageSetup(true)
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, createConfig, err := createContainer(c, runtime)
+	ctr, createConfig, err := createContainer(&c.PodmanCommand, runtime)
 	if err != nil {
 		return err
 	}
@@ -110,7 +118,7 @@ func runCmd(c *cli.Context) error {
 			}
 		}
 	}
-	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.BoolT("sig-proxy"), true); err != nil {
+	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true); err != nil {
 		// This means the command did not exist
 		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {

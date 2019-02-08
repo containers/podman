@@ -7,88 +7,59 @@ import (
 	"strings"
 
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	runlabelFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override. ",
-		},
-		cli.BoolFlag{
-			Name:  "display",
-			Usage: "Preview the command that the label would run",
-		},
-		cli.StringFlag{
-			Name:  "cert-dir",
-			Usage: "`Pathname` of a directory containing TLS certificates and keys",
-		},
-		cli.StringFlag{
-			Name:  "creds",
-			Usage: "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
-		},
-		cli.StringFlag{
-			Name:  "name",
-			Usage: "Assign a name to the container",
-		},
-		cli.StringFlag{
-			Name:   "opt1",
-			Usage:  "Optional parameter to pass for install",
-			Hidden: true,
-		},
-		cli.StringFlag{
-			Name:   "opt2",
-			Usage:  "Optional parameter to pass for install",
-			Hidden: true,
-		},
-		cli.StringFlag{
-			Name:   "opt3",
-			Usage:  "Optional parameter to pass for install",
-			Hidden: true,
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress output information when installing images",
-		},
-		cli.BoolFlag{
-			Name:  "pull, p",
-			Usage: "Pull the image if it does not exist locally prior to executing the label contents",
-		},
-		cli.StringFlag{
-			Name:  "signature-policy",
-			Usage: "`Pathname` of signature policy file (not usually used)",
-		},
-		cli.BoolTFlag{
-			Name:  "tls-verify",
-			Usage: "Require HTTPS and verify certificates when contacting registries (default: true)",
-		},
-	}
-
+	runlabelCommand     cliconfig.RunlabelValues
 	runlabelDescription = `
 Executes a command as described by a container image label.
 `
-	runlabelCommand = cli.Command{
-		Name:           "runlabel",
-		Usage:          "Execute the command described by an image label",
-		Description:    runlabelDescription,
-		Flags:          sortFlags(runlabelFlags),
-		Action:         runlabelCmd,
-		ArgsUsage:      "",
-		SkipArgReorder: true,
-		OnUsageError:   usageErrorHandler,
+	_runlabelCommand = &cobra.Command{
+		Use:   "runlabel",
+		Short: "Execute the command described by an image label",
+		Long:  runlabelDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			runlabelCommand.InputArgs = args
+			runlabelCommand.GlobalFlags = MainGlobalOpts
+			return runlabelCmd(&runlabelCommand)
+		},
+		Example: "",
 	}
 )
 
+func init() {
+	runlabelCommand.Command = _runlabelCommand
+	flags := runlabelCommand.Flags()
+	flags.StringVar(&runlabelCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+	flags.StringVar(&runlabelCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.BoolVar(&runlabelCommand.Display, "display", false, "Preview the command that the label would run")
+	flags.StringVar(&runlabelCommand.Name, "name", "", "Assign a name to the container")
+
+	flags.StringVar(&runlabelCommand.Opt1, "opt1", "", "Optional parameter to pass for install")
+	flags.StringVar(&runlabelCommand.Opt2, "opt2", "", "Optional parameter to pass for install")
+	flags.StringVar(&runlabelCommand.Opt3, "opt3", "", "Optional parameter to pass for install")
+	flags.MarkHidden("opt1")
+	flags.MarkHidden("opt3")
+	flags.MarkHidden("opt3")
+
+	flags.BoolVarP(&runlabelCommand.Pull, "pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
+	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
+	flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+	flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+}
+
 // installCmd gets the data from the command line and calls installImage
 // to copy an image from a registry to a local machine
-func runlabelCmd(c *cli.Context) error {
+func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	var (
 		imageName      string
 		stdErr, stdOut io.Writer
@@ -105,40 +76,38 @@ func runlabelCmd(c *cli.Context) error {
 	}
 
 	opts := make(map[string]string)
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	args := c.Args()
+	args := c.InputArgs
 	if len(args) < 2 {
 		logrus.Errorf("the runlabel command requires at least 2 arguments: LABEL IMAGE")
 		return nil
 	}
-	if err := validateFlags(c, runlabelFlags); err != nil {
-		return err
-	}
-	if c.Bool("display") && c.Bool("quiet") {
+	if c.Display && c.Quiet {
 		return errors.Errorf("the display and quiet flags cannot be used together.")
 	}
 
 	if len(args) > 2 {
 		extraArgs = args[2:]
 	}
-	pull := c.Bool("pull")
+	pull := c.Pull
 	label := args[0]
 
 	runlabelImage := args[1]
 
-	if c.IsSet("opt1") {
-		opts["opt1"] = c.String("opt1")
+	if c.Flag("opt1").Changed {
+		opts["opt1"] = c.Opt1
 	}
-	if c.IsSet("opt2") {
-		opts["opt2"] = c.String("opt2")
+
+	if c.Flag("opt2").Changed {
+		opts["opt2"] = c.Opt2
 	}
-	if c.IsSet("opt3") {
-		opts["opt3"] = c.String("opt3")
+	if c.Flag("opt3").Changed {
+		opts["opt3"] = c.Opt3
 	}
 
 	ctx := getContext()
@@ -147,21 +116,21 @@ func runlabelCmd(c *cli.Context) error {
 	stdOut = os.Stdout
 	stdIn = os.Stdin
 
-	if c.Bool("quiet") {
+	if c.Quiet {
 		stdErr = nil
 		stdOut = nil
 		stdIn = nil
 	}
 
 	dockerRegistryOptions := image.DockerRegistryOptions{
-		DockerCertPath: c.String("cert-dir"),
+		DockerCertPath: c.CertDir,
 	}
-	if c.IsSet("tls-verify") {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.BoolT("tls-verify"))
+	if c.Flag("tls-verify").Changed {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
-	authfile := getAuthFile(c.String("authfile"))
-	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, pull, c.String("creds"), dockerRegistryOptions, authfile, c.String("signature-policy"), stdOut)
+	authfile := getAuthFile(c.Authfile)
+	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, pull, c.Creds, dockerRegistryOptions, authfile, c.SignaturePolicy, stdOut)
 	if err != nil {
 		return err
 	}
@@ -169,13 +138,13 @@ func runlabelCmd(c *cli.Context) error {
 		return errors.Errorf("%s does not have a label of %s", runlabelImage, label)
 	}
 
-	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.String("name"), opts, extraArgs)
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs)
 	if err != nil {
 		return err
 	}
-	if !c.Bool("quiet") {
+	if !c.Quiet {
 		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
-		if c.Bool("display") {
+		if c.Display {
 			return nil
 		}
 	}
