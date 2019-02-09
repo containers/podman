@@ -6,6 +6,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,10 +62,18 @@ func rmCmd(c *cliconfig.RmValues) error {
 
 	delContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 	if err != nil {
+		if c.Force && len(c.InputArgs) > 0 {
+			if errors.Cause(err) == libpod.ErrNoSuchCtr {
+				err = nil
+			}
+			runtime.RemoveContainersFromStorage(c.InputArgs)
+		}
 		if len(delContainers) == 0 {
 			return err
 		}
-		fmt.Println(err.Error())
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 
 	for _, container := range delContainers {
