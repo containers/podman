@@ -305,6 +305,7 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 // generateImagesOutput generates the images based on the format provided
 
 func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) error {
+	templateMap := GenImageOutputMap()
 	if len(images) == 0 {
 		return nil
 	}
@@ -316,15 +317,17 @@ func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage,
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
 		imagesOutput := getImagesTemplateOutput(ctx, images, opts)
-		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: imagesOutput[0].HeaderMap()}
+		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: templateMap}
 	}
 	return formats.Writer(out).Out()
 }
 
-// HeaderMap produces a generic map of "headers" based on a line
-// of output
-func (i *imagesTemplateParams) HeaderMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(i))
+// GenImageOutputMap generates the map used for outputting the images header
+// without requiring a populated image. This replaces the previous HeaderMap
+// call.
+func GenImageOutputMap() map[string]string {
+	io := imagesTemplateParams{}
+	v := reflect.Indirect(reflect.ValueOf(io))
 	values := make(map[string]string)
 
 	for i := 0; i < v.NumField(); i++ {
