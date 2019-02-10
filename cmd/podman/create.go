@@ -65,7 +65,6 @@ func init() {
 	flags := createCommand.Flags()
 	flags.SetInterspersed(true)
 
-	rootCmd.AddCommand(createCommand.Command)
 }
 
 func createCmd(c *cliconfig.CreateValues) error {

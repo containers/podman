@@ -34,8 +34,6 @@ func init() {
 	flags.BoolVar(&attachCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process (default true)")
 
 	flags.BoolVarP(&attachCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-
-	rootCmd.AddCommand(attachCommand.Command)
 }
 
 func attachCmd(c *cliconfig.AttachValues) error {

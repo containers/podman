@@ -20,10 +20,11 @@ var (
 var imageSubCommands = []*cobra.Command{
 	_historyCommand,
 	_imageExistsCommand,
-	_inspectCommand,
 	_imagesCommand,
+	_importCommand,
+	_inspectCommand,
 	_pruneImagesCommand,
-	_pushCommand,
+	_pullCommand,
 	_rmiCommand,
 	_tagCommand,
 }
@@ -31,5 +32,4 @@ var imageSubCommands = []*cobra.Command{
 func init() {
 	imageCommand.AddCommand(imageSubCommands...)
 	imageCommand.AddCommand(getImageSubCommands()...)
-	rootCmd.AddCommand(imageCommand.Command)
 }

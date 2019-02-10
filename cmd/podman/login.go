@@ -44,7 +44,6 @@ func init() {
 	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
 	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
 
-	rootCmd.AddCommand(loginCommand.Command)
 }
 
 // loginCmd uses the authentication package to store a user's authenticated credentials

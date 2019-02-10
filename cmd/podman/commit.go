@@ -47,7 +47,6 @@ func init() {
 	flags.BoolVarP(&commitCommand.Pause, "pause", "p", false, "Pause container during commit")
 	flags.BoolVarP(&commitCommand.Quiet, "quiet", "q", false, "Suppress output")
 
-	rootCmd.AddCommand(commitCommand.Command)
 }
 
 func commitCmd(c *cliconfig.CommitValues) error {

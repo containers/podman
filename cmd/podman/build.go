@@ -58,8 +58,6 @@ func init() {
 
 	flags.AddFlagSet(&budFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
-
-	rootCmd.AddCommand(buildCommand.Command)
 }
 
 func getDockerfiles(files []string) []string {

@@ -37,7 +37,6 @@ func init() {
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseCommand.All, "all", "a", false, "Pause all running containers")
 
-	rootCmd.AddCommand(pauseCommand.Command)
 }
 
 func pauseCmd(c *cliconfig.PauseValues) error {

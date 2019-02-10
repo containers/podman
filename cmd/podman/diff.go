@@ -59,9 +59,8 @@ func init() {
 
 	flags.MarkHidden("archive")
 
-	rootCmd.AddCommand(diffCommand.Command)
-
 }
+
 func formatJSON(output []diffOutputParams) (diffJSONOutput, error) {
 	jsonStruct := diffJSONOutput{}
 	for _, output := range output {

@@ -19,5 +19,4 @@ func init() {
 
 func init() {
 	playCommand.AddCommand(getPlaySubCommands()...)
-	rootCmd.AddCommand(playCommand.Command)
 }

@@ -48,7 +48,6 @@ func init() {
 	flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
 
-	rootCmd.AddCommand(pullCommand.Command)
 }
 
 // pullCmd gets the data from the command line and calls pullImage

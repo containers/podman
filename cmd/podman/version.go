@@ -30,7 +30,6 @@ func init() {
 	versionCommand.Command = _versionCommand
 	flags := versionCommand.Flags()
 	flags.StringVarP(&versionCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
-	rootCmd.AddCommand(versionCommand.Command)
 }
 
 // versionCmd gets and prints version info for version command

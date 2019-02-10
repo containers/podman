@@ -52,7 +52,6 @@ func init() {
 	flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.StringVar(&pushCommand.SignBy, "sign-by", "", "Add a signature at the destination using the specified key")
 	flags.BoolVar(&pushCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
-	rootCmd.AddCommand(pushCommand.Command)
 }
 
 func pushCmd(c *cliconfig.PushValues) error {

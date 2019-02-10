@@ -187,9 +187,8 @@ func init() {
 	flags.StringVar(&psCommand.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
 	flags.BoolVar(&psCommand.Sync, "sync", false, "Sync container state with OCI runtime")
 
-	rootCmd.AddCommand(psCommand.Command)
-
 }
+
 func psCmd(c *cliconfig.PsValues) error {
 	var (
 		filterFuncs      []libpod.ContainerFilter

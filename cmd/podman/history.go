@@ -60,9 +60,8 @@ func init() {
 	flags.BoolVar(&historyCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.BoolVarP(&historyCommand.Quiet, "quiet", "q", false, "Display the numeric IDs only")
 
-	rootCmd.AddCommand(historyCommand.Command)
-
 }
+
 func historyCmd(c *cliconfig.HistoryValues) error {
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
