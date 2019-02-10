@@ -25,7 +25,9 @@ func getPodSubCommands() []*cobra.Command {
 }
 
 func getVolumeSubCommands() []*cobra.Command {
-	return []*cobra.Command{}
+	return []*cobra.Command{
+		_volumeCreateCommand,
+	}
 }
 
 func getGenerateSubCommands() []*cobra.Command {

@@ -432,3 +432,20 @@ func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libp
 func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force bool) error {
 	return libpod.ErrNotImplemented
 }
+
+// CreateVolume creates a volume over a varlink connection for the remote client
+func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCreateValues, labels, opts map[string]string) (string, error) {
+	cvOpts := iopodman.VolumeCreateOpts{
+		Options: opts,
+		Labels:  labels,
+	}
+	if len(c.InputArgs) > 0 {
+		cvOpts.VolumeName = c.InputArgs[0]
+	}
+
+	if c.Flag("driver").Changed {
+		cvOpts.Driver = c.Driver
+	}
+
+	return iopodman.VolumeCreate().Call(r.Conn, cvOpts)
+}

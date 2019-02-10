@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -41,13 +40,7 @@ func init() {
 }
 
 func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
-	var (
-		options []libpod.VolumeCreateOption
-		err     error
-		volName string
-	)
-
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -57,36 +50,19 @@ func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
 		return errors.Errorf("too many arguments, create takes at most 1 argument")
 	}
 
-	if len(c.InputArgs) > 0 {
-		volName = c.InputArgs[0]
-		options = append(options, libpod.WithVolumeName(volName))
-	}
-
-	if c.Flag("driver").Changed {
-		options = append(options, libpod.WithVolumeDriver(c.String("driver")))
-	}
-
 	labels, err := getAllLabels([]string{}, c.Label)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
-	}
-	if len(labels) != 0 {
-		options = append(options, libpod.WithVolumeLabels(labels))
 	}
 
 	opts, err := getAllLabels([]string{}, c.Opt)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process options")
 	}
-	if len(options) != 0 {
-		options = append(options, libpod.WithVolumeOptions(opts))
-	}
 
-	vol, err := runtime.NewVolume(getContext(), options...)
-	if err != nil {
-		return err
+	volumeName, err := runtime.CreateVolume(getContext(), c, labels, opts)
+	if err == nil {
+		fmt.Println(volumeName)
 	}
-	fmt.Printf("%s\n", vol.Name())
-
-	return nil
+	return err
 }
