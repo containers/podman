@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"os"
+	"reflect"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"encoding/json"
@@ -136,6 +140,25 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		step = 0
 	}
 
+	headerNames := make(map[string]string)
+	if c.Format != "" {
+		// Make a map of the field names for the headers
+		v := reflect.ValueOf(podStatOut{})
+		t := v.Type()
+		for i := 0; i < t.NumField(); i++ {
+			value := strings.ToUpper(splitCamelCase(t.Field(i).Name))
+			switch value {
+			case "CPU":
+				value = value + " %"
+			case "MEM":
+				value = value + " %"
+			case "MEM USAGE":
+				value = "MEM USAGE / LIMIT"
+			}
+			headerNames[t.Field(i).Name] = value
+		}
+	}
+
 	for i := 0; i < times; i += step {
 		var newStats []*libpod.PodContainerStats
 		for _, p := range pods {
@@ -163,7 +186,14 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 			outputJson(newStats)
 
 		} else {
-			outputToStdOut(newStats)
+			results := podContainerStatsToPodStatOut(newStats)
+			if len(format) == 0 {
+				outputToStdOut(results)
+			} else {
+				if err := printPSFormat(c.Format, results, headerNames); err != nil {
+					return err
+				}
+			}
 		}
 		time.Sleep(time.Second)
 		previousPodStats := new([]*libpod.PodContainerStats)
@@ -177,28 +207,88 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	return nil
 }
 
-func outputToStdOut(stats []*libpod.PodContainerStats) {
-	outFormat := ("%-14s %-14s %-12s %-6s %-19s %-6s %-19s %-19s %-4s\n")
-	fmt.Printf(outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
-	for _, i := range stats {
-		if len(i.ContainerStats) == 0 {
-			fmt.Printf(outFormat, i.Pod.ID()[:12], "--", "--", "--", "--", "--", "--", "--", "--")
-		}
-		for _, c := range i.ContainerStats {
-			cpu := floatToPercentString(c.CPU)
-			memUsage := combineHumanValues(c.MemUsage, c.MemLimit)
-			memPerc := floatToPercentString(c.MemPerc)
-			netIO := combineHumanValues(c.NetInput, c.NetOutput)
-			blockIO := combineHumanValues(c.BlockInput, c.BlockOutput)
-			pids := pidsToString(c.PIDs)
-			containerName := c.Name
-			if len(c.Name) > 10 {
-				containerName = containerName[:10]
+func podContainerStatsToPodStatOut(stats []*libpod.PodContainerStats) []*podStatOut {
+	var out []*podStatOut
+	for _, p := range stats {
+		for _, c := range p.ContainerStats {
+			o := podStatOut{
+				CPU:      floatToPercentString(c.CPU),
+				MemUsage: combineHumanValues(c.MemUsage, c.MemLimit),
+				Mem:      floatToPercentString(c.MemPerc),
+				NetIO:    combineHumanValues(c.NetInput, c.NetOutput),
+				BlockIO:  combineHumanValues(c.BlockInput, c.BlockOutput),
+				PIDS:     pidsToString(c.PIDs),
+				CID:      c.ContainerID[:12],
+				Name:     c.Name,
+				Pod:      p.Pod.ID()[:12],
 			}
-			fmt.Printf(outFormat, i.Pod.ID()[:12], c.ContainerID[:12], containerName, cpu, memUsage, memPerc, netIO, blockIO, pids)
+			out = append(out, &o)
 		}
 	}
-	fmt.Println()
+	return out
+}
+
+type podStatOut struct {
+	CPU      string
+	MemUsage string
+	Mem      string
+	NetIO    string
+	BlockIO  string
+	PIDS     string
+	Pod      string
+	CID      string
+	Name     string
+}
+
+func printPSFormat(format string, stats []*podStatOut, headerNames map[string]string) error {
+	if len(stats) == 0 {
+		return nil
+	}
+
+	// Use a tabwriter to align column format
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	// Spit out the header if "table" is present in the format
+	if strings.HasPrefix(format, "table") {
+		hformat := strings.Replace(strings.TrimSpace(format[5:]), " ", "\t", -1)
+		format = hformat
+		headerTmpl, err := template.New("header").Parse(hformat)
+		if err != nil {
+			return err
+		}
+		if err := headerTmpl.Execute(w, headerNames); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "")
+	}
+
+	// Spit out the data rows now
+	dataTmpl, err := template.New("data").Parse(format)
+	if err != nil {
+		return err
+	}
+	for _, container := range stats {
+		if err := dataTmpl.Execute(w, container); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "")
+	}
+	// Flush the writer
+	return w.Flush()
+
+}
+
+func outputToStdOut(stats []*podStatOut) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	outFormat := ("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n")
+	fmt.Fprintf(w, outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
+	for _, i := range stats {
+		if len(stats) == 0 {
+			fmt.Fprintf(w, outFormat, i.Pod, "--", "--", "--", "--", "--", "--", "--", "--")
+		} else {
+			fmt.Fprintf(w, outFormat, i.Pod, i.CID, i.Name, i.CPU, i.MemUsage, i.Mem, i.NetIO, i.BlockIO, i.PIDS)
+		}
+	}
+	w.Flush()
 }
 
 func getPreviousPodContainerStats(podID string, prev []*libpod.PodContainerStats) map[string]*libpod.ContainerStats {
