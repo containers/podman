@@ -109,8 +109,8 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	case err := <-receiveStdoutError:
 		return err
 	case err := <-stdinDone:
-		if _, ok := err.(utils.DetachError); ok {
-			return nil
+		if err == ErrDetach {
+			return err
 		}
 		if streams.AttachOutput || streams.AttachError {
 			return <-receiveStdoutError

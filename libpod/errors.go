@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/utils"
 )
 
 var (
@@ -55,6 +56,10 @@ var (
 
 	// ErrInternal indicates an internal library error
 	ErrInternal = errors.New("internal libpod error")
+
+	// ErrDetach indicates that an attach session was manually detached by
+	// the user.
+	ErrDetach = utils.ErrDetach
 
 	// ErrRuntimeStopped indicates that the runtime has already been shut
 	// down and no further operations can be performed on it

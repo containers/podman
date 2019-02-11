@@ -74,7 +74,7 @@ func attachCmd(c *cliconfig.AttachValues) error {
 		inputStream = nil
 	}
 
-	if err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false); err != nil {
+	if err := startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false); err != nil && err != libpod.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 

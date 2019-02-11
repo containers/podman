@@ -91,7 +91,7 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 
 	err = <-attachChan
 	if err != nil {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+		return err
 	}
 
 	return nil

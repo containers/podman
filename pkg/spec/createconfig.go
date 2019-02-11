@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
@@ -340,7 +339,13 @@ func (c *CreateConfig) createExitCommand() []string {
 	if c.Syslog {
 		command = append(command, "--syslog")
 	}
-	return append(command, []string{"container", "cleanup"}...)
+	command = append(command, []string{"container", "cleanup"}...)
+
+	if c.Rm {
+		command = append(command, "--rm")
+	}
+
+	return command
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
@@ -518,11 +523,9 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.CgroupParent != "" {
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
-	// For a rootless container always cleanup the storage/network as they
-	// run in a different namespace thus not reusable when we restart.
-	if c.Detach || rootless.IsRootless() {
-		options = append(options, libpod.WithExitCommand(c.createExitCommand()))
-	}
+
+	// Always use a cleanup process to clean up Podman after termination
+	options = append(options, libpod.WithExitCommand(c.createExitCommand()))
 
 	return options, nil
 }

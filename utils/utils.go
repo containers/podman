@@ -9,6 +9,7 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
+	"github.com/pkg/errors"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -82,12 +83,9 @@ func newProp(name string, units interface{}) systemdDbus.Property {
 	}
 }
 
-// DetachError is special error which returned in case of container detach.
-type DetachError struct{}
-
-func (DetachError) Error() string {
-	return "detached from container"
-}
+// ErrDetach is an error indicating that the user manually detached from the
+// container.
+var ErrDetach = errors.New("detached from container")
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
@@ -108,7 +106,7 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 				}
 				if i == len(keys)-1 {
 					// src.Close()
-					return 0, DetachError{}
+					return 0, ErrDetach
 				}
 				nr, er = src.Read(buf)
 			}
