@@ -1,3 +1,20 @@
+- Changelog for v1.0.1 (2019-02-11):
+  * Fix tests after cherry-picking
+  * rootless: join both userns and mount namespace with --pod
+  * spec: add nosuid,noexec,nodev to ro bind mount
+  * rootless: create the userns immediately when creating a new pod
+  * Preserve exited state across reboot
+  * libpod/image: Use RepoDigests() in Inspect()
+  * podman image prune -- implement all flag
+  * Add varlink support for prune
+  * Make --quiet work in podman create/run
+  * Show a better error message when podman info fails during a refresh
+  * Vendor in latest opencontainers/selinux
+  * rootless: fix --pid=host without --privileged
+  * Do not unmarshal into c.config.Spec
+  * podman-inspect: don't ignore errors
+  * Ensure that wait exits on state transition
+
 - Changelog for v1.0.0 (2018-1-11)
   * Update release notes for v1.0
   * Remove clientintegration from Makefile
