@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -127,7 +129,12 @@ func createContainer(c *cli.Context, runtime *libpod.Runtime) (*libpod.Container
 	var data *inspect.ImageData = nil
 
 	if rootfs == "" && !rootless.SkipStorageSetup() {
-		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false)
+		var writer io.Writer
+		if !c.Bool("quiet") {
+			writer = os.Stderr
+		}
+
+		newImage, err := runtime.ImageRuntime().New(ctx, c.Args()[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -172,7 +179,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
-		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
 	}
 
 	if config.IpcMode.IsHost() {
@@ -182,7 +193,11 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
-		labelOpts = append(labelOpts, label.DupSecOpt(ctr.ProcessLabel())...)
+		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		if err != nil {
+			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+		}
+		labelOpts = append(labelOpts, secopts...)
 	}
 
 	for _, opt := range securityOpts {
@@ -421,6 +436,16 @@ func parseCreateOpts(ctx context.Context, c *cli.Context, runtime *libpod.Runtim
 	}
 	if c.IsSet("pod") {
 		if strings.HasPrefix(originalPodName, "new:") {
+			if rootless.IsRootless() {
+				// To create a new pod, we must immediately create the userns.
+				became, ret, err := rootless.BecomeRootInUserNS()
+				if err != nil {
+					return nil, err
+				}
+				if became {
+					os.Exit(ret)
+				}
+			}
 			// pod does not exist; lets make it
 			var podOptions []libpod.PodCreateOption
 			podOptions = append(podOptions, libpod.WithPodName(podName), libpod.WithInfraContainer(), libpod.WithPodCgroups())
@@ -785,11 +810,15 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 			if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
 				continue
 			}
-			pid, err := prevCtr.PID()
+			data, err := ioutil.ReadFile(prevCtr.Config().ConmonPidFile)
 			if err != nil {
-				return false, -1, err
+				return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", prevCtr.Config().ConmonPidFile)
 			}
-			return rootless.JoinNS(uint(pid))
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			return rootless.JoinDirectUserAndMountNS(uint(conmonPid))
 		}
 	}
 

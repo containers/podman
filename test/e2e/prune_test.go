@@ -72,10 +72,11 @@ var _ = Describe("Podman rm", func() {
 		Expect(none.ExitCode()).To(Equal(0))
 		hasNoneAfter, _ := after.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeFalse())
+		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
 	})
 
 	It("podman image prune unused images", func() {
-		prune := podmanTest.Podman([]string{"image", "prune"})
+		prune := podmanTest.Podman([]string{"image", "prune", "-a"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 

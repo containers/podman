@@ -620,3 +620,12 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 	}
 	return call.ReplyContainerRunlabel()
 }
+
+// ImagesPrune ....
+func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
+	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(all)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyImagesPrune(prunedImages)
+}

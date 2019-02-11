@@ -75,8 +75,8 @@ func ReleaseLabel(label string) error {
 
 // DupSecOpt takes a process label and returns security options that
 // can be used to set duplicate labels on future container processes
-func DupSecOpt(src string) []string {
-	return nil
+func DupSecOpt(src string) ([]string, error) {
+	return nil, nil
 }
 
 // DisableSecOpt returns a security opt that can disable labeling

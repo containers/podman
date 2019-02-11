@@ -115,9 +115,9 @@ func (c Context) Get() string {
 }
 
 // NewContext creates a new Context struct from the specified label
-func NewContext(label string) Context {
+func NewContext(label string) (Context, error) {
 	c := make(Context)
-	return c
+	return c, nil
 }
 
 // ClearLabels clears all reserved MLS/MCS levels
@@ -195,8 +195,8 @@ func Chcon(fpath string, label string, recurse bool) error {
 
 // DupSecOpt takes an SELinux process label and returns security options that
 // can be used to set the SELinux Type and Level for future container processes.
-func DupSecOpt(src string) []string {
-	return nil
+func DupSecOpt(src string) ([]string, error) {
+	return nil, nil
 }
 
 // DisableSecOpt returns a security opt that can be used to disable SELinux

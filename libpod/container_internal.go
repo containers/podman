@@ -393,7 +393,9 @@ func resetState(state *containerState) error {
 	state.PID = 0
 	state.Mountpoint = ""
 	state.Mounted = false
-	state.State = ContainerStateConfigured
+	if state.State != ContainerStateExited {
+		state.State = ContainerStateConfigured
+	}
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
@@ -531,7 +533,7 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return (c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited), nil
+	return (c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused), nil
 }
 
 // save container state to the database
