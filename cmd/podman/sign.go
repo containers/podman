@@ -42,8 +42,6 @@ func init() {
 	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")
 	flags.StringVar(&signCommand.SignBy, "sign-by", "", "Name of the signing key")
 
-	rootCmd.AddCommand(signCommand.Command)
-
 }
 
 // SignatureStoreDir defines default directory to store signatures

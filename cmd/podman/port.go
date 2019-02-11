@@ -39,7 +39,6 @@ func init() {
 	flags.BoolVarP(&portCommand.All, "all", "a", false, "Display port information for all containers")
 	flags.BoolVarP(&portCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
-	rootCmd.AddCommand(portCommand.Command)
 }
 
 func portCmd(c *cliconfig.PortValues) error {

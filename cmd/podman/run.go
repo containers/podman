@@ -40,8 +40,6 @@ func init() {
 	flags.SetInterspersed(false)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process (default true)")
 	getCreateFlags(&runCommmand.PodmanCommand)
-
-	rootCmd.AddCommand(runCommmand.Command)
 }
 
 func runCmd(c *cliconfig.RunValues) error {

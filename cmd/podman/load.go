@@ -39,7 +39,6 @@ func init() {
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
 
-	rootCmd.AddCommand(loadCommand.Command)
 }
 
 // loadCmd gets the image/file to be loaded from the command line

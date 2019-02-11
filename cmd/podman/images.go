@@ -114,8 +114,6 @@ func init() {
 	flags.BoolVarP(&imagesCommand.Quiet, "quiet", "q", false, "Display only image IDs")
 	flags.StringVar(&imagesCommand.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
 
-	rootCmd.AddCommand(imagesCommand.Command)
-
 }
 
 func imagesCmd(c *cliconfig.ImagesValues) error {

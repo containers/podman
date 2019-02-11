@@ -37,7 +37,6 @@ func init() {
 	flags.BoolVarP(&infoCommand.Debug, "debug", "D", false, "Display additional debug information")
 	flags.StringVarP(&infoCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
 
-	rootCmd.AddCommand(infoCommand.Command)
 }
 
 func infoCmd(c *cliconfig.InfoValues) error {

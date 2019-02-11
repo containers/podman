@@ -43,7 +43,6 @@ func init() {
 
 	flags.SetInterspersed(false)
 
-	rootCmd.AddCommand(logsCommand.Command)
 }
 
 func logsCmd(c *cliconfig.LogsValues) error {

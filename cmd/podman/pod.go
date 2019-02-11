@@ -20,5 +20,4 @@ var podCommand = cliconfig.PodmanCommand{
 
 func init() {
 	podCommand.AddCommand(getPodSubCommands()...)
-	rootCmd.AddCommand(podCommand.Command)
 }

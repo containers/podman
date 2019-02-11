@@ -42,8 +42,6 @@ func init() {
 	flags.BoolVarP(&startCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&startCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&startCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process (default true if attaching, false otherwise)")
-
-	rootCmd.AddCommand(startCommand.Command)
 }
 
 func startCmd(c *cliconfig.StartValues) error {

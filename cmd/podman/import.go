@@ -36,7 +36,6 @@ func init() {
 	flags.StringVarP(&importCommand.Message, "message", "m", "", "Set commit message for imported image")
 	flags.BoolVarP(&importCommand.Quiet, "quiet", "q", false, "Suppress output")
 
-	rootCmd.AddCommand(importCommand.Command)
 }
 
 func importCmd(c *cliconfig.ImportValues) error {

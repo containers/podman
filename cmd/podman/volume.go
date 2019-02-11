@@ -19,5 +19,4 @@ var volumeCommand = cliconfig.PodmanCommand{
 
 func init() {
 	volumeCommand.AddCommand(getVolumeSubCommands()...)
-	rootCmd.AddCommand(volumeCommand.Command)
 }

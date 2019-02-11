@@ -46,7 +46,6 @@ func init() {
 	flags.BoolVarP(&inspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of if the type is a container")
 	flags.BoolVarP(&inspectCommand.Size, "size", "s", false, "Display total file size if the type is container")
 
-	rootCmd.AddCommand(inspectCommand.Command)
 }
 
 func inspectCmd(c *cliconfig.InspectValues) error {

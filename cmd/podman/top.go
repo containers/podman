@@ -52,8 +52,6 @@ func init() {
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")
 	flags.MarkHidden("list-descriptors")
 	flags.BoolVarP(&topCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-
-	rootCmd.AddCommand(topCommand.Command)
 }
 
 func topCmd(c *cliconfig.TopValues) error {

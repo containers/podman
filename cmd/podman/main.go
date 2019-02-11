@@ -27,6 +27,24 @@ var (
 	exitCode = 125
 )
 
+// Commands that the remote and local client have
+// implemented.
+var mainCommands = []*cobra.Command{
+	_exportCommand,
+	_historyCommand,
+	_imagesCommand,
+	_importCommand,
+	_infoCommand,
+	_inspectCommand,
+	_killCommand,
+	_pullCommand,
+	_rmiCommand,
+	_tagCommand,
+	_versionCommand,
+	imageCommand.Command,
+	systemCommand.Command,
+}
+
 var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_versionCommand: true,
 	_createCommand:  true,
@@ -92,6 +110,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Syslog, "syslog", false, "Output logging information to syslog as well as the console")
 
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.TmpDir, "tmpdir", "", "Path to the tmp directory")
+	rootCmd.AddCommand(mainCommands...)
+	rootCmd.AddCommand(getMainCommands()...)
 
 }
 func initConfig() {

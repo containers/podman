@@ -27,7 +27,6 @@ var (
 
 func init() {
 	refreshCommand.Command = _refreshCommand
-	rootCmd.AddCommand(refreshCommand.Command)
 }
 
 func refreshCmd(c *cliconfig.RefreshValues) error {

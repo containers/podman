@@ -26,8 +26,6 @@ var (
 
 func init() {
 	tagCommand.Command = _tagCommand
-	rootCmd.AddCommand(tagCommand.Command)
-
 }
 
 func tagCmd(c *cliconfig.TagValues) error {

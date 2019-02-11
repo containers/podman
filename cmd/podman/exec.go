@@ -46,7 +46,6 @@ func init() {
 
 	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
 
-	rootCmd.AddCommand(execCommand.Command)
 }
 
 func execCmd(c *cliconfig.ExecValues) error {

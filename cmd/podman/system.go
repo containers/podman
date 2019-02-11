@@ -17,7 +17,11 @@ var (
 	}
 )
 
+var systemCommands = []*cobra.Command{
+	_infoCommand,
+}
+
 func init() {
+	systemCommand.AddCommand(systemCommands...)
 	systemCommand.AddCommand(getSystemSubCommands()...)
-	rootCmd.AddCommand(systemCommand.Command)
 }

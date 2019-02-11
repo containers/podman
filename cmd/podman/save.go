@@ -52,8 +52,6 @@ func init() {
 	flags.StringVar(&saveCommand.Format, "format", "", "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
 	flags.BoolVarP(&saveCommand.Quiet, "quiet", "q", false, "Suppress the output")
-
-	rootCmd.AddCommand(saveCommand.Command)
 }
 
 // saveCmd saves the image to either docker-archive or oci

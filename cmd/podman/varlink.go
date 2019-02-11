@@ -1,4 +1,4 @@
-// +build varlink
+// +build varlink,!remoteclient
 
 package main
 
@@ -40,8 +40,6 @@ func init() {
 	varlinkCommand.Command = _varlinkCommand
 	flags := varlinkCommand.Flags()
 	flags.Int64VarP(&varlinkCommand.Timeout, "timeout", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
-
-	rootCmd.AddCommand(varlinkCommand.Command)
 }
 
 func varlinkCmd(c *cliconfig.VarlinkValues) error {

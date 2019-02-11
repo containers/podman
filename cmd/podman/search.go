@@ -50,8 +50,6 @@ func init() {
 	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
-
-	rootCmd.AddCommand(searchCommand.Command)
 }
 
 type searchParams struct {

@@ -32,8 +32,6 @@ func init() {
 	flags := rmiCommand.Flags()
 	flags.BoolVarP(&rmiCommand.All, "all", "a", false, "Remove all images")
 	flags.BoolVarP(&rmiCommand.Force, "force", "f", false, "Force Removal of the image")
-
-	rootCmd.AddCommand(rmiCommand.Command)
 }
 
 func rmiCmd(c *cliconfig.RmiValues) error {

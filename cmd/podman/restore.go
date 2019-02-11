@@ -42,7 +42,6 @@ func init() {
 	// TODO: add ContainerStateCheckpointed
 	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 
-	rootCmd.AddCommand(restoreCommand.Command)
 }
 
 func restoreCmd(c *cliconfig.RestoreValues) error {

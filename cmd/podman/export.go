@@ -33,7 +33,6 @@ func init() {
 	exportCommand.Command = _exportCommand
 	flags := exportCommand.Flags()
 	flags.StringVarP(&exportCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
-	rootCmd.AddCommand(exportCommand.Command)
 }
 
 // exportCmd saves a container to a tarball on disk

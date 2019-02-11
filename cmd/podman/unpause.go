@@ -37,8 +37,6 @@ func init() {
 	unpauseCommand.Command = _unpauseCommand
 	flags := unpauseCommand.Flags()
 	flags.BoolVarP(&unpauseCommand.All, "all", "a", false, "Unpause all paused containers")
-
-	rootCmd.AddCommand(unpauseCommand.Command)
 }
 
 func unpauseCmd(c *cliconfig.UnpauseValues) error {
