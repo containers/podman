@@ -401,7 +401,7 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	priv := c.Privileged()
 	ro := c.IsReadOnly()
-	allowPrivEscalation := !c.Spec().Process.NoNewPrivileges
+	allowPrivEscalation := !c.config.Spec.Process.NoNewPrivileges
 
 	newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
 	if err != nil {
@@ -421,7 +421,13 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	}
 
 	if c.User() != "" {
-		// It is *possible* that
+		if !c.batched {
+			c.lock.Lock()
+			defer c.lock.Unlock()
+		}
+		if err := c.syncContainer(); err != nil {
+			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
+		}
 		logrus.Debugf("Looking in container for user: %s", c.User())
 		u, err := lookup.GetUser(c.state.Mountpoint, c.User())
 		if err != nil {
