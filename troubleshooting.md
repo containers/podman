@@ -191,3 +191,66 @@ SELinux provides a boolean `container_manage_cgroup`, which allows container
 processes to write to the cgroup file system. Turn on this boolean, on SELinux separated systems, to allow systemd to run properly in the container.
 
 `setsebool -P container_manage_cgroup true`
+
+### 9) Newuidmap missing when running rootless Podman commands
+
+Rootless podman requires the newuidmap and newgidmap programs to be installed.
+
+#### Symptom
+
+If you are running podman or buildah as a not root user, you get an error complaining about
+a missing newuidmap executable.
+
+```
+podman run -ti fedora sh
+cannot find newuidmap: exec: "newuidmap": executable file not found in $PATH
+```
+
+#### Solution
+
+Install a version of shadow-utils that includes these executables.  Note RHEL7 and Centos 7 will not have support for this until RHEL7.7 is released.
+
+### 10) podman fails to run in user namespace because /etc/subuid is not properly populated.
+
+Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
+
+#### Symptom
+
+If you are running podman or buildah as a user, you get an error complaining about
+a missing subuid ranges in /etc/subuid.
+
+```
+podman run -ti fedora sh
+No subuid ranges found for user "johndoe" in /etc/subuid
+```
+
+#### Solution
+
+Update the /etc/subuid and /etc/subgid with fields for users that look like:
+
+```
+cat /etc/subuid
+johndoe:100000:65536
+test:165536:65536
+```
+
+The format of this file is USERNAME:UID:RANGE
+
+* username as listed in /etc/passwd or getpwent.
+* The initial uid allocated for the user.
+* The size of the range of UIDs allocated for the user.
+
+This means johndoe is allocated UIDS 100000-165535 as well as his standard UID in the
+/etc/passwd file.
+
+You should ensure that each user has a unique range of uids, because overlapping UIDs,
+would potentially allow one user to attack another user.
+
+You could also use the usermod program to assign UIDs to a user.
+
+```
+usermod --add-subuids 200000-201000 --add-subgids 200000-201000 johndoe
+grep johndoe /etc/subuid /etc/subgid
+/etc/subuid:johndoe:200000:1001
+/etc/subgid:johndoe:200000:1001
+```
