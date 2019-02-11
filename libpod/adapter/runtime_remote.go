@@ -642,3 +642,17 @@ func varlinkVolumeToVolume(r *LocalRuntime, volumes []iopodman.Volume) []*Volume
 	}
 	return vols
 }
+
+// PruneVolumes removes all unused volumes from the remote system
+func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
+	var errs []error
+	prunedNames, prunedErrors, err := iopodman.VolumesPrune().Call(r.Conn)
+	if err != nil {
+		return []string{}, []error{err}
+	}
+	// We need to transform the string results of the error into actual error types
+	for _, e := range prunedErrors {
+		errs = append(errs, errors.New(e))
+	}
+	return prunedNames, errs
+}

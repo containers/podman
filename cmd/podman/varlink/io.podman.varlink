@@ -1070,14 +1070,23 @@ method ContainerInspectData(name: string) -> (config: string)
 # development of Podman only and generally should not be used.
 method ContainerStateData(name: string) -> (config: string)
 
+# Sendfile allows a remote client to send a file to the host
 method SendFile(type: string, length: int) -> (file_handle: string)
+
+# ReceiveFile allows the host to send a remote client a file
 method ReceiveFile(path: string, delete: bool) -> (len: int)
 
+# VolumeCreate creates a volume on a remote host
 method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
 
+# VolumeRemove removes a volume on a remote host
 method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 
+# GetVolumes gets slice of the volumes on a remote host
 method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
+
+# VolumesPrune removes unused volumes on the host
+method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string)

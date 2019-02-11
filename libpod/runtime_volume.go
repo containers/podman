@@ -154,3 +154,27 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 
 	return r.state.AllVolumes()
 }
+
+// PruneVolumes removes unused volumes from the system
+func (r *Runtime) PruneVolumes(ctx context.Context) ([]string, []error) {
+	var (
+		prunedIDs   []string
+		pruneErrors []error
+	)
+	vols, err := r.GetAllVolumes()
+	if err != nil {
+		pruneErrors = append(pruneErrors, err)
+		return nil, pruneErrors
+	}
+
+	for _, vol := range vols {
+		if err := r.RemoveVolume(ctx, vol, false, true); err != nil {
+			if err != ErrVolumeBeingUsed {
+				pruneErrors = append(pruneErrors, err)
+			}
+			continue
+		}
+		prunedIDs = append(prunedIDs, vol.Name())
+	}
+	return prunedIDs, pruneErrors
+}

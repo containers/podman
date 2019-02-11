@@ -16,8 +16,16 @@ var volumeCommand = cliconfig.PodmanCommand{
 		Long:  volumeDescription,
 	},
 }
+var volumeSubcommands = []*cobra.Command{
+	_volumeCreateCommand,
+	_volumeLsCommand,
+	_volumeRmCommand,
+	_volumeInspectCommand,
+	_volumePruneCommand,
+}
 
 func init() {
-	volumeCommand.AddCommand(getVolumeSubCommands()...)
 	volumeCommand.SetUsageTemplate(UsageTemplate())
+	volumeCommand.AddCommand(volumeSubcommands...)
+	rootCmd.AddCommand(volumeCommand.Command)
 }

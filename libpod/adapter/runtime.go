@@ -305,3 +305,8 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 
 	return r.Runtime.Build(ctx, options, dockerfiles...)
 }
+
+// PruneVolumes is a wrapper function for libpod PruneVolumes
+func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
+	return r.Runtime.PruneVolumes(ctx)
+}
