@@ -27,3 +27,12 @@ func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vol
 	}
 	return call.ReplyVolumeCreate(newVolume.Name())
 }
+
+// VolumeRemove removes volumes by options.All or options.Volumes
+func (i *LibpodAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.VolumeRemoveOpts) error {
+	deletedVolumes, err := i.Runtime.RemoveVolumes(getContext(), options.Volumes, options.All, options.Force)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyVolumeRemove(deletedVolumes)
+}

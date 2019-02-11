@@ -34,7 +34,11 @@ type VolumeCreateOpts (
    options: [string]string
 )
 
-
+type VolumeRemoveOpts (
+   volumes: []string,
+   all: bool,
+   force: bool
+)
 
 # ImageInList describes the structure that is returned in
 # ListImages.
@@ -1063,6 +1067,8 @@ method SendFile(type: string, length: int) -> (file_handle: string)
 method ReceiveFile(path: string, delete: bool) -> (len: int)
 
 method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
+
+method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.

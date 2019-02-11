@@ -449,3 +449,13 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 
 	return iopodman.VolumeCreate().Call(r.Conn, cvOpts)
 }
+
+// RemoveVolumes removes volumes over a varlink connection for the remote client
+func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
+	rmOpts := iopodman.VolumeRemoveOpts{
+		All:     c.All,
+		Force:   c.Force,
+		Volumes: c.InputArgs,
+	}
+	return iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+}
