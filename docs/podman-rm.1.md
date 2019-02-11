@@ -17,7 +17,9 @@ Remove all containers.  Can be used in conjunction with -f as well.
 
 **--force, f**
 
-Force the removal of a running and paused containers
+Force the removal of running and paused containers.  Forcing a containers removal also
+removes containers from container storage even if the container is not known to podman.
+Containers could have been created by a different container engine.
 
 **--latest, -l**
 
