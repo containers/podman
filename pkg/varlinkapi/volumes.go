@@ -36,3 +36,39 @@ func (i *LibpodAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.Vol
 	}
 	return call.ReplyVolumeRemove(deletedVolumes)
 }
+
+// GetVolumes returns all the volumes known to the remote system
+func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all bool) error {
+	var (
+		err     error
+		reply   []*libpod.Volume
+		volumes []iopodman.Volume
+	)
+	if all {
+		reply, err = i.Runtime.GetAllVolumes()
+	} else {
+		for _, v := range args {
+			vol, err := i.Runtime.GetVolume(v)
+			if err != nil {
+				return err
+			}
+			reply = append(reply, vol)
+		}
+	}
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	// Build the iopodman.volume struct for the return
+	for _, v := range reply {
+		newVol := iopodman.Volume{
+			Driver:     v.Driver(),
+			Labels:     v.Labels(),
+			MountPoint: v.MountPoint(),
+			Name:       v.Name(),
+			Options:    v.Options(),
+			Scope:      v.Scope(),
+		}
+		volumes = append(volumes, newVol)
+	}
+	return call.ReplyGetVolumes(volumes)
+}

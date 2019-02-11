@@ -36,6 +36,8 @@ func getVolumeSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_volumeCreateCommand,
 		_volumeRmCommand,
+		_volumeLsCommand,
+		_volumeInspectCommand,
 	}
 }
 

@@ -92,6 +92,18 @@ type remoteContainer struct {
 	state   *libpod.ContainerState
 }
 
+type VolumeFilter func(*Volume) bool
+
+// Volume is embed for libpod volumes
+type Volume struct {
+	remoteVolume
+}
+
+type remoteVolume struct {
+	Runtime *LocalRuntime
+	config  *libpod.VolumeConfig
+}
+
 // GetImages returns a slice of containerimages over a varlink connection
 func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 	var newImages []*ContainerImage
@@ -479,4 +491,46 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 	}
 
 	return err
+}
+
+// InspectVolumes returns a slice of volumes based on an arg list or --all
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
+	reply, err := iopodman.GetVolumes().Call(r.Conn, c.InputArgs, c.All)
+	if err != nil {
+		return nil, err
+	}
+	return varlinkVolumeToVolume(r, reply), nil
+}
+
+//Volumes returns a slice of adapter.volumes based on information about libpod
+// volumes over a varlink connection
+func (r *LocalRuntime) Volumes(ctx context.Context) ([]*Volume, error) {
+	reply, err := iopodman.GetVolumes().Call(r.Conn, []string{}, true)
+	if err != nil {
+		return nil, err
+	}
+	return varlinkVolumeToVolume(r, reply), nil
+}
+
+func varlinkVolumeToVolume(r *LocalRuntime, volumes []iopodman.Volume) []*Volume {
+	var vols []*Volume
+	for _, v := range volumes {
+		volumeConfig := libpod.VolumeConfig{
+			Name:       v.Name,
+			Labels:     v.Labels,
+			MountPoint: v.MountPoint,
+			Driver:     v.Driver,
+			Options:    v.Options,
+			Scope:      v.Scope,
+		}
+		n := remoteVolume{
+			Runtime: r,
+			config:  &volumeConfig,
+		}
+		newVol := Volume{
+			n,
+		}
+		vols = append(vols, &newVol)
+	}
+	return vols
 }
