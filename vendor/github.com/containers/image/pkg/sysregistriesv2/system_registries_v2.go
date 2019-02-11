@@ -53,20 +53,23 @@ type Registry struct {
 	Prefix string `toml:"prefix"`
 }
 
-// backwards compatability to sysregistries v1
-type v1TOMLregistries struct {
+// V1TOMLregistries is for backwards compatibility to sysregistries v1
+type V1TOMLregistries struct {
 	Registries []string `toml:"registries"`
+}
+
+// V1TOMLConfig is for backwards compatibility to sysregistries v1
+type V1TOMLConfig struct {
+	Search   V1TOMLregistries `toml:"search"`
+	Insecure V1TOMLregistries `toml:"insecure"`
+	Block    V1TOMLregistries `toml:"block"`
 }
 
 // tomlConfig is the data type used to unmarshal the toml config.
 type tomlConfig struct {
 	Registries []Registry `toml:"registry"`
 	// backwards compatability to sysregistries v1
-	V1Registries struct {
-		Search   v1TOMLregistries `toml:"search"`
-		Insecure v1TOMLregistries `toml:"insecure"`
-		Block    v1TOMLregistries `toml:"block"`
-	} `toml:"registries"`
+	V1TOMLConfig `toml:"registries"`
 }
 
 // InvalidRegistries represents an invalid registry configurations.  An example
@@ -129,21 +132,21 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 
 	// Note: config.V1Registries.Search needs to be processed first to ensure registryOrder is populated in the right order
 	// if one of the search registries is also in one of the other lists.
-	for _, search := range config.V1Registries.Search.Registries {
+	for _, search := range config.V1TOMLConfig.Search.Registries {
 		reg, err := getRegistry(search)
 		if err != nil {
 			return nil, err
 		}
 		reg.Search = true
 	}
-	for _, blocked := range config.V1Registries.Block.Registries {
+	for _, blocked := range config.V1TOMLConfig.Block.Registries {
 		reg, err := getRegistry(blocked)
 		if err != nil {
 			return nil, err
 		}
 		reg.Blocked = true
 	}
-	for _, insecure := range config.V1Registries.Insecure.Registries {
+	for _, insecure := range config.V1TOMLConfig.Insecure.Registries {
 		reg, err := getRegistry(insecure)
 		if err != nil {
 			return nil, err
