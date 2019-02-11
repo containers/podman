@@ -9,7 +9,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -81,9 +80,6 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	if len(c.Publish) > 0 {
 		if !c.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
-		}
-		if rootless.IsRootless() {
-			return errors.Errorf("rootless networking does not allow port binding to the host")
 		}
 	}
 
