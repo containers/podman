@@ -39,6 +39,7 @@ var (
 
 func init() {
 	mountCommand.Command = _mountCommand
+	mountCommand.SetUsageTemplate(UsageTemplate())
 	flags := mountCommand.Flags()
 	flags.BoolVarP(&mountCommand.All, "all", "a", false, "Mount all containers")
 	flags.StringVar(&mountCommand.Format, "format", "", "Change the output format to Go template")

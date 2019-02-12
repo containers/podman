@@ -17,4 +17,5 @@ var generateCommand = cliconfig.PodmanCommand{
 
 func init() {
 	generateCommand.AddCommand(getGenerateSubCommands()...)
+	generateCommand.SetUsageTemplate(UsageTemplate())
 }

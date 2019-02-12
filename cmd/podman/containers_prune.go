@@ -34,6 +34,7 @@ var (
 
 func init() {
 	pruneContainersCommand.Command = _pruneContainersCommand
+	pruneContainersCommand.SetUsageTemplate(UsageTemplate())
 }
 
 func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWorkers int, force bool) error {

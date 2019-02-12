@@ -34,6 +34,7 @@ Running containers will not be removed without the -f option.
 
 func init() {
 	rmCommand.Command = _rmCommand
+	rmCommand.SetUsageTemplate(UsageTemplate())
 	flags := rmCommand.Flags()
 	flags.BoolVarP(&rmCommand.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")

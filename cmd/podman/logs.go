@@ -32,6 +32,7 @@ var (
 
 func init() {
 	logsCommand.Command = _logsCommand
+	logsCommand.SetUsageTemplate(UsageTemplate())
 	flags := logsCommand.Flags()
 	flags.BoolVar(&logsCommand.Details, "details", false, "Show extra details provided to the logs")
 	flags.BoolVarP(&logsCommand.Follow, "follow", "f", false, "Follow log output.  The default is false")

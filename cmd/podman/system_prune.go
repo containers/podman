@@ -34,8 +34,8 @@ var (
 )
 
 func init() {
-
 	pruneSystemCommand.Command = _pruneSystemCommand
+	pruneSystemCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneSystemCommand.Flags()
 	flags.BoolVarP(&pruneSystemCommand.All, "all", "a", false, "Remove all unused data")
 	flags.BoolVarP(&pruneSystemCommand.Force, "force", "f", false, "Do not prompt for confirmation")

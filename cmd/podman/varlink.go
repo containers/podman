@@ -38,6 +38,7 @@ var (
 
 func init() {
 	varlinkCommand.Command = _varlinkCommand
+	varlinkCommand.SetUsageTemplate(UsageTemplate())
 	flags := varlinkCommand.Flags()
 	flags.Int64VarP(&varlinkCommand.Timeout, "timeout", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")
 }

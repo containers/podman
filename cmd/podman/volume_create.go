@@ -32,6 +32,7 @@ be created at.`
 
 func init() {
 	volumeCreateCommand.Command = _volumeCreateCommand
+	volumeCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeCreateCommand.Flags()
 	flags.StringVar(&volumeCreateCommand.Driver, "driver", "", "Specify volume driver name (default local)")
 	flags.StringSliceVarP(&volumeCreateCommand.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")

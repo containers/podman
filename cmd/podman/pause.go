@@ -34,6 +34,7 @@ var (
 
 func init() {
 	pauseCommand.Command = _pauseCommand
+	pauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseCommand.All, "all", "a", false, "Pause all running containers")
 

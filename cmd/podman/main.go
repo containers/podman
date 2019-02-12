@@ -58,7 +58,7 @@ var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_killCommand:    true,
 	_pauseCommand:   true,
 	_restartCommand: true,
-	_runCommmand:    true,
+	_runCommand:     true,
 	_unpauseCommand: true,
 	_searchCommand:  true,
 	_statsCommand:   true,
@@ -205,7 +205,7 @@ func main() {
 					exitCode = status.ExitStatus()
 				}
 			}
-			fmt.Fprintln(os.Stderr, err.Error())
+			fmt.Fprintln(os.Stderr, "Error:", err.Error())
 		}
 	} else {
 		// The exitCode modified from 125, indicates an application

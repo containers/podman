@@ -28,6 +28,7 @@ var (
 
 func init() {
 	podRestartCommand.Command = _podRestartCommand
+	podRestartCommand.SetUsageTemplate(UsageTemplate())
 	flags := podRestartCommand.Flags()
 	flags.BoolVarP(&podRestartCommand.All, "all", "a", false, "Restart all running pods")
 	flags.BoolVarP(&podRestartCommand.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")

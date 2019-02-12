@@ -48,6 +48,7 @@ var (
 
 func init() {
 	buildCommand.Command = _buildCommand
+	buildCommand.SetUsageTemplate(UsageTemplate())
 	flags := buildCommand.Flags()
 	flags.SetInterspersed(false)
 

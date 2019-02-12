@@ -30,6 +30,7 @@ var (
 
 func init() {
 	pruneImagesCommand.Command = _pruneImagesCommand
+	pruneImagesCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneImagesCommand.Flags()
 	flags.BoolVarP(&pruneImagesCommand.All, "all", "a", false, "Remove all unused images, not just dangling ones")
 }

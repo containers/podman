@@ -31,6 +31,7 @@ var (
 
 func init() {
 	exportCommand.Command = _exportCommand
+	exportCommand.SetUsageTemplate(UsageTemplate())
 	flags := exportCommand.Flags()
 	flags.StringVarP(&exportCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
 }

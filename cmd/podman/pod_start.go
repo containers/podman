@@ -32,6 +32,7 @@ var (
 
 func init() {
 	podStartCommand.Command = _podStartCommand
+	podStartCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStartCommand.Flags()
 	flags.BoolVarP(&podStartCommand.All, "all", "a", false, "Start all pods")
 	flags.BoolVarP(&podStartCommand.Latest, "latest", "l", false, "Start the latest pod podman is aware of")

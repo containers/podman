@@ -38,6 +38,7 @@ var (
 
 func init() {
 	podCreateCommand.Command = _podCreateCommand
+	podCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := podCreateCommand.Flags()
 	flags.SetInterspersed(false)
 

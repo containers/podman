@@ -40,6 +40,7 @@ var (
 
 func init() {
 	inspectCommand.Command = _inspectCommand
+	inspectCommand.SetUsageTemplate(UsageTemplate())
 	flags := inspectCommand.Flags()
 	flags.StringVarP(&inspectCommand.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (e.g image, container or task)")
 	flags.StringVarP(&inspectCommand.Format, "format", "f", "", "Change the output format to a Go template")

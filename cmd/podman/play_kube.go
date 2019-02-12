@@ -43,6 +43,7 @@ var (
 
 func init() {
 	playKubeCommand.Command = _playKubeCommand
+	playKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := playKubeCommand.Flags()
 	flags.StringVar(&playKubeCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&playKubeCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")

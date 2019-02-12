@@ -31,6 +31,7 @@ from JSON to a Go template.
 
 func init() {
 	volumeInspectCommand.Command = _volumeInspectCommand
+	volumeInspectCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeInspectCommand.Flags()
 	flags.BoolVarP(&volumeInspectCommand.All, "all", "a", false, "Inspect all volumes")
 	flags.StringVarP(&volumeInspectCommand.Format, "format", "f", "json", "Format volume output using Go template")

@@ -30,6 +30,7 @@ var (
 
 func init() {
 	podKillCommand.Command = _podKillCommand
+	podKillCommand.SetUsageTemplate(UsageTemplate())
 	flags := podKillCommand.Flags()
 	flags.BoolVarP(&podKillCommand.All, "all", "a", false, "Kill all containers in all pods")
 	flags.BoolVarP(&podKillCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")

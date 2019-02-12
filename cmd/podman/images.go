@@ -102,6 +102,7 @@ var (
 
 func init() {
 	imagesCommand.Command = _imagesCommand
+	imagesCommand.SetUsageTemplate(UsageTemplate())
 	flags := imagesCommand.Flags()
 	flags.BoolVarP(&imagesCommand.All, "all", "a", false, "Show all images (default hides intermediate images)")
 	flags.BoolVar(&imagesCommand.Digests, "digests", false, "Show digests")

@@ -37,6 +37,7 @@ using force.
 
 func init() {
 	volumePruneCommand.Command = _volumePruneCommand
+	volumePruneCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumePruneCommand.Flags()
 
 	flags.BoolVarP(&volumePruneCommand.Force, "force", "f", false, "Do not prompt for confirmation")

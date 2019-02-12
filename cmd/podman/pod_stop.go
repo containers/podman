@@ -33,6 +33,7 @@ var (
 
 func init() {
 	podStopCommand.Command = _podStopCommand
+	podStopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStopCommand.Flags()
 	flags.BoolVarP(&podStopCommand.All, "all", "a", false, "Stop all running pods")
 	flags.BoolVarP(&podStopCommand.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")

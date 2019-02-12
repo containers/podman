@@ -40,6 +40,7 @@ var (
 
 func init() {
 	pushCommand.Command = _pushCommand
+	pushCommand.SetUsageTemplate(UsageTemplate())
 	flags := pushCommand.Flags()
 	flags.MarkHidden("signature-policy")
 	flags.StringVar(&pushCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

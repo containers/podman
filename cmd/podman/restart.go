@@ -32,6 +32,7 @@ var (
 
 func init() {
 	restartCommand.Command = _restartCommand
+	restartCommand.SetUsageTemplate(UsageTemplate())
 	flags := restartCommand.Flags()
 	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")

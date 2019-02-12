@@ -34,6 +34,7 @@ var (
 
 func init() {
 	killCommand.Command = _killCommand
+	killCommand.SetUsageTemplate(UsageTemplate())
 	flags := killCommand.Flags()
 
 	flags.BoolVarP(&killCommand.All, "all", "a", false, "Signal all running containers")

@@ -26,6 +26,7 @@ var (
 
 func init() {
 	tagCommand.Command = _tagCommand
+	tagCommand.SetUsageTemplate(UsageTemplate())
 }
 
 func tagCmd(c *cliconfig.TagValues) error {

@@ -47,6 +47,7 @@ var (
 
 func init() {
 	statsCommand.Command = _statsCommand
+	statsCommand.SetUsageTemplate(UsageTemplate())
 	flags := statsCommand.Flags()
 	flags.BoolVarP(&statsCommand.All, "all", "a", false, "Show all containers. Only running containers are shown by default. The default is false")
 	flags.StringVar(&statsCommand.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")

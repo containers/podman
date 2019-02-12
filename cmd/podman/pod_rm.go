@@ -32,6 +32,7 @@ If --force is specified, all containers will be stopped, then removed.
 
 func init() {
 	podRmCommand.Command = _podRmCommand
+	podRmCommand.SetUsageTemplate(UsageTemplate())
 	flags := podRmCommand.Flags()
 	flags.BoolVarP(&podRmCommand.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&podRmCommand.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")

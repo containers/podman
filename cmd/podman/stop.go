@@ -37,6 +37,7 @@ var (
 
 func init() {
 	stopCommand.Command = _stopCommand
+	stopCommand.SetUsageTemplate(UsageTemplate())
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")

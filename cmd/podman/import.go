@@ -31,6 +31,7 @@ var (
 
 func init() {
 	importCommand.Command = _importCommand
+	importCommand.SetUsageTemplate(UsageTemplate())
 	flags := importCommand.Flags()
 	flags.StringSliceVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
 	flags.StringVarP(&importCommand.Message, "message", "m", "", "Set commit message for imported image")

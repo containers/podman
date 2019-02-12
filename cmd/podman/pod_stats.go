@@ -38,6 +38,7 @@ var (
 
 func init() {
 	podStatsCommand.Command = _podStatsCommand
+	podStatsCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStatsCommand.Flags()
 	flags.BoolVarP(&podStatsCommand.All, "all", "a", false, "Provide stats for all running pods")
 	flags.StringVar(&podStatsCommand.Format, "format", "", "Pretty-print container statistics to JSON or using a Go template")

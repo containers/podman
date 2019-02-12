@@ -18,28 +18,29 @@ import (
 )
 
 var (
-	runCommmand cliconfig.RunValues
+	runCommand cliconfig.RunValues
 
 	runDescription = "Runs a command in a new container from the given image"
-	_runCommmand   = &cobra.Command{
+	_runCommand    = &cobra.Command{
 		Use:   "run",
 		Short: "Run a command in a new container",
 		Long:  runDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			runCommmand.InputArgs = args
-			runCommmand.GlobalFlags = MainGlobalOpts
-			return runCmd(&runCommmand)
+			runCommand.InputArgs = args
+			runCommand.GlobalFlags = MainGlobalOpts
+			return runCmd(&runCommand)
 		},
 		Example: "IMAGE [COMMAND [ARG...]]",
 	}
 )
 
 func init() {
-	runCommmand.Command = _runCommmand
-	flags := runCommmand.Flags()
+	runCommand.Command = _runCommand
+	runCommand.SetUsageTemplate(UsageTemplate())
+	flags := runCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process (default true)")
-	getCreateFlags(&runCommmand.PodmanCommand)
+	getCreateFlags(&runCommand.PodmanCommand)
 }
 
 func runCmd(c *cliconfig.RunValues) error {

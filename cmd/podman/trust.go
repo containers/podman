@@ -16,6 +16,7 @@ var (
 )
 
 func init() {
+	trustCommand.SetUsageTemplate(UsageTemplate())
 	trustCommand.AddCommand(getTrustSubCommands()...)
 	imageCommand.AddCommand(trustCommand.Command)
 }

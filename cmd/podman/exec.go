@@ -35,6 +35,7 @@ var (
 
 func init() {
 	execCommand.Command = _execCommand
+	execCommand.SetUsageTemplate(UsageTemplate())
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.StringSliceVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")

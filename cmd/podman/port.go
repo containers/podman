@@ -34,6 +34,7 @@ var (
 
 func init() {
 	portCommand.Command = _portCommand
+	portCommand.SetUsageTemplate(UsageTemplate())
 	flags := portCommand.Flags()
 
 	flags.BoolVarP(&portCommand.All, "all", "a", false, "Display port information for all containers")

@@ -34,6 +34,7 @@ var (
 
 func init() {
 	loadCommand.Command = _loadCommand
+	loadCommand.SetUsageTemplate(UsageTemplate())
 	flags := loadCommand.Flags()
 	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file, default is STDIN")
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")

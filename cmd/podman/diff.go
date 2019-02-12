@@ -52,6 +52,7 @@ var (
 
 func init() {
 	diffCommand.Command = _diffCommand
+	diffCommand.SetUsageTemplate(UsageTemplate())
 	flags := diffCommand.Flags()
 
 	flags.BoolVar(&diffCommand.Archive, "archive", true, "Save the diff as a tar archive")
