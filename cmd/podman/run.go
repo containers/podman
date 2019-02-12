@@ -160,7 +160,7 @@ func runCmd(c *cliconfig.RunValues) error {
 
 // Read a container's exit file
 func readExitFile(runtimeTmp, ctrID string) (int, error) {
-	exitFile := filepath.Join(runtimeTmp, "exits", ctrID)
+	exitFile := filepath.Join(runtimeTmp, "exits", fmt.Sprintf("%s-old", ctrID))
 
 	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
 
