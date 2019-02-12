@@ -17,8 +17,9 @@ MEMORY="4Gb"
 DISK="200"
 PROJECT="libpod-218412"
 GOSRC="/var/tmp/go/src/github.com/containers/libpod"
-# Command shortcuts save some typing
-PGCLOUD="sudo podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v /home/$USER:$HOME -v /tmp:/tmp:ro quay.io/cevich/gcloud_centos:latest --configuration=libpod --project=$PROJECT"
+XFERTMP="$(mktemp -d -p '' $(basename $0)_xfertmp_XXXXX)"
+TEMPFILE=$(mktemp -p "$XFERTMP" $(basename $0)_XXXXX.tar.bz2)
+PGCLOUD="podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER -v /home/$USER:$HOME -v $XFERTMP/:/tmp --security-opt label=disable quay.io/cevich/gcloud_centos:latest --configuration=libpod --project=$PROJECT"
 SCP_CMD="$PGCLOUD compute scp"
 
 LIBPODROOT=$(realpath "$(dirname $0)/../")
@@ -39,11 +40,10 @@ showrun() {
     fi
 }
 
-TEMPFILE=$(mktemp -p '' $(basename $0)_XXXXX.tar.bz2)
 cleanup() {
     set +e
     wait
-    rm -f "$TEMPFILE"
+    rm -rf "$XFERTMP"
 }
 trap cleanup EXIT
 
