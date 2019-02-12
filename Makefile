@@ -105,11 +105,6 @@ gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
-test/bin2img/bin2img: .gopathok $(wildcard test/bin2img/*.go)
-	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/bin2img
-
-test/copyimg/copyimg: .gopathok $(wildcard test/copyimg/*.go)
-	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/copyimg
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
@@ -140,9 +135,7 @@ clean: ## Clean artifacts
 		_output \
 		bin \
 		build \
-		test/bin2img/bin2img \
 		test/checkseccomp/checkseccomp \
-		test/copyimg/copyimg \
 		test/goecho/goecho \
 		test/testdata/redis-image \
 		cmd/podman/varlink/iopodman.go \
@@ -210,7 +203,7 @@ binaries: varlink_generate podman podman-remote  ## Build podman
 install.catatonit:
 	./hack/install_catatonit.sh
 
-test-binaries: test/bin2img/bin2img test/copyimg/copyimg test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
+test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
 
 MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
