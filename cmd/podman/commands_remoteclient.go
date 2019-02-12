@@ -33,7 +33,9 @@ func getPodSubCommands() []*cobra.Command {
 
 // commands that only the remoteclient implements
 func getVolumeSubCommands() []*cobra.Command {
-	return []*cobra.Command{}
+	return []*cobra.Command{
+		_volumeCreateCommand,
+	}
 }
 
 // commands that only the remoteclient implements

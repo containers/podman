@@ -155,3 +155,33 @@ func (r *LocalRuntime) Export(name string, path string) error {
 func (r *LocalRuntime) Import(ctx context.Context, source, reference string, changes []string, history string, quiet bool) (string, error) {
 	return r.Runtime.Import(ctx, source, reference, changes, history, quiet)
 }
+
+// CreateVolume is a wrapper to create volumes
+func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCreateValues, labels, opts map[string]string) (string, error) {
+	var (
+		options []libpod.VolumeCreateOption
+		volName string
+	)
+
+	if len(c.InputArgs) > 0 {
+		volName = c.InputArgs[0]
+		options = append(options, libpod.WithVolumeName(volName))
+	}
+
+	if c.Flag("driver").Changed {
+		options = append(options, libpod.WithVolumeDriver(c.Driver))
+	}
+
+	if len(labels) != 0 {
+		options = append(options, libpod.WithVolumeLabels(labels))
+	}
+
+	if len(options) != 0 {
+		options = append(options, libpod.WithVolumeOptions(opts))
+	}
+	newVolume, err := r.NewVolume(ctx, options...)
+	if err != nil {
+		return "", err
+	}
+	return newVolume.Name(), nil
+}

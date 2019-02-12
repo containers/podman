@@ -27,6 +27,15 @@ type ContainerChanges (
    deleted: []string
 )
 
+type VolumeCreateOpts (
+   volumeName: string,
+   driver: string,
+   labels: [string]string,
+   options: [string]string
+)
+
+
+
 # ImageInList describes the structure that is returned in
 # ListImages.
 type ImageInList (
@@ -1052,6 +1061,9 @@ method ContainerStateData(name: string) -> (config: string)
 
 method SendFile(type: string, length: int) -> (file_handle: string)
 method ReceiveFile(path: string, delete: bool) -> (len: int)
+
+method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
+
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (name: string)
