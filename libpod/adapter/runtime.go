@@ -4,18 +4,19 @@ package adapter
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/pkg/errors"
 )
 
 // LocalRuntime describes a typical libpod runtime
@@ -189,4 +190,13 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 // RemoveVolumes is a wrapper to remove volumes
 func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
 	return r.Runtime.RemoveVolumes(ctx, c.InputArgs, c.All, c.Force)
+}
+
+// Push is a wrapper to push an image to a registry
+func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+	newImage, err := r.ImageRuntime().NewFromLocal(srcName)
+	if err != nil {
+		return err
+	}
+	return newImage.PushImageToHeuristicDestination(ctx, destination, manifestMIMEType, authfile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, nil)
 }

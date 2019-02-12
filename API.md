@@ -3,9 +3,7 @@ Podman Service Interface and API description.  The master version of this docume
 in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
 ## Index
 
-[func AttachToContainer() NotImplemented](#AttachToContainer)
-
-[func BuildImage(build: BuildInfo) BuildResponse](#BuildImage)
+[func BuildImage(build: BuildInfo) MoreResponse](#BuildImage)
 
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) string](#Commit)
 
@@ -27,8 +25,6 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func CreateContainer(create: Create) string](#CreateContainer)
 
-[func CreateImage() NotImplemented](#CreateImage)
-
 [func CreatePod(create: PodCreate) string](#CreatePod)
 
 [func DeleteStoppedContainers() []string](#DeleteStoppedContainers)
@@ -39,19 +35,15 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
 
-[func GenerateKube() NotImplemented](#GenerateKube)
-
-[func GenerateKubeService() NotImplemented](#GenerateKubeService)
-
 [func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
-[func GetContainer(name: string) ListContainerData](#GetContainer)
+[func GetContainer(id: string) Container](#GetContainer)
 
 [func GetContainerLogs(name: string) []string](#GetContainerLogs)
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
 
-[func GetImage(name: string) ImageInList](#GetImage)
+[func GetImage(id: string) Image](#GetImage)
 
 [func GetInfo() PodmanInfo](#GetInfo)
 
@@ -59,7 +51,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetPodStats(name: string) string, ContainerStats](#GetPodStats)
 
-[func GetVersion() Version](#GetVersion)
+[func GetVersion() string, string, string, string, string, int](#GetVersion)
 
 [func HistoryImage(name: string) ImageHistory](#HistoryImage)
 
@@ -67,7 +59,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ImagesPrune(all: bool) []string](#ImagesPrune)
 
-[func ImportImage(source: string, reference: string, message: string, changes: []string) string](#ImportImage)
+[func ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) string](#ImportImage)
 
 [func InspectContainer(name: string) string](#InspectContainer)
 
@@ -83,13 +75,11 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ListContainerMounts() map[string]](#ListContainerMounts)
 
-[func ListContainerPorts(name: string) NotImplemented](#ListContainerPorts)
-
 [func ListContainerProcesses(name: string, opts: []string) []string](#ListContainerProcesses)
 
-[func ListContainers() ListContainerData](#ListContainers)
+[func ListContainers() Container](#ListContainers)
 
-[func ListImages() ImageInList](#ListImages)
+[func ListImages() Image](#ListImages)
 
 [func ListPods() ListPodData](#ListPods)
 
@@ -99,11 +89,11 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func PausePod(name: string) string](#PausePod)
 
-[func Ping() StringResponse](#Ping)
-
 [func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: bool) string](#PullImage)
 
-[func PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) string](#PushImage)
+[func PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
+
+[func ReceiveFile(path: string, delete: bool) int](#ReceiveFile)
 
 [func RemoveContainer(name: string, force: bool) string](#RemoveContainer)
 
@@ -111,17 +101,13 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RemovePod(name: string, force: bool) string](#RemovePod)
 
-[func RenameContainer() NotImplemented](#RenameContainer)
-
-[func ReplayKube() NotImplemented](#ReplayKube)
-
-[func ResizeContainerTty() NotImplemented](#ResizeContainerTty)
-
 [func RestartContainer(name: string, timeout: int) string](#RestartContainer)
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImage(name: string, limit: int) ImageSearch](#SearchImage)
+[func SearchImages(query: string, limit: ) ImageSearchResult](#SearchImages)
+
+[func SendFile(type: string, length: int) string](#SendFile)
 
 [func StartContainer(name: string) string](#StartContainer)
 
@@ -133,23 +119,21 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func TagImage(name: string, tagged: string) string](#TagImage)
 
-[func TopPod() NotImplemented](#TopPod)
-
 [func UnmountContainer(name: string, force: bool) ](#UnmountContainer)
 
 [func UnpauseContainer(name: string) string](#UnpauseContainer)
 
 [func UnpausePod(name: string) string](#UnpausePod)
 
-[func UpdateContainer() NotImplemented](#UpdateContainer)
+[func VolumeCreate(options: VolumeCreateOpts) string](#VolumeCreate)
+
+[func VolumeRemove(options: VolumeRemoveOpts) []string](#VolumeRemove)
 
 [func WaitContainer(name: string) int](#WaitContainer)
 
-[func WaitPod() NotImplemented](#WaitPod)
-
 [type BuildInfo](#BuildInfo)
 
-[type BuildResponse](#BuildResponse)
+[type Container](#Container)
 
 [type ContainerChanges](#ContainerChanges)
 
@@ -169,11 +153,11 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type IDMappingOptions](#IDMappingOptions)
 
+[type Image](#Image)
+
 [type ImageHistory](#ImageHistory)
 
-[type ImageInList](#ImageInList)
-
-[type ImageSearch](#ImageSearch)
+[type ImageSearchResult](#ImageSearchResult)
 
 [type InfoDistribution](#InfoDistribution)
 
@@ -185,13 +169,11 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type InfoStore](#InfoStore)
 
-[type ListContainerData](#ListContainerData)
-
 [type ListPodContainerInfo](#ListPodContainerInfo)
 
 [type ListPodData](#ListPodData)
 
-[type NotImplemented](#NotImplemented)
+[type MoreResponse](#MoreResponse)
 
 [type PodContainerErrorData](#PodContainerErrorData)
 
@@ -203,9 +185,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type Sockets](#Sockets)
 
-[type StringResponse](#StringResponse)
+[type VolumeCreateOpts](#VolumeCreateOpts)
 
-[type Version](#Version)
+[type VolumeRemoveOpts](#VolumeRemoveOpts)
 
 [error ContainerNotFound](#ContainerNotFound)
 
@@ -224,17 +206,12 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [error RuntimeError](#RuntimeError)
 
 ## Methods
-### <a name="AttachToContainer"></a>func AttachToContainer
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method AttachToContainer() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
 ### <a name="BuildImage"></a>func BuildImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method BuildImage(build: [BuildInfo](#BuildInfo)) [BuildResponse](#BuildResponse)</div>
+method BuildImage(build: [BuildInfo](#BuildInfo)) [MoreResponse](#MoreResponse)</div>
 BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
+'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [MoreResponse](#MoreResponse) structure
 that contains the build logs and resulting image ID.
 ### <a name="Commit"></a>func Commit
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
@@ -316,11 +293,6 @@ $ varlink call unix:/run/podman/io.podman/io.podman.CreateContainer '{"create": 
   "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
 }
 ~~~
-### <a name="CreateImage"></a>func CreateImage
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method CreateImage() [NotImplemented](#NotImplemented)</div>
-This function is not implemented yet.
 ### <a name="CreatePod"></a>func CreatePod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -398,18 +370,6 @@ a booleon option to force compression.  It also takes in a string array of tags 
 tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 error will be returned. See also [ImportImage](ImportImage).
-### <a name="GenerateKube"></a>func GenerateKube
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method GenerateKube() [NotImplemented](#NotImplemented)</div>
-GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
-and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
-### <a name="GenerateKubeService"></a>func GenerateKubeService
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method GenerateKubeService() [NotImplemented](#NotImplemented)</div>
-GenerateKubeService generates a Kubernetes v1 Service description of a Podman container or pod
-and its containers. The description is in YAML. See also [GenerateKube](GenerateKube).
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -432,10 +392,11 @@ $ varlink call -m unix:/run/io.podman/io.podman.GetAttachSockets '{"name": "b762
 ### <a name="GetContainer"></a>func GetContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method GetContainer(name: [string](https://godoc.org/builtin#string)) [ListContainerData](#ListContainerData)</div>
-GetContainer takes a name or ID of a container and returns single ListContainerData
-structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
-See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
+method GetContainer(id: [string](https://godoc.org/builtin#string)) [Container](#Container)</div>
+GetContainer returns information about a single container.  If a container
+with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
+error will be returned.  See also [ListContainers](ListContainers) and
+[InspectContainer](#InspectContainer).
 ### <a name="GetContainerLogs"></a>func GetContainerLogs
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -476,9 +437,9 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name
 ### <a name="GetImage"></a>func GetImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method GetImage(name: [string](https://godoc.org/builtin#string)) [ImageInList](#ImageInList)</div>
-GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
-If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
+method GetImage(id: [string](https://godoc.org/builtin#string)) [Image](#Image)</div>
+GetImage returns information about a single image in storage.
+If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will be returned.
 ### <a name="GetInfo"></a>func GetInfo
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -553,9 +514,8 @@ $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method GetVersion() [Version](#Version)</div>
-GetVersion returns a Version structure describing the libpod setup on their
-system.
+method GetVersion() [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [int](https://godoc.org/builtin#int)</div>
+GetVersion returns version and build information of the podman service
 ### <a name="HistoryImage"></a>func HistoryImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -586,7 +546,7 @@ the IDs of the removed images are returned.
 ### <a name="ImportImage"></a>func ImportImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ImportImage(source: [string](https://godoc.org/builtin#string), reference: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
+method ImportImage(source: [string](https://godoc.org/builtin#string), reference: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string), delete: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
 ### <a name="InspectContainer"></a>func InspectContainer
@@ -656,11 +616,6 @@ $ varlink call unix:/run/podman/io.podman/io.podman.ListContainerMounts
   }
 }
 ~~~
-### <a name="ListContainerPorts"></a>func ListContainerPorts
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method ListContainerPorts(name: [string](https://godoc.org/builtin#string)) [NotImplemented](#NotImplemented)</div>
-This function is not implemented yet.
 ### <a name="ListContainerProcesses"></a>func ListContainerProcesses
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -684,15 +639,15 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ListContainerProcesses '{
 ### <a name="ListContainers"></a>func ListContainers
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ListContainers() [ListContainerData](#ListContainerData)</div>
-ListContainers returns a list of containers in no particular order.  There are
-returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
+method ListContainers() [Container](#Container)</div>
+ListContainers returns information about all containers.
+See also [GetContainer](#GetContainer).
 ### <a name="ListImages"></a>func ListImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ListImages() [ImageInList](#ImageInList)</div>
-ListImages returns an array of ImageInList structures which provide basic information about
-an image currently in storage.  See also [InspectImage](InspectImage).
+method ListImages() [Image](#Image)</div>
+ListImages returns information about the images that are currently in storage.
+See also [InspectImage](InspectImage).
 ### <a name="ListPods"></a>func ListPods
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -778,20 +733,6 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PausePod '{"name": "fooba
   "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
 }
 ~~~
-### <a name="Ping"></a>func Ping
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method Ping() [StringResponse](#StringResponse)</div>
-Ping provides a response for developers to ensure their varlink setup is working.
-#### Example
-~~~
-$ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
-{
-  "ping": {
-    "message": "OK"
-  }
-}
-~~~
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -808,11 +749,16 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "regi
 ### <a name="PushImage"></a>func PushImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
 PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 It will return an [ImageNotFound](#ImageNotFound) error if
-the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
+the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
+### <a name="ReceiveFile"></a>func ReceiveFile
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ReceiveFile(path: [string](https://godoc.org/builtin#string), delete: [bool](https://godoc.org/builtin#bool)) [int](https://godoc.org/builtin#int)</div>
+
 ### <a name="RemoveContainer"></a>func RemoveContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -859,22 +805,6 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4
   "pod": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 }
 ~~~
-### <a name="RenameContainer"></a>func RenameContainer
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method RenameContainer() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
-### <a name="ReplayKube"></a>func ReplayKube
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method ReplayKube() [NotImplemented](#NotImplemented)</div>
-ReplayKube recreates a pod and its containers based on a Kubernetes v1 Pod description (in YAML)
-like that created by GenerateKube. See also [GenerateKube](GenerateKube).
-### <a name="ResizeContainerTty"></a>func ResizeContainerTty
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method ResizeContainerTty() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
 ### <a name="RestartContainer"></a>func RestartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -900,13 +830,18 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 }
 ~~~
-### <a name="SearchImage"></a>func SearchImage
+### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method SearchImage(name: [string](https://godoc.org/builtin#string), limit: [int](https://godoc.org/builtin#int)) [ImageSearch](#ImageSearch)</div>
-SearchImage takes the string of an image name and a limit of searches from each registries to be returned.  SearchImage
-will then use a glob-like match to find the image you are searching for.  The images are returned in an array of
-ImageSearch structures which contain information about the image as well as its fully-qualified name.
+method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#)) [ImageSearchResult](#ImageSearchResult)</div>
+SearchImages searches available registries for images that contain the
+contents of "query" in their name. If "limit" is given, limits the amount of
+search results per registry.
+### <a name="SendFile"></a>func SendFile
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method SendFile(type: [string](https://godoc.org/builtin#string), length: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
+
 ### <a name="StartContainer"></a>func StartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -968,11 +903,6 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71
 method TagImage(name: [string](https://godoc.org/builtin#string), tagged: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
-### <a name="TopPod"></a>func TopPod
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method TopPod() [NotImplemented](#NotImplemented)</div>
-This method has not been implemented yet.
 ### <a name="UnmountContainer"></a>func UnmountContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1007,11 +937,16 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.UnpausePod '{"name": "foo
   "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
 }
 ~~~
-### <a name="UpdateContainer"></a>func UpdateContainer
+### <a name="VolumeCreate"></a>func VolumeCreate
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method UpdateContainer() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
+method VolumeCreate(options: [VolumeCreateOpts](#VolumeCreateOpts)) [string](https://godoc.org/builtin#string)</div>
+
+### <a name="VolumeRemove"></a>func VolumeRemove
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method VolumeRemove(options: [VolumeRemoveOpts](#VolumeRemoveOpts)) [[]string](#[]string)</div>
+
 ### <a name="WaitContainer"></a>func WaitContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1019,11 +954,6 @@ method WaitContainer(name: [string](https://godoc.org/builtin#string)) [int](htt
 WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
 code of the container is returned. If the container container cannot be found by ID or name,
 a [ContainerNotFound](#ContainerNotFound) error is returned.
-### <a name="WaitPod"></a>func WaitPod
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method WaitPod() [NotImplemented](#NotImplemented)</div>
-This method has not be implemented yet.
 ## Types
 ### <a name="BuildInfo"></a>type BuildInfo
 
@@ -1076,13 +1006,39 @@ annotations [[]string](#[]string)
 build_args [map[string]](#map[string])
 
 image_format [string](https://godoc.org/builtin#string)
-### <a name="BuildResponse"></a>type BuildResponse
+### <a name="Container"></a>type Container
 
-BuildResponse is used to describe the responses for building images
 
-logs [[]string](#[]string)
 
 id [string](https://godoc.org/builtin#string)
+
+image [string](https://godoc.org/builtin#string)
+
+imageid [string](https://godoc.org/builtin#string)
+
+command [[]string](#[]string)
+
+createdat [string](https://godoc.org/builtin#string)
+
+runningfor [string](https://godoc.org/builtin#string)
+
+status [string](https://godoc.org/builtin#string)
+
+ports [ContainerPortMappings](#ContainerPortMappings)
+
+rootfssize [int](https://godoc.org/builtin#int)
+
+rwsize [int](https://godoc.org/builtin#int)
+
+names [string](https://godoc.org/builtin#string)
+
+labels [map[string]](#map[string])
+
+mounts [ContainerMount](#ContainerMount)
+
+containerrunning [bool](https://godoc.org/builtin#bool)
+
+namespaces [ContainerNameSpace](#ContainerNameSpace)
 ### <a name="ContainerChanges"></a>type ContainerChanges
 
 ContainerChanges describes the return struct for ListContainerChanges
@@ -1366,25 +1322,9 @@ host_gid_mapping [bool](https://godoc.org/builtin#bool)
 uid_map [IDMap](#IDMap)
 
 gid_map [IDMap](#IDMap)
-### <a name="ImageHistory"></a>type ImageHistory
+### <a name="Image"></a>type Image
 
-ImageHistory describes the returned structure from ImageHistory.
 
-id [string](https://godoc.org/builtin#string)
-
-created [string](https://godoc.org/builtin#string)
-
-createdBy [string](https://godoc.org/builtin#string)
-
-tags [[]string](#[]string)
-
-size [int](https://godoc.org/builtin#int)
-
-comment [string](https://godoc.org/builtin#string)
-### <a name="ImageInList"></a>type ImageInList
-
-ImageInList describes the structure that is returned in
-ListImages.
 
 id [string](https://godoc.org/builtin#string)
 
@@ -1405,10 +1345,24 @@ containers [int](https://godoc.org/builtin#int)
 labels [map[string]](#map[string])
 
 isParent [bool](https://godoc.org/builtin#bool)
-### <a name="ImageSearch"></a>type ImageSearch
+### <a name="ImageHistory"></a>type ImageHistory
 
-ImageSearch is the returned structure for SearchImage.  It is returned
-in array form.
+ImageHistory describes the returned structure from ImageHistory.
+
+id [string](https://godoc.org/builtin#string)
+
+created [string](https://godoc.org/builtin#string)
+
+createdBy [string](https://godoc.org/builtin#string)
+
+tags [[]string](#[]string)
+
+size [int](https://godoc.org/builtin#int)
+
+comment [string](https://godoc.org/builtin#string)
+### <a name="ImageSearchResult"></a>type ImageSearchResult
+
+Represents a single search result from SearchImages
 
 description [string](https://godoc.org/builtin#string)
 
@@ -1490,39 +1444,6 @@ graph_root [string](https://godoc.org/builtin#string)
 graph_status [InfoGraphStatus](#InfoGraphStatus)
 
 run_root [string](https://godoc.org/builtin#string)
-### <a name="ListContainerData"></a>type ListContainerData
-
-ListContainerData is the returned struct for an individual container
-
-id [string](https://godoc.org/builtin#string)
-
-image [string](https://godoc.org/builtin#string)
-
-imageid [string](https://godoc.org/builtin#string)
-
-command [[]string](#[]string)
-
-createdat [string](https://godoc.org/builtin#string)
-
-runningfor [string](https://godoc.org/builtin#string)
-
-status [string](https://godoc.org/builtin#string)
-
-ports [ContainerPortMappings](#ContainerPortMappings)
-
-rootfssize [int](https://godoc.org/builtin#int)
-
-rwsize [int](https://godoc.org/builtin#int)
-
-names [string](https://godoc.org/builtin#string)
-
-labels [map[string]](#map[string])
-
-mounts [ContainerMount](#ContainerMount)
-
-containerrunning [bool](https://godoc.org/builtin#bool)
-
-namespaces [ContainerNameSpace](#ContainerNameSpace)
 ### <a name="ListPodContainerInfo"></a>type ListPodContainerInfo
 
 ListPodContainerInfo is a returned struct for describing containers
@@ -1552,11 +1473,13 @@ labels [map[string]](#map[string])
 numberofcontainers [string](https://godoc.org/builtin#string)
 
 containersinfo [ListPodContainerInfo](#ListPodContainerInfo)
-### <a name="NotImplemented"></a>type NotImplemented
+### <a name="MoreResponse"></a>type MoreResponse
 
+MoreResponse is a struct for when responses from varlink requires longer output
 
+logs [[]string](#[]string)
 
-comment [string](https://godoc.org/builtin#string)
+id [string](https://godoc.org/builtin#string)
 ### <a name="PodContainerErrorData"></a>type PodContainerErrorData
 
 
@@ -1634,26 +1557,26 @@ container_id [string](https://godoc.org/builtin#string)
 io_socket [string](https://godoc.org/builtin#string)
 
 control_socket [string](https://godoc.org/builtin#string)
-### <a name="StringResponse"></a>type StringResponse
+### <a name="VolumeCreateOpts"></a>type VolumeCreateOpts
 
 
 
-message [string](https://godoc.org/builtin#string)
-### <a name="Version"></a>type Version
+volumeName [string](https://godoc.org/builtin#string)
 
-Version is the structure returned by GetVersion
+driver [string](https://godoc.org/builtin#string)
 
-version [string](https://godoc.org/builtin#string)
+labels [map[string]](#map[string])
 
-go_version [string](https://godoc.org/builtin#string)
+options [map[string]](#map[string])
+### <a name="VolumeRemoveOpts"></a>type VolumeRemoveOpts
 
-git_commit [string](https://godoc.org/builtin#string)
 
-built [int](https://godoc.org/builtin#int)
 
-os_arch [string](https://godoc.org/builtin#string)
+volumes [[]string](#[]string)
 
-remote_api_version [int](https://godoc.org/builtin#int)
+all [bool](https://godoc.org/builtin#bool)
+
+force [bool](https://godoc.org/builtin#bool)
 ## Errors
 ### <a name="ContainerNotFound"></a>type ContainerNotFound
 
