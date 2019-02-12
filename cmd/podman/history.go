@@ -53,6 +53,7 @@ var (
 
 func init() {
 	historyCommand.Command = _historyCommand
+	historyCommand.SetUsageTemplate(UsageTemplate())
 	flags := historyCommand.Flags()
 	flags.StringVar(&historyCommand.Format, "format", "", "Change the output to JSON or a Go template")
 	flags.BoolVarP(&historyCommand.Human, "human", "H", true, "Display sizes and dates in human readable format")

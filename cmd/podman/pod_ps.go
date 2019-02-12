@@ -131,6 +131,7 @@ var (
 
 func init() {
 	podPsCommand.Command = _podPsCommand
+	podPsCommand.SetUsageTemplate(UsageTemplate())
 	flags := podPsCommand.Flags()
 	flags.BoolVar(&podPsCommand.CtrNames, "ctr-names", false, "Display the container names")
 	flags.BoolVar(&podPsCommand.CtrIDs, "ctr-ids", false, "Display the container UUIDs. If no-trunc is not set they will be truncated")

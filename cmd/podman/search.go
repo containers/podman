@@ -43,6 +43,7 @@ var (
 
 func init() {
 	searchCommand.Command = _searchCommand
+	searchCommand.SetUsageTemplate(UsageTemplate())
 	flags := searchCommand.Flags()
 	flags.StringVar(&searchCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringSliceVarP(&searchCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")

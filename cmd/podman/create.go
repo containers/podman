@@ -60,6 +60,7 @@ var (
 
 func init() {
 	createCommand.PodmanCommand.Command = _createCommand
+	createCommand.SetUsageTemplate(UsageTemplate())
 
 	getCreateFlags(&createCommand.PodmanCommand)
 	flags := createCommand.Flags()

@@ -20,4 +20,5 @@ var podCommand = cliconfig.PodmanCommand{
 
 func init() {
 	podCommand.AddCommand(getPodSubCommands()...)
+	podCommand.SetUsageTemplate(UsageTemplate())
 }

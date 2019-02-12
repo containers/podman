@@ -34,6 +34,7 @@ not being used by any containers. To remove the volumes anyways, use the
 
 func init() {
 	volumeRmCommand.Command = _volumeRmCommand
+	volumeRmCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeRmCommand.Flags()
 	flags.BoolVarP(&volumeRmCommand.All, "all", "a", false, "Remove all volumes")
 	flags.BoolVarP(&volumeRmCommand.Force, "force", "f", false, "Remove a volume by force, even if it is being used by a container")

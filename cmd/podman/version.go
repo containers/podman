@@ -28,6 +28,7 @@ var (
 
 func init() {
 	versionCommand.Command = _versionCommand
+	versionCommand.SetUsageTemplate(UsageTemplate())
 	flags := versionCommand.Flags()
 	flags.StringVarP(&versionCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
 }

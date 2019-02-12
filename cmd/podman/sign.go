@@ -38,6 +38,7 @@ var (
 
 func init() {
 	signCommand.Command = _signCommand
+	signCommand.SetUsageTemplate(UsageTemplate())
 	flags := signCommand.Flags()
 	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")
 	flags.StringVar(&signCommand.SignBy, "sign-by", "", "Name of the signing key")

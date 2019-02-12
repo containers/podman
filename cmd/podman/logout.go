@@ -28,6 +28,7 @@ var (
 
 func init() {
 	logoutCommand.Command = _logoutCommand
+	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
 	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
 	flags.StringVar(&logoutCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

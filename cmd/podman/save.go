@@ -47,6 +47,7 @@ var (
 
 func init() {
 	saveCommand.Command = _saveCommand
+	saveCommand.SetUsageTemplate(UsageTemplate())
 	flags := saveCommand.Flags()
 	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&saveCommand.Format, "format", "", "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)")

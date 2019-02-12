@@ -37,6 +37,7 @@ An unmount can be forced with the --force flag.
 
 func init() {
 	umountCommand.Command = _umountCommand
+	umountCommand.SetUsageTemplate(UsageTemplate())
 	flags := umountCommand.Flags()
 	flags.BoolVarP(&umountCommand.All, "all", "a", false, "Umount all of the currently mounted containers")
 	flags.BoolVarP(&umountCommand.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")

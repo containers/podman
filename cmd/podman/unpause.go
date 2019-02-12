@@ -35,6 +35,7 @@ var (
 
 func init() {
 	unpauseCommand.Command = _unpauseCommand
+	unpauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := unpauseCommand.Flags()
 	flags.BoolVarP(&unpauseCommand.All, "all", "a", false, "Unpause all paused containers")
 }

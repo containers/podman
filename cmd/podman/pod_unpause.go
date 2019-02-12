@@ -28,6 +28,7 @@ var (
 
 func init() {
 	podUnpauseCommand.Command = _podUnpauseCommand
+	podUnpauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := podUnpauseCommand.Flags()
 	flags.BoolVarP(&podUnpauseCommand.All, "all", "a", false, "Unpause all running pods")
 	flags.BoolVarP(&podUnpauseCommand.Latest, "latest", "l", false, "Unpause the latest pod podman is aware of")

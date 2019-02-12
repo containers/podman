@@ -27,6 +27,7 @@ var (
 
 func init() {
 	refreshCommand.Command = _refreshCommand
+	refreshCommand.SetUsageTemplate(UsageTemplate())
 }
 
 func refreshCmd(c *cliconfig.RefreshValues) error {

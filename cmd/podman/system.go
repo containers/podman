@@ -24,4 +24,5 @@ var systemCommands = []*cobra.Command{
 func init() {
 	systemCommand.AddCommand(systemCommands...)
 	systemCommand.AddCommand(getSystemSubCommands()...)
+	systemCommand.SetUsageTemplate(UsageTemplate())
 }

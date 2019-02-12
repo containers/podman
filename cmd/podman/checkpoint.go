@@ -35,6 +35,7 @@ var (
 
 func init() {
 	checkpointCommand.Command = _checkpointCommand
+	checkpointCommand.SetUsageTemplate(UsageTemplate())
 
 	flags := checkpointCommand.Flags()
 	flags.BoolVarP(&checkpointCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")

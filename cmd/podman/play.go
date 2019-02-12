@@ -5,18 +5,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var playCommand cliconfig.PodmanCommand
-
-func init() {
-	var playDescription = "Play a pod and its containers from a structured file."
-	playCommand.Command = &cobra.Command{
+var (
+	playCommand     cliconfig.PodmanCommand
+	playDescription = "Play a pod and its containers from a structured file."
+	_playCommand    = &cobra.Command{
 		Use:   "play",
 		Short: "Play a pod",
 		Long:  playDescription,
 	}
-
-}
+)
 
 func init() {
+	playCommand.Command = _playCommand
+	playCommand.SetUsageTemplate(UsageTemplate())
 	playCommand.AddCommand(getPlaySubCommands()...)
 }

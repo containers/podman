@@ -32,6 +32,7 @@ var (
 
 func init() {
 	infoCommand.Command = _infoCommand
+	infoCommand.SetUsageTemplate(UsageTemplate())
 	flags := infoCommand.Flags()
 
 	flags.BoolVarP(&infoCommand.Debug, "debug", "D", false, "Display additional debug information")

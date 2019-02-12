@@ -62,6 +62,7 @@ and the output format can be changed to JSON or a user specified Go template.
 
 func init() {
 	volumeLsCommand.Command = _volumeLsCommand
+	volumeLsCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeLsCommand.Flags()
 
 	flags.StringVarP(&volumeLsCommand.Filter, "filter", "f", "", "Filter volume output")

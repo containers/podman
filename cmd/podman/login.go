@@ -35,6 +35,7 @@ var (
 
 func init() {
 	loginCommand.Command = _loginCommand
+	loginCommand.SetUsageTemplate(UsageTemplate())
 	flags := loginCommand.Flags()
 
 	flags.StringVar(&loginCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

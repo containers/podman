@@ -500,3 +500,27 @@ func scrubServer(server string) string {
 	server = strings.TrimPrefix(server, "https://")
 	return strings.TrimPrefix(server, "http://")
 }
+
+// UsageTemplate returns the usage template for podman commands
+// This blocks the desplaying of the global options. The main podman
+// command should not use this.
+func UsageTemplate() string {
+	return `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+{{end}}
+`
+}

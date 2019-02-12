@@ -32,6 +32,7 @@ var (
 
 func init() {
 	cleanupCommand.Command = _cleanupCommand
+	cleanupCommand.SetUsageTemplate(UsageTemplate())
 	flags := cleanupCommand.Flags()
 
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")

@@ -30,6 +30,7 @@ var imageSubCommands = []*cobra.Command{
 }
 
 func init() {
+	imageCommand.SetUsageTemplate(UsageTemplate())
 	imageCommand.AddCommand(imageSubCommands...)
 	imageCommand.AddCommand(getImageSubCommands()...)
 }

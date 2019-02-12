@@ -72,8 +72,11 @@ var (
 
 func init() {
 	imageExistsCommand.Command = _imageExistsCommand
+	imageExistsCommand.SetUsageTemplate(UsageTemplate())
 	containerExistsCommand.Command = _containerExistsCommand
+	containerExistsCommand.SetUsageTemplate(UsageTemplate())
 	podExistsCommand.Command = _podExistsCommand
+	podExistsCommand.SetUsageTemplate(UsageTemplate())
 }
 
 func imageExistsCmd(c *cliconfig.ImageExistsValues) error {

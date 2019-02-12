@@ -40,6 +40,7 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 
 func init() {
 	pullCommand.Command = _pullCommand
+	pullCommand.SetUsageTemplate(UsageTemplate())
 	flags := pullCommand.Flags()
 	flags.StringVar(&pullCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")

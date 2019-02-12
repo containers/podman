@@ -172,6 +172,7 @@ var (
 
 func init() {
 	psCommand.Command = _psCommand
+	psCommand.SetUsageTemplate(UsageTemplate())
 	flags := psCommand.Flags()
 	flags.BoolVarP(&psCommand.All, "all", "a", false, "Show all the containers, default is only running containers")
 	flags.StringSliceVarP(&psCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions given")

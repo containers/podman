@@ -31,6 +31,7 @@ var (
 
 func init() {
 	containerKubeCommand.Command = _containerKubeCommand
+	containerKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := containerKubeCommand.Flags()
 	flags.BoolVarP(&containerKubeCommand.Service, "service", "s", false, "Generate YAML for kubernetes service object")
 }

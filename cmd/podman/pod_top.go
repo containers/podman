@@ -39,6 +39,7 @@ the latest pod.
 
 func init() {
 	podTopCommand.Command = _podTopCommand
+	podTopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podTopCommand.Flags()
 	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&podTopCommand.ListDescriptors, "list-descriptors", false, "")

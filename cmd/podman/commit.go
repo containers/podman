@@ -39,6 +39,7 @@ var (
 
 func init() {
 	commitCommand.Command = _commitCommand
+	commitCommand.SetUsageTemplate(UsageTemplate())
 	flags := commitCommand.Flags()
 	flags.StringSliceVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")))
 	flags.StringVarP(&commitCommand.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")

@@ -48,6 +48,7 @@ the latest container.
 
 func init() {
 	topCommand.Command = _topCommand
+	topCommand.SetUsageTemplate(UsageTemplate())
 	flags := topCommand.Flags()
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")
 	flags.MarkHidden("list-descriptors")
