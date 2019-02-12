@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -43,25 +42,28 @@ func init() {
 func volumeRmCmd(c *cliconfig.VolumeRmValues) error {
 	var err error
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	if (len(c.InputArgs) > 0 && c.All) || (len(c.InputArgs) < 1 && !c.All) {
+		return errors.New("choose either one or more volumes or all")
+	}
+
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	ctx := getContext()
-
-	vols, lastError := getVolumesFromContext(&c.PodmanCommand, runtime)
-	for _, vol := range vols {
-		err = runtime.RemoveVolume(ctx, vol, c.Force, false)
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to remove volume %q", vol.Name())
-		} else {
-			fmt.Println(vol.Name())
+	deletedVolumeNames, err := runtime.RemoveVolumes(getContext(), c)
+	if err != nil {
+		if len(deletedVolumeNames) > 0 {
+			printDeleteVolumes(deletedVolumeNames)
+			return err
 		}
 	}
-	return lastError
+	printDeleteVolumes(deletedVolumeNames)
+	return err
+}
+
+func printDeleteVolumes(volumes []string) {
+	for _, v := range volumes {
+		fmt.Println(v)
+	}
 }

@@ -185,3 +185,8 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 	}
 	return newVolume.Name(), nil
 }
+
+// RemoveVolumes is a wrapper to remove volumes
+func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
+	return r.Runtime.RemoveVolumes(ctx, c.InputArgs, c.All, c.Force)
+}
