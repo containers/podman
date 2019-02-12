@@ -3,23 +3,6 @@
 interface io.podman
 
 
-# Version is the structure returned by GetVersion
-type Version (
-  version: string,
-  go_version: string,
-  git_commit: string,
-  built: int,
-  os_arch: string,
-  remote_api_version: int
-)
-
-type NotImplemented (
-    comment: string
-)
-
-type StringResponse (
-    message: string
-)
 # ContainerChanges describes the return struct for ListContainerChanges
 type ContainerChanges (
    changed: []string,
@@ -40,14 +23,12 @@ type VolumeRemoveOpts (
    force: bool
 )
 
-# ImageInList describes the structure that is returned in
-# ListImages.
-type ImageInList (
+type Image (
   id: string,
   parentId: string,
   repoTags: []string,
   repoDigests: []string,
-  created: string,
+  created: string, # as RFC3339
   size: int,
   virtualSize: int,
   containers: int,
@@ -58,16 +39,15 @@ type ImageInList (
 # ImageHistory describes the returned structure from ImageHistory.
 type ImageHistory (
     id: string,
-    created: string,
+    created: string, # as RFC3339
     createdBy: string,
     tags: []string,
     size: int,
     comment: string
 )
 
-# ImageSearch is the returned structure for SearchImage.  It is returned
-# in array form.
-type ImageSearch (
+# Represents a single search result from SearchImages
+type ImageSearchResult (
     description: string,
     is_official: bool,
     is_automated: bool,
@@ -75,13 +55,12 @@ type ImageSearch (
     star_count: int
 )
 
-# ListContainerData is the returned struct for an individual container
-type ListContainerData (
+type Container (
     id: string,
     image: string,
     imageid: string,
     command: []string,
-    createdat: string,
+    createdat: string, # as RFC3339
     runningfor: string,
     status: string,
     ports: []ContainerPortMappings,
@@ -406,34 +385,29 @@ type Runlabel(
     opts: [string]string
 )
 
-# Ping provides a response for developers to ensure their varlink setup is working.
-# #### Example
-# ~~~
-# $ varlink call -m unix:/run/podman/io.podman/io.podman.Ping
-# {
-#   "ping": {
-#     "message": "OK"
-#   }
-# }
-# ~~~
-method Ping() -> (ping: StringResponse)
-
-# GetVersion returns a Version structure describing the libpod setup on their
-# system.
-method GetVersion() -> (version: Version)
+# GetVersion returns version and build information of the podman service
+method GetVersion() -> (
+    version: string,
+    go_version: string,
+    git_commit: string,
+    built: string, # as RFC3339
+    os_arch: string,
+    remote_api_version: int
+)
 
 # GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
 # build information of Podman, and system-wide registries.
 method GetInfo() -> (info: PodmanInfo)
 
-# ListContainers returns a list of containers in no particular order.  There are
-# returned as an array of ListContainerData structs.  See also [GetContainer](#GetContainer).
-method ListContainers() -> (containers: []ListContainerData)
+# ListContainers returns information about all containers.
+# See also [GetContainer](#GetContainer).
+method ListContainers() -> (containers: []Container)
 
-# GetContainer takes a name or ID of a container and returns single ListContainerData
-# structure.  A [ContainerNotFound](#ContainerNotFound) error will be returned if the container cannot be found.
-# See also [ListContainers](ListContainers) and [InspectContainer](#InspectContainer).
-method GetContainer(name: string) -> (container: ListContainerData)
+# GetContainer returns information about a single container.  If a container
+# with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
+# error will be returned.  See also [ListContainers](ListContainers) and
+# [InspectContainer](#InspectContainer).
+method GetContainer(id: string) -> (container: Container)
 
 # CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
 # input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
@@ -521,7 +495,7 @@ method ExportContainer(name: string, path: string) -> (tarfile: string)
 method GetContainerStats(name: string) -> (container: ContainerStats)
 
 # This method has not be implemented yet.
-method ResizeContainerTty() -> (notimplemented: NotImplemented)
+# method ResizeContainerTty() -> (notimplemented: NotImplemented)
 
 # StartContainer starts a created or stopped container. It takes the name or ID of container.  It returns
 # the container ID once started.  If the container cannot be found, a [ContainerNotFound](#ContainerNotFound)
@@ -553,10 +527,10 @@ method RestartContainer(name: string, timeout: int) -> (container: string)
 method KillContainer(name: string, signal: int) -> (container: string)
 
 # This method has not be implemented yet.
-method UpdateContainer() -> (notimplemented: NotImplemented)
+# method UpdateContainer() -> (notimplemented: NotImplemented)
 
 # This method has not be implemented yet.
-method RenameContainer() -> (notimplemented: NotImplemented)
+# method RenameContainer() -> (notimplemented: NotImplemented)
 
 # PauseContainer takes the name or ID of container and pauses it.  If the container cannot be found,
 # a [ContainerNotFound](#ContainerNotFound) error will be returned; otherwise the ID of the container is returned.
@@ -569,7 +543,7 @@ method PauseContainer(name: string) -> (container: string)
 method UnpauseContainer(name: string) -> (container: string)
 
 # This method has not be implemented yet.
-method AttachToContainer() -> (notimplemented: NotImplemented)
+# method AttachToContainer() -> (notimplemented: NotImplemented)
 
 # GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
 # to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
@@ -621,13 +595,13 @@ method RemoveContainer(name: string, force: bool) -> (container: string)
 # ~~~
 method DeleteStoppedContainers() -> (containers: []string)
 
-# ListImages returns an array of ImageInList structures which provide basic information about
-# an image currently in storage.  See also [InspectImage](InspectImage).
-method ListImages() -> (images: []ImageInList)
+# ListImages returns information about the images that are currently in storage.
+# See also [InspectImage](InspectImage).
+method ListImages() -> (images: []Image)
 
-# GetImage returns a single image in an [ImageInList](#ImageInList) struct.  You must supply an image name as a string.
-# If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.
-method GetImage(name: string) -> (image: ImageInList)
+# GetImage returns information about a single image in storage.
+# If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will be returned.
+method GetImage(id: string) -> (image: Image)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
 # 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
@@ -635,7 +609,7 @@ method GetImage(name: string) -> (image: ImageInList)
 method BuildImage(build: BuildInfo) -> (image: BuildResponse)
 
 # This function is not implemented yet.
-method CreateImage() -> (notimplemented: NotImplemented)
+# method CreateImage() -> (notimplemented: NotImplemented)
 
 # InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
 #image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
@@ -669,10 +643,10 @@ method TagImage(name: string, tagged: string) -> (image: string)
 # ~~~
 method RemoveImage(name: string, force: bool) -> (image: string)
 
-# SearchImage takes the string of an image name and a limit of searches from each registries to be returned.  SearchImage
-# will then use a glob-like match to find the image you are searching for.  The images are returned in an array of
-# ImageSearch structures which contain information about the image as well as its fully-qualified name.
-method SearchImage(name: string, limit: int) -> (images: []ImageSearch)
+# SearchImages searches available registries for images that contain the
+# contents of "query" in their name. If "limit" is given, limits the amount of
+# search results per registry.
+method SearchImages(query: string, limit: ?int) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
@@ -926,10 +900,10 @@ method UnpausePod(name: string) -> (pod: string)
 method RemovePod(name: string, force: bool) -> (pod: string)
 
 # This method has not be implemented yet.
-method WaitPod() -> (notimplemented: NotImplemented)
+# method WaitPod() -> (notimplemented: NotImplemented)
 
 # This method has not been implemented yet.
-method TopPod() -> (notimplemented: NotImplemented)
+# method TopPod() -> (notimplemented: NotImplemented)
 
 # GetPodStats takes the name or ID of a pod and returns a pod name and slice of ContainerStats structure which
 # contains attributes like memory and cpu usage.  If the pod cannot be found, a [PodNotFound](#PodNotFound)
@@ -1033,19 +1007,19 @@ method  UnmountContainer(name: string, force: bool) -> ()
 method ImagesPrune(all: bool) -> (pruned: []string)
 
 # This function is not implemented yet.
-method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
+# method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
 
 # GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
 # and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
-method GenerateKube() -> (notimplemented: NotImplemented)
+# method GenerateKube() -> (notimplemented: NotImplemented)
 
 # GenerateKubeService generates a Kubernetes v1 Service description of a Podman container or pod
 # and its containers. The description is in YAML. See also [GenerateKube](GenerateKube).
-method GenerateKubeService() -> (notimplemented: NotImplemented)
+# method GenerateKubeService() -> (notimplemented: NotImplemented)
 
 # ReplayKube recreates a pod and its containers based on a Kubernetes v1 Pod description (in YAML)
 # like that created by GenerateKube. See also [GenerateKube](GenerateKube).
-method ReplayKube() -> (notimplemented: NotImplemented)
+# method ReplayKube() -> (notimplemented: NotImplemented)
 
 # ContainerConfig returns a container's config in string form. This call is for
 # development of Podman only and generally should not be used.
@@ -1072,10 +1046,10 @@ method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
-error ImageNotFound (name: string)
+error ImageNotFound (id: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
-error ContainerNotFound (name: string)
+error ContainerNotFound (id: string)
 
 # NoContainerRunning means none of the containers requested are running in a command that requires a running container.
 error NoContainerRunning ()

@@ -3,6 +3,7 @@ package varlinkapi
 import (
 	goruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
@@ -15,22 +16,14 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 		return err
 	}
 
-	return call.ReplyGetVersion(iopodman.Version{
-		Remote_api_version: versionInfo.RemoteAPIVersion,
-		Version:            versionInfo.Version,
-		Go_version:         versionInfo.GoVersion,
-		Git_commit:         versionInfo.GitCommit,
-		Built:              versionInfo.Built,
-		Os_arch:            versionInfo.OsArch,
-	})
-}
-
-// Ping returns a simple string "OK" response for clients to make sure
-// the service is working.
-func (i *LibpodAPI) Ping(call iopodman.VarlinkCall) error {
-	return call.ReplyPing(iopodman.StringResponse{
-		Message: "OK",
-	})
+	return call.ReplyGetVersion(
+		versionInfo.Version,
+		versionInfo.GoVersion,
+		versionInfo.GitCommit,
+		time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
+		versionInfo.OsArch,
+		versionInfo.RemoteAPIVersion,
+	)
 }
 
 // GetInfo returns details about the podman host and its stores
