@@ -37,7 +37,7 @@ func init() {
 
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
 	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.BoolVar(&cleanupCommand.Rm, "rm", false, "After cleanup, remove the container entirely")
+	flags.BoolVar(&cleanupCommand.Remove, "rm", false, "After cleanup, remove the container entirely")
 }
 
 func cleanupCmd(c *cliconfig.CleanupValues) error {
@@ -57,7 +57,7 @@ func cleanupCmd(c *cliconfig.CleanupValues) error {
 
 	for _, ctr := range cleanupContainers {
 		hadError := false
-		if c.Rm {
+		if c.Remove {
 			if err := runtime.RemoveContainer(ctx, ctr, false); err != nil {
 				if lastError != nil {
 					fmt.Fprintln(os.Stderr, lastError)

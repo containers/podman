@@ -121,7 +121,7 @@ func runCmd(c *cliconfig.RunValues) error {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
-		if err == libpod.ErrDetach {
+		if errors.Cause(err) == libpod.ErrDetach {
 			exitCode = 0
 			return nil
 		}

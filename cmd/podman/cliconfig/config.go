@@ -531,7 +531,7 @@ type CleanupValues struct {
 	PodmanCommand
 	All    bool
 	Latest bool
-	Rm     bool
+	Remove bool
 }
 
 type SystemPruneValues struct {
