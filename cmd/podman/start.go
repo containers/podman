@@ -108,6 +108,13 @@ func startCmd(c *cliconfig.StartValues) error {
 
 			// attach to the container and also start it not already running
 			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning)
+			if errors.Cause(err) == libpod.ErrDetach {
+				// User manually detached
+				// Exit cleanly immediately
+				exitCode = 0
+				return nil
+			}
+
 			if ctrRunning {
 				return err
 			}

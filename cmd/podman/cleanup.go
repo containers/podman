@@ -37,6 +37,7 @@ func init() {
 
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
 	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&cleanupCommand.Remove, "rm", false, "After cleanup, remove the container entirely")
 }
 
 func cleanupCmd(c *cliconfig.CleanupValues) error {
@@ -55,12 +56,25 @@ func cleanupCmd(c *cliconfig.CleanupValues) error {
 	ctx := getContext()
 
 	for _, ctr := range cleanupContainers {
-		if err = ctr.Cleanup(ctx); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
+		hadError := false
+		if c.Remove {
+			if err := runtime.RemoveContainer(ctx, ctr, false); err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
+				hadError = true
 			}
-			lastError = errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
 		} else {
+			if err := ctr.Cleanup(ctx); err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
+				hadError = true
+			}
+		}
+		if !hadError {
 			fmt.Println(ctr.ID())
 		}
 	}

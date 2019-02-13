@@ -118,6 +118,14 @@ func runCmd(c *cliconfig.RunValues) error {
 		}
 	}
 	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true); err != nil {
+		// We've manually detached from the container
+		// Do not perform cleanup, or wait for container exit code
+		// Just exit immediately
+		if errors.Cause(err) == libpod.ErrDetach {
+			exitCode = 0
+			return nil
+		}
+
 		// This means the command did not exist
 		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {
@@ -147,28 +155,12 @@ func runCmd(c *cliconfig.RunValues) error {
 		exitCode = int(ecode)
 	}
 
-	if createConfig.Rm {
-		return runtime.RemoveContainer(ctx, ctr, true)
-	}
-
-	if err := ctr.Cleanup(ctx); err != nil {
-		// If the container has been removed already, no need to error on cleanup
-		// Also, if it was restarted, don't error either
-		if errors.Cause(err) == libpod.ErrNoSuchCtr ||
-			errors.Cause(err) == libpod.ErrCtrRemoved ||
-			errors.Cause(err) == libpod.ErrCtrStateInvalid {
-			return nil
-		}
-
-		return err
-	}
-
 	return nil
 }
 
 // Read a container's exit file
 func readExitFile(runtimeTmp, ctrID string) (int, error) {
-	exitFile := filepath.Join(runtimeTmp, "exits", ctrID)
+	exitFile := filepath.Join(runtimeTmp, "exits", fmt.Sprintf("%s-old", ctrID))
 
 	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
 
