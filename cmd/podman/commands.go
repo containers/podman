@@ -42,9 +42,12 @@ func getMainCommands() []*cobra.Command {
 		_topCommand,
 		_umountCommand,
 		_unpauseCommand,
-		_varlinkCommand,
 		volumeCommand.Command,
 		_waitCommand,
+	}
+
+	if len(_varlinkCommand.Use) > 0 {
+		rootCommands = append(rootCommands, _varlinkCommand)
 	}
 	return rootCommands
 }

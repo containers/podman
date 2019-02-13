@@ -2,8 +2,10 @@
 
 package main
 
-import (
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-)
+import "github.com/spf13/cobra"
 
-var varlinkCommand *cliconfig.PodmanCommand
+var (
+	_varlinkCommand = &cobra.Command{
+		Use: "",
+	}
+)
