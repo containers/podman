@@ -6,8 +6,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -71,7 +70,7 @@ func init() {
 }
 
 func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -87,7 +86,7 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 	opts.Format = genVolLsFormat(c)
 
 	// Get the filter functions based on any filters set
-	var filterFuncs []libpod.VolumeFilter
+	var filterFuncs []adapter.VolumeFilter
 	if c.Filter != "" {
 		filters := strings.Split(c.Filter, ",")
 		for _, f := range filters {
@@ -95,7 +94,7 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 			if len(filterSplit) < 2 {
 				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 			}
-			generatedFunc, err := generateVolumeFilterFuncs(filterSplit[0], filterSplit[1], runtime)
+			generatedFunc, err := generateVolumeFilterFuncs(filterSplit[0], filterSplit[1])
 			if err != nil {
 				return errors.Wrapf(err, "invalid filter")
 			}
@@ -103,13 +102,12 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 		}
 	}
 
-	volumes, err := runtime.GetAllVolumes()
+	volumes, err := runtime.Volumes(getContext())
 	if err != nil {
 		return err
 	}
-
 	// Get the volumes that match the filter
-	volsFiltered := make([]*libpod.Volume, 0, len(volumes))
+	volsFiltered := make([]*adapter.Volume, 0, len(volumes))
 	for _, vol := range volumes {
 		include := true
 		for _, filter := range filterFuncs {
@@ -120,7 +118,7 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 			volsFiltered = append(volsFiltered, vol)
 		}
 	}
-	return generateVolLsOutput(volsFiltered, opts, runtime)
+	return generateVolLsOutput(volsFiltered, opts)
 }
 
 // generate the template based on conditions given
@@ -206,7 +204,7 @@ func getVolTemplateOutput(lsParams []volumeLsJSONParams, opts volumeLsOptions) (
 }
 
 // getVolJSONParams returns the volumes in JSON format
-func getVolJSONParams(volumes []*libpod.Volume, opts volumeLsOptions, runtime *libpod.Runtime) ([]volumeLsJSONParams, error) {
+func getVolJSONParams(volumes []*adapter.Volume) []volumeLsJSONParams {
 	var lsOutput []volumeLsJSONParams
 
 	for _, volume := range volumes {
@@ -221,25 +219,19 @@ func getVolJSONParams(volumes []*libpod.Volume, opts volumeLsOptions, runtime *l
 
 		lsOutput = append(lsOutput, params)
 	}
-	return lsOutput, nil
+	return lsOutput
 }
 
 // generateVolLsOutput generates the output based on the format, JSON or Go Template, and prints it out
-func generateVolLsOutput(volumes []*libpod.Volume, opts volumeLsOptions, runtime *libpod.Runtime) error {
+func generateVolLsOutput(volumes []*adapter.Volume, opts volumeLsOptions) error {
 	if len(volumes) == 0 && opts.Format != formats.JSONString {
 		return nil
 	}
-	lsOutput, err := getVolJSONParams(volumes, opts, runtime)
-	if err != nil {
-		return err
-	}
+	lsOutput := getVolJSONParams(volumes)
 	var out formats.Writer
 
 	switch opts.Format {
 	case formats.JSONString:
-		if err != nil {
-			return errors.Wrapf(err, "unable to create JSON for volume output")
-		}
 		out = formats.JSONStructArray{Output: volLsToGeneric([]volumeLsTemplateParams{}, lsOutput)}
 	default:
 		lsOutput, err := getVolTemplateOutput(lsOutput, opts)
@@ -252,18 +244,18 @@ func generateVolLsOutput(volumes []*libpod.Volume, opts volumeLsOptions, runtime
 }
 
 // generateVolumeFilterFuncs returns the true if the volume matches the filter set, otherwise it returns false.
-func generateVolumeFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(volume *libpod.Volume) bool, error) {
+func generateVolumeFilterFuncs(filter, filterValue string) (func(volume *adapter.Volume) bool, error) {
 	switch filter {
 	case "name":
-		return func(v *libpod.Volume) bool {
+		return func(v *adapter.Volume) bool {
 			return strings.Contains(v.Name(), filterValue)
 		}, nil
 	case "driver":
-		return func(v *libpod.Volume) bool {
+		return func(v *adapter.Volume) bool {
 			return v.Driver() == filterValue
 		}, nil
 	case "scope":
-		return func(v *libpod.Volume) bool {
+		return func(v *adapter.Volume) bool {
 			return v.Scope() == filterValue
 		}, nil
 	case "label":
@@ -274,7 +266,7 @@ func generateVolumeFilterFuncs(filter, filterValue string, runtime *libpod.Runti
 		} else {
 			filterValue = ""
 		}
-		return func(v *libpod.Volume) bool {
+		return func(v *adapter.Volume) bool {
 			for labelKey, labelValue := range v.Labels() {
 				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
 					return true
@@ -290,7 +282,7 @@ func generateVolumeFilterFuncs(filter, filterValue string, runtime *libpod.Runti
 		} else {
 			filterValue = ""
 		}
-		return func(v *libpod.Volume) bool {
+		return func(v *adapter.Volume) bool {
 			for labelKey, labelValue := range v.Options() {
 				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
 					return true

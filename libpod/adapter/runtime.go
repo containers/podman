@@ -35,6 +35,14 @@ type Container struct {
 	*libpod.Container
 }
 
+// Volume ...
+type Volume struct {
+	*libpod.Volume
+}
+
+// VolumeFilter is for filtering volumes on the client
+type VolumeFilter func(*Volume) bool
+
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	runtime, err := libpodruntime.GetRuntime(c)
@@ -199,4 +207,50 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 		return err
 	}
 	return newImage.PushImageToHeuristicDestination(ctx, destination, manifestMIMEType, authfile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, nil)
+}
+
+// InspectVolumes returns a slice of volumes based on an arg list or --all
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
+	var (
+		volumes []*libpod.Volume
+		err     error
+	)
+
+	if c.All {
+		volumes, err = r.GetAllVolumes()
+	} else {
+		for _, v := range c.InputArgs {
+			vol, err := r.GetVolume(v)
+			if err != nil {
+				return nil, err
+			}
+			volumes = append(volumes, vol)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return libpodVolumeToVolume(volumes), nil
+}
+
+// Volumes returns a slice of localruntime volumes
+func (r *LocalRuntime) Volumes(ctx context.Context) ([]*Volume, error) {
+	vols, err := r.GetAllVolumes()
+	if err != nil {
+		return nil, err
+	}
+	return libpodVolumeToVolume(vols), nil
+}
+
+// libpodVolumeToVolume converts a slice of libpod volumes to a slice
+// of localruntime volumes (same as libpod)
+func libpodVolumeToVolume(volumes []*libpod.Volume) []*Volume {
+	var vols []*Volume
+	for _, v := range volumes {
+		newVol := Volume{
+			v,
+		}
+		vols = append(vols, &newVol)
+	}
+	return vols
 }

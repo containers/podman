@@ -53,6 +53,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetVersion() string, string, string, string, string, int](#GetVersion)
 
+[func GetVolumes(args: []string, all: bool) Volume](#GetVolumes)
+
 [func HistoryImage(name: string) ImageHistory](#HistoryImage)
 
 [func ImageExists(name: string) int](#ImageExists)
@@ -175,6 +177,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type MoreResponse](#MoreResponse)
 
+[type NotImplemented](#NotImplemented)
+
 [type PodContainerErrorData](#PodContainerErrorData)
 
 [type PodCreate](#PodCreate)
@@ -184,6 +188,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type Runlabel](#Runlabel)
 
 [type Sockets](#Sockets)
+
+[type StringResponse](#StringResponse)
+
+[type Volume](#Volume)
 
 [type VolumeCreateOpts](#VolumeCreateOpts)
 
@@ -516,6 +524,11 @@ $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b
 
 method GetVersion() [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [int](https://godoc.org/builtin#int)</div>
 GetVersion returns version and build information of the podman service
+### <a name="GetVolumes"></a>func GetVolumes
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetVolumes(args: [[]string](#[]string), all: [bool](https://godoc.org/builtin#bool)) [Volume](#Volume)</div>
+
 ### <a name="HistoryImage"></a>func HistoryImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1480,6 +1493,11 @@ MoreResponse is a struct for when responses from varlink requires longer output
 logs [[]string](#[]string)
 
 id [string](https://godoc.org/builtin#string)
+### <a name="NotImplemented"></a>type NotImplemented
+
+
+
+comment [string](https://godoc.org/builtin#string)
 ### <a name="PodContainerErrorData"></a>type PodContainerErrorData
 
 
@@ -1557,6 +1575,26 @@ container_id [string](https://godoc.org/builtin#string)
 io_socket [string](https://godoc.org/builtin#string)
 
 control_socket [string](https://godoc.org/builtin#string)
+### <a name="StringResponse"></a>type StringResponse
+
+
+
+message [string](https://godoc.org/builtin#string)
+### <a name="Volume"></a>type Volume
+
+
+
+name [string](https://godoc.org/builtin#string)
+
+labels [map[string]](#map[string])
+
+mountPoint [string](https://godoc.org/builtin#string)
+
+driver [string](https://godoc.org/builtin#string)
+
+options [map[string]](#map[string])
+
+scope [string](https://godoc.org/builtin#string)
 ### <a name="VolumeCreateOpts"></a>type VolumeCreateOpts
 
 

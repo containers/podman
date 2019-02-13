@@ -2,9 +2,8 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -39,22 +38,19 @@ func init() {
 }
 
 func volumeInspectCmd(c *cliconfig.VolumeInspectValues) error {
-	var err error
+	if (c.All && len(c.InputArgs) > 0) || (!c.All && len(c.InputArgs) < 1) {
+		return errors.New("provide one or more volume names or use --all")
+	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	opts := volumeLsOptions{
-		Format: c.Format,
+	vols, err := runtime.InspectVolumes(getContext(), c)
+	if err != nil {
+		return err
 	}
-
-	vols, lastError := getVolumesFromContext(&c.PodmanCommand, runtime)
-	if lastError != nil {
-		logrus.Errorf("%q", lastError)
-	}
-
-	return generateVolLsOutput(vols, opts, runtime)
+	return generateVolLsOutput(vols, volumeLsOptions{Format: c.Format})
 }

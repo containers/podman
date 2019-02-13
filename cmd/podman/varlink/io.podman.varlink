@@ -2,6 +2,22 @@
 # in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
 interface io.podman
 
+type Volume (
+  name: string,
+  labels: [string]string,
+  mountPoint: string,
+  driver: string,
+  options: [string]string,
+  scope: string
+)
+
+type NotImplemented (
+    comment: string
+)
+
+type StringResponse (
+    message: string
+)
 
 # ContainerChanges describes the return struct for ListContainerChanges
 type ContainerChanges (
@@ -1044,6 +1060,7 @@ method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
 
 method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
 
+method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string)
