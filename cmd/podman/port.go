@@ -125,8 +125,13 @@ func portCmd(c *cliconfig.PortValues) error {
 		if c.All {
 			fmt.Println(con.ID())
 		}
+
+		portmappings, err := con.PortMappings()
+		if err != nil {
+			return err
+		}
 		// Iterate mappings
-		for _, v := range con.Config().PortMappings {
+		for _, v := range portmappings {
 			hostIP := v.HostIP
 			// Set host IP to 0.0.0.0 if blank
 			if hostIP == "" {

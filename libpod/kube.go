@@ -228,7 +228,11 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 		return kubeContainer, nil
 	}
 
-	ports, err := ocicniPortMappingToContainerPort(c.PortMappings())
+	portmappings, err := c.PortMappings()
+	if err != nil {
+		return kubeContainer, err
+	}
+	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
 		return kubeContainer, nil
 	}

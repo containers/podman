@@ -213,11 +213,16 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 		}
 	}
 
+	ports, err := ctr.PortMappings()
+	if err != nil {
+		logrus.Errorf("unable to lookup namespace container for %s", ctr.ID())
+	}
+
 	pso.ID = cid
 	pso.Image = imageName
 	pso.Command = command
 	pso.Created = created
-	pso.Ports = portsToString(ctr.PortMappings())
+	pso.Ports = portsToString(ports)
 	pso.Names = ctr.Name()
 	pso.IsInfra = ctr.IsInfra()
 	pso.Status = status
