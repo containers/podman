@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"strings"
@@ -11,11 +9,13 @@ import (
 	"github.com/containers/image/directory"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -93,7 +93,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 		registryCreds = creds
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
@@ -131,12 +131,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 		SignBy:           signBy,
 	}
 
-	newImage, err := runtime.ImageRuntime().NewFromLocal(srcName)
-	if err != nil {
-		return err
-	}
-
 	authfile := getAuthFile(c.Authfile)
 
-	return newImage.PushImageToHeuristicDestination(getContext(), destName, manifestType, authfile, c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
+	return runtime.Push(getContext(), srcName, destName, manifestType, authfile, c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
 }

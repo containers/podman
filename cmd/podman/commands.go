@@ -27,7 +27,6 @@ func getMainCommands() []*cobra.Command {
 		_mountCommand,
 		_pauseCommand,
 		_portCommand,
-		_pushCommand,
 		_refreshCommand,
 		_restartCommand,
 		_restoreCommand,
@@ -57,7 +56,6 @@ func getImageSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_buildCommand,
 		_loadCommand,
-		_pushCommand,
 		_saveCommand,
 		_signCommand,
 	}

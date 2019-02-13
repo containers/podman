@@ -324,8 +324,8 @@ type BuildInfo (
     image_format: string
 )
 
-# BuildResponse is used to describe the responses for building images
-type BuildResponse (
+# MoreResponse is a struct for when responses from varlink requires longer output
+type MoreResponse (
     logs: []string,
     id: string
 )
@@ -604,9 +604,9 @@ method ListImages() -> (images: []Image)
 method GetImage(id: string) -> (image: Image)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [BuildResponse](#BuildResponse) structure
+# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [MoreResponse](#MoreResponse) structure
 # that contains the build logs and resulting image ID.
-method BuildImage(build: BuildInfo) -> (image: BuildResponse)
+method BuildImage(build: BuildInfo) -> (image: MoreResponse)
 
 # This function is not implemented yet.
 # method CreateImage() -> (notimplemented: NotImplemented)
@@ -624,8 +624,8 @@ method HistoryImage(name: string) -> (history: []ImageHistory)
 # PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 # and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 # It will return an [ImageNotFound](#ImageNotFound) error if
-# the image cannot be found in local storage; otherwise the ID of the image will be returned on success.
-method PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (image: string)
+# the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
+method PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
 
 # TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.

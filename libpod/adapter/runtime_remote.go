@@ -6,12 +6,14 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"io"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
@@ -451,4 +453,30 @@ func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmV
 		Volumes: c.InputArgs,
 	}
 	return iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+}
+
+func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+
+	tls := true
+	if dockerRegistryOptions.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
+		tls = false
+	}
+	reply, err := iopodman.PushImage().Send(r.Conn, varlink.More, srcName, destination, tls, signaturePolicyPath, "", dockerRegistryOptions.DockerCertPath, forceCompress, manifestMIMEType, signingOptions.RemoveSignatures, signingOptions.SignBy)
+	if err != nil {
+		return err
+	}
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return err
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+
+	return err
 }
