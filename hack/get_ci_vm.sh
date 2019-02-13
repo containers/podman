@@ -17,8 +17,14 @@ MEMORY="4Gb"
 DISK="200"
 PROJECT="libpod-218412"
 GOSRC="/var/tmp/go/src/github.com/containers/libpod"
+GCLOUD_IMAGE=${GCLOUD_IMAGE:-quay.io/cevich/gcloud_centos:latest}
+GCLOUD_SUDO=${GCLOUD_SUDO-sudo}
+
+# Shared tmp directory between container and us
+TMPDIR=$(mktemp -d --tmpdir $(basename $0)_tmpdir_XXXXXX)
+
 # Command shortcuts save some typing
-PGCLOUD="sudo podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v /home/$USER:$HOME -v /tmp:/tmp:ro quay.io/cevich/gcloud_centos:latest --configuration=libpod --project=$PROJECT"
+PGCLOUD="$GCLOUD_SUDO podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v /home/$USER:$HOME -v $TMPDIR:/tmp $GCLOUD_IMAGE --configuration=libpod --project=$PROJECT"
 SCP_CMD="$PGCLOUD compute scp"
 
 LIBPODROOT=$(realpath "$(dirname $0)/../")
@@ -39,19 +45,20 @@ showrun() {
     fi
 }
 
-TEMPFILE=$(mktemp -p '' $(basename $0)_XXXXX.tar.bz2)
 cleanup() {
     set +e
     wait
-    rm -f "$TEMPFILE"
+
+    # set GCLOUD_DEBUG to leave tmpdir behind for postmortem
+    test -z "$GCLOUD_DEBUG" && rm -rf $TMPDIR
 }
 trap cleanup EXIT
 
 delvm() {
-    cleanup
     echo -e "\n"
     echo -e "\n${YEL}Offering to Delete $VMNAME ${RED}(Might take a minute or two)${NOR}"
     showrun $CLEANUP_CMD  # prompts for Yes/No
+    cleanup
 }
 
 image_hints() {
@@ -128,16 +135,16 @@ parse_args $@
 cd $LIBPODROOT
 
 # Attempt to determine if named 'libpod' gcloud configuration exists
-showrun $PGCLOUD info > $TEMPFILE
-if egrep -q "Account:.*None" "$TEMPFILE"
+showrun $PGCLOUD info > $TMPDIR/gcloud-info
+if egrep -q "Account:.*None" $TMPDIR/gcloud-info
 then
     echo -e "\n${YEL}WARNING: Can't find gcloud configuration for libpod, running init.${NOR}"
     echo -e "         ${RED}Please choose "#1: Re-initialize" and "login" if asked.${NOR}"
     showrun $PGCLOUD init --project=$PROJECT --console-only --skip-diagnostics
 
     # Verify it worked (account name == someone@example.com)
-    $PGCLOUD info > $TEMPFILE
-    if egrep -q "Account:.*None" "$TEMPFILE"
+    $PGCLOUD info > $TMPDIR/gcloud-info-after-init
+    if egrep -q "Account:.*None" $TMPDIR/gcloud-info-after-init
     then
         echo -e "${RED}ERROR: Could not initialize libpod configuration in gcloud.${NOR}"
         exit 5
@@ -150,8 +157,10 @@ then
 fi
 
 # Couldn't make rsync work with gcloud's ssh wrapper :(
+TARBALL_BASENAME=$VMNAME.tar.bz2
+TARBALL=/tmp/$TARBALL_BASENAME
 echo -e "\n${YEL}Packing up repository into a tarball $VMNAME.${NOR}"
-showrun --background tar cjf $TEMPFILE --warning=no-file-changed -C $LIBPODROOT .
+showrun --background tar cjf $TMPDIR/$TARBALL_BASENAME --warning=no-file-changed -C $LIBPODROOT .
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
@@ -186,13 +195,13 @@ showrun $SSH_CMD --command "mkdir -p $GOSRC"
 
 echo -e "\n${YEL}Transfering tarball to $VMNAME.${NOR}"
 wait
-showrun $SCP_CMD $TEMPFILE root@$VMNAME:$TEMPFILE
+showrun $SCP_CMD $TARBALL root@$VMNAME:$TARBALL
 
 echo -e "\n${YEL}Unpacking tarball into $GOSRC on $VMNAME.${NOR}"
-showrun $SSH_CMD --command "tar xjf $TEMPFILE -C $GOSRC"
+showrun $SSH_CMD --command "tar xjf $TARBALL -C $GOSRC"
 
 echo -e "\n${YEL}Removing tarball on $VMNAME.${NOR}"
-showrun $SSH_CMD --command "rm -f $TEMPFILE"
+showrun $SSH_CMD --command "rm -f $TARBALL"
 
 echo -e "\n${YEL}Executing environment setup${NOR}"
 [[ "$1" == "-p" ]] && echo -e "${RED}Using package-based dependencies.${NOR}"
