@@ -313,7 +313,7 @@ func (i *LibpodAPI) HistoryImage(call iopodman.VarlinkCall, name string) error {
 }
 
 // PushImage pushes an local image to registry
-func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVerify bool, signaturePolicy, creds, certDir string, compress bool, format string, removeSignatures bool, signBy string) error {
+func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVerify *bool, signaturePolicy, creds, certDir string, compress bool, format string, removeSignatures bool, signBy string) error {
 	var (
 		registryCreds *types.DockerAuthConfig
 		manifestType  string
@@ -337,8 +337,8 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      certDir,
 	}
-	if !tlsVerify {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+	if tlsVerify != nil {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*tlsVerify)
 	}
 	if format != "" {
 		switch format {
@@ -441,8 +441,11 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 
 // SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
-func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64) error {
+func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, tlsVerify *bool) error {
 	sc := image.GetSystemContext("", "", false)
+	if tlsVerify != nil {
+		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*tlsVerify)
+	}
 	registries, err := sysreg.GetRegistries()
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
@@ -583,7 +586,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 }
 
 // PullImage pulls an image from a registry to the image store.
-func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, creds, signaturePolicy string, tlsVerify bool) error {
+func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, creds, signaturePolicy string, tlsVerify *bool) error {
 	var (
 		registryCreds *types.DockerAuthConfig
 		imageID       string
@@ -600,8 +603,8 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      certDir,
 	}
-	if tlsVerify {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
+	if tlsVerify != nil {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*tlsVerify)
 	}
 
 	so := image.SigningOptions{}
@@ -644,8 +647,8 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerCertPath: input.CertDir,
 	}
-	if !input.TlsVerify {
-		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+	if input.TlsVerify != nil {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*input.TlsVerify)
 	}
 
 	stdErr := os.Stderr
