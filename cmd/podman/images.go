@@ -247,8 +247,12 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 		}
 
 		// get all specified repo:tag pairs and print them separately
+		repopairs, err := image.ReposToMap(img.Names())
+		if err != nil {
+			logrus.Errorf("error finding tag/digest for %s", img.ID())
+		}
 	outer:
-		for repo, tags := range image.ReposToMap(img.Names()) {
+		for repo, tags := range repopairs {
 			for _, tag := range tags {
 				size, err := img.Size(ctx)
 				var sizeStr string

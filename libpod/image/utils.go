@@ -87,22 +87,29 @@ func hasTransport(image string) bool {
 
 // ReposToMap parses the specified repotags and returns a map with repositories
 // as keys and the corresponding arrays of tags as values.
-func ReposToMap(repotags []string) map[string][]string {
+func ReposToMap(repotags []string) (map[string][]string, error) {
 	// map format is repo -> tag
 	repos := make(map[string][]string)
 	for _, repo := range repotags {
 		var repository, tag string
 		if len(repo) > 0 {
-			li := strings.LastIndex(repo, ":")
-			repository = repo[0:li]
-			tag = repo[li+1:]
+			named, err := reference.ParseNormalizedNamed(repo)
+			repository = named.Name()
+			if err != nil {
+				return nil, err
+			}
+			if ref, ok := named.(reference.NamedTagged); ok {
+				tag = ref.Tag()
+			} else if ref, ok := named.(reference.Canonical); ok {
+				tag = ref.Digest().String()
+			}
 		}
 		repos[repository] = append(repos[repository], tag)
 	}
 	if len(repos) == 0 {
 		repos["<none>"] = []string{"<none>"}
 	}
-	return repos
+	return repos, nil
 }
 
 // GetAdditionalTags returns a list of reference.NamedTagged for the
