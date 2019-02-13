@@ -196,27 +196,26 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with volume flag", func() {
-		Skip("Skip until we diagnose the regression of volume mounts")
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime"))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,nodev,relatime"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:ro", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/run/test ro,relatime"))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test ro,nodev,relatime"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:shared", mountPath), ALPINE, "cat", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime, shared"))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,nodev,relatime,shared"))
 	})
 
 	It("podman run with --mount flag", func() {
@@ -305,10 +304,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run notify_socket", func() {
-		host := GetHostDistributionInfo()
-		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
-			Skip("this test requires a working runc")
-		}
 		sock := filepath.Join(podmanTest.TempDir, "notify")
 		addr := net.UnixAddr{
 			Name: sock,
