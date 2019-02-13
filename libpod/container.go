@@ -557,8 +557,16 @@ func (c *Container) NewNetNS() bool {
 // PortMappings returns the ports that will be mapped into a container if
 // a new network namespace is created
 // If NewNetNS() is false, this value is unused
-func (c *Container) PortMappings() []ocicni.PortMapping {
-	return c.config.PortMappings
+func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
+	// First check if the container belongs to a network namespace (like a pod)
+	if len(c.config.NetNsCtr) > 0 {
+		netNsCtr, err := c.runtime.LookupContainer(c.config.NetNsCtr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
+		}
+		return netNsCtr.PortMappings()
+	}
+	return c.config.PortMappings, nil
 }
 
 // DNSServers returns DNS servers that will be used in the container's
