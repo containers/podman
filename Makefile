@@ -94,6 +94,7 @@ help:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
 	ln -sf "$(CURDIR)" "$(GOPKGBASEDIR)"
+	ln -sf "$(CURDIR)/vendor/github.com/varlink" "$(FIRST_GOPATH)/src/github.com/varlink"
 endif
 	touch $@
 
