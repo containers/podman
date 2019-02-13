@@ -1691,6 +1691,7 @@ _podman_container_run() {
 		--oom-score-adj
 		--pid
 		--pids-limit
+		--pod
 		--publish -p
 		--runtime
 		--rootfs
