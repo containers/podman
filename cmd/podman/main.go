@@ -30,6 +30,7 @@ var (
 // Commands that the remote and local client have
 // implemented.
 var mainCommands = []*cobra.Command{
+	_buildCommand,
 	_exportCommand,
 	_historyCommand,
 	_imagesCommand,

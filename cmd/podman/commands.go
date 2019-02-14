@@ -10,7 +10,6 @@ import (
 func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{
 		_attachCommand,
-		_buildCommand,
 		_commitCommand,
 		_createCommand,
 		_diffCommand,
@@ -54,7 +53,6 @@ func getMainCommands() []*cobra.Command {
 // Commands that the local client implements
 func getImageSubCommands() []*cobra.Command {
 	return []*cobra.Command{
-		_buildCommand,
 		_loadCommand,
 		_saveCommand,
 		_signCommand,
