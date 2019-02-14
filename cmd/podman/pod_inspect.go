@@ -23,7 +23,7 @@ var (
 			podInspectCommand.GlobalFlags = MainGlobalOpts
 			return podInspectCmd(&podInspectCommand)
 		},
-		Example: "[POD_NAME_OR_ID]",
+		Example: `podman pod inspect podID`,
 	}
 )
 

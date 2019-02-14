@@ -29,7 +29,9 @@ var (
 			loginCommand.GlobalFlags = MainGlobalOpts
 			return loginCmd(&loginCommand)
 		},
-		Example: "REGISTRY",
+		Example: `podman login -u testuser -p testpassword localhost:5000
+  podman login --authfile authdir/myauths.json quay.io
+  podman login -u testuser -p testpassword localhost:5000`,
 	}
 )
 

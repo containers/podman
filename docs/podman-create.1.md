@@ -783,6 +783,24 @@ can override the working directory by using the **-w** option.
 
 ## EXAMPLES
 
+### Create a container using a local image
+
+```
+$ podman create alpine ls
+```
+
+### Create a container using a local image and annotate it
+
+```
+$ podman create --annotation HELLO=WORLD alpine ls
+```
+
+### Create a container using a local image, allocating a pseudo-TTY, keeping stdin open and name it myctr
+
+```
+  podman create -t -i --name myctr alpine ls
+```
+
 ### Set UID/GID mapping in a new user namespace
 
 Running a container in a new user namespace requires a mapping of
