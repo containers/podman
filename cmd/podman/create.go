@@ -397,9 +397,6 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 
 	tty := c.Bool("tty")
 
-	if c.Bool("detach") && c.Bool("rm") {
-		return nil, errors.Errorf("--rm and --detach cannot be specified together")
-	}
 	if c.Flag("cpu-period").Changed && c.Flag("cpus").Changed {
 		return nil, errors.Errorf("--cpu-period and --cpus cannot be set together")
 	}
