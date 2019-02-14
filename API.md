@@ -91,9 +91,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func PausePod(name: string) string](#PausePod)
 
-[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) string](#PullImage)
+[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ) MoreResponse](#PullImage)
 
-[func PushImage(name: string, tag: string, tlsverify: ?bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
+[func PushImage(name: string, tag: string, tlsverify: , signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
 
 [func ReceiveFile(path: string, delete: bool) int](#ReceiveFile)
 
@@ -107,7 +107,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: int, tlsVerify: ?bool) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: , tlsVerify: ) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -753,20 +753,14 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PausePod '{"name": "fooba
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PullImage(name: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), signaturePolicy: [string](https://godoc.org/builtin#string), tlsVerify: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
-PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
-is returned.
-#### Example
-~~~
-$ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
-{
-  "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
-}
-~~~
+method PullImage(name: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), signaturePolicy: [string](https://godoc.org/builtin#string), tlsVerify: [](#)) [MoreResponse](#MoreResponse)</div>
+PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
+are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
+status as it occurs.
 ### <a name="PushImage"></a>func PushImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [bool](https://godoc.org/builtin#bool), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
+method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [](#), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
 PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 It will return an [ImageNotFound](#ImageNotFound) error if
@@ -851,7 +845,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
 ### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#)) [ImageSearchResult](#ImageSearchResult)</div>
+method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), tlsVerify: [](#)) [ImageSearchResult](#ImageSearchResult)</div>
 SearchImages searches available registries for images that contain the
 contents of "query" in their name. If "limit" is given, limits the amount of
 search results per registry.
@@ -1602,7 +1596,7 @@ pull [bool](https://godoc.org/builtin#bool)
 
 signaturePolicyPath [string](https://godoc.org/builtin#string)
 
-tlsVerify [bool](https://godoc.org/builtin#bool)
+tlsVerify [](#)
 
 label [string](https://godoc.org/builtin#string)
 

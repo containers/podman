@@ -161,14 +161,30 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 
 // LoadFromArchiveReference creates an image from a local archive
 func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
+	var iid string
 	// TODO We need to find a way to leak certDir, creds, and the tlsverify into this function, normally this would
 	// come from cli options but we don't want want those in here either.
 	tlsverify := true
-	imageID, err := iopodman.PullImage().Call(r.Conn, srcRef.DockerReference().String(), "", "", signaturePolicyPath, &tlsverify)
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, srcRef.DockerReference().String(), "", "", signaturePolicyPath, &tlsverify)
 	if err != nil {
 		return nil, err
 	}
-	newImage, err := r.NewImageFromLocal(imageID)
+
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return nil, err
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		iid = responses.Id
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+
+	newImage, err := r.NewImageFromLocal(iid)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +193,7 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 
 // New calls into local storage to look for an image in local storage or to pull it
 func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
+	var iid string
 	if label != nil {
 		return nil, errors.New("the remote client function does not support checking a remote image for a label")
 	}
@@ -194,11 +211,24 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 		tlsVerifyPtr = &tlsVerify
 	}
 
-	imageID, err := iopodman.PullImage().Call(r.Conn, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, tlsVerifyPtr)
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, tlsVerifyPtr)
 	if err != nil {
 		return nil, err
 	}
-	newImage, err := r.NewImageFromLocal(imageID)
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return nil, err
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		iid = responses.Id
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	newImage, err := r.NewImageFromLocal(iid)
 	if err != nil {
 		return nil, err
 	}
