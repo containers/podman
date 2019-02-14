@@ -44,6 +44,7 @@ func init() {
 	flags.StringVarP(&loginCommand.Password, "password", "p", "", "Password for registry")
 	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
 	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
+	flags.BoolVar(&loginCommand.StdinPassword, "password-stdin", false, "Take the password from stdin")
 
 }
 
@@ -90,8 +91,26 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	ctx := getContext()
+
+	password := c.Password
+
+	if c.Flag("password-stdin").Changed {
+		var stdinPasswordStrBuilder strings.Builder
+		if c.Password != "" {
+			return errors.Errorf("Can't specify both --password-stdin and --password")
+		}
+		if c.Username == "" {
+			return errors.Errorf("Must provide --username with --password-stdin")
+		}
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			fmt.Fprint(&stdinPasswordStrBuilder, scanner.Text())
+		}
+		password = stdinPasswordStrBuilder.String()
+	}
+
 	// If no username and no password is specified, try to use existing ones.
-	if c.Username == "" && c.Password == "" {
+	if c.Username == "" && password == "" {
 		fmt.Println("Authenticating with existing credentials...")
 		if err := docker.CheckAuth(ctx, sc, userFromAuthFile, passFromAuthFile, server); err == nil {
 			fmt.Println("Existing credentials are valid. Already logged in to", server)
@@ -100,7 +119,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 		fmt.Println("Existing credentials are invalid, please enter valid username and password")
 	}
 
-	username, password, err := getUserAndPass(c.Username, c.Password, userFromAuthFile)
+	username, password, err := getUserAndPass(c.Username, password, userFromAuthFile)
 	if err != nil {
 		return errors.Wrapf(err, "error getting username and password")
 	}

@@ -177,12 +177,13 @@ type LoadValues struct {
 
 type LoginValues struct {
 	PodmanCommand
-	Password  string
-	Username  string
-	Authfile  string
-	CertDir   string
-	GetLogin  bool
-	TlsVerify bool
+	Password      string
+	StdinPassword bool
+	Username      string
+	Authfile      string
+	CertDir       string
+	GetLogin      bool
+	TlsVerify     bool
 }
 
 type LogoutValues struct {

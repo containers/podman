@@ -25,6 +25,10 @@ flag. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
 
 Password for registry
 
+**--password-stdin**
+
+Take the password from stdin
+
 **--username, -u**
 
 Username for registry
@@ -83,6 +87,16 @@ Login Succeeded!
 
 ```
 $ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
+Login Succeeded!
+```
+
+```
+$ podman login -u testuser  --password-stdin < testpassword.txt docker.io
+Login Succeeded!
+```
+
+```
+$ echo $testpassword | podman login -u testuser --password-stdin docker.io
 Login Succeeded!
 ```
 
