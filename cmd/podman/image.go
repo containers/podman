@@ -18,6 +18,7 @@ var (
 
 //imageSubCommands are implemented both in local and remote clients
 var imageSubCommands = []*cobra.Command{
+	_buildCommand,
 	_historyCommand,
 	_imageExistsCommand,
 	_imagesCommand,
