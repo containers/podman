@@ -131,6 +131,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func VolumeRemove(options: VolumeRemoveOpts) []string](#VolumeRemove)
 
+[func VolumesPrune() []string, []string](#VolumesPrune)
+
 [func WaitContainer(name: string) int](#WaitContainer)
 
 [type BuildInfo](#BuildInfo)
@@ -530,7 +532,7 @@ GetVersion returns version and build information of the podman service
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method GetVolumes(args: [[]string](#[]string), all: [bool](https://godoc.org/builtin#bool)) [Volume](#Volume)</div>
-
+GetVolumes gets slice of the volumes on a remote host
 ### <a name="HistoryImage"></a>func HistoryImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -773,7 +775,7 @@ the image cannot be found in local storage; otherwise it will return a [MoreResp
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method ReceiveFile(path: [string](https://godoc.org/builtin#string), delete: [bool](https://godoc.org/builtin#bool)) [int](https://godoc.org/builtin#int)</div>
-
+ReceiveFile allows the host to send a remote client a file
 ### <a name="RemoveContainer"></a>func RemoveContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -856,7 +858,7 @@ search results per registry.
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method SendFile(type: [string](https://godoc.org/builtin#string), length: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
-
+Sendfile allows a remote client to send a file to the host
 ### <a name="StartContainer"></a>func StartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -956,12 +958,17 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.UnpausePod '{"name": "foo
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method VolumeCreate(options: [VolumeCreateOpts](#VolumeCreateOpts)) [string](https://godoc.org/builtin#string)</div>
-
+VolumeCreate creates a volume on a remote host
 ### <a name="VolumeRemove"></a>func VolumeRemove
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method VolumeRemove(options: [VolumeRemoveOpts](#VolumeRemoveOpts)) [[]string](#[]string)</div>
+VolumeRemove removes a volume on a remote host
+### <a name="VolumesPrune"></a>func VolumesPrune
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
+method VolumesPrune() [[]string](#[]string), [[]string](#[]string)</div>
+VolumesPrune removes unused volumes on the host
 ### <a name="WaitContainer"></a>func WaitContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

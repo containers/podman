@@ -112,18 +112,6 @@ func getPodSubCommands() []*cobra.Command {
 	}
 }
 
-// Commands that the local client implements
-func getVolumeSubCommands() []*cobra.Command {
-	return []*cobra.Command{
-		_volumeCreateCommand,
-		_volumeLsCommand,
-		_volumeRmCommand,
-		_volumeInspectCommand,
-		_volumePruneCommand,
-	}
-}
-
-// Commands that the local client implements
 func getGenerateSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_containerKubeCommand,
