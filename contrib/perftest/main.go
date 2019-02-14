@@ -218,7 +218,7 @@ func runSingleThreadedStressTest(ctx context.Context, client *libpod.Runtime, im
 		//Delete Container
 		deleteStartTime := time.Now()
 
-		err = client.RemoveContainer(ctx, ctr, true)
+		err = client.RemoveContainer(ctx, ctr, true, false)
 		if err != nil {
 			return nil, err
 		}

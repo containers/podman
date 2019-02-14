@@ -235,13 +235,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	// Bind builtin image volumes
-	if c.config.Rootfs == "" && c.config.ImageVolumes {
-		if err := c.addLocalVolumes(ctx, &g, execUser); err != nil {
-			return nil, errors.Wrapf(err, "error mounting image volumes")
-		}
-	}
-
 	if c.config.User != "" {
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))

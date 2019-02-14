@@ -76,7 +76,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 
 	ctx := getContext()
 	fmt.Println("Deleted Containers")
-	lasterr := pruneContainers(runtime, ctx, shared.Parallelize("rm"), false)
+	lasterr := pruneContainers(runtime, ctx, shared.Parallelize("rm"), false, false)
 	if c.Bool("volumes") {
 		fmt.Println("Deleted Volumes")
 		err := volumePrune(runtime, getContext())

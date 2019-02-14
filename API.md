@@ -97,7 +97,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ReceiveFile(path: string, delete: bool) int](#ReceiveFile)
 
-[func RemoveContainer(name: string, force: bool) string](#RemoveContainer)
+[func RemoveContainer(name: string, force: bool, removeVolumes: bool) string](#RemoveContainer)
 
 [func RemoveImage(name: string, force: bool) string](#RemoveImage)
 
@@ -777,9 +777,9 @@ method ReceiveFile(path: [string](https://godoc.org/builtin#string), delete: [bo
 ### <a name="RemoveContainer"></a>func RemoveContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool), removeVolumes: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
-container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
+container can be stopped and removed.  It also takes a flag on whether or not to remove builtin volumes. Upon successful removal of the container, its ID is returned.  If the
 container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Example
 ~~~

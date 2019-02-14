@@ -544,7 +544,7 @@ func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libp
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force bool) error {
+func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force, volumes bool) error {
 	return libpod.ErrNotImplemented
 }
 

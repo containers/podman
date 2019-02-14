@@ -43,7 +43,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 	if len(imageCtrs) > 0 && len(img.Names()) <= 1 {
 		if force {
 			for _, ctr := range imageCtrs {
-				if err := r.removeContainer(ctx, ctr, true); err != nil {
+				if err := r.removeContainer(ctx, ctr, true, false); err != nil {
 					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
 				}
 			}

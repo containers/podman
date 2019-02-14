@@ -11,7 +11,9 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -133,8 +135,8 @@ type CreateConfig struct {
 	SeccompProfilePath string   //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
-	LocalVolumes       []string //Keeps track of the built-in volumes of container used in the --volumes-from flag
-	Syslog             bool     // Whether to enable syslog on exit commands
+	LocalVolumes       []spec.Mount //Keeps track of the built-in volumes of container used in the --volumes-from flag
+	Syslog             bool         // Whether to enable syslog on exit commands
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
@@ -215,7 +217,7 @@ func (c *CreateConfig) initFSMounts() []spec.Mount {
 
 //GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
-	var m []spec.Mount
+	m := c.LocalVolumes
 	for _, i := range c.Volumes {
 		var options []string
 		spliti := strings.Split(i, ":")
@@ -233,22 +235,31 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 		logrus.Debugf("User mount %s:%s options %v", spliti[0], spliti[1], options)
 	}
 
-	// volumes from image config
-	if c.ImageVolumeType != "tmpfs" {
+	if c.ImageVolumeType == "ignore" {
 		return m, nil
 	}
+
 	for vol := range c.BuiltinImgVolumes {
 		if libpod.MountExists(specMounts, vol) {
 			continue
 		}
+
 		mount := spec.Mount{
 			Destination: vol,
-			Type:        string(TypeTmpfs),
-			Source:      string(TypeTmpfs),
-			Options:     []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
+			Type:        c.ImageVolumeType,
+			Options:     []string{"rprivate", "rw", "nodev"},
+		}
+		if c.ImageVolumeType == "tmpfs" {
+			mount.Source = "tmpfs"
+			mount.Options = append(mount.Options, "tmpcopyup")
+		} else {
+			// This will cause a new local Volume to be created on your system
+			mount.Source = stringid.GenerateNonCryptoID()
+			mount.Options = append(mount.Options, "bind")
 		}
 		m = append(m, mount)
 	}
+
 	return m, nil
 }
 
@@ -256,6 +267,11 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 // and adds it to c.Volumes of the current container.
 func (c *CreateConfig) GetVolumesFrom() error {
 	var options string
+
+	if rootless.SkipStorageSetup() {
+		return nil
+	}
+
 	for _, vol := range c.VolumesFrom {
 		splitVol := strings.SplitN(vol, ":", 2)
 		if len(splitVol) == 2 {
@@ -265,6 +281,10 @@ func (c *CreateConfig) GetVolumesFrom() error {
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
 		}
+		inspect, err := ctr.Inspect(false)
+		if err != nil {
+			return errors.Wrapf(err, "error inspecting %q", splitVol[0])
+		}
 		var createArtifact CreateConfig
 		artifact, err := ctr.GetArtifact("create-config")
 		if err != nil {
@@ -273,9 +293,13 @@ func (c *CreateConfig) GetVolumesFrom() error {
 		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
 			return err
 		}
-
 		for key := range createArtifact.BuiltinImgVolumes {
-			c.LocalVolumes = append(c.LocalVolumes, key)
+			for _, m := range inspect.Mounts {
+				if m.Destination == key {
+					c.LocalVolumes = append(c.LocalVolumes, m)
+					break
+				}
+			}
 		}
 
 		for _, i := range createArtifact.Volumes {

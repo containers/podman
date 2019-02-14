@@ -144,7 +144,7 @@ func startCmd(c *cliconfig.StartValues) error {
 					logrus.Errorf("unable to detect if container %s should be deleted", ctr.ID())
 				}
 				if createArtifact.Rm {
-					if rmErr := runtime.RemoveContainer(ctx, ctr, true); rmErr != nil {
+					if rmErr := runtime.RemoveContainer(ctx, ctr, true, false); rmErr != nil {
 						logrus.Errorf("unable to remove container %s after it failed to start", ctr.ID())
 					}
 				}

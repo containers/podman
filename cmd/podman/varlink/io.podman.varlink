@@ -600,7 +600,7 @@ method GetAttachSockets(name: string) -> (sockets: Sockets)
 # a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string) -> (exitcode: int)
 
-# RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
+# RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running and a boolean indicating whether to remove builtin volumes
 # container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
 # container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 # #### Example
@@ -610,7 +610,7 @@ method WaitContainer(name: string) -> (exitcode: int)
 #   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 # }
 # ~~~
-method RemoveContainer(name: string, force: bool) -> (container: string)
+method RemoveContainer(name: string, force: bool, removeVolumes: bool) -> (container: string)
 
 # DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
 # container IDs.  See also [RemoveContainer](RemoveContainer).

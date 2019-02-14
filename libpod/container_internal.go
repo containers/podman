@@ -10,21 +10,16 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1053,113 +1048,6 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
-func (c *Container) addLocalVolumes(ctx context.Context, g *generate.Generator, execUser *user.ExecUser) error {
-	var uid, gid int
-	mountPoint := c.state.Mountpoint
-	if !c.state.Mounted {
-		return errors.Wrapf(ErrInternal, "container is not mounted")
-	}
-	newImage, err := c.runtime.imageRuntime.NewFromLocal(c.config.RootfsImageID)
-	if err != nil {
-		return err
-	}
-	imageData, err := newImage.Inspect(ctx)
-	if err != nil {
-		return err
-	}
-	// Add the built-in volumes of the container passed in to --volumes-from
-	for _, vol := range c.config.LocalVolumes {
-		if imageData.Config.Volumes == nil {
-			imageData.Config.Volumes = map[string]struct{}{
-				vol: {},
-			}
-		} else {
-			imageData.Config.Volumes[vol] = struct{}{}
-		}
-	}
-
-	if c.config.User != "" {
-		if execUser == nil {
-			return errors.Wrapf(ErrInternal, "nil pointer passed to addLocalVolumes for execUser")
-		}
-		uid = execUser.Uid
-		gid = execUser.Gid
-	}
-
-	for k := range imageData.Config.Volumes {
-		mount := spec.Mount{
-			Destination: k,
-			Type:        "bind",
-			Options:     []string{"private", "bind", "rw"},
-		}
-		if MountExists(g.Mounts(), k) {
-			continue
-		}
-		volumePath := filepath.Join(c.config.StaticDir, "volumes", k)
-
-		// Ensure the symlinks are resolved
-		resolvedSymlink, err := imagebuildah.ResolveSymLink(mountPoint, k)
-		if err != nil {
-			return errors.Wrapf(ErrCtrStateInvalid, "cannot resolve %s in %s for container %s", k, mountPoint, c.ID())
-		}
-		var srcPath string
-		if resolvedSymlink != "" {
-			srcPath = filepath.Join(mountPoint, resolvedSymlink)
-		} else {
-			srcPath = filepath.Join(mountPoint, k)
-		}
-
-		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
-			logrus.Infof("Volume image mount point %s does not exist in root FS, need to create it", k)
-			if err = os.MkdirAll(srcPath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
-			}
-
-			if err = os.Chown(srcPath, uid, gid); err != nil {
-				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", srcPath, k, c.ID())
-			}
-		}
-
-		if _, err := os.Stat(volumePath); os.IsNotExist(err) {
-			if err = os.MkdirAll(volumePath, 0755); err != nil {
-				return errors.Wrapf(err, "error creating directory %q for volume %q in container %q", volumePath, k, c.ID())
-			}
-
-			if err = os.Chown(volumePath, uid, gid); err != nil {
-				return errors.Wrapf(err, "error chowning directory %q for volume %q in container %q", volumePath, k, c.ID())
-			}
-
-			if err = label.Relabel(volumePath, c.config.MountLabel, false); err != nil {
-				return errors.Wrapf(err, "error relabeling directory %q for volume %q in container %q", volumePath, k, c.ID())
-			}
-			if err = chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, volumePath); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error populating directory %q for volume %q in container %q using contents of %q", volumePath, k, c.ID(), srcPath)
-			}
-
-			// Set the volume path with the same owner and permission of source path
-			sstat, _ := os.Stat(srcPath)
-			st, ok := sstat.Sys().(*syscall.Stat_t)
-			if !ok {
-				return fmt.Errorf("could not convert to syscall.Stat_t")
-			}
-			uid := int(st.Uid)
-			gid := int(st.Gid)
-
-			if err := os.Lchown(volumePath, uid, gid); err != nil {
-				return err
-			}
-			if os.Chmod(volumePath, sstat.Mode()); err != nil {
-				return err
-			}
-
-		}
-
-		mount.Source = volumePath
-		g.AddMount(mount)
-	}
-	return nil
-}
-
 // Save OCI spec to disk, replacing any existing specs for the container
 func (c *Container) saveSpec(spec *spec.Spec) error {
 	// If the OCI spec already exists, we need to replace it
@@ -1302,4 +1190,31 @@ func (c *Container) unmount(force bool) error {
 func getExcludedCGroups() (excludes []string) {
 	excludes = []string{"rdma"}
 	return
+}
+
+// namedVolumes returns named volumes for the container
+func (c *Container) namedVolumes() ([]string, error) {
+	var volumes []string
+	for _, vol := range c.config.Spec.Mounts {
+		if strings.HasPrefix(vol.Source, c.runtime.config.VolumePath) {
+			volume := strings.TrimPrefix(vol.Source, c.runtime.config.VolumePath+"/")
+			split := strings.Split(volume, "/")
+			volume = split[0]
+			if _, err := c.runtime.state.Volume(volume); err == nil {
+				volumes = append(volumes, volume)
+			}
+		}
+	}
+	return volumes, nil
+}
+
+// this should be from chrootarchive.
+func (c *Container) copyWithTarFromImage(src, dest string) error {
+	mountpoint, err := c.mount()
+	if err != nil {
+		return err
+	}
+	a := archive.NewDefaultArchiver()
+	source := filepath.Join(mountpoint, src)
+	return a.CopyWithTar(source, dest)
 }

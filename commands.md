@@ -73,6 +73,7 @@
 | [podman-unpause(1)](/docs/podman-unpause.1.md)           | Unpause one or more running containers                                    |[![...](/docs/play.png)](https://asciinema.org/a/141292)|
 | [podman-varlink(1)](/docs/podman-varlink.1.md)           | Run the varlink backend                                           ||
 | [podman-version(1)](/docs/podman-version.1.md)           | Display the version information                                           |[![...](/docs/play.png)](https://asciinema.org/a/mfrn61pjZT9Fc8L4NbfdSqfgu)|
+| [podman-volume(1)](/docs/podman-volume.1.md)       | Manage Volumes                     				       ||
 | [podman-volume-create(1)](/docs/podman-volume-create.1.md) | Create a volume ||
 | [podman-volume-inspect(1)](/docs/podman-volume-inspect.1.md) | Get detailed information on one or more volumes ||
 | [podman-volume-ls(1)](/docs/podman-volume-ls.1.md)       | List all the available volumes ||

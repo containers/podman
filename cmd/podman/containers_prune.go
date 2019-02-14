@@ -13,13 +13,12 @@ import (
 )
 
 var (
-	pruneContainersCommand     cliconfig.ContainersPrune
+	pruneContainersCommand     cliconfig.PruneContainersValues
 	pruneContainersDescription = `
 	podman container prune
 
 	Removes all exited containers
 `
-
 	_pruneContainersCommand = &cobra.Command{
 		Use:   "prune",
 		Short: "Remove all stopped containers",
@@ -35,9 +34,11 @@ var (
 func init() {
 	pruneContainersCommand.Command = _pruneContainersCommand
 	pruneContainersCommand.SetUsageTemplate(UsageTemplate())
+	flags := pruneContainersCommand.Flags()
+	flags.BoolVarP(&pruneContainersCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
 }
 
-func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWorkers int, force bool) error {
+func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWorkers int, force, volumes bool) error {
 	var deleteFuncs []shared.ParallelWorkerInput
 
 	filter := func(c *libpod.Container) bool {
@@ -57,7 +58,7 @@ func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWork
 	for _, container := range delContainers {
 		con := container
 		f := func() error {
-			return runtime.RemoveContainer(ctx, con, force)
+			return runtime.RemoveContainer(ctx, con, force, volumes)
 		}
 
 		deleteFuncs = append(deleteFuncs, shared.ParallelWorkerInput{
@@ -70,7 +71,7 @@ func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWork
 	return printParallelOutput(deleteErrors, errCount)
 }
 
-func pruneContainersCmd(c *cliconfig.ContainersPrune) error {
+func pruneContainersCmd(c *cliconfig.PruneContainersValues) error {
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -83,5 +84,5 @@ func pruneContainersCmd(c *cliconfig.ContainersPrune) error {
 	}
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 
-	return pruneContainers(runtime, getContext(), maxWorkers, c.Bool("force"))
+	return pruneContainers(runtime, getContext(), maxWorkers, c.Bool("force"), c.Bool("volumes"))
 }

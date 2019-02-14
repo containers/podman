@@ -5,10 +5,6 @@ import (
 	"path/filepath"
 )
 
-// VolumePath is the path under which all volumes that are created using the
-// local driver will be created
-// const VolumePath = "/var/lib/containers/storage/volumes"
-
 // Creates a new volume
 func newVolume(runtime *Runtime) (*Volume, error) {
 	volume := new(Volume)

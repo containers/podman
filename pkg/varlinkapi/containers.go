@@ -358,13 +358,13 @@ func (i *LibpodAPI) WaitContainer(call iopodman.VarlinkCall, name string) error 
 }
 
 // RemoveContainer ...
-func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, force bool) error {
+func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, force bool, removeVolumes bool) error {
 	ctx := getContext()
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name)
 	}
-	if err := i.Runtime.RemoveContainer(ctx, ctr, force); err != nil {
+	if err := i.Runtime.RemoveContainer(ctx, ctr, force, removeVolumes); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyRemoveContainer(ctr.ID())
@@ -385,7 +385,7 @@ func (i *LibpodAPI) DeleteStoppedContainers(call iopodman.VarlinkCall) error {
 			return call.ReplyErrorOccurred(err.Error())
 		}
 		if state != libpod.ContainerStateRunning {
-			if err := i.Runtime.RemoveContainer(ctx, ctr, false); err != nil {
+			if err := i.Runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
 				return call.ReplyErrorOccurred(err.Error())
 			}
 			deletedContainers = append(deletedContainers, ctr.ID())

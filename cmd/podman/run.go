@@ -132,7 +132,7 @@ func runCmd(c *cliconfig.RunValues) error {
 			exitCode = 126
 		}
 		if c.IsSet("rm") {
-			if deleteError := runtime.RemoveContainer(ctx, ctr, true); deleteError != nil {
+			if deleteError := runtime.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
 				logrus.Errorf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}

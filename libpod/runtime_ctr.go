@@ -177,9 +177,12 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			if err != nil {
 				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source))
 				if err != nil {
-					logrus.Errorf("error creating named volume %q: %v", vol.Source, err)
+					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
 				}
 				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
+				if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
+					return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Source)
+				}
 				continue
 			}
 			ctr.config.Spec.Mounts[i].Source = volInfo.MountPoint()
@@ -225,17 +228,19 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
+// If removeVolume is specified, named volumes used by the container will
+// be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
-func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool) error {
+func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	return r.removeContainer(ctx, c, force)
+	return r.removeContainer(ctx, c, force, removeVolume)
 }
 
 // Internal function to remove a container
 // Locks the container, but does not lock the runtime
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool) error {
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
@@ -248,6 +253,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 	// To avoid races around removing a container and the pod it is in
 	var pod *Pod
 	var err error
+	runtime := c.runtime
 	if c.config.Pod != "" {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
@@ -333,6 +339,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
+	var volumes []string
+	if removeVolume {
+		volumes, err = c.namedVolumes()
+		if err != nil {
+			logrus.Errorf("unable to retrieve builtin volumes for container %v: %v", c.ID(), err)
+		}
+	}
 	var cleanupErr error
 	// Remove the container from the state
 	if c.config.Pod != "" {
@@ -394,6 +407,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool)
 			cleanupErr = err
 		} else {
 			logrus.Errorf("free container lock: %v", err)
+		}
+	}
+
+	for _, v := range volumes {
+		if volume, err := runtime.state.Volume(v); err == nil {
+			if err := runtime.removeVolume(ctx, volume, false, true); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
+				logrus.Errorf("cleanup volume (%s): %v", v, err)
+			}
 		}
 	}
 
