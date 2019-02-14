@@ -26,7 +26,9 @@ var (
 			podStartCommand.GlobalFlags = MainGlobalOpts
 			return podStartCmd(&podStartCommand)
 		},
-		Example: "POD-NAME [POD-NAME ...]",
+		Example: `podman pod start podID
+  podman pod start --latest
+  podman pod start --all`,
 	}
 )
 

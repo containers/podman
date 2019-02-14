@@ -33,7 +33,9 @@ the latest pod.
 			podTopCommand.GlobalFlags = MainGlobalOpts
 			return podTopCmd(&podTopCommand)
 		},
-		Example: "POD-NAME [format descriptors]",
+		Example: `podman top ctrID
+  podman top --latest
+  podman top --latest pid seccomp args %C`,
 	}
 )
 

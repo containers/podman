@@ -32,7 +32,8 @@ var (
 			signCommand.GlobalFlags = MainGlobalOpts
 			return signCmd(&signCommand)
 		},
-		Example: "IMAGE-NAME [IMAGE-NAME ...]",
+		Example: `podman sign --sign-by mykey imageID
+  podman sign --sign-by mykey --directory ./mykeydir imageID`,
 	}
 )
 

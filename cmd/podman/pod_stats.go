@@ -32,7 +32,9 @@ var (
 			podStatsCommand.GlobalFlags = MainGlobalOpts
 			return podStatsCmd(&podStatsCommand)
 		},
-		Example: "[POD_NAME_OR_ID]",
+		Example: `podman stats -a --no-stream
+  podman stats --no-reset ctrID
+  podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
 	}
 )
 

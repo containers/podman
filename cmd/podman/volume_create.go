@@ -26,7 +26,9 @@ be created at.`
 			volumeCreateCommand.GlobalFlags = MainGlobalOpts
 			return volumeCreateCmd(&volumeCreateCommand)
 		},
-		Example: "[VOLUME-NAME]",
+		Example: `podman volume create myvol
+  podman volume create
+  podman volume create --label foo=bar myvol`,
 	}
 )
 

@@ -28,7 +28,9 @@ var (
 			killCommand.GlobalFlags = MainGlobalOpts
 			return killCmd(&killCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman kill mywebserver
+  podman kill 860a4b23
+  podman kill --signal TERM ctrID`,
 	}
 )
 

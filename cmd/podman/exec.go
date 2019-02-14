@@ -29,7 +29,9 @@ var (
 			execCommand.GlobalFlags = MainGlobalOpts
 			return execCmd(&execCommand)
 		},
-		Example: "CONTAINER-NAME",
+		Example: `podman exec -it ctrID ls
+  podman exec -it -w /tmp myCtr pwd
+  podman exec --user root ctrID ls`,
 	}
 )
 

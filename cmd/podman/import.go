@@ -25,7 +25,9 @@ var (
 			importCommand.GlobalFlags = MainGlobalOpts
 			return importCmd(&importCommand)
 		},
-		Example: "TARBALL [REFERENCE]",
+		Example: `podman import http://example.com/ctr.tar url-image
+  cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
+  cat ctr.tar | podman import -`,
 	}
 )
 

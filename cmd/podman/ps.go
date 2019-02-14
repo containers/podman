@@ -166,7 +166,9 @@ var (
 			psCommand.GlobalFlags = MainGlobalOpts
 			return psCmd(&psCommand)
 		},
-		Example: "",
+		Example: `podman ps -a
+  podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
+  podman ps --size --sort names`,
 	}
 )
 
