@@ -827,6 +827,50 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 	return err
 }
 
+// RewritePodConfig rewrites a pod's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", pod.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podDB := podBkt.Bucket([]byte(pod.ID()))
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in DB", pod.ID())
+		}
+
+		if err := podDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating pod %s config JSON", pod.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
 // Pod retrieves a pod given its full ID
 func (s *BoltState) Pod(id string) (*Pod, error) {
 	if id == "" {

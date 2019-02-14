@@ -410,6 +410,26 @@ func (s *InMemoryState) RewriteContainerConfig(ctr *Container, newCfg *Container
 	return nil
 }
 
+// RewritePodConfig rewrites a pod's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment on it in state.go before using it.
+func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	// If the pod does not exist, return error
+	statePod, ok := s.pods[pod.ID()]
+	if !ok {
+		pod.valid = false
+		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found in state", pod.ID())
+	}
+
+	statePod.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {

@@ -1334,6 +1334,42 @@ func TestRewriteContainerConfigRewritesConfig(t *testing.T) {
 	})
 }
 
+func TestRewritePodConfigDoesNotExist(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		err := state.RewritePodConfig(&Pod{}, &PodConfig{})
+		assert.Error(t, err)
+	})
+}
+
+func TestRewritePodConfigNotInState(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
+		assert.NoError(t, err)
+		err = state.RewritePodConfig(testPod, &PodConfig{})
+		assert.Error(t, err)
+	})
+}
+
+func TestRewritePodConfigRewritesConfig(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testPod, err := getTestPod1(manager)
+		assert.NoError(t, err)
+
+		err = state.AddPod(testPod)
+		assert.NoError(t, err)
+
+		testPod.config.CgroupParent = "/another_cgroup_parent"
+
+		err = state.RewritePodConfig(testPod, testPod.config)
+		assert.NoError(t, err)
+
+		testPodFromState, err := state.Pod(testPod.ID())
+		assert.NoError(t, err)
+
+		testPodsEqual(t, testPodFromState, testPod, true)
+	})
+}
+
 func TestGetPodDoesNotExist(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Pod("doesnotexist")
