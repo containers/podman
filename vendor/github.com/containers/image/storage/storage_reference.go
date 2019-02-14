@@ -55,7 +55,7 @@ func imageMatchesRepo(image *storage.Image, ref reference.Named) bool {
 // one present with the same name or ID, and return the image.
 func (s *storageReference) resolveImage() (*storage.Image, error) {
 	var loadedImage *storage.Image
-	if s.id == "" {
+	if s.id == "" && s.named != nil {
 		// Look for an image that has the expanded reference name as an explicit Name value.
 		image, err := s.transport.store.Image(s.named.String())
 		if image != nil && err == nil {
@@ -69,7 +69,7 @@ func (s *storageReference) resolveImage() (*storage.Image, error) {
 			// though possibly with a different tag or digest, as a Name value, so
 			// that the canonical reference can be implicitly resolved to the image.
 			images, err := s.transport.store.ImagesByDigest(digested.Digest())
-			if images != nil && err == nil {
+			if err == nil && len(images) > 0 {
 				for _, image := range images {
 					if imageMatchesRepo(image, s.named) {
 						loadedImage = image
@@ -95,6 +95,24 @@ func (s *storageReference) resolveImage() (*storage.Image, error) {
 		if !imageMatchesRepo(loadedImage, s.named) {
 			logrus.Errorf("no image matching reference %q found", s.StringWithinTransport())
 			return nil, ErrNoSuchImage
+		}
+	}
+	// Default to having the image digest that we hand back match the most recently
+	// added manifest...
+	if digest, ok := loadedImage.BigDataDigests[storage.ImageDigestBigDataKey]; ok {
+		loadedImage.Digest = digest
+	}
+	// ... unless the named reference says otherwise, and it matches one of the digests
+	// in the image.  For those cases, set the Digest field to that value, for the
+	// sake of older consumers that don't know there's a whole list in there now.
+	if s.named != nil {
+		if digested, ok := s.named.(reference.Digested); ok {
+			for _, digest := range loadedImage.Digests {
+				if digest == digested.Digest() {
+					loadedImage.Digest = digest
+					break
+				}
+			}
 		}
 	}
 	return loadedImage, nil
