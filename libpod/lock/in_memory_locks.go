@@ -89,3 +89,12 @@ func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 
 	return m.locks[id], nil
 }
+
+// FreeAllLocks frees all locks
+func (m *InMemoryManager) FreeAllLocks() error {
+	for _, lock := range m.locks {
+		lock.allocated = false
+	}
+
+	return nil
+}

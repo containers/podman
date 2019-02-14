@@ -24,6 +24,9 @@ type Manager interface {
 	// The underlying lock MUST be the same as another other lock with the
 	// same UUID.
 	RetrieveLock(id uint32) (Locker, error)
+	// FreeAllLocks frees all allocated locks, in preparation for lock
+	// reallocation.
+	FreeAllLocks() error
 }
 
 // Locker is similar to sync.Locker, but provides a method for freeing the lock

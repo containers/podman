@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"syscall"
 	"testing"
 	"time"
 
@@ -53,12 +52,8 @@ func runLockTest(t *testing.T, testFunc func(*testing.T, *SHMLocks)) {
 	}
 	defer func() {
 		// Deallocate all locks
-		// Ignore ENOENT (lock is not allocated)
-		var i uint32
-		for i = 0; i < numLocks; i++ {
-			if err := locks.DeallocateSemaphore(i); err != nil && err != syscall.ENOENT {
-				t.Fatalf("Error deallocating semaphore %d: %v", i, err)
-			}
+		if err := locks.DeallocateAllSemaphores(); err != nil {
+			t.Fatalf("Error deallocating semaphores: %v", err)
 		}
 
 		if err := locks.Close(); err != nil {
@@ -209,6 +204,25 @@ func TestAllocateDeallocateCycle(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, j, newSem)
 		}
+	})
+}
+
+// Test that DeallocateAllSemaphores deallocates all semaphores
+func TestDeallocateAllSemaphoresDeallocatesAll(t *testing.T) {
+	runLockTest(t, func(t *testing.T, locks *SHMLocks) {
+		// Allocate a lock
+		locks1, err := locks.AllocateSemaphore()
+		assert.NoError(t, err)
+
+		// Free all locks
+		err = locks.DeallocateAllSemaphores()
+		assert.NoError(t, err)
+
+		// Allocate another lock
+		locks2, err := locks.AllocateSemaphore()
+		assert.NoError(t, err)
+
+		assert.Equal(t, locks1, locks2)
 	})
 }
 

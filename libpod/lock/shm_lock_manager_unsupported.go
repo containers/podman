@@ -27,3 +27,8 @@ func (m *SHMLockManager) AllocateLock() (Locker, error) {
 func (m *SHMLockManager) RetrieveLock(id string) (Locker, error) {
 	return nil, fmt.Errorf("not supported")
 }
+
+// FreeAllLocks is not supported on this platform
+func (m *SHMLockManager) FreeAllLocks() error {
+	return fmt.Errorf("not supported")
+}

@@ -155,6 +155,22 @@ func (locks *SHMLocks) DeallocateSemaphore(sem uint32) error {
 	return nil
 }
 
+// DeallocateAllSemaphores frees all semaphores so they can be reallocated to
+// other containers and pods.
+func (locks *SHMLocks) DeallocateAllSemaphores() error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	retCode := C.deallocate_all_semaphores(locks.lockStruct)
+	if retCode < 0 {
+		// Negative errno return from C
+		return syscall.Errno(-1 * retCode)
+	}
+
+	return nil
+}
+
 // LockSemaphore locks the given semaphore.
 // If the semaphore is already locked, LockSemaphore will block until the lock
 // can be acquired.

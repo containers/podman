@@ -407,6 +407,36 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   return 0;
 }
 
+// Deallocate all semaphores unconditionally.
+// Returns negative ERRNO values.
+int32_t deallocate_all_semaphores(shm_struct_t *shm) {
+  int ret_code;
+  uint i;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  // Lock the mutex controlling access to our shared memory
+  ret_code = take_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Iterate through all bitmaps and reset to unused
+  for (i = 0; i < shm->num_bitmaps; i++) {
+    shm->locks[i].bitmap = 0;
+  }
+
+  // Unlock the allocation control mutex
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  return 0;
+}
+
 // Lock a given semaphore
 // Does not check if the semaphore is allocated - this ensures that, even for
 // removed containers, we can still successfully lock to check status (and
