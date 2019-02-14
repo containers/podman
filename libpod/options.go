@@ -11,6 +11,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
@@ -1058,7 +1059,7 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 // from a container passed in to the --volumes-from flag.
 // This stores the built-in volume information in the Config so we can
 // add them when creating the container.
-func WithLocalVolumes(volumes []string) CtrCreateOption {
+func WithLocalVolumes(volumes []spec.Mount) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized

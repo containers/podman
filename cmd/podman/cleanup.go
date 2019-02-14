@@ -58,7 +58,7 @@ func cleanupCmd(c *cliconfig.CleanupValues) error {
 	for _, ctr := range cleanupContainers {
 		hadError := false
 		if c.Remove {
-			if err := runtime.RemoveContainer(ctx, ctr, false); err != nil {
+			if err := runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
 				if lastError != nil {
 					fmt.Fprintln(os.Stderr, lastError)
 				}

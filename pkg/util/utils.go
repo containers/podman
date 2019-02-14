@@ -259,8 +259,8 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	return opts, nil
 }
 
-// GetRootlessVolumeInfo returns where all the name volumes will be created in rootless mode
-func GetRootlessVolumeInfo() (string, error) {
+// GetRootlessVolumePath returns where all the name volumes will be created in rootless mode
+func GetRootlessVolumePath() (string, error) {
 	dataDir, _, err := GetRootlessDirInfo()
 	if err != nil {
 		return "", err
@@ -307,15 +307,13 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 		err                      error
 	)
 	storageOpts := storage.DefaultStoreOptions
-	volumePath := "/var/lib/containers/storage"
-
+	volumePath := filepath.Join(storageOpts.GraphRoot, "volumes")
 	if rootless.IsRootless() {
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
 			return storageOpts, volumePath, err
 		}
-
-		volumePath, err = GetRootlessVolumeInfo()
+		volumePath, err = GetRootlessVolumePath()
 		if err != nil {
 			return storageOpts, volumePath, err
 		}

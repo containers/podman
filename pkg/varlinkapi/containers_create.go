@@ -131,9 +131,14 @@ func varlinkCreateToCreateConfig(ctx context.Context, create iopodman.Create, ru
 	}
 
 	imageID := data.ID
+	var ImageVolumes map[string]struct{}
+	if data != nil && create.Image_volume_type != "ignore" {
+		ImageVolumes = data.Config.Volumes
+	}
+
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
-		BuiltinImgVolumes: data.Config.Volumes,
+		BuiltinImgVolumes: ImageVolumes,
 		ConmonPidFile:     create.Conmon_pidfile,
 		ImageVolumeType:   create.Image_volume_type,
 		CapAdd:            create.Cap_add,

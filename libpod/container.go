@@ -358,8 +358,7 @@ type ContainerConfig struct {
 	ExitCommand []string `json:"exitCommand,omitempty"`
 	// LocalVolumes are the built-in volumes we get from the --volumes-from flag
 	// It picks up the built-in volumes of the container used by --volumes-from
-	LocalVolumes []string
-
+	LocalVolumes []spec.Mount
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`

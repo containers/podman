@@ -39,8 +39,7 @@ func init() {
 	flags.BoolVarP(&rmCommand.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
 	flags.BoolVarP(&rmCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove the volumes associated with the container (Not implemented yet)")
-
+	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove the volumes associated with the container")
 }
 
 // saveCmd saves the image to either docker-archive or oci
@@ -79,7 +78,7 @@ func rmCmd(c *cliconfig.RmValues) error {
 	for _, container := range delContainers {
 		con := container
 		f := func() error {
-			return runtime.RemoveContainer(ctx, con, c.Force)
+			return runtime.RemoveContainer(ctx, con, c.Force, c.Volumes)
 		}
 
 		deleteFuncs = append(deleteFuncs, shared.ParallelWorkerInput{

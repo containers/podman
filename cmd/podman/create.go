@@ -646,9 +646,10 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	}
 
 	var ImageVolumes map[string]struct{}
-	if data != nil {
+	if data != nil && c.String("image-volume") != "ignore" {
 		ImageVolumes = data.Config.Volumes
 	}
+
 	var imageVolType = map[string]string{
 		"bind":   "",
 		"tmpfs":  "",
