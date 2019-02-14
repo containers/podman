@@ -49,7 +49,9 @@ var (
 			createCommand.GlobalFlags = MainGlobalOpts
 			return createCmd(&createCommand)
 		},
-		Example: "IMAGE [COMMAND [ARG...]]",
+		Example: `podman create alpine ls
+  podman create --annotation HELLO=WORLD alpine ls
+  podman create -t -i --name myctr alpine ls`,
 	}
 
 	defaultEnvVariables = map[string]string{

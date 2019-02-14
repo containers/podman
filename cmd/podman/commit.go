@@ -33,7 +33,9 @@ var (
 			commitCommand.GlobalFlags = MainGlobalOpts
 			return commitCmd(&commitCommand)
 		},
-		Example: "CONTAINER [REPOSITORY[:TAG]]",
+		Example: `podman commit -q --message "committing container to image" reverent_golick image-commited
+  podman commit -q --author "firstName lastName" reverent_golick image-commited
+  podman commit -q --pause=false containerID image-commited`,
 	}
 )
 

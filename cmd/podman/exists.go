@@ -41,7 +41,7 @@ var (
 			imageExistsCommand.GlobalFlags = MainGlobalOpts
 			return imageExistsCmd(&imageExistsCommand)
 		},
-		Example: "IMAGE-NAME",
+		Example: `podman image exists imageID`,
 	}
 
 	_containerExistsCommand = &cobra.Command{
@@ -54,7 +54,7 @@ var (
 			return containerExistsCmd(&containerExistsCommand)
 
 		},
-		Example: "CONTAINER-NAME",
+		Example: `podman container exists containerID`,
 	}
 
 	_podExistsCommand = &cobra.Command{
@@ -66,7 +66,7 @@ var (
 			podExistsCommand.GlobalFlags = MainGlobalOpts
 			return podExistsCmd(&podExistsCommand)
 		},
-		Example: "POD-NAME",
+		Example: `podman pod exists podID`,
 	}
 )
 

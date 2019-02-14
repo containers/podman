@@ -26,7 +26,9 @@ If --force is specified, all containers will be stopped, then removed.
 			podRmCommand.GlobalFlags = MainGlobalOpts
 			return podRmCmd(&podRmCommand)
 		},
-		Example: "[POD ...]",
+		Example: `podman pod rm mywebserverpod
+  podman pod rm -f 860a4b23
+  podman pod rm -f -a`,
 	}
 )
 

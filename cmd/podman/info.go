@@ -26,7 +26,7 @@ var (
 			infoCommand.GlobalFlags = MainGlobalOpts
 			return infoCmd(&infoCommand)
 		},
-		Example: "",
+		Example: `podman info`,
 	}
 )
 

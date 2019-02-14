@@ -76,7 +76,7 @@ e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
 ```
-$ podman commit -q --pause=false reverent_golick image-commited
+$ podman commit -q --pause=false containerID image-commited
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 

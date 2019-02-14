@@ -34,7 +34,9 @@ var (
 			inspectCommand.GlobalFlags = MainGlobalOpts
 			return inspectCmd(&inspectCommand)
 		},
-		Example: "CONTAINER-OR-IMAGE [CONTAINER-OR-IMAGE]...",
+		Example: `podman inspect alpine
+  podman inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
+  podman inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
 	}
 )
 
