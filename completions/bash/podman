@@ -2320,6 +2320,7 @@ _podman_login() {
      local boolean_options="
 	  --help
 	  -h
+	  --password-stdin
      "
      _complete_ "$options_with_args" "$boolean_options"
 }
