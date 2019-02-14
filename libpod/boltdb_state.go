@@ -783,6 +783,50 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// RewriteContainerConfig rewrites a container's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", ctr.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		ctrDB := ctrBkt.Bucket([]byte(ctr.ID()))
+		if ctrDB == nil {
+			ctr.valid = false
+			return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+		}
+
+		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating container %s config JSON", ctr.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
 // Pod retrieves a pod given its full ID
 func (s *BoltState) Pod(id string) (*Pod, error) {
 	if id == "" {

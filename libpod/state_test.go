@@ -1298,6 +1298,42 @@ func TestCannotUseBadIDAsGenericDependency(t *testing.T) {
 	})
 }
 
+func TestRewriteContainerConfigDoesNotExist(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		err := state.RewriteContainerConfig(&Container{}, &ContainerConfig{})
+		assert.Error(t, err)
+	})
+}
+
+func TestRewriteContainerConfigNotInState(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+		err = state.RewriteContainerConfig(testCtr, &ContainerConfig{})
+		assert.Error(t, err)
+	})
+}
+
+func TestRewriteContainerConfigRewritesConfig(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr)
+		assert.NoError(t, err)
+
+		testCtr.config.LogPath = "/another/path/"
+
+		err = state.RewriteContainerConfig(testCtr, testCtr.config)
+		assert.NoError(t, err)
+
+		testCtrFromState, err := state.Container(testCtr.ID())
+		assert.NoError(t, err)
+
+		testContainersEqual(t, testCtrFromState, testCtr, true)
+	})
+}
+
 func TestGetPodDoesNotExist(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.Pod("doesnotexist")

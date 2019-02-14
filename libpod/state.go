@@ -97,6 +97,21 @@ type State interface {
 	// returned.
 	AllContainers() ([]*Container, error)
 
+	// PLEASE READ FULL DESCRIPTION BEFORE USING.
+	// Rewrite a container's configuration.
+	// This function breaks libpod's normal prohibition on a read-only
+	// configuration, and as such should be used EXTREMELY SPARINGLY and
+	// only in very specific circumstances.
+	// Specifically, it is ONLY safe to use thing function to make changes
+	// that result in a functionally identical configuration (migrating to
+	// newer, but identical, configuration fields), or during libpod init
+	// WHILE HOLDING THE ALIVE LOCK (to prevent other libpod instances from
+	// being initialized).
+	// There are a lot of capital letters and conditions here, but the short
+	// answer is this: use this only very sparingly, and only if you really
+	// know what you're doing.
+	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
+
 	// Accepts full ID of pod.
 	// If the pod given is not in the set namespace, an error will be
 	// returned.

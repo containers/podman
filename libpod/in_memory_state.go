@@ -378,6 +378,38 @@ func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
 	return arr, nil
 }
 
+// AllContainers retrieves all containers from the state
+func (s *InMemoryState) AllContainers() ([]*Container, error) {
+	ctrs := make([]*Container, 0, len(s.containers))
+	for _, ctr := range s.containers {
+		if s.namespace == "" || ctr.config.Namespace == s.namespace {
+			ctrs = append(ctrs, ctr)
+		}
+	}
+
+	return ctrs, nil
+}
+
+// RewriteContainerConfig rewrites a container's configuration.
+// This function is DANGEROUS, even with an in-memory state.
+// Please read the full comment on it in state.go before using it.
+func (s *InMemoryState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	// If the container does not exist, return error
+	stateCtr, ok := s.containers[ctr.ID()]
+	if !ok {
+		ctr.valid = false
+		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+	}
+
+	stateCtr.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {
@@ -484,18 +516,6 @@ func (s *InMemoryState) AllVolumes() ([]*Volume, error) {
 	}
 
 	return allVols, nil
-}
-
-// AllContainers retrieves all containers from the state
-func (s *InMemoryState) AllContainers() ([]*Container, error) {
-	ctrs := make([]*Container, 0, len(s.containers))
-	for _, ctr := range s.containers {
-		if s.namespace == "" || ctr.config.Namespace == s.namespace {
-			ctrs = append(ctrs, ctr)
-		}
-	}
-
-	return ctrs, nil
 }
 
 // Pod retrieves a pod from the state from its full ID
