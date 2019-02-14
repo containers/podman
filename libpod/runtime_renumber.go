@@ -52,6 +52,23 @@ func (r *Runtime) RenumberLocks() error {
 			return err
 		}
 	}
+	allPods, err := r.state.AllPods()
+	if err != nil {
+		return err
+	}
+	for _, pod := range allPods {
+		lock, err := r.lockManager.AllocateLock()
+		if err != nil {
+			return errors.Wrapf(err, "error allocating lock for pod %s", pod.ID())
+		}
+
+		pod.config.LockID = lock.ID()
+
+		// Write the new lock ID
+		if err := r.state.RewritePodConfig(pod, pod.config); err != nil {
+			return err
+		}
+	}
 
 	r.lock.Unlock()
 	locked = false
