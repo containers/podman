@@ -311,33 +311,50 @@ type IDMap (
     size: int
 )
 
+# BuildOptions are are used to describe describe physical attributes of the build
+type BuildOptions (
+    addHosts: []string,
+    cgroupParent: string,
+    cpuPeriod: int,
+    cpuQuota: int,
+    cpuShares: int,
+    cpusetCpus: string,
+    cpusetMems: string,
+    memory: int,
+    memorySwap: int,
+    shmSize: string,
+    ulimit: []string,
+    volume: []string
+)
+
 # BuildInfo is used to describe user input for building images
 type BuildInfo (
-    # paths to one or more dockerfiles
-    dockerfile: []string,
-    tags: []string,
-    add_hosts: []string,
-    cgroup_parent: string,
-    cpu_period: int,
-    cpu_quota: int,
-    cpu_shares: int,
-    cpuset_cpus: string,
-    cpuset_mems: string,
-    memory: string,
-    memory_swap: string,
-    security_opts: []string,
-    shm_size: string,
-    ulimit: []string,
-    volume: []string,
-    squash: bool,
-    pull: bool,
-    pull_always: bool,
-    force_rm: bool,
-    rm: bool,
-    label: []string,
+    additionalTags: []string,
     annotations: []string,
-    build_args: [string]string,
-    image_format: string
+    buildArgs: [string]string,
+    buildOptions: BuildOptions,
+    cniConfigDir: string,
+    cniPluginDir: string,
+    compression: string,
+    contextDir: string,
+    defaultsMountFilePath: string,
+    dockerfiles: []string,
+    err: string,
+    forceRmIntermediateCtrs: bool,
+    iidfile: string,
+    label: []string,
+    layers: bool,
+    nocache: bool,
+    out: string,
+    output: string,
+    outputFormat: string,
+    pullPolicy: string,
+    quiet: bool,
+    remoteIntermediateCtrs: bool,
+    reportWriter: string,
+    runtimeArgs: []string,
+    signaturePolicyPath: string,
+    squash: bool
 )
 
 # MoreResponse is a struct for when responses from varlink requires longer output

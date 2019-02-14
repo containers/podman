@@ -3,11 +3,14 @@ package varlinkapi
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/containers/buildah"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/storage/pkg/archive"
 )
 
 // getContext returns a non-nil, empty context
@@ -132,4 +135,28 @@ func handlePodCall(call iopodman.VarlinkCall, pod *libpod.Pod, ctrErrs map[strin
 	}
 
 	return nil
+}
+
+func stringCompressionToArchiveType(s string) archive.Compression {
+	switch strings.ToUpper(s) {
+	case "BZIP2":
+		return archive.Bzip2
+	case "GZIP":
+		return archive.Gzip
+	case "XZ":
+		return archive.Xz
+	}
+	return archive.Uncompressed
+}
+
+func stringPullPolicyToType(s string) buildah.PullPolicy {
+	switch strings.ToUpper(s) {
+	case "PULLIFMISSING":
+		return buildah.PullIfMissing
+	case "PULLALWAYS":
+		return buildah.PullAlways
+	case "PULLNEVER":
+		return buildah.PullNever
+	}
+	return buildah.PullIfMissing
 }

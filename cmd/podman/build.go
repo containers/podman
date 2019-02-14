@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,10 +8,9 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/libpod/adapter"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -76,7 +74,6 @@ func getDockerfiles(files []string) []string {
 func buildCmd(c *cliconfig.BuildValues) error {
 	// The following was taken directly from containers/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
-
 	output := ""
 	tags := []string{}
 	if c.Flag("tag").Changed {
@@ -86,6 +83,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 			tags = tags[1:]
 		}
 	}
+
 	pullPolicy := imagebuildah.PullNever
 	if c.Pull {
 		pullPolicy = imagebuildah.PullIfMissing
@@ -173,16 +171,17 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		dockerfiles = append(dockerfiles, filepath.Join(contextDir, "Dockerfile"))
 	}
 
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+
 	runtimeFlags := []string{}
 	for _, arg := range c.RuntimeOpts {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 	// end from buildah
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
-	if err != nil {
-		return errors.Wrapf(err, "could not get runtime")
-	}
 	defer runtime.Shutdown(false)
 
 	var stdout, stderr, reporter *os.File
@@ -201,72 +200,64 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		reporter = f
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-	systemContext.AuthFilePath = getAuthFile(c.Authfile)
-	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return err
+	var memoryLimit, memorySwap int64
+	if c.Flags().Changed("memory") {
+		memoryLimit, err = units.RAMInBytes(c.Memory)
+		if err != nil {
+			return err
+		}
 	}
 
-	namespaceOptions, networkPolicy, err := parse.NamespaceOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing namespace-related options")
+	if c.Flags().Changed("memory-swap") {
+		memorySwap, err = units.RAMInBytes(c.MemorySwap)
+		if err != nil {
+			return err
+		}
 	}
-	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing ID mapping options")
-	}
-	namespaceOptions.AddOrReplace(usernsOption...)
 
-	ociruntime := runtime.GetOCIRuntimePath()
-	if c.Flag("runtime").Changed {
-		ociruntime = c.Runtime
+	buildOpts := buildah.CommonBuildOptions{
+		AddHost:      c.AddHost,
+		CgroupParent: c.CgroupParent,
+		CPUPeriod:    c.CPUPeriod,
+		CPUQuota:     c.CPUQuota,
+		CPUShares:    c.CPUShares,
+		CPUSetCPUs:   c.CPUSetCPUs,
+		CPUSetMems:   c.CPUSetMems,
+		Memory:       memoryLimit,
+		MemorySwap:   memorySwap,
+		ShmSize:      c.ShmSize,
+		Ulimit:       c.Ulimit,
+		Volumes:      c.Volume,
 	}
+
 	options := imagebuildah.BuildOptions{
-		ContextDirectory:        contextDir,
-		PullPolicy:              pullPolicy,
-		Compression:             imagebuildah.Gzip,
-		Quiet:                   c.Quiet,
-		SignaturePolicyPath:     c.SignaturePolicy,
-		Args:                    args,
-		Output:                  output,
+		CommonBuildOpts:         &buildOpts,
 		AdditionalTags:          tags,
-		Out:                     stdout,
-		Err:                     stderr,
-		ReportWriter:            reporter,
-		Runtime:                 ociruntime,
-		RuntimeArgs:             runtimeFlags,
-		OutputFormat:            format,
-		SystemContext:           systemContext,
-		NamespaceOptions:        namespaceOptions,
-		ConfigureNetwork:        networkPolicy,
-		CNIPluginPath:           c.CNIPlugInPath,
-		CNIConfigDir:            c.CNIConfigDir,
-		IDMappingOptions:        idmappingOptions,
-		CommonBuildOpts:         commonOpts,
-		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
-		IIDFile:                 c.Iidfile,
-		Squash:                  c.Squash,
-		Labels:                  c.Label,
 		Annotations:             c.Annotation,
+		Args:                    args,
+		CNIConfigDir:            c.CNIConfigDir,
+		CNIPluginPath:           c.CNIPlugInPath,
+		Compression:             imagebuildah.Gzip,
+		ContextDirectory:        contextDir,
+		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
+		Err:                     stderr,
+		ForceRmIntermediateCtrs: c.ForceRm,
+		IIDFile:                 c.Iidfile,
+		Labels:                  c.Label,
 		Layers:                  layers,
 		NoCache:                 c.NoCache,
+		Out:                     stdout,
+		Output:                  output,
+		OutputFormat:            format,
+		PullPolicy:              pullPolicy,
+		Quiet:                   c.Quiet,
 		RemoveIntermediateCtrs:  c.Rm,
-		ForceRmIntermediateCtrs: c.ForceRm,
+		ReportWriter:            reporter,
+		RuntimeArgs:             runtimeFlags,
+		SignaturePolicyPath:     c.SignaturePolicy,
+		Squash:                  c.Squash,
 	}
-
-	if c.Quiet {
-		options.ReportWriter = ioutil.Discard
-	}
-
-	if rootless.IsRootless() {
-		options.Isolation = buildah.IsolationOCIRootless
-	}
-
-	return runtime.Build(getContext(), options, dockerfiles...)
+	return runtime.Build(getContext(), c, options, dockerfiles)
 }
 
 // Tail returns a string slice after the first element unless there are

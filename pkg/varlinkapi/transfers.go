@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/sirupsen/logrus"
 )
 
 // SendFile allows a client to send a file to the varlink server
@@ -34,6 +35,7 @@ func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int
 		return err
 	}
 
+	logrus.Debugf("successfully received %s", outputFile.Name())
 	// Send an ACK to the client
 	call.Call.Writer.WriteString(fmt.Sprintf("%s:", outputFile.Name()))
 	call.Call.Writer.Flush()
