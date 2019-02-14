@@ -37,11 +37,11 @@ There are other equivalents for these tools
 
 | Existing Step | `Podman` (and friends) |
 | :--- | :--- |
-| `docker attach`  | [`podman exec`](./docs/podman-attach.1.md)      |
+| `docker attach`  | [`podman attach`](./docs/podman-attach.1.md)    |
+| `docker cp`      | [`podman cp`](./docs/podman-cp.1.md)            |
 | `docker build`   | [`podman build`](./docs/podman-build.1.md)      |
 | `docker commit`  | [`podman commit`](./docs/podman-commit.1.md)    |
 | `docker container`|[`podman container`](./docs/podman-container.1.md) |
-| `docker cp`      | [`podman mount`](./docs/podman-cp.1.md) ****    |
 | `docker create`  | [`podman create`](./docs/podman-create.1.md)    |
 | `docker diff`    | [`podman diff`](./docs/podman-diff.1.md)        |
 | `docker export`  | [`podman export`](./docs/podman-export.1.md)    |

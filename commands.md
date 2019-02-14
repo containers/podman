@@ -16,7 +16,7 @@
 | [podman-container-refresh(1)](/docs/podman-container-refresh.1.md)       | Refresh all containers state in database                  ||
 | [podman-container-restore(1)](/docs/podman-container-restore.1.md)       | Restores one or more running containers                   ||
 | [podman-container-runlabel(1)](/docs/podman-container-runlabel.1.md)     | Execute Image Label Method	     			       ||
-| [podman-cp(1)](/docs/podman-cp.1.md)                     | Instead of providing a `podman cp` command, the man page `podman-cp` describes how to use the `podman mount` command to have even more flexibility and functionality||
+| [podman-cp(1)](/docs/podman-cp.1.md)                     | Copy files/folders between a container and the local filesystem           ||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
 | [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container
