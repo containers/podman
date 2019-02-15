@@ -67,13 +67,6 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	volume.config.MountPoint = fullVolPath
 
-	lock, err := r.lockManager.AllocateLock()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error allocating lock for new volume")
-	}
-	volume.lock = lock
-	volume.config.LockID = volume.lock.ID()
-
 	volume.valid = true
 
 	// Add the volume to state
@@ -85,9 +78,12 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 }
 
 // removeVolume removes the specified volume from state as well tears down its mountpoint and storage
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force, prune bool) error {
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {
 	if !v.valid {
-		return ErrNoSuchVolume
+		if ok, _ := r.state.HasVolume(v.Name()); !ok {
+			return nil
+		}
+		return ErrVolumeRemoved
 	}
 
 	deps, err := r.state.VolumeInUse(v)
@@ -95,9 +91,6 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force, prune bool
 		return err
 	}
 	if len(deps) != 0 {
-		if prune {
-			return ErrVolumeBeingUsed
-		}
 		depsStr := strings.Join(deps, ", ")
 		if !force {
 			return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
@@ -112,18 +105,20 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force, prune bool
 		}
 	}
 
-	// Delete the mountpoint path of the volume, that is delete the volume from /var/lib/containers/storage/volumes
-	if err := v.teardownStorage(); err != nil {
-		return errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
-	}
+	// Set volume as invalid so it can no longer be used
+	v.valid = false
 
 	// Remove the volume from the state
 	if err := r.state.RemoveVolume(v); err != nil {
 		return errors.Wrapf(err, "error removing volume %s", v.Name())
 	}
 
-	// Set volume as invalid so it can no longer be used
-	v.valid = false
+	// Delete the mountpoint path of the volume, that is delete the volume from /var/lib/containers/storage/volumes
+	if err := v.teardownStorage(); err != nil {
+		return errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
+	}
+
+	logrus.Debugf("Removed volume %s", v.Name())
 
 	return nil
 }

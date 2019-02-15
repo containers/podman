@@ -1369,10 +1369,6 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		return ErrDBClosed
 	}
 
-	if !volume.valid {
-		return ErrVolumeRemoved
-	}
-
 	volName := []byte(volume.Name())
 
 	db, err := s.getDBCon()

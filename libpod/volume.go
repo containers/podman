@@ -1,7 +1,5 @@
 package libpod
 
-import "github.com/containers/libpod/libpod/lock"
-
 // Volume is the type used to create named volumes
 // TODO: all volumes should be created using this and the Volume API
 type Volume struct {
@@ -9,7 +7,6 @@ type Volume struct {
 
 	valid   bool
 	runtime *Runtime
-	lock    lock.Locker
 }
 
 // VolumeConfig holds the volume's config information
@@ -17,8 +14,6 @@ type Volume struct {
 type VolumeConfig struct {
 	// Name of the volume
 	Name string `json:"name"`
-	// ID of this volume's lock
-	LockID uint32 `json:"lockID"`
 
 	Labels     map[string]string `json:"labels"`
 	MountPoint string            `json:"mountPoint"`

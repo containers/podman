@@ -12,6 +12,12 @@ import (
 // It renders the runtime it is called on, and all container/pod/volume structs
 // from that runtime, unusable, and requires that a new runtime be initialized
 // after it is called.
+// TODO: It would be desirable to make it impossible to call this until all
+// other libpod sessions are dead.
+// Possibly use a read-write file lock, with all non-renumber podmans owning the
+// lock as read, renumber attempting to take a write lock?
+// The alternative is some sort of session tracking, and I don't know how
+// reliable that can be.
 func (r *Runtime) RenumberLocks() error {
 	r.lock.Lock()
 	locked := true
