@@ -91,9 +91,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func PausePod(name: string) string](#PausePod)
 
-[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: bool) string](#PullImage)
+[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) string](#PullImage)
 
-[func PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
+[func PushImage(name: string, tag: string, tlsverify: ?bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
 
 [func ReceiveFile(path: string, delete: bool) int](#ReceiveFile)
 
@@ -107,7 +107,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: ) ImageSearchResult](#SearchImages)
+[func SearchImages(quety: string, limit: int, tlsVerify: ?bool) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 

@@ -412,7 +412,7 @@ type Runlabel(
     name: string,
     pull: bool,
     signaturePolicyPath: string,
-    tlsVerify: bool,
+    tlsVerify: ?bool,
     label: string,
     extraArgs: []string,
     opts: [string]string
@@ -658,7 +658,7 @@ method HistoryImage(name: string) -> (history: []ImageHistory)
 # and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
 # It will return an [ImageNotFound](#ImageNotFound) error if
 # the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
-method PushImage(name: string, tag: string, tlsverify: bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
+method PushImage(name: string, tag: string, tlsverify: ?bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
 
 # TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
@@ -679,7 +679,7 @@ method RemoveImage(name: string, force: bool) -> (image: string)
 # SearchImages searches available registries for images that contain the
 # contents of "query" in their name. If "limit" is given, limits the amount of
 # search results per registry.
-method SearchImages(query: string, limit: ?int) -> (results: []ImageSearchResult)
+method SearchImages(query: string, limit: ?int, tlsVerify: ?bool) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
@@ -726,7 +726,7 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 #   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 # }
 # ~~~
-method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: bool) -> (id: string)
+method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) -> (id: string)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.

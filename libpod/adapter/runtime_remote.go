@@ -163,7 +163,8 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
 	// TODO We need to find a way to leak certDir, creds, and the tlsverify into this function, normally this would
 	// come from cli options but we don't want want those in here either.
-	imageID, err := iopodman.PullImage().Call(r.Conn, srcRef.DockerReference().String(), "", "", signaturePolicyPath, true)
+	tlsverify := true
+	imageID, err := iopodman.PullImage().Call(r.Conn, srcRef.DockerReference().String(), "", "", signaturePolicyPath, &tlsverify)
 	if err != nil {
 		return nil, err
 	}
@@ -179,15 +180,21 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 	if label != nil {
 		return nil, errors.New("the remote client function does not support checking a remote image for a label")
 	}
-	// TODO Creds needs to be figured out here too, like above
-	tlsBool := dockeroptions.DockerInsecureSkipTLSVerify
-	// Remember SkipTlsVerify is the opposite of tlsverify
-	// If tlsBook is true or undefined, we do not skip
-	SkipTlsVerify := false
-	if tlsBool == types.OptionalBoolFalse {
-		SkipTlsVerify = true
+	var (
+		tlsVerify    bool
+		tlsVerifyPtr *bool
+	)
+	if dockeroptions.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
+		tlsVerify = true
+		tlsVerifyPtr = &tlsVerify
+
 	}
-	imageID, err := iopodman.PullImage().Call(r.Conn, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, SkipTlsVerify)
+	if dockeroptions.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
+		tlsVerify = false
+		tlsVerifyPtr = &tlsVerify
+	}
+
+	imageID, err := iopodman.PullImage().Call(r.Conn, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, tlsVerifyPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -577,10 +584,19 @@ func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmV
 
 func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 
-	tls := true
+	var (
+		tls       *bool
+		tlsVerify bool
+	)
 	if dockerRegistryOptions.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
-		tls = false
+		tlsVerify = false
+		tls = &tlsVerify
 	}
+	if dockerRegistryOptions.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
+		tlsVerify = true
+		tls = &tlsVerify
+	}
+
 	reply, err := iopodman.PushImage().Send(r.Conn, varlink.More, srcName, destination, tls, signaturePolicyPath, "", dockerRegistryOptions.DockerCertPath, forceCompress, manifestMIMEType, signingOptions.RemoveSignatures, signingOptions.SignBy)
 	if err != nil {
 		return err
