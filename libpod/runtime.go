@@ -389,7 +389,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		// If the configuration file was not found but we are running in rootless, a subset of the
 		// global config file is used.
 		for _, path := range []string{OverrideConfigPath, ConfigPath} {
-			contents, err := ioutil.ReadFile(OverrideConfigPath)
+			contents, err := ioutil.ReadFile(path)
 			if err != nil {
 				// Ignore any error, the file might not be readable by us.
 				continue
