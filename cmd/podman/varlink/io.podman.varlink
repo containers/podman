@@ -67,6 +67,7 @@ type ImageSearchResult (
     description: string,
     is_official: bool,
     is_automated: bool,
+    registry: string,
     name: string,
     star_count: int
 )
@@ -600,8 +601,9 @@ method GetAttachSockets(name: string) -> (sockets: Sockets)
 # a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string) -> (exitcode: int)
 
-# RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running and a boolean indicating whether to remove builtin volumes
-# container can be stopped and removed.  Upon successful removal of the container, its ID is returned.  If the
+# RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
+# indicating whether to remove builtin volumes. Upon successful removal of the
+# container, its ID is returned.  If the
 # container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 # #### Example
 # ~~~

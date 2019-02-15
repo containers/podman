@@ -12,7 +12,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/common"
 	sysreg "github.com/containers/libpod/pkg/registries"
-	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -88,7 +87,7 @@ func searchCmd(c *cliconfig.SearchValues) error {
 	term := args[0]
 
 	// Check if search term has a registry in it
-	registry, err := getRegistry(term)
+	registry, err := sysreg.GetRegistry(term)
 	if err != nil {
 		return errors.Wrapf(err, "error getting registry from %q", term)
 	}
@@ -300,17 +299,4 @@ func matchesOfficialFilter(filter searchFilterParams, result docker.SearchResult
 		return result.IsOfficial == *filter.isOfficial
 	}
 	return true
-}
-
-func getRegistry(image string) (string, error) {
-	// It is possible to only have the registry name in the format "myregistry/"
-	// if so, just trim the "/" from the end and return the registry name
-	if strings.HasSuffix(image, "/") {
-		return strings.TrimSuffix(image, "/"), nil
-	}
-	imgRef, err := reference.Parse(image)
-	if err != nil {
-		return "", err
-	}
-	return reference.Domain(imgRef.(reference.Named)), nil
 }

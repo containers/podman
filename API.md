@@ -107,7 +107,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(quety: string, limit: int, tlsVerify: ?bool) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: int, tlsVerify: ?bool) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -780,8 +780,9 @@ ReceiveFile allows the host to send a remote client a file
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool), removeVolumes: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
-RemoveContainer takes requires the name or ID of container as well a boolean representing whether a running
-container can be stopped and removed.  It also takes a flag on whether or not to remove builtin volumes. Upon successful removal of the container, its ID is returned.  If the
+RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
+indicating whether to remove builtin volumes. Upon successful removal of the
+container, its ID is returned.  If the
 container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
 #### Example
 ~~~
@@ -1422,6 +1423,8 @@ description [string](https://godoc.org/builtin#string)
 is_official [bool](https://godoc.org/builtin#bool)
 
 is_automated [bool](https://godoc.org/builtin#bool)
+
+registry [string](https://godoc.org/builtin#string)
 
 name [string](https://godoc.org/builtin#string)
 
