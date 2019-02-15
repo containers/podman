@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -124,12 +122,22 @@ func startCmd(c *cliconfig.StartValues) error {
 			}
 
 			if ecode, err := ctr.Wait(); err != nil {
-				logrus.Errorf("unable to get exit code of container %s: %q", ctr.ID(), err)
+				if errors.Cause(err) == libpod.ErrNoSuchCtr {
+					// The container may have been removed
+					// Go looking for an exit file
+					ctrExitCode, err := readExitFile(runtime.GetConfig().TmpDir, ctr.ID())
+					if err != nil {
+						logrus.Errorf("Cannot get exit code: %v", err)
+						exitCode = 127
+					} else {
+						exitCode = ctrExitCode
+					}
+				}
 			} else {
 				exitCode = int(ecode)
 			}
 
-			return ctr.Cleanup(ctx)
+			return nil
 		}
 		if ctrRunning {
 			fmt.Println(ctr.ID())
@@ -137,18 +145,6 @@ func startCmd(c *cliconfig.StartValues) error {
 		}
 		// Handle non-attach start
 		if err := ctr.Start(ctx); err != nil {
-			var createArtifact cc.CreateConfig
-			artifact, artifactErr := ctr.GetArtifact("create-config")
-			if artifactErr == nil {
-				if jsonErr := json.Unmarshal(artifact, &createArtifact); jsonErr != nil {
-					logrus.Errorf("unable to detect if container %s should be deleted", ctr.ID())
-				}
-				if createArtifact.Rm {
-					if rmErr := runtime.RemoveContainer(ctx, ctr, true, false); rmErr != nil {
-						logrus.Errorf("unable to remove container %s after it failed to start", ctr.ID())
-					}
-				}
-			}
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
