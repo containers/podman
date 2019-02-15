@@ -79,7 +79,8 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config          *RuntimeConfig
+	config *RuntimeConfig
+
 	state           State
 	store           storage.Store
 	storageService  *storageService
@@ -88,12 +89,15 @@ type Runtime struct {
 	netPlugin       ocicni.CNIPlugin
 	ociRuntimePath  OCIRuntimePath
 	conmonPath      string
-	valid           bool
-	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
 	lockManager     lock.Manager
 	configuredFrom  *runtimeConfiguredFrom
+
+	doRenumber bool
+
+	valid bool
+	lock  sync.RWMutex
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -753,6 +757,13 @@ func makeRuntime(runtime *Runtime) (err error) {
 			aliveLock.Unlock()
 		}
 	}()
+	// If we're renumbering locks, do it now.
+	// It breaks out of normal runtime init, and will not return a valid
+	// runtime.
+	if runtime.doRenumber {
+		return runtime.renumberLocks()
+	}
+
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
 		// If the file doesn't exist, we need to refresh the state

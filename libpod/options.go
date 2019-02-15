@@ -394,6 +394,26 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
+// WithRenumber instructs libpod to perform a lock renumbering instead of a
+// normal init.
+// When this is specified, no valid runtime will be returned by NewRuntime.
+// Instead, libpod will reinitialize lock numbers on all pods and containers,
+// shut down the runtime, and return.
+// Renumber is intended to be used from a dedicated entrypoint, where it will
+// handle a changed maximum number of locks and return, with the program
+// exiting after that.
+func WithRenumber() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.doRenumber = true
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.
