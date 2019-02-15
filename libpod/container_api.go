@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
@@ -38,24 +37,15 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
 	}
 
-	notRunning, err := c.checkDependenciesRunning()
-	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
+	// don't recursively start
+	if err := c.checkDependenciesAndHandleError(ctx); err != nil {
+		return err
 	}
-	if len(notRunning) > 0 {
-		depString := strings.Join(notRunning, ",")
-		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
 
 	if err := c.prepare(); err != nil {
+		if err2 := c.cleanup(ctx); err2 != nil {
+			logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+		}
 		return err
 	}
 
@@ -68,13 +58,14 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	return c.init(ctx)
 }
 
-// Start starts a container
-// Start can start configured, created or stopped containers
+// Start starts a container.
+// Start can start configured, created or stopped containers.
 // For configured containers, the container will be initialized first, then
-// started
+// started.
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
-// Init()
-func (c *Container) Start(ctx context.Context) (err error) {
+// Init().
+// If recursive is set, Start will also start all containers this container depends on.
+func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -83,64 +74,26 @@ func (c *Container) Start(ctx context.Context) (err error) {
 			return err
 		}
 	}
-
-	// Container must be created or stopped to be started
-	if !(c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped ||
-		c.state.State == ContainerStateExited) {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
-	}
-
-	notRunning, err := c.checkDependenciesRunning()
-	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
-	}
-	if len(notRunning) > 0 {
-		depString := strings.Join(notRunning, ",")
-		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
-
-	if err := c.prepare(); err != nil {
+	if err := c.prepareToStart(ctx, recursive); err != nil {
 		return err
-	}
-
-	if c.state.State == ContainerStateStopped {
-		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
-			return err
-		}
-	} else if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateExited {
-		// Or initialize it if necessary
-		if err := c.init(ctx); err != nil {
-			return err
-		}
 	}
 
 	// Start the container
 	return c.start()
 }
 
-// StartAndAttach starts a container and attaches to it
-// StartAndAttach can start configured, created or stopped containers
+// StartAndAttach starts a container and attaches to it.
+// StartAndAttach can start configured, created or stopped containers.
 // For configured containers, the container will be initialized first, then
-// started
+// started.
 // Stopped containers will be deleted and re-created in runc, undergoing a fresh
-// Init()
+// Init().
 // If successful, an error channel will be returned containing the result of the
 // attach call.
 // The channel will be closed automatically after the result of attach has been
-// sent
-func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) (attachResChan <-chan error, err error) {
+// sent.
+// If recursive is set, StartAndAttach will also start all containers this container depends on.
+func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, recursive bool) (attachResChan <-chan error, err error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -150,46 +103,8 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 		}
 	}
 
-	// Container must be created or stopped to be started
-	if !(c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped ||
-		c.state.State == ContainerStateExited) {
-		return nil, errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
-	}
-
-	notRunning, err := c.checkDependenciesRunning()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
-	}
-	if len(notRunning) > 0 {
-		depString := strings.Join(notRunning, ",")
-		return nil, errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := c.cleanup(ctx); err2 != nil {
-				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
-			}
-		}
-	}()
-
-	if err := c.prepare(); err != nil {
+	if err := c.prepareToStart(ctx, recursive); err != nil {
 		return nil, err
-	}
-
-	if c.state.State == ContainerStateStopped {
-		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
-			return nil, err
-		}
-	} else if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateExited {
-		// Or initialize it if necessary
-		if err := c.init(ctx); err != nil {
-			return nil, err
-		}
 	}
 
 	attachChan := make(chan error)
@@ -203,6 +118,24 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	}()
 
 	return attachChan, nil
+}
+
+// RestartWithTimeout restarts a running container and takes a given timeout in uint
+func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
+		return err
+	}
+
+	return c.restartWithTimeout(ctx, timeout)
 }
 
 // Stop uses the container's stop signal (or SIGTERM if no signal was specified)
@@ -728,28 +661,6 @@ func (c *Container) Sync() error {
 	}
 
 	return nil
-}
-
-// RestartWithTimeout restarts a running container and takes a given timeout in uint
-func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) (err error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return err
-		}
-	}
-
-	notRunning, err := c.checkDependenciesRunning()
-	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
-	}
-	if len(notRunning) > 0 {
-		depString := strings.Join(notRunning, ",")
-		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
-	}
-	return c.restartWithTimeout(ctx, timeout)
 }
 
 // Refresh refreshes a container's state in the database, restarting the

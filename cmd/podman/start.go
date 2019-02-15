@@ -105,7 +105,8 @@ func startCmd(c *cliconfig.StartValues) error {
 			}
 
 			// attach to the container and also start it not already running
-			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning)
+			// If the container is in a pod, also set to recursively start dependencies
+			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
 			if errors.Cause(err) == libpod.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -144,7 +145,8 @@ func startCmd(c *cliconfig.StartValues) error {
 			continue
 		}
 		// Handle non-attach start
-		if err := ctr.Start(ctx); err != nil {
+		// If the container is in a pod, also set to recursively start dependencies
+		if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

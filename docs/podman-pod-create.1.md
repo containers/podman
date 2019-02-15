@@ -10,8 +10,8 @@ podman\-pod\-create - Create a new pod
 
 Creates an empty pod, or unit of multiple containers, and prepares it to have
 containers added to it. The pod id is printed to STDOUT. You can then use
-**podman create --pod <pod_id|pod_name> ...** to add containers to the pod, and
-**podman pod start <pod_id|pod_name>** to start the pod.
+**podman create --pod \<pod_id|pod_name\> ...** to add containers to the pod, and
+**podman pod start \<pod_id|pod_name\>** to start the pod.
 
 ## OPTIONS
 

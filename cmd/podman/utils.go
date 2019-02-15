@@ -20,7 +20,7 @@ type RawTtyFormatter struct {
 }
 
 // Start (if required) and attach to a container
-func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool) error {
+func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool, recursive bool) error {
 	ctx := context.Background()
 	resize := make(chan remotecommand.TerminalSize)
 
@@ -76,7 +76,7 @@ func startAttachCtr(ctr *libpod.Container, stdout, stderr, stdin *os.File, detac
 		return ctr.Attach(streams, detachKeys, resize)
 	}
 
-	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize)
+	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize, recursive)
 	if err != nil {
 		return err
 	}

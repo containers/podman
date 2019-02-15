@@ -201,7 +201,7 @@ func runSingleThreadedStressTest(ctx context.Context, client *libpod.Runtime, im
 
 		// Start container
 		startStartTime := time.Now()
-		err = ctr.Start(ctx)
+		err = ctr.Start(ctx, false)
 		if err != nil {
 			return nil, err
 		}

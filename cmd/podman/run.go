@@ -72,7 +72,8 @@ func runCmd(c *cliconfig.RunValues) error {
 	ctx := getContext()
 	// Handle detached start
 	if createConfig.Detach {
-		if err := ctr.Start(ctx); err != nil {
+		// if the container was created as part of a pod, also start its dependencies, if any.
+		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
 			// This means the command did not exist
 			exitCode = 127
 			if strings.Index(err.Error(), "permission denied") > -1 {
@@ -117,7 +118,8 @@ func runCmd(c *cliconfig.RunValues) error {
 			}
 		}
 	}
-	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true); err != nil {
+	// if the container was created as part of a pod, also start its dependencies, if any.
+	if err := startAttachCtr(ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
@@ -125,7 +127,6 @@ func runCmd(c *cliconfig.RunValues) error {
 			exitCode = 0
 			return nil
 		}
-
 		// This means the command did not exist
 		exitCode = 127
 		if strings.Index(err.Error(), "permission denied") > -1 {
