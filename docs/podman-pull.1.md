@@ -45,6 +45,10 @@ Image stored in local container/storage
 
 ## OPTIONS
 
+**--all-tags, a**
+
+All tagged images in the repository will be pulled.
+
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
