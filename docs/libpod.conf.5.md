@@ -12,8 +12,11 @@ libpod to manage containers.
 **image_default_transport**=""
   Default transport method for pulling and pushing images
 
-**runtime_path**=""
-  Paths to search for a valid OCI runtime binary
+**runtime**=""
+  Default OCI runtime to use if nothing is specified
+
+**runtimes**
+  For each OCI runtime, specify a list of paths to look for.  The first one found is used.
 
 **conmon_path**=""
   Paths to search for the Conmon container manager binary

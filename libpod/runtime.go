@@ -130,6 +130,12 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
+	// RuntimePath is the path to OCI runtime binary for launching
+	// containers.
+	// The first path pointing to a valid file will be used
+	// This is used only when there are no OCIRuntime/OCIRuntimes defined.  It
+	// is used only to be backward compatible with older versions of Podman.
+	RuntimePath []string `toml:"runtime_path"`
 	// ConmonPath is the path to the Conmon binary used for managing
 	// containers
 	// The first path pointing to a valid file will be used
@@ -389,7 +395,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		// If the configuration file was not found but we are running in rootless, a subset of the
 		// global config file is used.
 		for _, path := range []string{OverrideConfigPath, ConfigPath} {
-			contents, err := ioutil.ReadFile(OverrideConfigPath)
+			contents, err := ioutil.ReadFile(path)
 			if err != nil {
 				// Ignore any error, the file might not be readable by us.
 				continue
@@ -403,6 +409,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			runtime.config.ConmonPath = tmpConfig.ConmonPath
 			runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
 			runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
+			runtime.config.RuntimePath = tmpConfig.RuntimePath
 			runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
 			runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
 			break
@@ -485,10 +492,25 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(runtime *Runtime) (err error) {
+
+	// Backward compatibility for `runtime_path`
+	if runtime.config.RuntimePath != nil {
+		// Don't print twice in rootless mode.
+		if os.Geteuid() == 0 {
+			logrus.Warningf("The configuration is using `runtime_path`, which is deprecated and will be removed in future.  Please use `runtimes` and `runtime`")
+			logrus.Warningf("If you are using both `runtime_path` and `runtime`, the configuration from `runtime_path` is used")
+		}
+
+		// Transform `runtime_path` into `runtimes` and `runtime`.
+		name := filepath.Base(runtime.config.RuntimePath[0])
+		runtime.config.OCIRuntime = name
+		runtime.config.OCIRuntimes = map[string][]string{name: runtime.config.RuntimePath}
+	}
+
 	// Find a working OCI runtime binary
 	foundRuntime := false
 	// If runtime is an absolute path, then use it as it is.
-	if runtime.config.OCIRuntime[0] == '/' {
+	if runtime.config.OCIRuntime != "" && runtime.config.OCIRuntime[0] == '/' {
 		foundRuntime = true
 		runtime.ociRuntimePath = OCIRuntimePath{Name: filepath.Base(runtime.config.OCIRuntime), Paths: []string{runtime.config.OCIRuntime}}
 	} else {
