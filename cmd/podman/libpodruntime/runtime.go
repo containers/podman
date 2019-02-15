@@ -48,7 +48,7 @@ func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
 	if c.Flags().Changed("storage-driver") {
 		storageOpts.GraphDriverName = c.GlobalFlags.StorageDriver
 	}
-	if c.Flags().Changed("storage-opt") {
+	if len(c.GlobalFlags.StorageOpts) > 0 {
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
 	}
 
