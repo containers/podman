@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
@@ -757,12 +758,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 			aliveLock.Unlock()
 		}
 	}()
-	// If we're renumbering locks, do it now.
-	// It breaks out of normal runtime init, and will not return a valid
-	// runtime.
-	if runtime.doRenumber {
-		return runtime.renumberLocks()
-	}
 
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
@@ -789,11 +784,30 @@ func makeRuntime(runtime *Runtime) (err error) {
 			if err != nil {
 				return err
 			}
+		} else if err == syscall.ERANGE && runtime.doRenumber {
+			// ERANGE indicates a lock numbering mismatch.
+			// Since we're renumbering, this is not fatal.
+			// Remove the earlier set of locks and recreate.
+			if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
+				return errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
+			}
+
+			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+			if err != nil {
+				return err
+			}
 		} else {
 			return err
 		}
 	}
 	runtime.lockManager = manager
+
+	// If we're renumbering locks, do it now.
+	// It breaks out of normal runtime init, and will not return a valid
+	// runtime.
+	if runtime.doRenumber {
+		return runtime.renumberLocks()
+	}
 
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.

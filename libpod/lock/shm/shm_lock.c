@@ -203,6 +203,8 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 // terminating NULL byte.
 // Returns a valid pointer on success or NULL on error.
 // If an error occurs, negative ERRNO values will be written to error_code.
+// ERANGE is returned for a mismatch between num_locks and the number of locks
+// available in the the SHM lock struct.
 shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   int shm_fd;
   shm_struct_t *shm;
@@ -255,11 +257,11 @@ shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 
   // Need to check the SHM to see if it's actually our locks
   if (shm->magic != MAGIC) {
-    *error_code = -1 * errno;
+    *error_code = -1 * EBADF;
     goto CLEANUP;
   }
   if (shm->num_locks != (num_bitmaps * BITMAP_SIZE)) {
-    *error_code = -1 * errno;
+    *error_code = -1 * ERANGE;
     goto CLEANUP;
   }
 
