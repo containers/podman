@@ -25,7 +25,8 @@ var (
 			exportCommand.GlobalFlags = MainGlobalOpts
 			return exportCmd(&exportCommand)
 		},
-		Example: "CONTAINER",
+		Example: `podman export ctrID > myCtr.tar
+  podman export --output="myCtr.tar" ctrID`,
 	}
 )
 

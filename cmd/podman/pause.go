@@ -28,7 +28,9 @@ var (
 			pauseCommand.GlobalFlags = MainGlobalOpts
 			return pauseCmd(&pauseCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman pause mywebserver
+  podman pause 860a4b23
+  podman stop -a`,
 	}
 )
 

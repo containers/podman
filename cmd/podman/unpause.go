@@ -29,7 +29,8 @@ var (
 			unpauseCommand.GlobalFlags = MainGlobalOpts
 			return unpauseCmd(&unpauseCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman unpause ctrID
+  podman unpause --all`,
 	}
 )
 

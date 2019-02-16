@@ -4,7 +4,7 @@
 podman\-exec - Execute a command in a running container
 
 ## SYNOPSIS
-**podman exec** *container* [*options*] [*command* [*arg* ...]]
+**podman exec** [*options*] *container* [*command* [*arg* ...]]
 
 ## DESCRIPTION
 **podman exec** executes a command in a running container.
@@ -45,6 +45,12 @@ Working directory inside the container
 The default working directory for running binaries within a container is the root directory (/).
 The image developer can set a different default with the WORKDIR instruction, which can be overridden
 when creating the container.
+
+## EXAMPLES
+
+$ podman exec -it ctrID ls
+$ podman exec -it -w /tmp myCtr pwd
+$ podman exec --user root ctrID ls
 
 ## SEE ALSO
 podman(1), podman-run(1)

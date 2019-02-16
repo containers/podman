@@ -46,7 +46,9 @@ var (
 			diffCommand.GlobalFlags = MainGlobalOpts
 			return diffCmd(&diffCommand)
 		},
-		Example: "ID-NAME",
+		Example: `podman diff imageID
+  podman diff ctrID
+  podman diff --format json redis:alpine`,
 	}
 )
 

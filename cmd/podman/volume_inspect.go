@@ -24,7 +24,9 @@ from JSON to a Go template.
 			volumeInspectCommand.GlobalFlags = MainGlobalOpts
 			return volumeInspectCmd(&volumeInspectCommand)
 		},
-		Example: "[VOLUME-NAME ...]",
+		Example: `podman volume inspect myvol
+  podman volume inspect --all
+  podman volume inspect --format "{{.Driver}} {{.Scope}}" myvol`,
 	}
 )
 

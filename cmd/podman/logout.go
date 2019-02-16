@@ -22,7 +22,9 @@ var (
 			logoutCommand.GlobalFlags = MainGlobalOpts
 			return logoutCmd(&logoutCommand)
 		},
-		Example: "REGISTRY",
+		Example: `podman logout docker.io
+  podman logout --authfile authdir/myauths.json docker.io
+  podman logout --all`,
 	}
 )
 

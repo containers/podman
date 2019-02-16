@@ -22,7 +22,9 @@ var (
 			attachCommand.GlobalFlags = MainGlobalOpts
 			return attachCmd(&attachCommand)
 		},
-		Example: "",
+		Example: `podman attach ctrID
+  podman attach 1234
+  podman attach --no-stdin foobar`,
 	}
 )
 

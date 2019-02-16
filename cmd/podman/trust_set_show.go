@@ -26,7 +26,7 @@ var (
 		Use:     "set",
 		Short:   "Set default trust policy or a new trust policy for a registry",
 		Long:    setTrustDescription,
-		Example: "default | REGISTRY[/REPOSITORY]",
+		Example: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setTrustCommand.InputArgs = args
 			setTrustCommand.GlobalFlags = MainGlobalOpts

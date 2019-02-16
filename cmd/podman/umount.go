@@ -31,7 +31,9 @@ An unmount can be forced with the --force flag.
 			umountCommand.GlobalFlags = MainGlobalOpts
 			return umountCmd(&umountCommand)
 		},
-		Example: "CONTAINER-NAME-OR-ID",
+		Example: `podman umount ctrID
+  podman umount ctrID1 ctrID2 ctrID3
+  podman umount --all`,
 	}
 )
 

@@ -29,7 +29,9 @@ var (
 			checkpointCommand.GlobalFlags = MainGlobalOpts
 			return checkpointCmd(&checkpointCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman checkpoint --keep ctrID
+  podman checkpoint --all
+  podman checkpoint --leave-running --latest`,
 	}
 )
 
