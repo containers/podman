@@ -30,7 +30,9 @@ var (
 			runCommand.GlobalFlags = MainGlobalOpts
 			return runCmd(&runCommand)
 		},
-		Example: "IMAGE [COMMAND [ARG...]]",
+		Example: `podman run imageID ls -alF /etc
+  podman run --net=host imageID dnf -y install java
+  podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 )
 

@@ -23,7 +23,9 @@ var (
 			rmiCommand.GlobalFlags = MainGlobalOpts
 			return rmiCmd(&rmiCommand)
 		},
-		Example: "IMAGE-NAME-OR-ID [...]",
+		Example: `podman rmi imageID
+  podman rmi --force alpine
+  podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 )
 

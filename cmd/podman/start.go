@@ -28,7 +28,9 @@ var (
 			startCommand.GlobalFlags = MainGlobalOpts
 			return startCmd(&startCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman start --latest
+  podman start 860a4b231279 5421ab43b45
+  podman start --interactive --attach imageID`,
 	}
 )
 

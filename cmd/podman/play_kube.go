@@ -37,7 +37,8 @@ var (
 			playKubeCommand.GlobalFlags = MainGlobalOpts
 			return playKubeYAMLCmd(&playKubeCommand)
 		},
-		Example: "Kubernetes YAML file",
+		Example: `podman play kube demo.yml
+  podman play kube --cert-dir /mycertsdir --tls-verify=true --quiet myWebPod`,
 	}
 )
 

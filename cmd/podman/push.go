@@ -34,7 +34,9 @@ var (
 			pushCommand.GlobalFlags = MainGlobalOpts
 			return pushCmd(&pushCommand)
 		},
-		Example: "IMAGE DESTINATION",
+		Example: `podman push imageID docker://registry.example.com/repository:tag
+  podman push imageID oci-archive:/path/to/layout:image:tag
+  podman push --authfile temp-auths/myauths.json alpine docker://docker.io/myrepo/alpine`,
 	}
 )
 
