@@ -309,4 +309,55 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run in pod starts infra", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"ps", "-aq"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		infraID := result.OutputToString()
+
+		result = podmanTest.Podman([]string{"run", "--pod", podID, "-d", ALPINE, "top"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"ps", "-aq"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+
+		Expect(result.OutputToString()).To(ContainSubstring(infraID))
+	})
+
+	It("podman start in pod starts infra", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"ps", "-aq"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		infraID := result.OutputToString()
+
+		result = podmanTest.Podman([]string{"create", "--pod", podID, ALPINE, "ls"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		ctrID := result.OutputToString()
+
+		result = podmanTest.Podman([]string{"start", ctrID})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"ps", "-aq"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+
+		Expect(result.OutputToString()).To(ContainSubstring(infraID))
+	})
 })

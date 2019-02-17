@@ -8,7 +8,7 @@ podman\-start - Start one or more containers
 
 ## DESCRIPTION
 Start one or more containers.  You may use container IDs or names as input.  The *attach* and *interactive*
-options cannot be used to override the *--tty** and *--interactive* options from when the container
+options cannot be used to override the *--tty* and *--interactive* options from when the container
 was created. If you attempt to start a running container with the *--attach* option, podman will simply
 attach to the container.
 
@@ -32,6 +32,7 @@ Attach container's STDIN. The default is false.
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
 
 **--sig-proxy**=*true*|*false*
 

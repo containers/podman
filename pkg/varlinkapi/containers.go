@@ -260,7 +260,7 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 	if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
 		return call.ReplyErrorOccurred("container is already running or paused")
 	}
-	if err := ctr.Start(getContext()); err != nil {
+	if err := ctr.Start(getContext(), false); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyStartContainer(ctr.ID())

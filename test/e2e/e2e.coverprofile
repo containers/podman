@@ -1,0 +1,11 @@
+mode: atomic
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:14.46,21.20 2 1
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:31.2,31.19 1 1
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:38.2,38.53 1 1
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:65.2,65.52 1 1
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:21.20,23.17 2 2
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:26.3,28.36 3 2
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:23.17,25.4 1 0
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:31.19,36.3 4 2
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:38.53,63.3 20 1
+github.com/containers/libpod/test/e2e/pod_pod_namespaces.go:65.52,90.3 20 1

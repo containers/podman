@@ -559,6 +559,149 @@ func (c *Container) save() error {
 	return nil
 }
 
+// Checks the container is in the right state, then initializes the container in preparation to start the container.
+// If recursive is true, each of the containers dependencies will be started.
+// Otherwise, this function will return with error if there are dependencies of this container that aren't running.
+func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err error) {
+	// Container must be created or stopped to be started
+	if !(c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateCreated ||
+		c.state.State == ContainerStateStopped ||
+		c.state.State == ContainerStateExited) {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+	}
+
+	if !recursive {
+		if err := c.checkDependenciesAndHandleError(ctx); err != nil {
+			return err
+		}
+	} else {
+		if err := c.startDependencies(ctx); err != nil {
+			return err
+		}
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+
+	if err := c.prepare(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
+		if err := c.reinit(ctx); err != nil {
+			return err
+		}
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Or initialize it if necessary
+		if err := c.init(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checks dependencies are running and prints a helpful message
+func (c *Container) checkDependenciesAndHandleError(ctx context.Context) error {
+	notRunning, err := c.checkDependenciesRunning()
+	if err != nil {
+		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
+	}
+	if len(notRunning) > 0 {
+		depString := strings.Join(notRunning, ",")
+		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
+	}
+
+	return nil
+}
+
+// Recursively start all dependencies of a container so the container can be started.
+func (c *Container) startDependencies(ctx context.Context) error {
+	depCtrIDs := c.Dependencies()
+	if len(depCtrIDs) == 0 {
+		return nil
+	}
+
+	depVisitedCtrs := make(map[string]*Container)
+	if err := c.getAllDependencies(depVisitedCtrs); err != nil {
+		return errors.Wrapf(err, "error starting dependency for container %s", c.ID())
+	}
+
+	// Because of how Go handles passing slices through functions, a slice cannot grow between function calls
+	// without clunky syntax. Circumnavigate this by translating the map to a slice for buildContainerGraph
+	depCtrs := make([]*Container, 0)
+	for _, ctr := range depVisitedCtrs {
+		depCtrs = append(depCtrs, ctr)
+	}
+
+	// Build a dependency graph of containers
+	graph, err := buildContainerGraph(depCtrs)
+	if err != nil {
+		return errors.Wrapf(err, "error generating dependency graph for container %s", c.ID())
+	}
+
+	ctrErrors := make(map[string]error)
+	// reset ctrsVisisted for next round of recursion
+	ctrsVisited := make(map[string]bool)
+
+	// If there are no containers without dependencies, we can't start
+	// Error out
+	if len(graph.noDepNodes) == 0 {
+		return errors.Wrapf(ErrNoSuchCtr, "All dependencies have dependencies of %s", c.ID())
+	}
+
+	// Traverse the graph beginning at nodes with no dependencies
+	for _, node := range graph.noDepNodes {
+		startNode(ctx, node, false, ctrErrors, ctrsVisited, true)
+	}
+
+	if len(ctrErrors) > 0 {
+		logrus.Errorf("error starting some container dependencies")
+		for _, e := range ctrErrors {
+			logrus.Errorf("%q", e)
+		}
+		return errors.Wrapf(ErrInternal, "error starting some containers")
+	}
+	return nil
+}
+
+// getAllDependencies is a precursor to starting dependencies.
+// To start a container with all of its dependencies, we need to recursively find all dependencies
+// a container has, as well as each of those containers' dependencies, and so on
+// To do so, keep track of containers already visisted (so there aren't redundant state lookups),
+// and recursively search until we have reached the leafs of every dependency node.
+// Since we need to start all dependencies for our original container to successfully start, we propegate any errors
+// in looking up dependencies.
+// Note: this function is currently meant as a robust solution to a narrow problem: start an infra-container when
+// a container in the pod is run. It has not been tested for performance past one level, so expansion of recursive start
+// must be tested first.
+func (c *Container) getAllDependencies(visited map[string]*Container) error {
+	depIDs := c.Dependencies()
+	if len(depIDs) == 0 {
+		return nil
+	}
+	for _, depID := range depIDs {
+		if _, ok := visited[depID]; !ok {
+			dep, err := c.runtime.state.LookupContainer(depID)
+			if err != nil {
+				return err
+			}
+			visited[depID] = dep
+			if err := dep.getAllDependencies(visited); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Check if a container's dependencies are running
 // Returns a []string containing the IDs of dependencies that are not running
 func (c *Container) checkDependenciesRunning() ([]string, error) {
