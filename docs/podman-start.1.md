@@ -42,9 +42,9 @@ Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and
 
 podman start mywebserver
 
-podman start 860a4b23 5421ab4
+podman start 860a4b231279 5421ab43b45
 
-podman start -i -a 860a4b23
+podman start --interactive --attach 860a4b231279
 
 podman start -i -l
 

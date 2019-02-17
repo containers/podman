@@ -32,11 +32,11 @@ Timeout to wait before forcibly stopping the container
 
 podman stop mywebserver
 
-podman stop 860a4b23
+podman stop 860a4b235279
 
-podman stop mywebserver 860a4b23
+podman stop mywebserver 860a4b235279
 
-podman stop --timeout 2 860a4b23
+podman stop --timeout 2 860a4b235279
 
 podman stop -a
 

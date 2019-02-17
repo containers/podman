@@ -31,7 +31,9 @@ var (
 			stopCommand.GlobalFlags = MainGlobalOpts
 			return stopCmd(&stopCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman stop ctrID
+  podman stop --latest
+  podman stop --timeout 2 mywebserver 6e534f14da9d`,
 	}
 )
 

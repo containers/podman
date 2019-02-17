@@ -40,7 +40,9 @@ var (
 			buildCommand.NameSpaceResults = &namespaceValues
 			return buildCmd(&buildCommand)
 		},
-		Example: "CONTEXT-DIRECTORY | URL",
+		Example: `podman build .
+  podman build --cert-dir ~/auth --creds=username:password -t imageName -f Dockerfile.simple .
+  podman build --layers --force-rm --tag imageName .`,
 	}
 )
 

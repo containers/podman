@@ -36,7 +36,9 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 			pullCommand.GlobalFlags = MainGlobalOpts
 			return pullCmd(&pullCommand)
 		},
-		Example: "",
+		Example: `podman pull imageName
+  podman pull --cert-dir image/certs --authfile temp-auths/myauths.json docker://docker.io/myrepo/finaltest
+  podman pull fedora:latest`,
 	}
 )
 

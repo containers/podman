@@ -28,7 +28,9 @@ Running containers will not be removed without the -f option.
 			rmCommand.GlobalFlags = MainGlobalOpts
 			return rmCmd(&rmCommand)
 		},
-		Example: "",
+		Example: `podman rm imageID
+  podman rm mywebserver myflaskserver 860a4b23
+  podman rm --force --all`,
 	}
 )
 
