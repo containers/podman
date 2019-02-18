@@ -82,6 +82,11 @@ libpod to manage containers.
 **label**="true|false"
   Indicates whether the containers should use label separation.
 
+**num_locks**=""
+  Number of locks available for containers and pods. Each created container or pod consumes one lock.
+  The default number available is 2048.
+  If this is changed, a lock renumbering must be performed, using the `podman system renumber` command.
+
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path
 
