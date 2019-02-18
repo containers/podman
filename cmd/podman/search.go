@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
@@ -15,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -164,7 +166,7 @@ func getRegistries(registry string) ([]string, error) {
 	return registries, nil
 }
 
-func getSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
+func getSearchOutput(term string, registry string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if opts.limit != 0 {
@@ -173,72 +175,102 @@ func getSearchOutput(term string, registries []string, opts searchOpts, filter s
 
 	sc := common.GetSystemContext("", opts.authfile, false)
 	sc.DockerInsecureSkipTLSVerify = opts.insecureSkipTLSVerify
-	sc.SystemRegistriesConfPath = sysreg.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
-	var paramsArr []searchParams
-	for _, reg := range registries {
-		results, err := docker.SearchRegistry(context.TODO(), sc, reg, term, limit)
-		if err != nil {
-			logrus.Errorf("error searching registry %q: %v", reg, err)
-			continue
-		}
-		index := reg
-		arr := strings.Split(reg, ".")
-		if len(arr) > 2 {
-			index = strings.Join(arr[len(arr)-2:], ".")
-		}
+	// FIXME: Set this more globally.  Probably no reason not to have it in
+	// every types.SystemContext, and to compute the value just once in one
+	// place.
+	sc.SystemRegistriesConfPath = sysreg.SystemRegistriesConfPath()
+	results, err := docker.SearchRegistry(context.TODO(), sc, registry, term, limit)
+	if err != nil {
+		logrus.Errorf("error searching registry %q: %v", registry, err)
+		return []searchParams{}, nil
+	}
+	index := registry
+	arr := strings.Split(registry, ".")
+	if len(arr) > 2 {
+		index = strings.Join(arr[len(arr)-2:], ".")
+	}
 
-		// limit is the number of results to output
-		// if the total number of results is less than the limit, output all
-		// if the limit has been set by the user, output those number of queries
-		limit := maxQueries
-		if len(results) < limit {
-			limit = len(results)
-		}
-		if opts.limit != 0 && opts.limit < len(results) {
-			limit = opts.limit
-		}
+	// limit is the number of results to output
+	// if the total number of results is less than the limit, output all
+	// if the limit has been set by the user, output those number of queries
+	limit = maxQueries
+	if len(results) < limit {
+		limit = len(results)
+	}
+	if opts.limit != 0 && opts.limit < len(results) {
+		limit = opts.limit
+	}
 
-		for i := 0; i < limit; i++ {
-			if len(opts.filter) > 0 {
-				// Check whether query matches filters
-				if !(matchesAutomatedFilter(filter, results[i]) && matchesOfficialFilter(filter, results[i]) && matchesStarFilter(filter, results[i])) {
-					continue
-				}
+	paramsArr := []searchParams{}
+	for i := 0; i < limit; i++ {
+		if len(opts.filter) > 0 {
+			// Check whether query matches filters
+			if !(matchesAutomatedFilter(filter, results[i]) && matchesOfficialFilter(filter, results[i]) && matchesStarFilter(filter, results[i])) {
+				continue
 			}
-			official := ""
-			if results[i].IsOfficial {
-				official = "[OK]"
-			}
-			automated := ""
-			if results[i].IsAutomated {
-				automated = "[OK]"
-			}
-			description := strings.Replace(results[i].Description, "\n", " ", -1)
-			if len(description) > 44 && !opts.noTrunc {
-				description = description[:descriptionTruncLength] + "..."
-			}
-			name := reg + "/" + results[i].Name
-			if index == "docker.io" && !strings.Contains(results[i].Name, "/") {
-				name = index + "/library/" + results[i].Name
-			}
-			params := searchParams{
-				Index:       index,
-				Name:        name,
-				Description: description,
-				Official:    official,
-				Automated:   automated,
-				Stars:       results[i].StarCount,
-			}
-			paramsArr = append(paramsArr, params)
 		}
+		official := ""
+		if results[i].IsOfficial {
+			official = "[OK]"
+		}
+		automated := ""
+		if results[i].IsAutomated {
+			automated = "[OK]"
+		}
+		description := strings.Replace(results[i].Description, "\n", " ", -1)
+		if len(description) > 44 && !opts.noTrunc {
+			description = description[:descriptionTruncLength] + "..."
+		}
+		name := registry + "/" + results[i].Name
+		if index == "docker.io" && !strings.Contains(results[i].Name, "/") {
+			name = index + "/library/" + results[i].Name
+		}
+		params := searchParams{
+			Index:       index,
+			Name:        name,
+			Description: description,
+			Official:    official,
+			Automated:   automated,
+			Stars:       results[i].StarCount,
+		}
+		paramsArr = append(paramsArr, params)
 	}
 	return paramsArr, nil
 }
 
 func generateSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) error {
-	searchOutput, err := getSearchOutput(term, registries, opts, filter)
-	if err != nil {
-		return err
+	// searchOutputData is used as a return value for searching in parallel.
+	type searchOutputData struct {
+		data []searchParams
+		err  error
+	}
+
+	// Let's follow Firefox by limiting parallel downloads to 6.
+	sem := semaphore.NewWeighted(6)
+	wg := sync.WaitGroup{}
+	wg.Add(len(registries))
+	data := make([]searchOutputData, len(registries))
+
+	getSearchOutputHelper := func(index int, registry string) {
+		defer sem.Release(1)
+		defer wg.Done()
+		searchOutput, err := getSearchOutput(term, registry, opts, filter)
+		data[index] = searchOutputData{data: searchOutput, err: err}
+	}
+
+	ctx := context.Background()
+	for i := range registries {
+		sem.Acquire(ctx, 1)
+		go getSearchOutputHelper(i, registries[i])
+	}
+
+	wg.Wait()
+	searchOutput := []searchParams{}
+	for _, d := range data {
+		if d.err != nil {
+			return d.err
+		}
+		searchOutput = append(searchOutput, d.data...)
 	}
 	if len(searchOutput) == 0 {
 		return nil
