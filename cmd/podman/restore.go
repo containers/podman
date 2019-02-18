@@ -29,7 +29,9 @@ var (
 			restoreCommand.GlobalFlags = MainGlobalOpts
 			return restoreCmd(&restoreCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman container restore ctrID
+  podman container restore --latest
+  podman container restore --all`,
 	}
 )
 

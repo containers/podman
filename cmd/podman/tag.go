@@ -20,7 +20,9 @@ var (
 			tagCommand.GlobalFlags = MainGlobalOpts
 			return tagCmd(&tagCommand)
 		},
-		Example: "IMAGE-NAME [IMAGE-NAME ...]",
+		Example: `podman tag 0e3bbc2 fedora:latest
+  podman tag imageID:latest myNewImage:newTag
+  podman tag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 )
 

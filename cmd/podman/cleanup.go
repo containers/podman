@@ -26,7 +26,9 @@ var (
 			cleanupCommand.GlobalFlags = MainGlobalOpts
 			return cleanupCmd(&cleanupCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman container cleanup --latest
+  podman container cleanup ctrID1 ctrID2 ctrID3
+  podman container cleanup --all`,
 	}
 )
 

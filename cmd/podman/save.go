@@ -41,7 +41,9 @@ var (
 			saveCommand.GlobalFlags = MainGlobalOpts
 			return saveCmd(&saveCommand)
 		},
-		Example: "",
+		Example: `podman save --quiet -o myimage.tar imageID
+  podman save --format docker-dir -o ubuntu-dir ubuntu
+  podman save > alpine-all.tar alpine:latest`,
 	}
 )
 

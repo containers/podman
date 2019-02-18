@@ -36,7 +36,9 @@ var (
 			searchCommand.GlobalFlags = MainGlobalOpts
 			return searchCmd(&searchCommand)
 		},
-		Example: "TERM",
+		Example: `podman search --filter=is-official --limit 3 alpine
+  podman search registry.fedoraproject.org/  # only works with v2 registries
+  podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 )
 

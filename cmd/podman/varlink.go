@@ -32,7 +32,8 @@ var (
 			varlinkCommand.GlobalFlags = MainGlobalOpts
 			return varlinkCmd(&varlinkCommand)
 		},
-		Example: "VARLINK_URI",
+		Example: `podman varlink unix:/run/podman/io.podman
+  podman varlink --timeout 5000 unix:/run/podman/io.podman`,
 	}
 )
 

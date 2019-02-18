@@ -26,7 +26,9 @@ var (
 			restartCommand.GlobalFlags = MainGlobalOpts
 			return restartCmd(&restartCommand)
 		},
-		Example: "CONTAINER [CONTAINER ...]",
+		Example: `podman restart ctrID
+  podman restart --latest
+  podman restart ctrID1 ctrID2`,
 	}
 )
 
