@@ -24,8 +24,19 @@ type Manager interface {
 	// The underlying lock MUST be the same as another other lock with the
 	// same UUID.
 	RetrieveLock(id uint32) (Locker, error)
+	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// FreeAllLocks frees all allocated locks, in preparation for lock
 	// reallocation.
+	// As this deallocates all presently-held locks, this can be very
+	// dangerous - if there are other processes running that might be
+	// attempting to allocate new locks and free existing locks, we may
+	// encounter races leading to an inconsistent state.
+	// (This is in addition to the fact that FreeAllLocks instantly makes
+	// the state inconsistent simply by using it, and requires a full
+	// lock renumbering to restore consistency!).
+	// In short, this should only be used as part of unit tests, or lock
+	// renumbering, where reasonable guarantees about other processes can be
+	// made.
 	FreeAllLocks() error
 }
 

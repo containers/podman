@@ -394,14 +394,10 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
-// WithRenumber instructs libpod to perform a lock renumbering instead of a
-// normal init.
-// When this is specified, no valid runtime will be returned by NewRuntime.
-// Instead, libpod will reinitialize lock numbers on all pods and containers,
-// shut down the runtime, and return.
-// Renumber is intended to be used from a dedicated entrypoint, where it will
-// handle a changed maximum number of locks and return, with the program
-// exiting after that.
+// WithRenumber instructs libpod to perform a lock renumbering while
+// initializing. This will handle migrations from early versions of libpod with
+// file locks to newer versions with SHM locking, as well as changes in the
+// number of configured locks.
 func WithRenumber() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {

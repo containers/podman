@@ -12,7 +12,8 @@ var (
 	renumberDescription = `
         podman system renumber
 
-        Migrate lock numbers to handle a change in maximum number of locks
+        Migrate lock numbers to handle a change in maximum number of locks.
+        Mandatory after the number of locks in libpod.conf is changed.
 `
 
 	_renumberCommand = &cobra.Command{
@@ -34,10 +35,14 @@ func init() {
 
 func renumberCmd(c *cliconfig.SystemRenumberValues) error {
 	// We need to pass one extra option to NewRuntime.
-	// This will inform the OCI runtime to start
-	_, err := libpodruntime.GetRuntimeRenumber(&c.PodmanCommand)
+	// This will inform the OCI runtime to start a renumber.
+	// That's controlled by the last argument to GetRuntime.
+	r, err := libpodruntime.GetRuntimeRenumber(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error renumbering locks")
+	}
+	if err := r.Shutdown(false); err != nil {
+		return err
 	}
 
 	return nil

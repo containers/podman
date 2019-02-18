@@ -95,8 +95,16 @@ type Runtime struct {
 	lockManager     lock.Manager
 	configuredFrom  *runtimeConfiguredFrom
 
+	// doRenumber indicates that the runtime should perform a lock renumber
+	// during initialization.
+	// Once the runtime has been initialized and returned, this variable is
+	// unused.
 	doRenumber bool
 
+	// valid indicates whether the runtime is ready to use.
+	// valid is set to true when a runtime is returned from GetRuntime(),
+	// and remains true until the runtime is shut down (rendering its
+	// storage unusable). When valid is false, the runtime cannot be used.
 	valid bool
 	lock  sync.RWMutex
 }
@@ -784,7 +792,9 @@ func makeRuntime(runtime *Runtime) (err error) {
 			if err != nil {
 				return err
 			}
-		} else if err == syscall.ERANGE && runtime.doRenumber {
+		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+			logrus.Debugf("Number of locks does not match - removing old locks")
+
 			// ERANGE indicates a lock numbering mismatch.
 			// Since we're renumbering, this is not fatal.
 			// Remove the earlier set of locks and recreate.
@@ -806,7 +816,9 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// It breaks out of normal runtime init, and will not return a valid
 	// runtime.
 	if runtime.doRenumber {
-		return runtime.renumberLocks()
+		if err := runtime.renumberLocks(); err != nil {
+			return err
+		}
 	}
 
 	// If we need to refresh the state, do it now - things are guaranteed to

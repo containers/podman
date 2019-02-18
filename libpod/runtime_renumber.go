@@ -6,9 +6,6 @@ import (
 
 // renumberLocks reassigns lock numbers for all containers and pods in the
 // state.
-// It renders the runtime it is called on, and all container/pod/volume structs
-// from that runtime, unusable, and requires that a new runtime be initialized
-// after it is called.
 // TODO: It would be desirable to make it impossible to call this until all
 // other libpod sessions are dead.
 // Possibly use a read-write file lock, with all non-renumber podmans owning the
@@ -56,5 +53,5 @@ func (r *Runtime) renumberLocks() error {
 		}
 	}
 
-	return r.Shutdown(false)
+	return nil
 }
