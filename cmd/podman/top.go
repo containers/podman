@@ -42,7 +42,9 @@ the latest container.
 			topCommand.GlobalFlags = MainGlobalOpts
 			return topCmd(&topCommand)
 		},
-		Example: "CONTAINER-NAME [format descriptors]",
+		Example: `podman top ctrID
+  podman top --latest
+  podman top ctrID pid seccomp args %C`,
 	}
 )
 

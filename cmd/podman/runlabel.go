@@ -31,7 +31,9 @@ Executes a command as described by a container image label.
 			runlabelCommand.GlobalFlags = MainGlobalOpts
 			return runlabelCmd(&runlabelCommand)
 		},
-		Example: "",
+		Example: `podman container runlabel run imageID
+  podman container runlabel --pull install imageID arg1 arg2
+  podman container runlabel --display run myImage`,
 	}
 )
 
@@ -49,7 +51,7 @@ func init() {
 	flags.StringVar(&runlabelCommand.Opt2, "opt2", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt3, "opt3", "", "Optional parameter to pass for install")
 	flags.MarkHidden("opt1")
-	flags.MarkHidden("opt3")
+	flags.MarkHidden("opt2")
 	flags.MarkHidden("opt3")
 
 	flags.BoolVarP(&runlabelCommand.Pull, "pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")

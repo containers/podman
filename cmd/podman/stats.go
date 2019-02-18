@@ -41,7 +41,9 @@ var (
 			statsCommand.GlobalFlags = MainGlobalOpts
 			return statsCmd(&statsCommand)
 		},
-		Example: "",
+		Example: `podman stats --all --no-stream
+  podman stats ctrID
+  podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
 	}
 )
 
