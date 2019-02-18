@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
@@ -58,6 +59,21 @@ func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyGetContainer(makeListContainer(ctr.ID(), batchInfo))
+}
+
+// GetContainersByContext returns a slice of container ids based on all, latest, or a list
+func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
+	var ids []string
+
+	ctrs, err := shortcuts.GetContainersByContext(all, latest, input, i.Runtime)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	for _, c := range ctrs {
+		ids = append(ids, c.ID())
+	}
+	return call.ReplyGetContainersByContext(ids)
 }
 
 // InspectContainer ...

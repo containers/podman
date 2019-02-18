@@ -459,6 +459,11 @@ method ListContainers() -> (containers: []Container)
 # [InspectContainer](#InspectContainer).
 method GetContainer(id: string) -> (container: Container)
 
+# GetContainersByContext allows you to get a list of container ids depending on all, latest, or a list of
+# container names.  The definition of latest container means the latest by creation date.  In a multi-
+# user environment, results might differ from what you expect.
+method GetContainersByContext(all: bool, latest: bool, args: []string) -> (containers: []string)
+
 # CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
 # input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
 # error will be returned.  Otherwise, the ID of the newly created container will be returned.

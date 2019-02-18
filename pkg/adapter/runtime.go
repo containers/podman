@@ -108,15 +108,6 @@ func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, for
 	return r.Runtime.RemoveImage(ctx, img.Image, force)
 }
 
-// LookupContainer ...
-func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
-	ctr, err := r.Runtime.LookupContainer(idOrName)
-	if err != nil {
-		return nil, err
-	}
-	return &Container{ctr}, nil
-}
-
 // PruneImages is wrapper into PruneImages within the image pkg
 func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
 	return r.ImageRuntime().PruneImages(all)

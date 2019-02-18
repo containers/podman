@@ -43,6 +43,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
 
+[func GetContainersByContext(all: bool, latest: bool, args: []string) []string](#GetContainersByContext)
+
 [func GetImage(id: string) Image](#GetImage)
 
 [func GetInfo() PodmanInfo](#GetInfo)
@@ -460,6 +462,13 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name
   }
 }
 ~~~
+### <a name="GetContainersByContext"></a>func GetContainersByContext
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetContainersByContext(all: [bool](https://godoc.org/builtin#bool), latest: [bool](https://godoc.org/builtin#bool), args: [[]string](#[]string)) [[]string](#[]string)</div>
+GetContainersByContext allows you to get a list of container ids depending on all, latest, or a list of
+container names.  The definition of latest container means the latest by creation date.  In a multi-
+user environment, results might differ from what you expect.
 ### <a name="GetImage"></a>func GetImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
