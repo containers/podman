@@ -1,22 +1,14 @@
 package main
 
 import (
-	"context"
-	"reflect"
-	"strconv"
 	"strings"
-	"sync"
 
-	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/libpod/common"
-	sysreg "github.com/containers/libpod/pkg/registries"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -56,30 +48,6 @@ func init() {
 	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
 }
 
-type searchParams struct {
-	Index       string
-	Name        string
-	Description string
-	Stars       int
-	Official    string
-	Automated   string
-}
-
-type searchOpts struct {
-	filter                []string
-	limit                 int
-	noTrunc               bool
-	format                string
-	authfile              string
-	insecureSkipTLSVerify types.OptionalBool
-}
-
-type searchFilterParams struct {
-	stars       int
-	isAutomated *bool
-	isOfficial  *bool
-}
-
 func searchCmd(c *cliconfig.SearchValues) error {
 	args := c.InputArgs
 	if len(args) > 1 {
@@ -90,37 +58,24 @@ func searchCmd(c *cliconfig.SearchValues) error {
 	}
 	term := args[0]
 
-	// Check if search term has a registry in it
-	registry, err := sysreg.GetRegistry(term)
-	if err != nil {
-		return errors.Wrapf(err, "error getting registry from %q", term)
-	}
-	if registry != "" {
-		term = term[len(registry)+1:]
-	}
-
-	format := genSearchFormat(c.Format)
-	opts := searchOpts{
-		format:   format,
-		noTrunc:  c.NoTrunc,
-		limit:    c.Limit,
-		filter:   c.Filter,
-		authfile: getAuthFile(c.Authfile),
+	searchOptions := image.SearchOptions{
+		NoTrunc:  c.NoTrunc,
+		Limit:    c.Limit,
+		Filter:   c.Filter,
+		Authfile: getAuthFile(c.Authfile),
 	}
 	if c.Flag("tls-verify").Changed {
-		opts.insecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
+		searchOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
-	registries, err := getRegistries(registry)
+
+	results, err := image.SearchImages(term, searchOptions)
 	if err != nil {
 		return err
 	}
-
-	filter, err := parseSearchFilter(&opts)
-	if err != nil {
-		return err
-	}
-
-	return generateSearchOutput(term, registries, opts, *filter)
+	format := genSearchFormat(c.Format)
+	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: results[0].HeaderMap()}
+	formats.Writer(out).Out()
+	return nil
 }
 
 func genSearchFormat(format string) string {
@@ -132,205 +87,9 @@ func genSearchFormat(format string) string {
 	return "table {{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\t"
 }
 
-func searchToGeneric(params []searchParams) (genericParams []interface{}) {
+func searchToGeneric(params []image.SearchResult) (genericParams []interface{}) {
 	for _, v := range params {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return genericParams
-}
-
-func (s *searchParams) headerMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(s))
-	values := make(map[string]string, v.NumField())
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
-}
-
-// getRegistries returns the list of registries to search, depending on an optional registry specification
-func getRegistries(registry string) ([]string, error) {
-	var registries []string
-	if registry != "" {
-		registries = append(registries, registry)
-	} else {
-		var err error
-		registries, err = sysreg.GetRegistries()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting registries to search")
-		}
-	}
-	return registries, nil
-}
-
-func getSearchOutput(term string, registry string, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
-	// Max number of queries by default is 25
-	limit := maxQueries
-	if opts.limit != 0 {
-		limit = opts.limit
-	}
-
-	sc := common.GetSystemContext("", opts.authfile, false)
-	sc.DockerInsecureSkipTLSVerify = opts.insecureSkipTLSVerify
-	// FIXME: Set this more globally.  Probably no reason not to have it in
-	// every types.SystemContext, and to compute the value just once in one
-	// place.
-	sc.SystemRegistriesConfPath = sysreg.SystemRegistriesConfPath()
-	results, err := docker.SearchRegistry(context.TODO(), sc, registry, term, limit)
-	if err != nil {
-		logrus.Errorf("error searching registry %q: %v", registry, err)
-		return []searchParams{}, nil
-	}
-	index := registry
-	arr := strings.Split(registry, ".")
-	if len(arr) > 2 {
-		index = strings.Join(arr[len(arr)-2:], ".")
-	}
-
-	// limit is the number of results to output
-	// if the total number of results is less than the limit, output all
-	// if the limit has been set by the user, output those number of queries
-	limit = maxQueries
-	if len(results) < limit {
-		limit = len(results)
-	}
-	if opts.limit != 0 && opts.limit < len(results) {
-		limit = opts.limit
-	}
-
-	paramsArr := []searchParams{}
-	for i := 0; i < limit; i++ {
-		if len(opts.filter) > 0 {
-			// Check whether query matches filters
-			if !(matchesAutomatedFilter(filter, results[i]) && matchesOfficialFilter(filter, results[i]) && matchesStarFilter(filter, results[i])) {
-				continue
-			}
-		}
-		official := ""
-		if results[i].IsOfficial {
-			official = "[OK]"
-		}
-		automated := ""
-		if results[i].IsAutomated {
-			automated = "[OK]"
-		}
-		description := strings.Replace(results[i].Description, "\n", " ", -1)
-		if len(description) > 44 && !opts.noTrunc {
-			description = description[:descriptionTruncLength] + "..."
-		}
-		name := registry + "/" + results[i].Name
-		if index == "docker.io" && !strings.Contains(results[i].Name, "/") {
-			name = index + "/library/" + results[i].Name
-		}
-		params := searchParams{
-			Index:       index,
-			Name:        name,
-			Description: description,
-			Official:    official,
-			Automated:   automated,
-			Stars:       results[i].StarCount,
-		}
-		paramsArr = append(paramsArr, params)
-	}
-	return paramsArr, nil
-}
-
-func generateSearchOutput(term string, registries []string, opts searchOpts, filter searchFilterParams) error {
-	// searchOutputData is used as a return value for searching in parallel.
-	type searchOutputData struct {
-		data []searchParams
-		err  error
-	}
-
-	// Let's follow Firefox by limiting parallel downloads to 6.
-	sem := semaphore.NewWeighted(6)
-	wg := sync.WaitGroup{}
-	wg.Add(len(registries))
-	data := make([]searchOutputData, len(registries))
-
-	getSearchOutputHelper := func(index int, registry string) {
-		defer sem.Release(1)
-		defer wg.Done()
-		searchOutput, err := getSearchOutput(term, registry, opts, filter)
-		data[index] = searchOutputData{data: searchOutput, err: err}
-	}
-
-	ctx := context.Background()
-	for i := range registries {
-		sem.Acquire(ctx, 1)
-		go getSearchOutputHelper(i, registries[i])
-	}
-
-	wg.Wait()
-	searchOutput := []searchParams{}
-	for _, d := range data {
-		if d.err != nil {
-			return d.err
-		}
-		searchOutput = append(searchOutput, d.data...)
-	}
-	if len(searchOutput) == 0 {
-		return nil
-	}
-	out := formats.StdoutTemplateArray{Output: searchToGeneric(searchOutput), Template: opts.format, Fields: searchOutput[0].headerMap()}
-	return formats.Writer(out).Out()
-}
-
-func parseSearchFilter(opts *searchOpts) (*searchFilterParams, error) {
-	filterParams := &searchFilterParams{}
-	ptrTrue := true
-	ptrFalse := false
-	for _, filter := range opts.filter {
-		arr := strings.Split(filter, "=")
-		switch arr[0] {
-		case "stars":
-			if len(arr) < 2 {
-				return nil, errors.Errorf("invalid `stars` filter %q, should be stars=<value>", filter)
-			}
-			stars, err := strconv.Atoi(arr[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
-			}
-			filterParams.stars = stars
-			break
-		case "is-automated":
-			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isAutomated = &ptrFalse
-			} else {
-				filterParams.isAutomated = &ptrTrue
-			}
-			break
-		case "is-official":
-			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isOfficial = &ptrFalse
-			} else {
-				filterParams.isOfficial = &ptrTrue
-			}
-			break
-		default:
-			return nil, errors.Errorf("invalid filter type %q", filter)
-		}
-	}
-	return filterParams, nil
-}
-
-func matchesStarFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	return result.StarCount >= filter.stars
-}
-
-func matchesAutomatedFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	if filter.isAutomated != nil {
-		return result.IsAutomated == *filter.isAutomated
-	}
-	return true
-}
-
-func matchesOfficialFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	if filter.isOfficial != nil {
-		return result.IsOfficial == *filter.isOfficial
-	}
-	return true
 }

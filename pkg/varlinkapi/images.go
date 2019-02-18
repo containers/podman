@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/image/docker"
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/transports/alltransports"
@@ -22,7 +21,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
@@ -437,53 +435,26 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 // SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
 func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, tlsVerify *bool) error {
-	sc := image.GetSystemContext("", "", false)
-	if tlsVerify != nil {
-		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*tlsVerify)
+	searchOptions := image.SearchOptions{
+		Limit:                 1000,
+		InsecureSkipTLSVerify: types.NewOptionalBool(!*tlsVerify),
 	}
-	var registries []string
-
-	// Check if search query has a registry in it
-	registry, err := sysreg.GetRegistry(query)
+	results, err := image.SearchImages(query, searchOptions)
 	if err != nil {
-		return call.ReplyErrorOccurred(fmt.Sprintf("error getting registry from %q: %q", query, err))
+		return call.ReplyErrorOccurred(err.Error())
 	}
-	if registry != "" {
-		registries = append(registries, registry)
-		query = query[len(registry)+1:]
-	} else {
-		registries, err = sysreg.GetRegistries()
-		if err != nil {
-			return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
-		}
-	}
+
 	var imageResults []iopodman.ImageSearchResult
-	for _, reg := range registries {
-		var lim = 1000
-		if limit != nil {
-			lim = int(*limit)
+	for _, result := range results {
+		i := iopodman.ImageSearchResult{
+			Registry:     result.Index,
+			Description:  result.Description,
+			Is_official:  result.Official == "[OK]",
+			Is_automated: result.Automated == "[OK]",
+			Name:         result.Name,
+			Star_count:   int64(result.Stars),
 		}
-		results, err := docker.SearchRegistry(getContext(), sc, reg, query, lim)
-		if err != nil {
-			// If we are searching multiple registries, don't make something like an
-			// auth error fatal. Unfortunately we cannot differentiate between auth
-			// errors and other possibles errors
-			if len(registries) > 1 {
-				continue
-			}
-			return call.ReplyErrorOccurred(err.Error())
-		}
-		for _, result := range results {
-			i := iopodman.ImageSearchResult{
-				Registry:     reg,
-				Description:  result.Description,
-				Is_official:  result.IsOfficial,
-				Is_automated: result.IsAutomated,
-				Name:         result.Name,
-				Star_count:   int64(result.StarCount),
-			}
-			imageResults = append(imageResults, i)
-		}
+		imageResults = append(imageResults, i)
 	}
 	return call.ReplySearchImages(imageResults)
 }
