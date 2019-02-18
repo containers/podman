@@ -4,7 +4,9 @@
 # e.g for names see libpod_images.yml
 
 PACKER_VER ?= 1.3.2
-PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_amd64.zip
+GOARCH=$(shell go env GOARCH)
+ARCH=$(uname -m)
+PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
 
 # Only needed for libpod_base_images target
 TIMESTAMP := $(shell date +%s)
@@ -30,7 +32,7 @@ ${PACKER_DIST_FILENAME}:
 packer: ${PACKER_DIST_FILENAME}
 	@curl -L --silent --show-error \
 		https://releases.hashicorp.com/packer/${PACKER_VER}/packer_${PACKER_VER}_SHA256SUMS \
-		| grep 'linux_amd64' > /tmp/packer_sha256sums
+		| grep linux_${GOARCH} > /tmp/packer_sha256sums
 	@sha256sum --check /tmp/packer_sha256sums
 	@unzip -o ${PACKER_DIST_FILENAME}
 	@touch --reference=Makefile ${PACKER_DIST_FILENAME}
@@ -93,7 +95,7 @@ endif
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
-		-var RHEL_BASE_IMAGE_NAME=$(shell basename $(RHEL_IMAGE_FILE) | tr -d '[[:space:]]' | sed -r -e 's/\.x86_64\.raw\.xz//' | tr '[[:upper:]]' '[[:lower:]]' | tr '[[:punct:]]' '-') \
+		-var RHEL_BASE_IMAGE_NAME=$(shell basename $(RHEL_IMAGE_FILE) | tr -d '[[:space:]]' | sed -r -e 's/\.${ARCH}\.raw\.xz//' | tr '[[:upper:]]' '[[:lower:]]' | tr '[[:punct:]]' '-') \
 		-var RHEL_IMAGE_FILE=$(RHEL_IMAGE_FILE) \
 		-var RHEL_CSUM_FILE=$(RHEL_CSUM_FILE) \
 	    -var 'RHSM_COMMAND=$(RHSM_COMMAND)' \
