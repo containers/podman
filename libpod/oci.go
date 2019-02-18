@@ -261,6 +261,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
 	}
+	// TODO exit command formatted here, maybe restart delay needs to go here?
 	if len(ctr.config.ExitCommand) > 0 {
 		args = append(args, "--exit-command", ctr.config.ExitCommand[0])
 		for _, arg := range ctr.config.ExitCommand[1:] {

@@ -246,6 +246,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Read in a file of environment variables",
 	)
 	createFlags.StringSlice(
+		"exit-command", []string{},
+		"Command to execute when container exits",
+	)
+	createFlags.StringSlice(
 		"expose", []string{},
 		"Expose a port or a range of ports (default [])",
 	)

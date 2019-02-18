@@ -711,6 +711,7 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		DNSServers:        c.StringSlice("dns"),
 		Entrypoint:        entrypoint,
 		Env:               env,
+		ExitCommand:       exitCommand,
 		//ExposedPorts:   ports,
 		GroupAdd:       c.StringSlice("group-add"),
 		Hostname:       c.String("hostname"),

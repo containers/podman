@@ -84,6 +84,7 @@ type CreateConfig struct {
 	DNSServers         []string          //dns
 	Entrypoint         []string          //entrypoint
 	Env                map[string]string //env
+	ExitCommand        []string          // exit-command
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []string // group-add
 	HostAdd            []string //add-host
@@ -343,7 +344,8 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func (c *CreateConfig) createExitCommand() []string {
+// default exit command of "container cleanup" is chosen when exitCommand is empty
+func (c *CreateConfig) formatExitCommand(exitCommand []string) []string {
 	config := c.Runtime.GetConfig()
 
 	cmd, _ := os.Executable()
@@ -363,8 +365,13 @@ func (c *CreateConfig) createExitCommand() []string {
 	if c.Syslog {
 		command = append(command, "--syslog")
 	}
-	command = append(command, []string{"container", "cleanup"}...)
+	if len(exitCommand) == 0 {
+		command = append(command, []string{"container", "cleanup"}...)
 
+	} else {
+		command = append(command, exitCommand...)
+	}
+	// TODO exitCommand not being empty and c.Rm should be mutually exclusive?
 	if c.Rm {
 		command = append(command, "--rm")
 	}
@@ -549,7 +556,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	// Always use a cleanup process to clean up Podman after termination
-	options = append(options, libpod.WithExitCommand(c.createExitCommand()))
+	options = append(options, libpod.WithExitCommand(c.formatExitCommand(c.ExitCommand)))
 
 	return options, nil
 }
