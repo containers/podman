@@ -21,7 +21,9 @@ var (
 			podPauseCommand.GlobalFlags = MainGlobalOpts
 			return podPauseCmd(&podPauseCommand)
 		},
-		Example: "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
+		Example: `podman pod pause podID1 podID2
+  podman pod pause --latest
+  podman pod pause --all`,
 	}
 )
 

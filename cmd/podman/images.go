@@ -96,7 +96,9 @@ var (
 			imagesCommand.GlobalFlags = MainGlobalOpts
 			return imagesCmd(&imagesCommand)
 		},
-		Example: "",
+		Example: `podman images --format json
+  podman images --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
+  podman images --filter dangling=true`,
 	}
 )
 

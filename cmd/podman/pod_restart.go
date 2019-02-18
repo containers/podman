@@ -22,7 +22,9 @@ var (
 			podRestartCommand.GlobalFlags = MainGlobalOpts
 			return podRestartCmd(&podRestartCommand)
 		},
-		Example: "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
+		Example: `podman pod restart podID1 podID2
+  podman pod restart --latest
+  podman pod restart --all`,
 	}
 )
 

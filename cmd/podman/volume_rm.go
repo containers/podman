@@ -28,7 +28,9 @@ not being used by any containers. To remove the volumes anyways, use the
 			volumeRmCommand.GlobalFlags = MainGlobalOpts
 			return volumeRmCmd(&volumeRmCommand)
 		},
-		Example: "[VOLUME-NAME ...]",
+		Example: `podman volume rm myvol1 myvol2
+  podman volume rm --all
+  podman volume rm --force myvol`,
 	}
 )
 
