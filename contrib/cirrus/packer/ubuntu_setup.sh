@@ -48,6 +48,7 @@ ooe.sh sudo -E apt-get -qq install \
     gettext \
     go-md2man \
     golang \
+    iproute \
     iptables \
     libaio-dev \
     libapparmor-dev \

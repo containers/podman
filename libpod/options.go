@@ -904,10 +904,10 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		}
 
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
-		ctr.config.CreateNetNS = true
+		ctr.config.NetMode = namespaces.NetworkMode(netmode)
+		ctr.config.CreateNetNS = !ctr.config.NetMode.IsUserDefined()
 		ctr.config.PortMappings = portMappings
 		ctr.config.Networks = networks
-		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 
 		return nil
 	}

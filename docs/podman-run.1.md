@@ -28,6 +28,8 @@ servers in the created `resolv.conf`). Additionally, an empty file is created in
 each container to indicate to programs they are running in a container. This file
 is located at `/run/.containerenv`.
 
+When running from a user defined network namespace, the /etc/netns/NSNAME/resolv.conf will be used if it exists, otherwise /etc/resolv.conf will be used.
+
 ## OPTIONS
 **--add-host**=[]
 
@@ -694,21 +696,21 @@ Current supported mount TYPES are bind, and tmpfs.
 
        Common Options:
 
-              · src, source: mount source spec for bind and volume. Mandatory for bind.
+	      · src, source: mount source spec for bind and volume. Mandatory for bind.
 
-              · dst, destination, target: mount destination spec.
+	      · dst, destination, target: mount destination spec.
 
-              · ro, read-only: true or false (default).
+	      · ro, read-only: true or false (default).
 
        Options specific to bind:
 
-              · bind-propagation: Z, z, shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+	      · bind-propagation: Z, z, shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
 
        Options specific to tmpfs:
 
-              · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
+	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
 
-              · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+	      · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
 
 **--userns**=""
 

@@ -40,6 +40,7 @@ ooe.sh sudo dnf install -y \
     golang-github-cpuguy83-go-md2man \
     gpgme-devel \
     iptables \
+    iproute \
     libassuan-devel \
     libcap-devel \
     libnet \

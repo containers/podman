@@ -758,8 +758,24 @@ func (c *Container) makeBindMounts() error {
 
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
+	resolvConf := "/etc/resolv.conf"
+	for _, ns := range c.config.Spec.Linux.Namespaces {
+		if ns.Type == spec.NetworkNamespace {
+			if ns.Path != "" && !strings.HasPrefix(ns.Path, "/proc/") {
+				definedPath := filepath.Join("/etc/netns", filepath.Base(ns.Path), "resolv.conf")
+				_, err := os.Stat(definedPath)
+				if err == nil {
+					resolvConf = definedPath
+				} else if !os.IsNotExist(err) {
+					return "", errors.Wrapf(err, "failed to stat %s", definedPath)
+				}
+			}
+			break
+		}
+	}
+
 	// Determine the endpoint for resolv.conf in case it is a symlink
-	resolvPath, err := filepath.EvalSymlinks("/etc/resolv.conf")
+	resolvPath, err := filepath.EvalSymlinks(resolvConf)
 	if err != nil {
 		return "", err
 	}
