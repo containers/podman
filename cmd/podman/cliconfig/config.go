@@ -548,3 +548,7 @@ type SystemPruneValues struct {
 	Force  bool
 	Volume bool
 }
+
+type SystemRenumberValues struct {
+	PodmanCommand
+}

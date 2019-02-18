@@ -132,5 +132,6 @@ func getTrustSubCommands() []*cobra.Command {
 func getSystemSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_pruneSystemCommand,
+		_renumberCommand,
 	}
 }
