@@ -8,8 +8,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GerRuntimeRenumber gets a libpod runtime that will perform a lock renumber
+func GetRuntimeRenumber(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(c, true)
+}
+
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(c, false)
+}
+
+func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 
 	storageOpts, volumePath, err := util.GetDefaultStoreOptions()
