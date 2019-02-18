@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/daemon/caps"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -22,6 +23,10 @@ import (
 
 // Init creates a container in the OCI runtime
 func (c *Container) Init(ctx context.Context) (err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "containerInit")
+	span.SetTag("struct", "container")
+	defer span.Finish()
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -66,6 +71,10 @@ func (c *Container) Init(ctx context.Context) (err error) {
 // Init().
 // If recursive is set, Start will also start all containers this container depends on.
 func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "containerStart")
+	span.SetTag("struct", "container")
+	defer span.Finish()
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

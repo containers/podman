@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -46,6 +47,11 @@ func init() {
 }
 
 func startCmd(c *cliconfig.StartValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "startCmd")
+		defer span.Finish()
+	}
+
 	args := c.InputArgs
 	if len(args) < 1 && !c.Latest {
 		return errors.Errorf("you must provide at least one container name or id")

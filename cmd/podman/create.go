@@ -28,6 +28,7 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -71,6 +72,11 @@ func init() {
 }
 
 func createCmd(c *cliconfig.CreateValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "createCmd")
+		defer span.Finish()
+	}
+
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
@@ -95,6 +101,11 @@ func createCmd(c *cliconfig.CreateValues) error {
 }
 
 func createInit(c *cliconfig.PodmanCommand) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "createInit")
+		defer span.Finish()
+	}
+
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
 
@@ -106,6 +117,10 @@ func createInit(c *cliconfig.PodmanCommand) error {
 }
 
 func createContainer(c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "createContainer")
+		defer span.Finish()
+	}
 
 	rtc := runtime.GetConfig()
 	ctx := getContext()

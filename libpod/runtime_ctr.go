@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulule/deepcopier"
@@ -46,6 +47,10 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ...CtrCreateOption) (c *Container, err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "newContainer")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	if rSpec == nil {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
@@ -241,6 +246,10 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool,
 // Internal function to remove a container
 // Locks the container, but does not lock the runtime
 func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
+	span, _ := opentracing.StartSpanFromContext(ctx, "removeContainer")
+	span.SetTag("type", "runtime")
+	defer span.Finish()
+
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -46,6 +47,11 @@ func init() {
 }
 
 func runCmd(c *cliconfig.RunValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
+		defer span.Finish()
+	}
+
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
