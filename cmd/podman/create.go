@@ -302,14 +302,14 @@ func configureEntrypoint(c *cliconfig.PodmanCommand, data *inspect.ImageData) []
 	return entrypoint
 }
 
-func configurePod(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, error) {
+func configurePod(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, []string, error) {
 	pod, err := runtime.LookupPod(podName)
 	if err != nil {
-		return namespaces, err
+		return namespaces, []string{}, err
 	}
 	podInfraID, err := pod.InfraContainerID()
 	if err != nil {
-		return namespaces, err
+		return namespaces, []string{}, err
 	}
 	if (namespaces["pid"] == cc.Pod) || (!c.IsSet("pid") && pod.SharesPID()) {
 		namespaces["pid"] = fmt.Sprintf("container:%s", podInfraID)
@@ -326,7 +326,7 @@ func configurePod(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, namespace
 	if (namespaces["uts"] == cc.Pod) || (!c.IsSet("uts") && pod.SharesUTS()) {
 		namespaces["uts"] = fmt.Sprintf("container:%s", podInfraID)
 	}
-	return namespaces, nil
+	return namespaces, pod.RestartPolicy(), nil
 }
 
 // Parses CLI options related to container creation into a config which can be
@@ -447,6 +447,7 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		"uts":  c.String("uts"),
 	}
 
+	exitCommand := make([]string, 0)
 	originalPodName := c.String("pod")
 	podName := strings.Replace(originalPodName, "new:", "", 1)
 	// after we strip out :new, make sure there is something left for a pod name
@@ -491,7 +492,7 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 			// The container now cannot have port bindings; so we reset the map
 			portBindings = make(map[nat.Port][]nat.PortBinding)
 		}
-		namespaces, err = configurePod(c, runtime, namespaces, podName)
+		namespaces, exitCommand, err = configurePod(c, runtime, namespaces, podName)
 		if err != nil {
 			return nil, err
 		}

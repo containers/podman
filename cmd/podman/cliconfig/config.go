@@ -228,16 +228,17 @@ type KubePlayValues struct {
 
 type PodCreateValues struct {
 	PodmanCommand
-	CgroupParent string
-	Infra        bool
-	InfraImage   string
-	InfraCommand string
-	LabelFile    []string
-	Labels       []string
-	Name         string
-	PodIDFile    string
-	Publish      []string
-	Share        string
+	CgroupParent  string
+	Infra         bool
+	InfraImage    string
+	InfraCommand  string
+	LabelFile     []string
+	Labels        []string
+	Name          string
+	PodIDFile     string
+	Publish       []string
+	RestartPolicy string
+	Share         string
 }
 
 type PodInspectValues struct {

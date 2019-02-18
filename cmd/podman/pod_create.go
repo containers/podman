@@ -52,6 +52,7 @@ func init() {
 	flags.StringVar(&podCreateCommand.PodIDFile, "pod-id-file", "", "Write the pod ID to the file")
 	flags.StringSliceVarP(&podCreateCommand.Publish, "publish", "p", []string{}, "Publish a container's port, or a range of ports, to the host (default [])")
 	flags.StringVar(&podCreateCommand.Share, "share", DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+	flags.StringVar(&podCreateCommand.RestartPolicy, "restart-policy", "never", "The restart policy for the pod")
 
 }
 
@@ -124,6 +125,8 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	// always have containers use pod cgroups
 	// User Opt out is not yet supported
 	options = append(options, libpod.WithPodCgroups())
+
+	options = append(options, libpod.WithRestartPolicy(c.RestartPolicy))
 
 	ctx := getContext()
 	pod, err := runtime.NewPod(ctx, options...)

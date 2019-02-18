@@ -63,6 +63,9 @@ type PodConfig struct {
 
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
+
+	// Policy for restarting the containers in the pod. Options are currently: never, always
+	RestartPolicy []string `json:"restartPolicy"`
 }
 
 // podState represents a pod's state
@@ -191,6 +194,11 @@ func (p *Pod) CgroupPath() (string, error) {
 	}
 
 	return p.state.CgroupPath, nil
+}
+
+// RestartPolicy returns when a container will automatically restart in the pod
+func (p *Pod) RestartPolicy() []string {
+	return p.config.RestartPolicy
 }
 
 // HasContainer checks if a container is present in the pod

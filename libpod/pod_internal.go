@@ -18,6 +18,7 @@ func newPod(runtime *Runtime) (*Pod, error) {
 	pod.config.Labels = make(map[string]string)
 	pod.config.CreatedTime = time.Now()
 	pod.config.InfraContainer = new(InfraContainerConfig)
+	pod.config.RestartPolicy = []string{} // will result in default behavior of cleaning up container
 	pod.state = new(podState)
 	pod.runtime = runtime
 

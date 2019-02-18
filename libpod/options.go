@@ -1430,3 +1430,18 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 		return nil
 	}
 }
+
+// WithRestartPolicy sets the pod restart policy
+func WithRestartPolicy(restartPolicy string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return ErrPodFinalized
+		}
+		if restartPolicy == "never" {
+			pod.config.RestartPolicy = []string{}
+		} else if restartPolicy == "always" {
+			pod.config.RestartPolicy = []string{"start"}
+		}
+		return nil
+	}
+}
