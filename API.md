@@ -107,7 +107,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: , tlsVerify: ) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: int, tlsVerify: ?bool, filter: []string) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
