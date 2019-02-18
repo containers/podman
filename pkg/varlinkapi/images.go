@@ -446,9 +446,21 @@ func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit 
 	if tlsVerify != nil {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!*tlsVerify)
 	}
-	registries, err := sysreg.GetRegistries()
+	var registries []string
+
+	// Check if search query has a registry in it
+	registry, err := sysreg.GetRegistry(query)
 	if err != nil {
-		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
+		return call.ReplyErrorOccurred(fmt.Sprintf("error getting registry from %q: %q", query, err))
+	}
+	if registry != "" {
+		registries = append(registries, registry)
+		query = query[len(registry)+1:]
+	} else {
+		registries, err = sysreg.GetRegistries()
+		if err != nil {
+			return call.ReplyErrorOccurred(fmt.Sprintf("unable to get system registries: %q", err))
+		}
 	}
 	var imageResults []iopodman.ImageSearchResult
 	for _, reg := range registries {
@@ -468,6 +480,7 @@ func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit 
 		}
 		for _, result := range results {
 			i := iopodman.ImageSearchResult{
+				Registry:     reg,
 				Description:  result.Description,
 				Is_official:  result.IsOfficial,
 				Is_automated: result.IsAutomated,
