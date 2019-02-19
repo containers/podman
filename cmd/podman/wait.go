@@ -28,7 +28,9 @@ var (
 			waitCommand.GlobalFlags = MainGlobalOpts
 			return waitCmd(&waitCommand)
 		},
-		Example: "CONTAINER-NAME [CONTAINER-NAME ...]",
+		Example: `podman wait --latest
+  podman wait --interval 5000 ctrID
+  podman wait ctrID1 ctrID2`,
 	}
 )
 

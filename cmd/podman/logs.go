@@ -26,7 +26,9 @@ var (
 			logsCommand.GlobalFlags = MainGlobalOpts
 			return logsCmd(&logsCommand)
 		},
-		Example: "CONTAINER",
+		Example: `podman logs ctrID
+  podman logs --tail 2 mywebserver
+  podman logs --follow=true --since 10m ctrID`,
 	}
 )
 

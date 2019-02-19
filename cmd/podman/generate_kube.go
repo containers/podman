@@ -25,7 +25,9 @@ var (
 			containerKubeCommand.GlobalFlags = MainGlobalOpts
 			return generateKubeYAMLCmd(&containerKubeCommand)
 		},
-		Example: "CONTAINER|POD-NAME",
+		Example: `podman generate kube ctrID
+  podman generate kube podID
+  podman generate kube --service podID`,
 	}
 )
 

@@ -24,7 +24,9 @@ var (
 			podKillCommand.GlobalFlags = MainGlobalOpts
 			return podKillCmd(&podKillCommand)
 		},
-		Example: "[POD_NAME_OR_ID]",
+		Example: `podman pod kill podID
+  podman pod kill --signal TERM mywebserver
+  podman pod kill --latest`,
 	}
 )
 

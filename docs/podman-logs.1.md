@@ -61,7 +61,7 @@ podman logs --tail 2 b3f2436bdb97
 
 To view a containers logs since a certain time:
 ```
-podman logs 224c375f27cd --since 2017-08-07T10:10:09.055837383-04:00 myserver
+podman logs --since 2017-08-07T10:10:09.055837383-04:00 myserver
 
 1:M 07 Aug 14:10:09.055 # Server can't set maximum open files to 10032 because of OS error: Operation not permitted.
 1:M 07 Aug 14:10:09.055 # Current maximum open files is 4096. maxclients has been reduced to 4064 to compensate for low ulimit. If you need higher maxclients increase 'ulimit -n'.
@@ -72,7 +72,7 @@ podman logs 224c375f27cd --since 2017-08-07T10:10:09.055837383-04:00 myserver
 
 To view a container's logs generated in the last 10 minutes:
 ```
-podman logs 224c375f27cd --since 10m myserver
+podman logs --since 10m myserver
 
 1:M 07 Aug 14:10:09.055 # Server can't set maximum open files to 10032 because of OS error: Operation not permitted.
 1:M 07 Aug 14:10:09.055 # Current maximum open files is 4096. maxclients has been reduced to 4064 to compensate for low ulimit. If you need higher maxclients increase 'ulimit -n'.

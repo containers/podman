@@ -28,7 +28,9 @@ var (
 			portCommand.GlobalFlags = MainGlobalOpts
 			return portCmd(&portCommand)
 		},
-		Example: "CONTAINER-NAME [mapping]",
+		Example: `podman port --all
+  podman port ctrID 80/tcp
+  podman port --latest 80`,
 	}
 )
 
