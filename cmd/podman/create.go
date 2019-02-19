@@ -868,6 +868,12 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 			if err != nil {
 				return false, -1, err
 			}
+			if pid == 0 {
+				if createConfig.Pod != "" {
+					continue
+				}
+				return false, -1, errors.Errorf("dependency container %s is not running", ctr.ID())
+			}
 			return rootless.JoinNS(uint(pid))
 		}
 	}
