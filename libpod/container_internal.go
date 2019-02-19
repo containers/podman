@@ -652,15 +652,18 @@ func (c *Container) startDependencies(ctx context.Context) error {
 		return errors.Wrapf(err, "error generating dependency graph for container %s", c.ID())
 	}
 
-	ctrErrors := make(map[string]error)
-	// reset ctrsVisisted for next round of recursion
-	ctrsVisited := make(map[string]bool)
-
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
+		// we have no dependencies that need starting, go ahead and return
+		if len(graph.nodes) == 0 {
+			return nil
+		}
 		return errors.Wrapf(ErrNoSuchCtr, "All dependencies have dependencies of %s", c.ID())
 	}
+
+	ctrErrors := make(map[string]error)
+	ctrsVisited := make(map[string]bool)
 
 	// Traverse the graph beginning at nodes with no dependencies
 	for _, node := range graph.noDepNodes {
@@ -698,9 +701,17 @@ func (c *Container) getAllDependencies(visited map[string]*Container) error {
 			if err != nil {
 				return err
 			}
-			visited[depID] = dep
-			if err := dep.getAllDependencies(visited); err != nil {
+			status, err := dep.State()
+			if err != nil {
 				return err
+			}
+			// if the dependency is already running, we can assume its dependencies are also running
+			// so no need to add them to those we need to start
+			if status != ContainerStateRunning {
+				visited[depID] = dep
+				if err := dep.getAllDependencies(visited); err != nil {
+					return err
+				}
 			}
 		}
 	}
