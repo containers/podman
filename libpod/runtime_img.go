@@ -3,7 +3,6 @@ package libpod
 import (
 	"context"
 	"fmt"
-	"github.com/opencontainers/image-spec/specs-go/v1"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +14,11 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
+	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
@@ -210,4 +214,42 @@ func downloadFromURL(source string) (string, error) {
 	}
 
 	return outFile.Name(), nil
+}
+
+// LoadImage loads a container image into local storage
+func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
+	var newImages []*image.Image
+	src, err := dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
+	if err == nil {
+		newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+	}
+	if err != nil {
+		// generate full src name with specified image:tag
+		src, err := ociarchive.NewReference(inputFile, name) // imageName may be ""
+		if err == nil {
+			newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+		}
+		if err != nil {
+			src, err := directory.NewReference(inputFile)
+			if err == nil {
+				newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+			}
+			if err != nil {
+				return "", errors.Wrapf(err, "error pulling %q", name)
+			}
+		}
+	}
+	return getImageNames(newImages), nil
+}
+
+func getImageNames(images []*image.Image) string {
+	var names string
+	for i := range images {
+		if i == 0 {
+			names = images[i].InputName
+		} else {
+			names += ", " + images[i].InputName
+		}
+	}
+	return names
 }

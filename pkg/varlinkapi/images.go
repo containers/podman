@@ -776,9 +776,6 @@ func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageS
 		c <- err
 		close(c)
 	}()
-
-	// TODO When pull output gets fixed for the remote client, we need to look into how we can turn below
-	// into something re-usable.  it is in build too
 	var log []string
 	done := false
 	for {
@@ -834,4 +831,74 @@ func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageS
 		Id:   sendfile,
 	}
 	return call.ReplyPushImage(br)
+}
+
+// LoadImage ...
+func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string, deleteInputFile, quiet bool) error {
+	var (
+		names  string
+		writer io.Writer
+		err    error
+	)
+	if !quiet {
+		writer = os.Stderr
+	}
+
+	if call.WantsMore() {
+		call.Continues = true
+	}
+	output := bytes.NewBuffer([]byte{})
+
+	c := make(chan error)
+	go func() {
+		names, err = i.Runtime.LoadImage(getContext(), name, inputFile, writer, "")
+		c <- err
+		close(c)
+	}()
+
+	var log []string
+	done := false
+	for {
+		line, err := output.ReadString('\n')
+		if err == nil {
+			log = append(log, line)
+			continue
+		} else if err == io.EOF {
+			select {
+			case err := <-c:
+				if err != nil {
+					logrus.Error(err)
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				done = true
+			default:
+				if !call.WantsMore() {
+					time.Sleep(1 * time.Second)
+					break
+				}
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				call.ReplyLoadImage(br)
+				log = []string{}
+			}
+		} else {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if done {
+			break
+		}
+	}
+	call.Continues = false
+
+	br := iopodman.MoreResponse{
+		Logs: log,
+		Id:   names,
+	}
+	if deleteInputFile {
+		if err := os.Remove(inputFile); err != nil {
+			logrus.Errorf("unable to delete input file %s", inputFile)
+		}
+	}
+	return call.ReplyLoadImage(br)
 }

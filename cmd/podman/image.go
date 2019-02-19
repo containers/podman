@@ -24,6 +24,7 @@ var imageSubCommands = []*cobra.Command{
 	_imagesCommand,
 	_importCommand,
 	_inspectCommand,
+	_loadCommand,
 	_pruneImagesCommand,
 	_pullCommand,
 	_pushCommand,

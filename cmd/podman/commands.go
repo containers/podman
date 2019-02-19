@@ -17,7 +17,6 @@ func getMainCommands() []*cobra.Command {
 		generateCommand.Command,
 		_containerKubeCommand,
 		_psCommand,
-		_loadCommand,
 		_loginCommand,
 		_logoutCommand,
 		_logsCommand,
