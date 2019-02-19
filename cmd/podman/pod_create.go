@@ -59,6 +59,10 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	var options []libpod.PodCreateOption
 	var err error
 
+	if len(c.InputArgs) > 0 {
+		return errors.New("podman pod create does not accept any arguments")
+	}
+
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
