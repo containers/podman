@@ -58,10 +58,15 @@ func searchCmd(c *cliconfig.SearchValues) error {
 	}
 	term := args[0]
 
+	filter, err := image.ParseSearchFilter(c.Filter)
+	if err != nil {
+		return err
+	}
+
 	searchOptions := image.SearchOptions{
 		NoTrunc:  c.NoTrunc,
 		Limit:    c.Limit,
-		Filter:   c.Filter,
+		Filter:   *filter,
 		Authfile: getAuthFile(c.Authfile),
 	}
 	if c.Flag("tls-verify").Changed {

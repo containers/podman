@@ -42,7 +42,7 @@ type SearchResult struct {
 // SearchOptions are used to control the behaviour of SearchImages.
 type SearchOptions struct {
 	// Filter allows to filter the results.
-	Filter []string
+	Filter SearchFilter
 	// Limit limits the number of queries per index (default: 25). Must be
 	// greater than 0 to overwrite the default value.
 	Limit int
@@ -54,10 +54,14 @@ type SearchOptions struct {
 	InsecureSkipTLSVerify types.OptionalBool
 }
 
-type searchFilterParams struct {
-	stars       int
-	isAutomated *bool
-	isOfficial  *bool
+// SearchFilter allows filtering the results of SearchImages.
+type SearchFilter struct {
+	// Stars describes the minimal amount of starts of an image.
+	Stars int
+	// IsAutomated decides if only images from automated builds are displayed.
+	IsAutomated types.OptionalBool
+	// IsOfficial decides if only official images are displayed.
+	IsOfficial types.OptionalBool
 }
 
 func splitCamelCase(src string) string {
@@ -81,11 +85,6 @@ func (s *SearchResult) HeaderMap() map[string]string {
 // SearchImages searches images based on term and the specified SearchOptions
 // in all registries.
 func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
-	filter, err := parseSearchFilter(&options)
-	if err != nil {
-		return nil, err
-	}
-
 	// Check if search term has a registry in it
 	registry, err := sysreg.GetRegistry(term)
 	if err != nil {
@@ -115,7 +114,7 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 	searchImageInRegistryHelper := func(index int, registry string) {
 		defer sem.Release(1)
 		defer wg.Done()
-		searchOutput, err := searchImageInRegistry(term, registry, options, filter)
+		searchOutput, err := searchImageInRegistry(term, registry, options)
 		data[index] = searchOutputData{data: searchOutput, err: err}
 	}
 
@@ -151,7 +150,7 @@ func getRegistries(registry string) ([]string, error) {
 	return registries, nil
 }
 
-func searchImageInRegistry(term string, registry string, options SearchOptions, filter *searchFilterParams) ([]SearchResult, error) {
+func searchImageInRegistry(term string, registry string, options SearchOptions) ([]SearchResult, error) {
 	// Max number of queries by default is 25
 	limit := maxQueries
 	if options.Limit > 0 {
@@ -188,11 +187,9 @@ func searchImageInRegistry(term string, registry string, options SearchOptions, 
 
 	paramsArr := []SearchResult{}
 	for i := 0; i < limit; i++ {
-		if len(options.Filter) > 0 {
-			// Check whether query matches filters
-			if !(matchesAutomatedFilter(filter, results[i]) && matchesOfficialFilter(filter, results[i]) && matchesStarFilter(filter, results[i])) {
-				continue
-			}
+		// Check whether query matches filters
+		if !(options.Filter.matchesAutomatedFilter(results[i]) && options.Filter.matchesOfficialFilter(results[i]) && options.Filter.matchesStarFilter(results[i])) {
+			continue
 		}
 		official := ""
 		if results[i].IsOfficial {
@@ -223,12 +220,12 @@ func searchImageInRegistry(term string, registry string, options SearchOptions, 
 	return paramsArr, nil
 }
 
-func parseSearchFilter(options *SearchOptions) (*searchFilterParams, error) {
-	filterParams := &searchFilterParams{}
-	ptrTrue := true
-	ptrFalse := false
-	for _, filter := range options.Filter {
-		arr := strings.Split(filter, "=")
+// ParseSearchFilter turns the filter into a SearchFilter that can be used for
+// searching images.
+func ParseSearchFilter(filter []string) (*SearchFilter, error) {
+	sFilter := new(SearchFilter)
+	for _, f := range filter {
+		arr := strings.Split(f, "=")
 		switch arr[0] {
 		case "stars":
 			if len(arr) < 2 {
@@ -238,43 +235,43 @@ func parseSearchFilter(options *SearchOptions) (*searchFilterParams, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
 			}
-			filterParams.stars = stars
+			sFilter.Stars = stars
 			break
 		case "is-automated":
 			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isAutomated = &ptrFalse
+				sFilter.IsAutomated = types.OptionalBoolFalse
 			} else {
-				filterParams.isAutomated = &ptrTrue
+				sFilter.IsAutomated = types.OptionalBoolTrue
 			}
 			break
 		case "is-official":
 			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isOfficial = &ptrFalse
+				sFilter.IsOfficial = types.OptionalBoolFalse
 			} else {
-				filterParams.isOfficial = &ptrTrue
+				sFilter.IsOfficial = types.OptionalBoolTrue
 			}
 			break
 		default:
-			return nil, errors.Errorf("invalid filter type %q", filter)
+			return nil, errors.Errorf("invalid filter type %q", f)
 		}
 	}
-	return filterParams, nil
+	return sFilter, nil
 }
 
-func matchesStarFilter(filter *searchFilterParams, result docker.SearchResult) bool {
-	return result.StarCount >= filter.stars
+func (f *SearchFilter) matchesStarFilter(result docker.SearchResult) bool {
+	return result.StarCount >= f.Stars
 }
 
-func matchesAutomatedFilter(filter *searchFilterParams, result docker.SearchResult) bool {
-	if filter.isAutomated != nil {
-		return result.IsAutomated == *filter.isAutomated
+func (f *SearchFilter) matchesAutomatedFilter(result docker.SearchResult) bool {
+	if f.IsAutomated != types.OptionalBoolUndefined {
+		return result.IsAutomated == (f.IsAutomated == types.OptionalBoolTrue)
 	}
 	return true
 }
 
-func matchesOfficialFilter(filter *searchFilterParams, result docker.SearchResult) bool {
-	if filter.isOfficial != nil {
-		return result.IsOfficial == *filter.isOfficial
+func (f *SearchFilter) matchesOfficialFilter(result docker.SearchResult) bool {
+	if f.IsOfficial != types.OptionalBoolUndefined {
+		return result.IsOfficial == (f.IsOfficial == types.OptionalBoolTrue)
 	}
 	return true
 }

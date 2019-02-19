@@ -435,9 +435,14 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 // SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
 func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, tlsVerify *bool, filter []string) error {
+	sFilter, err := image.ParseSearchFilter(filter)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
 	searchOptions := image.SearchOptions{
 		Limit:                 1000,
-		Filter:                filter,
+		Filter:                *sFilter,
 		InsecureSkipTLSVerify: types.NewOptionalBool(!*tlsVerify),
 	}
 	results, err := image.SearchImages(query, searchOptions)
