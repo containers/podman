@@ -30,7 +30,6 @@ func getMainCommands() []*cobra.Command {
 		_restoreCommand,
 		_rmCommand,
 		_runCommand,
-		_saveCommand,
 		_searchCommand,
 		_signCommand,
 		_startCommand,
@@ -53,7 +52,6 @@ func getMainCommands() []*cobra.Command {
 func getImageSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_loadCommand,
-		_saveCommand,
 		_signCommand,
 	}
 }

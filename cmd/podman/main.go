@@ -48,6 +48,7 @@ var mainCommands = []*cobra.Command{
 	_pullCommand,
 	_pushCommand,
 	_rmiCommand,
+	_saveCommand,
 	_tagCommand,
 	_versionCommand,
 	imageCommand.Command,

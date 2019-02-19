@@ -59,6 +59,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ImageExists(name: string) int](#ImageExists)
 
+[func ImageSave(options: ImageSaveOptions) MoreResponse](#ImageSave)
+
 [func ImagesPrune(all: bool) []string](#ImagesPrune)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) string](#ImportImage)
@@ -107,7 +109,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: int, tlsVerify: ?bool, filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: , tlsVerify: , filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -162,6 +164,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type Image](#Image)
 
 [type ImageHistory](#ImageHistory)
+
+[type ImageSaveOptions](#ImageSaveOptions)
 
 [type ImageSearchFilter](#ImageSearchFilter)
 
@@ -556,6 +560,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageExists '{"name": "im
   "exists": 1
 }
 ~~~
+### <a name="ImageSave"></a>func ImageSave
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ImageSave(options: [ImageSaveOptions](#ImageSaveOptions)) [MoreResponse](#MoreResponse)</div>
+
 ### <a name="ImagesPrune"></a>func ImagesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -847,7 +856,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
 ### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), tlsVerify: [](#)) [ImageSearchResult](#ImageSearchResult)</div>
+method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), tlsVerify: [](#), filter: [ImageSearchFilter](#ImageSearchFilter)) [ImageSearchResult](#ImageSearchResult)</div>
 SearchImages searches available registries for images that contain the
 contents of "query" in their name. If "limit" is given, limits the amount of
 search results per registry.
@@ -1410,13 +1419,30 @@ tags [[]string](#[]string)
 size [int](https://godoc.org/builtin#int)
 
 comment [string](https://godoc.org/builtin#string)
+### <a name="ImageSaveOptions"></a>type ImageSaveOptions
+
+
+
+name [string](https://godoc.org/builtin#string)
+
+format [string](https://godoc.org/builtin#string)
+
+output [string](https://godoc.org/builtin#string)
+
+outputType [string](https://godoc.org/builtin#string)
+
+moreTags [[]string](#[]string)
+
+quiet [bool](https://godoc.org/builtin#bool)
+
+compress [bool](https://godoc.org/builtin#bool)
 ### <a name="ImageSearchFilter"></a>type ImageSearchFilter
 
-Represents a filter for SearchImages
 
-is_official [bool](https://godoc.org/builtin#bool)
 
-is_automated [bool](https://godoc.org/builtin#bool)
+is_official [](#)
+
+is_automated [](#)
 
 star_count [int](https://godoc.org/builtin#int)
 ### <a name="ImageSearchResult"></a>type ImageSearchResult

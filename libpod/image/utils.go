@@ -1,6 +1,7 @@
 package image
 
 import (
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -147,4 +148,29 @@ func IsValidImageURI(imguri string) (bool, error) {
 		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
 	}
 	return true, nil
+}
+
+// imageNameForSaveDestination returns a Docker-like reference appropriate for saving img,
+// which the user referred to as imgUserInput; or an empty string, if there is no appropriate
+// reference.
+func imageNameForSaveDestination(img *Image, imgUserInput string) string {
+	if strings.Contains(img.ID(), imgUserInput) {
+		return ""
+	}
+
+	prepend := ""
+	localRegistryPrefix := fmt.Sprintf("%s/", DefaultLocalRegistry)
+	if !strings.HasPrefix(imgUserInput, localRegistryPrefix) {
+		// we need to check if localhost was added to the image name in NewFromLocal
+		for _, name := range img.Names() {
+			// If the user is saving an image in the localhost registry,  getLocalImage need
+			// a name that matches the format localhost/<tag1>:<tag2> or localhost/<tag>:latest to correctly
+			// set up the manifest and save.
+			if strings.HasPrefix(name, localRegistryPrefix) && (strings.HasSuffix(name, imgUserInput) || strings.HasSuffix(name, fmt.Sprintf("%s:latest", imgUserInput))) {
+				prepend = localRegistryPrefix
+				break
+			}
+		}
+	}
+	return fmt.Sprintf("%s%s", prepend, imgUserInput)
 }

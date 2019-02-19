@@ -5,14 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"syscall"
 	"time"
 
 	types2 "github.com/containernetworking/cni/pkg/types"
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	ociarchive "github.com/containers/image/oci/archive"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/tarball"
 	"github.com/containers/image/transports"
@@ -26,6 +30,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	digest "github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -1083,4 +1088,66 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 		return "", err
 	}
 	return ociv1Img.History[0].Comment, nil
+}
+
+// Save writes a container image to the filesystem
+func (i *Image) Save(ctx context.Context, source, format, output string, moreTags []string, quiet, compress bool) error {
+	var (
+		writer       io.Writer
+		destRef      types.ImageReference
+		manifestType string
+		err          error
+	)
+
+	if quiet {
+		writer = os.Stderr
+	}
+	switch format {
+	case "oci-archive":
+		destImageName := imageNameForSaveDestination(i, source)
+		destRef, err = ociarchive.NewReference(output, destImageName) // destImageName may be ""
+		if err != nil {
+			return errors.Wrapf(err, "error getting OCI archive ImageReference for (%q, %q)", output, destImageName)
+		}
+	case "oci-dir":
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
+		manifestType = imgspecv1.MediaTypeImageManifest
+	case "docker-dir":
+		destRef, err = directory.NewReference(output)
+		if err != nil {
+			return errors.Wrapf(err, "error getting directory ImageReference for %q", output)
+		}
+		manifestType = manifest.DockerV2Schema2MediaType
+	case "docker-archive", "":
+		dst := output
+		destImageName := imageNameForSaveDestination(i, source)
+		if destImageName != "" {
+			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+		}
+		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		if err != nil {
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
+		}
+	default:
+		return errors.Errorf("unknown format option %q", format)
+	}
+	// supports saving multiple tags to the same tar archive
+	var additionaltags []reference.NamedTagged
+	if len(moreTags) > 0 {
+		additionaltags, err = GetAdditionalTags(moreTags)
+		if err != nil {
+			return err
+		}
+	}
+	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
+		if err2 := os.Remove(output); err2 != nil {
+			logrus.Errorf("error deleting %q: %v", output, err)
+		}
+		return errors.Wrapf(err, "unable to save %q", source)
+	}
+
+	return nil
 }

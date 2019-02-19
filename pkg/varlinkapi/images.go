@@ -736,3 +736,102 @@ func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
 	}
 	return call.ReplyImagesPrune(prunedImages)
 }
+
+// ImageSave ....
+func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageSaveOptions) error {
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(options.Name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	// Determine if we are dealing with a tarball or dir
+	var output string
+	outputToDir := false
+	if options.Format == "oci-archive" || options.Format == "docker-archive" {
+		tempfile, err := ioutil.TempFile("", "varlink_send")
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		output = tempfile.Name()
+		tempfile.Close()
+	} else {
+		var err error
+		outputToDir = true
+		output, err = ioutil.TempDir("", "varlink_send")
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+	}
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if call.WantsMore() {
+		call.Continues = true
+	}
+
+	saveOutput := bytes.NewBuffer([]byte{})
+	c := make(chan error)
+	go func() {
+		err := newImage.Save(getContext(), options.Name, options.Format, output, options.MoreTags, options.Quiet, options.Compress)
+		c <- err
+		close(c)
+	}()
+
+	// TODO When pull output gets fixed for the remote client, we need to look into how we can turn below
+	// into something re-usable.  it is in build too
+	var log []string
+	done := false
+	for {
+		line, err := saveOutput.ReadString('\n')
+		if err == nil {
+			log = append(log, line)
+			continue
+		} else if err == io.EOF {
+			select {
+			case err := <-c:
+				if err != nil {
+					logrus.Errorf("reading of output during save failed for %s", newImage.ID())
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				done = true
+			default:
+				if !call.WantsMore() {
+					time.Sleep(1 * time.Second)
+					break
+				}
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				call.ReplyImageSave(br)
+				log = []string{}
+			}
+		} else {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if done {
+			break
+		}
+	}
+	call.Continues = false
+
+	sendfile := output
+	// Image has been saved to `output`
+	if outputToDir {
+		// If the output is a directory, we need to tar up the directory to send it back
+		//Create a tempfile for the directory tarball
+		outputFile, err := ioutil.TempFile("", "varlink_save_dir")
+		if err != nil {
+			return err
+		}
+		defer outputFile.Close()
+		if err := utils.TarToFilesystem(output, outputFile); err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		sendfile = outputFile.Name()
+	}
+	br := iopodman.MoreResponse{
+		Logs: log,
+		Id:   sendfile,
+	}
+	return call.ReplyPushImage(br)
+}
