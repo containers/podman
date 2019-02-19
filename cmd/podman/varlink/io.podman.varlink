@@ -719,16 +719,10 @@ method ImportImage(source: string, reference: string, message: string, changes: 
 # error will be returned. See also [ImportImage](ImportImage).
 method ExportImage(name: string, destination: string, compress: bool, tags: []string) -> (image: string)
 
-# PullImage pulls an image from a repository to local storage.  After the pull is successful, the ID of the image
-# is returned.
-# #### Example
-# ~~~
-# $ varlink call -m unix:/run/podman/io.podman/io.podman.PullImage '{"name": "registry.fedoraproject.org/fedora"}'
-# {
-#   "id": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
-# }
-# ~~~
-method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) -> (id: string)
+# PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
+# are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
+# status as it occurs.
+method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) -> (reply: MoreResponse)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.

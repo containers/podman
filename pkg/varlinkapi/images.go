@@ -137,7 +137,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	logrus.Debugf("untar of %s successful", contextDir)
 
 	// All output (stdout, stderr) is captured in output as well
-	output := bytes.NewBuffer([]byte{})
+	var output bytes.Buffer
 
 	commonOpts := &buildah.CommonBuildOptions{
 		AddHost:      config.BuildOptions.AddHosts,
@@ -170,20 +170,20 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		Compression:             stringCompressionToArchiveType(config.Compression),
 		ContextDirectory:        newContextDir,
 		DefaultMountsFilePath:   config.DefaultsMountFilePath,
-		Err:                     output,
+		Err:                     &output,
 		ForceRmIntermediateCtrs: config.ForceRmIntermediateCtrs,
 		IIDFile:                 config.Iidfile,
 		Labels:                  config.Label,
 		Layers:                  config.Layers,
 		NoCache:                 config.Nocache,
-		Out:                     output,
+		Out:                     &output,
 		Output:                  config.Output,
 		NamespaceOptions:        namespace,
 		OutputFormat:            config.OutputFormat,
 		PullPolicy:              stringPullPolicyToType(config.PullPolicy),
 		Quiet:                   config.Quiet,
 		RemoveIntermediateCtrs:  config.RemoteIntermediateCtrs,
-		ReportWriter:            output,
+		ReportWriter:            &output,
 		RuntimeArgs:             config.RuntimeArgs,
 		SignaturePolicyPath:     config.SignaturePolicyPath,
 		Squash:                  config.Squash,
@@ -208,7 +208,13 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		newPathDockerFiles = append(newPathDockerFiles, filepath.Join(newContextDir, base))
 	}
 
-	c := build(i.Runtime, options, newPathDockerFiles)
+	c := make(chan error)
+	go func() {
+		err := i.Runtime.Build(getContext(), options, newPathDockerFiles...)
+		c <- err
+		close(c)
+	}()
+
 	var log []string
 	done := false
 	for {
@@ -255,17 +261,6 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		Id:   newImage.ID(),
 	}
 	return call.ReplyBuildImage(br)
-}
-
-func build(runtime *libpod.Runtime, options imagebuildah.BuildOptions, dockerfiles []string) chan error {
-	c := make(chan error)
-	go func() {
-		err := runtime.Build(getContext(), options, dockerfiles...)
-		c <- err
-		close(c)
-	}()
-
-	return c
 }
 
 // InspectImage returns an image's inspect information as a string that can be serialized.
@@ -622,24 +617,74 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 
 	so := image.SigningOptions{}
 
-	if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
-		srcRef, err := alltransports.ParseImageName(name)
-		if err != nil {
-			return errors.Wrapf(err, "error parsing %q", name)
-		}
-		newImage, err := i.Runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, signaturePolicy, nil)
-		if err != nil {
-			return errors.Wrapf(err, "error pulling image from %q", name)
-		}
-		imageID = newImage[0].ID()
-	} else {
-		newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", nil, &dockerRegistryOptions, so, false, nil)
-		if err != nil {
-			return call.ReplyErrorOccurred(fmt.Sprintf("unable to pull %s: %s", name, err.Error()))
-		}
-		imageID = newImage.ID()
+	if call.WantsMore() {
+		call.Continues = true
 	}
-	return call.ReplyPullImage(imageID)
+	output := bytes.NewBuffer([]byte{})
+	c := make(chan error)
+	go func() {
+		//err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", signaturePolicy, output, compress, so, &dockerRegistryOptions, nil)
+		if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
+			srcRef, err := alltransports.ParseImageName(name)
+			if err != nil {
+				c <- errors.Wrapf(err, "error parsing %q", name)
+			}
+			newImage, err := i.Runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, signaturePolicy, output)
+			if err != nil {
+				c <- errors.Wrapf(err, "error pulling image from %q", name)
+			}
+			imageID = newImage[0].ID()
+		} else {
+			newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", output, &dockerRegistryOptions, so, false, nil)
+			if err != nil {
+				c <- errors.Wrapf(err, "unable to pull %s", name)
+			}
+			imageID = newImage.ID()
+		}
+		c <- nil
+		close(c)
+	}()
+
+	var log []string
+	done := false
+	for {
+		line, err := output.ReadString('\n')
+		if err == nil {
+			log = append(log, line)
+			continue
+		} else if err == io.EOF {
+			select {
+			case err := <-c:
+				if err != nil {
+					logrus.Errorf("reading of output during pull failed for %s", name)
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				done = true
+			default:
+				if !call.WantsMore() {
+					time.Sleep(1 * time.Second)
+					break
+				}
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				call.ReplyPullImage(br)
+				log = []string{}
+			}
+		} else {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if done {
+			break
+		}
+	}
+	call.Continues = false
+
+	br := iopodman.MoreResponse{
+		Logs: log,
+		Id:   imageID,
+	}
+	return call.ReplyPullImage(br)
 }
 
 // ImageExists returns bool as to whether the input image exists in local storage
