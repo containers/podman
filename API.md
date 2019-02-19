@@ -107,7 +107,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: int, tlsVerify: ?bool, filter: []string) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: int, tlsVerify: ?bool, filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -162,6 +162,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type Image](#Image)
 
 [type ImageHistory](#ImageHistory)
+
+[type ImageSearchFilter](#ImageSearchFilter)
 
 [type ImageSearchResult](#ImageSearchResult)
 
@@ -1408,6 +1410,15 @@ tags [[]string](#[]string)
 size [int](https://godoc.org/builtin#int)
 
 comment [string](https://godoc.org/builtin#string)
+### <a name="ImageSearchFilter"></a>type ImageSearchFilter
+
+Represents a filter for SearchImages
+
+is_official [bool](https://godoc.org/builtin#bool)
+
+is_automated [bool](https://godoc.org/builtin#bool)
+
+star_count [int](https://godoc.org/builtin#int)
 ### <a name="ImageSearchResult"></a>type ImageSearchResult
 
 Represents a single search result from SearchImages

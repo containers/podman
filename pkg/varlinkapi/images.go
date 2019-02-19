@@ -434,16 +434,36 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 
 // SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
-func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, tlsVerify *bool, filter []string) error {
-	sFilter, err := image.ParseSearchFilter(filter)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, tlsVerify *bool, filter iopodman.ImageSearchFilter) error {
+	// Transform all arguments to proper types first
+	argLimit := 0
+	argTLSVerify := types.OptionalBoolUndefined
+	argIsOfficial := types.OptionalBoolUndefined
+	argIsAutomated := types.OptionalBoolUndefined
+	if limit != nil {
+		argLimit = int(*limit)
+	}
+	if tlsVerify != nil {
+		argTLSVerify = types.NewOptionalBool(!*tlsVerify)
+	}
+	if filter.Is_official != nil {
+		argIsOfficial = types.NewOptionalBool(*filter.Is_official)
+	}
+	if filter.Is_automated != nil {
+		argIsAutomated = types.NewOptionalBool(*filter.Is_automated)
+	}
+
+	// Transform a SearchFilter the backend can deal with
+	sFilter := image.SearchFilter{
+		IsOfficial:  argIsOfficial,
+		IsAutomated: argIsAutomated,
+		Stars:       int(filter.Star_count),
 	}
 
 	searchOptions := image.SearchOptions{
-		Limit:                 1000,
-		Filter:                *sFilter,
-		InsecureSkipTLSVerify: types.NewOptionalBool(!*tlsVerify),
+		Limit:                 argLimit,
+		Filter:                sFilter,
+		InsecureSkipTLSVerify: argTLSVerify,
 	}
 	results, err := image.SearchImages(query, searchOptions)
 	if err != nil {

@@ -72,6 +72,12 @@ type ImageSearchResult (
     star_count: int
 )
 
+type ImageSearchFilter (
+    is_official: ?bool,
+    is_automated: ?bool,
+    star_count: int
+)
+
 type Container (
     id: string,
     image: string,
@@ -681,7 +687,7 @@ method RemoveImage(name: string, force: bool) -> (image: string)
 # SearchImages searches available registries for images that contain the
 # contents of "query" in their name. If "limit" is given, limits the amount of
 # search results per registry.
-method SearchImages(query: string, limit: ?int, tlsVerify: ?bool, filter: []string) -> (results: []ImageSearchResult)
+method SearchImages(query: string, limit: ?int, tlsVerify: ?bool, filter: ImageSearchFilter) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
