@@ -1,0 +1,49 @@
+#!/usr/bin/env bats
+
+load helpers
+
+@test "podman history - basic tests" {
+    tests="
+                                 | .*[0-9a-f]\\\{12\\\} .* CMD .* LABEL
+--format '{{.ID}} {{.Created}}'  | .*[0-9a-f]\\\{12\\\} .* ago
+--human=false                    | .*[0-9a-f]\\\{12\\\} *[0-9-]\\\+T[0-9:]\\\+Z
+-qH                              | .*[0-9a-f]\\\{12\\\}
+--no-trunc                       | .*[0-9a-f]\\\{64\\\}
+"
+
+    parse_table "$tests" | while read options expect; do
+        if [ "$options" = "''" ]; then options=; fi
+
+        eval set -- "$options"
+
+        run_podman history "$@" $PODMAN_TEST_IMAGE_FQN
+        is "$output" "$expect" "podman history $options"
+    done
+}
+
+@test "podman history - json" {
+    type -path jq >/dev/null || die "FAIL: please 'dnf -y install jq'"
+
+    tests="
+id        | [0-9a-f]\\\{64\\\}
+created   | [0-9-]\\\+T[0-9:]\\\+\\\.[0-9]\\\+Z
+size      | -\\\?[0-9]\\\+
+"
+
+    run_podman history --format json $PODMAN_TEST_IMAGE_FQN
+
+    parse_table "$tests" | while read field expect; do
+        # HACK: we can't include '|' in the table
+        if [ "$field" = "id" ]; then expect="$expect\|<missing>";fi
+
+        # output is an array of dicts; check each one
+        count=$(echo "$output" | jq '. | length')
+        i=0
+        while [ $i -lt $count ]; do
+            actual=$(echo "$output" | jq -r ".[$i].$field")
+            is "$actual" "$expect\$" "jq .[$i].$field"
+            i=$(expr $i + 1)
+        done
+    done
+
+}
