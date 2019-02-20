@@ -125,6 +125,7 @@ func (t StdoutTemplateArray) Out() error {
 			fmt.Fprintln(w, "")
 		}
 	}
+	fmt.Fprintln(w, "")
 	return w.Flush()
 }
 
