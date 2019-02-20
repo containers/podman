@@ -31,6 +31,9 @@ An unmount can be forced with the --force flag.
 			umountCommand.GlobalFlags = MainGlobalOpts
 			return umountCmd(&umountCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, true)
+		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3
   podman umount --all`,
@@ -55,9 +58,6 @@ func umountCmd(c *cliconfig.UmountValues) error {
 
 	force := c.Force
 	umountAll := c.All
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
 
 	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 	if err != nil {

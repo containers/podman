@@ -22,6 +22,9 @@ var (
 			podUnpauseCommand.GlobalFlags = MainGlobalOpts
 			return podUnpauseCmd(&podUnpauseCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod unpause podID1 podID2
   podman pod unpause --all
   podman pod unpause --latest`,
@@ -37,10 +40,6 @@ func init() {
 }
 
 func podUnpauseCmd(c *cliconfig.PodUnpauseValues) error {
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")

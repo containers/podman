@@ -28,6 +28,9 @@ var (
 			portCommand.GlobalFlags = MainGlobalOpts
 			return portCmd(&portCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, true)
+		},
 		Example: `podman port --all
   podman port ctrID 80/tcp
   podman port --latest 80`,

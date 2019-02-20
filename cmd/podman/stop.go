@@ -32,6 +32,9 @@ var (
 			stopCommand.GlobalFlags = MainGlobalOpts
 			return stopCmd(&stopCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman stop ctrID
   podman stop --latest
   podman stop --timeout 2 mywebserver 6e534f14da9d`,
@@ -52,10 +55,6 @@ func stopCmd(c *cliconfig.StopValues) error {
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
 		defer span.Finish()
-	}
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
 	}
 
 	rootless.SetSkipStorageSetup(true)

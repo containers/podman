@@ -29,6 +29,9 @@ var (
 			checkpointCommand.GlobalFlags = MainGlobalOpts
 			return checkpointCmd(&checkpointCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman checkpoint --keep ctrID
   podman checkpoint --all
   podman checkpoint --leave-running --latest`,
@@ -63,11 +66,6 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		KeepRunning:    c.LeaveRunning,
 		TCPEstablished: c.TcpEstablished,
 	}
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {

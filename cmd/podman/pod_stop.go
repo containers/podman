@@ -27,6 +27,9 @@ var (
 			podStopCommand.GlobalFlags = MainGlobalOpts
 			return podStopCmd(&podStopCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
   podman pod stop --timeout 0 490eb 3557fb`,
@@ -44,10 +47,6 @@ func init() {
 
 func podStopCmd(c *cliconfig.PodStopValues) error {
 	timeout := -1
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

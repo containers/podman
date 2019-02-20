@@ -26,6 +26,9 @@ var (
 			restartCommand.GlobalFlags = MainGlobalOpts
 			return restartCmd(&restartCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman restart ctrID
   podman restart --latest
   podman restart ctrID1 ctrID2`,

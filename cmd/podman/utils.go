@@ -158,13 +158,6 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return bytes, err
 }
 
-func checkMutuallyExclusiveFlags(c *cliconfig.PodmanCommand) error {
-	if err := checkAllAndLatest(c); err != nil {
-		return err
-	}
-	return nil
-}
-
 // For pod commands that have a latest and all flag, getPodsFromContext gets
 // pods the user specifies. If there's an error before getting pods, the pods slice
 // will be empty and error will be not nil. If an error occured after, the pod slice

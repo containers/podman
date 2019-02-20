@@ -34,6 +34,9 @@ var (
 			mountCommand.GlobalFlags = MainGlobalOpts
 			return mountCmd(&mountCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, true)
+		},
 	}
 )
 

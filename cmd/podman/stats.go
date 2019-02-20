@@ -41,6 +41,9 @@ var (
 			statsCommand.GlobalFlags = MainGlobalOpts
 			return statsCmd(&statsCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman stats --all --no-stream
   podman stats ctrID
   podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,

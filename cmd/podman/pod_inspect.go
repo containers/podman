@@ -39,9 +39,6 @@ func podInspectCmd(c *cliconfig.PodInspectValues) error {
 	var (
 		pod *libpod.Pod
 	)
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
 	args := c.InputArgs
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
