@@ -172,3 +172,10 @@ func humanNewLine() {
 		fmt.Println()
 	}
 }
+
+// NonTermNewLine prints a new line at the end of the output only if stdout is the not a terminal
+func NonTermNewLine() {
+	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+		fmt.Println()
+	}
+}

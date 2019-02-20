@@ -174,7 +174,11 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		filteredImages = images
 	}
 
-	return generateImagesOutput(ctx, filteredImages, opts)
+	if err = generateImagesOutput(ctx, filteredImages, opts); err != nil {
+		return err
+	}
+	formats.NonTermNewLine()
+	return nil
 }
 
 func (i imagesOptions) setOutputFormat() string {
