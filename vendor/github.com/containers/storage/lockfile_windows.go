@@ -23,6 +23,11 @@ func (l *lockfile) Lock() {
 	l.locked = true
 }
 
+func (l *lockfile) RLock() {
+	l.mu.Lock()
+	l.locked = true
+}
+
 func (l *lockfile) Unlock() {
 	l.locked = false
 	l.mu.Unlock()

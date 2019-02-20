@@ -568,6 +568,9 @@ func (r *containerStore) Lock() {
 	r.lockfile.Lock()
 }
 
+func (r *containerStore) RLock() {
+	r.lockfile.RLock()
+}
 func (r *containerStore) Unlock() {
 	r.lockfile.Unlock()
 }
