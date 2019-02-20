@@ -8,6 +8,6 @@ then
 else
 	echo "tree is dirty, please commit all changes and sync the vendor.conf"
 	echo ""
-	echo $STATUS
+	echo "$STATUS"
 	exit 1
 fi
