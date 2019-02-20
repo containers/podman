@@ -14,7 +14,6 @@ func getMainCommands() []*cobra.Command {
 		_createCommand,
 		_diffCommand,
 		_execCommand,
-		_killCommand,
 		generateCommand.Command,
 		podCommand.Command,
 		_containerKubeCommand,
