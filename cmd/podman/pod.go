@@ -18,7 +18,13 @@ var podCommand = cliconfig.PodmanCommand{
 	},
 }
 
+//podSubCommands are implemented both in local and remote clients
+var podSubCommands = []*cobra.Command{
+	_podRmCommand,
+}
+
 func init() {
+	podCommand.AddCommand(podSubCommands...)
 	podCommand.AddCommand(getPodSubCommands()...)
 	podCommand.SetUsageTemplate(UsageTemplate())
 }

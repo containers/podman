@@ -51,6 +51,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetPodStats(name: string) string, ContainerStats](#GetPodStats)
 
+[func GetPodsByContext(all: bool, latest: bool, args: []string) []string](#GetPodsByContext)
+
 [func GetVersion() string, string, string, string, string, int](#GetVersion)
 
 [func GetVolumes(args: []string, all: bool) Volume](#GetVolumes)
@@ -529,6 +531,11 @@ $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b
   "pod": "7f62b508b6f12b11d8fe02e0db4de6b9e43a7d7699b33a4fc0d574f6e82b4ebd"
 }
 ~~~
+### <a name="GetPodsByContext"></a>func GetPodsByContext
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetPodsByContext(all: [bool](https://godoc.org/builtin#bool), latest: [bool](https://godoc.org/builtin#bool), args: [[]string](#[]string)) [[]string](#[]string)</div>
+
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
