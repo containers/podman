@@ -239,6 +239,8 @@ func parseOptions(options []string) (*overlayOptions, error) {
 		}
 		key = strings.ToLower(key)
 		switch key {
+		case ".override_kernel_check", "overlay.override_kernel_check", "overlay2.override_kernel_check":
+			logrus.Warnf("overlay: override_kernel_check option was specified, but is no longer necessary")
 		case ".mountopt", "overlay.mountopt", "overlay2.mountopt":
 			o.mountOptions = val
 		case ".size", "overlay.size", "overlay2.size":
