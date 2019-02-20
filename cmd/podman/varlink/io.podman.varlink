@@ -26,6 +26,16 @@ type ContainerChanges (
    deleted: []string
 )
 
+type ImageSaveOptions (
+    name: string,
+    format: string,
+    output: string,
+    outputType: string,
+    moreTags: []string,
+    quiet: bool,
+    compress: bool
+)
+
 type VolumeCreateOpts (
    volumeName: string,
    driver: string,
@@ -1089,6 +1099,8 @@ method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
 
 # VolumesPrune removes unused volumes on the host
 method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
+
+method ImageSave(options: ImageSaveOptions) -> (reply: MoreResponse)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string)

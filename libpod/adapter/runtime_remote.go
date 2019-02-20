@@ -20,6 +20,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -385,8 +386,11 @@ func (r *LocalRuntime) Export(name string, path string) error {
 	if err != nil {
 		return err
 	}
+	return r.GetFileFromRemoteHost(tempPath, path, true)
+}
 
-	outputFile, err := os.Create(path)
+func (r *LocalRuntime) GetFileFromRemoteHost(remoteFilePath, outputPath string, delete bool) error {
+	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
 	}
@@ -395,7 +399,7 @@ func (r *LocalRuntime) Export(name string, path string) error {
 	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
-	reply, err := iopodman.ReceiveFile().Send(r.Conn, varlink.Upgrade, tempPath, true)
+	reply, err := iopodman.ReceiveFile().Send(r.Conn, varlink.Upgrade, remoteFilePath, delete)
 	if err != nil {
 		return err
 	}
@@ -409,7 +413,6 @@ func (r *LocalRuntime) Export(name string, path string) error {
 	if _, err := io.CopyN(writer, reader, length); err != nil {
 		return errors.Wrap(err, "file transer failed")
 	}
-
 	return nil
 }
 
@@ -467,28 +470,17 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 		Squash:              options.Squash,
 	}
 	// tar the file
-	logrus.Debugf("creating tarball of context dir %s", options.ContextDirectory)
-	input, err := archive.Tar(options.ContextDirectory, archive.Uncompressed)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create tarball of context dir %s", options.ContextDirectory)
-	}
-
-	// Write the tarball to the fs
-	// TODO we might considering sending this without writing to the fs for the sake of performance
-	// under given conditions like memory availability.
 	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
 	if err != nil {
 		return err
 	}
 	defer outputFile.Close()
-	logrus.Debugf("writing context dir tarball to %s", outputFile.Name())
+	defer os.Remove(outputFile.Name())
 
-	_, err = io.Copy(outputFile, input)
-	if err != nil {
+	// Create the tarball of the context dir to a tempfile
+	if err := utils.TarToFilesystem(options.ContextDirectory, outputFile); err != nil {
 		return err
 	}
-
-	logrus.Debugf("completed writing context dir tarball %s", outputFile.Name())
 	// Send the context dir tarball over varlink.
 	tempFile, err := r.SendFileOverVarlink(outputFile.Name())
 	if err != nil {
@@ -701,4 +693,73 @@ func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
 		errs = append(errs, errors.New(e))
 	}
 	return prunedNames, errs
+}
+
+// SaveImage is a wrapper function for saving an image to the local filesystem
+func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) error {
+	source := c.InputArgs[0]
+	additionalTags := c.InputArgs[1:]
+
+	options := iopodman.ImageSaveOptions{
+		Name:     source,
+		Format:   c.Format,
+		Output:   c.Output,
+		MoreTags: additionalTags,
+		Quiet:    c.Quiet,
+		Compress: c.Compress,
+	}
+	reply, err := iopodman.ImageSave().Send(r.Conn, varlink.More, options)
+	if err != nil {
+		return err
+	}
+
+	var fetchfile string
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return err
+		}
+		if len(responses.Id) > 0 {
+			fetchfile = responses.Id
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		if flags&varlink.Continues == 0 {
+			break
+		}
+
+	}
+	if err != nil {
+		return err
+	}
+
+	outputToDir := false
+	outfile := c.Output
+	var outputFile *os.File
+	// If the result is supposed to be a dir, then we need to put the tarfile
+	// from the host in a temporary file
+	if options.Format != "oci-archive" && options.Format != "docker-archive" {
+		outputToDir = true
+		outputFile, err = ioutil.TempFile("", "saveimage_tempfile")
+		if err != nil {
+			return err
+		}
+		outfile = outputFile.Name()
+		defer outputFile.Close()
+		defer os.Remove(outputFile.Name())
+	}
+	// We now need to fetch the tarball result back to the more system
+	if err := r.GetFileFromRemoteHost(fetchfile, outfile, true); err != nil {
+		return err
+	}
+
+	// If the result is a tarball, we're done
+	// If it is a dir, we need to untar the temporary file into the dir
+	if outputToDir {
+		if err := utils.UntarToFileSystem(c.Output, outputFile, &archive.TarOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

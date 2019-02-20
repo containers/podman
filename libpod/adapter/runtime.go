@@ -310,3 +310,15 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
 	return r.Runtime.PruneVolumes(ctx)
 }
+
+// SaveImage is a wrapper function for saving an image to the local filesystem
+func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) error {
+	source := c.InputArgs[0]
+	additionalTags := c.InputArgs[1:]
+
+	newImage, err := r.Runtime.ImageRuntime().NewFromLocal(source)
+	if err != nil {
+		return err
+	}
+	return newImage.Save(ctx, source, c.Format, c.Output, additionalTags, c.Quiet, c.Compress)
+}
