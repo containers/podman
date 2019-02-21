@@ -21,7 +21,7 @@ func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
 func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 
-	storageOpts, volumePath, err := util.GetDefaultStoreOptions()
+	storageOpts, _, err := util.GetDefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,6 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, err
 		infraCommand, _ := c.Flags().GetString("infra-command")
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}
-	options = append(options, libpod.WithVolumePath(volumePath))
 	if c.Flags().Changed("config") {
 		return libpod.NewRuntimeFromConfig(c.GlobalFlags.Config, options...)
 	}

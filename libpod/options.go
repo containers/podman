@@ -47,6 +47,10 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
 			rt.configuredFrom.libpodStaticDirSet = true
 
+			// Also set libpod volume path, so we are a subdirectory
+			// of the c/storage store by default
+			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
+
 			setField = true
 		}
 

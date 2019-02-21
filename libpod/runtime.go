@@ -123,7 +123,10 @@ type RuntimeConfig struct {
 	// Not included in on-disk config, use the dedicated containers/storage
 	// configuration file instead
 	StorageConfig storage.StoreOptions `toml:"-"`
-	VolumePath    string               `toml:"volume_path"`
+	// VolumePath is the default location that named volumes will be created
+	// under. This convention is followed by the default volume driver, but
+	// may not be by other drivers.
+	VolumePath string `toml:"volume_path"`
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images
 	ImageDefaultTransport string `toml:"image_default_transport"`
@@ -238,6 +241,7 @@ var (
 	defaultRuntimeConfig = RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
+		VolumePath:            filepath.Join(storage.DefaultStoreOptions.GraphRoot, "volumes"),
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
