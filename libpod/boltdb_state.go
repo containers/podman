@@ -261,12 +261,14 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 		storageRoot := configBucket.Get(graphRootKey)
 		storageTmp := configBucket.Get(runRootKey)
 		graphDriver := configBucket.Get(graphDriverKey)
+		volumePath := configBucket.Get(volPathKey)
 
 		cfg.LibpodRoot = string(libpodRoot)
 		cfg.LibpodTmp = string(libpodTmp)
 		cfg.StorageRoot = string(storageRoot)
 		cfg.StorageTmp = string(storageTmp)
 		cfg.GraphDriver = string(graphDriver)
+		cfg.VolumePath = string(volumePath)
 
 		return nil
 	})

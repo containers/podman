@@ -235,6 +235,7 @@ type runtimeConfiguredFrom struct {
 	storageRunRootSet     bool
 	libpodStaticDirSet    bool
 	libpodTmpDirSet       bool
+	volPathSet            bool
 }
 
 var (
@@ -645,12 +646,16 @@ func makeRuntime(runtime *Runtime) (err error) {
 	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
 		runtime.config.TmpDir = dbConfig.LibpodTmp
 	}
+	if !runtime.configuredFrom.volPathSet && dbConfig.VolumePath != "" {
+		runtime.config.VolumePath = dbConfig.VolumePath
+	}
 
 	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
 	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
 	logrus.Debugf("Using static dir %s", runtime.config.StaticDir)
 	logrus.Debugf("Using tmp dir %s", runtime.config.TmpDir)
+	logrus.Debugf("Using volume path %s", runtime.config.VolumePath)
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration

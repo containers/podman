@@ -38,6 +38,7 @@ const (
 	graphRootName   = "graph-root"
 	graphDriverName = "graph-driver-name"
 	osName          = "os"
+	volPathName     = "volume-path"
 )
 
 var (
@@ -67,6 +68,7 @@ var (
 	graphRootKey   = []byte(graphRootName)
 	graphDriverKey = []byte(graphDriverName)
 	osKey          = []byte(osName)
+	volPathKey     = []byte(volPathName)
 )
 
 // Check if the configuration of the database is compatible with the
@@ -105,10 +107,15 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
-		return validateDBAgainstConfig(configBkt, "storage graph driver",
+		if err := validateDBAgainstConfig(configBkt, "storage graph driver",
 			rt.config.StorageConfig.GraphDriverName,
 			graphDriverKey,
-			storage.DefaultStoreOptions.GraphDriverName)
+			storage.DefaultStoreOptions.GraphDriverName); err != nil {
+			return err
+		}
+
+		return validateDBAgainstConfig(configBkt, "volume path",
+			rt.config.VolumePath, volPathKey, "")
 	})
 
 	return err

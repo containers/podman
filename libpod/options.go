@@ -50,6 +50,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			// Also set libpod volume path, so we are a subdirectory
 			// of the c/storage store by default
 			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
+			rt.configuredFrom.volPathSet = true
 
 			setField = true
 		}
@@ -363,6 +364,7 @@ func WithVolumePath(volPath string) RuntimeOption {
 		}
 
 		rt.config.VolumePath = volPath
+		rt.configuredFrom.volPathSet = true
 
 		return nil
 	}

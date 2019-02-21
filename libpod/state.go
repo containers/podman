@@ -8,6 +8,7 @@ type DBConfig struct {
 	StorageRoot string
 	StorageTmp  string
 	GraphDriver string
+	VolumePath  string
 }
 
 // State is a storage backend for libpod's current state.
