@@ -191,6 +191,7 @@ func init() {
 	flags.StringVar(&psCommand.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
 	flags.BoolVar(&psCommand.Sync, "sync", false, "Sync container state with OCI runtime")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func psCmd(c *cliconfig.PsValues) error {

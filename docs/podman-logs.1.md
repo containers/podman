@@ -17,6 +17,13 @@ any logs at the time you execute podman logs
 
 Follow log output.  Default is false
 
+**--latest, -l**
+
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods.
+
+The latest option is not supported on the remote client.
+
 **--since=TIMESTAMP**
 
 Show logs since TIMESTAMP. The --since option can be Unix timestamps, date formatted timestamps, or Go duration

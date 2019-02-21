@@ -48,6 +48,7 @@ func init() {
 	flags.BoolVar(&checkpointCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointCommand.All, "all", "a", false, "Checkpoint all running containers")
 	flags.BoolVarP(&checkpointCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func checkpointCmd(c *cliconfig.CheckpointValues) error {

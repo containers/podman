@@ -75,6 +75,8 @@ Print the n last created containers (all states)
 
 Show the latest container created (all states)
 
+The latest option is not supported on the remote client.
+
 **--namespace, --ns**
 
 Display namespace information

@@ -24,6 +24,8 @@ Stop all running containers.  This does not include paused containers.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 **--timeout, --time, t**
 
 Timeout to wait before forcibly stopping the container

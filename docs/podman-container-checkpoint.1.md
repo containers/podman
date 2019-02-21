@@ -25,6 +25,8 @@ Checkpoint all running containers.
 
 Instead of providing the container name or ID, checkpoint the last created container.
 
+The latest option is not supported on the remote client.
+
 **--leave-running, -R**
 
 Leave the container running after checkpointing instead of stopping it.

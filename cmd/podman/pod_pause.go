@@ -36,6 +36,7 @@ func init() {
 	flags := podPauseCommand.Flags()
 	flags.BoolVarP(&podPauseCommand.All, "all", "a", false, "Pause all running pods")
 	flags.BoolVarP(&podPauseCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podPauseCmd(c *cliconfig.PodPauseValues) error {

@@ -45,6 +45,7 @@ func init() {
 	flags.BoolVarP(&rmCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
 	flags.BoolVarP(&rmCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove the volumes associated with the container")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // saveCmd saves the image to either docker-archive or oci

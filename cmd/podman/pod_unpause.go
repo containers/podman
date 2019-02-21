@@ -37,6 +37,7 @@ func init() {
 	flags := podUnpauseCommand.Flags()
 	flags.BoolVarP(&podUnpauseCommand.All, "all", "a", false, "Unpause all running pods")
 	flags.BoolVarP(&podUnpauseCommand.Latest, "latest", "l", false, "Unpause the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podUnpauseCmd(c *cliconfig.PodUnpauseValues) error {

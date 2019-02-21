@@ -43,6 +43,7 @@ func init() {
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
 	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&cleanupCommand.Remove, "rm", false, "After cleanup, remove the container entirely")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func cleanupCmd(c *cliconfig.CleanupValues) error {

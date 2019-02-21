@@ -42,7 +42,7 @@ func init() {
 	flags.BoolVarP(&podRmCommand.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&podRmCommand.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&podRmCommand.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
-
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // podRmCmd deletes pods

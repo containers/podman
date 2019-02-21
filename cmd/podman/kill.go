@@ -46,6 +46,7 @@ func init() {
 	flags.StringVarP(&killCommand.Signal, "signal", "s", "KILL", "Signal to send to the container")
 	flags.BoolVarP(&killCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // killCmd kills one or more containers with a signal

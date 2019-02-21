@@ -45,6 +45,7 @@ func init() {
 	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVar(&restartCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func restartCmd(c *cliconfig.RestartValues) error {

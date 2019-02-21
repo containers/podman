@@ -49,6 +49,7 @@ func init() {
 	flags.BoolVarP(&mountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&mountCommand.NoTrunc, "notruncate", false, "Do not truncate output")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // jsonMountPoint stores info about each container

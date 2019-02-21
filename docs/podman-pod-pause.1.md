@@ -19,6 +19,8 @@ Pause all pods.
 
 Instead of providing the pod name or ID, pause the last created pod.
 
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 podman pod pause mywebserverpod

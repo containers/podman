@@ -144,7 +144,7 @@ func init() {
 	flags.BoolVar(&podPsCommand.NoTrunc, "no-trunc", false, "Do not truncate pod and container IDs")
 	flags.BoolVarP(&podPsCommand.Quiet, "quiet", "q", false, "Print the numeric IDs of the pods only")
 	flags.StringVar(&podPsCommand.Sort, "sort", "created", "Sort output by created, id, name, or number")
-
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podPsCmd(c *cliconfig.PodPsValues) error {

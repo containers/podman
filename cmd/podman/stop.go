@@ -49,6 +49,7 @@ func init() {
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVar(&stopCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func stopCmd(c *cliconfig.StopValues) error {

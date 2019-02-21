@@ -19,6 +19,8 @@ Remove all pods.  Can be used in conjunction with \-f as well.
 
 Instead of providing the pod name or ID, remove the last created pod.
 
+The latest option is not supported on the remote client.
+
 **--force, f**
 
 Stop running containers and delete all stopped containers before removal of pod.

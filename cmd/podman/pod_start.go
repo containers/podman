@@ -41,6 +41,7 @@ func init() {
 	flags := podStartCommand.Flags()
 	flags.BoolVarP(&podStartCommand.All, "all", "a", false, "Start all pods")
 	flags.BoolVarP(&podStartCommand.Latest, "latest", "l", false, "Start the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podStartCmd(c *cliconfig.PodStartValues) error {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/pflag"
 	"os"
 	gosignal "os/signal"
 
@@ -243,4 +244,12 @@ func printParallelOutput(m map[string]error, errCount int) error {
 		fmt.Println(cid)
 	}
 	return lastError
+}
+
+// markFlagHiddenForRemoteClient makes the flag not appear as part of the CLI
+// on the remote-client
+func markFlagHiddenForRemoteClient(flagName string, flags *pflag.FlagSet) {
+	if remoteclient {
+		flags.MarkHidden(flagName)
+	}
 }

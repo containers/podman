@@ -38,6 +38,7 @@ func init() {
 	flags.BoolVarP(&podRestartCommand.All, "all", "a", false, "Restart all running pods")
 	flags.BoolVarP(&podRestartCommand.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podRestartCmd(c *cliconfig.PodRestartValues) error {

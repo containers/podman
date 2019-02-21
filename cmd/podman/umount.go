@@ -47,6 +47,7 @@ func init() {
 	flags.BoolVarP(&umountCommand.All, "all", "a", false, "Umount all of the currently mounted containers")
 	flags.BoolVarP(&umountCommand.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
 	flags.BoolVarP(&umountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func umountCmd(c *cliconfig.UmountValues) error {
