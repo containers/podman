@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <stdbool.h>
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
@@ -186,6 +187,18 @@ reexec_in_user_namespace (int ready)
   pid_t ppid = getpid ();
   char **argv;
   char uid[16];
+  char *listen_fds = NULL;
+  char *listen_pid = NULL;
+  bool do_socket_activation = false;
+
+  listen_pid = getenv("LISTEN_PID");
+  listen_fds = getenv("LISTEN_FDS");
+
+  if (listen_pid != NULL && listen_fds != NULL) {
+    if (strtol(listen_pid, NULL, 10) == getpid()) {
+      do_socket_activation = true;
+    }
+  }
 
   sprintf (uid, "%d", geteuid ());
 
@@ -197,8 +210,22 @@ reexec_in_user_namespace (int ready)
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
     }
-  if (pid)
+  if (pid) {
+    if (do_socket_activation) {
+      long num_fds;
+      num_fds = strtol(listen_fds, NULL, 10);
+      if (num_fds != LONG_MIN && num_fds != LONG_MAX) {
+        long i;
+        for (i = 0; i < num_fds; i++) {
+          close(3+i);
+        }
+      }
+      unsetenv("LISTEN_PID");
+      unsetenv("LISTEN_FDS");
+      unsetenv("LISTEN_FDNAMES");
+    }
     return pid;
+  }
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
@@ -206,6 +233,12 @@ reexec_in_user_namespace (int ready)
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (do_socket_activation) {
+    char s[32];
+    sprintf(s, "%d", getpid());
+    setenv("LISTEN_PID", s, true);
+  }
 
   setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
   setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
