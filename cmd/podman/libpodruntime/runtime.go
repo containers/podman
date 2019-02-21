@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GerRuntimeRenumber gets a libpod runtime that will perform a lock renumber
+// GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
 	return getRuntime(c, true)
 }
