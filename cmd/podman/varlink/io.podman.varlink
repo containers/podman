@@ -1102,6 +1102,8 @@ method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
 
 method ImageSave(options: ImageSaveOptions) -> (reply: MoreResponse)
 
+method GetPodsByContext(all: bool, latest: bool, args: []string) -> (pods: []string)
+
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string)
 

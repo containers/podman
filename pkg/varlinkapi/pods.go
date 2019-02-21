@@ -2,6 +2,7 @@ package varlinkapi
 
 import (
 	"encoding/json"
+	"github.com/containers/libpod/libpod/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/rootless"
 	"syscall"
 
@@ -270,4 +271,18 @@ func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 		containersStats = append(containersStats, cs)
 	}
 	return call.ReplyGetPodStats(pod.ID(), containersStats)
+}
+
+// GetPodsByContext returns a slice of pod ids based on all, latest, or a list
+func (i *LibpodAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool, input []string) error {
+	var podids []string
+
+	pods, err := shortcuts.GetPodsByContext(all, latest, input, i.Runtime)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	for _, p := range pods {
+		podids = append(podids, p.ID())
+	}
+	return call.ReplyGetPodsByContext(podids)
 }
