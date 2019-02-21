@@ -89,3 +89,14 @@ func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 
 	return m.locks[id], nil
 }
+
+// FreeAllLocks frees all locks.
+// This function is DANGEROUS. Please read the full comment in locks.go before
+// trying to use it.
+func (m *InMemoryManager) FreeAllLocks() error {
+	for _, lock := range m.locks {
+		lock.allocated = false
+	}
+
+	return nil
+}

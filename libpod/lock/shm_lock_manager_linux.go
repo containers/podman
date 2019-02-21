@@ -71,6 +71,13 @@ func (m *SHMLockManager) RetrieveLock(id uint32) (Locker, error) {
 	return lock, nil
 }
 
+// FreeAllLocks frees all locks in the manager.
+// This function is DANGEROUS. Please read the full comment in locks.go before
+// trying to use it.
+func (m *SHMLockManager) FreeAllLocks() error {
+	return m.locks.DeallocateAllSemaphores()
+}
+
 // SHMLock is an individual shared memory lock.
 type SHMLock struct {
 	lockID  uint32

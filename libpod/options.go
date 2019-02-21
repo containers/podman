@@ -394,6 +394,22 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
+// WithRenumber instructs libpod to perform a lock renumbering while
+// initializing. This will handle migrations from early versions of libpod with
+// file locks to newer versions with SHM locking, as well as changes in the
+// number of configured locks.
+func WithRenumber() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.doRenumber = true
+
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.

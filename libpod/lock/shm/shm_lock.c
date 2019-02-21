@@ -203,6 +203,8 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 // terminating NULL byte.
 // Returns a valid pointer on success or NULL on error.
 // If an error occurs, negative ERRNO values will be written to error_code.
+// ERANGE is returned for a mismatch between num_locks and the number of locks
+// available in the the SHM lock struct.
 shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   int shm_fd;
   shm_struct_t *shm;
@@ -255,11 +257,11 @@ shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 
   // Need to check the SHM to see if it's actually our locks
   if (shm->magic != MAGIC) {
-    *error_code = -1 * errno;
+    *error_code = -1 * EBADF;
     goto CLEANUP;
   }
   if (shm->num_locks != (num_bitmaps * BITMAP_SIZE)) {
-    *error_code = -1 * errno;
+    *error_code = -1 * ERANGE;
     goto CLEANUP;
   }
 
@@ -399,6 +401,36 @@ int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   test_map = ~test_map;
   shm->locks[bitmap_index].bitmap = shm->locks[bitmap_index].bitmap & test_map;
 
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  return 0;
+}
+
+// Deallocate all semaphores unconditionally.
+// Returns negative ERRNO values.
+int32_t deallocate_all_semaphores(shm_struct_t *shm) {
+  int ret_code;
+  uint i;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  // Lock the mutex controlling access to our shared memory
+  ret_code = take_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Iterate through all bitmaps and reset to unused
+  for (i = 0; i < shm->num_bitmaps; i++) {
+    shm->locks[i].bitmap = 0;
+  }
+
+  // Unlock the allocation control mutex
   ret_code = release_mutex(&(shm->segment_lock));
   if (ret_code != 0) {
     return -1 * ret_code;

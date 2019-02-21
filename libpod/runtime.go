@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
@@ -79,7 +80,8 @@ type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config          *RuntimeConfig
+	config *RuntimeConfig
+
 	state           State
 	store           storage.Store
 	storageService  *storageService
@@ -88,12 +90,23 @@ type Runtime struct {
 	netPlugin       ocicni.CNIPlugin
 	ociRuntimePath  OCIRuntimePath
 	conmonPath      string
-	valid           bool
-	lock            sync.RWMutex
 	imageRuntime    *image.Runtime
 	firewallBackend firewall.FirewallBackend
 	lockManager     lock.Manager
 	configuredFrom  *runtimeConfiguredFrom
+
+	// doRenumber indicates that the runtime should perform a lock renumber
+	// during initialization.
+	// Once the runtime has been initialized and returned, this variable is
+	// unused.
+	doRenumber bool
+
+	// valid indicates whether the runtime is ready to use.
+	// valid is set to true when a runtime is returned from GetRuntime(),
+	// and remains true until the runtime is shut down (rendering its
+	// storage unusable). When valid is false, the runtime cannot be used.
+	valid bool
+	lock  sync.RWMutex
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -753,6 +766,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 			aliveLock.Unlock()
 		}
 	}()
+
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
 		// If the file doesn't exist, we need to refresh the state
@@ -778,11 +792,34 @@ func makeRuntime(runtime *Runtime) (err error) {
 			if err != nil {
 				return err
 			}
+		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+			logrus.Debugf("Number of locks does not match - removing old locks")
+
+			// ERANGE indicates a lock numbering mismatch.
+			// Since we're renumbering, this is not fatal.
+			// Remove the earlier set of locks and recreate.
+			if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
+				return errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
+			}
+
+			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+			if err != nil {
+				return err
+			}
 		} else {
 			return err
 		}
 	}
 	runtime.lockManager = manager
+
+	// If we're renumbering locks, do it now.
+	// It breaks out of normal runtime init, and will not return a valid
+	// runtime.
+	if runtime.doRenumber {
+		if err := runtime.renumberLocks(); err != nil {
+			return err
+		}
+	}
 
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.

@@ -783,6 +783,94 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// RewriteContainerConfig rewrites a container's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return ErrCtrRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", ctr.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		ctrDB := ctrBkt.Bucket([]byte(ctr.ID()))
+		if ctrDB == nil {
+			ctr.valid = false
+			return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+		}
+
+		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating container %s config JSON", ctr.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RewritePodConfig rewrites a pod's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+	if !s.valid {
+		return ErrDBClosed
+	}
+
+	if !pod.valid {
+		return ErrPodRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", pod.ID())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.closeDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		podDB := podBkt.Bucket([]byte(pod.ID()))
+		if podDB == nil {
+			pod.valid = false
+			return errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in DB", pod.ID())
+		}
+
+		if err := podDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating pod %s config JSON", pod.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
 // Pod retrieves a pod given its full ID
 func (s *BoltState) Pod(id string) (*Pod, error) {
 	if id == "" {
@@ -1279,10 +1367,6 @@ func (s *BoltState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
 func (s *BoltState) RemoveVolume(volume *Volume) error {
 	if !s.valid {
 		return ErrDBClosed
-	}
-
-	if !volume.valid {
-		return ErrVolumeRemoved
 	}
 
 	volName := []byte(volume.Name())

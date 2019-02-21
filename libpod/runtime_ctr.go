@@ -421,7 +421,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	for _, v := range volumes {
 		if volume, err := runtime.state.Volume(v); err == nil {
-			if err := runtime.removeVolume(ctx, volume, false, true); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
+			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
 				logrus.Errorf("cleanup volume (%s): %v", v, err)
 			}
 		}

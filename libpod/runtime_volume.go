@@ -19,7 +19,7 @@ type VolumeCreateOption func(*Volume) error
 type VolumeFilter func(*Volume) bool
 
 // RemoveVolume removes a volumes
-func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force, prune bool) error {
+func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -35,10 +35,7 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force, prune bool
 		}
 	}
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
-	return r.removeVolume(ctx, v, force, prune)
+	return r.removeVolume(ctx, v, force)
 }
 
 // RemoveVolumes removes a slice of volumes or all with a force bool
@@ -64,7 +61,7 @@ func (r *Runtime) RemoveVolumes(ctx context.Context, volumes []string, all, forc
 	}
 
 	for _, vol := range vols {
-		if err := r.RemoveVolume(ctx, vol, force, false); err != nil {
+		if err := r.RemoveVolume(ctx, vol, force); err != nil {
 			return deletedVols, err
 		}
 		logrus.Debugf("removed volume %s", vol.Name())
@@ -168,8 +165,8 @@ func (r *Runtime) PruneVolumes(ctx context.Context) ([]string, []error) {
 	}
 
 	for _, vol := range vols {
-		if err := r.RemoveVolume(ctx, vol, false, true); err != nil {
-			if err != ErrVolumeBeingUsed {
+		if err := r.RemoveVolume(ctx, vol, false); err != nil {
+			if errors.Cause(err) != ErrVolumeBeingUsed && errors.Cause(err) != ErrVolumeRemoved {
 				pruneErrors = append(pruneErrors, err)
 			}
 			continue
