@@ -120,11 +120,8 @@ func (t StdoutTemplateArray) Out() error {
 			fmt.Fprintln(w, "")
 			continue
 		}
-		// Only print new line at the end of the output if stdout is the terminal
-		if terminal.IsTerminal(int(os.Stdout.Fd())) {
-			fmt.Fprintln(w, "")
-		}
 	}
+	fmt.Fprintln(w, "")
 	return w.Flush()
 }
 
