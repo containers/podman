@@ -108,6 +108,7 @@ func getSystemSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_pruneSystemCommand,
 		_renumberCommand,
+		_dfSystemCommand,
 	}
 }
 

@@ -78,6 +78,7 @@ There are other equivalents for these tools
 | `docker volume prune`  | [`podman volume prune`](./docs/podman-volume-prune.1.md)    |
 | `docker volume rm`     | [`podman volume rm`](./docs/podman-volume-rm.1.md)          |
 | `docker system`        | [`podman system`](./docs/podman-system.1.md)                |
+| `docker system df`     | [`podman system df`](./docs/podman-system-df.1.md)          |
 | `docker system prune`  | [`podman system prune`](./docs/podman-system-prune.1.md)    |
 | `docker system info`   | [`podman system info`](./docs/podman-system-info.1.md)      |
 | `docker wait`          | [`podman wait`](./docs/podman-wait.1.md)		       |

@@ -572,3 +572,9 @@ type SystemPruneValues struct {
 type SystemRenumberValues struct {
 	PodmanCommand
 }
+
+type SystemDfValues struct {
+	PodmanCommand
+	Verbose bool
+	Format  string
+}
