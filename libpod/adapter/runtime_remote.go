@@ -486,7 +486,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	if err != nil {
 		return err
 	}
-	buildinfo.ContextDir = strings.Replace(tempFile, ":", "", -1)
+	buildinfo.ContextDir = tempFile
 
 	reply, err := iopodman.BuildImage().Send(r.Conn, varlink.More, buildinfo)
 	if err != nil {
@@ -549,7 +549,7 @@ func (r *LocalRuntime) SendFileOverVarlink(source string) (string, error) {
 
 	}
 
-	return tempFile, nil
+	return strings.Replace(tempFile, ":", "", -1), nil
 }
 
 // GetAllVolumes retrieves all the volumes
@@ -762,4 +762,37 @@ func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) e
 		}
 	}
 	return nil
+}
+
+// LoadImage loads a container image from a remote client's filesystem
+func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfig.LoadValues) (string, error) {
+	var names string
+	remoteTempFile, err := r.SendFileOverVarlink(cli.Input)
+	if err != nil {
+		return "", nil
+	}
+	more := varlink.More
+	if cli.Quiet {
+		more = 0
+	}
+	reply, err := iopodman.LoadImage().Send(r.Conn, uint64(more), name, remoteTempFile, cli.Quiet, true)
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			logrus.Error(err)
+			return "", err
+		}
+		for _, line := range responses.Logs {
+			fmt.Print(line)
+		}
+		names = responses.Id
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	return names, nil
 }

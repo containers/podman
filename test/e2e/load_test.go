@@ -199,11 +199,9 @@ var _ = Describe("Podman load", func() {
 
 	It("podman load localhost registry from scratch and :latest", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
-		setup := podmanTest.Podman([]string{"pull", fedoraMinimal})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup.ExitCode()).To(Equal(0))
+		podmanTest.RestoreArtifact("fedora-minimal:latest")
 
-		setup = podmanTest.Podman([]string{"tag", "fedora-minimal", "hello"})
+		setup := podmanTest.Podman([]string{"tag", "fedora-minimal", "hello"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 

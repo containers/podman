@@ -6,12 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -56,14 +52,16 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		return errors.New("too many arguments. Requires exactly 1")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	input := c.Input
-
+	if runtime.Remote && len(input) == 0 {
+		return errors.New("the remote client requires you to load via -i and a tarball")
+	}
 	if input == "/dev/stdin" {
 		fi, err := os.Stdin.Stat()
 		if err != nil {
@@ -96,46 +94,10 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		return err
 	}
 
-	var writer io.Writer
-	if !c.Quiet {
-		writer = os.Stderr
-	}
-
-	ctx := getContext()
-
-	var newImages []*image.Image
-	src, err := dockerarchive.ParseReference(input) // FIXME? We should add dockerarchive.NewReference()
-	if err == nil {
-		newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
-	}
+	names, err := runtime.LoadImage(getContext(), imageName, c)
 	if err != nil {
-		// generate full src name with specified image:tag
-		src, err := ociarchive.NewReference(input, imageName) // imageName may be ""
-		if err == nil {
-			newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
-		}
-		if err != nil {
-			src, err := directory.NewReference(input)
-			if err == nil {
-				newImages, err = runtime.ImageRuntime().LoadFromArchiveReference(ctx, src, c.SignaturePolicy, writer)
-			}
-			if err != nil {
-				return errors.Wrapf(err, "error pulling %q", input)
-			}
-		}
+		return err
 	}
-	fmt.Println("Loaded image(s): " + getImageNames(newImages))
+	fmt.Println("Loaded image(s): " + names)
 	return nil
-}
-
-func getImageNames(images []*image.Image) string {
-	var names string
-	for i := range images {
-		if i == 0 {
-			names = images[i].InputName
-		} else {
-			names += ", " + images[i].InputName
-		}
-	}
-	return names
 }
