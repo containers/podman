@@ -62,11 +62,6 @@ type BuildOptions struct {
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
 	Registry string
-	// Transport is a value which is prepended to the image's name, if it
-	// needs to be pulled and the image name alone, or the image name and
-	// the registry together, can not be resolved to a reference to a
-	// source image.  No separator is implicitly added.
-	Transport string
 	// IgnoreUnrecognizedInstructions tells us to just log instructions we
 	// don't recognize, and try to keep going.
 	IgnoreUnrecognizedInstructions bool
@@ -171,6 +166,8 @@ type BuildOptions struct {
 	ForceRmIntermediateCtrs bool
 	// BlobDirectory is a directory which we'll use for caching layer blobs.
 	BlobDirectory string
+	// Target the targeted FROM in the Dockerfile to build
+	Target string
 }
 
 // Executor is a buildah-based implementation of the imagebuilder.Executor
@@ -184,7 +181,6 @@ type Executor struct {
 	builder                        *buildah.Builder
 	pullPolicy                     buildah.PullPolicy
 	registry                       string
-	transport                      string
 	ignoreUnrecognizedInstructions bool
 	quiet                          bool
 	runtime                        string
@@ -580,7 +576,6 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		contextDir:                     options.ContextDirectory,
 		pullPolicy:                     options.PullPolicy,
 		registry:                       options.Registry,
-		transport:                      options.Transport,
 		ignoreUnrecognizedInstructions: options.IgnoreUnrecognizedInstructions,
 		quiet:                          options.Quiet,
 		runtime:                        options.Runtime,
@@ -670,7 +665,6 @@ func (b *Executor) Prepare(ctx context.Context, stage imagebuilder.Stage, from s
 		FromImage:             from,
 		PullPolicy:            b.pullPolicy,
 		Registry:              b.registry,
-		Transport:             b.transport,
 		PullBlobDirectory:     b.blobDirectory,
 		SignaturePolicyPath:   b.signaturePolicyPath,
 		ReportWriter:          b.reportWriter,
@@ -783,7 +777,7 @@ func (b *Executor) resolveNameToImageRef() (types.ImageReference, error) {
 	if b.output != "" {
 		imageRef, err = alltransports.ParseImageName(b.output)
 		if err != nil {
-			candidates, _, err := util.ResolveName(b.output, "", b.systemContext, b.store)
+			candidates, _, _, err := util.ResolveName(b.output, "", b.systemContext, b.store)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error parsing target image name %q", b.output)
 			}
@@ -1440,6 +1434,13 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 	stages, err := imagebuilder.NewStages(mainNode, b)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error reading multiple stages")
+	}
+	if options.Target != "" {
+		stagesTargeted, ok := stages.ThroughTarget(options.Target)
+		if !ok {
+			return "", nil, errors.Errorf("The target %q was not found in the provided Dockerfile", options.Target)
+		}
+		stages = stagesTargeted
 	}
 	return exec.Build(ctx, stages)
 }

@@ -70,7 +70,7 @@ is ignored.
 
 ## Code Example
 
-```
+```go
 f, err := os.Open("path/to/Dockerfile")
 if err != nil {
 	return err

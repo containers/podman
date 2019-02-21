@@ -128,9 +128,20 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	if len(args) < 2 {
 		return errAtLeastOneArgument("ADD")
 	}
+	var chown string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true})
+	if len(flagArgs) > 0 {
+		for _, arg := range flagArgs {
+			switch {
+			case strings.HasPrefix(arg, "--chown="):
+				chown = strings.TrimPrefix(arg, "--chown=")
+			default:
+				return fmt.Errorf("ADD only supports the --chown=<uid:gid> flag")
+			}
+		}
+	}
+	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true, Chown: chown})
 	return nil
 }
 

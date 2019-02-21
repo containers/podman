@@ -162,7 +162,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			importBuilder.SetWorkDir(splitChange[1])
 		}
 	}
-	candidates, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
+	candidates, _, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error resolving name %q", destImage)
 	}
