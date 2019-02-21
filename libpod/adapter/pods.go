@@ -36,3 +36,19 @@ func (r *LocalRuntime) RemovePods(ctx context.Context, cli *cliconfig.PodRmValue
 	}
 	return podids, errs
 }
+
+// GetLatestPod gets the latest pod and wraps it in an adapter pod
+func (r *LocalRuntime) GetLatestPod() (*Pod, error) {
+	pod := Pod{}
+	p, err := r.Runtime.GetLatestPod()
+	pod.Pod = p
+	return &pod, err
+}
+
+// LookupPod gets a pod by name or id and wraps it in an adapter pod
+func (r *LocalRuntime) LookupPod(nameOrID string) (*Pod, error) {
+	pod := Pod{}
+	p, err := r.Runtime.LookupPod(nameOrID)
+	pod.Pod = p
+	return &pod, err
+}

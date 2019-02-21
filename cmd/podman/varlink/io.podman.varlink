@@ -1082,6 +1082,10 @@ method ContainerInspectData(name: string) -> (config: string)
 # development of Podman only and generally should not be used.
 method ContainerStateData(name: string) -> (config: string)
 
+# PodStateData returns inspectr level information of a given pod in string form.  This call is for
+# development of Podman only and generally should not be used.
+method PodStateData(name: string) -> (config: string)
+
 # Sendfile allows a remote client to send a file to the host
 method SendFile(type: string, length: int) -> (file_handle: string)
 
@@ -1100,11 +1104,15 @@ method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
 # VolumesPrune removes unused volumes on the host
 method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
 
+# ImageSave allows you to save an image from the local image storage to a tarball
 method ImageSave(options: ImageSaveOptions) -> (reply: MoreResponse)
 
-
+# GetPodsByContext allows you to get a list pod ids depending on all, latest, or a list of
+# pod names.  The definition of latest pod means the latest by creation date.  In a multi-
+# user environment, results might differ from what you expect.
 method GetPodsByContext(all: bool, latest: bool, args: []string) -> (pods: []string)
 
+# LoadImage allows you to load an image into local storage from a tarball.
 method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) -> (reply: MoreResponse)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.

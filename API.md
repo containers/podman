@@ -89,11 +89,15 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ListPods() ListPodData](#ListPods)
 
+[func LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) MoreResponse](#LoadImage)
+
 [func MountContainer(name: string) string](#MountContainer)
 
 [func PauseContainer(name: string) string](#PauseContainer)
 
 [func PausePod(name: string) string](#PausePod)
+
+[func PodStateData(name: string) string](#PodStateData)
 
 [func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ) MoreResponse](#PullImage)
 
@@ -535,7 +539,9 @@ $ varlink call unix:/run/podman/io.podman/io.podman.GetPodStats '{"name": "7f62b
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method GetPodsByContext(all: [bool](https://godoc.org/builtin#bool), latest: [bool](https://godoc.org/builtin#bool), args: [[]string](#[]string)) [[]string](#[]string)</div>
-
+GetPodsByContext allows you to get a list pod ids depending on all, latest, or a list of
+pod names.  The definition of latest pod means the latest by creation date.  In a multi-
+user environment, results might differ from what you expect.
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -571,7 +577,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageExists '{"name": "im
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method ImageSave(options: [ImageSaveOptions](#ImageSaveOptions)) [MoreResponse](#MoreResponse)</div>
-
+ImageSave allows you to save an image from the local image storage to a tarball
 ### <a name="ImagesPrune"></a>func ImagesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -732,6 +738,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ListPods
   ]
 }
 ~~~
+### <a name="LoadImage"></a>func LoadImage
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method LoadImage(name: [string](https://godoc.org/builtin#string), inputFile: [string](https://godoc.org/builtin#string), quiet: [bool](https://godoc.org/builtin#bool), deleteFile: [bool](https://godoc.org/builtin#bool)) [MoreResponse](#MoreResponse)</div>
+LoadImage allows you to load an image into local storage from a tarball.
 ### <a name="MountContainer"></a>func MountContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -768,6 +779,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PausePod '{"name": "fooba
   "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
 }
 ~~~
+### <a name="PodStateData"></a>func PodStateData
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method PodStateData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+PodStateData returns inspectr level information of a given pod in string form.  This call is for
+development of Podman only and generally should not be used.
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

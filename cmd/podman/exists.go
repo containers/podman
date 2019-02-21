@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
@@ -124,14 +123,14 @@ func podExistsCmd(c *cliconfig.PodExistsValues) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one pod at a time")
 	}
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
 	if _, err := runtime.LookupPod(args[0]); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchPod {
+		if errors.Cause(err) == libpod.ErrNoSuchPod || err.Error() == "io.podman.PodNotFound" {
 			os.Exit(1)
 		}
 		return err

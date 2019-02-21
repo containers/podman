@@ -5,8 +5,7 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -37,13 +36,13 @@ func init() {
 
 func podInspectCmd(c *cliconfig.PodInspectValues) error {
 	var (
-		pod *libpod.Pod
+		pod *adapter.Pod
 	)
 	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
 		return err
 	}
 	args := c.InputArgs
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

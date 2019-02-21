@@ -286,3 +286,20 @@ func (i *LibpodAPI) GetPodsByContext(call iopodman.VarlinkCall, all, latest bool
 	}
 	return call.ReplyGetPodsByContext(podids)
 }
+
+// PodStateData returns a container's state data in string format
+func (i *LibpodAPI) PodStateData(call iopodman.VarlinkCall, name string) error {
+	pod, err := i.Runtime.LookupPod(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	data, err := pod.Inspect()
+	if err != nil {
+		return call.ReplyErrorOccurred("unable to obtain pod state")
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return call.ReplyErrorOccurred("unable to serialize pod inspect data")
+	}
+	return call.ReplyPodStateData(string(b))
+}
