@@ -74,19 +74,16 @@ func pullCmd(c *cliconfig.PullValues) error {
 
 	args := c.InputArgs
 	if len(args) == 0 {
-		logrus.Errorf("an image name must be specified")
-		return nil
+		return errors.Errorf("an image name must be specified")
 	}
 	if len(args) > 1 {
-		logrus.Errorf("too many arguments. Requires exactly 1")
-		return nil
+		return errors.Errorf("too many arguments. Requires exactly 1")
 	}
 
 	arr := strings.SplitN(args[0], ":", 2)
 	if len(arr) == 2 {
 		if c.Bool("all-tags") {
-			logrus.Errorf("tag can't be used with --all-tags")
-			return nil
+			return errors.Errorf("tag can't be used with --all-tags")
 		}
 	}
 	ctx := getContext()

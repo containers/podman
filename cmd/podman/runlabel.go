@@ -13,7 +13,6 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -87,8 +86,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 
 	args := c.InputArgs
 	if len(args) < 2 {
-		logrus.Errorf("the runlabel command requires at least 2 arguments: LABEL IMAGE")
-		return nil
+		return errors.Errorf("the runlabel command requires at least 2 arguments: LABEL IMAGE")
 	}
 	if c.Display && c.Quiet {
 		return errors.Errorf("the display and quiet flags cannot be used together.")
