@@ -137,6 +137,5 @@ var _ = Describe("Podman pod stop", func() {
 		session = podmanTest.Podman([]string{"pod", "stop", podid1, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 })

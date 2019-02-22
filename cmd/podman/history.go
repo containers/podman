@@ -8,8 +8,8 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

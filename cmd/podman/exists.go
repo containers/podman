@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/adapter"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 )
 

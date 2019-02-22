@@ -5,7 +5,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -45,7 +45,7 @@ func init() {
 
 // podKillCmd kills one or more pods with a signal
 func podKillCmd(c *cliconfig.PodKillValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -63,30 +63,20 @@ func podKillCmd(c *cliconfig.PodKillValues) error {
 		killSignal = uint(sysSignal)
 	}
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(&c.PodmanCommand, runtime)
+	podKillIds, podKillErrors := runtime.KillPods(getContext(), c, killSignal)
+	for _, p := range podKillIds {
+		fmt.Println(p)
+	}
+	if len(podKillErrors) == 0 {
+		return nil
+	}
+	// Grab the last error
+	lastError := podKillErrors[len(podKillErrors)-1]
+	// Remove the last error from the error slice
+	podKillErrors = podKillErrors[:len(podKillErrors)-1]
 
-	for _, pod := range pods {
-		ctr_errs, err := pod.Kill(killSignal)
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to kill container %q in pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to kill pod %q", pod.ID())
-			continue
-		}
-		fmt.Println(pod.ID())
+	for _, err := range podKillErrors {
+		logrus.Errorf("%q", err)
 	}
 	return lastError
 }
