@@ -20,6 +20,8 @@ Display the running process of the container. The *format-descriptors* are ps (1
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 ## FORMAT DESCRIPTORS
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):

@@ -47,6 +47,7 @@ func init() {
 	flags.BoolVarP(&podStatsCommand.Latest, "latest", "l", false, "Provide stats on the latest pod podman is aware of")
 	flags.BoolVar(&podStatsCommand.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
 	flags.BoolVar(&podStatsCommand.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podStatsCmd(c *cliconfig.PodStatsValues) error {

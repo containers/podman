@@ -26,6 +26,9 @@ var (
 			cleanupCommand.GlobalFlags = MainGlobalOpts
 			return cleanupCmd(&cleanupCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman container cleanup --latest
   podman container cleanup ctrID1 ctrID2 ctrID3
   podman container cleanup --all`,
@@ -40,6 +43,7 @@ func init() {
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
 	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&cleanupCommand.Remove, "rm", false, "After cleanup, remove the container entirely")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func cleanupCmd(c *cliconfig.CleanupValues) error {
@@ -48,10 +52,6 @@ func cleanupCmd(c *cliconfig.CleanupValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
 
 	cleanupContainers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 

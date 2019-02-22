@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const remoteclient = true
+
 // commands that only the remoteclient implements
 func getMainCommands() []*cobra.Command {
 	return []*cobra.Command{}

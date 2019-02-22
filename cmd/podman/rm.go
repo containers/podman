@@ -28,6 +28,9 @@ Running containers will not be removed without the -f option.
 			rmCommand.GlobalFlags = MainGlobalOpts
 			return rmCmd(&rmCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman rm imageID
   podman rm mywebserver myflaskserver 860a4b23
   podman rm --force --all`,
@@ -42,6 +45,7 @@ func init() {
 	flags.BoolVarP(&rmCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
 	flags.BoolVarP(&rmCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove the volumes associated with the container")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // saveCmd saves the image to either docker-archive or oci
@@ -56,10 +60,6 @@ func rmCmd(c *cliconfig.RmValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
 
 	delContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 	if err != nil {

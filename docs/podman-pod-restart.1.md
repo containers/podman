@@ -22,6 +22,8 @@ Restarts all pods
 
 Instead of providing the pod name or ID, restart the last created pod.
 
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 ```

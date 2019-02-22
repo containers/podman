@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/pflag"
 	"os"
 	gosignal "os/signal"
 
@@ -158,13 +159,6 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return bytes, err
 }
 
-func checkMutuallyExclusiveFlags(c *cliconfig.PodmanCommand) error {
-	if err := checkAllAndLatest(c); err != nil {
-		return err
-	}
-	return nil
-}
-
 // For pod commands that have a latest and all flag, getPodsFromContext gets
 // pods the user specifies. If there's an error before getting pods, the pods slice
 // will be empty and error will be not nil. If an error occured after, the pod slice
@@ -250,4 +244,12 @@ func printParallelOutput(m map[string]error, errCount int) error {
 		fmt.Println(cid)
 	}
 	return lastError
+}
+
+// markFlagHiddenForRemoteClient makes the flag not appear as part of the CLI
+// on the remote-client
+func markFlagHiddenForRemoteClient(flagName string, flags *pflag.FlagSet) {
+	if remoteclient {
+		flags.MarkHidden(flagName)
+	}
 }

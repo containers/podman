@@ -26,6 +26,9 @@ var (
 			restartCommand.GlobalFlags = MainGlobalOpts
 			return restartCmd(&restartCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman restart ctrID
   podman restart --latest
   podman restart ctrID1 ctrID2`,
@@ -42,6 +45,7 @@ func init() {
 	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVar(&restartCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func restartCmd(c *cliconfig.RestartValues) error {

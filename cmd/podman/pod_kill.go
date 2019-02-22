@@ -24,6 +24,9 @@ var (
 			podKillCommand.GlobalFlags = MainGlobalOpts
 			return podKillCmd(&podKillCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod kill podID
   podman pod kill --signal TERM mywebserver
   podman pod kill --latest`,
@@ -37,14 +40,11 @@ func init() {
 	flags.BoolVarP(&podKillCommand.All, "all", "a", false, "Kill all containers in all pods")
 	flags.BoolVarP(&podKillCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.StringVarP(&podKillCommand.Signal, "signal", "s", "KILL", "Signal to send to the containers in the pod")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // podKillCmd kills one or more pods with a signal
 func podKillCmd(c *cliconfig.PodKillValues) error {
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

@@ -22,7 +22,9 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 **--input, -i**
 
-Read from archive file, default is STDIN
+Read from archive file, default is STDIN.
+
+The remote client requires the use of this option.
 
 **--quiet, -q**
 

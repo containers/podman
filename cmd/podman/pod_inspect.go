@@ -32,15 +32,13 @@ func init() {
 	flags := podInspectCommand.Flags()
 	flags.BoolVarP(&podInspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podInspectCmd(c *cliconfig.PodInspectValues) error {
 	var (
 		pod *adapter.Pod
 	)
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
 	args := c.InputArgs
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {

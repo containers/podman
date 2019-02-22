@@ -40,6 +40,7 @@ func init() {
 	flags := waitCommand.Flags()
 	flags.UintVarP(&waitCommand.Interval, "interval", "i", 250, "Milliseconds to wait before polling for completion")
 	flags.BoolVarP(&waitCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func waitCmd(c *cliconfig.WaitValues) error {

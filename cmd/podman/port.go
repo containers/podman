@@ -28,6 +28,9 @@ var (
 			portCommand.GlobalFlags = MainGlobalOpts
 			return portCmd(&portCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, true)
+		},
 		Example: `podman port --all
   podman port ctrID 80/tcp
   podman port --latest 80`,
@@ -42,6 +45,7 @@ func init() {
 	flags.BoolVarP(&portCommand.All, "all", "a", false, "Display port information for all containers")
 	flags.BoolVarP(&portCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func portCmd(c *cliconfig.PortValues) error {

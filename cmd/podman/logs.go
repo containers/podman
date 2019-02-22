@@ -46,6 +46,7 @@ func init() {
 
 	flags.SetInterspersed(false)
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func logsCmd(c *cliconfig.LogsValues) error {

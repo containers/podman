@@ -21,6 +21,9 @@ var (
 			podPauseCommand.GlobalFlags = MainGlobalOpts
 			return podPauseCmd(&podPauseCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod pause podID1 podID2
   podman pod pause --latest
   podman pod pause --all`,
@@ -33,13 +36,10 @@ func init() {
 	flags := podPauseCommand.Flags()
 	flags.BoolVarP(&podPauseCommand.All, "all", "a", false, "Pause all running pods")
 	flags.BoolVarP(&podPauseCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podPauseCmd(c *cliconfig.PodPauseValues) error {
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")

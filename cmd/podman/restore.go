@@ -29,6 +29,9 @@ var (
 			restoreCommand.GlobalFlags = MainGlobalOpts
 			return restoreCmd(&restoreCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman container restore ctrID
   podman container restore --latest
   podman container restore --all`,
@@ -45,6 +48,7 @@ func init() {
 	// TODO: add ContainerStateCheckpointed
 	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func restoreCmd(c *cliconfig.RestoreValues) error {
@@ -61,10 +65,6 @@ func restoreCmd(c *cliconfig.RestoreValues) error {
 	options := libpod.ContainerCheckpointOptions{
 		Keep:           c.Keep,
 		TCPEstablished: c.TcpEstablished,
-	}
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
 	}
 
 	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateExited, "checkpointed")

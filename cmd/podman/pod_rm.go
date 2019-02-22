@@ -26,6 +26,9 @@ If --force is specified, all containers will be stopped, then removed.
 			podRmCommand.GlobalFlags = MainGlobalOpts
 			return podRmCmd(&podRmCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23
   podman pod rm -f -a`,
@@ -39,14 +42,11 @@ func init() {
 	flags.BoolVarP(&podRmCommand.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&podRmCommand.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
 	flags.BoolVarP(&podRmCommand.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
-
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // podRmCmd deletes pods
 func podRmCmd(c *cliconfig.PodRmValues) error {
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

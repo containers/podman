@@ -48,7 +48,7 @@ func init() {
 	flags.StringVarP(&inspectCommand.Format, "format", "f", "", "Change the output format to a Go template")
 	flags.BoolVarP(&inspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of if the type is a container")
 	flags.BoolVarP(&inspectCommand.Size, "size", "s", false, "Display total file size if the type is container")
-
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func inspectCmd(c *cliconfig.InspectValues) error {

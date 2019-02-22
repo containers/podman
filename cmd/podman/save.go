@@ -1,19 +1,24 @@
 package main
 
 import (
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
 )
 
 const (
 	ociManifestDir  = "oci-dir"
+	ociArchive      = "oci-archive"
 	v2s2ManifestDir = "docker-dir"
+	v2s2Archive     = "docker-archive"
 )
+
+var validFormats = []string{ociManifestDir, ociArchive, v2s2ManifestDir, v2s2Archive}
 
 var (
 	saveCommand     cliconfig.SaveValues
@@ -30,6 +35,16 @@ var (
 			saveCommand.GlobalFlags = MainGlobalOpts
 			return saveCmd(&saveCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			format, err := cmd.Flags().GetString("format")
+			if err != nil {
+				return err
+			}
+			if !util.StringInSlice(format, validFormats) {
+				return errors.Errorf("format value must be one of %s", strings.Join(validFormats, " "))
+			}
+			return nil
+		},
 		Example: `podman save --quiet -o myimage.tar imageID
   podman save --format docker-dir -o ubuntu-dir ubuntu
   podman save > alpine-all.tar alpine:latest`,
@@ -41,7 +56,7 @@ func init() {
 	saveCommand.SetUsageTemplate(UsageTemplate())
 	flags := saveCommand.Flags()
 	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
-	flags.StringVar(&saveCommand.Format, "format", "docker-archive", "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-dir (directory with v2s2 manifest type)")
+	flags.StringVar(&saveCommand.Format, "format", v2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
 	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
 	flags.BoolVarP(&saveCommand.Quiet, "quiet", "q", false, "Suppress the output")
 }

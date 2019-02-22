@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const remoteclient = false
+
 // Commands that the local client implements
 func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{

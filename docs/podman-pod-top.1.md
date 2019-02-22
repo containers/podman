@@ -19,6 +19,8 @@ Display the running process of containers in a pod. The *format-descriptors* are
 
 Instead of providing the pod name or ID, use the last created pod.
 
+The latest option is not supported on the remote client.
+
 ## FORMAT DESCRIPTORS
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):

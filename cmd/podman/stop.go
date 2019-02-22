@@ -32,6 +32,9 @@ var (
 			stopCommand.GlobalFlags = MainGlobalOpts
 			return stopCmd(&stopCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman stop ctrID
   podman stop --latest
   podman stop --timeout 2 mywebserver 6e534f14da9d`,
@@ -46,16 +49,13 @@ func init() {
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVar(&stopCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func stopCmd(c *cliconfig.StopValues) error {
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
 		defer span.Finish()
-	}
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
 	}
 
 	rootless.SetSkipStorageSetup(true)

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/cobra"
 	"os"
 	"strings"
 
@@ -36,16 +37,24 @@ func shortID(id string) string {
 }
 
 // checkAllAndLatest checks that --all and --latest are used correctly
-func checkAllAndLatest(c *cliconfig.PodmanCommand) error {
-	argLen := len(c.InputArgs)
-	if (c.Bool("all") || c.Bool("latest")) && argLen > 0 {
-		return errors.Errorf("no arguments are needed with --all or --latest")
+func checkAllAndLatest(c *cobra.Command, args []string, ignoreArgLen bool) error {
+	argLen := len(args)
+	if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
+		return errors.New("unable to lookup values for 'latest' or 'all'")
 	}
-	if c.Bool("all") && c.Bool("latest") {
+	all, _ := c.Flags().GetBool("all")
+	latest, _ := c.Flags().GetBool("latest")
+	if all && latest {
 		return errors.Errorf("--all and --latest cannot be used together")
 	}
-	if argLen < 1 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("you must provide at least one pod name or id")
+	if ignoreArgLen {
+		return nil
+	}
+	if (all || latest) && argLen > 0 {
+		return errors.Errorf("no arguments are needed with --all or --latest")
+	}
+	if argLen < 1 && !all && !latest {
+		return errors.Errorf("you must provide at least one name or id")
 	}
 	return nil
 }

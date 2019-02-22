@@ -27,6 +27,8 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 **--size, -s**
 
 Display the total file size if the type is a container

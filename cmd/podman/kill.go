@@ -28,6 +28,9 @@ var (
 			killCommand.GlobalFlags = MainGlobalOpts
 			return killCmd(&killCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman kill mywebserver
   podman kill 860a4b23
   podman kill --signal TERM ctrID`,
@@ -43,6 +46,7 @@ func init() {
 	flags.StringVarP(&killCommand.Signal, "signal", "s", "KILL", "Signal to send to the container")
 	flags.BoolVarP(&killCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // killCmd kills one or more containers with a signal
@@ -51,10 +55,6 @@ func killCmd(c *cliconfig.KillValues) error {
 		killFuncs  []shared.ParallelWorkerInput
 		killSignal uint = uint(syscall.SIGTERM)
 	)
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
 
 	rootless.SetSkipStorageSetup(true)
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)

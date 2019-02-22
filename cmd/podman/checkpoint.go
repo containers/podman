@@ -29,6 +29,9 @@ var (
 			checkpointCommand.GlobalFlags = MainGlobalOpts
 			return checkpointCmd(&checkpointCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman checkpoint --keep ctrID
   podman checkpoint --all
   podman checkpoint --leave-running --latest`,
@@ -45,6 +48,7 @@ func init() {
 	flags.BoolVar(&checkpointCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointCommand.All, "all", "a", false, "Checkpoint all running containers")
 	flags.BoolVarP(&checkpointCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func checkpointCmd(c *cliconfig.CheckpointValues) error {
@@ -63,11 +67,6 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		KeepRunning:    c.LeaveRunning,
 		TCPEstablished: c.TcpEstablished,
 	}
-
-	if err := checkAllAndLatest(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
 
 	for _, ctr := range containers {

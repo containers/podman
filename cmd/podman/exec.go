@@ -48,7 +48,7 @@ func init() {
 	flags.StringVarP(&execCommand.User, "user", "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
 
 	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
-
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func execCmd(c *cliconfig.ExecValues) error {

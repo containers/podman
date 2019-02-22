@@ -32,6 +32,8 @@ Restore all checkpointed containers.
 
 Instead of providing the container name or ID, restore the last created container.
 
+The latest option is not supported on the remote client.
+
 **--tcp-established**
 
 Restore a container with established TCP connections. If the checkpoint image

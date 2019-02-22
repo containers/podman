@@ -34,6 +34,9 @@ var (
 			mountCommand.GlobalFlags = MainGlobalOpts
 			return mountCmd(&mountCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, true)
+		},
 	}
 )
 
@@ -46,6 +49,7 @@ func init() {
 	flags.BoolVarP(&mountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&mountCommand.NoTrunc, "notruncate", false, "Do not truncate output")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // jsonMountPoint stores info about each container

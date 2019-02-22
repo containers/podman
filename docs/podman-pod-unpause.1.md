@@ -19,6 +19,8 @@ Unpause all pods.
 
 Instead of providing the pod name or ID, unpause the last created pod.
 
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 podman pod unpause mywebserverpod

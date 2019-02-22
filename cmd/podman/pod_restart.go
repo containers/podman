@@ -22,6 +22,9 @@ var (
 			podRestartCommand.GlobalFlags = MainGlobalOpts
 			return podRestartCmd(&podRestartCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
 		Example: `podman pod restart podID1 podID2
   podman pod restart --latest
   podman pod restart --all`,
@@ -35,13 +38,10 @@ func init() {
 	flags.BoolVarP(&podRestartCommand.All, "all", "a", false, "Restart all running pods")
 	flags.BoolVarP(&podRestartCommand.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")
 
+	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podRestartCmd(c *cliconfig.PodRestartValues) error {
-	if err := checkMutuallyExclusiveFlags(&c.PodmanCommand); err != nil {
-		return err
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
