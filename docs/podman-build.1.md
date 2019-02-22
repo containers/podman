@@ -362,6 +362,12 @@ Specifies the name which will be assigned to the resulting image if the build
 process completes successfully.
 If _imageName_ does not include a registry name, the registry name *localhost* will be prepended to the image name.
 
+**--target** *stageName*
+
+Set the target build stage to build.  When building a Dockerfile with multiple build stages, --target
+can be used to specify an intermediate build stage by name as the final stage for the resulting image.
+Commands after the target stage will be skipped.
+
 **--tls-verify** *bool-value*
 
 Require HTTPS and verify certificates when talking to container registries (defaults to true).

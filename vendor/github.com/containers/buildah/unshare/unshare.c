@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
+#include <linux/memfd.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <sched.h>
@@ -11,6 +13,28 @@
 #include <termios.h>
 #include <errno.h>
 #include <unistd.h>
+
+#ifndef F_LINUX_SPECIFIC_BASE
+#define F_LINUX_SPECIFIC_BASE 1024
+#endif
+#ifndef F_ADD_SEALS
+#define F_ADD_SEALS (F_LINUX_SPECIFIC_BASE + 9)
+#define F_GET_SEALS (F_LINUX_SPECIFIC_BASE + 10)
+#endif
+#ifndef F_SEAL_SEAL
+#define F_SEAL_SEAL   0x0001LU
+#endif
+#ifndef F_SEAL_SHRINK
+#define F_SEAL_SHRINK 0x0002LU
+#endif
+#ifndef F_SEAL_GROW
+#define F_SEAL_GROW   0x0004LU
+#endif
+#ifndef F_SEAL_WRITE
+#define F_SEAL_WRITE  0x0008LU
+#endif
+
+#define BUFSTEP 1024
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
@@ -57,6 +81,119 @@ static void _check_proc_sys_file(const char *path)
 		}
 		fclose(fp);
 	}
+}
+
+static char **parse_proc_stringlist(const char *list) {
+	int fd, n, i, n_strings;
+	char *buf, *new_buf, **ret;
+	size_t size, new_size, used;
+
+	fd = open(list, O_RDONLY);
+	if (fd == -1) {
+		return NULL;
+	}
+	buf = NULL;
+	size = 0;
+	used = 0;
+	for (;;) {
+		new_size = used + BUFSTEP;
+		new_buf = realloc(buf, new_size);
+		if (new_buf == NULL) {
+			free(buf);
+			fprintf(stderr, "realloc(%ld): out of memory\n", (long)(size + BUFSTEP));
+			return NULL;
+		}
+		buf = new_buf;
+		size = new_size;
+		memset(buf + used, '\0', size - used);
+		n = read(fd, buf + used, size - used - 1);
+		if (n < 0) {
+			fprintf(stderr, "read(): %m\n");
+			return NULL;
+		}
+		if (n == 0) {
+			break;
+		}
+		used += n;
+	}
+	close(fd);
+	n_strings = 0;
+	for (n = 0; n < used; n++) {
+		if ((n == 0) || (buf[n-1] == '\0')) {
+			n_strings++;
+		}
+	}
+	ret = calloc(n_strings + 1, sizeof(char *));
+	if (ret == NULL) {
+		fprintf(stderr, "calloc(): out of memory\n");
+		return NULL;
+	}
+	i = 0;
+	for (n = 0; n < used; n++) {
+		if ((n == 0) || (buf[n-1] == '\0')) {
+			ret[i++] = &buf[n];
+		}
+	}
+	ret[i] = NULL;
+	return ret;
+}
+
+static int buildah_reexec(void) {
+	char **argv, *exename;
+	int fd, mmfd, n_read, n_written;
+	struct stat st;
+	char buf[2048];
+
+	argv = parse_proc_stringlist("/proc/self/cmdline");
+	if (argv == NULL) {
+		return -1;
+	}
+	fd = open("/proc/self/exe", O_RDONLY | O_CLOEXEC);
+	if (fd == -1) {
+		fprintf(stderr, "open(\"/proc/self/exe\"): %m\n");
+		return -1;
+	}
+	if (fstat(fd, &st) == -1) {
+		fprintf(stderr, "fstat(\"/proc/self/exe\"): %m\n");
+		return -1;
+	}
+	exename = basename(argv[0]);
+	mmfd = syscall(SYS_memfd_create, exename, (long) MFD_ALLOW_SEALING | MFD_CLOEXEC);
+	if (mmfd == -1) {
+		fprintf(stderr, "memfd_create(): %m\n");
+		return -1;
+	}
+	for (;;) {
+		n_read = read(fd, buf, sizeof(buf));
+		if (n_read < 0) {
+			fprintf(stderr, "read(\"/proc/self/exe\"): %m\n");
+			return -1;
+		}
+		if (n_read == 0) {
+			break;
+		}
+		n_written = write(mmfd, buf, n_read);
+		if (n_written < 0) {
+			fprintf(stderr, "write(anonfd): %m\n");
+			return -1;
+		}
+		if (n_written != n_read) {
+			fprintf(stderr, "write(anonfd): short write (%d != %d)\n", n_written, n_read);
+			return -1;
+		}
+	}
+	close(fd);
+	if (fcntl(mmfd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE | F_SEAL_SEAL) == -1) {
+		close(mmfd);
+		fprintf(stderr, "Error sealing memfd copy: %m\n");
+		return -1;
+	}
+	if (fexecve(mmfd, argv, environ) == -1) {
+		close(mmfd);
+		fprintf(stderr, "Error during reexec(...): %m\n");
+		return -1;
+	}
+	return 0;
 }
 
 void _buildah_unshare(void)
@@ -131,6 +268,9 @@ void _buildah_unshare(void)
 			fprintf(stderr, "Error during unshare(...): %m\n");
 			_exit(1);
 		}
+	}
+	if (buildah_reexec() != 0) {
+		_exit(1);
 	}
 	return;
 }

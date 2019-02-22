@@ -40,6 +40,7 @@ type Run struct {
 
 type Executor interface {
 	Preserve(path string) error
+	EnsureContainerPath(path string) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
@@ -49,6 +50,11 @@ type logExecutor struct{}
 
 func (logExecutor) Preserve(path string) error {
 	log.Printf("PRESERVE %s", path)
+	return nil
+}
+
+func (logExecutor) EnsureContainerPath(path string) error {
+	log.Printf("ENSURE %s", path)
 	return nil
 }
 
@@ -72,6 +78,10 @@ func (logExecutor) UnrecognizedInstruction(step *Step) error {
 type noopExecutor struct{}
 
 func (noopExecutor) Preserve(path string) error {
+	return nil
+}
+
+func (noopExecutor) EnsureContainerPath(path string) error {
 	return nil
 }
 
@@ -153,6 +163,7 @@ func (stages Stages) ByName(name string) (Stage, bool) {
 	return Stage{}, false
 }
 
+// Get just the target stage.
 func (stages Stages) ByTarget(target string) (Stages, bool) {
 	if len(target) == 0 {
 		return stages, true
@@ -160,6 +171,19 @@ func (stages Stages) ByTarget(target string) (Stages, bool) {
 	for i, stage := range stages {
 		if stage.Name == target {
 			return stages[i : i+1], true
+		}
+	}
+	return nil, false
+}
+
+// Get all the stages up to and including the target.
+func (stages Stages) ThroughTarget(target string) (Stages, bool) {
+	if len(target) == 0 {
+		return stages, true
+	}
+	for i, stage := range stages {
+		if stage.Name == target {
+			return stages[0 : i+1], true
 		}
 	}
 	return nil, false
@@ -319,6 +343,13 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	if err := exec.Copy(b.Excludes, copies...); err != nil {
 		return err
 	}
+
+	if len(b.RunConfig.WorkingDir) > 0 {
+		if err := exec.EnsureContainerPath(b.RunConfig.WorkingDir); err != nil {
+			return err
+		}
+	}
+
 	for _, run := range runs {
 		config := b.Config()
 		config.Env = step.Env

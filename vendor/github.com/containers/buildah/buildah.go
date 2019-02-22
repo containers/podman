@@ -26,7 +26,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.7-dev"
+	Version = "1.7"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -336,11 +336,6 @@ type BuilderOptions struct {
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
 	Registry string
-	// Transport is a value which is prepended to the image's name, if it
-	// needs to be pulled and the image name alone, or the image name and
-	// the registry together, can not be resolved to a reference to a
-	// source image.  No separator is implicitly added.
-	Transport string
 	// PullBlobDirectory is the name of a directory in which we'll attempt
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.

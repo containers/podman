@@ -251,9 +251,9 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	}
 	tlsVerify, err := c.Flags().GetBool("tls-verify")
 	if err == nil && c.Flag("tls-verify").Changed {
-		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(tlsVerify)
-		ctx.OCIInsecureSkipTLSVerify = tlsVerify
-		ctx.DockerDaemonInsecureSkipTLSVerify = tlsVerify
+		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
+		ctx.OCIInsecureSkipTLSVerify = !tlsVerify
+		ctx.DockerDaemonInsecureSkipTLSVerify = !tlsVerify
 	}
 	creds, err := c.Flags().GetString("creds")
 	if err == nil && c.Flag("creds").Changed {

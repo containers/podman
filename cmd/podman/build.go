@@ -179,7 +179,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	}
 
 	runtimeFlags := []string{}
-	for _, arg := range c.RuntimeOpts {
+	for _, arg := range c.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 	// end from buildah
@@ -258,6 +258,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		RuntimeArgs:             runtimeFlags,
 		SignaturePolicyPath:     c.SignaturePolicy,
 		Squash:                  c.Squash,
+		Target:                  c.Target,
 	}
 	return runtime.Build(getContext(), c, options, dockerfiles)
 }

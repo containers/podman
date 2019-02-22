@@ -11,14 +11,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/reference"
-	ociarchive "github.com/containers/image/oci/archive"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
 	is "github.com/containers/image/storage"
-	"github.com/containers/image/tarball"
+	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -43,36 +40,18 @@ var (
 		"index.docker.io": "library",
 		"docker.io":       "library",
 	}
-	// Transports contains the possible transports used for images
-	Transports = map[string]string{
-		dockerarchive.Transport.Name(): "",
-		ociarchive.Transport.Name():    "",
-		directory.Transport.Name():     "",
-		tarball.Transport.Name():       "",
-	}
-	// DockerArchive is the transport we prepend to an image name
-	// when saving to docker-archive
-	DockerArchive = dockerarchive.Transport.Name()
-	// OCIArchive is the transport we prepend to an image name
-	// when saving to oci-archive
-	OCIArchive = ociarchive.Transport.Name()
-	// DirTransport is the transport for pushing and pulling
-	// images to and from a directory
-	DirTransport = directory.Transport.Name()
-	// TarballTransport is the transport for importing a tar archive
-	// and creating a filesystem image
-	TarballTransport = tarball.Transport.Name()
 )
 
 // ResolveName checks if name is a valid image name, and if that name doesn't
 // include a domain portion, returns a list of the names which it might
-// correspond to in the set of configured registries,
-// and a boolean which is true iff 1) the list of search registries was used, and 2) it was empty.
+// correspond to in the set of configured registries, the transport used to
+// pull the image, and a boolean which is true iff
+// 1) the list of search registries was used, and 2) it was empty.
 // NOTE: The "list of search registries is empty" check does not count blocked registries,
 // and neither the implied "localhost" nor a possible firstRegistry are counted
-func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) ([]string, bool, error) {
+func ResolveName(name string, firstRegistry string, sc *types.SystemContext, store storage.Store) ([]string, string, bool, error) {
 	if name == "" {
-		return nil, false, nil
+		return nil, "", false, nil
 	}
 
 	// Maybe it's a truncated image ID.  Don't prepend a registry name, then.
@@ -80,27 +59,28 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		if img, err := store.Image(name); err == nil && img != nil && strings.HasPrefix(img.ID, name) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need only expand the ID.
-			return []string{img.ID}, false, nil
+			return []string{img.ID}, "", false, nil
 		}
 	}
 
 	// If the image includes a transport's name as a prefix, use it as-is.
+	if strings.HasPrefix(name, DefaultTransport) {
+		return []string{strings.TrimPrefix(name, DefaultTransport)}, DefaultTransport, false, nil
+	}
 	split := strings.SplitN(name, ":", 2)
 	if len(split) == 2 {
-		if _, ok := Transports[split[0]]; ok {
-			return []string{split[1]}, false, nil
+		if trans := transports.Get(split[0]); trans != nil {
+			return []string{split[1]}, trans.Name(), false, nil
 		}
 	}
-
-	name = strings.TrimPrefix(name, DefaultTransport)
 	// If the image name already included a domain component, we're done.
 	named, err := reference.ParseNormalizedNamed(name)
 	if err != nil {
-		return nil, false, errors.Wrapf(err, "error parsing image name %q", name)
+		return nil, "", false, errors.Wrapf(err, "error parsing image name %q", name)
 	}
 	if named.String() == name {
 		// Parsing produced the same result, so there was a domain name in there to begin with.
-		return []string{name}, false, nil
+		return []string{name}, DefaultTransport, false, nil
 	}
 	if reference.Domain(named) != "" && RegistryDefaultPathPrefix[reference.Domain(named)] != "" {
 		// If this domain can cause us to insert something in the middle, check if that happened.
@@ -117,7 +97,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		defaultPrefix := RegistryDefaultPathPrefix[reference.Domain(named)] + "/"
 		if strings.HasPrefix(repoPath, defaultPrefix) && path.Join(domain, repoPath[len(defaultPrefix):])+tag+digest == name {
 			// Yup, parsing just inserted a bit in the middle, so there was a domain name there to begin with.
-			return []string{name}, false, nil
+			return []string{name}, DefaultTransport, false, nil
 		}
 	}
 
@@ -153,7 +133,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 		candidate := path.Join(registry, middle, name)
 		candidates = append(candidates, candidate)
 	}
-	return candidates, searchRegistriesAreEmpty, nil
+	return candidates, DefaultTransport, searchRegistriesAreEmpty, nil
 }
 
 // ExpandNames takes unqualified names, parses them as image names, and returns
@@ -164,7 +144,7 @@ func ExpandNames(names []string, firstRegistry string, systemContext *types.Syst
 	expanded := make([]string, 0, len(names))
 	for _, n := range names {
 		var name reference.Named
-		nameList, _, err := ResolveName(n, firstRegistry, systemContext, store)
+		nameList, _, _, err := ResolveName(n, firstRegistry, systemContext, store)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error parsing name %q", n)
 		}
@@ -200,7 +180,7 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 	var ref types.ImageReference
 	var img *storage.Image
 	var err error
-	names, _, err := ResolveName(image, firstRegistry, systemContext, store)
+	names, _, _, err := ResolveName(image, firstRegistry, systemContext, store)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error parsing name %q", image)
 	}
