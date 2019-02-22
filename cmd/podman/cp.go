@@ -1,8 +1,10 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/buildah/util"
@@ -10,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/chrootuser"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -48,6 +51,9 @@ func cpCmd(c *cliconfig.CpValues) error {
 	if len(args) != 2 {
 		return errors.Errorf("you must provide a source path and a destination path")
 	}
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
@@ -74,6 +80,34 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	isFromHostToCtr := (ctr == nil)
 	if isFromHostToCtr {
 		ctr = destCtr
+	}
+
+	if os.Geteuid() != 0 {
+		s, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		var became bool
+		var ret int
+		if s == libpod.ContainerStateRunning || s == libpod.ContainerStatePaused {
+			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+			if err != nil {
+				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+			}
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			became, ret, err = rootless.JoinDirectUserAndMountNS(uint(conmonPid))
+		} else {
+			became, ret, err = rootless.BecomeRootInUserNS()
+		}
+		if err != nil {
+			return err
+		}
+		if became {
+			os.Exit(ret)
+		}
 	}
 
 	mountPoint, err := ctr.Mount()

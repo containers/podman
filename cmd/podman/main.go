@@ -61,6 +61,7 @@ var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_versionCommand: true,
 	_createCommand:  true,
 	_execCommand:    true,
+	_cpCommand:      true,
 	_exportCommand:  true,
 	//// `info` must be executed in an user namespace.
 	//// If this change, please also update libpod.refreshRootless()
