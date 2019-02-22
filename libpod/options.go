@@ -149,6 +149,7 @@ func WithOCIRuntime(runtime string) RuntimeOption {
 		}
 
 		rt.config.OCIRuntime = runtime
+		rt.config.RuntimePath = nil
 
 		return nil
 	}
