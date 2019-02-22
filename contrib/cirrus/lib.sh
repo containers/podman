@@ -325,7 +325,7 @@ install_packer_copied_files(){
                            /etc/containers/registries.d/registry.access.redhat.com.yaml
 }
 
-install_varlink(){
+install_varlink() {
     echo "Installing varlink from the cheese-factory"
     ooe.sh sudo -H pip3 install varlink
 }

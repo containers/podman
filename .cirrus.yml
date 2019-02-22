@@ -29,7 +29,7 @@ env:
     ###
     FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-7f4cd1f7"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-7f4cd1f7"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-7f4cd1f7"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-84514d8b"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
     PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"

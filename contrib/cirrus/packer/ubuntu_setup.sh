@@ -28,7 +28,13 @@ export DEBIAN_FRONTEND=noninteractive
 echo "Updating system and installing package dependencies"
 ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
 ooe.sh sudo -E apt-get -qq upgrade || sudo -E apt-get -qq upgrade
-ooe.sh sudo -E apt-get -qq install --no-install-recommends \
+ooe.sh sudo -E apt-get -qq install software-properties-common
+
+# Required to have Go 1.11 on Ubuntu 18.0.4
+ooe.sh sudo -E add-apt-repository --yes ppa:longsleep/golang-backports
+ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
+
+ooe.sh sudo -E apt-get -qq install \
     apparmor \
     autoconf \
     automake \
