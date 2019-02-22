@@ -79,8 +79,9 @@ then
     cd "${GOSRC}/"
     source "$SCRIPT_BASE/lib.sh"
 
-    # Only testing-VMs need deps installed
-    [[ -n "$PACKER_BUILDS" ]] || install_testing_dependencies  # must exist in $GOPATH
+    # Only testing-VMs need deps installed, not image-builder VM
+    echo "$CIRRUS_TASK_NAME" | grep -q 'image' || \
+       install_testing_dependencies  # must exist in $GOPATH
 fi
 
 record_timestamp "env. setup end"
