@@ -229,6 +229,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [error RuntimeError](#RuntimeError)
 
+[error VolumeNotFound](#VolumeNotFound)
+
 ## Methods
 ### <a name="BuildImage"></a>func BuildImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
@@ -1741,3 +1743,6 @@ PodNotFound means the pod could not be found by the provided name or ID in local
 ### <a name="RuntimeError"></a>type RuntimeError
 
 RuntimeErrors generally means a runtime could not be found or gotten.
+### <a name="VolumeNotFound"></a>type VolumeNotFound
+
+VolumeNotFound means the volume could not be found by the name or ID in local storage.

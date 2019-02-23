@@ -73,7 +73,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(id)
 	if err != nil {
-		return call.ReplyImageNotFound(id)
+		return call.ReplyImageNotFound(id, err.Error())
 	}
 	labels, err := newImage.Labels(getContext())
 	if err != nil {
@@ -266,7 +266,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 func (i *LibpodAPI) InspectImage(call iopodman.VarlinkCall, name string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(name)
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 	inspectInfo, err := newImage.Inspect(getContext())
 	if err != nil {
@@ -284,7 +284,7 @@ func (i *LibpodAPI) InspectImage(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) HistoryImage(call iopodman.VarlinkCall, name string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(name)
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 	history, err := newImage.History(getContext())
 	if err != nil {
@@ -313,7 +313,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 	)
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(err.Error())
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 	destname := name
 	if tag != "" {
@@ -409,7 +409,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, tlsVe
 func (i *LibpodAPI) TagImage(call iopodman.VarlinkCall, name, tag string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(name)
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 	if err := newImage.TagImage(tag); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -423,7 +423,7 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 	ctx := getContext()
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(name)
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 	_, err = i.Runtime.RemoveImage(ctx, newImage, force)
 	if err != nil {
@@ -512,7 +512,7 @@ func (i *LibpodAPI) DeleteUnusedImages(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool, manifestType string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	sc := image.GetSystemContext(i.Runtime.GetConfig().SignaturePolicyPath, "", false)
 	var mimeType string
@@ -576,7 +576,7 @@ func (i *LibpodAPI) ImportImage(call iopodman.VarlinkCall, source, reference, me
 func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination string, compress bool, tags []string) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		return call.ReplyImageNotFound(name)
+		return call.ReplyImageNotFound(name, err.Error())
 	}
 
 	additionalTags, err := image.GetAdditionalTags(tags)
@@ -741,6 +741,9 @@ func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
 func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageSaveOptions) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(options.Name)
 	if err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchImage {
+			return call.ReplyImageNotFound(options.Name, err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 

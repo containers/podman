@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log/syslog"
 	"os"
-	"os/exec"
 	"runtime/pprof"
 	"strings"
 	"syscall"
@@ -18,7 +16,7 @@ import (
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/reexec"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	lsyslog "github.com/sirupsen/logrus/hooks/syslog"
@@ -224,16 +222,7 @@ func main() {
 		return
 	}
 	if err := rootCmd.Execute(); err != nil {
-		if MainGlobalOpts.LogLevel == "debug" {
-			logrus.Errorf(err.Error())
-		} else {
-			if ee, ok := err.(*exec.ExitError); ok {
-				if status, ok := ee.Sys().(syscall.WaitStatus); ok {
-					exitCode = status.ExitStatus()
-				}
-			}
-			fmt.Fprintln(os.Stderr, "Error:", err.Error())
-		}
+		outputError(err)
 	} else {
 		// The exitCode modified from 125, indicates an application
 		// running inside of a container failed, as opposed to the

@@ -1116,16 +1116,19 @@ method GetPodsByContext(all: bool, latest: bool, args: []string) -> (pods: []str
 method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) -> (reply: MoreResponse)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
-error ImageNotFound (id: string)
+error ImageNotFound (id: string, reason: string)
 
 # ContainerNotFound means the container could not be found by the provided name or ID in local storage.
-error ContainerNotFound (id: string)
+error ContainerNotFound (id: string, reason: string)
 
 # NoContainerRunning means none of the containers requested are running in a command that requires a running container.
 error NoContainerRunning ()
 
 # PodNotFound means the pod could not be found by the provided name or ID in local storage.
-error PodNotFound (name: string)
+error PodNotFound (name: string, reason: string)
+
+# VolumeNotFound means the volume could not be found by the name or ID in local storage.
+error VolumeNotFound (id: string, reason: string)
 
 # PodContainerError means a container associated with a pod failed to preform an operation. It contains
 # a container ID of the container that failed.

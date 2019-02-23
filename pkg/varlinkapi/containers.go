@@ -47,7 +47,7 @@ func (i *LibpodAPI) ListContainers(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
 	ctr, err := i.Runtime.LookupContainer(id)
 	if err != nil {
-		return call.ReplyContainerNotFound(id)
+		return call.ReplyContainerNotFound(id, err.Error())
 	}
 	opts := shared.PsOptions{
 		Namespace: true,
@@ -64,7 +64,7 @@ func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
 func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	inspectInfo, err := ctr.Inspect(true)
 	if err != nil {
@@ -90,7 +90,7 @@ func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) err
 func (i *LibpodAPI) ListContainerProcesses(call iopodman.VarlinkCall, name string, opts []string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	containerState, err := ctr.State()
 	if err != nil {
@@ -118,7 +118,7 @@ func (i *LibpodAPI) GetContainerLogs(call iopodman.VarlinkCall, name string) err
 	var logs []string
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	logPath := ctr.LogPath()
 
@@ -198,7 +198,7 @@ func (i *LibpodAPI) ListContainerChanges(call iopodman.VarlinkCall, name string)
 func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, outPath string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	outputFile, err := ioutil.TempFile("", "varlink_recv")
 	if err != nil {
@@ -220,7 +220,7 @@ func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, outPath str
 func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
@@ -251,7 +251,7 @@ func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) er
 func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	state, err := ctr.State()
 	if err != nil {
@@ -270,7 +270,7 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeout int64) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.StopWithTimeout(uint(timeout)); err != nil && err != libpod.ErrCtrStopped {
 		return call.ReplyErrorOccurred(err.Error())
@@ -282,7 +282,7 @@ func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeou
 func (i *LibpodAPI) RestartContainer(call iopodman.VarlinkCall, name string, timeout int64) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.RestartWithTimeout(getContext(), uint(timeout)); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -311,7 +311,7 @@ func (i *LibpodAPI) KillContainer(call iopodman.VarlinkCall, name string, signal
 	}
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.Kill(killSignal); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -323,7 +323,7 @@ func (i *LibpodAPI) KillContainer(call iopodman.VarlinkCall, name string, signal
 func (i *LibpodAPI) PauseContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.Pause(); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -335,7 +335,7 @@ func (i *LibpodAPI) PauseContainer(call iopodman.VarlinkCall, name string) error
 func (i *LibpodAPI) UnpauseContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.Unpause(); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -347,7 +347,7 @@ func (i *LibpodAPI) UnpauseContainer(call iopodman.VarlinkCall, name string) err
 func (i *LibpodAPI) WaitContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	exitCode, err := ctr.Wait()
 	if err != nil {
@@ -362,7 +362,7 @@ func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, forc
 	ctx := getContext()
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := i.Runtime.RemoveContainer(ctx, ctr, force, removeVolumes); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -398,7 +398,7 @@ func (i *LibpodAPI) DeleteStoppedContainers(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 
 	status, err := ctr.State()
@@ -427,7 +427,7 @@ func (i *LibpodAPI) ContainerCheckpoint(call iopodman.VarlinkCall, name string, 
 	ctx := getContext()
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 
 	options := libpod.ContainerCheckpointOptions{
@@ -446,7 +446,7 @@ func (i *LibpodAPI) ContainerRestore(call iopodman.VarlinkCall, name string, kee
 	ctx := getContext()
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyContainerNotFound(name)
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 
 	options := libpod.ContainerCheckpointOptions{
@@ -475,7 +475,7 @@ func getArtifact(ctr *libpod.Container) (*cc.CreateConfig, error) {
 func (i *LibpodAPI) ContainerConfig(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	config := ctr.Config()
 	b, err := json.Marshal(config)
@@ -489,7 +489,7 @@ func (i *LibpodAPI) ContainerConfig(call iopodman.VarlinkCall, name string) erro
 func (i *LibpodAPI) ContainerArtifacts(call iopodman.VarlinkCall, name, artifactName string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	artifacts, err := ctr.GetArtifact(artifactName)
 	if err != nil {
@@ -506,7 +506,7 @@ func (i *LibpodAPI) ContainerArtifacts(call iopodman.VarlinkCall, name, artifact
 func (i *LibpodAPI) ContainerInspectData(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	data, err := ctr.Inspect(true)
 	if err != nil {
@@ -524,7 +524,7 @@ func (i *LibpodAPI) ContainerInspectData(call iopodman.VarlinkCall, name string)
 func (i *LibpodAPI) ContainerStateData(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	data, err := ctr.ContainerState()
 	if err != nil {

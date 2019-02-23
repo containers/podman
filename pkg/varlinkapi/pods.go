@@ -90,7 +90,7 @@ func (i *LibpodAPI) ListPods(call iopodman.VarlinkCall) error {
 func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	opts := shared.PsOptions{}
 
@@ -106,7 +106,7 @@ func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	inspectData, err := pod.Inspect()
 	if err != nil {
@@ -123,7 +123,7 @@ func (i *LibpodAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctnrs, err := pod.AllContainers()
 	if err != nil {
@@ -144,7 +144,7 @@ func (i *LibpodAPI) StartPod(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int64) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctrErrs, err := pod.StopWithTimeout(getContext(), true, int(timeout))
 	callErr := handlePodCall(call, pod, ctrErrs, err)
@@ -158,7 +158,7 @@ func (i *LibpodAPI) StopPod(call iopodman.VarlinkCall, name string, timeout int6
 func (i *LibpodAPI) RestartPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctnrs, err := pod.AllContainers()
 	if err != nil {
@@ -185,7 +185,7 @@ func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64
 
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctrErrs, err := pod.Kill(killSignal)
 	callErr := handlePodCall(call, pod, ctrErrs, err)
@@ -199,7 +199,7 @@ func (i *LibpodAPI) KillPod(call iopodman.VarlinkCall, name string, signal int64
 func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctrErrs, err := pod.Pause()
 	callErr := handlePodCall(call, pod, ctrErrs, err)
@@ -213,7 +213,7 @@ func (i *LibpodAPI) PausePod(call iopodman.VarlinkCall, name string) error {
 func (i *LibpodAPI) UnpausePod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	ctrErrs, err := pod.Unpause()
 	callErr := handlePodCall(call, pod, ctrErrs, err)
@@ -228,7 +228,7 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 	ctx := getContext()
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	if err = i.Runtime.RemovePod(ctx, pod, force, force); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -241,7 +241,7 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 func (i *LibpodAPI) GetPodStats(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)
 	if err != nil {
-		return call.ReplyPodNotFound(name)
+		return call.ReplyPodNotFound(name, err.Error())
 	}
 	prevStats := make(map[string]*libpod.ContainerStats)
 	podStats, err := pod.GetPodStats(prevStats)
