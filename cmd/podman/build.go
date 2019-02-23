@@ -52,12 +52,22 @@ func init() {
 	flags := buildCommand.Flags()
 	flags.SetInterspersed(false)
 
-	flags.BoolVar(&layerValues.ForceRm, "force-rm", true, "Always remove intermediate containers after a build, even if the build is unsuccessful. (default true)")
-	flags.BoolVar(&layerValues.Layers, "layers", true, "Cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override")
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
+	flag := budFlags.Lookup("pull-always")
+	flag.Value.Set("true")
+	flag.DefValue = "true"
+	layerFlags := buildahcli.GetLayerFlags(&layerValues)
+	flag = layerFlags.Lookup("layers")
+	flag.Value.Set(useLayers())
+	flag.DefValue = (useLayers())
+	flag = layerFlags.Lookup("force-rm")
+	flag.Value.Set("true")
+	flag.DefValue = "true"
+
 	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
 
 	flags.AddFlagSet(&budFlags)
+	flags.AddFlagSet(&layerFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
 }
 
@@ -271,4 +281,14 @@ func Tail(a []string) []string {
 		return []string(a)[1:]
 	}
 	return []string{}
+}
+
+// useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"
+// otherwise it returns true
+func useLayers() string {
+	layers := os.Getenv("BUILDAH_LAYERS")
+	if strings.ToLower(layers) == "false" || layers == "0" {
+		return "false"
+	}
+	return "true"
 }
