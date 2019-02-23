@@ -109,6 +109,13 @@ reexec_userns_join (int userns, int mountns)
   char uid[16];
   char **argv;
   int pid;
+  char *cwd = getcwd (NULL, 0);
+
+  if (cwd == NULL)
+    {
+      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   sprintf (uid, "%d", geteuid ());
 
@@ -154,6 +161,13 @@ reexec_userns_join (int userns, int mountns)
       _exit (EXIT_FAILURE);
     }
 
+  if (chdir (cwd) < 0)
+    {
+      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  free (cwd);
+
   execvp (argv[0], argv);
 
   _exit (EXIT_FAILURE);
@@ -190,6 +204,13 @@ reexec_in_user_namespace (int ready)
   char *listen_fds = NULL;
   char *listen_pid = NULL;
   bool do_socket_activation = false;
+  char *cwd = getcwd (NULL, 0);
+
+  if (cwd == NULL)
+    {
+      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   listen_pid = getenv("LISTEN_PID");
   listen_fds = getenv("LISTEN_FDS");
@@ -264,6 +285,13 @@ reexec_in_user_namespace (int ready)
       fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (chdir (cwd) < 0)
+    {
+      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  free (cwd);
 
   execvp (argv[0], argv);
 

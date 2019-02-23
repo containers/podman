@@ -61,7 +61,7 @@ func (p *PodmanTest) MakeOptions(args []string) []string {
 
 // PodmanAsUserBase exec podman as user. uid and gid is set for credentials useage. env is used
 // to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, env []string) *PodmanSession {
+func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string) *PodmanSession {
 	var command *exec.Cmd
 	podmanOptions := p.MakeOptions(args)
 	podmanBinary := p.PodmanBinary
@@ -74,13 +74,17 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, env []stri
 		fmt.Printf("Running: (env: %v) %s %s\n", env, podmanBinary, strings.Join(podmanOptions, " "))
 	}
 	if uid != 0 || gid != 0 {
-		nsEnterOpts := append([]string{"--userspec", fmt.Sprintf("%d:%d", uid, gid), "/", podmanBinary}, podmanOptions...)
-		command = exec.Command("chroot", nsEnterOpts...)
+		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", gid, uid, cwd)
+		nsEnterOpts := append([]string{"-c", pythonCmd, podmanBinary}, podmanOptions...)
+		command = exec.Command("python", nsEnterOpts...)
 	} else {
 		command = exec.Command(podmanBinary, podmanOptions...)
 	}
 	if env != nil {
 		command.Env = env
+	}
+	if cwd != "" {
+		command.Dir = cwd
 	}
 
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -92,7 +96,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, env []stri
 
 // PodmanBase exec podman with default env.
 func (p *PodmanTest) PodmanBase(args []string) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, nil)
+	return p.PodmanAsUserBase(args, 0, 0, "", nil)
 }
 
 // WaitForContainer waits on a started container
