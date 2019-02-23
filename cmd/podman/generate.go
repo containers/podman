@@ -5,17 +5,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var generateDescription = "Generate structured data based for a containers and pods"
-var generateCommand = cliconfig.PodmanCommand{
-
-	Command: &cobra.Command{
+var (
+	generateCommand     cliconfig.PodmanCommand
+	generateDescription = "Generate structured data based for a containers and pods"
+	_generateCommand    = &cobra.Command{
 		Use:   "generate",
 		Short: "Generated structured data",
 		Long:  generateDescription,
-	},
-}
+	}
+)
 
 func init() {
+	generateCommand.Command = _generateCommand
 	generateCommand.AddCommand(getGenerateSubCommands()...)
 	generateCommand.SetUsageTemplate(UsageTemplate())
 }
