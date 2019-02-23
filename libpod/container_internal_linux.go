@@ -26,7 +26,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/mrunalp/fileutils"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -677,20 +676,12 @@ func (c *Container) makeBindMounts() error {
 			// If it doesn't, don't copy them
 			resolvPath, exists := bindMounts["/etc/resolv.conf"]
 			if exists {
-				resolvDest := filepath.Join(c.state.RunDir, "resolv.conf")
-				if err := fileutils.CopyFile(resolvPath, resolvDest); err != nil {
-					return errors.Wrapf(err, "error copying resolv.conf from dependency container %s of container %s", depCtr.ID(), c.ID())
-				}
-				c.state.BindMounts["/etc/resolv.conf"] = resolvDest
-			}
 
+				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+			}
 			hostsPath, exists := bindMounts["/etc/hosts"]
 			if exists {
-				hostsDest := filepath.Join(c.state.RunDir, "hosts")
-				if err := fileutils.CopyFile(hostsPath, hostsDest); err != nil {
-					return errors.Wrapf(err, "error copying hosts file from dependency container %s of container %s", depCtr.ID(), c.ID())
-				}
-				c.state.BindMounts["/etc/hosts"] = hostsDest
+				c.state.BindMounts["/etc/hosts"] = hostsPath
 			}
 		} else {
 			newResolv, err := c.generateResolvConf()
@@ -704,6 +695,14 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 			}
 			c.state.BindMounts["/etc/hosts"] = newHosts
+		}
+
+		if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
+			return err
+		}
+
+		if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
+			return err
 		}
 	}
 
@@ -809,7 +808,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	// Relabel resolv.conf for the container
-	if err := label.Relabel(destPath, c.config.MountLabel, false); err != nil {
+	if err := label.Relabel(destPath, c.config.MountLabel, true); err != nil {
 		return "", err
 	}
 
