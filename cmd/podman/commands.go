@@ -94,13 +94,10 @@ func getContainerSubCommands() []*cobra.Command {
 func getPodSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_podCreateCommand,
-		_podKillCommand,
 		_podPauseCommand,
 		_podPsCommand,
 		_podRestartCommand,
-		_podStartCommand,
 		_podStatsCommand,
-		_podStopCommand,
 		_podTopCommand,
 		_podUnpauseCommand,
 	}

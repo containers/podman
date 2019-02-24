@@ -8,7 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod/adapter"
+	"github.com/containers/libpod/pkg/adapter"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/adapter"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/inspect"
 )
 

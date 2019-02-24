@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/adapter"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -22,7 +22,10 @@ var podCommand = cliconfig.PodmanCommand{
 var podSubCommands = []*cobra.Command{
 	_podExistsCommand,
 	_podInspectCommand,
+	_podKillCommand,
 	_podRmCommand,
+	_podStartCommand,
+	_podStopCommand,
 }
 
 func init() {

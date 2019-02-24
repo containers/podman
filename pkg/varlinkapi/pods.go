@@ -2,7 +2,7 @@ package varlinkapi
 
 import (
 	"encoding/json"
-	"github.com/containers/libpod/libpod/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/rootless"
 	"syscall"
 
