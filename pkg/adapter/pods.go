@@ -224,3 +224,100 @@ func (p *Pod) GetPodStatus() (string, error) {
 func BatchContainerOp(ctr *libpod.Container, opts shared.PsOptions) (shared.BatchContainerStruct, error) {
 	return shared.BatchContainerOp(ctr, opts)
 }
+
+// PausePods is a wrapper for pausing pods via libpod
+func (r *LocalRuntime) PausePods(c *cliconfig.PodPauseValues) ([]string, map[string]error, []error) {
+	var (
+		pauseIDs    []string
+		pauseErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := shortcuts.GetPodsByContext(c.All, c.Latest, c.InputArgs, r.Runtime)
+	if err != nil {
+		pauseErrors = append(pauseErrors, err)
+		return nil, containerErrors, pauseErrors
+	}
+
+	for _, pod := range pods {
+		ctrErrs, err := pod.Pause()
+		if err != nil {
+			pauseErrors = append(pauseErrors, err)
+			continue
+		}
+		if ctrErrs != nil {
+			for ctr, err := range ctrErrs {
+				containerErrors[ctr] = err
+			}
+			continue
+		}
+		pauseIDs = append(pauseIDs, pod.ID())
+
+	}
+	return pauseIDs, containerErrors, pauseErrors
+}
+
+// UnpausePods is a wrapper for unpausing pods via libpod
+func (r *LocalRuntime) UnpausePods(c *cliconfig.PodUnpauseValues) ([]string, map[string]error, []error) {
+	var (
+		unpauseIDs    []string
+		unpauseErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := shortcuts.GetPodsByContext(c.All, c.Latest, c.InputArgs, r.Runtime)
+	if err != nil {
+		unpauseErrors = append(unpauseErrors, err)
+		return nil, containerErrors, unpauseErrors
+	}
+
+	for _, pod := range pods {
+		ctrErrs, err := pod.Unpause()
+		if err != nil {
+			unpauseErrors = append(unpauseErrors, err)
+			continue
+		}
+		if ctrErrs != nil {
+			for ctr, err := range ctrErrs {
+				containerErrors[ctr] = err
+			}
+			continue
+		}
+		unpauseIDs = append(unpauseIDs, pod.ID())
+
+	}
+	return unpauseIDs, containerErrors, unpauseErrors
+}
+
+// RestartPods is a wrapper to restart pods via libpod
+func (r *LocalRuntime) RestartPods(ctx context.Context, c *cliconfig.PodRestartValues) ([]string, map[string]error, []error) {
+	var (
+		restartIDs    []string
+		restartErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := shortcuts.GetPodsByContext(c.All, c.Latest, c.InputArgs, r.Runtime)
+	if err != nil {
+		restartErrors = append(restartErrors, err)
+		return nil, containerErrors, restartErrors
+	}
+
+	for _, pod := range pods {
+		ctrErrs, err := pod.Restart(ctx)
+		if err != nil {
+			restartErrors = append(restartErrors, err)
+			continue
+		}
+		if ctrErrs != nil {
+			for ctr, err := range ctrErrs {
+				containerErrors[ctr] = err
+			}
+			continue
+		}
+		restartIDs = append(restartIDs, pod.ID())
+
+	}
+	return restartIDs, containerErrors, restartErrors
+
+}
