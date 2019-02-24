@@ -93,9 +93,7 @@ func getContainerSubCommands() []*cobra.Command {
 // Commands that the local client implements
 func getPodSubCommands() []*cobra.Command {
 	return []*cobra.Command{
-		_podCreateCommand,
 		_podPauseCommand,
-		_podPsCommand,
 		_podRestartCommand,
 		_podStatsCommand,
 		_podTopCommand,

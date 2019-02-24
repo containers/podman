@@ -26,6 +26,10 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 	if err != nil {
 		return errored, err
 	}
+	return CreatePodStatusResults(ctrStatuses)
+}
+
+func CreatePodStatusResults(ctrStatuses map[string]libpod.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
 		return created, nil

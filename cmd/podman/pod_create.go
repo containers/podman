@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -56,20 +54,29 @@ func init() {
 }
 
 func podCreateCmd(c *cliconfig.PodCreateValues) error {
-	var options []libpod.PodCreateOption
-	var err error
+	var (
+		err       error
+		podIdFile *os.File
+	)
 
 	if len(c.InputArgs) > 0 {
 		return errors.New("podman pod create does not accept any arguments")
 	}
-
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var podIdFile *os.File
+	if len(c.Publish) > 0 {
+		if !c.Infra {
+			return errors.Errorf("you must have an infra container to publish port bindings to the host")
+		}
+	}
+
+	if !c.Infra && c.Flag("share").Changed && c.Share != "none" && c.Share != "" {
+		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
+	}
 	if c.Flag("pod-id-file").Changed && os.Geteuid() == 0 {
 		podIdFile, err = libpod.OpenExclusiveFile(c.PodIDFile)
 		if err != nil && os.IsExist(err) {
@@ -82,67 +89,21 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		defer podIdFile.Sync()
 	}
 
-	if len(c.Publish) > 0 {
-		if !c.Infra {
-			return errors.Errorf("you must have an infra container to publish port bindings to the host")
-		}
-	}
-
-	if !c.Infra && c.Flag("share").Changed && c.Share != "none" && c.Share != "" {
-		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
-	}
-
-	if c.Flag("cgroup-parent").Changed {
-		options = append(options, libpod.WithPodCgroupParent(c.CgroupParent))
-	}
-
 	labels, err := getAllLabels(c.LabelFile, c.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
-	if len(labels) != 0 {
-		options = append(options, libpod.WithPodLabels(labels))
-	}
 
-	if c.Flag("name").Changed {
-		options = append(options, libpod.WithPodName(c.Name))
-	}
-
-	if c.Infra {
-		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(strings.Split(c.Share, ","))
-		if err != nil {
-			return err
-		}
-		options = append(options, nsOptions...)
-	}
-
-	if len(c.Publish) > 0 {
-		portBindings, err := shared.CreatePortBindings(c.Publish)
-		if err != nil {
-			return err
-		}
-		options = append(options, libpod.WithInfraContainerPorts(portBindings))
-
-	}
-	// always have containers use pod cgroups
-	// User Opt out is not yet supported
-	options = append(options, libpod.WithPodCgroups())
-
-	ctx := getContext()
-	pod, err := runtime.NewPod(ctx, options...)
+	podID, err := runtime.CreatePod(getContext(), c, labels)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "unable to create pod")
 	}
-
 	if podIdFile != nil {
-		_, err = podIdFile.WriteString(pod.ID())
+		_, err = podIdFile.WriteString(podID)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-
-	fmt.Printf("%s\n", pod.ID())
-
+	fmt.Printf("%s\n", podID)
 	return nil
 }

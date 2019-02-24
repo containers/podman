@@ -4,6 +4,7 @@ package adapter
 
 import (
 	"encoding/json"
+	"github.com/containers/libpod/cmd/podman/shared"
 
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
@@ -47,4 +48,34 @@ func (c *Container) Config() *libpod.ContainerConfig {
 		return c.config
 	}
 	return c.Runtime.Config(c.ID())
+}
+
+// Name returns the name of the container
+func (c *Container) Name() string {
+	return c.config.Name
+}
+
+// BatchContainerOp is wrapper func to mimic shared's function with a similar name meant for libpod
+func BatchContainerOp(ctr *Container, opts shared.PsOptions) (shared.BatchContainerStruct, error) {
+	// TODO If pod ps ever shows container's sizes, re-enable this code; otherwise it isn't needed
+	// and would be a perf hit
+	//data, err := ctr.Inspect(true)
+	//if err != nil {
+	//	return shared.BatchContainerStruct{}, err
+	//}
+	//
+	//size := new(shared.ContainerSize)
+	//size.RootFsSize = data.SizeRootFs
+	//size.RwSize = data.SizeRw
+
+	bcs := shared.BatchContainerStruct{
+		ConConfig:   ctr.config,
+		ConState:    ctr.state.State,
+		ExitCode:    ctr.state.ExitCode,
+		Pid:         ctr.state.PID,
+		StartedTime: ctr.state.StartedTime,
+		ExitedTime:  ctr.state.FinishedTime,
+		//Size: size,
+	}
+	return bcs, nil
 }

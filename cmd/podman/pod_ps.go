@@ -10,9 +10,9 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
@@ -28,6 +28,8 @@ const (
 	CREATED      = "Created"
 	NUM_CTR_INFO = 10
 )
+
+type PodFilter func(*adapter.Pod) bool
 
 var (
 	bc_opts shared.PsOptions
@@ -152,7 +154,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -173,7 +175,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 
 	opts.Format = genPodPsFormat(c)
 
-	var filterFuncs []libpod.PodFilter
+	var filterFuncs []PodFilter
 	if c.Filter != "" {
 		filters := strings.Split(c.Filter, ",")
 		for _, f := range filters {
@@ -181,7 +183,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 			if len(filterSplit) < 2 {
 				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 			}
-			generatedFunc, err := generatePodFilterFuncs(filterSplit[0], filterSplit[1], runtime)
+			generatedFunc, err := generatePodFilterFuncs(filterSplit[0], filterSplit[1])
 			if err != nil {
 				return errors.Wrapf(err, "invalid filter")
 			}
@@ -189,7 +191,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		}
 	}
 
-	var pods []*libpod.Pod
+	var pods []*adapter.Pod
 	if c.Latest {
 		pod, err := runtime.GetLatestPod()
 		if err != nil {
@@ -203,7 +205,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		}
 	}
 
-	podsFiltered := make([]*libpod.Pod, 0, len(pods))
+	podsFiltered := make([]*adapter.Pod, 0, len(pods))
 	for _, pod := range pods {
 		include := true
 		for _, filter := range filterFuncs {
@@ -215,7 +217,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		}
 	}
 
-	return generatePodPsOutput(podsFiltered, opts, runtime)
+	return generatePodPsOutput(podsFiltered, opts)
 }
 
 // podPsCheckFlagsPassed checks if mutually exclusive flags are passed together
@@ -234,10 +236,10 @@ func podPsCheckFlagsPassed(c *cliconfig.PodPsValues) error {
 	return nil
 }
 
-func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(pod *libpod.Pod) bool, error) {
+func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) bool, error) {
 	switch filter {
 	case "ctr-ids":
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			ctrIds, err := p.AllContainersByID()
 			if err != nil {
 				return false
@@ -245,7 +247,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return util.StringInSlice(filterValue, ctrIds)
 		}, nil
 	case "ctr-names":
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			ctrs, err := p.AllContainers()
 			if err != nil {
 				return false
@@ -258,7 +260,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return false
 		}, nil
 	case "ctr-number":
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			ctrIds, err := p.AllContainersByID()
 			if err != nil {
 				return false
@@ -274,7 +276,7 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 		if !util.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			ctr_statuses, err := p.Status()
 			if err != nil {
 				return false
@@ -291,19 +293,19 @@ func generatePodFilterFuncs(filter, filterValue string, runtime *libpod.Runtime)
 			return false
 		}, nil
 	case "id":
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			return strings.Contains(p.ID(), filterValue)
 		}, nil
 	case "name":
-		return func(p *libpod.Pod) bool {
+		return func(p *adapter.Pod) bool {
 			return strings.Contains(p.Name(), filterValue)
 		}, nil
 	case "status":
 		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created"}) {
 			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
 		}
-		return func(p *libpod.Pod) bool {
-			status, err := shared.GetPodStatus(p)
+		return func(p *adapter.Pod) bool {
+			status, err := p.GetPodStatus()
 			if err != nil {
 				return false
 			}
@@ -448,7 +450,7 @@ func getPodTemplateOutput(psParams []podPsJSONParams, opts podPsOptions) ([]podP
 	return psOutput, nil
 }
 
-func getNamespaces(pod *libpod.Pod) []string {
+func getNamespaces(pod *adapter.Pod) []string {
 	var shared []string
 	if pod.SharesPID() {
 		shared = append(shared, "pid")
@@ -475,7 +477,7 @@ func getNamespaces(pod *libpod.Pod) []string {
 }
 
 // getAndSortPodJSONOutput returns the container info in its raw, sorted form
-func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *libpod.Runtime) ([]podPsJSONParams, error) {
+func getAndSortPodJSONParams(pods []*adapter.Pod, opts podPsOptions) ([]podPsJSONParams, error) {
 	var (
 		psOutput []podPsJSONParams
 	)
@@ -487,7 +489,7 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 		ctrNum := len(ctrs)
-		status, err := shared.GetPodStatus(pod)
+		status, err := pod.GetPodStatus()
 		if err != nil {
 			return nil, err
 		}
@@ -497,7 +499,7 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 			return nil, err
 		}
 		for _, ctr := range ctrs {
-			batchInfo, err := shared.BatchContainerOp(ctr, bc_opts)
+			batchInfo, err := adapter.BatchContainerOp(ctr, bc_opts)
 			if err != nil {
 				return nil, err
 			}
@@ -539,11 +541,11 @@ func getAndSortPodJSONParams(pods []*libpod.Pod, opts podPsOptions, runtime *lib
 	return sortPodPsOutput(opts.Sort, psOutput)
 }
 
-func generatePodPsOutput(pods []*libpod.Pod, opts podPsOptions, runtime *libpod.Runtime) error {
+func generatePodPsOutput(pods []*adapter.Pod, opts podPsOptions) error {
 	if len(pods) == 0 && opts.Format != formats.JSONString {
 		return nil
 	}
-	psOutput, err := getAndSortPodJSONParams(pods, opts, runtime)
+	psOutput, err := getAndSortPodJSONParams(pods, opts)
 	if err != nil {
 		return err
 	}

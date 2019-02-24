@@ -4,10 +4,12 @@ package adapter
 
 import (
 	"context"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter/shortcuts"
 )
 
 // Pod ...
@@ -43,6 +45,21 @@ func (r *LocalRuntime) GetLatestPod() (*Pod, error) {
 	p, err := r.Runtime.GetLatestPod()
 	pod.Pod = p
 	return &pod, err
+}
+
+// GetAllPods gets all pods and wraps it in an adapter pod
+func (r *LocalRuntime) GetAllPods() ([]*Pod, error) {
+	var pods []*Pod
+	allPods, err := r.Runtime.GetAllPods()
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range allPods {
+		pod := Pod{}
+		pod.Pod = p
+		pods = append(pods, &pod)
+	}
+	return pods, nil
 }
 
 // LookupPod gets a pod by name or id and wraps it in an adapter pod
@@ -149,4 +166,61 @@ func (r *LocalRuntime) StartPods(ctx context.Context, cli *cliconfig.PodStartVal
 		}
 	}
 	return podids, errs
+}
+
+// CreatePod is a wrapper for libpod and creating a new pod from the cli context
+func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateValues, labels map[string]string) (string, error) {
+	var (
+		options []libpod.PodCreateOption
+		err     error
+	)
+
+	if cli.Flag("cgroup-parent").Changed {
+		options = append(options, libpod.WithPodCgroupParent(cli.CgroupParent))
+	}
+
+	if len(labels) != 0 {
+		options = append(options, libpod.WithPodLabels(labels))
+	}
+
+	if cli.Flag("name").Changed {
+		options = append(options, libpod.WithPodName(cli.Name))
+	}
+
+	if cli.Infra {
+		options = append(options, libpod.WithInfraContainer())
+		nsOptions, err := shared.GetNamespaceOptions(strings.Split(cli.Share, ","))
+		if err != nil {
+			return "", err
+		}
+		options = append(options, nsOptions...)
+	}
+
+	if len(cli.Publish) > 0 {
+		portBindings, err := shared.CreatePortBindings(cli.Publish)
+		if err != nil {
+			return "", err
+		}
+		options = append(options, libpod.WithInfraContainerPorts(portBindings))
+
+	}
+	// always have containers use pod cgroups
+	// User Opt out is not yet supported
+	options = append(options, libpod.WithPodCgroups())
+
+	pod, err := r.NewPod(ctx, options...)
+	if err != nil {
+		return "", err
+	}
+	return pod.ID(), nil
+}
+
+// GetPodStatus is a wrapper to get the status of a local libpod pod
+func (p *Pod) GetPodStatus() (string, error) {
+	return shared.GetPodStatus(p.Pod)
+}
+
+// BatchContainerOp is a wrapper for the shared function of the same name
+func BatchContainerOp(ctr *libpod.Container, opts shared.PsOptions) (shared.BatchContainerStruct, error) {
+	return shared.BatchContainerOp(ctr, opts)
 }

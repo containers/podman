@@ -14,10 +14,6 @@ import (
 // CreatePod ...
 func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
 	var options []libpod.PodCreateOption
-
-	if create.InfraCommand != "" || create.InfraImage != "" {
-		return call.ReplyErrorOccurred("the infra-command and infra-image options are not supported yet")
-	}
 	if create.CgroupParent != "" {
 		options = append(options, libpod.WithPodCgroupParent(create.CgroupParent))
 	}
