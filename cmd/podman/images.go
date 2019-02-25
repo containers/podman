@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -127,7 +128,7 @@ func init() {
 func imagesCmd(c *cliconfig.ImagesValues) error {
 	var (
 		filterFuncs []imagefilters.ResultFilter
-		newImage    *adapter.ContainerImage
+		image       string
 	)
 
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
@@ -136,23 +137,23 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 	}
 	defer runtime.Shutdown(false)
 	if len(c.InputArgs) == 1 {
-		newImage, err = runtime.NewImageFromLocal(c.InputArgs[0])
-		if err != nil {
-			return err
-		}
+		image = c.InputArgs[0]
 	}
-
 	if len(c.InputArgs) > 1 {
 		return errors.New("'podman images' requires at most 1 argument")
 	}
-
+	if len(c.Filter) > 0 && image != "" {
+		return errors.New("can not specify an image and a filter")
+	}
 	ctx := getContext()
 
-	if len(c.Filter) > 0 || newImage != nil {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c.Filter, newImage)
-		if err != nil {
-			return err
-		}
+	if len(c.Filter) > 0 {
+		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c.Filter, nil)
+	} else {
+		filterFuncs, err = CreateFilterFuncs(ctx, runtime, []string{fmt.Sprintf("reference=%s", image)}, nil)
+	}
+	if err != nil {
+		return err
 	}
 
 	opts := imagesOptions{
@@ -173,7 +174,7 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 
 	var filteredImages []*adapter.ContainerImage
 	//filter the images
-	if len(c.Filter) > 0 || newImage != nil {
+	if len(c.Filter) > 0 || len(c.InputArgs) == 1 {
 		filteredImages = imagefilters.FilterImages(images, filterFuncs)
 	} else {
 		filteredImages = images
