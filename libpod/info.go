@@ -121,6 +121,7 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
 	info["GraphOptions"] = r.store.GraphOptions()
+	info["VolumePath"] = r.config.VolumePath
 	statusPairs, err := r.store.Status()
 	if err != nil {
 		return nil, err
