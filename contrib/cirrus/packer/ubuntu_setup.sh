@@ -38,6 +38,7 @@ ooe.sh sudo -E apt-get -qq install \
     apparmor \
     autoconf \
     automake \
+    bats \
     bison \
     btrfs-tools \
     build-essential \

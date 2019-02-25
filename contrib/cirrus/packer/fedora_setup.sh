@@ -26,6 +26,7 @@ ooe.sh sudo dnf update -y
 
 ooe.sh sudo dnf install -y \
     atomic-registries \
+    bats \
     btrfs-progs-devel \
     bzip2 \
     device-mapper-devel \

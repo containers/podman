@@ -27,6 +27,7 @@ ooe.sh sudo yum -y install centos-release-scl epel-release
 ooe.sh sudo yum -y install \
     PyYAML \
     atomic-registries \
+    bats \
     btrfs-progs-devel \
     bzip2 \
     device-mapper-devel \
