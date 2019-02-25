@@ -82,6 +82,9 @@ includes tables showing Docker commands and their Podman equivalent commands.
 **[Tutorials](docs/tutorials)**
 Tutorials on using Podman.
 
+**[Remote Client](remote_client.md)**
+A brief how-to on using the Podman remote-client.
+
 **[Release Notes](RELEASE_NOTES.md)**
 Release notes for recent Podman versions
 
