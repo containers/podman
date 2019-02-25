@@ -22,13 +22,12 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
 	"github.com/klauspost/pgzip"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbauerster/mpb"
-	"github.com/vbauerster/mpb/decor"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sync/semaphore"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 type digestingReader struct {
@@ -423,6 +422,27 @@ func (ic *imageCopier) updateEmbeddedDockerReference() error {
 	return nil
 }
 
+// shortDigest returns the first 12 characters of the digest.
+func shortDigest(d digest.Digest) string {
+	return d.Encoded()[:12]
+}
+
+// createProgressBar creates a pb.ProgressBar.  Note that if the copier's
+// reportWriter is ioutil.Discard, the progress bar's output will be discarded
+// and a single line will be printed instead.
+func (c *copier) createProgressBar(srcInfo types.BlobInfo, kind string) *pb.ProgressBar {
+	bar := pb.New(int(srcInfo.Size)).SetUnits(pb.U_BYTES)
+	bar.SetMaxWidth(80)
+	bar.ShowTimeLeft = false
+	bar.ShowPercent = false
+	bar.Prefix(fmt.Sprintf("Copying %s %s:", kind, shortDigest(srcInfo.Digest)))
+	bar.Output = c.progressOutput
+	if bar.Output == ioutil.Discard {
+		c.Printf("Copying %s %s\n", kind, srcInfo.Digest)
+	}
+	return bar
+}
+
 // isTTY returns true if the io.Writer is a file and a tty.
 func isTTY(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
@@ -457,7 +477,6 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	// copyGroup is used to determine if all layers are copied
 	copyGroup := sync.WaitGroup{}
 	copyGroup.Add(numLayers)
-
 	// copySemaphore is used to limit the number of parallel downloads to
 	// avoid malicious images causing troubles and to be nice to servers.
 	var copySemaphore *semaphore.Weighted
@@ -468,7 +487,8 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	}
 
 	data := make([]copyLayerData, numLayers)
-	copyLayerHelper := func(index int, srcLayer types.BlobInfo, bar *mpb.Bar) {
+	copyLayerHelper := func(index int, srcLayer types.BlobInfo, bar *pb.ProgressBar) {
+		defer bar.Finish()
 		defer copySemaphore.Release(1)
 		defer copyGroup.Done()
 		cld := copyLayerData{}
@@ -478,37 +498,45 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 			// does not support them.
 			if ic.diffIDsAreNeeded {
 				cld.err = errors.New("getting DiffID for foreign layers is unimplemented")
+				bar.Prefix(fmt.Sprintf("Skipping blob %s (DiffID foreign layer unimplemented):", shortDigest(srcLayer.Digest)))
+				bar.Finish()
 			} else {
 				cld.destInfo = srcLayer
 				logrus.Debugf("Skipping foreign layer %q copy to %s", cld.destInfo.Digest, ic.c.dest.Reference().Transport().Name())
+				bar.Prefix(fmt.Sprintf("Skipping blob %s (foreign layer):", shortDigest(srcLayer.Digest)))
+				bar.Add64(bar.Total)
+				bar.Finish()
 			}
 		} else {
 			cld.destInfo, cld.diffID, cld.err = ic.copyLayer(ctx, srcLayer, bar)
 		}
 		data[index] = cld
-		bar.SetTotal(srcLayer.Size, true)
 	}
 
-	func() { // A scope for defer
-		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
-		defer progressCleanup()
+	progressBars := make([]*pb.ProgressBar, numLayers)
+	for i, srcInfo := range srcInfos {
+		bar := ic.c.createProgressBar(srcInfo, "blob")
+		progressBars[i] = bar
+	}
 
-		progressBars := make([]*mpb.Bar, numLayers)
-		for i, srcInfo := range srcInfos {
-			progressBars[i] = ic.c.createProgressBar(progressPool, srcInfo, "blob")
-		}
+	progressPool := pb.NewPool(progressBars...)
+	progressPool.Output = ic.c.progressOutput
 
-		for i, srcLayer := range srcInfos {
-			copySemaphore.Acquire(ctx, 1)
-			go copyLayerHelper(i, srcLayer, progressBars[i])
-		}
+	if err := progressPool.Start(); err != nil {
+		return errors.Wrapf(err, "error creating progress-bar pool")
+	}
 
-		// Wait for all layers to be copied
-		copyGroup.Wait()
-	}()
+	for i, srcLayer := range srcInfos {
+		copySemaphore.Acquire(ctx, 1)
+		go copyLayerHelper(i, srcLayer, progressBars[i])
+	}
 
 	destInfos := make([]types.BlobInfo, numLayers)
 	diffIDs := make([]digest.Digest, numLayers)
+
+	copyGroup.Wait()
+	progressPool.Stop()
+
 	for i, cld := range data {
 		if cld.err != nil {
 			return cld.err
@@ -579,44 +607,6 @@ func (ic *imageCopier) copyUpdatedConfigAndManifest(ctx context.Context) ([]byte
 	return manifest, nil
 }
 
-// newProgressPool creates a *mpb.Progress and a cleanup function.
-// The caller must eventually call the returned cleanup function after the pool will no longer be updated.
-func (c *copier) newProgressPool(ctx context.Context) (*mpb.Progress, func()) {
-	ctx, cancel := context.WithCancel(ctx)
-	pool := mpb.New(mpb.WithWidth(40), mpb.WithOutput(c.progressOutput), mpb.WithContext(ctx))
-	return pool, func() {
-		cancel()
-		pool.Wait()
-	}
-}
-
-// createProgressBar creates a mpb.Bar in pool.  Note that if the copier's reportWriter
-// is ioutil.Discard, the progress bar's output will be discarded
-func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind string) *mpb.Bar {
-	// shortDigestLen is the length of the digest used for blobs.
-	const shortDigestLen = 12
-
-	prefix := fmt.Sprintf("Copying %s %s", kind, info.Digest.Encoded())
-	// Truncate the prefix (chopping of some part of the digest) to make all progress bars aligned in a column.
-	maxPrefixLen := len("Copying blob ") + shortDigestLen
-	if len(prefix) > maxPrefixLen {
-		prefix = prefix[:maxPrefixLen]
-	}
-
-	bar := pool.AddBar(info.Size,
-		mpb.PrependDecorators(
-			decor.Name(prefix),
-		),
-		mpb.AppendDecorators(
-			decor.CountersKibiByte("%.1f / %.1f"),
-		),
-	)
-	if c.progressOutput == ioutil.Discard {
-		c.Printf("Copying %s %s\n", kind, info.Digest)
-	}
-	return bar
-}
-
 // copyConfig copies config.json, if any, from src to dest.
 func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 	srcInfo := src.ConfigInfo()
@@ -625,20 +615,12 @@ func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 		if err != nil {
 			return errors.Wrapf(err, "Error reading config blob %s", srcInfo.Digest)
 		}
-
-		destInfo, err := func() (types.BlobInfo, error) { // A scope for defer
-			progressPool, progressCleanup := c.newProgressPool(ctx)
-			defer progressCleanup()
-			bar := c.createProgressBar(progressPool, srcInfo, "config")
-			destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, nil, false, true, bar)
-			if err != nil {
-				return types.BlobInfo{}, err
-			}
-			bar.SetTotal(int64(len(configBlob)), true)
-			return destInfo, nil
-		}()
+		bar := c.createProgressBar(srcInfo, "config")
+		defer bar.Finish()
+		bar.Start()
+		destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, nil, false, true, bar)
 		if err != nil {
-			return nil
+			return err
 		}
 		if destInfo.Digest != srcInfo.Digest {
 			return errors.Errorf("Internal error: copying uncompressed config blob %s changed digest to %s", srcInfo.Digest, destInfo.Digest)
@@ -656,7 +638,7 @@ type diffIDResult struct {
 
 // copyLayer copies a layer with srcInfo (with known Digest and possibly known Size) in src to dest, perhaps compressing it if canCompress,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
-func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, bar *mpb.Bar) (types.BlobInfo, digest.Digest, error) {
+func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, bar *pb.ProgressBar) (types.BlobInfo, digest.Digest, error) {
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
 
@@ -667,7 +649,9 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 			return types.BlobInfo{}, "", errors.Wrapf(err, "Error trying to reuse blob %s at destination", srcInfo.Digest)
 		}
 		if reused {
-			logrus.Debugf("Skipping blob %s (already present):", srcInfo.Digest)
+			bar.Prefix(fmt.Sprintf("Skipping blob %s (already present):", shortDigest(srcInfo.Digest)))
+			bar.Add64(bar.Total)
+			bar.Finish()
 			return blobInfo, cachedDiffID, nil
 		}
 	}
@@ -679,7 +663,8 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 	}
 	defer srcStream.Close()
 
-	blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize}, diffIDIsNeeded, bar)
+	blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize},
+		diffIDIsNeeded, bar)
 	if err != nil {
 		return types.BlobInfo{}, "", err
 	}
@@ -707,7 +692,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 // perhaps compressing the stream if canCompress,
 // and returns a complete blobInfo of the copied blob and perhaps a <-chan diffIDResult if diffIDIsNeeded, to be read by the caller.
 func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
-	diffIDIsNeeded bool, bar *mpb.Bar) (types.BlobInfo, <-chan diffIDResult, error) {
+	diffIDIsNeeded bool, bar *pb.ProgressBar) (types.BlobInfo, <-chan diffIDResult, error) {
 	var getDiffIDRecorder func(compression.DecompressorFunc) io.Writer // = nil
 	var diffIDChan chan diffIDResult
 
@@ -768,7 +753,7 @@ func computeDiffID(stream io.Reader, decompressor compression.DecompressorFunc) 
 // and returns a complete blobInfo of the copied blob.
 func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
 	getOriginalLayerCopyWriter func(decompressor compression.DecompressorFunc) io.Writer,
-	canModifyBlob bool, isConfig bool, bar *mpb.Bar) (types.BlobInfo, error) {
+	canModifyBlob bool, isConfig bool, bar *pb.ProgressBar) (types.BlobInfo, error) {
 	// The copying happens through a pipeline of connected io.Readers.
 	// === Input: srcStream
 
@@ -791,7 +776,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		return types.BlobInfo{}, errors.Wrapf(err, "Error reading blob %s", srcInfo.Digest)
 	}
 	isCompressed := decompressor != nil
-	destStream = bar.ProxyReader(destStream)
+	destStream = bar.NewProxyReader(destStream)
 
 	// === Send a copy of the original, uncompressed, stream, to a separate path if necessary.
 	var originalLayerReader io.Reader // DO NOT USE this other than to drain the input if no other consumer in the pipeline has done so.
