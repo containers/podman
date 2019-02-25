@@ -2,6 +2,7 @@ package varlinkapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/rootless"
 	"syscall"
@@ -298,4 +299,34 @@ func (i *LibpodAPI) PodStateData(call iopodman.VarlinkCall, name string) error {
 		return call.ReplyErrorOccurred("unable to serialize pod inspect data")
 	}
 	return call.ReplyPodStateData(string(b))
+}
+
+// TopPod provides the top stats for a given or latest pod
+func (i *LibpodAPI) TopPod(call iopodman.VarlinkCall, name string, latest bool, descriptors []string) error {
+	var (
+		pod *libpod.Pod
+		err error
+	)
+	if latest {
+		name = "latest"
+		pod, err = i.Runtime.GetLatestPod()
+	} else {
+		pod, err = i.Runtime.LookupPod(name)
+	}
+	if err != nil {
+		return call.ReplyPodNotFound(name, err.Error())
+	}
+
+	podStatus, err := shared.GetPodStatus(pod)
+	if err != nil {
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get status for pod %s", pod.ID()))
+	}
+	if podStatus != "Running" {
+		return call.ReplyErrorOccurred("pod top can only be used on pods with at least one running container")
+	}
+	reply, err := pod.GetPodPidInformation(descriptors)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyTopPod(reply)
 }
