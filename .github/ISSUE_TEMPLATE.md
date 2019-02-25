@@ -52,7 +52,7 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
-**Output of `podman info`:**
+**Output of `podman info --debug`:**
 
 ```
 (paste your output here)
