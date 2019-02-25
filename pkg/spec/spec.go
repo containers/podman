@@ -3,10 +3,12 @@ package createconfig
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/mount"
+	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/daemon/caps"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -392,7 +394,63 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		configSpec.Linux.Resources = &spec.LinuxResources{}
 	}
 
+	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
+	mounts, err := pmount.GetMounts()
+	if err != nil {
+		return nil, err
+	}
+	for i := range configSpec.Mounts {
+		m := &configSpec.Mounts[i]
+		isBind := false
+		for _, o := range m.Options {
+			if o == "bind" || o == "rbind" {
+				isBind = true
+				break
+			}
+		}
+		if !isBind {
+			continue
+		}
+		mount, err := findMount(m.Source, mounts)
+		if err != nil {
+			return nil, err
+		}
+		if mount == nil {
+			continue
+		}
+	next_option:
+		for _, o := range strings.Split(mount.Opts, ",") {
+			if o == "nosuid" || o == "noexec" || o == "nodev" {
+				for _, e := range m.Options {
+					if e == o {
+						continue next_option
+					}
+				}
+				m.Options = append(m.Options, o)
+			}
+		}
+	}
+
 	return configSpec, nil
+}
+
+func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
+	var err error
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot resolve %s", target)
+	}
+	var bestSoFar *pmount.Info
+	for _, i := range mounts {
+		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
+			// Won't be better than what we have already found
+			continue
+		}
+		if strings.HasPrefix(target, i.Mountpoint) {
+			bestSoFar = i
+		}
+	}
+	return bestSoFar, nil
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
