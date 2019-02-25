@@ -52,8 +52,6 @@ func init() {
 	flags.BoolVarP(&playKubeCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.StringVar(&playKubeCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
-
-	rootCmd.AddCommand(playKubeCommand.Command)
 }
 
 func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
