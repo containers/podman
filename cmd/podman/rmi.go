@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -29,6 +31,17 @@ var (
 	}
 )
 
+func imageNotFound(err error) bool {
+	if errors.Cause(err) == image.ErrNoSuchImage {
+		return true
+	}
+	switch err.(type) {
+	case *iopodman.ImageNotFound:
+		return true
+	}
+	return false
+}
+
 func init() {
 	rmiCommand.Command = _rmiCommand
 	rmiCommand.SetUsageTemplate(UsageTemplate())
@@ -39,10 +52,8 @@ func init() {
 
 func rmiCmd(c *cliconfig.RmiValues) error {
 	var (
-		lastError error
-		deleted   bool
-		deleteErr error
-		msg       string
+		lastError  error
+		failureCnt int
 	)
 
 	ctx := getContext()
@@ -64,19 +75,21 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 	images := args[:]
 
 	removeImage := func(img *adapter.ContainerImage) {
-		deleted = true
-		msg, deleteErr = runtime.RemoveImage(ctx, img, c.Force)
-		if deleteErr != nil {
-			if errors.Cause(deleteErr) == storage.ErrImageUsedByContainer {
+		msg, err := runtime.RemoveImage(ctx, img, c.Force)
+		if err != nil {
+			if errors.Cause(err) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
+			}
+			if !imageNotFound(err) {
+				failureCnt++
 			}
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
-			lastError = deleteErr
-		} else {
-			fmt.Println(msg)
+			lastError = err
+			return
 		}
+		fmt.Println(msg)
 	}
 
 	if removeAll {
@@ -121,22 +134,21 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 		for _, i := range images {
 			newImage, err := runtime.NewImageFromLocal(i)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				if lastError != nil {
+					if !imageNotFound(lastError) {
+						failureCnt++
+					}
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = err
 				continue
 			}
 			removeImage(newImage)
 		}
 	}
 
-	// If the user calls remove all and there are none, it should not be a
-	// non-zero exit
-	if !deleted && removeAll {
-		return nil
-	}
-	// the user tries to remove images that do not exist, that should be a
-	// non-zero exit
-	if !deleted {
-		return errors.Errorf("no valid images to delete")
+	if imageNotFound(lastError) && failureCnt == 0 {
+		exitCode = 1
 	}
 
 	return lastError

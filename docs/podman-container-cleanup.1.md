@@ -30,7 +30,7 @@ The latest option is not supported on the remote client.
 
 `podman container cleanup 860a4b23`
 
-`podman container-cleanup -a`
+`podman container cleanup -a`
 
 `podman container cleanup --latest`
 

@@ -36,7 +36,7 @@ var _ = Describe("Podman rmi", func() {
 	It("podman rmi bogus image", func() {
 		session := podmanTest.Podman([]string{"rmi", "debian:6.0.10"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.ExitCode()).To(Equal(1))
 
 	})
 

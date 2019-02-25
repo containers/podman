@@ -1,9 +1,11 @@
-% podman-rmi(1)
+% podman-image-rm(1)
 
 ## NAME
-podman\-rmi - Removes one or more images
+podman\-image\-rm (podman\-rmi) - Removes one or more images
 
 ## SYNOPSIS
+**podman image rm** *image* ...
+
 **podman rmi** *image* ...
 
 ## DESCRIPTION
@@ -38,6 +40,10 @@ Remove all images and containers.
 ```
 podman rmi -a -f
 ```
+## Exit Status
+**_0_** if all specified images removed
+**_1_** if one of the specified images did not exist, and no other failures
+**_125_** if command fails for a reason other then an image did not exist
 
 ## SEE ALSO
 podman(1)
