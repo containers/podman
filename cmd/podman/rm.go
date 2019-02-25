@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,15 +62,21 @@ func rmCmd(c *cliconfig.RmValues) error {
 	}
 	defer runtime.Shutdown(false)
 
+	failureCnt := 0
 	delContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
 	if err != nil {
 		if c.Force && len(c.InputArgs) > 0 {
 			if errors.Cause(err) == libpod.ErrNoSuchCtr {
 				err = nil
+			} else {
+				failureCnt++
 			}
 			runtime.RemoveContainersFromStorage(c.InputArgs)
 		}
 		if len(delContainers) == 0 {
+			if err != nil && failureCnt == 0 {
+				exitCode = 1
+			}
 			return err
 		}
 		if err != nil {
@@ -96,5 +103,16 @@ func rmCmd(c *cliconfig.RmValues) error {
 
 	// Run the parallel funcs
 	deleteErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
-	return printParallelOutput(deleteErrors, errCount)
+	err = printParallelOutput(deleteErrors, errCount)
+	if err != nil {
+		for _, result := range deleteErrors {
+			if result != nil && errors.Cause(result) != image.ErrNoSuchCtr {
+				failureCnt++
+			}
+		}
+		if failureCnt == 0 {
+			exitCode = 1
+		}
+	}
+	return err
 }
