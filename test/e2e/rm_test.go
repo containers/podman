@@ -128,4 +128,9 @@ var _ = Describe("Podman rm", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
 	})
+	It("podman rm bogus container", func() {
+		session := podmanTest.Podman([]string{"rm", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+	})
 })

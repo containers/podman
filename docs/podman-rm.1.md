@@ -1,9 +1,11 @@
-% podman-rm(1)
+% podman-container-rm(1)
 
 ## NAME
-podman\-rm - Remove one or more containers
+podman\-container\-rm (podman\-rm) - Remove one or more containers
 
 ## SYNOPSIS
+**podman container rm** [*options*] *container*
+
 **podman rm** [*options*] *container*
 
 ## DESCRIPTION
@@ -57,8 +59,13 @@ Forcibly remove the latest container created.
 podman rm -f --latest
 ```
 
+## Exit Status
+**_0_** if all specified containers removed
+**_1_** if one of the specified containers did not exist, and no other failures
+**_125_** if command fails for a reason other then an container did not exist
+
 ## SEE ALSO
-podman(1), podman-rmi(1)
+podman(1), podman-image-rm(1)
 
 ## HISTORY
 August 2017, Originally compiled by Ryan Cole <rycole@redhat.com>
