@@ -405,6 +405,9 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		if tmpConfig.TmpDir != "" {
 			runtime.configuredFrom.libpodTmpDirSet = true
 		}
+		if tmpConfig.VolumePath != "" {
+			runtime.configuredFrom.volPathSet = true
+		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
