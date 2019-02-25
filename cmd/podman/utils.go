@@ -172,7 +172,7 @@ func getPodsFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpo
 	var err error
 
 	if c.Bool("all") {
-		pods, err = r.Pods()
+		pods, err = r.GetAllPods()
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to get running pods")
 		}

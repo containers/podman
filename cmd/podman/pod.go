@@ -20,9 +20,11 @@ var podCommand = cliconfig.PodmanCommand{
 
 //podSubCommands are implemented both in local and remote clients
 var podSubCommands = []*cobra.Command{
+	_podCreateCommand,
 	_podExistsCommand,
 	_podInspectCommand,
 	_podKillCommand,
+	_podPsCommand,
 	_podRmCommand,
 	_podStartCommand,
 	_podStopCommand,
