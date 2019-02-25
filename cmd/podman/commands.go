@@ -17,7 +17,6 @@ func getMainCommands() []*cobra.Command {
 		_diffCommand,
 		_execCommand,
 		_generateCommand,
-		_containerKubeCommand,
 		_playCommand,
 		_psCommand,
 		_loginCommand,
@@ -39,7 +38,6 @@ func getMainCommands() []*cobra.Command {
 		_topCommand,
 		_umountCommand,
 		_unpauseCommand,
-		volumeCommand.Command,
 		_waitCommand,
 	}
 
