@@ -26,6 +26,10 @@ to run containers such as CRI-O, the last started  container could be from eithe
 
 The latest option is not supported on the remote client.
 
+**--preserve-fds=N**
+
+Pass down to the process N additional file descriptors (in addition to 0, 1, 2).  The total FDs will be 3+N.
+
 **--privileged**
 
 Give the process extended Linux capabilities when running the command in container.

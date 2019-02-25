@@ -100,6 +100,7 @@ type ExecValues struct {
 	User         string
 	Latest       bool
 	Workdir      string
+	PreserveFDs  int
 }
 
 type ImageExistsValues struct {
