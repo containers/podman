@@ -629,24 +629,43 @@ func makeRuntime(runtime *Runtime) (err error) {
 	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
 		if runtime.config.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
 			runtime.config.StorageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %s overwritten by graph driver %s from database - delete libpod local files to resolve",
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
 				runtime.config.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
 		}
 		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
 	}
 	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
+		if runtime.config.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
+			runtime.config.StorageConfig.GraphRoot != "" {
+			logrus.Debugf("Overriding graph root %q with %q from database",
+				runtime.config.StorageConfig.GraphRoot, dbConfig.StorageRoot)
+		}
 		runtime.config.StorageConfig.GraphRoot = dbConfig.StorageRoot
 	}
 	if !runtime.configuredFrom.storageRunRootSet && dbConfig.StorageTmp != "" {
+		if runtime.config.StorageConfig.RunRoot != dbConfig.StorageTmp &&
+			runtime.config.StorageConfig.RunRoot != "" {
+			logrus.Debugf("Overriding run root %q with %q from database",
+				runtime.config.StorageConfig.RunRoot, dbConfig.StorageTmp)
+		}
 		runtime.config.StorageConfig.RunRoot = dbConfig.StorageTmp
 	}
 	if !runtime.configuredFrom.libpodStaticDirSet && dbConfig.LibpodRoot != "" {
+		if runtime.config.StaticDir != dbConfig.LibpodRoot && runtime.config.StaticDir != "" {
+			logrus.Debugf("Overriding static dir %q with %q from database", runtime.config.StaticDir, dbConfig.LibpodRoot)
+		}
 		runtime.config.StaticDir = dbConfig.LibpodRoot
 	}
 	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
+		if runtime.config.TmpDir != dbConfig.LibpodTmp && runtime.config.TmpDir != "" {
+			logrus.Debugf("Overriding tmp dir %q with %q from database", runtime.config.TmpDir, dbConfig.LibpodTmp)
+		}
 		runtime.config.TmpDir = dbConfig.LibpodTmp
 	}
 	if !runtime.configuredFrom.volPathSet && dbConfig.VolumePath != "" {
+		if runtime.config.VolumePath != dbConfig.VolumePath && runtime.config.VolumePath != "" {
+			logrus.Debugf("Overriding volume path %q with %q from database", runtime.config.VolumePath, dbConfig.VolumePath)
+		}
 		runtime.config.VolumePath = dbConfig.VolumePath
 	}
 
