@@ -46,19 +46,32 @@ func devicesFromPath(g *generate.Generator, devicePath string) error {
 		return errors.Wrapf(err, "cannot stat %s", devicePath)
 	}
 	if st.IsDir() {
-		if len(devs) > 2 {
-			return errors.Wrapf(unix.EINVAL, "not allowed to specify destination with a directory %s", devicePath)
-		}
 		found := false
+		src := resolvedDevicePath
+		dest := src
+		var devmode string
+		if len(devs) > 1 {
+			if len(devs[1]) > 0 && devs[1][0] == '/' {
+				dest = devs[1]
+			} else {
+				devmode = devs[1]
+			}
+		}
+		if len(devs) > 2 {
+			if devmode != "" {
+				return errors.Wrapf(unix.EINVAL, "invalid device specification %s", devicePath)
+			}
+			devmode = devs[2]
+		}
+
 		// mount the internal devices recursively
 		if err := filepath.Walk(resolvedDevicePath, func(dpath string, f os.FileInfo, e error) error {
 
 			if f.Mode()&os.ModeDevice == os.ModeDevice {
 				found = true
-				device := dpath
-
-				if len(devs) > 1 {
-					device = fmt.Sprintf("%s:%s", dpath, devs[1])
+				device := fmt.Sprintf("%s:%s", dpath, filepath.Join(dest, strings.TrimPrefix(dpath, src)))
+				if devmode != "" {
+					device = fmt.Sprintf("%s:%s", device, devmode)
 				}
 				if err := addDevice(g, device); err != nil {
 					return errors.Wrapf(err, "failed to add %s device", dpath)

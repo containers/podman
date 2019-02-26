@@ -72,4 +72,12 @@ var _ = Describe("Podman run device", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman run device host device and container device parameter are directories", func() {
+		SystemExec("mkdir", []string{"/dev/foodevdir"})
+		SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/foodevdir:/dev/bar", ALPINE, "ls", "/dev/bar/null"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
