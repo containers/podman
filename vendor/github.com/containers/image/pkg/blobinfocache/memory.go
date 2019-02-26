@@ -1,6 +1,7 @@
 package blobinfocache
 
 import (
+	"sync"
 	"time"
 
 	"github.com/containers/image/types"
@@ -17,6 +18,7 @@ type locationKey struct {
 
 // memoryCache implements an in-memory-only BlobInfoCache
 type memoryCache struct {
+	mutex                 *sync.Mutex // synchronizes concurrent accesses
 	uncompressedDigests   map[digest.Digest]digest.Digest
 	digestsByUncompressed map[digest.Digest]map[digest.Digest]struct{}             // stores a set of digests for each uncompressed digest
 	knownLocations        map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
@@ -28,6 +30,7 @@ type memoryCache struct {
 // Manual users of types.{ImageSource,ImageDestination} might also use this instead of a persistent cache.
 func NewMemoryCache() types.BlobInfoCache {
 	return &memoryCache{
+		mutex:                 new(sync.Mutex),
 		uncompressedDigests:   map[digest.Digest]digest.Digest{},
 		digestsByUncompressed: map[digest.Digest]map[digest.Digest]struct{}{},
 		knownLocations:        map[locationKey]map[types.BICLocationReference]time.Time{},
@@ -38,6 +41,15 @@ func NewMemoryCache() types.BlobInfoCache {
 // May return anyDigest if it is known to be uncompressed.
 // Returns "" if nothing is known about the digest (it may be compressed or uncompressed).
 func (mem *memoryCache) UncompressedDigest(anyDigest digest.Digest) digest.Digest {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
+	return mem.uncompressedDigest(anyDigest)
+}
+
+// uncompressedDigest returns an uncompressed digest corresponding to anyDigest.
+// May return anyDigest if it is known to be uncompressed.
+// Returns "" if nothing is known about the digest (it may be compressed or uncompressed).
+func (mem *memoryCache) uncompressedDigest(anyDigest digest.Digest) digest.Digest {
 	if d, ok := mem.uncompressedDigests[anyDigest]; ok {
 		return d
 	}
@@ -56,6 +68,8 @@ func (mem *memoryCache) UncompressedDigest(anyDigest digest.Digest) digest.Diges
 // because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
 // (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
 func (mem *memoryCache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompressed digest.Digest) {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
 	if previous, ok := mem.uncompressedDigests[anyDigest]; ok && previous != uncompressed {
 		logrus.Warnf("Uncompressed digest for blob %s previously recorded as %s, now %s", anyDigest, previous, uncompressed)
 	}
@@ -72,6 +86,8 @@ func (mem *memoryCache) RecordDigestUncompressedPair(anyDigest digest.Digest, un
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
 // and can be reused given the opaque location data.
 func (mem *memoryCache) RecordKnownLocation(transport types.ImageTransport, scope types.BICTransportScope, blobDigest digest.Digest, location types.BICLocationReference) {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
 	key := locationKey{transport: transport.Name(), scope: scope, blobDigest: blobDigest}
 	locationScope, ok := mem.knownLocations[key]
 	if !ok {
@@ -103,11 +119,13 @@ func (mem *memoryCache) appendReplacementCandidates(candidates []candidateWithTi
 // data from previous RecordDigestUncompressedPair calls is used to also look up variants of the blob which have the same
 // uncompressed digest.
 func (mem *memoryCache) CandidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool) []types.BICReplacementCandidate {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
 	res := []candidateWithTime{}
 	res = mem.appendReplacementCandidates(res, transport, scope, primaryDigest)
 	var uncompressedDigest digest.Digest // = ""
 	if canSubstitute {
-		if uncompressedDigest = mem.UncompressedDigest(primaryDigest); uncompressedDigest != "" {
+		if uncompressedDigest = mem.uncompressedDigest(primaryDigest); uncompressedDigest != "" {
 			otherDigests := mem.digestsByUncompressed[uncompressedDigest] // nil if not present in the map
 			for d := range otherDigests {
 				if d != primaryDigest && d != uncompressedDigest {
