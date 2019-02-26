@@ -1248,6 +1248,22 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	}
 }
 
+// withSetCtrSpecific sets a bool notifying libpod that a volume was created
+// specifically for a container.
+// These volumes will be removed when the container is removed and volumes are
+// also specified for removal.
+func withSetCtrSpecific() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.IsCtrSpecific = true
+
+		return nil
+	}
+}
+
 // Pod Creation Options
 
 // WithPodName sets the name of the pod.

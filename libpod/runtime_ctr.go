@@ -180,7 +180,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
 			volInfo, err := r.state.Volume(vol.Source)
 			if err != nil {
-				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source))
+				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific())
 				if err != nil {
 					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
 				}
@@ -421,6 +421,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	for _, v := range volumes {
 		if volume, err := runtime.state.Volume(v); err == nil {
+			if !volume.IsCtrSpecific() {
+				continue
+			}
 			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
 				logrus.Errorf("cleanup volume (%s): %v", v, err)
 			}

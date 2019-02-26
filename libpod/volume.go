@@ -15,11 +15,12 @@ type VolumeConfig struct {
 	// Name of the volume
 	Name string `json:"name"`
 
-	Labels     map[string]string `json:"labels"`
-	MountPoint string            `json:"mountPoint"`
-	Driver     string            `json:"driver"`
-	Options    map[string]string `json:"options"`
-	Scope      string            `json:"scope"`
+	Labels        map[string]string `json:"labels"`
+	MountPoint    string            `json:"mountPoint"`
+	Driver        string            `json:"driver"`
+	Options       map[string]string `json:"options"`
+	Scope         string            `json:"scope"`
+	IsCtrSpecific bool              `json:"ctrSpecific"`
 }
 
 // Name retrieves the volume's name
@@ -59,4 +60,11 @@ func (v *Volume) Options() map[string]string {
 // Scope returns the scope of the volume
 func (v *Volume) Scope() string {
 	return v.config.Scope
+}
+
+// IsCtrSpecific returns whether this volume was created specifically for a
+// given container. Images with this set to true will be removed when the
+// container is removed with the Volumes parameter set to true.
+func (v *Volume) IsCtrSpecific() bool {
+	return v.config.IsCtrSpecific
 }
