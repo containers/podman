@@ -325,6 +325,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 		defaultRootlessGraphRoot = storageOpts.GraphRoot
 		storageOpts = storage.StoreOptions{}
 		storage.ReloadConfigurationFile(storageConf, &storageOpts)
+		volumePath = filepath.Join(storageOpts.GraphRoot, "volumes")
 	}
 
 	if rootless.IsRootless() {
@@ -351,6 +352,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 			if storageOpts.GraphRoot == "" {
 				storageOpts.GraphRoot = defaultRootlessGraphRoot
 			}
+			volumePath = filepath.Join(storageOpts.GraphRoot, "volumes")
 		}
 	}
 	return storageOpts, volumePath, nil
