@@ -153,7 +153,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 
 	// start the containers
 	for _, ctr := range containers {
-		if err := ctr.Start(ctx, false); err != nil {
+		if err := ctr.Start(ctx, true); err != nil {
 			// Making this a hard failure here to avoid a mess
 			// the other containers are in created status
 			return err
