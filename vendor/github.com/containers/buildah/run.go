@@ -21,15 +21,15 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
+	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/util"
-	"github.com/containers/libpod/pkg/secrets"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	units "github.com/docker/go-units"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -840,7 +840,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 // valid resolution.
 func runLookupPath(g *generate.Generator, command []string) []string {
 	// Look for the configured $PATH.
-	spec := g.Spec()
+	spec := g.Config
 	envPath := ""
 	for i := range spec.Process.Env {
 		if strings.HasPrefix(spec.Process.Env[i], "PATH=") {
@@ -953,7 +953,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions)
 	}
 
 	found := false
-	spec := g.Spec()
+	spec := g.Config
 	for i := range spec.Process.Env {
 		if strings.HasPrefix(spec.Process.Env[i], "HOSTNAME=") {
 			found = true
@@ -1054,7 +1054,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	// Now grab the spec from the generator.  Set the generator to nil so that future contributors
 	// will quickly be able to tell that they're supposed to be modifying the spec directly from here.
-	spec := g.Spec()
+	spec := g.Config
 	g = nil
 
 	logrus.Debugf("ensuring working directory %q exists", filepath.Join(mountPoint, spec.Process.Cwd))
