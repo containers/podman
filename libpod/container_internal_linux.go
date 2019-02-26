@@ -481,6 +481,19 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
+
+	// Create the CRIU log file and label it
+	dumpLog := filepath.Join(c.bundlePath(), "dump.log")
+
+	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
+	}
+	logFile.Close()
+	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
+		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+	}
+
 	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
 		return err
 	}
