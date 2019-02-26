@@ -4,7 +4,7 @@ package version
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-const Version = "1.0.1-dev"
+const Version = "v1.1.0"
 
 // RemoteAPIVersion is the version for the remote
 // client API.  It is used to determine compatibility

@@ -1,3 +1,388 @@
+- Changelog for vv1.1.0 (2019-02-26)
+  * Vendor in latest buildah 1.7.1
+  * volume: do not create a volume if there is a bind
+  * Only remove image volumes when removing containers
+  * Fix podman logs -l
+  * start pod containers recursively
+  * Update release notes for v1.1.0
+  * vendor containers/image v1.5
+  * Record when volume path is explicitly set in config
+  * Add debug information when overriding paths with the DB
+  * Add path for named volumes to `podman info`
+  * Add volume path to default libpod.conf (and manpage)
+  * Validate VolumePath against DB configuration
+  * When location of c/storage root changes, set VolumePath
+  * docs: cross-reference `podman-{generate,play}-kube`
+  * README: refine "Out of scope" section
+  * oci: improve error message when the OCI runtime is not found
+  * Label CRIU log files correctly
+  * Add num_locks to the default libpod config
+  * podman-remote pod pause|unpause|restart
+  * podman: fix ro bind mounts if no* opts are on the source
+  * Change exit code to 1 on podman rmi nosuch image
+  * README.md: rephrase Buildah description
+  * README: update "out of scope" section
+  * Change exit code to 1 on podman rm nosuch container
+  * podman-remote create|ps
+  * remove duplicate commands in main
+  * issue template: run `podman info --debug`
+  * Fix play to show up in podman help
+  * Switch defaults for podman build versus buildah
+  * In shared networkNS /etc/resolv.conf&/etc/hosts should be shared
+  * Allow dns settings with --net=host
+  * Fix up handling of user defined network namespaces
+  * Enable more podman-remote pod commands
+  * tests, rootless: use relative path for export test
+  * rootless: force same cwd when re-execing
+  * Vendor Buildah v1.7
+  * Exit with errors not just logging error
+  * cmd: support rootless mode for cp command
+  * hide --latest on the remote-client
+  * Improve command line validation
+  * make remote-client error messaging more robust
+  * podman: --runtime has higher priority on runtime_path
+  * podman-remote pod inspect|exists
+  * Cirrus: Install Go 1.11 on Ubuntu VMs
+  * Cirrus: Add 20m extra timeout for Ubuntu
+  * Introduce how to start to hack on libpod.
+  * update: remove duplicate newline
+  * Fix typo in comment
+  * podman-remote load image
+  * Do not make renumber shut down the runtime
+  * Add podman system renumber command
+  * Add ability to get a runtime that renumbers
+  * Recreate SHM locks when renumbering on count mismatch
+  * Move RenumberLocks into runtime init
+  * Remove locks from volumes
+  * Expand renumber to also renumber pod locks
+  * Add ability to rewrite pod configs in the database
+  * Add initial version of renumber backend
+  * Add a function for overwriting container config
+  * enable podman-remote pod rm
+  * vendor containers/image v1.4
+  * Adjust LISTEN_PID for reexec in varlink mode
+  * Update c/storage vendor to v1.10 release
+  * add newline to images output
+  * podman-remote save [image]
+  * hack/tree_status.sh: preserve new lines
+  * remove duplicate kill from `podman --help`
+  * iopodman.SearchImages: add ImageSearchFilter to Varlink API
+  * image.SearchImages: use SearchFilter type
+  * SearchImages: extend API with filter parameter
+  * podman-search: refactor code to libpod/image/search.go
+  * podman-search: run in parallel
+  * Ensure that userns is created for stopped rootless pods
+  * Podman pod create now errors on receiving CLI args
+  * podman-remote pull
+  * Don't start running dependencies
+  * Fifth chunk of Cobra Examples
+  * Add 4th chunk of Cobra Examples
+  * OpenTracing support added to start, stop, run, create, pull, and ps
+  * packer: Make Makefile host arch sensitive
+  * Add 3rd chunk of Cobra examples
+  * pod infra container is started before a container in a pod is run, started, or attached.
+  * Add registry name to fields returned by varlink image search
+  * Second chunk of Cobra help
+  * podman: honor --storage-opt again
+  * docs: mention the new OCI runtime configuration
+  * libpod: honor runtime_path from libpod.conf
+  * rootless: open the correct file
+  * Fix `podman login` lying problem
+  * Fix error code retrieval for podman start --attach
+  * Enable --rm with --detach
+  * Add examples for Cobra
+  * Add tlsVerify bool to SearchImage for varlink
+  * Fix volume handling in podman
+  * enable podman-remote volume prune
+  * add build to main and as subcommand to image
+  * --password-stdin flag in `podman login`
+  * 'podman cp' copy between host and container
+  * podman-remote build
+  * Vendor in latest c/storage and c/image
+  * show container ports of network namespace
+  * podman-remote volume inspect|ls
+  * build varlink without GOPATH
+  * completions: add --pod to run/create
+  * Parse fq name correctly for images
+  * Try disabling --rm on notify_socket test
+  * podman-remote push
+  * get_ci_vm : allow running without sudo
+  * Only build varlink when buildtag is available
+  * Remove a lot of '--rm' options from unit tests
+  * Address review comments on #2319
+  * Retain a copy of container exit file on cleanup
+  * Fix manual detach from containers to not wait for exit
+  * varlink: Rename `SearchImage` to `SearchImages`
+  * varlink: Rename `ContainerInList` to `Container`
+  * varlink: Rename `ImageInList` to `Image`
+  * varlink: Simplify GetVersion() call
+  * varlink: Return all times in RFC 3339 format
+  * Makefile: Don't include quotes around GIT_COMMIT
+  * varlink: Remove the Ping() method
+  * podman: Show error when creating varlink listener failed
+  * varlink: Remove `NotImplemented` type
+  * Don't show global flags except for podman command
+  * podman-remote volume rm
+  * Remove urfave/cli from libpod
+  * podman-remote volume create
+  * Separate remote and local commands
+  * lock and sync container before checking mountpoint
+  * oci: do not set XDG_RUNTIME_DIR twice
+  * pod: drop not valid check for rootless
+  * Podman pod stats -- fix GO template output
+  * Add troubleshooting information about running a rootless containers.
+  * Add --all-tags to pull command
+  * Add common_test.go to single test instructions
+  * Remove container from storage on --force
+  * do not crash when displaying dangling images
+  * Add volume mounts to PS output
+  * Update image-trust man with further comments
+  * Migrate to cobra CLI
+  * Remove some dead type declarations
+  * Fix down/missing registry.access.redhat.com
+  * cleanup: use the correct runtime
+  * make vendor: always check for latest vndr
+  * install.md: add section about vendoring
+  * Add varlink generate to the make documentation
+  * Mention OSes that pass the build
+  * Generate make helping message dynamicaly.
+  * Makefile: minor fix to reenable system tests
+  * Add StartPeriod to cmd/podman/docker.HealthConfig
+  * Unconditionally refresh storage options from config
+  * rootless: do not override /dev/pts if not needed
+  * Fix handling of memory limits via varlink
+  * Add documentation on running systemd on SELinux systems
+  * Cirrus: add vendor_check_task
+  * cleanup vendor directory
+  * Revert "Vendor containers/buildah"
+  * e2e tests: sigproxy: fix rare hang condition
+  * Preserve exited state across reboot
+  * Apply 50min timeout to integration tests
+  * Capatilize all usage and descriptions
+  * Add podman system prune and info commands
+  * podman-remote import|export
+  * tests: allow to override the OCI runtime
+  * rootless: copy some settings from the global configuration
+  * Vendor containers/buildah
+  * Increase e2e info/json test exit timeout
+  * Touch up image-trust man
+  * Rework Podman description
+  * vendor latest containers/image
+  * Reduce Dockerfile based build time for libpod.
+  * libpod/image: Use RepoDigests() in Inspect()
+  * add Pod Manager References
+  * Add support for short option -f in podman version
+  * Add support for short option -s in podman inspect
+  * Add support for short option -f
+  * Changes to container runlabel for toolbox project
+  * Fix regression in ps with custom format
+  * Set SELinux type on bin/podman after install
+  * Cirrus: Add RHEL-7 testing
+  * For consistency in usage output the verbs changed from 3rd person to 1st person.
+  * podman image prune -- implement all flag
+  * Alter varlink API for ListContainerMounts to return a map
+  * Make --quiet work in podman create/run
+  * apparmor: don't load default profile in rootless mode
+  * Cirrus: Enable AppArmor build and test
+  * Update ArchLinux installation instructions
+  * tutorials: describe how to use podman in updates-testing
+  * [skip ci] Cirrus: Container for tracking image use
+  * Cirrus: Use freshly built images
+  * remove sudo
+  * Vendor in latest containers/storage
+  * Show a better error message when podman info fails during a refresh
+  * enable podman-remote version
+  * Update transfer.md and commands.md to add missing commands.
+  * rootless: support port redirection from the host
+  * Mask unimplemeted commands for remote client
+  * Vendor in latest opencontainers/selinux
+  * podman-remote inspect
+  * Vendor in latest containers/storage
+  * rootless: fix --pid=host without --privileged
+  * Do not unmarshal into c.config.Spec
+  * podman-inspect: don't ignore errors
+  * Add openSUSE Kubic to install.md
+  * cirrus: Record start/end time of important things
+  * Cirrus: Consolidate VM image names in once place
+  * Update README for v1.0.0
+  * Installing podman
+  * Ensure that wait exits on state transition
+  * Vendor in containers/storage
+  * Add --latest and --all to podman mount/umount
+  * Cleanup coverity scan issues
+  * Embed runtime struct in super localRuntime
+  * Collaberative podman-remote container exists
+  * Fix up `image sign` in PR 2108
+  * add support for podman-remote history
+  * Rename localRuntime to runtime in cmd/podman
+  * podman remote integrations tests
+  * podman remote client -- add rmi
+  * Run integrations test with remote-client
+  * [skip ci] Hack: Fix get_ci_vm.sh w/ gcloud ssh/scp
+  * Update master branch with v1.0 changes from 1.0 branch
+  * Add local storage.conf example to troubleshoot
+  * config: store the runtime used to create each container
+  * oci: allow to define multiple OCI runtimes
+  * libpod: allow multiple oci runtimes
+  * Remove imageParts.{isTagged,registry,name,tag}
+  * Clarify comments about isRegistry a bit.
+  * Use imageParts.unnormalizedRef in GetImageBaseName
+  * FIXME? Introduce imageParts.suspiciousRefNameTagValuesForSearch
+  * Use imageParts.referenceWithRegistry in Image.getLocalImage
+  * Don't try to look up local images with an explicit :latest suffix
+  * Return a reference.Named from normalizedTag
+  * Use reference.TagNameOnly instead of manually adding imageParts.tag in normalizeTag
+  * Use imageParts.normalizedReference in normalizeTag
+  * Add imageParts.normalizedReference()
+  * Use imageparts.referenceWithRegistry in normalizeTag
+  * Remove no longer used imageParts.assemble()
+  * Use getPullRefPair / getSinglePullRefPairGoal in pullGoalFromPossiblyUnqualifiedName
+  * Use imageParts.referenceWithRegistry in pullGoalFromPossiblyUnqualifiedName
+  * Use imageParts.referenceWithRegistry in getPullRefPair
+  * Add imageParts.referenceWithRegistry
+  * Don't use imageParts.assemble when pulling from a qualified name
+  * Reorganize normalizeTag
+  * Simplify pullGoalFromPossiblyUnqualifiedName
+  * Remove imageParts.transport
+  * Simplify pullGoalFromPossiblyUnqualifiedName
+  * Inline imageParts.assembleWithTransport into callers
+  * Record the original reference.Named in imageParts
+  * Drop image.DecomposeString, make image.Parts private imageParts again
+  * Don't call image.DecomposeString in imageInListToContainerImage
+  * Add bridge support, for the varlink connection
+  * Add troubleshooting statement for homedirs mounted noexec
+  * Set default storage options from mounts.conf file.
+  * podman play kube: add containers to pod
+  * Add darwin support for remote-client
+  * vendor: update everything
+  * vendor make target
+  * rootless: create the userns immediately when creating a new pod
+  * rootless: join both userns and mount namespace with --pod
+  * spec: add nosuid,noexec,nodev to ro bind mount
+  * Use multi-arch images in test case scripts
+  * Add varlink support for prune
+  * Replace tab with spaces in MarshalIndent in libpod
+  * Remove one more usage of encoding/json in libpod
+  * Update vendor.conf for jsoniter vendor changes
+  * Move all libpod/ JSON references over to jsoniter
+  * Update json-iterator vendor to v1.1.5
+  * Remove easyjson in preparation for switch to jsoniter
+  * remote-client support for images
+  * Move python code from contrib to it's own repo python-podman
+  * Use defaults if paths are not specified in storage.conf
+  * (Minor) Cirrus: Print timestamp at start
+  * fix up sigstore path
+  * Trivial readme updates
+  * podman: bump RLIMIT_NOFILE also without CAP_SYS_RESOURCE
+  * Fix handling of nil volumes
+  * sign: make all error messages lowercase
+  * sign: use filepath.Join instead of fmt.Sprintf
+  * createconfig: always cleanup a rootless container
+  * Fix 'image trust' from PR1899
+  * libpod/image: Use ParseNormalizedNamed in RepoDigests
+  * apparmor: apply default profile at container initialization
+  * Fix up image sign and trust
+  * If you fail to open shm lock then attempt to create it
+  * List the long variant of each option before its shorter counterpart
+  * Use existing interface to request IP address during restore
+  * Added checkpoint/restore test for same IP
+  * Enable checkpoint test with established TCP connections
+  * .github/ISSUE_TEMPLATE: Suggest '/kind bug' and '/kind feature'
+  * pkg/hooks/exec: Include failed command in hook errors
+  * hooks/exec/runtimeconfigfilter: Log config changes
+  * hooks: Add pre-create hooks for runtime-config manipulation
+  * Add Validate completions
+  * Add a --workdir option to 'podman exec'
+  * Default --sig-proxy to true for 'podman start --attach'
+  * Test that 'podman start --sig-proxy' does not work without --attach
+  * [WIP]Support podman image sign
+  * vendor latest buildah
+  * Honor image environment variables with exec
+  * Minor: Remove redundant basename command in ooe.sh
+  * Rename libpod.Config back to ContainerConfig
+  * Add ability to build golang remote client
+  * vendor latest buildah
+  * Add the configuration file used to setup storage to podman info
+  * Address lingering review comments from SHM locking PR
+  * podman: set umask to 022
+  * podman-login: adhere to user input
+  * Vendor in latest containers/buildah code
+  * Rootless with shmlocks was not working.
+  * Readd Python testing
+  * Update vendor of runc
+  * [skip ci] Docs: Add Bot Interactions section
+  * container runlabel NAME implementation
+  * Bump time for build_each_commit step
+  * Move lock init after tmp dir is populated properly
+  * DO NOT MERGE temporarily remove python tests
+  * When refreshing libpod, if SHM locks exist, remove them
+  * Ensure different error messages and creating/opening locks
+  * Update unit tests to use in-memory lock manager
+  * Remove runtime lockDir and add in-memory lock manager
+  * Convert pods to SHM locks
+  * Convert containers to SHM locking
+  * Add lock manager to libpod runtime
+  * Move to POSIX mutexes for SHM locks
+  * Disable lint on SHMLock struct
+  * Refactor locks package to build on non-Linux
+  * Add an SHM-backed Lock Manager implementation
+  * Add interface for libpod multiprocess locks
+  * Improve documentation and unit tests for SHM locks
+  * Propogate error codes from SHM lock creation and open
+  * Add mutex invariant to SHM semaphores.
+  * Initial skeleton of in-memory locks
+  * add container-init support
+  * If local storage file exists, then use it rather then defaults.
+  * vendor in new containers/storage
+  * Fix completions
+  * Touch up some troubleshooting nits
+  * Warn on overriding user-specified storage driver w/ DB
+  * Log container command before starting the container
+  * Use sprintf to generate port numbers while committing
+  * Add troubleshooting for sparse files
+  * Fix handling of symbolic links
+  * podman build is not using the default oci-runtime
+  * Re-enable checkpoint/restore CI tests on Fedora
+  * Fixes to handle /dev/shm correctly.
+  * rootless tests using stop is more reliable
+  * Allow alias for list, ls, ps to work
+  * Refactor: use idtools.ParseIDMap instead of bundling own version
+  * cirrus: Use updated images including new crui
+  * Switch all referencs to image.ContainerConfig to image.Config
+  * Allow users to specify a directory for additonal devices
+  * Change all 'can not' to 'cannot' for proper usage
+  * Invalid index for array
+  * Vendor in latest psgo code to fix race conditions
+  * test: add test for rootless export
+  * export: fix usage with rootless containers
+  * rootless: add function to join user and mount namespace
+  * libpod: always store the conmon pid file
+  * Use existing CRIU packages in CI setup
+  * skip test for blkio.weight when kernel does not support it
+  * Add Play
+  * Cirrus: Skip build all commits test on master
+  * prepare for move to validate on 1.11 only
+  * [skip ci] Gate: Update docs w/ safer local command
+  * Support podman image trust command
+  * Makefile: validate that each commit can at least build
+  * perf test a stress test to profile CPU load of podman
+  * all flakes must die
+  * Add information on --restart
+  * generate service object inline
+  * Cirrus: One IRC notice only
+  * docs/tutorials: add a basic network config
+  * display proper error when rmi -fa with infra containers
+  * add --get-login command to podman-login.
+  * Show image only once with images -q
+  * Add script to create CI VMs for debugging
+  * Cirrus: Migrate PAPR testing of F28 to Cirrus
+  * Skip checkpoint tests on Fedora <30
+  * Cirrus: Add text editors to cache-images
+  * Bump gitvalidation epoch
+  * Bump to v0.12.2-dev
+  * Clean up some existing varlink endpoints
+  * mount: allow mount only when using vfs
+
 - Changelog for v1.0.0 (2018-1-11)
   * Update release notes for v1.0
   * Remove clientintegration from Makefile
