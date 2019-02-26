@@ -20,7 +20,7 @@ kubernetes_input.yml
 the pod and containers described in the YAML.  The containers within the pod are then started and
 the ID of the new Pod is output.
 
-Ideally the input file would be one created by Podman.  This would guarantee a smooth import and expected results.
+Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
 # OPTIONS:
 
@@ -72,7 +72,7 @@ $ podman play kube demo.yml
 ```
 
 ## SEE ALSO
-podman(1), podman-container(1), podman-pod(1), podman-generate(1), podman-play(1)
+podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1)
 
 # HISTORY
 Decemeber 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

@@ -19,6 +19,8 @@ The **service** option can be used to generate a Service specification for the c
 if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A
 random port is assigned by Podman in the specification.
 
+Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
+
 # OPTIONS:
 
 **s** **--service**
@@ -145,7 +147,7 @@ status:
 ```
 
 ## SEE ALSO
-podman(1), podman-container, podman-pod, podman-play
+podman(1), podman-container(1), podman-pod(1), podman-play-kube(1)
 
 # HISTORY
 Decemeber 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)
