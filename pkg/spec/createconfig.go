@@ -240,7 +240,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 	}
 
 	for vol := range c.BuiltinImgVolumes {
-		if libpod.MountExists(specMounts, vol) {
+		if libpod.MountExists(specMounts, vol) || libpod.MountExists(m, vol) {
 			continue
 		}
 
