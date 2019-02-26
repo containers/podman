@@ -4,7 +4,7 @@
 podman\-images - List images in local storage
 
 ## SYNOPSIS
-**podman** **images** [*options*]
+**podman** **images** [*options*] [REPOSITORY[:TAG]]
 
 ## DESCRIPTION
 Displays locally stored images, their names, and their IDs.

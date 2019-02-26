@@ -28,6 +28,10 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 				continue
 			}
 			_, dName, dSuspiciousTagValueForSearch := d.suspiciousRefNameTagValuesForSearch()
+			if (strings.HasSuffix(dName, searchName)) && searchSuspiciousTagValueForSearch == "" {
+				results = append(results, image.image)
+				break
+			}
 			if dName == searchName && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
 				results = append(results, image.image)
 				continue
