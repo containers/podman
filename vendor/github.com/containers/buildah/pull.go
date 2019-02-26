@@ -194,12 +194,12 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 				errs = multierror.Append(errs, err)
 				continue
 			}
-			img, err := is.Transport.GetStoreImage(options.Store, ref)
+			taggedImg, err := is.Transport.GetStoreImage(options.Store, ref)
 			if err != nil {
 				errs = multierror.Append(errs, err)
 				continue
 			}
-			fmt.Printf("%s\n", img.ID)
+			fmt.Printf("%s\n", taggedImg.ID)
 		}
 	} else {
 		fmt.Printf("%s\n", img.ID)

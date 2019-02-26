@@ -303,7 +303,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	}
 
 	conflict := 100
-	for true {
+	for {
 		coptions := storage.ContainerOptions{
 			LabelOpts:        options.CommonBuildOpts.LabelOpts,
 			IDMappingOptions: newContainerIDMappingOptions(options.IDMappingOptions),
