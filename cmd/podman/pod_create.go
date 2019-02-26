@@ -24,6 +24,7 @@ var (
 
 	_podCreateCommand = &cobra.Command{
 		Use:   "create",
+		Args:  noSubArgs,
 		Short: "Create a new empty pod",
 		Long:  podCreateDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -59,9 +60,6 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		podIdFile *os.File
 	)
 
-	if len(c.InputArgs) > 0 {
-		return errors.New("podman pod create does not accept any arguments")
-	}
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")

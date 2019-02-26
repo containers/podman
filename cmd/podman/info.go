@@ -19,6 +19,7 @@ var (
 	infoDescription = "Display podman system information"
 	_infoCommand    = &cobra.Command{
 		Use:   "info",
+		Args:  noSubArgs,
 		Long:  infoDescription,
 		Short: `Display information pertaining to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
 		RunE: func(cmd *cobra.Command, args []string) error {

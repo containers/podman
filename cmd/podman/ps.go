@@ -159,6 +159,7 @@ var (
 	psDescription = "Prints out information about the containers"
 	_psCommand    = &cobra.Command{
 		Use:   "ps",
+		Args:  noSubArgs,
 		Short: "List containers",
 		Long:  psDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -214,10 +215,6 @@ func psCmd(c *cliconfig.PsValues) error {
 	}
 
 	defer runtime.Shutdown(false)
-
-	if len(c.InputArgs) > 0 {
-		return errors.Errorf("too many arguments, ps takes no arguments")
-	}
 
 	opts := shared.PsOptions{
 		All:       c.All,

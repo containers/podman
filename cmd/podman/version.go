@@ -17,6 +17,7 @@ var (
 	versionCommand  cliconfig.VersionValues
 	_versionCommand = &cobra.Command{
 		Use:   "version",
+		Args:  noSubArgs,
 		Short: "Display the Podman Version Information",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			versionCommand.InputArgs = args

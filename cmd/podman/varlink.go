@@ -49,6 +49,9 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	if len(args) < 1 {
 		return errors.Errorf("you must provide a varlink URI")
 	}
+	if len(args) > 1 {
+		return errors.Errorf("too many arguments. Requires exactly 1")
+	}
 	timeout := time.Duration(c.Timeout) * time.Millisecond
 
 	// Create a single runtime for varlink
