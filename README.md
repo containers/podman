@@ -31,10 +31,15 @@ This project tests all builds against each supported version of Fedora, the late
 
 ## Out of scope
 
-* Signing and pushing images to various image storages.
-  See [Skopeo](https://github.com/containers/skopeo/).
-* Container Runtimes daemons for working with the Kubernetes CRI interface.
-  See [CRI-O](https://github.com/kubernetes-sigs/cri-o).
+* Specializing in signing and pushing images to various storage backends.
+  See [Skopeo](https://github.com/containers/skopeo/) for those tasks.
+* Container runtimes daemons for working with the Kubernetes CRI interface.
+  [CRI-O](https://github.com/kubernetes-sigs/cri-o) specializes in that.
+* Supporting `docker-compose`.  We believe that Kubernetes is the defacto
+  standard for container orchestration.  Hence, Podman allows the creation of
+  Pods from a Kubernetes YAML file. See
+  [podman-play-kube](https://github.com/containers/libpod/blob/master/docs/podman-play-kube.1.md)
+  for more details.
 
 ## OCI Projects Plans
 
