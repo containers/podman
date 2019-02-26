@@ -13,7 +13,7 @@ libpod to manage containers.
   Default transport method for pulling and pushing images
 
 **runtime**=""
-  Default OCI runtime to use if nothing is specified
+  Default OCI runtime to use if nothing is specified in **runtimes**
 
 **runtimes**
   For each OCI runtime, specify a list of paths to look for.  The first one found is used.
@@ -86,6 +86,10 @@ libpod to manage containers.
   Number of locks available for containers and pods. Each created container or pod consumes one lock.
   The default number available is 2048.
   If this is changed, a lock renumbering must be performed, using the `podman system renumber` command.
+
+**volume_path**=""
+  Directory where named volumes will be created in using the default volume driver.
+  By default this will be configured relative to where containers/storage stores containers.
 
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path

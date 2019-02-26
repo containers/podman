@@ -123,7 +123,10 @@ type RuntimeConfig struct {
 	// Not included in on-disk config, use the dedicated containers/storage
 	// configuration file instead
 	StorageConfig storage.StoreOptions `toml:"-"`
-	VolumePath    string               `toml:"volume_path"`
+	// VolumePath is the default location that named volumes will be created
+	// under. This convention is followed by the default volume driver, but
+	// may not be by other drivers.
+	VolumePath string `toml:"volume_path"`
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images
 	ImageDefaultTransport string `toml:"image_default_transport"`
@@ -232,12 +235,14 @@ type runtimeConfiguredFrom struct {
 	storageRunRootSet     bool
 	libpodStaticDirSet    bool
 	libpodTmpDirSet       bool
+	volPathSet            bool
 }
 
 var (
 	defaultRuntimeConfig = RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
+		VolumePath:            filepath.Join(storage.DefaultStoreOptions.GraphRoot, "volumes"),
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -399,6 +404,9 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 		}
 		if tmpConfig.TmpDir != "" {
 			runtime.configuredFrom.libpodTmpDirSet = true
+		}
+		if tmpConfig.VolumePath != "" {
+			runtime.configuredFrom.volPathSet = true
 		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
@@ -624,22 +632,44 @@ func makeRuntime(runtime *Runtime) (err error) {
 	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
 		if runtime.config.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
 			runtime.config.StorageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %s overwritten by graph driver %s from database - delete libpod local files to resolve",
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
 				runtime.config.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
 		}
 		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
 	}
 	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
+		if runtime.config.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
+			runtime.config.StorageConfig.GraphRoot != "" {
+			logrus.Debugf("Overriding graph root %q with %q from database",
+				runtime.config.StorageConfig.GraphRoot, dbConfig.StorageRoot)
+		}
 		runtime.config.StorageConfig.GraphRoot = dbConfig.StorageRoot
 	}
 	if !runtime.configuredFrom.storageRunRootSet && dbConfig.StorageTmp != "" {
+		if runtime.config.StorageConfig.RunRoot != dbConfig.StorageTmp &&
+			runtime.config.StorageConfig.RunRoot != "" {
+			logrus.Debugf("Overriding run root %q with %q from database",
+				runtime.config.StorageConfig.RunRoot, dbConfig.StorageTmp)
+		}
 		runtime.config.StorageConfig.RunRoot = dbConfig.StorageTmp
 	}
 	if !runtime.configuredFrom.libpodStaticDirSet && dbConfig.LibpodRoot != "" {
+		if runtime.config.StaticDir != dbConfig.LibpodRoot && runtime.config.StaticDir != "" {
+			logrus.Debugf("Overriding static dir %q with %q from database", runtime.config.StaticDir, dbConfig.LibpodRoot)
+		}
 		runtime.config.StaticDir = dbConfig.LibpodRoot
 	}
 	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
+		if runtime.config.TmpDir != dbConfig.LibpodTmp && runtime.config.TmpDir != "" {
+			logrus.Debugf("Overriding tmp dir %q with %q from database", runtime.config.TmpDir, dbConfig.LibpodTmp)
+		}
 		runtime.config.TmpDir = dbConfig.LibpodTmp
+	}
+	if !runtime.configuredFrom.volPathSet && dbConfig.VolumePath != "" {
+		if runtime.config.VolumePath != dbConfig.VolumePath && runtime.config.VolumePath != "" {
+			logrus.Debugf("Overriding volume path %q with %q from database", runtime.config.VolumePath, dbConfig.VolumePath)
+		}
+		runtime.config.VolumePath = dbConfig.VolumePath
 	}
 
 	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
@@ -647,6 +677,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 	logrus.Debugf("Using run root %s", runtime.config.StorageConfig.RunRoot)
 	logrus.Debugf("Using static dir %s", runtime.config.StaticDir)
 	logrus.Debugf("Using tmp dir %s", runtime.config.TmpDir)
+	logrus.Debugf("Using volume path %s", runtime.config.VolumePath)
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration
