@@ -1,5 +1,5 @@
 ![PODMAN logo](logo/podman-logo-source.svg)
-# Contributing to Libpod
+# Contributing to libpod
 
 We'd love to have you join the community! Below summarizes the processes
 that we follow.
@@ -7,6 +7,7 @@ that we follow.
 ## Topics
 
 * [Reporting Issues](#reporting-issues)
+* [Contributing to libpod](#contributing-to-libpod)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -25,6 +26,87 @@ to remove the extra stuff that doesn't really relate to the issue itself.
 The easier it is for us to reproduce it, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
+
+## Contributing to libpod
+
+This section describes how to start a contribution to libpod.
+
+### Prepare your environment
+
+Read the [install documentation to see how to install dependencies](install.md) .
+
+The install documentation will illustrate the following steps:
+- install libs and tools
+- check installed versions
+- configure network
+- how to install libpod from sources
+
+### Fork and clone libpod
+
+First you need to fork this project on GitHub.
+
+Be sure to have [defined your `$GOPATH` environment variable](https://github.com/golang/go/wiki/GOPATH).
+
+Create a path that correspond to your clone `mkdir -p $GOPATH/github.com/<you>`.
+
+Clone your fork locally:
+```shell
+$ git clone git@github.com:<you>/libpod github.com/<you> $GOPATH/github.com/<you>/libpod
+$ cd $GOPATH/github.com/<you>/libpod
+```
+
+You can also use `go get` to clone your fork:
+```shell
+$ go get github.com:<you>/libpod
+$ cd $GOPATH/github.com/<you>/libpod
+```
+
+### Deal with make
+
+Libpod use a Makefile to realize common action like building etc...
+
+You can list available actions by using:
+```shell
+$ make help
+Usage: make <target>
+...output...
+```
+
+### Install tools
+
+Makefile allow you to install needed tools:
+```shell
+$ make install.tools
+```
+
+### Building binaries and test your changes
+
+To test your changes do `make binaries` to generate your binaries.
+
+Your binaries are created inside the `bin/` directory and you can test your changes:
+```shell
+$ bin/podman -h
+bin/podman -h
+NAME:
+   podman - manage pods and images
+
+USAGE:
+   podman [global options] command [command options] [arguments...]
+
+VERSION:
+   1.0.1-dev
+
+COMMANDS:
+     attach           Attach to a running container
+     build            Build an image using instructions from Dockerfiles
+     commit           Create new image based on the changed container
+     container        Manage Containers
+     cp               Copy files/folders between a container and the local filesystem
+```
+
+Well, you can now create your own branch, apply changes on it, and then submitting your pull request.
+
+For further reading about branching [you can read this document](https://herve.beraud.io/containers/linux/podman/isolate/environment/2019/02/06/how-to-hack-on-podman.html).
 
 ## Submitting Pull Requests
 
