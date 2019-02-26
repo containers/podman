@@ -5,6 +5,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
 
@@ -20,11 +21,8 @@ func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
 
 func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
-
-	storageOpts, _, err := util.GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
+	storageOpts := storage.StoreOptions{}
+	storageSet := false
 
 	uidmapFlag := c.Flags().Lookup("uidmap")
 	gidmapFlag := c.Flags().Lookup("gidmap")
@@ -43,25 +41,33 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, err
 		storageOpts.UIDMap = mappings.UIDMap
 		storageOpts.GIDMap = mappings.GIDMap
 
+		storageSet = true
 	}
 
 	if c.Flags().Changed("root") {
+		storageSet = true
 		storageOpts.GraphRoot = c.GlobalFlags.Root
 	}
 	if c.Flags().Changed("runroot") {
+		storageSet = true
 		storageOpts.RunRoot = c.GlobalFlags.Runroot
 	}
 	if len(storageOpts.RunRoot) > 50 {
 		return nil, errors.New("the specified runroot is longer than 50 characters")
 	}
 	if c.Flags().Changed("storage-driver") {
+		storageSet = true
 		storageOpts.GraphDriverName = c.GlobalFlags.StorageDriver
 	}
 	if len(c.GlobalFlags.StorageOpts) > 0 {
+		storageSet = true
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
 	}
 
-	options = append(options, libpod.WithStorageConfig(storageOpts))
+	// Only set this if the user changes storage config on the command line
+	if storageSet {
+		options = append(options, libpod.WithStorageConfig(storageOpts))
+	}
 
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?

@@ -331,16 +331,13 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
 	runtime.config.TmpDir = tmpDir
 
-	if rootless.IsRootless() {
-		// If we're rootless, override the default storage config
-		storageConf, volumePath, err := util.GetDefaultStoreOptions()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving rootless storage config")
-		}
-		runtime.config.StorageConfig = storageConf
-		runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
-		runtime.config.VolumePath = volumePath
+	storageConf, volumePath, err := util.GetDefaultStoreOptions()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving rootless storage config")
 	}
+	runtime.config.StorageConfig = storageConf
+	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
+	runtime.config.VolumePath = volumePath
 
 	configPath := ConfigPath
 	foundConfig := true
