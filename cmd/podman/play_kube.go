@@ -90,8 +90,17 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		return errors.Wrapf(err, "unable to read %s as YAML", args[0])
 	}
 
+	// check for name collision between pod and container
+	podName := podYAML.ObjectMeta.Name
+	for _, n := range podYAML.Spec.Containers {
+		if n.Name == podName {
+			fmt.Printf("a container exists with the same name (%s) as the pod in your YAML file; changing pod name to %s_pod\n", podName, podName)
+			podName = fmt.Sprintf("%s_pod", podName)
+		}
+	}
+
 	podOptions = append(podOptions, libpod.WithInfraContainer())
-	podOptions = append(podOptions, libpod.WithPodName(podYAML.ObjectMeta.Name))
+	podOptions = append(podOptions, libpod.WithPodName(podName))
 	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
 
 	nsOptions, err := shared.GetNamespaceOptions(strings.Split(DefaultKernelNamespaces, ","))
