@@ -526,6 +526,16 @@ func makeRuntime(runtime *Runtime) (err error) {
 	if runtime.config.OCIRuntime != "" && runtime.config.OCIRuntime[0] == '/' {
 		foundRuntime = true
 		runtime.ociRuntimePath = OCIRuntimePath{Name: filepath.Base(runtime.config.OCIRuntime), Paths: []string{runtime.config.OCIRuntime}}
+		stat, err := os.Stat(runtime.config.OCIRuntime)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "the specified OCI runtime %s does not exist", runtime.config.OCIRuntime)
+			}
+			return errors.Wrapf(err, "cannot stat the OCI runtime path %s", runtime.config.OCIRuntime)
+		}
+		if !stat.Mode().IsRegular() {
+			return fmt.Errorf("the specified OCI runtime %s is not a valid file", runtime.config.OCIRuntime)
+		}
 	} else {
 		// If not, look it up in the configuration.
 		paths := runtime.config.OCIRuntimes[runtime.config.OCIRuntime]
