@@ -17,7 +17,7 @@ var (
 		" and saves it on the local machine."
 
 	_exportCommand = &cobra.Command{
-		Use:   "export",
+		Use:   "export [flags] CONTAINER",
 		Short: "Export container's filesystem contents as a tar archive",
 		Long:  exportDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

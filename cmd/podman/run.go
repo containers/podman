@@ -23,7 +23,7 @@ var (
 
 	runDescription = "Runs a command in a new container from the given image"
 	_runCommand    = &cobra.Command{
-		Use:   "run",
+		Use:   "run [flags] IMAGE [COMMAND [ARG...]]",
 		Short: "Run a command in a new container",
 		Long:  runDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

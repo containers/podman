@@ -21,7 +21,7 @@ var (
    Unpauses one or more running containers.  The container name or ID can be used.
 `
 	_unpauseCommand = &cobra.Command{
-		Use:   "unpause",
+		Use:   "unpause [flags] CONTAINER [CONTAINER...]",
 		Short: "Unpause the processes in one or more containers",
 		Long:  unpauseDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

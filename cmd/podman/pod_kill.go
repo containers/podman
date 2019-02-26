@@ -16,7 +16,7 @@ var (
 	podKillCommand     cliconfig.PodKillValues
 	podKillDescription = "The main process of each container inside the specified pod will be sent SIGKILL, or any signal specified with option --signal."
 	_podKillCommand    = &cobra.Command{
-		Use:   "kill",
+		Use:   "kill [flags] POD [POD...]",
 		Short: "Send the specified signal or SIGKILL to containers in pod",
 		Long:  podKillDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

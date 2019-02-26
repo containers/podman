@@ -17,7 +17,7 @@ var (
 
 	loadDescription = "Loads the image from docker-archive stored on the local machine."
 	_loadCommand    = &cobra.Command{
-		Use:   "load",
+		Use:   "load [flags] [PATH]",
 		Short: "Load an image from docker archive",
 		Long:  loadDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -20,7 +20,7 @@ var (
 	List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	_portCommand = &cobra.Command{
-		Use:   "port",
+		Use:   "port [flags] CONTAINER",
 		Short: "List port mappings or a specific mapping for the container",
 		Long:  portDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

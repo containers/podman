@@ -18,7 +18,7 @@ var (
 	logsDescription = "The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.  This does not guarantee execution" +
 		"order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs"
 	_logsCommand = &cobra.Command{
-		Use:   "logs",
+		Use:   "logs [flags] CONTAINER",
 		Short: "Fetch the logs of a container",
 		Long:  logsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -25,7 +25,7 @@ var (
 	 and make changes to the instructions with the --change flag.`
 
 	_commitCommand = &cobra.Command{
-		Use:   "commit",
+		Use:   "commit [flags] CONTAINER IMAGE",
 		Short: "Create new image based on the changed container",
 		Long:  commitDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

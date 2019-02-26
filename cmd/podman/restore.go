@@ -21,7 +21,7 @@ var (
    Restores a container from a checkpoint. The container name or ID can be used.
 `
 	_restoreCommand = &cobra.Command{
-		Use:   "restore",
+		Use:   "restore [flags] CONTAINER [CONTAINER...]",
 		Short: "Restores one or more containers from a checkpoint",
 		Long:  restoreDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -29,7 +29,7 @@ An image can be pulled using its tag or digest. If a tag is not
 specified, the image with the 'latest' tag (if it exists) is pulled
 `
 	_pullCommand = &cobra.Command{
-		Use:   "pull",
+		Use:   "pull [flags] IMAGE-PATH",
 		Short: "Pull an image from a registry",
 		Long:  pullDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

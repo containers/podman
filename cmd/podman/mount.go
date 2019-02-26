@@ -26,7 +26,7 @@ var (
 `
 
 	_mountCommand = &cobra.Command{
-		Use:   "mount",
+		Use:   "mount [flags] CONTAINER",
 		Short: "Mount a working container's root filesystem",
 		Long:  mountDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

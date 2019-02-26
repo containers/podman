@@ -22,7 +22,7 @@ var (
 	Search registries for a given image. Can search all the default registries or a specific registry.
 	Can limit the number of results, and filter the output based on certain conditions.`
 	_searchCommand = &cobra.Command{
-		Use:   "search",
+		Use:   "search [flags] TERM",
 		Short: "Search registry for image",
 		Long:  searchDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

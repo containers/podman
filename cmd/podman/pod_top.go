@@ -25,7 +25,7 @@ the latest pod.
 `, getDescriptorString())
 
 	_podTopCommand = &cobra.Command{
-		Use:   "top",
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS]",
 		Short: "Display the running processes of containers in a pod",
 		Long:  podTopDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

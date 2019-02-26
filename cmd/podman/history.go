@@ -40,7 +40,7 @@ var (
 	historyDescription = "Displays the history of an image. The information can be printed out in an easy to read, " +
 		"or user specified format, and can be truncated."
 	_historyCommand = &cobra.Command{
-		Use:   "history",
+		Use:   "history [flags] IMAGE",
 		Short: "Show history of a specified image",
 		Long:  historyDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

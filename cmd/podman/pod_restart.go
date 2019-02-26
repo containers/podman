@@ -14,7 +14,7 @@ var (
 	podRestartCommand     cliconfig.PodRestartValues
 	podRestartDescription = `Restarts one or more pods. The pod ID or name can be used.`
 	_podRestartCommand    = &cobra.Command{
-		Use:   "restart",
+		Use:   "restart [flags] POD [POD...]",
 		Short: "Restart one or more pods",
 		Long:  podRestartDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

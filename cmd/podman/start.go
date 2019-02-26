@@ -21,7 +21,7 @@ var (
    Starts one or more containers.  The container name or ID can be used.
 `
 	_startCommand = &cobra.Command{
-		Use:   "start",
+		Use:   "start [flags] CONTAINER [CONTAINER...]",
 		Short: "Start one or more containers",
 		Long:  startDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

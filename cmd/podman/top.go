@@ -34,7 +34,7 @@ the latest container.
 `, getDescriptorString())
 
 	_topCommand = &cobra.Command{
-		Use:   "top",
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTIOS]",
 		Short: "Display the running processes of a container",
 		Long:  topDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

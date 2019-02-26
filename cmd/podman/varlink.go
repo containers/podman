@@ -24,7 +24,7 @@ var (
 	run varlink interface
 `
 	_varlinkCommand = &cobra.Command{
-		Use:   "varlink",
+		Use:   "varlink [flags] URI",
 		Short: "Run varlink interface",
 		Long:  varlinkDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

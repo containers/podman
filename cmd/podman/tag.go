@@ -12,7 +12,7 @@ var (
 
 	tagDescription = "Adds one or more additional names to locally-stored image"
 	_tagCommand    = &cobra.Command{
-		Use:   "tag",
+		Use:   "tag [flags] IMAGE TAG [TAG...]",
 		Short: "Add an additional name to a local image",
 		Long:  tagDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

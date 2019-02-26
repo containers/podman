@@ -26,7 +26,7 @@ var (
    See podman-push(1) section "DESTINATION" for the expected format`)
 
 	_pushCommand = &cobra.Command{
-		Use:   "push",
+		Use:   "push [flags] IMAGE REGISTRY",
 		Short: "Push an image to a specified destination",
 		Long:  pushDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

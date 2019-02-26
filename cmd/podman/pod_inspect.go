@@ -14,7 +14,7 @@ var (
 	podInspectCommand     cliconfig.PodInspectValues
 	podInspectDescription = "Display the configuration for a pod by name or id"
 	_podInspectCommand    = &cobra.Command{
-		Use:   "inspect",
+		Use:   "inspect [flags] POD",
 		Short: "Displays a pod configuration",
 		Long:  podInspectDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

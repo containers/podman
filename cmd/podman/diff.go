@@ -38,7 +38,7 @@ var (
 	container or image will be compared to its parent layer`)
 
 	_diffCommand = &cobra.Command{
-		Use:   "diff",
+		Use:   "diff [flags] CONTAINER | IMAGE",
 		Short: "Inspect changes on container's file systems",
 		Long:  diffDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

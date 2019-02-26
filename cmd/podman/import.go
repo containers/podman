@@ -17,7 +17,7 @@ var (
 	 Optionally tag the image. You can specify the instructions using the --change option.
 	`
 	_importCommand = &cobra.Command{
-		Use:   "import",
+		Use:   "import [flags] PATH [REFERENCE]",
 		Short: "Import a tarball to create a filesystem image",
 		Long:  importDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

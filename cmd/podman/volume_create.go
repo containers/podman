@@ -18,7 +18,7 @@ Creates a new volume. If using the default driver, "local", the volume will
 be created at.`
 
 	_volumeCreateCommand = &cobra.Command{
-		Use:   "create",
+		Use:   "create [flags] [NAME]",
 		Short: "Create a new volume",
 		Long:  volumeCreateDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

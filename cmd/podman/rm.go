@@ -21,7 +21,7 @@ The container name or ID can be used. This does not remove images.
 Running containers will not be removed without the -f option.
 `)
 	_rmCommand = &cobra.Command{
-		Use:   "rm",
+		Use:   "rm [flags] CONTAINER [CONTAINER...]",
 		Short: "Remove one or more containers",
 		Long:  rmDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -33,7 +33,7 @@ var (
 
 	statsDescription = "display a live stream of one or more containers' resource usage statistics"
 	_statsCommand    = &cobra.Command{
-		Use:   "stats",
+		Use:   "stats [flags] CONTAINER [CONTAINER...]",
 		Short: "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
 		Long:  statsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

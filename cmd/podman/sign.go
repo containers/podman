@@ -24,7 +24,7 @@ var (
 	signCommand     cliconfig.SignValues
 	signDescription = "Create a signature file that can be used later to verify the image"
 	_signCommand    = &cobra.Command{
-		Use:   "sign",
+		Use:   "sign [flags] IMAGE [IMAGE...]",
 		Short: "Sign an image",
 		Long:  signDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
