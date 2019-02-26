@@ -327,3 +327,75 @@ func (p *Pod) SharesCgroup() bool {
 func (p *Pod) CgroupParent() string {
 	return p.config.CgroupParent
 }
+
+// PausePods pauses a pod using varlink and the remote client
+func (r *LocalRuntime) PausePods(c *cliconfig.PodPauseValues) ([]string, map[string]error, []error) {
+	var (
+		pauseIDs    []string
+		pauseErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := iopodman.GetPodsByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	if err != nil {
+		pauseErrors = append(pauseErrors, err)
+		return nil, containerErrors, pauseErrors
+	}
+	for _, pod := range pods {
+		reply, err := iopodman.PausePod().Call(r.Conn, pod)
+		if err != nil {
+			pauseErrors = append(pauseErrors, err)
+			continue
+		}
+		pauseIDs = append(pauseIDs, reply)
+	}
+	return pauseIDs, nil, pauseErrors
+}
+
+// UnpausePods unpauses a pod using varlink and the remote client
+func (r *LocalRuntime) UnpausePods(c *cliconfig.PodUnpauseValues) ([]string, map[string]error, []error) {
+	var (
+		unpauseIDs    []string
+		unpauseErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := iopodman.GetPodsByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	if err != nil {
+		unpauseErrors = append(unpauseErrors, err)
+		return nil, containerErrors, unpauseErrors
+	}
+	for _, pod := range pods {
+		reply, err := iopodman.UnpausePod().Call(r.Conn, pod)
+		if err != nil {
+			unpauseErrors = append(unpauseErrors, err)
+			continue
+		}
+		unpauseIDs = append(unpauseIDs, reply)
+	}
+	return unpauseIDs, nil, unpauseErrors
+}
+
+// RestartPods restarts pods using varlink and the remote client
+func (r *LocalRuntime) RestartPods(ctx context.Context, c *cliconfig.PodRestartValues) ([]string, map[string]error, []error) {
+	var (
+		restartIDs    []string
+		restartErrors []error
+	)
+	containerErrors := make(map[string]error)
+
+	pods, err := iopodman.GetPodsByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	if err != nil {
+		restartErrors = append(restartErrors, err)
+		return nil, containerErrors, restartErrors
+	}
+	for _, pod := range pods {
+		reply, err := iopodman.RestartPod().Call(r.Conn, pod)
+		if err != nil {
+			restartErrors = append(restartErrors, err)
+			continue
+		}
+		restartIDs = append(restartIDs, reply)
+	}
+	return restartIDs, nil, restartErrors
+}

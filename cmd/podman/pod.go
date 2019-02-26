@@ -24,10 +24,13 @@ var podSubCommands = []*cobra.Command{
 	_podExistsCommand,
 	_podInspectCommand,
 	_podKillCommand,
+	_podPauseCommand,
 	_podPsCommand,
+	_podRestartCommand,
 	_podRmCommand,
 	_podStartCommand,
 	_podStopCommand,
+	_podUnpauseCommand,
 }
 
 func init() {

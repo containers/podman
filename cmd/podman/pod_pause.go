@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -40,37 +40,33 @@ func init() {
 }
 
 func podPauseCmd(c *cliconfig.PodPauseValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	var lastError error
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(&c.PodmanCommand, runtime)
+	pauseIDs, conErrors, pauseErrors := runtime.PausePods(c)
 
-	for _, pod := range pods {
-		ctr_errs, err := pod.Pause()
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to pause container %q on pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
+	for _, p := range pauseIDs {
+		fmt.Println(p)
+	}
+	if conErrors != nil && len(conErrors) > 0 {
+		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)
 			}
-			lastError = errors.Wrapf(err, "unable to pause pod %q", pod.ID())
-			continue
+			lastError = errors.Wrapf(err, "unable to pause container %s", ctr)
 		}
-		fmt.Println(pod.ID())
 	}
-
+	if len(pauseErrors) > 0 {
+		lastError = pauseErrors[len(pauseErrors)-1]
+		// Remove the last error from the error slice
+		pauseErrors = pauseErrors[:len(pauseErrors)-1]
+	}
+	for _, err := range pauseErrors {
+		logrus.Errorf("%q", err)
+	}
 	return lastError
 }
