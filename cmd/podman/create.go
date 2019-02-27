@@ -67,7 +67,7 @@ func init() {
 
 	getCreateFlags(&createCommand.PodmanCommand)
 	flags := createCommand.Flags()
-	flags.SetInterspersed(true)
+	flags.SetInterspersed(false)
 
 }
 
