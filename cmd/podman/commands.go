@@ -18,7 +18,7 @@ func getMainCommands() []*cobra.Command {
 		_execCommand,
 		_generateCommand,
 		_playCommand,
-		_psCommand,
+		&_psCommand,
 		_loginCommand,
 		_logoutCommand,
 		_logsCommand,
@@ -54,6 +54,10 @@ func getImageSubCommands() []*cobra.Command {
 
 // Commands that the local client implements
 func getContainerSubCommands() []*cobra.Command {
+
+	var _listSubCommand = _psCommand
+	_listSubCommand.Use = "list"
+
 	return []*cobra.Command{
 		_attachCommand,
 		_checkpointCommand,
@@ -64,8 +68,8 @@ func getContainerSubCommands() []*cobra.Command {
 		_execCommand,
 		_exportCommand,
 		_killCommand,
+		&_listSubCommand,
 		_logsCommand,
-		_psCommand,
 		_mountCommand,
 		_pauseCommand,
 		_portCommand,

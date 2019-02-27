@@ -15,6 +15,7 @@ var (
 		},
 	}
 	_imagesSubCommand = _imagesCommand
+	_rmSubCommand     = _rmiCommand
 )
 
 //imageSubCommands are implemented both in local and remote clients
@@ -28,7 +29,6 @@ var imageSubCommands = []*cobra.Command{
 	_pruneImagesCommand,
 	_pullCommand,
 	_pushCommand,
-	_rmiCommand,
 	_saveCommand,
 	_tagCommand,
 }
@@ -38,7 +38,12 @@ func init() {
 	imageCommand.AddCommand(imageSubCommands...)
 	imageCommand.AddCommand(getImageSubCommands()...)
 
-	_imagesSubCommand.Aliases = []string{"ls", "list"}
+	// Setup of "images" to appear as "list"
+	_imagesSubCommand.Use = "list"
+	_imagesSubCommand.Aliases = []string{"ls"}
 	imageCommand.AddCommand(&_imagesSubCommand)
 
+	// Setup of "rmi" to appears as "rm"
+	_rmSubCommand.Use = "rm"
+	imageCommand.AddCommand(&_rmSubCommand)
 }
