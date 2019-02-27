@@ -49,8 +49,6 @@ WORKDIR $GOSRC
 
 # Install dependencies
 RUN set -x && \
-    go get -u github.com/mailru/easyjson/... && \
-    install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/ && \
     make install.tools && \
     install -D -m 755 $GOSRC/contrib/gate/entrypoint.sh /usr/local/bin/ && \
     rm -rf "$GOSRC"
