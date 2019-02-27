@@ -30,6 +30,13 @@ var _ = Describe("Podman checkpoint", func() {
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")
 		}
+		// TODO: Remove the skip when the current CRIU SELinux problem is solved.
+		// See: https://github.com/containers/libpod/issues/2334
+		hostInfo := podmanTest.Host
+		if hostInfo.Distribution == "fedora" {
+			Skip("Checkpointing containers on Fedora currently broken.")
+		}
+
 	})
 
 	AfterEach(func() {
