@@ -73,7 +73,7 @@ func restartCmd(c *cliconfig.RestartValues) error {
 	defer runtime.Shutdown(false)
 
 	timeout := c.Timeout
-	useTimeout := c.Flag("timeout").Changed
+	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
 
 	// Handle --latest
 	if c.Latest {
