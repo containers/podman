@@ -118,6 +118,11 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh vendor'
         - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
 
+    # This task builds Podman with different buildtags to ensure the build does
+    # not break.
+    build_script:
+        - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp"'
+
 
 build_each_commit_task:
 
