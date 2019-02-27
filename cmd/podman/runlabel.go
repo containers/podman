@@ -22,7 +22,7 @@ var (
 Executes a command as described by a container image label.
 `
 	_runlabelCommand = &cobra.Command{
-		Use:   "runlabel",
+		Use:   "runlabel [flags] LABEL IMAGE [ARG...]",
 		Short: "Execute the command described by an image label",
 		Long:  runlabelDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

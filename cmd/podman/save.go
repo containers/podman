@@ -28,7 +28,7 @@ var (
 	Default is docker-archive`
 
 	_saveCommand = &cobra.Command{
-		Use:   "save",
+		Use:   "save [flags] IMAGE",
 		Short: "Save image to an archive",
 		Long:  saveDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -26,7 +26,7 @@ var (
 
 	inspectDescription = "This displays the low-level information on containers and images identified by name or ID. By default, this will render all results in a JSON array. If the container and image have the same name, this will return container JSON for unspecified type."
 	_inspectCommand    = &cobra.Command{
-		Use:   "inspect",
+		Use:   "inspect [flags] CONTAINER | IMAGE",
 		Short: "Display the configuration of a container or image",
 		Long:  inspectDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

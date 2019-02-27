@@ -16,7 +16,7 @@ Display detailed information on one or more volumes. Can change the format
 from JSON to a Go template.
 `
 	_volumeInspectCommand = &cobra.Command{
-		Use:   "inspect",
+		Use:   "inspect [flags] VOLUME [VOLUME...]",
 		Short: "Display detailed information on one or more volumes",
 		Long:  volumeInspectDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

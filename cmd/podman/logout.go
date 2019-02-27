@@ -14,7 +14,7 @@ var (
 	logoutCommand     cliconfig.LogoutValues
 	logoutDescription = "Remove the cached username and password for the registry."
 	_logoutCommand    = &cobra.Command{
-		Use:   "logout",
+		Use:   "logout [flags] REGISTRY",
 		Short: "Logout of a container registry",
 		Long:  logoutDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

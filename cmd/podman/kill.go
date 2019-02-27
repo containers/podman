@@ -20,7 +20,7 @@ var (
 
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
 	_killCommand    = &cobra.Command{
-		Use:   "kill",
+		Use:   "kill [flags] CONTAINER [CONTAINER...]",
 		Short: "Kill one or more running containers with a specific signal",
 		Long:  killDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

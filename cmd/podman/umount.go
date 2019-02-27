@@ -22,7 +22,7 @@ counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.
 `
 	_umountCommand = &cobra.Command{
-		Use:     "umount",
+		Use:     "umount [flags] CONTAINER [CONTAINER...]",
 		Aliases: []string{"unmount"},
 		Short:   "Unmounts working container's root filesystem",
 		Long:    description,

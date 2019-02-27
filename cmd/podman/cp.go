@@ -29,7 +29,7 @@ var (
 
 	cpDescription = "Copy files/folders between a container and the local filesystem"
 	_cpCommand    = &cobra.Command{
-		Use:   "cp",
+		Use:   "cp [flags] SRC_PATH DEST_PATH",
 		Short: "Copy files/folders between a container and the local filesystem",
 		Long:  cpDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

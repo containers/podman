@@ -19,7 +19,7 @@ var (
 `
 
 	_podStopCommand = &cobra.Command{
-		Use:   "stop",
+		Use:   "stop [flags] POD [POD...]",
 		Short: "Stop one or more pods",
 		Long:  podStopDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

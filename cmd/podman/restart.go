@@ -18,7 +18,7 @@ var (
 	restartCommand     cliconfig.RestartValues
 	restartDescription = `Restarts one or more running containers. The container ID or name can be used. A timeout before forcibly stopping can be set, but defaults to 10 seconds`
 	_restartCommand    = &cobra.Command{
-		Use:   "restart",
+		Use:   "restart [flags] CONTAINER [CONTAINER...]",
 		Short: "Restart one or more containers",
 		Long:  restartDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

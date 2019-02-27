@@ -17,7 +17,7 @@ var (
 	rmiCommand     cliconfig.RmiValues
 	rmiDescription = "Removes one or more locally stored images."
 	_rmiCommand    = &cobra.Command{
-		Use:   "rmi",
+		Use:   "rmi [flags] IMAGE [IMAGE...]",
 		Short: "Removes one or more images from local storage",
 		Long:  rmiDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -18,7 +18,7 @@ be used.  A pod with containers will not be removed without --force.
 If --force is specified, all containers will be stopped, then removed.
 `)
 	_podRmCommand = &cobra.Command{
-		Use:   "rm",
+		Use:   "rm [flags] POD [POD...]",
 		Short: "Remove one or more pods",
 		Long:  podRmDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

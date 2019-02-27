@@ -24,7 +24,7 @@ var (
    seconds otherwise.
 `
 	_stopCommand = &cobra.Command{
-		Use:   "stop",
+		Use:   "stop [flags] CONTAINER [CONTAINER...]",
 		Short: "Stop one or more containers",
 		Long:  stopDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

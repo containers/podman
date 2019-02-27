@@ -29,7 +29,7 @@ var (
 	playKubeCommand     cliconfig.KubePlayValues
 	playKubeDescription = "Play a Pod and its containers based on a Kubrernetes YAML"
 	_playKubeCommand    = &cobra.Command{
-		Use:   "kube",
+		Use:   "kube [flags] KUBEFILE",
 		Short: "Play a pod based on Kubernetes YAML",
 		Long:  playKubeDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

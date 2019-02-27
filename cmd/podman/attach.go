@@ -14,7 +14,7 @@ var (
 	attachCommand     cliconfig.AttachValues
 	attachDescription = "The podman attach command allows you to attach to a running container using the container's ID or name, either to view its ongoing output or to control it interactively."
 	_attachCommand    = &cobra.Command{
-		Use:   "attach",
+		Use:   "attach [flags] CONTAINER",
 		Short: "Attach to a running container",
 		Long:  attachDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

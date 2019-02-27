@@ -21,7 +21,7 @@ var (
 	Run a command in a running container
 `
 	_execCommand = &cobra.Command{
-		Use:   "exec",
+		Use:   "exec [flags] CONTAINER [COMMAND [ARG...]]",
 		Short: "Run a process in a running container",
 		Long:  execDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

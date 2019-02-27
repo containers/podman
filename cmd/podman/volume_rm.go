@@ -19,7 +19,7 @@ not being used by any containers. To remove the volumes anyways, use the
 --force flag.
 `
 	_volumeRmCommand = &cobra.Command{
-		Use:     "rm",
+		Use:     "rm [flags] VOLUME [VOLUME...]",
 		Aliases: []string{"remove"},
 		Short:   "Remove one or more volumes",
 		Long:    volumeRmDescription,

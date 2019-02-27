@@ -13,7 +13,7 @@ var (
 	podPauseCommand     cliconfig.PodPauseValues
 	podPauseDescription = `Pauses one or more pods.  The pod name or ID can be used.`
 	_podPauseCommand    = &cobra.Command{
-		Use:   "pause",
+		Use:   "pause [flags] POD [POD...]",
 		Short: "Pause one or more pods",
 		Long:  podPauseDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

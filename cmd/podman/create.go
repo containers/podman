@@ -42,7 +42,7 @@ var (
 		" any time with the podman start <container_id> command. The container" +
 		" will be created with the initial state 'created'."
 	_createCommand = &cobra.Command{
-		Use:   "create",
+		Use:   "create [flags] IMAGE [COMMAND [ARG...]]",
 		Short: "Create but do not start a container",
 		Long:  createDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

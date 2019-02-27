@@ -27,7 +27,7 @@ var (
 	namespaceValues  buildahcli.NameSpaceResults
 
 	_buildCommand = &cobra.Command{
-		Use:   "build",
+		Use:   "build [flags] CONTEXT",
 		Short: "Build an image using instructions from Dockerfiles",
 		Long:  buildDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

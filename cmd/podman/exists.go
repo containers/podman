@@ -32,7 +32,7 @@ var (
 	Check if a pod exists in local storage
 `
 	_imageExistsCommand = &cobra.Command{
-		Use:   "exists",
+		Use:   "exists IMAGE",
 		Short: "Check if an image exists in local storage",
 		Long:  imageExistsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -44,7 +44,7 @@ var (
 	}
 
 	_containerExistsCommand = &cobra.Command{
-		Use:   "exists",
+		Use:   "exists CONTAINER",
 		Short: "Check if a container exists in local storage",
 		Long:  containerExistsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -57,7 +57,7 @@ var (
 	}
 
 	_podExistsCommand = &cobra.Command{
-		Use:   "exists",
+		Use:   "exists POD",
 		Short: "Check if a pod exists in local storage",
 		Long:  podExistsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -71,10 +71,13 @@ var (
 
 func init() {
 	imageExistsCommand.Command = _imageExistsCommand
+	imageExistsCommand.DisableFlagsInUseLine = true
 	imageExistsCommand.SetUsageTemplate(UsageTemplate())
 	containerExistsCommand.Command = _containerExistsCommand
+	containerExistsCommand.DisableFlagsInUseLine = true
 	containerExistsCommand.SetUsageTemplate(UsageTemplate())
 	podExistsCommand.Command = _podExistsCommand
+	podExistsCommand.DisableFlagsInUseLine = true
 	podExistsCommand.SetUsageTemplate(UsageTemplate())
 }
 

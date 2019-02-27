@@ -21,7 +21,7 @@ var (
 
 	loginDescription = "Login to a container registry on a specified server."
 	_loginCommand    = &cobra.Command{
-		Use:   "login",
+		Use:   "login [flags] REGISTRY",
 		Short: "Login to a container registry",
 		Long:  loginDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
