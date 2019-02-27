@@ -17,7 +17,7 @@ var (
 	containerKubeCommand     cliconfig.GenerateKubeValues
 	containerKubeDescription = "Generate Kubernetes Pod YAML"
 	_containerKubeCommand    = &cobra.Command{
-		Use:   "kube CONTAINER | POD",
+		Use:   "kube [flags] CONTAINER | POD",
 		Short: "Generate Kubernetes pod YAML for a container or pod",
 		Long:  containerKubeDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

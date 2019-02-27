@@ -88,7 +88,7 @@ var (
 	imagesDescription = "lists locally stored images."
 
 	_imagesCommand = cobra.Command{
-		Use:   "images",
+		Use:   "images [flags] [IMAGE]",
 		Short: "List images in local storage",
 		Long:  imagesDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
