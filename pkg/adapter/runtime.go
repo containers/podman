@@ -333,3 +333,11 @@ func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfi
 	}
 	return r.Runtime.LoadImage(ctx, name, cli.Input, writer, cli.SignaturePolicy)
 }
+
+// IsImageNotFound checks if the error indicates that no image was found.
+func IsImageNotFound(err error) bool {
+	if errors.Cause(err) == image.ErrNoSuchImage {
+		return true
+	}
+	return false
+}

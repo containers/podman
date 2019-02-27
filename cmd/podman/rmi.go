@@ -5,8 +5,6 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/varlink"
-	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -30,17 +28,6 @@ var (
   podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 )
-
-func imageNotFound(err error) bool {
-	if errors.Cause(err) == image.ErrNoSuchImage {
-		return true
-	}
-	switch err.(type) {
-	case *iopodman.ImageNotFound:
-		return true
-	}
-	return false
-}
 
 func init() {
 	rmiCommand.Command = _rmiCommand
@@ -80,7 +67,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
 			}
-			if !imageNotFound(err) {
+			if !adapter.IsImageNotFound(err) {
 				failureCnt++
 			}
 			if lastError != nil {
@@ -135,7 +122,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 			newImage, err := runtime.NewImageFromLocal(i)
 			if err != nil {
 				if lastError != nil {
-					if !imageNotFound(lastError) {
+					if !adapter.IsImageNotFound(lastError) {
 						failureCnt++
 					}
 					fmt.Fprintln(os.Stderr, lastError)
@@ -147,7 +134,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 		}
 	}
 
-	if imageNotFound(lastError) && failureCnt == 0 {
+	if adapter.IsImageNotFound(lastError) && failureCnt == 0 {
 		exitCode = 1
 	}
 

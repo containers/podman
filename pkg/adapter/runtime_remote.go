@@ -796,3 +796,15 @@ func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfi
 	}
 	return names, nil
 }
+
+// IsImageNotFound checks if the error indicates that no image was found.
+func IsImageNotFound(err error) bool {
+	if errors.Cause(err) == image.ErrNoSuchImage {
+		return true
+	}
+	switch err.(type) {
+	case *iopodman.ImageNotFound:
+		return true
+	}
+	return false
+}
