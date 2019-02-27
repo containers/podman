@@ -32,9 +32,9 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return checkAllAndLatest(cmd, args, false)
 		},
-		Example: `podman checkpoint --keep ctrID
-  podman checkpoint --all
-  podman checkpoint --leave-running --latest`,
+		Example: `podman container checkpoint --keep ctrID
+  podman container checkpoint --all
+  podman container checkpoint --leave-running --latest`,
 	}
 )
 
