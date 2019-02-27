@@ -112,6 +112,7 @@ The following podman commands do not have a Docker equivalent:
 * [`podman container refresh`](/docs/podman-container-refresh.1.md)
 * [`podman container runlabel`](/docs/podman-container-runlabel.1.md)
 * [`podman container restore`](/docs/podman-container-restore.1.md)
+* [`podman healthcheck run`](/docs/podman-healthcheck-run.1.md)
 * [`podman image exists`](./docs/podman-image-exists.1.md)
 * [`podman image sign`](./docs/podman-image-sign.1.md)
 * [`podman image trust`](./docs/podman-image-trust.1.md)

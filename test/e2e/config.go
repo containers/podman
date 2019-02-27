@@ -6,4 +6,5 @@ var (
 	ALPINE        = "docker.io/library/alpine:latest"
 	infra         = "k8s.gcr.io/pause:3.1"
 	BB            = "docker.io/library/busybox:latest"
+	healthcheck   = "docker.io/libpod/alpine_healthcheck:latest"
 )

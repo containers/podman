@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -1466,6 +1467,17 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 			return ErrPodFinalized
 		}
 		pod.config.InfraContainer.PortBindings = bindings
+		return nil
+	}
+}
+
+// WithHealthCheck adds the healthcheck to the container config
+func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }

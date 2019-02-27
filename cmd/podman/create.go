@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -117,6 +118,10 @@ func createInit(c *cliconfig.PodmanCommand) error {
 }
 
 func createContainer(c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
+	var (
+		hasHealthCheck bool
+		healthCheck    *manifest.Schema2HealthConfig
+	)
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "createContainer")
 		defer span.Finish()
@@ -163,11 +168,31 @@ func createContainer(c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libp
 		} else {
 			imageName = newImage.ID()
 		}
+
+		// add healthcheck if it exists AND is correct mediatype
+		_, mediaType, err := newImage.Manifest(ctx)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "unable to determine mediatype of image %s", newImage.ID())
+		}
+		if mediaType == manifest.DockerV2Schema2MediaType {
+			healthCheck, err = newImage.GetHealthCheck(ctx)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "unable to get healthcheck for %s", c.InputArgs[0])
+			}
+			if healthCheck != nil {
+				hasHealthCheck = true
+			}
+		}
 	}
 	createConfig, err := parseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Because parseCreateOpts does derive anything from the image, we add health check
+	// at this point. The rest is done by WithOptions.
+	createConfig.HasHealthCheck = hasHealthCheck
+	createConfig.HealthCheck = healthCheck
 
 	ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx, nil)
 	if err != nil {
