@@ -259,15 +259,6 @@ func GetRootlessStorageOpts() (storage.StoreOptions, error) {
 	return opts, nil
 }
 
-// GetRootlessVolumePath returns where all the name volumes will be created in rootless mode
-func GetRootlessVolumePath() (string, error) {
-	dataDir, _, err := GetRootlessDirInfo()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dataDir, "containers", "storage", "volumes"), nil
-}
-
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
 }
@@ -297,25 +288,18 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the storage ops for containers and the volume path
-// for the volume API
-// It also returns the path where all named volumes will be created using the volume API
-func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
+// GetDefaultStoreOptions returns the default storage ops for containers
+func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 	var (
 		defaultRootlessRunRoot   string
 		defaultRootlessGraphRoot string
 		err                      error
 	)
 	storageOpts := storage.DefaultStoreOptions
-	volumePath := filepath.Join(storageOpts.GraphRoot, "volumes")
 	if rootless.IsRootless() {
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
-			return storageOpts, volumePath, err
-		}
-		volumePath, err = GetRootlessVolumePath()
-		if err != nil {
-			return storageOpts, volumePath, err
+			return storageOpts, err
 		}
 	}
 
@@ -332,7 +316,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 			os.MkdirAll(filepath.Dir(storageConf), 0755)
 			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil {
-				return storageOpts, volumePath, errors.Wrapf(err, "cannot open %s", storageConf)
+				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
 			}
 
 			tomlConfiguration := getTomlStorage(&storageOpts)
@@ -353,7 +337,7 @@ func GetDefaultStoreOptions() (storage.StoreOptions, string, error) {
 			}
 		}
 	}
-	return storageOpts, volumePath, nil
+	return storageOpts, nil
 }
 
 // StorageConfigFile returns the path to the storage config file used
