@@ -87,7 +87,7 @@ var (
 	imagesCommand     cliconfig.ImagesValues
 	imagesDescription = "lists locally stored images."
 
-	_imagesCommand = &cobra.Command{
+	_imagesCommand = cobra.Command{
 		Use:   "images",
 		Short: "List images in local storage",
 		Long:  imagesDescription,
@@ -103,8 +103,9 @@ var (
 )
 
 func init() {
-	imagesCommand.Command = _imagesCommand
+	imagesCommand.Command = &_imagesCommand
 	imagesCommand.SetUsageTemplate(UsageTemplate())
+
 	flags := imagesCommand.Flags()
 	flags.BoolVarP(&imagesCommand.All, "all", "a", false, "Show all images (default hides intermediate images)")
 	flags.BoolVar(&imagesCommand.Digests, "digests", false, "Show digests")

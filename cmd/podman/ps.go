@@ -158,10 +158,9 @@ var (
 	psCommand     cliconfig.PsValues
 	psDescription = "Prints out information about the containers"
 	_psCommand    = &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls", "ps"},
-		Short:   "List containers",
-		Long:    psDescription,
+		Use:   "ps",
+		Short: "List containers",
+		Long:  psDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			psCommand.InputArgs = args
 			psCommand.GlobalFlags = MainGlobalOpts

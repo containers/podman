@@ -30,7 +30,6 @@ func getMainCommands() []*cobra.Command {
 		_rmCommand,
 		_runCommand,
 		_searchCommand,
-		_signCommand,
 		_startCommand,
 		_statsCommand,
 		_stopCommand,
@@ -49,7 +48,6 @@ func getMainCommands() []*cobra.Command {
 // Commands that the local client implements
 func getImageSubCommands() []*cobra.Command {
 	return []*cobra.Command{
-		_loadCommand,
 		_signCommand,
 	}
 }

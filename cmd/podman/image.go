@@ -14,6 +14,7 @@ var (
 			Long:  imageDescription,
 		},
 	}
+	_imagesSubCommand = _imagesCommand
 )
 
 //imageSubCommands are implemented both in local and remote clients
@@ -21,7 +22,6 @@ var imageSubCommands = []*cobra.Command{
 	_buildCommand,
 	_historyCommand,
 	_imageExistsCommand,
-	_imagesCommand,
 	_importCommand,
 	_inspectCommand,
 	_loadCommand,
@@ -37,4 +37,8 @@ func init() {
 	imageCommand.SetUsageTemplate(UsageTemplate())
 	imageCommand.AddCommand(imageSubCommands...)
 	imageCommand.AddCommand(getImageSubCommands()...)
+
+	_imagesSubCommand.Aliases = []string{"ls", "list"}
+	imageCommand.AddCommand(&_imagesSubCommand)
+
 }
