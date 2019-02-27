@@ -23,7 +23,7 @@ var (
 	showTrustCommand    cliconfig.ShowTrustValues
 	setTrustDescription = "Set default trust policy or add a new trust policy for a registry"
 	_setTrustCommand    = &cobra.Command{
-		Use:     "set",
+		Use:     "set [flags] REGISTRY",
 		Short:   "Set default trust policy or a new trust policy for a registry",
 		Long:    setTrustDescription,
 		Example: "",
@@ -36,7 +36,7 @@ var (
 
 	showTrustDescription = "Display trust policy for the system"
 	_showTrustCommand    = &cobra.Command{
-		Use:   "show",
+		Use:   "show [flags] [REGISTRY]",
 		Short: "Display trust policy for the system",
 		Long:  showTrustDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
