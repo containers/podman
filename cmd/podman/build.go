@@ -53,7 +53,7 @@ func init() {
 	flags.SetInterspersed(false)
 
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
-	flag := budFlags.Lookup("pull-always")
+	flag := budFlags.Lookup("pull")
 	flag.Value.Set("true")
 	flag.DefValue = "true"
 	layerFlags := buildahcli.GetLayerFlags(&layerValues)
