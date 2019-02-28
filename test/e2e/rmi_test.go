@@ -275,4 +275,13 @@ RUN find $LOCAL
 		Expect(images.ExitCode()).To(Equal(0))
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
 	})
+
+	// Don't rerun all tests; just assume that if we get that diagnostic,
+	// we're getting rmi
+	It("podman image rm is the same as rmi", func() {
+		session := podmanTest.Podman([]string{"image", "rm"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.LineInOutputContains("image name or ID must be specified"))
+	})
 })

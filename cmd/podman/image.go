@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/spf13/cobra"
 )
@@ -39,11 +41,13 @@ func init() {
 	imageCommand.AddCommand(getImageSubCommands()...)
 
 	// Setup of "images" to appear as "list"
-	_imagesSubCommand.Use = "list"
+	_imagesSubCommand.Use = strings.Replace(_imagesSubCommand.Use, "images", "list", 1)
 	_imagesSubCommand.Aliases = []string{"ls"}
+	_imagesSubCommand.Example = strings.Replace(_imagesSubCommand.Example, "podman images", "podman image list", -1)
 	imageCommand.AddCommand(&_imagesSubCommand)
 
-	// Setup of "rmi" to appears as "rm"
-	_rmSubCommand.Use = "rm"
+	// It makes no sense to keep 'podman images rmi'; just use 'rm'
+	_rmSubCommand.Use = strings.Replace(_rmSubCommand.Use, "rmi", "rm", 1)
+	_rmSubCommand.Example = strings.Replace(_rmSubCommand.Example, "podman rmi", "podman image rm", -1)
 	imageCommand.AddCommand(&_rmSubCommand)
 }
