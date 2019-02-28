@@ -72,7 +72,7 @@ Default state dir is configured in /etc/containers/storage.conf.
 
 Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
 
-**--storage-driver, -s**=**value**
+**--storage-driver**=**value**
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
@@ -136,6 +136,8 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-diff(1)](podman-diff.1.md)        | Inspect changes on a container or image's filesystem.                          |
 | [podman-exec(1)](podman-exec.1.md)        | Execute a command in a running container.                                      |
 | [podman-export(1)](podman-export.1.md)    | Export a container's filesystem contents as a tar archive.                     |
+| [podman-generate(1)](podman-generate.1.md)| Generate structured data based for a containers and pods.                      |
+| [podman-help(1)](podman-history.1.md)     | Show help information on podman.                                               |
 | [podman-history(1)](podman-history.1.md)  | Show the history of an image.                                                  |
 | [podman-image(1)](podman-image.1.md)      | Manage Images.                                                                 |
 | [podman-images(1)](podman-images.1.md)    | List images in local storage.                                                  |
@@ -149,10 +151,13 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-logs(1)](podman-logs.1.md)        | Display the logs of a container.                                               |
 | [podman-mount(1)](podman-mount.1.md)      | Mount a working container's root filesystem.                                   |
 | [podman-pause(1)](podman-pause.1.md)      | Pause one or more containers.                                                  |
+| [podman-play(1)](podman-play.1.md)        | Play pods and containers based on a structured input file.                     |
+| [podman-pod(1)](podman-pod.1.md)          | Management tool for groups of containers, called pods.                         |
 | [podman-port(1)](podman-port.1.md)        | List port mappings for the container.                                          |
 | [podman-ps(1)](podman-ps.1.md)            | Prints out information about containers.                                       |
 | [podman-pull(1)](podman-pull.1.md)        | Pull an image from a registry.                                                 |
 | [podman-push(1)](podman-push.1.md)        | Push an image from local storage to elsewhere.                                 |
+| [podman-refresh(1)](podman-refresh.1.md)  | Refresh state of all containers to handle database changes.                    |
 | [podman-restart(1)](podman-restart.1.md)  | Restart one or more containers.                                                |
 | [podman-rm(1)](podman-rm.1.md)            | Remove one or more containers.                                                 |
 | [podman-rmi(1)](podman-rmi.1.md)          | Removes one or more locally stored images.                                     |
@@ -167,8 +172,9 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-top(1)](podman-top.1.md)          | Display the running processes of a container.                                  |
 | [podman-umount(1)](podman-umount.1.md)    | Unmount a working container's root filesystem.                                 |
 | [podman-unpause(1)](podman-unpause.1.md)  | Unpause one or more containers.                                                |
-| [podman-version(1)](podman-version.1.md)  | Display the Podman version information.                                        |
-| [podman-volume(1)](podman-volume.1.md)    | Manage Volumes.                                                                 |
+| [podman-varlink(1)](podman-varlink.1.md)  | Display the Podman version information.                                        |
+| [podman-version(1)](podman-version.1.md)  | Runs the varlink backend interface.                                            |
+| [podman-volume(1)](podman-volume.1.md)    | Manage Volumes.                                                                |
 | [podman-wait(1)](podman-wait.1.md)        | Wait on one or more containers to stop and print their exit codes.             |
 
 ## FILES
