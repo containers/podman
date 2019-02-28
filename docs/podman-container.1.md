@@ -20,7 +20,7 @@ The container command allows you to manage containers
 | create     | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |
 | diff       | [podman-diff(1)](podman-diff.1.md)                  | Inspect changes on a container or image's filesystem.                        |
 | exec       | [podman-exec(1)](podman-exec.1.md)                  | Execute a command in a running container.                                    |
-| exists     | [podman-exists(1)](podman-container-exists.1.md)    | Check if a container exists in local storage                                 |
+| exists     | [podman-container-exists(1)](podman-container-exists.1.md)  | Check if a container exists in local storage                         |
 | export     | [podman-export(1)](podman-export.1.md)              | Export a container's filesystem contents as a tar archive.                   |
 | inspect    | [podman-inspect(1)](podman-inspect.1.md)            | Display a container or image's configuration.                                |
 | kill       | [podman-kill(1)](podman-kill.1.md)                  | Kill the main process in one or more containers.                             |
@@ -30,7 +30,6 @@ The container command allows you to manage containers
 | pause      | [podman-pause(1)](podman-pause.1.md)                | Pause one or more containers.                                                |
 | port       | [podman-port(1)](podman-port.1.md)                  | List port mappings for the container.                                        |
 | prune      | [podman-container-prune(1)](podman-container-prune.1.md)| Remove all stopped containers from local storage.                        |
-| refresh    | [podman-refresh(1)](podman-container-refresh.1.md)  | Refresh the state of all containers                                          |
 | restart    | [podman-restart(1)](podman-restart.1.md)            | Restart one or more containers.                                              |
 | restore    | [podman-container-restore(1)](podman-container-restore.1.md)  | Restores one or more containers from a checkpoint.                 |
 | rm         | [podman-rm(1)](podman-rm.1.md)                      | Remove one or more containers.                                               |

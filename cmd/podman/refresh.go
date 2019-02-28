@@ -26,6 +26,7 @@ var (
 )
 
 func init() {
+	_refreshCommand.Hidden = true
 	refreshCommand.Command = _refreshCommand
 	refreshCommand.SetUsageTemplate(UsageTemplate())
 }
