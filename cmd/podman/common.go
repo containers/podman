@@ -415,7 +415,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"stop-signal", "",
 		"Signal to stop a container. Default is SIGTERM",
 	)
-	createFlags.Int(
+	createFlags.Uint(
 		"stop-timeout", libpod.CtrRemoveTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)

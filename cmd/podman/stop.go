@@ -73,21 +73,29 @@ func stopCmd(c *cliconfig.StopValues) error {
 		fmt.Println(err.Error())
 	}
 
+	if c.Flag("timeout").Changed && c.Flag("time").Changed {
+		return errors.New("the --timeout and --time flags are mutually exclusive")
+	}
+
 	var stopFuncs []shared.ParallelWorkerInput
 	for _, ctr := range containers {
 		con := ctr
 		var stopTimeout uint
-		if c.Flag("timeout").Changed {
+		if c.Flag("timeout").Changed || c.Flag("time").Changed {
 			stopTimeout = c.Timeout
 		} else {
 			stopTimeout = ctr.StopTimeout()
+			logrus.Debugf("Set timeout to container %s default (%d)", ctr.ID(), stopTimeout)
 		}
 		f := func() error {
-			if err := con.StopWithTimeout(stopTimeout); err != nil && errors.Cause(err) != libpod.ErrCtrStopped {
+			if err := con.StopWithTimeout(stopTimeout); err != nil {
+				if errors.Cause(err) == libpod.ErrCtrStopped {
+					logrus.Debugf("Container %s already stopped", con.ID())
+					return nil
+				}
 				return err
 			}
 			return nil
-
 		}
 		stopFuncs = append(stopFuncs, shared.ParallelWorkerInput{
 			ContainerID:  con.ID(),

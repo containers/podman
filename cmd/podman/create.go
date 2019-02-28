@@ -408,7 +408,7 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		return nil, err
 	}
 
-	if err = parseVolumesFrom(c.StringArray("volumes-from")); err != nil {
+	if err = parseVolumesFrom(c.StringSlice("volumes-from")); err != nil {
 		return nil, err
 	}
 
@@ -707,23 +707,23 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		Entrypoint:        entrypoint,
 		Env:               env,
 		//ExposedPorts:   ports,
-		GroupAdd:       c.StringSlice("group-add"),
-		Hostname:       c.String("hostname"),
-		HostAdd:        c.StringSlice("add-host"),
-		IDMappings:     idmappings,
-		Image:          imageName,
-		ImageID:        imageID,
-		Interactive:    c.Bool("interactive"),
-		IP6Address:     c.String("ipv6"),
-		IPAddress:      c.String("ip"),
-		Labels:         labels,
-		LinkLocalIP:    c.StringSlice("link-local-ip"),
-		LogDriver:      c.String("log-driver"),
-		LogDriverOpt:   c.StringSlice("log-opt"),
-		MacAddress:     c.String("mac-address"),
-		Name:           c.String("name"),
-		Network:        network,
-		NetworkAlias:   c.StringSlice("network-alias"),
+		GroupAdd:    c.StringSlice("group-add"),
+		Hostname:    c.String("hostname"),
+		HostAdd:     c.StringSlice("add-host"),
+		IDMappings:  idmappings,
+		Image:       imageName,
+		ImageID:     imageID,
+		Interactive: c.Bool("interactive"),
+		//IP6Address:     c.String("ipv6"), // Not implemented yet - needs CNI support for static v6
+		IPAddress: c.String("ip"),
+		Labels:    labels,
+		//LinkLocalIP:    c.StringSlice("link-local-ip"), // Not implemented yet
+		LogDriver:    c.String("log-driver"),
+		LogDriverOpt: c.StringSlice("log-opt"),
+		MacAddress:   c.String("mac-address"),
+		Name:         c.String("name"),
+		Network:      network,
+		//NetworkAlias:   c.StringSlice("network-alias"), // Not implemented - does this make sense in Podman?
 		IpcMode:        ipcMode,
 		NetMode:        netMode,
 		UtsMode:        utsMode,
