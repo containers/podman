@@ -195,7 +195,7 @@ podman rmi --all
 ########
 
 # 1.004608 MB is 1,004,608 bytes. The container overhead is 4608 bytes (or 9 512 byte pages), so this allocates 1 MB of usable storage
-PODMANBASE="-s overlay --storage-opt overlay.size=1.004608M --root /tmp/podman_test/crio"
+PODMANBASE="--storage-driver overlay --storage-opt overlay.size=1.004608M --root /tmp/podman_test/crio"
 TMPDIR=/tmp/podman_test
 mkdir  $TMPDIR
 dd if=/dev/zero of=$TMPDIR/virtfs bs=1024 count=30720
