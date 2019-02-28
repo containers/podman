@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -121,7 +122,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 			return nil, err
 		}
 	}
-
+	pod.newPodEvent(events.Create)
 	return pod, nil
 }
 
@@ -307,6 +308,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 
 	// Mark pod invalid
 	p.valid = false
-
+	p.newPodEvent(events.Remove)
 	return nil
 }

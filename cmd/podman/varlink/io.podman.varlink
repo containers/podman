@@ -435,6 +435,23 @@ type Runlabel(
     opts: [string]string
 )
 
+# Event describes a libpod struct
+type Event(
+    # TODO: make status and type a enum at some point?
+    # id is the container, volume, pod, image ID
+    id: string,
+    # image is the image name where applicable
+    image: string,
+    # name is the name of the pod, container, image
+    name: string,
+    # status describes the event that happened (i.e. create, remove, ...)
+    status: string,
+    # time the event happened
+    time: string,
+    # type describes object the event happened with (image, container...)
+    type: string
+)
+
 # GetVersion returns version and build information of the podman service
 method GetVersion() -> (
     version: string,
@@ -1123,6 +1140,9 @@ method GetPodsByContext(all: bool, latest: bool, args: []string) -> (pods: []str
 # LoadImage allows you to load an image into local storage from a tarball.
 method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) -> (reply: MoreResponse)
 
+# GetEvents returns known libpod events filtered by the options provided.
+method GetEvents(filter: []string, since: string, stream: bool, until: string) -> (events: Event)
+
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string, reason: string)
 
@@ -1152,3 +1172,6 @@ error ErrorOccurred (reason: string)
 
 # RuntimeErrors generally means a runtime could not be found or gotten.
 error RuntimeError (reason: string)
+
+# The Podman endpoint requires that you use a streaming connection.
+error WantsMoreRequired (reason: string)

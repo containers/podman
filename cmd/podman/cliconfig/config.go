@@ -53,6 +53,15 @@ type ImagesValues struct {
 	Sort      string
 }
 
+type EventValues struct {
+	PodmanCommand
+	Filter []string
+	Format string
+	Since  string
+	Stream bool
+	Until  string
+}
+
 type TagValues struct {
 	PodmanCommand
 }

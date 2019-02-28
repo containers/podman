@@ -1,0 +1,116 @@
+package integration
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	. "github.com/containers/libpod/test/utils"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("Podman events", func() {
+	var (
+		tempdir    string
+		err        error
+		podmanTest *PodmanTestIntegration
+	)
+
+	BeforeEach(func() {
+		tempdir, err = CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.RestoreAllArtifacts()
+	})
+
+	AfterEach(func() {
+		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
+		GinkgoWriter.Write([]byte(timedResult))
+
+	})
+
+	// For most, all, of these tests we do not "live" test following a log because it may make a fragile test
+	// system more complex.  Instead we run the "events" and then verify that the events are processed correctly.
+	// Perhaps a future version of this test would put events in a go func and send output back over a channel
+	// while events occur.
+	It("podman events", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(BeZero())
+	})
+
+	It("podman events with an event filter", func() {
+		SkipIfRemote()
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+	})
+
+	It("podman events with an event filter and container=cid", func() {
+		SkipIfRemote()
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		_, ec2, cid2 := podmanTest.RunLsContainer("")
+		Expect(ec2).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start", "--filter", fmt.Sprintf("container=%s", cid)})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(!strings.Contains(result.OutputToString(), cid2))
+	})
+
+	It("podman events with a type", func() {
+		SkipIfRemote()
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("podman events with a type", func() {
+		SkipIfRemote()
+		setup := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:foobar", ALPINE, "top"})
+		setup.WaitWithDefaultTimeout()
+		stop := podmanTest.Podman([]string{"pod", "stop", "foobar"})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+		Expect(setup.ExitCode()).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		fmt.Println(result.OutputToStringArray())
+		Expect(len(result.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman events --since", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--since", "1m"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(BeZero())
+	})
+
+	It("podman events --until", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		test := podmanTest.Podman([]string{"events", "--help"})
+		test.WaitWithDefaultTimeout()
+		fmt.Println(test.OutputToStringArray())
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--since", "1h"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(BeZero())
+	})
+
+})

@@ -45,6 +45,7 @@ type PodmanTestIntegration struct {
 	CgroupManager       string
 	Host                HostOS
 	Timings             []string
+	TmpDir              string
 }
 
 var LockTmpDir string
@@ -245,6 +246,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		},
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),
+		TmpDir:              tempDir,
 		CNIConfigDir:        CNIConfigDir,
 		OCIRuntime:          ociRuntime,
 		RunRoot:             filepath.Join(tempDir, "crio-run"),

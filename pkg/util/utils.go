@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
@@ -346,4 +347,26 @@ func StorageConfigFile() string {
 		return filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
 	}
 	return storage.DefaultConfigFile
+}
+
+// ParseInputTime takes the users input and to determine if it is valid and
+// returns a time format and error.  The input is compared to known time formats
+// or a duration which implies no-duration
+func ParseInputTime(inputTime string) (time.Time, error) {
+	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02"}
+	// iterate the supported time formats
+	for _, tf := range timeFormats {
+		t, err := time.Parse(tf, inputTime)
+		if err == nil {
+			return t, nil
+		}
+	}
+
+	// input might be a duration
+	duration, err := time.ParseDuration(inputTime)
+	if err != nil {
+		return time.Time{}, errors.Errorf("unable to interpret time value")
+	}
+	return time.Now().Add(-duration), nil
 }

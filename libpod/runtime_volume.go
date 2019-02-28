@@ -2,9 +2,11 @@ package libpod
 
 import (
 	"context"
+	"strings"
+
+	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 // Contains the public Runtime API for volumes
@@ -34,7 +36,6 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error
 			return nil
 		}
 	}
-
 	return r.removeVolume(ctx, v, force)
 }
 
@@ -171,6 +172,7 @@ func (r *Runtime) PruneVolumes(ctx context.Context) ([]string, []error) {
 			}
 			continue
 		}
+		vol.newVolumeEvent(events.Prune)
 		prunedIDs = append(prunedIDs, vol.Name())
 	}
 	return prunedIDs, pruneErrors

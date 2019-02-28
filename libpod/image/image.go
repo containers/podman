@@ -24,12 +24,13 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/driver"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
@@ -64,6 +65,7 @@ type Image struct {
 type Runtime struct {
 	store               storage.Store
 	SignaturePolicyPath string
+	EventsLogFilePath   string
 }
 
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
@@ -195,7 +197,7 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 		newImage.image = img
 		newImages = append(newImages, &newImage)
 	}
-
+	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
 }
 
@@ -371,6 +373,7 @@ func (i *Image) Remove(force bool) error {
 		}
 		parent = nextParent
 	}
+	defer i.newImageEvent(events.Remove)
 	return nil
 }
 
@@ -494,6 +497,7 @@ func (i *Image) TagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Tag)
 	return nil
 }
 
@@ -514,6 +518,7 @@ func (i *Image) UntagImage(tag string) error {
 		return err
 	}
 	i.reloadImage()
+	defer i.newImageEvent(events.Untag)
 	return nil
 }
 
@@ -562,6 +567,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
+	defer i.newImageEvent(events.Push)
 	return nil
 }
 
@@ -711,7 +717,6 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 			Comment:   oci.History[i].Comment,
 		})
 	}
-
 	return allHistory, nil
 }
 
@@ -927,7 +932,11 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	if err != nil {
 		return nil, err
 	}
-	return ir.NewFromLocal(reference)
+	newImage, err := ir.NewFromLocal(reference)
+	if err == nil {
+		defer newImage.newImageEvent(events.Import)
+	}
+	return newImage, err
 }
 
 // MatchRepoTag takes a string and tries to match it against an
@@ -1148,7 +1157,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
-
+	defer i.newImageEvent(events.Save)
 	return nil
 }
 
@@ -1179,4 +1188,27 @@ func (i *Image) GetHealthCheck(ctx context.Context) (*manifest.Schema2HealthConf
 		return nil, err
 	}
 	return configBlob.ContainerConfig.Healthcheck, nil
+}
+
+// newImageEvent creates a new event based on an image
+func (ir *Runtime) newImageEvent(status events.Status, name string) {
+	e := events.NewEvent(status)
+	e.Type = events.Image
+	e.Name = name
+	if err := e.Write(ir.EventsLogFilePath); err != nil {
+		logrus.Infof("unable to write event to %s", ir.EventsLogFilePath)
+	}
+}
+
+// newImageEvent creates a new event based on an image
+func (i *Image) newImageEvent(status events.Status) {
+	e := events.NewEvent(status)
+	e.ID = i.ID()
+	e.Type = events.Image
+	if len(i.Names()) > 0 {
+		e.Name = i.Names()[0]
+	}
+	if err := e.Write(i.imageruntime.EventsLogFilePath); err != nil {
+		logrus.Infof("unable to write event to %s", i.imageruntime.EventsLogFilePath)
+	}
 }

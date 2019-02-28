@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/logs"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -70,7 +71,7 @@ func logsCmd(c *cliconfig.LogsValues) error {
 	sinceTime := time.Time{}
 	if c.Flag("since").Changed {
 		// parse time, error out if something is wrong
-		since, err := parseInputTime(c.Since)
+		since, err := util.ParseInputTime(c.Since)
 		if err != nil {
 			return errors.Wrapf(err, "could not parse time: %q", c.Since)
 		}
@@ -111,26 +112,4 @@ func logsCmd(c *cliconfig.LogsValues) error {
 		}
 	}
 	return logs.ReadLogs(logPath, ctr, opts)
-}
-
-// parseInputTime takes the users input and to determine if it is valid and
-// returns a time format and error.  The input is compared to known time formats
-// or a duration which implies no-duration
-func parseInputTime(inputTime string) (time.Time, error) {
-	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
-		"2006-01-02Z07:00", "2006-01-02"}
-	// iterate the supported time formats
-	for _, tf := range timeFormats {
-		t, err := time.Parse(tf, inputTime)
-		if err == nil {
-			return t, nil
-		}
-	}
-
-	// input might be a duration
-	duration, err := time.ParseDuration(inputTime)
-	if err != nil {
-		return time.Time{}, errors.Errorf("unable to interpret time value")
-	}
-	return time.Now().Add(-duration), nil
 }

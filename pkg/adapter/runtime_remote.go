@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/containers/buildah/imagebuildah"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
@@ -757,4 +759,70 @@ func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.Healt
 func (r *LocalRuntime) JoinOrCreateRootlessPod(pod *Pod) (bool, int, error) {
 	// Nothing to do in the remote case
 	return true, 0, nil
+}
+
+// Events monitors libpod/podman events over a varlink connection
+func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
+	reply, err := iopodman.GetEvents().Send(r.Conn, uint64(varlink.More), c.Filter, c.Since, c.Stream, c.Until)
+	if err != nil {
+		return errors.Wrapf(err, "unable to obtain events")
+	}
+
+	w := bufio.NewWriter(os.Stdout)
+	tmpl, err := template.New("events").Parse(c.Format)
+	if err != nil {
+		return err
+	}
+
+	for {
+		returnedEvent, flags, err := reply()
+		if err != nil {
+			// When the error handling is back into podman, we can flip this to a better way to check
+			// for problems. For now, this works.
+			return err
+		}
+		if returnedEvent.Time == "" && returnedEvent.Status == "" && returnedEvent.Type == "" {
+			// We got a blank event return, signals end of stream in certain cases
+			break
+		}
+		eTime, err := time.Parse(time.RFC3339Nano, returnedEvent.Time)
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse time of event %s", returnedEvent.Time)
+		}
+		eType, err := events.StringToType(returnedEvent.Type)
+		if err != nil {
+			return err
+		}
+		eStatus, err := events.StringToStatus(returnedEvent.Status)
+		if err != nil {
+			return err
+		}
+		event := events.Event{
+			ID:     returnedEvent.Id,
+			Image:  returnedEvent.Image,
+			Name:   returnedEvent.Name,
+			Status: eStatus,
+			Time:   eTime,
+			Type:   eType,
+		}
+		if len(c.Format) > 0 {
+			if err := tmpl.Execute(w, event); err != nil {
+				return err
+			}
+		} else {
+			if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
+				return err
+			}
+		}
+		if _, err := w.Write([]byte("\n")); err != nil {
+			return err
+		}
+		if err := w.Flush(); err != nil {
+			return err
+		}
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	return nil
 }

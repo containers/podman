@@ -45,6 +45,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetContainersByContext(all: bool, latest: bool, args: []string) []string](#GetContainersByContext)
 
+[func GetEvents(options: EventInput) Event](#GetEvents)
+
 [func GetImage(id: string) Image](#GetImage)
 
 [func GetInfo() PodmanInfo](#GetInfo)
@@ -165,6 +167,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type CreateResourceConfig](#CreateResourceConfig)
 
+[type Event](#Event)
+
+[type EventInput](#EventInput)
+
 [type IDMap](#IDMap)
 
 [type IDMappingOptions](#IDMappingOptions)
@@ -231,7 +237,11 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [error RuntimeError](#RuntimeError)
 
+[error StreamEnded](#StreamEnded)
+
 [error VolumeNotFound](#VolumeNotFound)
+
+[error WantsMoreRequired](#WantsMoreRequired)
 
 ## Methods
 ### <a name="BuildImage"></a>func BuildImage
@@ -469,6 +479,11 @@ method GetContainersByContext(all: [bool](https://godoc.org/builtin#bool), lates
 GetContainersByContext allows you to get a list of container ids depending on all, latest, or a list of
 container names.  The definition of latest container means the latest by creation date.  In a multi-
 user environment, results might differ from what you expect.
+### <a name="GetEvents"></a>func GetEvents
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetEvents(options: [EventInput](#EventInput)) [Event](#Event)</div>
+GetEvents returns known libpod events filtered by the options provided.
 ### <a name="GetImage"></a>func GetImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1396,6 +1411,32 @@ pids_limit [int](https://godoc.org/builtin#int)
 shm_size [int](https://godoc.org/builtin#int)
 
 ulimit [[]string](#[]string)
+### <a name="Event"></a>type Event
+
+Event describes a libpod struct
+
+id [string](https://godoc.org/builtin#string)
+
+image [string](https://godoc.org/builtin#string)
+
+name [string](https://godoc.org/builtin#string)
+
+status [string](https://godoc.org/builtin#string)
+
+time [string](https://godoc.org/builtin#string)
+
+type [string](https://godoc.org/builtin#string)
+### <a name="EventInput"></a>type EventInput
+
+EventInput describes the input to obtain libpod events
+
+filter [[]string](#[]string)
+
+since [string](https://godoc.org/builtin#string)
+
+stream [bool](https://godoc.org/builtin#bool)
+
+until [string](https://godoc.org/builtin#string)
 ### <a name="IDMap"></a>type IDMap
 
 IDMap is used to describe user name spaces during container creation
@@ -1752,6 +1793,12 @@ PodNotFound means the pod could not be found by the provided name or ID in local
 ### <a name="RuntimeError"></a>type RuntimeError
 
 RuntimeErrors generally means a runtime could not be found or gotten.
+### <a name="StreamEnded"></a>type StreamEnded
+
+The Podman endpoint has closed because the stream ended.
 ### <a name="VolumeNotFound"></a>type VolumeNotFound
 
 VolumeNotFound means the volume could not be found by the name or ID in local storage.
+### <a name="WantsMoreRequired"></a>type WantsMoreRequired
+
+The Podman endpoint requires that you use a streaming connection.

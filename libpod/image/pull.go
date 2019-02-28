@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
 	multierror "github.com/hashicorp/go-multierror"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -273,6 +274,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			}
 		} else {
 			if !goal.pullAllPairs {
+				ir.newImageEvent(events.Pull, "")
 				return []string{imageInfo.image}, nil
 			}
 			images = append(images, imageInfo.image)
@@ -292,6 +294,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			return nil, errors.Errorf("unable to pull image, or you do not have pull access")
 		}
 		return nil, pullErrors
+	}
+	if len(images) > 0 {
+		defer ir.newImageEvent(events.Pull, images[0])
 	}
 	return images, nil
 }

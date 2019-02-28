@@ -3,11 +3,13 @@
 package adapter
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"text/template"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
@@ -16,7 +18,9 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -376,4 +380,53 @@ func (r *LocalRuntime) JoinOrCreateRootlessPod(pod *Pod) (bool, int, error) {
 	}
 
 	return rootless.BecomeRootInUserNSWithOpts(&opts)
+}
+
+// Events is a wrapper to libpod to obtain libpod/podman events
+func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
+	var (
+		fromStart   bool
+		eventsError error
+	)
+	options, err := shared.GenerateEventOptions(c.Filter, c.Since, c.Until)
+	if err != nil {
+		return errors.Wrapf(err, "unable to generate event options")
+	}
+	tmpl, err := template.New("events").Parse(c.Format)
+	if err != nil {
+		return err
+	}
+	if len(c.Since) > 0 || len(c.Until) > 0 {
+		fromStart = true
+	}
+	eventChannel := make(chan *events.Event)
+	go func() {
+		eventsError = r.Runtime.Events(fromStart, c.Stream, options, eventChannel)
+	}()
+
+	if eventsError != nil {
+		return eventsError
+	}
+	if err != nil {
+		return errors.Wrapf(err, "unable to tail the events log")
+	}
+	w := bufio.NewWriter(os.Stdout)
+	for event := range eventChannel {
+		if len(c.Format) > 0 {
+			if err := tmpl.Execute(w, event); err != nil {
+				return err
+			}
+		} else {
+			if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
+				return err
+			}
+		}
+		if _, err := w.Write([]byte("\n")); err != nil {
+			return err
+		}
+		if err := w.Flush(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
