@@ -18,11 +18,13 @@ var containerCommand = cliconfig.PodmanCommand{
 // Commands that are universally implemented.
 var containerCommands = []*cobra.Command{
 	_containerExistsCommand,
+	_inspectCommand,
 }
 
 func init() {
 	containerCommand.AddCommand(containerCommands...)
 	containerCommand.AddCommand(getContainerSubCommands()...)
 	containerCommand.SetUsageTemplate(UsageTemplate())
+
 	rootCmd.AddCommand(containerCommand.Command)
 }

@@ -14,7 +14,7 @@ import (
 var (
 	rmiCommand     cliconfig.RmiValues
 	rmiDescription = "Removes one or more locally stored images."
-	_rmiCommand    = &cobra.Command{
+	_rmiCommand    = cobra.Command{
 		Use:   "rmi [flags] IMAGE [IMAGE...]",
 		Short: "Removes one or more images from local storage",
 		Long:  rmiDescription,
@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	rmiCommand.Command = _rmiCommand
+	rmiCommand.Command = &_rmiCommand
 	rmiCommand.SetUsageTemplate(UsageTemplate())
 	flags := rmiCommand.Flags()
 	flags.BoolVarP(&rmiCommand.All, "all", "a", false, "Remove all images")

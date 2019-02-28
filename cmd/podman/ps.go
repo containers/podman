@@ -157,7 +157,7 @@ func (a psSortedSize) Less(i, j int) bool {
 var (
 	psCommand     cliconfig.PsValues
 	psDescription = "Prints out information about the containers"
-	_psCommand    = &cobra.Command{
+	_psCommand    = cobra.Command{
 		Use:   "ps",
 		Short: "List containers",
 		Long:  psDescription,
@@ -173,7 +173,7 @@ var (
 )
 
 func init() {
-	psCommand.Command = _psCommand
+	psCommand.Command = &_psCommand
 	psCommand.SetUsageTemplate(UsageTemplate())
 	flags := psCommand.Flags()
 	flags.BoolVarP(&psCommand.All, "all", "a", false, "Show all the containers, default is only running containers")
