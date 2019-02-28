@@ -59,7 +59,7 @@ var _ = Describe("Podman load", func() {
 		Expect(save.ExitCode()).To(Equal(0))
 
 		compress := SystemExec("gzip", []string{outfile})
-		compress.WaitWithDefaultTimeout()
+		Expect(compress.ExitCode()).To(Equal(0))
 		outfile = outfile + ".gz"
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
@@ -174,7 +174,6 @@ var _ = Describe("Podman load", func() {
 
 	It("podman load localhost registry from scratch", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
-
 		setup := podmanTest.Podman([]string{"tag", ALPINE, "hello:world"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -255,7 +254,6 @@ var _ = Describe("Podman load", func() {
 		save.WaitWithDefaultTimeout()
 		Expect(save.ExitCode()).To(Equal(0))
 		session := SystemExec("xz", []string{outfile})
-		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		rmi := podmanTest.Podman([]string{"rmi", BB})

@@ -6,10 +6,12 @@ import (
 	"os"
 
 	"fmt"
+	"path/filepath"
+	"strings"
+
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
 )
 
 var _ = Describe("Podman pull", func() {
@@ -92,58 +94,56 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull from docker-archive", func() {
-		session := podmanTest.Podman([]string{"save", "-o", "/tmp/alp.tar", "alpine"})
+		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
+		session := podmanTest.Podman([]string{"save", "-o", tarfn, "alpine"})
+		session.WaitWithDefaultTimeout()
+
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"rmi", "alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("docker-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"pull", "docker-archive:/tmp/alp.tar"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"rmi", "alpine"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/alp.tar"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman pull from oci-archive", func() {
-		session := podmanTest.Podman([]string{"save", "--format", "oci-archive", "-o", "/tmp/oci-alp.tar", "alpine"})
+		tarfn := filepath.Join(podmanTest.TempDir, "oci-alp.tar")
+		session := podmanTest.Podman([]string{"save", "--format", "oci-archive", "-o", tarfn, "alpine"})
+		session.WaitWithDefaultTimeout()
+
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"rmi", "alpine"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"pull", fmt.Sprintf("oci-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"pull", "oci-archive:/tmp/oci-alp.tar"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"rmi", "alpine"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/oci-alp.tar"})
-		clean.WaitWithDefaultTimeout()
 	})
 
 	It("podman pull from local directory", func() {
-		setup := SystemExec("mkdir", []string{"-p", "/tmp/podmantestdir"})
-		setup.WaitWithDefaultTimeout()
-		session := podmanTest.Podman([]string{"push", "alpine", "dir:/tmp/podmantestdir"})
+		dirpath := filepath.Join(podmanTest.TempDir, "alpine")
+		os.MkdirAll(dirpath, os.ModePerm)
+		imgPath := fmt.Sprintf("dir:%s", dirpath)
+
+		session := podmanTest.Podman([]string{"push", "alpine", imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"pull", "dir:/tmp/podmantestdir"})
+		session = podmanTest.Podman([]string{"pull", imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"rmi", "podmantestdir"})
+		session = podmanTest.Podman([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-
-		clean := SystemExec("rm", []string{"-fr", "/tmp/podmantestdir"})
-		clean.WaitWithDefaultTimeout()
 	})
 
 	It("podman pull check quiet", func() {

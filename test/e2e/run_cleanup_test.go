@@ -36,14 +36,16 @@ var _ = Describe("Podman run exit", func() {
 
 	It("podman run -d mount cleanup test", func() {
 		mount := SystemExec("mount", nil)
-		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
 		out1 := mount.OutputToString()
 		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
 		mount = SystemExec("mount", nil)
-		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
 		out2 := mount.OutputToString()
 		Expect(out1).To(Equal(out2))
 	})

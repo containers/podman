@@ -387,7 +387,6 @@ var _ = Describe("Podman run", func() {
 		err = ioutil.WriteFile(keyFile, []byte(mountString), 0755)
 		Expect(err).To(BeNil())
 		execSession := SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
-		execSession.WaitWithDefaultTimeout()
 		Expect(execSession.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"--default-mounts-file=" + mountsFile, "run", "--rm", ALPINE, "cat", "/run/secrets/test.txt"})

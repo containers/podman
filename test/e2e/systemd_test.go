@@ -53,31 +53,27 @@ WantedBy=multi-user.target
 
 		sys_file := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemd_unit_file), 0644)
 		Expect(sys_file).To(BeNil())
+		defer func() {
+			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
+			os.Remove("/etc/systemd/system/redis.service")
+			SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
+			Expect(stop.ExitCode()).To(Equal(0))
+		}()
 
 		create := podmanTest.Podman([]string{"create", "-d", "--name", "redis", "redis"})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(Equal(0))
 
-		enable := SystemExec("bash", []string{"-c", "systemctl daemon-reload && systemctl enable --now redis"})
-		enable.WaitWithDefaultTimeout()
+		enable := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
 		Expect(enable.ExitCode()).To(Equal(0))
 
 		start := SystemExec("bash", []string{"-c", "systemctl start redis"})
-		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Equal(0))
 
 		logs := SystemExec("bash", []string{"-c", "journalctl -n 20 -u redis"})
-		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
 
 		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
-		status.WaitWithDefaultTimeout()
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
-
-		cleanup := SystemExec("bash", []string{"-c", "systemctl stop redis && systemctl disable redis"})
-		cleanup.WaitWithDefaultTimeout()
-		Expect(cleanup.ExitCode()).To(Equal(0))
-		os.Remove("/etc/systemd/system/redis.service")
-		sys_clean := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
-		sys_clean.WaitWithDefaultTimeout()
-		Expect(sys_clean.ExitCode()).To(Equal(0))
 	})
 })
