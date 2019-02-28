@@ -128,9 +128,6 @@ func portCmd(c *cliconfig.PortValues) error {
 		if state, _ := con.State(); state != libpod.ContainerStateRunning {
 			continue
 		}
-		if c.All {
-			fmt.Println(con.ID())
-		}
 
 		portmappings, err := con.PortMappings()
 		if err != nil {
@@ -142,6 +139,9 @@ func portCmd(c *cliconfig.PortValues) error {
 			// Set host IP to 0.0.0.0 if blank
 			if hostIP == "" {
 				hostIP = "0.0.0.0"
+			}
+			if c.All {
+				fmt.Printf("%s\t", con.ID()[:12])
 			}
 			// If not searching by port or port/proto, then dump what we see
 			if port == "" {
