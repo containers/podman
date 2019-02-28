@@ -57,6 +57,16 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman container exec simple command", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"container", "exec", "test1", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman exec simple command using latest", func() {
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()

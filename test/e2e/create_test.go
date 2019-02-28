@@ -56,6 +56,13 @@ var _ = Describe("Podman create", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 	})
 
+	It("podman container create container based on a remote image", func() {
+		session := podmanTest.Podman([]string{"container", "create", BB_GLIBC, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+	})
+
 	It("podman create using short options", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

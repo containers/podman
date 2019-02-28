@@ -60,6 +60,19 @@ var _ = Describe("Podman port", func() {
 		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
 	})
 
+	It("podman container port  -l nginx", func() {
+		podmanTest.RestoreArtifact(nginx)
+		session := podmanTest.Podman([]string{"container", "run", "-dt", "-P", nginx})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"container", "port", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
+		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+	})
+
 	It("podman port -l port nginx", func() {
 		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})

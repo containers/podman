@@ -59,6 +59,15 @@ var _ = Describe("Podman stop", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman stop container by name", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"container", "stop", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman stop stopped container", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()

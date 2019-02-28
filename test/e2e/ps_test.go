@@ -65,6 +65,21 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 	})
 
+	It("podman container list all", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"container", "list", "-a"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+
+		result = podmanTest.Podman([]string{"container", "ls", "-a"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+	})
+
 	It("podman ps size flag", func() {
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

@@ -50,6 +50,22 @@ var _ = Describe("Podman export", func() {
 		Expect(err).To(BeNil())
 	})
 
+	It("podman container export output flag", func() {
+		SkipIfRemote()
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
+		result := podmanTest.Podman([]string{"container", "export", "-o", outfile, cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		_, err := os.Stat(outfile)
+		Expect(err).To(BeNil())
+
+		err = os.Remove(outfile)
+		Expect(err).To(BeNil())
+	})
+
 	It("podman export bad filename", func() {
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

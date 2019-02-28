@@ -50,6 +50,21 @@ var _ = Describe("Podman commit", func() {
 		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
 	})
 
+	It("podman container commit container", func() {
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"container", "commit", "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"container", "inspect", "foobar.com/test1-image:latest"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectImageJSON()
+		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
+	})
+
 	It("podman commit container with message", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
