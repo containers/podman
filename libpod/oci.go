@@ -733,7 +733,7 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string) (*exec.Cmd, error) {
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams) (*exec.Cmd, error) {
 	if len(cmd) == 0 {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
 	}
@@ -789,9 +789,17 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 
 	execCmd := exec.Command(r.path, args...)
-	execCmd.Stdout = os.Stdout
-	execCmd.Stderr = os.Stderr
-	execCmd.Stdin = os.Stdin
+
+	if streams.AttachOutput {
+		execCmd.Stdout = streams.OutputStream
+	}
+	if streams.AttachInput {
+		execCmd.Stdin = streams.InputStream
+	}
+	if streams.AttachError {
+		execCmd.Stderr = streams.ErrorStream
+	}
+
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
 	if err := execCmd.Start(); err != nil {

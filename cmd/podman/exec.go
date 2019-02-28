@@ -105,5 +105,13 @@ func execCmd(c *cliconfig.ExecValues) error {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir)
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	streams.InputStream = os.Stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams)
 }
