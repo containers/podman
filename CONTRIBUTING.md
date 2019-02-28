@@ -329,10 +329,16 @@ author hold special privileges on the github repository.  Others can be used by 
   unintentionally.  Instead, just write ``LGTM``, or
   spell it out.
 
-* ``[skip ci]``: Within the HEAD commit will cause Cirrus CI to ***NOT*** execute
-  tests on the PR.  This is useful in basically two cases:  1) You're still working
-  and don't want to waste resources.  2) You haven't modified any code that would
-  be exercised by the tests.  For example, documentation updates (outside of code).
+* ``/hold`` and ``/unhold``: Override the automatic handling of a request.  Either
+  put it on hold (no handling) or remove the hold (normal handling).
+
+* ``[ci skip]``: [Adding `[ci skip]` within the HEAD commit](https://cirrus-ci.org/guide/writing-tasks/#conditional-task-execution)
+  will cause Cirrus CI to ***NOT*** execute tests for the PR or after merge.  This
+  is useful in only one instance:  Your changes are absolutely not exercised by
+  any test.  For example, documentation changes.  ***IMPORTANT NOTE*** **Other
+  automation may interpret the lack of test results as "PASSED" and unintentionall
+  merge a PR.  Consider also using `/hold` in a comment, to add additional
+  protection.**
 
 [The complete list may be found on the command-help page.](https://prow.k8s.io/command-help)
 However, not all commands are implemented for this repository.  If in doubt, ask a maintainer.
