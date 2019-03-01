@@ -53,10 +53,12 @@ func init() {
 	flags.MarkHidden("opt2")
 	flags.MarkHidden("opt3")
 
-	flags.BoolVarP(&runlabelCommand.Pull, "pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
+	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+
+	flags.MarkDeprecated("pull", "podman will pull if not found in local storage")
 }
 
 // installCmd gets the data from the command line and calls installImage
@@ -95,7 +97,6 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	if len(args) > 2 {
 		extraArgs = args[2:]
 	}
-	pull := c.Pull
 	label := args[0]
 
 	runlabelImage := args[1]
@@ -131,7 +132,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	}
 
 	authfile := getAuthFile(c.Authfile)
-	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, pull, c.Creds, dockerRegistryOptions, authfile, c.SignaturePolicy, stdOut)
+	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, true, c.Creds, dockerRegistryOptions, authfile, c.SignaturePolicy, stdOut)
 	if err != nil {
 		return err
 	}

@@ -409,7 +409,6 @@ type RunlabelValues struct {
 	Opt2            string
 	Opt3            string
 	Quiet           bool
-	Pull            bool
 	SignaturePolicy string
 	TlsVerify       bool
 }
