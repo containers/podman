@@ -101,6 +101,85 @@ get_cmd_line_args (pid_t pid)
   return argv;
 }
 
+void* allocArgv(int argc) {
+    if (argc == 0)
+      return NULL;
+    return malloc(sizeof(char *) * argc);
+}
+
+static char **
+get_cmd_line_args_extra (pid_t pid, int argc_extra, char **argv_extra)
+{
+  int fd;
+  char path[PATH_MAX];
+  char *buffer;
+  size_t allocated;
+  size_t used = 0;
+  int ret;
+  int i, argc = 0;
+  char **argv;
+
+  sprintf (path, "/proc/%d/cmdline", pid);
+  fd = open (path, O_RDONLY);
+  if (fd < 0)
+    return NULL;
+
+  allocated = 512;
+  buffer = malloc (allocated);
+  if (buffer == NULL)
+    return NULL;
+  for (;;)
+    {
+      do
+        ret = read (fd, buffer + used, allocated - used);
+      while (ret < 0 && errno == EINTR);
+      if (ret < 0)
+        return NULL;
+
+      if (ret == 0)
+        break;
+
+      used += ret;
+      if (allocated == used)
+        {
+          allocated += 512;
+          char *tmp = realloc (buffer, allocated);
+          if (buffer == NULL) {
+		  free(buffer);
+		  return NULL;
+	  }
+	  buffer=tmp;
+        }
+    }
+  close (fd);
+
+  for (i = 0; i < used; i++)
+    if (buffer[i] == '\0')
+      argc++;
+
+  argc += argc_extra;
+
+  if (argc == 0)
+    return NULL;
+
+  argv = malloc (sizeof (char *) * (argc + 1));
+  if (argv == NULL)
+    return NULL;
+  argc = 0;
+
+  argv[argc++] = buffer;
+  for (i = 0; i < used - 1; i++)
+    if (buffer[i] == '\0')
+      argv[argc++] = buffer + i + 1;
+
+  for (i = 0; i < argc_extra; i++)
+    argv[argc++] = strdup(argv_extra[i]);
+
+  argv[argc] = NULL;
+
+  return argv;
+}
+
 int
 reexec_userns_join (int userns, int mountns)
 {
@@ -259,6 +338,83 @@ reexec_in_user_namespace (int ready)
       _exit (EXIT_FAILURE);
     }
   free (cwd);
+
+  execvp (argv[0], argv);
+
+  _exit (EXIT_FAILURE);
+}
+
+int
+varlink_reexec_in_user_namespace (int ready, int outfd, int argc_extra, char **argv_extra)
+{
+  int ret;
+  pid_t pid;
+  char b;
+  pid_t ppid = getpid ();
+  char uid[16];
+  char **argv;
+  char *cwd = getcwd (NULL, 0);
+
+  if (cwd == NULL)
+    {
+      fprintf (stderr, "error getting current working directory: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  sprintf (uid, "%d", geteuid ());
+
+  pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
+  if (pid < 0)
+    {
+      FILE *fp;
+      fprintf (stderr, "cannot clone: %s\n", strerror (errno));
+      check_proc_sys_userns_file (_max_user_namespaces);
+      check_proc_sys_userns_file (_unprivileged_user_namespaces);
+    }
+  if (pid)
+    return pid;
+
+  argv = get_cmd_line_args_extra (ppid, argc_extra, argv_extra);
+
+  if (argv == NULL)
+    {
+      fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
+  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+
+  do
+    ret = read (ready, &b, 1) < 0;
+  while (ret < 0 && errno == EINTR);
+  if (ret < 0)
+    {
+      fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  close (ready);
+
+  if (syscall_setresgid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (syscall_setresuid (0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (chdir (cwd) < 0)
+    {
+      fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  free (cwd);
+
+  dup2(outfd, 3);
 
   execvp (argv[0], argv);
 

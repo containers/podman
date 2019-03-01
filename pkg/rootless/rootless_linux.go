@@ -23,9 +23,12 @@ import (
 )
 
 /*
+#include <stdlib.h>
+extern int varlink_reexec_in_user_namespace(int ready, int outfd, int extra_argc, char** extra_argv);
 extern int reexec_in_user_namespace(int ready);
 extern int reexec_in_user_namespace_wait(int pid);
 extern int reexec_userns_join(int userns, int mountns);
+extern void* allocArgv(int argc);
 */
 import "C"
 
@@ -312,6 +315,154 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}
 
+	_, err = w.Write([]byte("1"))
+	if err != nil {
+		return false, -1, errors.Wrapf(err, "write to sync pipe")
+	}
+
+	c := make(chan os.Signal, 1)
+
+	gosignal.Notify(c)
+	defer gosignal.Reset()
+	go func() {
+		for s := range c {
+			if s == signal.SIGCHLD || s == signal.SIGPIPE {
+				continue
+			}
+
+			syscall.Kill(int(pidC), s.(syscall.Signal))
+		}
+	}()
+
+	ret := C.reexec_in_user_namespace_wait(pidC)
+	if ret < 0 {
+		return false, -1, errors.New("error waiting for the re-exec process")
+	}
+
+	return true, int(ret), nil
+}
+
+// VarlinkRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
+// into a new user namespace and the return code from the re-executed podman process.
+// If podman was re-executed the caller needs to propagate the error code returned by the child
+// process.
+func VarlinkRootInUserNS(argv []string, outFile *os.File) (bool, int, error) {
+	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
+			return false, 0, runInUser()
+		}
+		return false, 0, nil
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		return false, -1, err
+	}
+	defer r.Close()
+	defer w.Close()
+
+	cArgvs := (*[0xfff]*C.char)(C.allocArgv(C.int(len(argv))))
+
+	if len(argv) > 0 {
+		defer C.free(unsafe.Pointer(cArgvs))
+		for i, arg := range argv {
+			cArgvs[i] = C.CString(arg)
+			defer C.free(unsafe.Pointer(cArgvs[i]))
+		}
+	}
+
+	pidC := C.varlink_reexec_in_user_namespace(C.int(r.Fd()), C.int(outFile.Fd()), C.int(len(argv)), (**C.char)(unsafe.Pointer(cArgvs)))
+
+	pid := int(pidC)
+	if pid < 0 {
+		return false, -1, errors.Errorf("cannot re-exec process")
+	}
+
+	allowSingleIDMapping := os.Getenv("PODMAN_ALLOW_SINGLE_ID_MAPPING_IN_USERNS") != ""
+
+	var uids, gids []idtools.IDMap
+	username := os.Getenv("USER")
+	if username == "" {
+		user, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
+		if err != nil && !allowSingleIDMapping {
+			if os.IsNotExist(err) {
+				return false, 0, errors.Wrapf(err, "/etc/subuid or /etc/subgid does not exist, see subuid/subgid man pages for information on these files")
+			}
+			return false, 0, errors.Wrapf(err, "could not find user by UID nor USER env was set")
+		}
+		if err == nil {
+			username = user.Username
+		}
+	}
+	mappings, err := idtools.NewIDMappings(username, username)
+	if !allowSingleIDMapping {
+		if err != nil {
+			return false, -1, err
+		}
+
+		availableGIDs, availableUIDs := 0, 0
+		for _, i := range mappings.UIDs() {
+			availableUIDs += i.Size
+		}
+
+		minUIDs := getMinimumIDs("/proc/sys/kernel/overflowuid")
+		if availableUIDs < minUIDs {
+			return false, 0, fmt.Errorf("not enough UIDs available for the user, at least %d are needed", minUIDs)
+		}
+
+		for _, i := range mappings.GIDs() {
+			availableGIDs += i.Size
+		}
+		minGIDs := getMinimumIDs("/proc/sys/kernel/overflowgid")
+		if availableGIDs < minGIDs {
+			return false, 0, fmt.Errorf("not enough GIDs available for the user, at least %d are needed", minGIDs)
+		}
+	}
+	if err == nil {
+		uids = mappings.UIDs()
+		gids = mappings.GIDs()
+	}
+
+	uidsMapped := false
+	if mappings != nil && uids != nil {
+		err := tryMappingTool("newuidmap", pid, os.Getuid(), uids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
+		uidsMapped = err == nil
+	}
+	if !uidsMapped {
+		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
+		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot write setgroups file")
+		}
+
+		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
+		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getuid())), 0666)
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot write uid_map")
+		}
+	}
+
+	gidsMapped := false
+	if mappings != nil && gids != nil {
+		err := tryMappingTool("newgidmap", pid, os.Getgid(), gids)
+		if !allowSingleIDMapping && err != nil {
+			return false, 0, err
+		}
+		gidsMapped = err == nil
+	}
+	if !gidsMapped {
+		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
+		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getgid())), 0666)
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot write gid_map")
+		}
+	}
 	_, err = w.Write([]byte("1"))
 	if err != nil {
 		return false, -1, errors.Wrapf(err, "write to sync pipe")

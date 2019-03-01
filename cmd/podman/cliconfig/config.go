@@ -483,6 +483,7 @@ type UnpauseValues struct {
 type VarlinkValues struct {
 	PodmanCommand
 	Timeout int64
+	Message string
 }
 
 type SetTrustValues struct {

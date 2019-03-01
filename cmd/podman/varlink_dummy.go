@@ -1,4 +1,4 @@
-// +build !varlink
+// +build !varlink remoteclient
 
 package main
 

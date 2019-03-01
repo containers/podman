@@ -75,6 +75,7 @@ var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_statsCommand:   true,
 	_stopCommand:    true,
 	_topCommand:     true,
+	_varlinkCommand: true,
 }
 
 var rootCmd = &cobra.Command{
