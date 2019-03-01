@@ -9,7 +9,6 @@ podman-container-runlabel - Execute Image Label Method
 [**-h**|**--help**]
 [**--display**]
 [**-n**][**--name**[=*NAME*]]
-[**-p**][[**--pull**]]
 [**--rootfs**=*ROOTFS*]
 [**--set**=*NAME*=*VALUE*]
 [**--storage**]
@@ -27,7 +26,7 @@ If the container image has a LABEL INSTALL instruction like the following:
 `podman container runlabel` will set the following environment variables for use in the command:
 
 If the container image does not have the desired label, an error message will be displayed along with a non-zero
-return code.
+return code.  If the image is not found in local storage, Podman will attempt to pull it first.
 
 Note: Podman will always ensure that `podman` is the first argument of the command being executed.
 
@@ -81,9 +80,6 @@ Print usage statement
 
 **-n** **--name**=""
  Use this name for creating content for the container. NAME will default to the IMAGENAME if it is not specified.
-
-**p** **--pull**
- Pull the image if it cannot be found in local storage.
 
 **--quiet, -q**
 

@@ -2401,8 +2401,6 @@ _podman_container_runlabel() {
 	 --display
 	 --help
 	 -h
-	 -p
-	 --pull
 	 -q
 	 --quiet
 	 --tls-verify
