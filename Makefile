@@ -27,6 +27,7 @@ CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
+ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
@@ -247,6 +248,8 @@ install.config:
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/bash/podman ${BASHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${ZSHINSTALLDIR}
 
 install.cni:
 	install ${SELINUXOPT} -d -m 755 ${ETCDIR}/cni/net.d/
@@ -332,6 +335,7 @@ API.md: cmd/podman/varlink/io.podman.varlink
 
 validate.completions: completions/bash/podman
 	. completions/bash/podman
+	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 
 validate: gofmt .gitvalidation validate.completions
 
