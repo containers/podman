@@ -46,7 +46,6 @@ var _ = Describe("Podman privileged container tests", func() {
 
 	It("podman privileged CapEff", func() {
 		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
-		cap.WaitWithDefaultTimeout()
 		Expect(cap.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "--privileged", "busybox", "grep", "CapEff", "/proc/self/status"})
@@ -57,7 +56,6 @@ var _ = Describe("Podman privileged container tests", func() {
 
 	It("podman cap-add CapEff", func() {
 		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
-		cap.WaitWithDefaultTimeout()
 		Expect(cap.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"run", "--cap-add", "all", "busybox", "grep", "CapEff", "/proc/self/status"})
@@ -97,7 +95,6 @@ var _ = Describe("Podman privileged container tests", func() {
 		}
 
 		cap := SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
-		cap.WaitWithDefaultTimeout()
 		if cap.ExitCode() != 0 {
 			Skip("Can't determine NoNewPrivs")
 		}

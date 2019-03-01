@@ -326,6 +326,7 @@ func SystemExec(command string, args []string) *PodmanSession {
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run command: %s %s", command, strings.Join(args, " ")))
 	}
+	session.Wait(defaultWaitTimeout)
 	return &PodmanSession{session}
 }
 

@@ -53,7 +53,6 @@ var _ = Describe("Podman run ns", func() {
 
 	It("podman run ipcns test", func() {
 		setup := SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
-		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 		hostShm := setup.OutputToString()
 
@@ -65,7 +64,6 @@ var _ = Describe("Podman run ns", func() {
 
 	It("podman run ipcns ipcmk host test", func() {
 		setup := SystemExec("ipcmk", []string{"-M", "1024"})
-		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 		output := strings.Split(setup.OutputToString(), " ")
 		ipc := output[len(output)-1]
@@ -74,7 +72,6 @@ var _ = Describe("Podman run ns", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		setup = SystemExec("ipcrm", []string{"-m", ipc})
-		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 	})
 

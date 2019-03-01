@@ -95,7 +95,6 @@ var _ = Describe("Podman pod create", func() {
 		Expect(webserver.ExitCode()).To(Equal(0))
 
 		check := SystemExec("nc", []string{"-z", "localhost", "80"})
-		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(1))
 	})
 
@@ -111,7 +110,6 @@ var _ = Describe("Podman pod create", func() {
 		Expect(webserver.ExitCode()).To(Equal(0))
 
 		check := SystemExec("nc", []string{"-z", "localhost", "80"})
-		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 	})
 

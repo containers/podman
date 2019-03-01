@@ -58,7 +58,6 @@ var _ = Describe("Podman run networking", func() {
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
 		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
-		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("222"))
 		Expect(results.OutputToString()).To(ContainSubstring("223"))
@@ -69,12 +68,10 @@ var _ = Describe("Podman run networking", func() {
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
 		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
-		results.Wait(30)
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
 
 		ncBusy := SystemExec("nc", []string{"-l", "-p", "80"})
-		ncBusy.Wait(10)
 		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
 	})
 
@@ -183,26 +180,40 @@ var _ = Describe("Podman run networking", func() {
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}
-		SystemExec("ip", []string{"netns", "add", "xxx"})
+		addXXX := SystemExec("ip", []string{"netns", "add", "xxx"})
+		Expect(addXXX.ExitCode()).To(Equal(0))
+		defer func() {
+			delXXX := SystemExec("ip", []string{"netns", "delete", "xxx"})
+			Expect(delXXX.ExitCode()).To(Equal(0))
+		}()
+
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxx", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
-		SystemExec("ip", []string{"netns", "delete", "xxx"})
 	})
 
 	It("podman run n user created network namespace with resolv.conf", func() {
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}
-		SystemExec("ip", []string{"netns", "add", "xxx"})
-		SystemExec("mkdir", []string{"-p", "/etc/netns/xxx"})
-		SystemExec("bash", []string{"-c", "echo nameserver 11.11.11.11 > /etc/netns/xxx/resolv.conf"})
-		session := podmanTest.Podman([]string{"run", "--net", "ns:/run/netns/xxx", ALPINE, "cat", "/etc/resolv.conf"})
+		addXXX2 := SystemExec("ip", []string{"netns", "add", "xxx2"})
+		Expect(addXXX2.ExitCode()).To(Equal(0))
+		defer func() {
+			delXXX2 := SystemExec("ip", []string{"netns", "delete", "xxx2"})
+			Expect(delXXX2.ExitCode()).To(Equal(0))
+		}()
+
+		mdXXX2 := SystemExec("mkdir", []string{"-p", "/etc/netns/xxx2"})
+		Expect(mdXXX2.ExitCode()).To(Equal(0))
+		defer os.RemoveAll("/etc/netns/xxx2")
+
+		nsXXX2 := SystemExec("bash", []string{"-c", "echo nameserver 11.11.11.11 > /etc/netns/xxx2/resolv.conf"})
+		Expect(nsXXX2.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--net", "ns:/run/netns/xxx2", ALPINE, "cat", "/etc/resolv.conf"})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("11.11.11.11"))
-		SystemExec("ip", []string{"netns", "delete", "xxx"})
-		SystemExec("rm", []string{"-rf", "/etc/netns/xxx"})
 	})
 
 	It("podman run network in bogus user created network namespace", func() {

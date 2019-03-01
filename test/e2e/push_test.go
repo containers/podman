@@ -51,13 +51,11 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to dir", func() {
-		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE, "dir:/tmp/busybox"})
+		bbdir := filepath.Join(podmanTest.TempDir, "busybox")
+		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE,
+			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-
-		clean := SystemExec("rm", []string{"-fr", "/tmp/busybox"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to local registry", func() {
@@ -85,20 +83,21 @@ var _ = Describe("Podman push", func() {
 		authPath := filepath.Join(podmanTest.TempDir, "auth")
 		os.Mkdir(authPath, os.ModePerm)
 		os.MkdirAll("/etc/containers/certs.d/localhost:5000", os.ModePerm)
-		debug := SystemExec("ls", []string{"-l", podmanTest.TempDir})
-		debug.WaitWithDefaultTimeout()
+		defer os.RemoveAll("/etc/containers/certs.d/localhost:5000")
 
 		cwd, _ := os.Getwd()
 		certPath := filepath.Join(cwd, "../", "certs")
 
 		if IsCommandAvailable("getenforce") {
 			ge := SystemExec("getenforce", []string{})
-			ge.WaitWithDefaultTimeout()
+			Expect(ge.ExitCode()).To(Equal(0))
 			if ge.OutputToString() == "Enforcing" {
 				se := SystemExec("setenforce", []string{"0"})
-				se.WaitWithDefaultTimeout()
-
-				defer SystemExec("setenforce", []string{"1"})
+				Expect(se.ExitCode()).To(Equal(0))
+				defer func() {
+					se2 := SystemExec("setenforce", []string{"1"})
+					Expect(se2.ExitCode()).To(Equal(0))
+				}()
 			}
 		}
 		podmanTest.RestoreArtifact(registry)
@@ -111,8 +110,6 @@ var _ = Describe("Podman push", func() {
 
 		f.WriteString(session.OutputToString())
 		f.Sync()
-		debug = SystemExec("cat", []string{filepath.Join(authPath, "htpasswd")})
-		debug.WaitWithDefaultTimeout()
 
 		session = podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
@@ -138,8 +135,7 @@ var _ = Describe("Podman push", func() {
 		Expect(push.ExitCode()).To(Equal(0))
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
-		setup.WaitWithDefaultTimeout()
-		defer os.RemoveAll("/etc/containers/certs.d/localhost:5000")
+		Expect(setup.ExitCode()).To(Equal(0))
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
 		push.WaitWithDefaultTimeout()
@@ -155,23 +151,22 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to docker-archive", func() {
-		session := podmanTest.Podman([]string{"push", ALPINE, "docker-archive:/tmp/alp:latest"})
+		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
+		session := podmanTest.Podman([]string{"push", ALPINE,
+			fmt.Sprintf("docker-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/alp"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to docker daemon", func() {
 		setup := SystemExec("bash", []string{"-c", "systemctl status docker 2>&1"})
-		setup.WaitWithDefaultTimeout()
 
 		if setup.LineInOutputContains("Active: inactive") {
 			setup = SystemExec("systemctl", []string{"start", "docker"})
-			setup.WaitWithDefaultTimeout()
-
-			defer SystemExec("systemctl", []string{"stop", "docker"})
+			defer func() {
+				stop := SystemExec("systemctl", []string{"stop", "docker"})
+				Expect(stop.ExitCode()).To(Equal(0))
+			}()
 		} else if setup.ExitCode() != 0 {
 			Skip("Docker is not available")
 		}
@@ -181,22 +176,19 @@ var _ = Describe("Podman push", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		check := SystemExec("docker", []string{"images", "--format", "{{.Repository}}:{{.Tag}}"})
-		check.WaitWithDefaultTimeout()
 		Expect(check.ExitCode()).To(Equal(0))
 		Expect(check.OutputToString()).To(ContainSubstring("alpine:podmantest"))
 
 		clean := SystemExec("docker", []string{"rmi", "alpine:podmantest"})
-		clean.WaitWithDefaultTimeout()
 		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to oci-archive", func() {
-		session := podmanTest.Podman([]string{"push", ALPINE, "oci-archive:/tmp/alp.tar:latest"})
+		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
+		session := podmanTest.Podman([]string{"push", ALPINE,
+			fmt.Sprintf("oci-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/alp.tar"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to local ostree", func() {
@@ -208,33 +200,29 @@ var _ = Describe("Podman push", func() {
 		os.MkdirAll(ostreePath, os.ModePerm)
 
 		setup := SystemExec("ostree", []string{strings.Join([]string{"--repo=", ostreePath}, ""), "init"})
-		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"push", ALPINE, strings.Join([]string{"ostree:alp@", ostreePath}, "")})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		clean := SystemExec("rm", []string{"-rf", ostreePath})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to docker-archive no reference", func() {
-		session := podmanTest.Podman([]string{"push", ALPINE, "docker-archive:/tmp/alp"})
+		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
+		session := podmanTest.Podman([]string{"push", ALPINE,
+			fmt.Sprintf("docker-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/alp"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to oci-archive no reference", func() {
-		session := podmanTest.Podman([]string{"push", ALPINE, "oci-archive:/tmp/alp-oci"})
+		ociarc := filepath.Join(podmanTest.TempDir, "alp-oci")
+		session := podmanTest.Podman([]string{"push", ALPINE,
+			fmt.Sprintf("oci-archive:%s", ociarc)})
+
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		clean := SystemExec("rm", []string{"/tmp/alp-oci"})
-		clean.WaitWithDefaultTimeout()
-		Expect(clean.ExitCode()).To(Equal(0))
 	})
 
 })
