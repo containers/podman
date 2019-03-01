@@ -15,6 +15,7 @@ var (
 	refreshDescription = "The refresh command resets the state of all containers to handle database changes after a Podman upgrade. All running containers will be restarted."
 	_refreshCommand    = &cobra.Command{
 		Use:   "refresh",
+		Args:  noSubArgs,
 		Short: "Refresh container state",
 		Long:  refreshDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -32,10 +33,6 @@ func init() {
 }
 
 func refreshCmd(c *cliconfig.RefreshValues) error {
-	if len(c.InputArgs) > 0 {
-		return errors.Errorf("refresh does not accept any arguments")
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")

@@ -121,6 +121,7 @@ var (
 	_podPsCommand    = &cobra.Command{
 		Use:     "ps",
 		Aliases: []string{"ls", "list"},
+		Args:    noSubArgs,
 		Short:   "List pods",
 		Long:    podPsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -159,10 +160,6 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if len(c.InputArgs) > 0 {
-		return errors.Errorf("too many arguments, ps takes no arguments")
-	}
 
 	opts := podPsOptions{
 		NoTrunc:            c.NoTrunc,

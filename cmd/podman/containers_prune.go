@@ -21,6 +21,7 @@ var (
 `
 	_pruneContainersCommand = &cobra.Command{
 		Use:   "prune",
+		Args:  noSubArgs,
 		Short: "Remove all stopped containers",
 		Long:  pruneContainersDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -59,6 +59,14 @@ func checkAllAndLatest(c *cobra.Command, args []string, ignoreArgLen bool) error
 	return nil
 }
 
+// noSubArgs checks that there are no further positional parameters
+func noSubArgs(c *cobra.Command, args []string) error {
+	if len(args) > 0 {
+		return errors.Errorf("`%s` takes no arguments", c.CommandPath())
+	}
+	return nil
+}
+
 // getAllOrLatestContainers tries to return the correct list of containers
 // depending if --all, --latest or <container-id> is used.
 // It requires the Context (c) and the Runtime (runtime). As different

@@ -18,6 +18,7 @@ var (
 `
 	_pruneImagesCommand = &cobra.Command{
 		Use:   "prune",
+		Args:  noSubArgs,
 		Short: "Remove unused images",
 		Long:  pruneImagesDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

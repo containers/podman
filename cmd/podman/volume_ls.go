@@ -49,6 +49,7 @@ and the output format can be changed to JSON or a user specified Go template.
 	_volumeLsCommand = &cobra.Command{
 		Use:     "ls",
 		Aliases: []string{"list"},
+		Args:    noSubArgs,
 		Short:   "List volumes",
 		Long:    volumeLsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -75,10 +76,6 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if len(c.InputArgs) > 0 {
-		return errors.Errorf("too many arguments, ls takes no arguments")
-	}
 
 	opts := volumeLsOptions{
 		Quiet: c.Quiet,

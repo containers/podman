@@ -18,6 +18,7 @@ var (
 
 	_renumberCommand = &cobra.Command{
 		Use:   "renumber",
+		Args:  noSubArgs,
 		Short: "Migrate lock numbers",
 		Long:  renumberDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -24,6 +24,7 @@ using force.
 `
 	_volumePruneCommand = &cobra.Command{
 		Use:   "prune",
+		Args:  noSubArgs,
 		Short: "Remove all unused volumes",
 		Long:  volumePruneDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
