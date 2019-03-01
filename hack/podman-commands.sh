@@ -1,40 +1,82 @@
-#!/bin/sh
-./bin/podman --help | sed -n -Ee '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman.cmd
-man ./docs/podman.1 | sed -n -e '0,/COMMANDS/d' -e '/^FILES/q;p' | grep podman | cut -f2 -d- | cut -f1 -d\( > /tmp/podman.man
-echo diff -B -u /tmp/podman.cmd /tmp/podman.man
-diff -B -u /tmp/podman.cmd /tmp/podman.man
+#!/bin/bash
+#
+# Compare commands listed by 'podman help' against those in 'man podman'.
+# Recurse into subcommands as well.
+#
+# Because we read metadoc files in the `docs` directory, this script
+# must run from the top level of a git checkout. FIXME: if necessary,
+# it could instead run 'man podman-XX'; my thinking is that this
+# script should run early in CI.
+#
 
-./bin/podman image --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-image.cmd
-man ./docs/podman-image.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-image.man
-echo diff -B -u /tmp/podman-image.cmd /tmp/podman-image.man
-diff -B -u /tmp/podman-image.cmd /tmp/podman-image.man
+# override with, e.g.,  PODMAN=./bin/podman-remote
+PODMAN=${PODMAN:-./bin/podman}
 
-./bin/podman container --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-container.cmd
-man docs/podman-container.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-container.man
-echo diff -B -u /tmp/podman-container.cmd /tmp/podman-container.man
-diff -B -u /tmp/podman-container.cmd /tmp/podman-container.man
+function die() {
+    echo "FATAL: $*" >&2
+    exit 1
+}
 
-./bin/podman system --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-system.cmd
-man docs/podman-system.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-system.man
-echo diff -B -u /tmp/podman-system.cmd /tmp/podman-system.man
-diff -B -u /tmp/podman-system.cmd /tmp/podman-system.man
 
-./bin/podman play --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-play.cmd
-man docs/podman-play.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-play.man
-echo diff -B -u /tmp/podman-play.cmd /tmp/podman-play.man
-diff -B -u /tmp/podman-play.cmd /tmp/podman-play.man
+# Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
+# and return a list of each first word under 'Available Commands', that is,
+# the command name but not its description.
+function podman_commands() {
+    $PODMAN help "$@" |\
+        awk '/^Available Commands:/{ok=1;next}/^Flags:/{ok=0}ok { print $1 }' |\
+        grep .
+}
 
-./bin/podman generate --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-generate.cmd
-man docs/podman-generate.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-generate.man
-echo diff -B -u /tmp/podman-generate.cmd /tmp/podman-generate.man
-diff -B -u /tmp/podman-generate.cmd /tmp/podman-generate.man
+# Read a list of subcommands from a command's metadoc
+function podman_man() {
+    if [ "$@" = "podman" ]; then
+        # podman itself.
+        # This md file has a table of the form:
+        #   | [podman-cmd(1)\[(podman-cmd.1.md)   | Description ... |
+        # For all such, print the 'cmd' portion (the one in brackets).
+        sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/$1.1.md
+    elif [ "$@" = "podman-image-trust" ]; then
+        # Special case: set and show aren't actually in a table in the man page
+        echo set
+        echo show
+    else
+        # podman subcommand.
+        # Each md file has a table of the form:
+        #    | cmd | [podman-cmd(1)](podman-cmd.1.md) | Description ... |
+        # For all such we find, with 'podman- in the second column, print the
+        # first column (with whitespace trimmed)
+        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/$1.1.md
+    fi
+}
 
-./bin/podman pod --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-pod.cmd
-man docs/podman-pod.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-pod.man
-echo diff -B -u /tmp/podman-pod.cmd /tmp/podman-pod.man
-diff -B -u /tmp/podman-pod.cmd /tmp/podman-pod.man
+# The main thing. Compares help and man page; if we find subcommands, recurse.
+rc=0
+function compare_help_and_man() {
+    echo
+    echo "checking: podman $@"
 
-./bin/podman volume --help | sed -n -e '0,/Available Commands/d' -e '/^Flags/q;p' | sed '/^$/d' | awk '{ print $1 }' > /tmp/podman-volume.cmd
-man docs/podman-volume.1 | sed -n -Ee '0,/COMMANDS/d'  -e 's/^[[:space:]]*//' -e '/^SEE ALSO/q;p' | grep podman | cut -f1 -d' ' | sed 's/^.//' > /tmp/podman-volume.man
-echo diff -B -u /tmp/podman-volume.cmd /tmp/podman-volume.man
-diff -B -u /tmp/podman-volume.cmd /tmp/podman-volume.man
+    # e.g. podman, podman-image, podman-volume
+    local basename=$(echo podman "$@" | sed -e 's/ /-/g')
+
+    podman_commands "$@" | sort > /tmp/${basename}_help.txt
+    podman_man $basename | sort > /tmp/${basename}_man.txt
+
+    diff -u /tmp/${basename}_help.txt /tmp/${basename}_man.txt || rc=1
+
+    # Now look for subcommands, e.g. container, image
+    for cmd in $(< /tmp/${basename}_help.txt); do
+        usage=$($PODMAN "$@" $cmd --help | grep -A1 '^Usage:' | tail -1)
+
+        # if string ends in '[command]', recurse into its subcommands
+        if expr "$usage" : '.*\[command\]$' >/dev/null; then
+            compare_help_and_man "$@" $cmd
+        fi
+    done
+
+    rm -f /tmp/${basename}_{help,man}.txt
+}
+
+
+compare_help_and_man
+
+exit $rc
