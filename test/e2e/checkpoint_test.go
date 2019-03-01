@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 
 	"github.com/containers/libpod/pkg/criu"
 	. "github.com/containers/libpod/test/utils"
@@ -27,6 +28,16 @@ var _ = Describe("Podman checkpoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.RestoreAllArtifacts()
+		// Check if the runtime implements checkpointing. Currently only
+		// runc's checkpoint/restore implementation is supported.
+		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "-h")
+		if err := cmd.Start(); err != nil {
+			Skip("OCI runtime does not support checkpoint/restore")
+		}
+		if err := cmd.Wait(); err != nil {
+			Skip("OCI runtime does not support checkpoint/restore")
+		}
+
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")
 		}

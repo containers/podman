@@ -472,10 +472,19 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
-
+func (c *Container) checkpointRestoreSupported() (err error) {
 	if !criu.CheckForCriu() {
-		return errors.Errorf("checkpointing a container requires at least CRIU %d", criu.MinCriuVersion)
+		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
+	}
+	if !c.runtime.ociRuntime.featureCheckCheckpointing() {
+		return errors.Errorf("Configured runtime does not support checkpoint/restore")
+	}
+	return nil
+}
+
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
+	if err := c.checkpointRestoreSupported(); err != nil {
+		return err
 	}
 
 	if c.state.State != ContainerStateRunning {
@@ -532,8 +541,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 
-	if !criu.CheckForCriu() {
-		return errors.Errorf("restoring a container requires at least CRIU %d", criu.MinCriuVersion)
+	if err := c.checkpointRestoreSupported(); err != nil {
+		return err
 	}
 
 	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {

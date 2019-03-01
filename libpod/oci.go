@@ -898,3 +898,16 @@ func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckp
 	args = append(args, ctr.ID())
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, nil, r.path, args...)
 }
+
+func (r *OCIRuntime) featureCheckCheckpointing() bool {
+	// Check if the runtime implements checkpointing. Currently only
+	// runc's checkpoint/restore implementation is supported.
+	cmd := exec.Command(r.path, "checkpoint", "-h")
+	if err := cmd.Start(); err != nil {
+		return false
+	}
+	if err := cmd.Wait(); err == nil {
+		return true
+	}
+	return false
+}
