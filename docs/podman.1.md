@@ -137,7 +137,6 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-exec(1)](podman-exec.1.md)        | Execute a command in a running container.                                      |
 | [podman-export(1)](podman-export.1.md)    | Export a container's filesystem contents as a tar archive.                     |
 | [podman-generate(1)](podman-generate.1.md)| Generate structured data based for a containers and pods.                      |
-| [podman-help(1)](podman-history.1.md)     | Show help information on podman.                                               |
 | [podman-history(1)](podman-history.1.md)  | Show the history of an image.                                                  |
 | [podman-image(1)](podman-image.1.md)      | Manage Images.                                                                 |
 | [podman-images(1)](podman-images.1.md)    | List images in local storage.                                                  |
@@ -157,7 +156,6 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-ps(1)](podman-ps.1.md)            | Prints out information about containers.                                       |
 | [podman-pull(1)](podman-pull.1.md)        | Pull an image from a registry.                                                 |
 | [podman-push(1)](podman-push.1.md)        | Push an image from local storage to elsewhere.                                 |
-| [podman-refresh(1)](podman-refresh.1.md)  | Refresh state of all containers to handle database changes.                    |
 | [podman-restart(1)](podman-restart.1.md)  | Restart one or more containers.                                                |
 | [podman-rm(1)](podman-rm.1.md)            | Remove one or more containers.                                                 |
 | [podman-rmi(1)](podman-rmi.1.md)          | Removes one or more locally stored images.                                     |
