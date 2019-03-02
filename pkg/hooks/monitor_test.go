@@ -11,7 +11,6 @@ import (
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/text/language"
 )
 
 func TestMonitorOneDirGood(t *testing.T) {
@@ -22,12 +21,7 @@ func TestMonitorOneDirGood(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	lang, err := language.Parse("und-u-va-posix")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	manager, err := New(ctx, []string{dir}, []string{}, lang)
+	manager, err := New(ctx, []string{dir}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,12 +126,7 @@ func TestMonitorTwoDirGood(t *testing.T) {
 	}
 	defer os.RemoveAll(fallbackDir)
 
-	lang, err := language.Parse("und-u-va-posix")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	manager, err := New(ctx, []string{fallbackDir, primaryDir}, []string{}, lang)
+	manager, err := New(ctx, []string{fallbackDir, primaryDir}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,12 +301,7 @@ func TestMonitorTwoDirGood(t *testing.T) {
 func TestMonitorBadWatcher(t *testing.T) {
 	ctx := context.Background()
 
-	lang, err := language.Parse("und-u-va-posix")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	manager, err := New(ctx, []string{}, []string{}, lang)
+	manager, err := New(ctx, []string{}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
