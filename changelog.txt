@@ -1,3 +1,46 @@
+- Changelog for v1.1.1 (2019-03-01)
+  * Update release notes for v1.1.1
+  * Pull image for runlabel if not local
+  * Fix SystemExec completion race
+  * Fix link inconsistencies in man pages
+  * Verify that used OCI runtime supports checkpoint
+  * Should be defaulting to pull not pull-always
+  * podman-commands script: refactor
+  * Move Alias lines to descriptions of commands
+  * Fix usage messages for podman image list, rm
+  * Fix -s to --storage-driver in baseline test
+  * No podman container ps command exists
+  * Allow Exec API user to override streams
+  * fix up a number of misplace commands
+  * rootless, new[ug]idmap: on failure add output
+  * [ci skip] Critical note about merge bot
+  * podman port fix output
+  * Fix ignored --time argument to podman restart
+  * secrets: fix fips-mode with user namespaces
+  * Fix four errors tagged by Cobra macro debugging
+  * Clean up man pages to match commands
+  * Add debugging for errors to Cobra compatibility macros
+  * Command-line input validation: reject unused args
+  * Fix ignored --stop-timeout flag to 'podman create'
+  * fixup! Incorporate review feedback
+  * fixup! missed some more:
+  * fixup! Correction to 'checkpoint'
+  * Followup to #2456: update examples, add trust
+  * podman create: disable interspersed opts
+  * fix up a number of misplace commands
+  * Add a task to Cirrus gating to build w/o Varlink
+  * Skip checkpoint/restore tests on Fedora for now
+  * Fix build for non-Varlink-tagged Podman
+  * Remove restore as podman subcommand
+  * Better usage synopses for subcommands
+  * Bump gitvalidation epoch
+  * Bump to v1.2.0-dev
+  * Centralize setting default volume path
+  * Ensure volume path is set appropriately by default
+  * Move all storage configuration defaults into libpod
+  * rename pod when we have a name collision with a container
+  * podman remote-client readme
+
 - Changelog for v1.1.0 (2019-02-26)
   * Vendor in latest buildah 1.7.1
   * volume: do not create a volume if there is a bind
