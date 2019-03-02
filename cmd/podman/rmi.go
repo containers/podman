@@ -29,12 +29,16 @@ var (
 	}
 )
 
+func rmiInit(command *cliconfig.RmiValues) {
+	command.SetUsageTemplate(UsageTemplate())
+	flags := command.Flags()
+	flags.BoolVarP(&command.All, "all", "a", false, "Remove all images")
+	flags.BoolVarP(&command.Force, "force", "f", false, "Force Removal of the image")
+}
+
 func init() {
 	rmiCommand.Command = &_rmiCommand
-	rmiCommand.SetUsageTemplate(UsageTemplate())
-	flags := rmiCommand.Flags()
-	flags.BoolVarP(&rmiCommand.All, "all", "a", false, "Remove all images")
-	flags.BoolVarP(&rmiCommand.Force, "force", "f", false, "Force Removal of the image")
+	rmiInit(&rmiCommand)
 }
 
 func rmiCmd(c *cliconfig.RmiValues) error {

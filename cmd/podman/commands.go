@@ -55,9 +55,6 @@ func getImageSubCommands() []*cobra.Command {
 // Commands that the local client implements
 func getContainerSubCommands() []*cobra.Command {
 
-	var _listSubCommand = _psCommand
-	_listSubCommand.Use = "list"
-
 	return []*cobra.Command{
 		_attachCommand,
 		_checkpointCommand,
@@ -68,7 +65,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_execCommand,
 		_exportCommand,
 		_killCommand,
-		&_listSubCommand,
 		_logsCommand,
 		_mountCommand,
 		_pauseCommand,

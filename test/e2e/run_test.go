@@ -70,7 +70,7 @@ var _ = Describe("Podman run", func() {
 
 	It("podman container run a container based on on a short name with localhost", func() {
 		podmanTest.RestoreArtifact(nginx)
-		tag := podmanTest.Podman([]string{"container", "tag", nginx, "localhost/libpod/alpine_nginx:latest"})
+		tag := podmanTest.Podman([]string{"image", "tag", nginx, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
 		rmi := podmanTest.Podman([]string{"image", "rm", nginx})

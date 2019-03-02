@@ -88,17 +88,6 @@ var _ = Describe("Podman rm", func() {
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
 	})
 
-	It("podman container image prune unused images", func() {
-		prune := podmanTest.Podman([]string{"container", "image", "prune", "-a"})
-		prune.WaitWithDefaultTimeout()
-		Expect(prune.ExitCode()).To(Equal(0))
-
-		images := podmanTest.Podman([]string{"image", "list", "-a"})
-		images.WaitWithDefaultTimeout()
-		// all images are unused, so they all should be deleted!
-		Expect(len(images.OutputToStringArray())).To(Equal(0))
-	})
-
 	It("podman system image prune unused images", func() {
 		SkipIfRemote()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
