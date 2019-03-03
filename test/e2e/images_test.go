@@ -43,6 +43,15 @@ var _ = Describe("Podman images", func() {
 		Expect(session.LineInOuputStartsWith("docker.io/library/busybox")).To(BeTrue())
 	})
 
+	It("podman image List", func() {
+		session := podmanTest.Podman([]string{"image", "list"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
+		Expect(session.LineInOuputStartsWith("docker.io/library/alpine")).To(BeTrue())
+		Expect(session.LineInOuputStartsWith("docker.io/library/busybox")).To(BeTrue())
+	})
+
 	It("podman images with multiple tags", func() {
 		// tag "docker.io/library/alpine:latest" to "foo:{a,b,c}"
 		session := podmanTest.Podman([]string{"tag", ALPINE, "foo:a", "foo:b", "foo:c"})
@@ -135,6 +144,23 @@ var _ = Describe("Podman images", func() {
 		Expect(len(result.OutputToStringArray())).To(Equal(1))
 	})
 
+	It("podman image list filter after image", func() {
+		if podmanTest.RemoteTest {
+			Skip("Does not work on remote client")
+		}
+		rmi := podmanTest.Podman([]string{"image", "rm", "busybox"})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		dockerfile := `FROM docker.io/library/alpine:latest
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
+		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=docker.io/library/alpine:latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+	})
+
 	It("podman images filter dangling", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
@@ -160,6 +186,21 @@ var _ = Describe("Podman images", func() {
 		imageData := session.InspectImageJSON()
 
 		result := podmanTest.Podman([]string{"images", fmt.Sprintf("sha256:%s", imageData[0].ID)})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
+
+	It("podman check for image with sha256: prefix", func() {
+		if podmanTest.RemoteTest {
+			Skip("Does not work on remote client")
+		}
+		session := podmanTest.Podman([]string{"image", "inspect", "--format=json", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+		imageData := session.InspectImageJSON()
+
+		result := podmanTest.Podman([]string{"image", "ls", fmt.Sprintf("sha256:%s", imageData[0].ID)})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 	})

@@ -66,4 +66,11 @@ var _ = Describe("Podman wait", func() {
 		session = podmanTest.Podman([]string{"wait", "-l"})
 		session.Wait(20)
 	})
+	It("podman container wait on latest container", func() {
+		session := podmanTest.Podman([]string{"container", "run", "-d", ALPINE, "sleep", "1"})
+		session.Wait(20)
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"container", "wait", "-l"})
+		session.Wait(20)
+	})
 })

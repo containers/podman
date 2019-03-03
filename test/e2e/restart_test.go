@@ -90,6 +90,21 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
 	})
 
+	It("Podman container restart running container", func() {
+		_ = podmanTest.RunTopContainer("test1")
+		ok := WaitForContainer(podmanTest)
+		Expect(ok).To(BeTrue())
+		startTime := podmanTest.Podman([]string{"container", "inspect", "--format='{{.State.StartedAt}}'", "test1"})
+		startTime.WaitWithDefaultTimeout()
+
+		session := podmanTest.Podman([]string{"container", "restart", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		restartTime := podmanTest.Podman([]string{"container", "inspect", "--format='{{.State.StartedAt}}'", "test1"})
+		restartTime.WaitWithDefaultTimeout()
+		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
+	})
+
 	It("Podman restart multiple containers", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))

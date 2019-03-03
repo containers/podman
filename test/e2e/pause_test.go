@@ -80,6 +80,23 @@ var _ = Describe("Podman pause", func() {
 		result.WaitWithDefaultTimeout()
 	})
 
+	It("podman container pause a running container by id", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"container", "pause", cid})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(pausedState))
+
+		result = podmanTest.Podman([]string{"container", "unpause", cid})
+		result.WaitWithDefaultTimeout()
+	})
+
 	It("podman unpause a running container by id", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()

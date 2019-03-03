@@ -102,22 +102,26 @@ var (
 	}
 )
 
-func init() {
-	imagesCommand.Command = &_imagesCommand
-	imagesCommand.SetUsageTemplate(UsageTemplate())
+func imagesInit(command *cliconfig.ImagesValues) {
+	command.SetUsageTemplate(UsageTemplate())
 
-	flags := imagesCommand.Flags()
-	flags.BoolVarP(&imagesCommand.All, "all", "a", false, "Show all images (default hides intermediate images)")
-	flags.BoolVar(&imagesCommand.Digests, "digests", false, "Show digests")
-	flags.StringSliceVarP(&imagesCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
-	flags.StringVar(&imagesCommand.Format, "format", "", "Change the output format to JSON or a Go template")
-	flags.BoolVarP(&imagesCommand.Noheading, "noheading", "n", false, "Do not print column headings")
+	flags := command.Flags()
+	flags.BoolVarP(&command.All, "all", "a", false, "Show all images (default hides intermediate images)")
+	flags.BoolVar(&command.Digests, "digests", false, "Show digests")
+	flags.StringSliceVarP(&command.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringVar(&command.Format, "format", "", "Change the output format to JSON or a Go template")
+	flags.BoolVarP(&command.Noheading, "noheading", "n", false, "Do not print column headings")
 	// TODO Need to learn how to deal with second name being a string instead of a char.
 	// This needs to be "no-trunc, notruncate"
-	flags.BoolVar(&imagesCommand.NoTrunc, "no-trunc", false, "Do not truncate output")
-	flags.BoolVarP(&imagesCommand.Quiet, "quiet", "q", false, "Display only image IDs")
-	flags.StringVar(&imagesCommand.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
+	flags.BoolVar(&command.NoTrunc, "no-trunc", false, "Do not truncate output")
+	flags.BoolVarP(&command.Quiet, "quiet", "q", false, "Display only image IDs")
+	flags.StringVar(&command.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
 
+}
+
+func init() {
+	imagesCommand.Command = &_imagesCommand
+	imagesInit(&imagesCommand)
 }
 
 func imagesCmd(c *cliconfig.ImagesValues) error {

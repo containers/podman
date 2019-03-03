@@ -65,6 +65,17 @@ var _ = Describe("Podman rm", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
+	It("podman container rm created container", func() {
+		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"container", "rm", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
+
 	It("podman rm running container with -f", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()

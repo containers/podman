@@ -173,25 +173,29 @@ var (
 	}
 )
 
-func init() {
-	psCommand.Command = &_psCommand
-	psCommand.SetUsageTemplate(UsageTemplate())
-	flags := psCommand.Flags()
-	flags.BoolVarP(&psCommand.All, "all", "a", false, "Show all the containers, default is only running containers")
-	flags.StringSliceVarP(&psCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions given")
-	flags.StringVar(&psCommand.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
-	flags.IntVarP(&psCommand.Last, "last", "n", -1, "Print the n last created containers (all states)")
-	flags.BoolVarP(&psCommand.Latest, "latest", "l", false, "Show the latest container created (all states)")
-	flags.BoolVar(&psCommand.Namespace, "namespace", false, "Display namespace information")
-	flags.BoolVar(&psCommand.Namespace, "ns", false, "Display namespace information")
-	flags.BoolVar(&psCommand.NoTrunct, "no-trunc", false, "Display the extended information")
-	flags.BoolVarP(&psCommand.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
-	flags.BoolVarP(&psCommand.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
-	flags.BoolVarP(&psCommand.Size, "size", "s", false, "Display the total file sizes")
-	flags.StringVar(&psCommand.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
-	flags.BoolVar(&psCommand.Sync, "sync", false, "Sync container state with OCI runtime")
+func psInit(command *cliconfig.PsValues) {
+	command.SetUsageTemplate(UsageTemplate())
+	flags := command.Flags()
+	flags.BoolVarP(&command.All, "all", "a", false, "Show all the containers, default is only running containers")
+	flags.StringSliceVarP(&command.Filter, "filter", "f", []string{}, "Filter output based on conditions given")
+	flags.StringVar(&command.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
+	flags.IntVarP(&command.Last, "last", "n", -1, "Print the n last created containers (all states)")
+	flags.BoolVarP(&command.Latest, "latest", "l", false, "Show the latest container created (all states)")
+	flags.BoolVar(&command.Namespace, "namespace", false, "Display namespace information")
+	flags.BoolVar(&command.Namespace, "ns", false, "Display namespace information")
+	flags.BoolVar(&command.NoTrunct, "no-trunc", false, "Display the extended information")
+	flags.BoolVarP(&command.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
+	flags.BoolVarP(&command.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
+	flags.BoolVarP(&command.Size, "size", "s", false, "Display the total file sizes")
+	flags.StringVar(&command.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
+	flags.BoolVar(&command.Sync, "sync", false, "Sync container state with OCI runtime")
 
 	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func init() {
+	psCommand.Command = &_psCommand
+	psInit(&psCommand)
 }
 
 func psCmd(c *cliconfig.PsValues) error {

@@ -51,6 +51,16 @@ var _ = Describe("Podman attach", func() {
 		Expect(results.ExitCode()).To(Equal(125))
 	})
 
+	It("podman container attach to non-running container", func() {
+		session := podmanTest.Podman([]string{"container", "create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"container", "attach", "test1"})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(125))
+	})
+
 	It("podman attach to multiple containers", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()

@@ -16,14 +16,39 @@ var (
 			Long:  imageDescription,
 		},
 	}
-	_imagesSubCommand = _imagesCommand
-	_rmSubCommand     = _rmiCommand
+	imagesSubCommand  cliconfig.ImagesValues
+	_imagesSubCommand = &cobra.Command{
+		Use:     strings.Replace(_imagesCommand.Use, "images", "list", 1),
+		Short:   _imagesCommand.Short,
+		Long:    _imagesCommand.Long,
+		Aliases: []string{"ls"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			imagesSubCommand.InputArgs = args
+			imagesSubCommand.GlobalFlags = MainGlobalOpts
+			return imagesCmd(&imagesSubCommand)
+		},
+		Example: strings.Replace(_imagesCommand.Example, "podman images", "podman image list", -1),
+	}
+
+	rmSubCommand  cliconfig.RmiValues
+	_rmSubCommand = &cobra.Command{
+		Use:   strings.Replace(_rmiCommand.Use, "rmi", "rm", 1),
+		Short: _rmiCommand.Short,
+		Long:  _rmiCommand.Long,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rmSubCommand.InputArgs = args
+			rmSubCommand.GlobalFlags = MainGlobalOpts
+			return rmiCmd(&rmSubCommand)
+		},
+		Example: strings.Replace(_rmiCommand.Example, "podman rmi", "podman image rm", -1),
+	}
 )
 
 //imageSubCommands are implemented both in local and remote clients
 var imageSubCommands = []*cobra.Command{
 	_buildCommand,
 	_historyCommand,
+	_imagesSubCommand,
 	_imageExistsCommand,
 	_importCommand,
 	_inspectCommand,
@@ -31,23 +56,20 @@ var imageSubCommands = []*cobra.Command{
 	_pruneImagesCommand,
 	_pullCommand,
 	_pushCommand,
+	_rmSubCommand,
 	_saveCommand,
 	_tagCommand,
 }
 
 func init() {
+	rmSubCommand.Command = _rmSubCommand
+	rmiInit(&rmSubCommand)
+
+	imagesSubCommand.Command = _imagesSubCommand
+	imagesInit(&imagesSubCommand)
+
 	imageCommand.SetUsageTemplate(UsageTemplate())
 	imageCommand.AddCommand(imageSubCommands...)
 	imageCommand.AddCommand(getImageSubCommands()...)
 
-	// Setup of "images" to appear as "list"
-	_imagesSubCommand.Use = strings.Replace(_imagesSubCommand.Use, "images", "list", 1)
-	_imagesSubCommand.Aliases = []string{"ls"}
-	_imagesSubCommand.Example = strings.Replace(_imagesSubCommand.Example, "podman images", "podman image list", -1)
-	imageCommand.AddCommand(&_imagesSubCommand)
-
-	// It makes no sense to keep 'podman images rmi'; just use 'rm'
-	_rmSubCommand.Use = strings.Replace(_rmSubCommand.Use, "rmi", "rm", 1)
-	_rmSubCommand.Example = strings.Replace(_rmSubCommand.Example, "podman rmi", "podman image rm", -1)
-	imageCommand.AddCommand(&_rmSubCommand)
 }

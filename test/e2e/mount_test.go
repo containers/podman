@@ -49,6 +49,21 @@ var _ = Describe("Podman mount", func() {
 		Expect(umount.ExitCode()).To(Equal(0))
 	})
 
+	It("podman container mount", func() {
+		setup := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid := setup.OutputToString()
+
+		mount := podmanTest.Podman([]string{"container", "mount", cid})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		umount := podmanTest.Podman([]string{"container", "umount", cid})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
+
 	It("podman mount with json format", func() {
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
