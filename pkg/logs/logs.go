@@ -277,10 +277,11 @@ func readLog(reader *bufio.Reader, opts *LogOptions) []string {
 
 // logWriter controls the writing into the stream based on the log options.
 type logWriter struct {
-	stdout io.Writer
-	stderr io.Writer
-	opts   *LogOptions
-	remain int64
+	stdout   io.Writer
+	stderr   io.Writer
+	opts     *LogOptions
+	remain   int64
+	doAppend bool
 }
 
 // errMaximumWrite is returned when all bytes have been written.
@@ -309,9 +310,15 @@ func (w *logWriter) write(msg *logMessage) error {
 		return nil
 	}
 	line := msg.log
-	if w.opts.Timestamps {
+	if w.opts.Timestamps && !w.doAppend {
 		prefix := append([]byte(msg.timestamp.Format(timeFormat)), delimiter[0])
 		line = append(prefix, line...)
+		if len(line) > 0 && line[len(line)-1] != '\n' {
+			w.doAppend = true
+		}
+	}
+	if w.doAppend && len(line) > 0 && line[len(line)-1] == '\n' {
+		w.doAppend = false
 	}
 	// If the line is longer than the remaining bytes, cut it.
 	if int64(len(line)) > w.remain {
