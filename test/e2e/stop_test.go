@@ -82,7 +82,7 @@ var _ = Describe("Podman stop", func() {
 		Expect(session3.ExitCode()).To(Equal(0))
 	})
 
-	It("podman stop all containers", func() {
+	It("podman stop all containers -t", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -105,6 +105,32 @@ var _ = Describe("Podman stop", func() {
 		Expect(output).To(ContainSubstring(cid1))
 		Expect(output).To(ContainSubstring(cid2))
 		Expect(output).To(ContainSubstring(cid3))
+	})
+
+	It("podman stop container --time", func() {
+		session := podmanTest.RunTopContainer("test4")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"stop", "--time", "1", "test4"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
+	})
+
+	It("podman stop container --timeout", func() {
+		session := podmanTest.RunTopContainer("test5")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"stop", "--timeout", "1", "test5"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
 	})
 
 	It("podman stop latest containers", func() {
