@@ -312,6 +312,10 @@ func (w *logWriter) write(msg *logMessage) error {
 	if w.opts.Timestamps {
 		prefix := append([]byte(msg.timestamp.Format(timeFormat)), delimiter[0])
 		line = append(prefix, line...)
+		// Ensure that lines always end in a newline
+		if line[len(line)-1] != '\n' {
+			line = append(line, '\n')
+		}
 	}
 	// If the line is longer than the remaining bytes, cut it.
 	if int64(len(line)) > w.remain {
