@@ -54,6 +54,11 @@ You can also use : when specifying paths to a **SRC_PATH** or **DEST_PATH** on a
 If you use a : in a local machine path, you must be explicit with a relative or absolute path, for example:
 	`/path/to/file:name.txt` or `./file:name.txt`
 
+## OPTIONS
+
+**--extract**
+
+Extract the tar file into the destination directory. If the destination directory is not provided, extract the tar file into the root directory.
 
 ## ALTERNATIVES
 
@@ -99,6 +104,8 @@ podman cp /home/myuser/myfiles.tar containerID:/tmp
 podman cp containerID:/myapp/ /myapp/
 
 podman cp containerID:/home/myuser/. /home/myuser/
+
+podman cp --extract /home/myuser/myfiles.tar.gz containerID:/myfiles
 
 ## SEE ALSO
 podman(1), podman-mount(1), podman-umount(1)

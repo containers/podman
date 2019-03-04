@@ -23,4 +23,5 @@ type BuildValues struct {
 
 type CpValues struct {
 	PodmanCommand
+	Extract bool
 }
