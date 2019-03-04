@@ -23,6 +23,7 @@ var (
 `
 	_pruneSystemCommand = &cobra.Command{
 		Use:   "prune",
+		Args:  noSubArgs,
 		Short: "Remove unused data",
 		Long:  pruneSystemDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
