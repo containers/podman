@@ -53,6 +53,9 @@ show_env_vars() {
     echo "
 BUILDTAGS $BUILDTAGS
 BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
+ROOTLESS_USER $ROOTLESS_USER
+ROOTLESS_UID $ROOTLESS_UID
+ROOTLESS_GID $ROOTLESS_GID
 CI $CI
 CIRRUS_CI $CIRRUS_CI
 CI_NODE_INDEX $CI_NODE_INDEX
@@ -117,6 +120,15 @@ bad_os_id_ver() {
     exit 42
 }
 
+run_rootless() {
+    if [[ -z "$ROOTLESS_USER" ]] && [[ -z "$ROOTLESS_UID" ]] && [[ -z "$ROOTLESS_GID" ]]
+    then
+        return 1
+    else
+        return 0
+    fi
+}
+
 stub() {
     echo "STUB: Pretending to do $1"
 }
@@ -146,12 +158,41 @@ record_timestamp() {
     echo -e "BLEEEEEEEEEEP!\n."
 }
 
-# Run sudo in directory with GOPATH set
-cdsudo() {
-    DIR="$1"
-    shift
-    CMD="cd $DIR && $@"
-    sudo --preserve-env=GOPATH --non-interactive bash -c "$CMD"
+setup_rootless() {
+    req_env_var "
+        ROOTLESS_USER $ROOTLESS_USER
+        ROOTLESS_UID $ROOTLESS_UID
+        ROOTLESS_GID $ROOTLESS_GID
+        GOSRC $GOSRC
+        ENVLIB $ENVLIB
+    "
+    echo "creating $ROOTLESS_UID:$ROOTLESS_GID $ROOTLESS_USER user"
+    groupadd -g $ROOTLESS_GID $ROOTLESS_USER
+    useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
+    chown -R $ROOTLESS_UID:$ROOTLESS_GID "$GOSRC"
+
+    echo "creating ssh keypair for $USER"
+    ssh-keygen -P "" -f $HOME/.ssh/id_rsa
+
+    echo "Allowing ssh key for $ROOTLESS_USER"
+    (umask 077 && mkdir "/home/$ROOTLESS_USER/.ssh")
+    chown -R $ROOTLESS_UID:$ROOTLESS_GID "/home/$ROOTLESS_USER/.ssh"
+    install -o $ROOTLESS_UID -g $ROOTLESS_GID -m 0600 \
+        "$HOME/.ssh/id_rsa.pub" "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+
+    echo "Setting permissions on automation files"
+    chmod 666 "$TIMESTAMPS_FILEPATH"
+
+    echo "Copying $HOME/$ENVLIB"
+    install -o $ROOTLESS_UID -g $ROOTLESS_GID -m 0700 \
+        "$HOME/$ENVLIB" "/home/$ROOTLESS_USER/$ENVLIB"
+
+    echo "Configuring user's go environment variables"
+    su --login --command 'go env' $ROOTLESS_USER | \
+        while read envline
+        do
+            X=$(echo "export $envline" | tee -a "/home/$ROOTLESS_USER/$ENVLIB") && echo "$X"
+        done
 }
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
