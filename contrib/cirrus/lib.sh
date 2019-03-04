@@ -300,21 +300,6 @@ EOF
     fi
 }
 
-# Runs in testing VM, not image building
-install_testing_dependencies() {
-    echo "Installing ginkgo, gomega, and easyjson into \$GOPATH=$GOPATH"
-    req_env_var "
-        GOPATH $GOPATH
-        GOSRC $GOSRC
-    "
-    cd "$GOSRC"
-    ooe.sh go get -u github.com/onsi/ginkgo/ginkgo
-    ooe.sh install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
-    ooe.sh go get github.com/onsi/gomega/...
-    ooe.sh go get -u github.com/mailru/easyjson/...
-    sudo install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
-}
-
 install_packer_copied_files(){
     # Install cni config, policy and registry config
     sudo install -D -m 755 /tmp/libpod/cni/87-podman-bridge.conflist \
