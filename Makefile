@@ -44,7 +44,7 @@ LIBSECCOMP_COMMIT := release-2.3
 
 # Rarely if ever should integration tests take more than 50min,
 # caller may override in special circumstances if needed.
-GINKGOTIMEOUT ?= -timeout=50m
+GINKGOTIMEOUT ?= -timeout=90m
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
