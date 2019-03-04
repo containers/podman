@@ -698,13 +698,29 @@ func (c *Container) makeBindMounts() error {
 			// If it doesn't, don't copy them
 			resolvPath, exists := bindMounts["/etc/resolv.conf"]
 			if exists {
-
 				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
 			}
+
+			// check if dependency container has an /etc/hosts file
 			hostsPath, exists := bindMounts["/etc/hosts"]
-			if exists {
-				c.state.BindMounts["/etc/hosts"] = hostsPath
+			if !exists {
+				return errors.Errorf("error finding hosts file of dependency container %s for container %s", depCtr.ID(), c.ID())
 			}
+
+			depCtr.lock.Lock()
+			// generate a hosts file for the dependency container,
+			// based on either its old hosts file, or the default,
+			// and add the relevant information from the new container (hosts and IP)
+			hostsPath, err = depCtr.appendHosts(hostsPath, c)
+
+			if err != nil {
+				depCtr.lock.Unlock()
+				return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
+			}
+			depCtr.lock.Unlock()
+
+			// finally, save it in the new container
+			c.state.BindMounts["/etc/hosts"] = hostsPath
 		} else {
 			newResolv, err := c.generateResolvConf()
 			if err != nil {
@@ -712,7 +728,7 @@ func (c *Container) makeBindMounts() error {
 			}
 			c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
-			newHosts, err := c.generateHosts()
+			newHosts, err := c.generateHosts("/etc/hosts")
 			if err != nil {
 				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 			}
@@ -854,12 +870,28 @@ func (c *Container) generateResolvConf() (string, error) {
 }
 
 // generateHosts creates a containers hosts file
-func (c *Container) generateHosts() (string, error) {
-	orig, err := ioutil.ReadFile("/etc/hosts")
+func (c *Container) generateHosts(path string) (string, error) {
+	orig, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to read /etc/hosts")
+		return "", errors.Wrapf(err, "unable to read %s", path)
 	}
 	hosts := string(orig)
+	hosts += c.getHosts()
+	return c.writeStringToRundir("hosts", hosts)
+}
+
+// appendHosts appends a container's config and state pertaining to hosts to a container's
+// local hosts file. netCtr is the container from which the netNS information is
+// taken.
+// path is the basis of the hosts file, into which netCtr's netNS information will be appended.
+func (c *Container) appendHosts(path string, netCtr *Container) (string, error) {
+	return c.appendStringToRundir("hosts", netCtr.getHosts())
+}
+
+// getHosts finds the pertinent information for a container's host file in its config and state
+// and returns a string in a format that can be written to the host file
+func (c *Container) getHosts() string {
+	var hosts string
 	if len(c.config.HostAdd) > 0 {
 		for _, host := range c.config.HostAdd {
 			// the host format has already been verified at this point
@@ -871,7 +903,7 @@ func (c *Container) generateHosts() (string, error) {
 		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
 		hosts += fmt.Sprintf("%s\t%s\n", ipAddress, c.Hostname())
 	}
-	return c.writeStringToRundir("hosts", hosts)
+	return hosts
 }
 
 // generatePasswd generates a container specific passwd file,

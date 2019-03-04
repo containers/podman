@@ -1231,6 +1231,23 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 	return filepath.Join(c.state.DestinationRunDir, destFile), nil
 }
 
+// appendStringToRundir appends the provided string to the runtimedir file
+func (c *Container) appendStringToRundir(destFile, output string) (string, error) {
+	destFileName := filepath.Join(c.state.RunDir, destFile)
+
+	f, err := os.OpenFile(destFileName, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to open %s", destFileName)
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(output); err != nil {
+		return "", errors.Wrapf(err, "unable to write %s", destFileName)
+	}
+
+	return filepath.Join(c.state.DestinationRunDir, destFile), nil
+}
+
 // Save OCI spec to disk, replacing any existing specs for the container
 func (c *Container) saveSpec(spec *spec.Spec) error {
 	// If the OCI spec already exists, we need to replace it
