@@ -477,6 +477,12 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 	runtime.config.OCIRuntime = defaultRuntimeConfig.OCIRuntime
 	runtime.config.StorageConfig = storage.StoreOptions{}
 
+	tmpDir, err := getDefaultTmpDir()
+	if err != nil {
+		return nil, err
+	}
+	runtime.config.TmpDir = tmpDir
+
 	// Check to see if the given configuration file exists
 	if _, err := os.Stat(configPath); err != nil {
 		return nil, errors.Wrapf(err, "error checking existence of configuration file %s", configPath)
