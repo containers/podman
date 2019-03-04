@@ -18,7 +18,7 @@ var (
    Starts one or more pods.  The pod name or ID can be used.
 `
 	_podStartCommand = &cobra.Command{
-		Use:   "start POD [POD...]",
+		Use:   "start [flags] POD [POD...]",
 		Short: "Start one or more pods",
 		Long:  podStartDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {

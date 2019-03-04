@@ -21,6 +21,7 @@ var (
 	listSubCommand  cliconfig.PsValues
 	_listSubCommand = &cobra.Command{
 		Use:     strings.Replace(_psCommand.Use, "ps", "list", 1),
+		Args:    noSubArgs,
 		Short:   _psCommand.Short,
 		Long:    _psCommand.Long,
 		Aliases: []string{"ls"},
