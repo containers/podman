@@ -1,3 +1,5 @@
+// +build !remoteclient
+
 package main
 
 import (
@@ -13,7 +15,8 @@ func outputError(err error) {
 	if MainGlobalOpts.LogLevel == "debug" {
 		logrus.Errorf(err.Error())
 	} else {
-		if ee, ok := err.(*exec.ExitError); ok {
+		ee, ok := err.(*exec.ExitError)
+		if ok {
 			if status, ok := ee.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			}

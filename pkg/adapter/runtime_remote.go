@@ -5,7 +5,6 @@ package adapter
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -49,14 +48,13 @@ func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	if err != nil {
 		return nil, err
 	}
-	rr := RemoteRuntime{
-		Conn:   conn,
-		Remote: true,
-	}
-	foo := LocalRuntime{
-		&rr,
-	}
-	return &foo, nil
+
+	return &LocalRuntime{
+		&RemoteRuntime{
+			Conn:   conn,
+			Remote: true,
+		},
+	}, nil
 }
 
 // Shutdown is a bogus wrapper for compat with the libpod runtime
@@ -313,66 +311,6 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 		imageHistories = append(imageHistories, &ih)
 	}
 	return imageHistories, nil
-}
-
-// LookupContainer gets basic information about container over a varlink
-// connection and then translates it to a *Container
-func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
-	state, err := r.ContainerState(idOrName)
-	if err != nil {
-		return nil, err
-	}
-	config := r.Config(idOrName)
-	if err != nil {
-		return nil, err
-	}
-
-	rc := remoteContainer{
-		r,
-		config,
-		state,
-	}
-
-	c := Container{
-		rc,
-	}
-	return &c, nil
-}
-
-func (r *LocalRuntime) GetLatestContainer() (*Container, error) {
-	return nil, libpod.ErrNotImplemented
-}
-
-// ContainerState returns the "state" of the container.
-func (r *LocalRuntime) ContainerState(name string) (*libpod.ContainerState, error) { //no-lint
-	reply, err := iopodman.ContainerStateData().Call(r.Conn, name)
-	if err != nil {
-		return nil, err
-	}
-	data := libpod.ContainerState{}
-	if err := json.Unmarshal([]byte(reply), &data); err != nil {
-		return nil, err
-	}
-	return &data, err
-
-}
-
-// Config returns a container config
-func (r *LocalRuntime) Config(name string) *libpod.ContainerConfig {
-	// TODO the Spec being returned is not populated.  Matt and I could not figure out why.  Will defer
-	// further looking into it for after devconf.
-	// The libpod function for this has no errors so we are kind of in a tough
-	// spot here.  Logging the errors for now.
-	reply, err := iopodman.ContainerConfig().Call(r.Conn, name)
-	if err != nil {
-		logrus.Error("call to container.config failed")
-	}
-	data := libpod.ContainerConfig{}
-	if err := json.Unmarshal([]byte(reply), &data); err != nil {
-		logrus.Error("failed to unmarshal container inspect data")
-	}
-	return &data
-
 }
 
 // PruneImages is the wrapper call for a remote-client to prune images

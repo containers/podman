@@ -2,15 +2,14 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -52,63 +51,43 @@ func init() {
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
+// stopCmd stops a container or containers
 func stopCmd(c *cliconfig.StopValues) error {
+	if c.Flag("timeout").Changed && c.Flag("time").Changed {
+		return errors.New("the --timeout and --time flags are mutually exclusive")
+	}
+
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
 		defer span.Finish()
 	}
 
 	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
+	ok, failures, err := runtime.StopContainers(getContext(), c)
 	if err != nil {
-		if len(containers) == 0 {
-			return err
+		return err
+	}
+
+	for _, id := range ok {
+		fmt.Println(id)
+	}
+
+	if len(failures) > 0 {
+		keys := reflect.ValueOf(failures).MapKeys()
+		lastKey := keys[len(keys)-1].String()
+		lastErr := failures[lastKey]
+		delete(failures, lastKey)
+
+		for _, err := range failures {
+			outputError(err)
 		}
-		fmt.Println(err.Error())
+		return lastErr
 	}
-
-	if c.Flag("timeout").Changed && c.Flag("time").Changed {
-		return errors.New("the --timeout and --time flags are mutually exclusive")
-	}
-
-	var stopFuncs []shared.ParallelWorkerInput
-	for _, ctr := range containers {
-		con := ctr
-		var stopTimeout uint
-		if c.Flag("timeout").Changed || c.Flag("time").Changed {
-			stopTimeout = c.Timeout
-		} else {
-			stopTimeout = ctr.StopTimeout()
-			logrus.Debugf("Set timeout to container %s default (%d)", ctr.ID(), stopTimeout)
-		}
-		f := func() error {
-			if err := con.StopWithTimeout(stopTimeout); err != nil {
-				if errors.Cause(err) == libpod.ErrCtrStopped {
-					logrus.Debugf("Container %s already stopped", con.ID())
-					return nil
-				}
-				return err
-			}
-			return nil
-		}
-		stopFuncs = append(stopFuncs, shared.ParallelWorkerInput{
-			ContainerID:  con.ID(),
-			ParallelFunc: f,
-		})
-	}
-
-	maxWorkers := shared.Parallelize("stop")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
-	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	stopErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, stopFuncs)
-	return printParallelOutput(stopErrors, errCount)
+	return nil
 }

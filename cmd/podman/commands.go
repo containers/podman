@@ -32,7 +32,6 @@ func getMainCommands() []*cobra.Command {
 		_searchCommand,
 		_startCommand,
 		_statsCommand,
-		_stopCommand,
 		_topCommand,
 		_umountCommand,
 		_unpauseCommand,
