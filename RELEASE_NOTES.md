@@ -1,5 +1,16 @@
 # Release Notes
 
+## 1.1.2
+### Bugfixes
+- Fixed a bug where the `podman image list`, `podman image rm`, and `podman container list` had broken global storage options
+- Fixed a bug where the `--label` option to `podman create` and `podman run` was missing the `-l` alias
+- Fixed a bug where running Podman with the `--config` flag would not set an appropriate default value for `tmp_dir` ([#2408](https://github.com/containers/libpod/issues/2408))
+- Fixed a bug where the `podman logs` command with the `--timestamps` flag produced unreadable output ([#2500](https://github.com/containers/libpod/issues/2500))
+- Fixed a bug where the `podman cp` command would automatically extract `.tar` files copied into the container ([#2509](https://github.com/containers/libpod/issues/2509))
+
+### Misc
+- The `podman container stop` command is now usable with the Podman remote client
+
 ## 1.1.1
 ### Bugfixes
 - Fixed a bug where `podman container restore` was erroneously available as `podman restore` ([#2191](https://github.com/containers/libpod/issues/2191))
