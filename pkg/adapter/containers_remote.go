@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -143,6 +144,30 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 			failures[id] = err
 		} else {
 			ok = append(ok, stopped)
+		}
+	}
+	return ok, failures, nil
+}
+
+// KillContainers sends signal to container(s) based on CLI inputs.
+// Returns list of successful id(s), map of failed id(s) + error, or error not from container
+func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillValues, signal syscall.Signal) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, id := range ids {
+		killed, err := iopodman.KillContainer().Call(r.Conn, id, int64(signal))
+		if err != nil {
+			failures[id] = err
+		} else {
+			ok = append(ok, killed)
 		}
 	}
 	return ok, failures, nil
