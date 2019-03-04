@@ -240,7 +240,6 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	// return functions for copying items
 	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 	copyWithTar := chrootarchive.CopyWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
-	untarPath := chrootarchive.UntarPathAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 
 	if srcfi.IsDir() {
 
@@ -263,17 +262,11 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		if destfi != nil && destfi.IsDir() {
 			destPath = filepath.Join(destPath, filepath.Base(srcPath))
 		}
-		// Copy the file, preserving attributes.
-		logrus.Debugf("copying %q to %q", srcPath, destPath)
-		if err = copyFileWithTar(srcPath, destPath); err != nil {
-			return errors.Wrapf(err, "error copying %q to %q", srcPath, destPath)
-		}
-		return nil
 	}
-	// We're extracting an archive into the destination directory.
-	logrus.Debugf("extracting contents of %q into %q", srcPath, destPath)
-	if err = untarPath(srcPath, destPath); err != nil {
-		return errors.Wrapf(err, "error extracting %q into %q", srcPath, destPath)
+	// Copy the file, preserving attributes.
+	logrus.Debugf("copying %q to %q", srcPath, destPath)
+	if err = copyFileWithTar(srcPath, destPath); err != nil {
+		return errors.Wrapf(err, "error copying %q to %q", srcPath, destPath)
 	}
 	return nil
 }
