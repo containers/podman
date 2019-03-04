@@ -35,7 +35,10 @@ import (
 
 const (
 	// timeFormat is the time format used in the log.
-	timeFormat = time.RFC3339Nano
+	// It is a modified version of RFC3339Nano that guarantees trailing
+	// zeroes are not trimmed, taken from
+	// https://github.com/golang/go/issues/19635
+	timeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 )
 
 // LogStreamType is the type of the stream in CRI container log.
