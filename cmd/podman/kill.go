@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"syscall"
+	"reflect"
+
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -51,54 +50,44 @@ func init() {
 
 // killCmd kills one or more containers with a signal
 func killCmd(c *cliconfig.KillValues) error {
-	var (
-		killFuncs  []shared.ParallelWorkerInput
-		killSignal uint = uint(syscall.SIGTERM)
-	)
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "killCmd")
+		defer span.Finish()
+	}
+
+	// Check if the signalString provided by the user is valid
+	// Invalid signals will return err
+	killSignal, err := signal.ParseSignal(c.Signal)
+	if err != nil {
+		return err
+	}
 
 	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if c.Signal != "" {
-		// Check if the signalString provided by the user is valid
-		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.Signal)
-		if err != nil {
-			return err
-		}
-		killSignal = uint(sysSignal)
-	}
-
-	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
+	ok, failures, err := runtime.KillContainers(getContext(), c, killSignal)
 	if err != nil {
-		if len(containers) == 0 {
-			return err
+		return err
+	}
+
+	for _, id := range ok {
+		fmt.Println(id)
+	}
+
+	if len(failures) > 0 {
+		keys := reflect.ValueOf(failures).MapKeys()
+		lastKey := keys[len(keys)-1].String()
+		lastErr := failures[lastKey]
+		delete(failures, lastKey)
+
+		for _, err := range failures {
+			outputError(err)
 		}
-		fmt.Println(err.Error())
+		return lastErr
 	}
-
-	for _, ctr := range containers {
-		con := ctr
-		f := func() error {
-			return con.Kill(killSignal)
-		}
-
-		killFuncs = append(killFuncs, shared.ParallelWorkerInput{
-			ContainerID:  con.ID(),
-			ParallelFunc: f,
-		})
-	}
-
-	maxWorkers := shared.Parallelize("kill")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
-	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	killErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, killFuncs)
-	return printParallelOutput(killErrors, errCount)
+	return nil
 }
