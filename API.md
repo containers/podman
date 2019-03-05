@@ -143,7 +143,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func VolumesPrune() []string, []string](#VolumesPrune)
 
-[func WaitContainer(name: string) int](#WaitContainer)
+[func WaitContainer(name: string, interval: int) int](#WaitContainer)
 
 [type BuildInfo](#BuildInfo)
 
@@ -1013,10 +1013,10 @@ VolumesPrune removes unused volumes on the host
 ### <a name="WaitContainer"></a>func WaitContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method WaitContainer(name: [string](https://godoc.org/builtin#string)) [int](https://godoc.org/builtin#int)</div>
-WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
-code of the container is returned. If the container container cannot be found by ID or name,
-a [ContainerNotFound](#ContainerNotFound) error is returned.
+method WaitContainer(name: [string](https://godoc.org/builtin#string), interval: [int](https://godoc.org/builtin#int)) [int](https://godoc.org/builtin#int)</div>
+WaitContainer takes the name or ID of a container and waits the given interval in milliseconds until the container
+stops.  Upon stopping, the return code of the container is returned. If the container container cannot be found by ID
+or name, a [ContainerNotFound](#ContainerNotFound) error is returned.
 ## Types
 ### <a name="BuildInfo"></a>type BuildInfo
 

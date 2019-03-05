@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"reflect"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -49,43 +49,36 @@ func waitCmd(c *cliconfig.WaitValues) error {
 		return errors.Errorf("you must provide at least one container name or id")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	if c.Interval == 0 {
+		return errors.Errorf("interval must be greater then 0")
+	}
+	interval := time.Duration(c.Interval) * time.Millisecond
+
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
+		return errors.Wrapf(err, "error creating runtime")
 	}
 	defer runtime.Shutdown(false)
 
+	ok, failures, err := runtime.WaitOnContainers(getContext(), c, interval)
 	if err != nil {
-		return errors.Wrapf(err, "could not get config")
+		return err
 	}
 
-	var lastError error
-	if c.Latest {
-		latestCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to wait on latest container")
-		}
-		args = append(args, latestCtr.ID())
+	for _, id := range ok {
+		fmt.Println(id)
 	}
 
-	for _, container := range args {
-		ctr, err := runtime.LookupContainer(container)
-		if err != nil {
-			return errors.Wrapf(err, "unable to find container %s", container)
-		}
-		if c.Interval == 0 {
-			return errors.Errorf("interval must be greater then 0")
-		}
-		returnCode, err := ctr.WaitWithInterval(time.Duration(c.Interval) * time.Millisecond)
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to wait for the container %v", container)
-		} else {
-			fmt.Println(returnCode)
-		}
-	}
+	if len(failures) > 0 {
+		keys := reflect.ValueOf(failures).MapKeys()
+		lastKey := keys[len(keys)-1].String()
+		lastErr := failures[lastKey]
+		delete(failures, lastKey)
 
-	return lastError
+		for _, err := range failures {
+			outputError(err)
+		}
+		return lastErr
+	}
+	return nil
 }

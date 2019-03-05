@@ -360,17 +360,16 @@ func (i *LibpodAPI) UnpauseContainer(call iopodman.VarlinkCall, name string) err
 }
 
 // WaitContainer ...
-func (i *LibpodAPI) WaitContainer(call iopodman.VarlinkCall, name string) error {
+func (i *LibpodAPI) WaitContainer(call iopodman.VarlinkCall, name string, interval int64) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	exitCode, err := ctr.Wait()
+	exitCode, err := ctr.WaitWithInterval(time.Duration(interval))
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyWaitContainer(int64(exitCode))
-
 }
 
 // RemoveContainer ...

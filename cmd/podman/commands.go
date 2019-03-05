@@ -35,7 +35,6 @@ func getMainCommands() []*cobra.Command {
 		_topCommand,
 		_umountCommand,
 		_unpauseCommand,
-		_waitCommand,
 	}
 
 	if len(_varlinkCommand.Use) > 0 {
