@@ -32,7 +32,11 @@ syscall_setresgid (gid_t rgid, gid_t egid, gid_t sgid)
 static int
 syscall_clone (unsigned long flags, void *child_stack)
 {
+#if defined(__s390__) || defined(__CRIS__)
+  return (int) syscall (__NR_clone, child_stack, flags);
+#else
   return (int) syscall (__NR_clone, flags, child_stack);
+#endif
 }
 
 static char **
