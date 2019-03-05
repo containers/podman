@@ -25,6 +25,11 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+const (
+	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
+	createDirectoryPermission = 0755
+)
+
 var (
 	playKubeCommand     cliconfig.KubePlayValues
 	playKubeDescription = "Play a Pod and its containers based on a Kubrernetes YAML"
@@ -144,12 +149,41 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
+	// map from name to mount point
+	volumes := make(map[string]string)
+	for _, volume := range podYAML.Spec.Volumes {
+		hostPath := volume.VolumeSource.HostPath
+		if hostPath == nil {
+			return errors.Errorf("HostPath is currently the only supported VolumeSource")
+		}
+		if hostPath.Type != nil {
+			switch *hostPath.Type {
+			case v1.HostPathDirectoryOrCreate:
+				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
+					if err := os.Mkdir(hostPath.Path, createDirectoryPermission); err != nil {
+						return errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+					}
+				}
+			case v1.HostPathDirectory:
+				// do nothing here because we will verify the path exists in validateVolumeHostDir
+				break
+			default:
+				return errors.Errorf("Directories are the only supported HostPath type")
+			}
+		}
+		if err := validateVolumeHostDir(hostPath.Path); err != nil {
+			return errors.Wrapf(err, "Error in parsing HostPath in YAML")
+		}
+		fmt.Println(volume.Name)
+		volumes[volume.Name] = hostPath.Path
+	}
+
 	for _, container := range podYAML.Spec.Containers {
 		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, false, nil)
 		if err != nil {
 			return err
 		}
-		createConfig := kubeContainerToCreateConfig(container, runtime, newImage, namespaces)
+		createConfig, err := kubeContainerToCreateConfig(container, runtime, newImage, namespaces, volumes)
 		if err != nil {
 			return err
 		}
@@ -194,7 +228,7 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Runtime, newImage *image2.Image, namespaces map[string]string) *createconfig.CreateConfig {
+func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Runtime, newImage *image2.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		envs            map[string]string
@@ -239,6 +273,17 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 	for _, e := range containerYAML.Env {
 		envs[e.Name] = e.Value
 	}
+
+	for _, volume := range containerYAML.VolumeMounts {
+		host_path, exists := volumes[volume.Name]
+		if !exists {
+			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
+		}
+		if err := validateVolumeCtrDir(volume.MountPath); err != nil {
+			return nil, errors.Wrapf(err, "error in parsing MountPath")
+		}
+		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", host_path, volume.MountPath))
+	}
 	containerConfig.Env = envs
-	return &containerConfig
+	return &containerConfig, nil
 }
