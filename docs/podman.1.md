@@ -72,6 +72,9 @@ Default state dir is configured in /etc/containers/storage.conf.
 
 Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
 
+**--network-cmd-path**=**path**
+Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+
 **--storage-driver**=**value**
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.

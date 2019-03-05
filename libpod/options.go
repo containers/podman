@@ -193,6 +193,20 @@ func WithConmonEnv(environment []string) RuntimeOption {
 	}
 }
 
+// WithNetworkCmdPath specifies the path to the slirp4netns binary which manages the
+// runtime.
+func WithNetworkCmdPath(path string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.config.NetworkCmdPath = path
+
+		return nil
+	}
+}
+
 // WithCgroupManager specifies the manager implementation name which is used to
 // handle cgroups for containers.
 // Current valid values are "cgroupfs" and "systemd".

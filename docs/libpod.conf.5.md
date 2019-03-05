@@ -91,6 +91,10 @@ libpod to manage containers.
   Directory where named volumes will be created in using the default volume driver.
   By default this will be configured relative to where containers/storage stores containers.
 
+**network_cmd_path**=""
+  Path to the command binary to use for setting up a network.  It is currently only used for setting up
+  a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path
 

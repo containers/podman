@@ -104,6 +104,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CpuProfile, "cpu-profile", "", "Path for the cpu profiling results")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Config, "config", "", "Path of a libpod config file detailing container server configuration options")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.ConmonPath, "conmon", "", "Path of the conmon binary")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.NetworkCmdPath, "network-cmd-path", "", "Path to the command for configuring the network")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", "", "Path of the configuration directory for CNI networks")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", "", "Path to default mounts file")
 	rootCmd.PersistentFlags().MarkHidden("defaults-mount-file")

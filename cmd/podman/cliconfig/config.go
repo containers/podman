@@ -25,6 +25,7 @@ type MainFlags struct {
 	StorageOpts       []string
 	Syslog            bool
 	Trace             bool
+	NetworkCmdPath    string
 
 	Config     string
 	CpuProfile string

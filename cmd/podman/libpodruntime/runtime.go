@@ -86,6 +86,9 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, err
 	if c.Flags().Changed("tmpdir") {
 		options = append(options, libpod.WithTmpDir(c.GlobalFlags.TmpDir))
 	}
+	if c.Flags().Changed("network-cmd-path") {
+		options = append(options, libpod.WithNetworkCmdPath(c.GlobalFlags.NetworkCmdPath))
+	}
 
 	if c.Flags().Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(c.GlobalFlags.CGroupManager))
