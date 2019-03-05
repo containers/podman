@@ -1,3 +1,20 @@
+- Changelog for v1.1.2 (2019-03-04)
+  * Fix #2521
+  * Update release notes for v1.1.2
+  * Change timestamp format for podman logs
+  * Don't extract tar file in podman cp
+  * runtime: fill a proper default tmpdir when --config is used
+  * Add additional defense against 0-length log segfaults
+  * When logging with timestamps, append only until newline
+  * Ensure that each log line is newline-terminated
+  * A few more usage-message tweaks
+  * Add missing short flag -l for run/create
+  * Fix aliased commands to actually work
+  * Support podman-remote stop container(s)
+  * Add tests to make sure podman container and podman image commands work
+  * Bump gitvalidation epoch
+  * Bump to v1.2.0-dev
+
 - Changelog for v1.1.1 (2019-03-01)
   * Update release notes for v1.1.1
   * Pull image for runlabel if not local
