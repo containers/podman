@@ -4,7 +4,7 @@ load helpers
 
 # Very simple test
 @test "podman stop - basic test" {
-    run_podman run -d $PODMAN_TEST_IMAGE_FQN sleep 60
+    run_podman run -d $IMAGE sleep 60
     cid="$output"
 
     # Run 'stop'. Time how long it takes.
@@ -37,7 +37,7 @@ load helpers
     # different variations of this test.
     for t_opt in '' '--time=5' '--timeout=5'; do
         # Run a simple container that logs output on SIGTERM
-        run_podman run -d $PODMAN_TEST_IMAGE_FQN sh -c \
+        run_podman run -d $IMAGE sh -c \
                    "trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo READY; while :; do sleep 1; done"
         cid="$output"
         wait_for_ready $cid
@@ -63,3 +63,5 @@ load helpers
         run_podman rm $cid
     done
 }
+
+# vim: filetype=sh

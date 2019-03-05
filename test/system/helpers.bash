@@ -10,6 +10,9 @@ PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"alpine_labels"}
 PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"latest"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
+# Because who wants to spell that out each time?
+IMAGE=$PODMAN_TEST_IMAGE_FQN
+
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-60}
 
@@ -33,9 +36,9 @@ function basic_setup() {
         if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
             found_needed_image=1
         else
-            echo "# setup_standard_environment: podman rmi $1 & $2" >&3
-            podman rmi --force "$1" >/dev/null 2>&1 || true
-            podman rmi --force "$2" >/dev/null 2>&1 || true
+            echo "# setup(): removing stray images" >&3
+            run_podman rmi --force "$1" >/dev/null 2>&1 || true
+            run_podman rmi --force "$2" >/dev/null 2>&1 || true
         fi
     done
 
@@ -43,11 +46,22 @@ function basic_setup() {
     if [ -z "$found_needed_image" ]; then
         run_podman pull "$PODMAN_TEST_IMAGE_FQN"
     fi
+
+    # Argh. Although BATS provides $BATS_TMPDIR, it's just /tmp!
+    # That's bloody worthless. Let's make our own, in which subtests
+    # can write whatever they like and trust that it'll be deleted
+    # on cleanup.
+    # TODO: do this outside of setup, so it carries across tests?
+    PODMAN_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
 }
 
-# Basic teardown: remove all containers
+# Basic teardown: remove all pods and containers
 function basic_teardown() {
-    run_podman rm --all --force
+    echo "# [teardown]" >&2
+    run_podman '?' pod rm --all --force
+    run_podman '?'     rm --all --force
+
+    /bin/rm -rf $PODMAN_TMPDIR
 }
 
 
@@ -118,10 +132,12 @@ function run_podman() {
     esac
 
     # stdout is only emitted upon error; this echo is to help a debugger
-    echo "\$ $PODMAN $@"
+    echo "\$ $PODMAN $*"
     run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@"
     # without "quotes", multiple lines are glommed together into one
-    echo "$output"
+    if [ -n "$output" ]; then
+        echo "$output"
+    fi
     if [ "$status" -ne 0 ]; then
         echo -n "[ rc=$status ";
         if [ -n "$expected_rc" ]; then
@@ -143,21 +159,22 @@ function run_podman() {
 
     if [ -n "$expected_rc" ]; then
         if [ "$status" -ne "$expected_rc" ]; then
-            die "FAIL: exit code is $status; expected $expected_rc"
+            die "exit code is $status; expected $expected_rc"
         fi
     fi
 }
 
 
-# Wait for 'READY' in container output
-function wait_for_ready {
-    local cid=
+# Wait for certain output from a container, indicating that it's ready.
+function wait_for_output {
     local sleep_delay=5
-    local how_long=60
+    local how_long=$PODMAN_TIMEOUT
+    local expect=
+    local cid=
 
     # Arg processing. A single-digit number is how long to sleep between
-    # iterations; a 2- or 3-digit number is the total time to wait; anything
-    # else is the container ID or name to wait on.
+    # iterations; a 2- or 3-digit number is the total time to wait; all
+    # else are, in order, the string to expect and the container name/ID.
     local i
     for i in "$@"; do
         if expr "$i" : '[0-9]\+$' >/dev/null; then
@@ -166,6 +183,8 @@ function wait_for_ready {
             else
                 how_long=$i
             fi
+        elif [ -z "$expect" ]; then
+            expect=$i
         else
             cid=$i
         fi
@@ -176,14 +195,19 @@ function wait_for_ready {
     t1=$(expr $SECONDS + $how_long)
     while [ $SECONDS -lt $t1 ]; do
         run_podman logs $cid
-        if expr "$output" : ".*READY" >/dev/null; then
+        if expr "$output" : ".*$expect" >/dev/null; then
             return
         fi
 
         sleep $sleep_delay
     done
 
-    die "FAIL: timed out waiting for READY from $cid"
+    die "timed out waiting for '$expect' from $cid"
+}
+
+# Shortcut for the lazy
+function wait_for_ready {
+    wait_for_output 'READY' "$@"
 }
 
 # END   podman helpers
@@ -206,7 +230,9 @@ function skip_if_rootless() {
 #  die  #  Abort with helpful message
 #########
 function die() {
-    echo "# $*" >&2
+    echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
+    echo "#| FAIL: $*"                                           >&2
+    echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2
     false
 }
 
@@ -232,16 +258,24 @@ function is() {
         if [ -z "$actual" ]; then
             return
         fi
-        die "$testname:\n#  expected no output; got %q\n" "$actual"
-    fi
-
-    if expr "$actual" : "$expect" >/dev/null; then
+        expect='[no output]'
+    elif expr "$actual" : "$expect" >/dev/null; then
         return
     fi
 
-    # This is a multi-line message, so let's format it ourself (not via die)
-    printf "# $testname:\n#  expected: %q\n#    actual: %q\n"    \
-           "$expect" "$actual" >&2
+    # This is a multi-line message, which may in turn contain multi-line
+    # output, so let's format it ourself, readably
+    local -a actual_split
+    readarray -t actual_split <<<"$actual"
+    printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2
+    printf "#|     FAIL: $testname\n"                          >&2
+    printf "#| expected: '%s'\n" "$expect"                     >&2
+    printf "#|   actual: '%s'\n" "${actual_split[0]}"          >&2
+    local line
+    for line in "${actual_split[@]:1}"; do
+        printf "#|         > '%s'\n" "$line"                   >&2
+    done
+    printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n" >&2
     false
 }
 

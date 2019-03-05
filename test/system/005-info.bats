@@ -26,8 +26,6 @@ RunRoot:
 }
 
 @test "podman info - json" {
-    type -path jq >/dev/null || die "FAIL: please 'dnf -y install jq'"
-
     run_podman info --format=json
 
     expr_nvr="[a-z0-9-]\\\+-[a-z0-9.]\\\+-[a-z0-9]\\\+\."
@@ -52,3 +50,5 @@ store.ImageStore.number   | 1
     done
 
 }
+
+# vim: filetype=sh

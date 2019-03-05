@@ -11,7 +11,7 @@ load helpers
     f_content=$(random_string 30)
 
     c_name=mount_test_$(random_string 5)
-    run_podman run --name $c_name $PODMAN_TEST_IMAGE_FQN \
+    run_podman run --name $c_name $IMAGE \
                sh -c "echo $f_content > $f_path"
 
     run_podman mount $c_name
@@ -33,3 +33,5 @@ load helpers
         die "Mounted file exists even after umount: $mount_path/$f_path"
     fi
 }
+
+# vim: filetype=sh

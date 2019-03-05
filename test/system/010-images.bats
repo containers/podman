@@ -25,8 +25,6 @@ load helpers
 
 
 @test "podman images - json" {
-    type -path jq >/dev/null || die "FAIL: please 'dnf -y install jq'"
-
     tests="
 names[0]   | $PODMAN_TEST_IMAGE_FQN
 id         |        [0-9a-f]\\\{64\\\}
@@ -44,3 +42,5 @@ size       | [0-9]\\\+
     done
 
 }
+
+# vim: filetype=sh

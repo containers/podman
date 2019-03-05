@@ -24,23 +24,26 @@ function podman_commands() {
 
 
 function check_help() {
-    count=0
+    local count=0
+    local subcommands_found=0
+
     for cmd in $(podman_commands "$@"); do
         dprint "podman $@ $cmd --help"
         run_podman "$@" $cmd --help
 
-        # FIXME FIXME FIXME
-        usage=$(echo "$output" | grep -A2 '^Usage:' | grep . | tail -1)
-        #        dprint "$usage"
+        # The line immediately after 'Usage:' gives us a 1-line synopsis
+        usage=$(echo "$output" | grep -A1 '^Usage:' | tail -1)
         [ -n "$usage" ] || die "podman $cmd: no Usage message found"
 
-        # if ends in '[command]', recurse into subcommands
+        # If usage ends in '[command]', recurse into subcommands
         if expr "$usage" : '.*\[command\]$' >/dev/null; then
+            subcommands_found=$(expr $subcommands_found + 1)
             check_help "$@" $cmd
             continue
         fi
 
-        # if ends in '[flag]' FIXME
+        # If usage ends in '[flag]', command takes no more arguments.
+        # Confirm that by running with 'invalid-arg' and expecting failure.
         if expr "$usage" : '.*\[flags\]$' >/dev/null; then
             if [ "$cmd" != "help" ]; then
                 run_podman 125 "$@" $cmd invalid-arg
@@ -52,11 +55,22 @@ function check_help() {
         count=$(expr $count + 1)
     done
 
+    # This can happen if the output of --help changes, such as between
+    # the old command parser and cobra.
     [ $count -gt 0 ] || \
         die "Internal error: no commands found in 'podman help $@' list"
+
+    # At least the top level must have some subcommands
+    if [ -z "$*" -a $subcommands_found -eq 0 ]; then
+        die "Internal error: did not find any podman subcommands"
+    fi
 }
 
 
 @test "podman help - basic tests" {
+    # Called with no args -- start with 'podman --help'. check_help() will
+    # recurse for any subcommands.
     check_help
 }
+
+# vim: filetype=sh

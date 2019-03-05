@@ -16,21 +16,19 @@ load helpers
 
         eval set -- "$options"
 
-        run_podman history "$@" $PODMAN_TEST_IMAGE_FQN
+        run_podman history "$@" $IMAGE
         is "$output" "$expect" "podman history $options"
     done
 }
 
 @test "podman history - json" {
-    type -path jq >/dev/null || die "FAIL: please 'dnf -y install jq'"
-
     tests="
 id        | [0-9a-f]\\\{64\\\}
 created   | [0-9-]\\\+T[0-9:]\\\+\\\.[0-9]\\\+Z
 size      | -\\\?[0-9]\\\+
 "
 
-    run_podman history --format json $PODMAN_TEST_IMAGE_FQN
+    run_podman history --format json $IMAGE
 
     parse_table "$tests" | while read field expect; do
         # HACK: we can't include '|' in the table
@@ -47,3 +45,5 @@ size      | -\\\?[0-9]\\\+
     done
 
 }
+
+# vim: filetype=sh

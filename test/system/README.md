@@ -18,17 +18,28 @@ sometimes needs to massage the returned values; `015-run.bats` offers
 examples of how to deal with the more typical such issues.
 
 * `run_podman` - runs command defined in `$PODMAN` (default: 'podman'
-but could also be 'podman-remote'), with a timeout. Checks its exit status.
+but could also be './bin/podman' or 'podman-remote'), with a timeout.
+Checks its exit status.
 
 * `is` - compare actual vs expected output. Emits a useful diagnostic
 on failure.
+
+* `die` - output a properly-formatted message to stderr, and fail test
+
+* `skip_if_rootless` - if rootless, skip this test with a helpful message.
 
 * `random_string` - returns a pseudorandom alphanumeric string
 
 Test files are of the form `NNN-name.bats` where NNN is a three-digit
 number. Please preserve this convention, it simplifies viewing the
-directory and understanding test order. Most of the time it's not
-important but `00x` should be reserved for the times when it matters.
+directory and understanding test order. In particular, `00x` tests
+should be reserved for a first-pass fail-fast subset of tests:
+
+    bats test/system/00*.bats || exit 1
+    bats test/system
+
+...the goal being to provide quick feedback on catastrophic failures
+without having to wait for the entire test suite.
 
 
 Analyzing test failures
@@ -54,6 +65,12 @@ Debugging tests
 Some functions have `dprint` statements. To see the output of these,
 set `PODMAN_TEST_DEBUG="funcname"` where `funcname` is the name of
 the function or perhaps just a substring.
+
+
+Requirements
+============
+
+The `jq` tool is needed for parsing JSON output.
 
 
 Further Details

@@ -26,7 +26,9 @@ echo $rand        |   0 | $rand
         # a way to do so.
         eval set "$cmd"
 
-        run_podman $expected_rc run $PODMAN_TEST_IMAGE_FQN "$@"
+        run_podman $expected_rc run $IMAGE "$@"
         is "$output" "$expected_output" "podman run $cmd - output"
     done < <(parse_table "$tests")
 }
+
+# vim: filetype=sh
