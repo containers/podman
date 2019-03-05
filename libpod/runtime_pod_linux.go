@@ -95,8 +95,11 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	if pod.config.UsePodCgroup {
 		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
-	if pod.HasInfraContainer() != pod.SharesNamespaces() {
+	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
 		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
+	}
+	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
+		logrus.Warnf("Pod has an infra container, but shares no namespaces")
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
