@@ -43,6 +43,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
 
+[func GetContainerStatsWithHistory(previousStats: ContainerStats) ContainerStats](#GetContainerStatsWithHistory)
+
 [func GetContainersByContext(all: bool, latest: bool, args: []string) []string](#GetContainersByContext)
 
 [func GetEvents(options: EventInput) Event](#GetEvents)
@@ -132,6 +134,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func StopPod(name: string, timeout: int) string](#StopPod)
 
 [func TagImage(name: string, tagged: string) string](#TagImage)
+
+[func TopPod(pod: string, latest: bool, descriptors: []string) []string](#TopPod)
 
 [func UnmountContainer(name: string, force: bool) ](#UnmountContainer)
 
@@ -472,6 +476,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name
   }
 }
 ~~~
+### <a name="GetContainerStatsWithHistory"></a>func GetContainerStatsWithHistory
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetContainerStatsWithHistory(previousStats: [ContainerStats](#ContainerStats)) [ContainerStats](#ContainerStats)</div>
+GetContainerStatsWithHistory takes a previous set of container statistics and uses libpod functions
+to calculate the containers statistics based on current and previous measurements.
 ### <a name="GetContainersByContext"></a>func GetContainersByContext
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -976,6 +986,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71
 method TagImage(name: [string](https://godoc.org/builtin#string), tagged: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
+### <a name="TopPod"></a>func TopPod
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method TopPod(pod: [string](https://godoc.org/builtin#string), latest: [bool](https://godoc.org/builtin#bool), descriptors: [[]string](#[]string)) [[]string](#[]string)</div>
+
 ### <a name="UnmountContainer"></a>func UnmountContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

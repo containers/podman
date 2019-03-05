@@ -5,13 +5,13 @@ package adapter
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
@@ -170,6 +170,32 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 			failures[id] = err
 		} else {
 			ok = append(ok, killed)
+		}
+	}
+	return ok, failures, nil
+}
+
+// RemoveContainer removes container(s) based on CLI inputs.
+func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			return ok, failures, nil
+		}
+		return ok, failures, err
+	}
+
+	for _, id := range ids {
+		removed, err := iopodman.RemoveContainer().Call(r.Conn, id, cli.Force, cli.Volumes)
+		if err != nil {
+			failures[id] = err
+		} else {
+			ok = append(ok, removed)
 		}
 	}
 	return ok, failures, nil

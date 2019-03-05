@@ -27,7 +27,6 @@ func getMainCommands() []*cobra.Command {
 		_portCommand,
 		_refreshCommand,
 		_restartCommand,
-		_rmCommand,
 		_runCommand,
 		_searchCommand,
 		_startCommand,

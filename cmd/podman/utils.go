@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 	"os"
 	gosignal "os/signal"
+	"reflect"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
@@ -244,6 +245,26 @@ func printParallelOutput(m map[string]error, errCount int) error {
 		fmt.Println(cid)
 	}
 	return lastError
+}
+
+// print results from CLI command
+func printCmdResults(ok []string, failures map[string]error) error {
+	for _, id := range ok {
+		fmt.Println(id)
+	}
+
+	if len(failures) > 0 {
+		keys := reflect.ValueOf(failures).MapKeys()
+		lastKey := keys[len(keys)-1].String()
+		lastErr := failures[lastKey]
+		delete(failures, lastKey)
+
+		for _, err := range failures {
+			outputError(err)
+		}
+		return lastErr
+	}
+	return nil
 }
 
 // markFlagHiddenForRemoteClient makes the flag not appear as part of the CLI

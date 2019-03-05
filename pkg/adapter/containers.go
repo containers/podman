@@ -106,6 +106,32 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 	return ok, failures, nil
 }
 
+// RemoveContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		// Force may be used to remove containers no longer found in the database
+		if cli.Force && len(cli.InputArgs) > 0 && errors.Cause(err) == libpod.ErrNoSuchCtr {
+			r.RemoveContainersFromStorage(cli.InputArgs)
+		}
+		return ok, failures, err
+	}
+
+	for _, c := range ctrs {
+		if err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes); err != nil {
+			failures[c.ID()] = err
+		} else {
+			ok = append(ok, c.ID())
+		}
+	}
+	return ok, failures, nil
+}
+
 // WaitOnContainers waits for all given container(s) to stop
 func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.WaitValues, interval time.Duration) ([]string, map[string]error, error) {
 	var (
