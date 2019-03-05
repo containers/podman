@@ -107,7 +107,7 @@ yum install -y \
   ostree-devel \
   pkgconfig \
   runc \
-  skopeo-containers
+  containers-common
 ```
 
 Debian, Ubuntu, and related distributions:

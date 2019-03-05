@@ -34,7 +34,7 @@ acquire the source, and build it.
 ```console
 sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
                                   gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
-                                  atomic-registries iptables skopeo-containers containernetworking-cni \
+                                  atomic-registries iptables containers-common containernetworking-cni \
                                   conmon ostree-devel
 ```
 ### Building and installing podman

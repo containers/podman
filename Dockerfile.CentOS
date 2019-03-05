@@ -15,7 +15,7 @@ RUN yum -y install btrfs-progs-devel \
               libassuan-devel \
               libseccomp-devel \
               libselinux-devel \
-              skopeo-containers \
+              containers-common \
               runc \
               make \
               ostree-devel \

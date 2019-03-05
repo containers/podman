@@ -31,7 +31,7 @@ RUN dnf -y install \
       python3-pytoml \
       python3-pyyaml \
       python3-varlink \
-      skopeo-containers \
+      containers-common \
       slirp4netns \
       rsync \
       which \
