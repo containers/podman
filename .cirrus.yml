@@ -27,11 +27,11 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-7f4cd1f7"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-7f4cd1f7"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-84514d8b"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-d6d53e40"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-d6d53e40"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-d6d53e40"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-d6d53e40"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
     ####
@@ -169,9 +169,9 @@ testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
 
-            # TODO: tests fail
+            # TODO: Make these work (also optional_testing_task below)
+            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
             # image_name: "${RHEL_CACHE_IMAGE_NAME}"
             # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
@@ -206,9 +206,9 @@ optional_testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # TODO: Make these work (also build_images_task below)
+            # TODO: Make these work (also testing_task above)
             # image_name: "${RHEL_CACHE_IMAGE_NAME}"
+            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
             # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
     timeout_in: 60m

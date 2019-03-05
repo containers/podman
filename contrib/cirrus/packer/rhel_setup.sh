@@ -33,6 +33,7 @@ ooe.sh sudo yum -y update
 ooe.sh sudo yum -y install \
     PyYAML \
     atomic-registries \
+    bats \
     btrfs-progs-devel \
     bzip2 \
     device-mapper-devel \
