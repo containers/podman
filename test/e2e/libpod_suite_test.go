@@ -61,9 +61,12 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 func (p *PodmanTestIntegration) Cleanup() {
 	// Remove all containers
 	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
-	stopall.WaitWithDefaultTimeout()
+	// stopall.WaitWithDefaultTimeout()
+	stopall.Wait(90)
+
 	session := p.Podman([]string{"rm", "-fa"})
 	session.Wait(90)
+
 	// Nuke tempdir
 	if err := os.RemoveAll(p.TempDir); err != nil {
 		fmt.Printf("%q\n", err)
@@ -141,7 +144,7 @@ func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegratio
 	return session, session.ExitCode(), session.OutputToString()
 }
 
-//RunTopContainer runs a simple container in the background that
+// RunTopContainer runs a simple container in the background that
 // runs top.  If the name passed != "", it will have a name
 func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionIntegration {
 	var podmanArgs = []string{"run"}
@@ -161,7 +164,7 @@ func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSe
 	return p.Podman(podmanArgs)
 }
 
-//RunLsContainer runs a simple container in the background that
+// RunLsContainer runs a simple container in the background that
 // simply runs ls. If the name passed != "", it will have a name
 func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionIntegration, int, string) {
 	var podmanArgs = []string{"run"}
@@ -215,13 +218,19 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	return PodmanTestCreateUtil(tempDir, false)
 }
 
-//MakeOptions assembles all the podman main options
+// MakeOptions assembles all the podman main options
 func (p *PodmanTestIntegration) makeOptions(args []string) []string {
-	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s",
-		p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir), " ")
+	var debug string
+	if _, ok := os.LookupEnv("DEBUG"); ok {
+		debug = "--log-level=debug --syslog=true "
+	}
+
+	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s",
+		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
+
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions

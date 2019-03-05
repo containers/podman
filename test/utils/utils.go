@@ -311,6 +311,8 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 // WaitWithDefaultTimeout waits for process finished with defaultWaitTimeout
 func (s *PodmanSession) WaitWithDefaultTimeout() {
 	s.Wait(defaultWaitTimeout)
+	os.Stdout.Sync()
+	os.Stderr.Sync()
 	fmt.Println("output:", s.OutputToString())
 }
 

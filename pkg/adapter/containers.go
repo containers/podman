@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -62,37 +63,115 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 		timeout = &t
 	}
 
-	var (
-		ok       = []string{}
-		failures = map[string]error{}
-	)
+	maxWorkers := shared.DefaultPoolSize("stop")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum stop workers to %d", maxWorkers)
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
-		return ok, failures, err
+		return nil, nil, err
 	}
 
+	pool := shared.NewPool("stop", maxWorkers, len(ctrs))
 	for _, c := range ctrs {
+		c := c
+
 		if timeout == nil {
 			t := c.StopTimeout()
 			timeout = &t
 			logrus.Debugf("Set timeout to container %s default (%d)", c.ID(), *timeout)
 		}
-		if err := c.StopWithTimeout(*timeout); err == nil {
-			ok = append(ok, c.ID())
-		} else if errors.Cause(err) == libpod.ErrCtrStopped {
-			ok = append(ok, c.ID())
-			logrus.Debugf("Container %s is already stopped", c.ID())
-		} else {
-			failures[c.ID()] = err
-		}
+
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				err := c.StopWithTimeout(*timeout)
+				if err != nil {
+					if errors.Cause(err) == libpod.ErrCtrStopped {
+						logrus.Debugf("Container %s is already stopped", c.ID())
+						return nil
+					}
+					logrus.Debugf("Failed to stop container %s: %s", c.ID(), err.Error())
+				}
+				return err
+			},
+		})
 	}
-	return ok, failures, nil
+	return pool.Run()
 }
 
 // KillContainers sends signal to container(s) based on CLI inputs.
 // Returns list of successful id(s), map of failed id(s) + error, or error not from container
 func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillValues, signal syscall.Signal) ([]string, map[string]error, error) {
+	maxWorkers := shared.DefaultPoolSize("kill")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum kill workers to %d", maxWorkers)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pool := shared.NewPool("kill", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		c := c
+
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				return c.Kill(uint(signal))
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// RemoveContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	maxWorkers := shared.DefaultPoolSize("rm")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		// Force may be used to remove containers no longer found in the database
+		if cli.Force && len(cli.InputArgs) > 0 && errors.Cause(err) == libpod.ErrNoSuchCtr {
+			r.RemoveContainersFromStorage(cli.InputArgs)
+		}
+		return ok, failures, err
+	}
+
+	pool := shared.NewPool("rm", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		c := c
+
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes)
+				if err != nil {
+					logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// UmountRootFilesystems removes container(s) based on CLI inputs.
+func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig.UmountValues) ([]string, map[string]error, error) {
 	var (
 		ok       = []string{}
 		failures = map[string]error{}
@@ -103,11 +182,25 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 		return ok, failures, err
 	}
 
-	for _, c := range ctrs {
-		if err := c.Kill(uint(signal)); err == nil {
-			ok = append(ok, c.ID())
+	for _, ctr := range ctrs {
+		state, err := ctr.State()
+		if err != nil {
+			logrus.Debugf("Error umounting container %s state: %s", ctr.ID(), err.Error())
+			continue
+		}
+		if state == libpod.ContainerStateRunning {
+			logrus.Debugf("Error umounting container %s, is running", ctr.ID())
+			continue
+		}
+
+		if err := ctr.Unmount(cli.Force); err != nil {
+			if cli.All && errors.Cause(err) == storage.ErrLayerNotMounted {
+				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
+				continue
+			}
+			failures[ctr.ID()] = errors.Wrapf(err, "error unmounting continaner %s", ctr.ID())
 		} else {
-			failures[c.ID()] = err
+			ok = append(ok, ctr.ID())
 		}
 	}
 	return ok, failures, nil

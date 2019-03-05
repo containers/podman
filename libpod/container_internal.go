@@ -948,7 +948,7 @@ func (c *Container) start() error {
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
-	logrus.Debugf("Stopping ctr %s with timeout %d", c.ID(), timeout)
+	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
 	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
 		return err
@@ -1064,14 +1064,16 @@ func (c *Container) mountStorage() (string, error) {
 func (c *Container) cleanupStorage() error {
 	if !c.state.Mounted {
 		// Already unmounted, do nothing
-		logrus.Debugf("Storage is already unmounted, skipping...")
+		logrus.Debugf("Container %s storage is already unmounted, skipping...", c.ID())
 		return nil
 	}
+
 	for _, mount := range c.config.Mounts {
 		if err := c.unmountSHM(mount); err != nil {
 			return err
 		}
 	}
+
 	if c.config.Rootfs != "" {
 		return nil
 	}
