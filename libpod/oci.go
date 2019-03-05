@@ -733,7 +733,7 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: Add --detach support
 // TODO: Convert to use conmon
 // TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams) (*exec.Cmd, error) {
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams, preserveFDs int) (*exec.Cmd, error) {
 	if len(cmd) == 0 {
 		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
 	}
@@ -770,6 +770,9 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		args = append(args, "--user", user)
 	}
 
+	if preserveFDs > 0 {
+		args = append(args, fmt.Sprintf("--preserve-fds=%d", preserveFDs))
+	}
 	if c.config.Spec.Process.NoNewPrivileges {
 		args = append(args, "--no-new-privs")
 	}
@@ -804,6 +807,14 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	if err := execCmd.Start(); err != nil {
 		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+	}
+
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			// These fds were passed down to the runtime.  Close them
+			// and not interfere
+			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
+		}
 	}
 
 	return execCmd, nil

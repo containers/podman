@@ -102,7 +102,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
-func JoinNS(pid uint) (bool, int, error) {
+func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
@@ -116,6 +116,13 @@ func JoinNS(pid uint) (bool, int, error) {
 	pidC := C.reexec_userns_join(C.int(userNS.Fd()), -1)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
+	}
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			// These fds were passed down to the runtime.  Close them
+			// and not interfere
+			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
+		}
 	}
 
 	ret := C.reexec_in_user_namespace_wait(pidC)

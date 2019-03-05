@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
@@ -47,6 +49,7 @@ func init() {
 	flags.BoolVarP(&execCommand.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
 	flags.StringVarP(&execCommand.User, "user", "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
 
+	flags.IntVar(&execCommand.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
 	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -82,11 +85,34 @@ func execCmd(c *cliconfig.ExecValues) error {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])
 	}
 
+	if c.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+				}
+			}
+			m[i] = true
+		}
+		for i := 3; i < 3+c.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+
+	}
+
 	pid, err := ctr.PID()
 	if err != nil {
 		return err
 	}
-	became, ret, err := rootless.JoinNS(uint(pid))
+	became, ret, err := rootless.JoinNS(uint(pid), c.PreserveFDs)
 	if err != nil {
 		return err
 	}
@@ -113,5 +139,5 @@ func execCmd(c *cliconfig.ExecValues) error {
 	streams.AttachError = true
 	streams.AttachInput = true
 
-	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams)
+	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
 }

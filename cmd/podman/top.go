@@ -108,7 +108,7 @@ func topCmd(c *cliconfig.TopValues) error {
 	if err != nil {
 		return err
 	}
-	became, ret, err := rootless.JoinNS(uint(pid))
+	became, ret, err := rootless.JoinNS(uint(pid), 0)
 	if err != nil {
 		return err
 	}
