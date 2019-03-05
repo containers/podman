@@ -80,6 +80,9 @@ func rmCmd(c *cliconfig.RmValues) error {
 			return err
 		}
 		if err != nil {
+			if errors.Cause(err) == libpod.ErrNoSuchCtr {
+				exitCode = 1
+			}
 			fmt.Println(err.Error())
 		}
 	}
