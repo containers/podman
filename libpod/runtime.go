@@ -333,7 +333,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 	storageConf, err := util.GetDefaultStoreOptions()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving rootless storage config")
+		return nil, errors.Wrapf(err, "error retrieving storage config")
 	}
 	runtime.config.StorageConfig = storageConf
 	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
@@ -365,8 +365,7 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 
 		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
 		// So make sure the env variable is set.
-		err = SetXdgRuntimeDir(runtimeDir)
-		if err != nil {
+		if err := SetXdgRuntimeDir(runtimeDir); err != nil {
 			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 		}
 
@@ -475,13 +474,31 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 	// Set three fields not in the TOML config
 	runtime.config.StateType = defaultRuntimeConfig.StateType
 	runtime.config.OCIRuntime = defaultRuntimeConfig.OCIRuntime
-	runtime.config.StorageConfig = storage.StoreOptions{}
+
+	storageConf, err := util.GetDefaultStoreOptions()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving storage config")
+	}
+	runtime.config.StorageConfig = storageConf
+	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
+	runtime.config.VolumePath = filepath.Join(storageConf.GraphRoot, "volumes")
 
 	tmpDir, err := getDefaultTmpDir()
 	if err != nil {
 		return nil, err
 	}
 	runtime.config.TmpDir = tmpDir
+	if rootless.IsRootless() {
+		runtimeDir, err := util.GetRootlessRuntimeDir()
+		if err != nil {
+			return nil, err
+		}
+		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
+		// So make sure the env variable is set.
+		if err := SetXdgRuntimeDir(runtimeDir); err != nil {
+			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		}
+	}
 
 	// Check to see if the given configuration file exists
 	if _, err := os.Stat(configPath); err != nil {
