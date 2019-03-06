@@ -114,6 +114,33 @@ var _ = Describe("Podman images", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 	})
 
+	It("podman images filter reference", func() {
+		if podmanTest.RemoteTest {
+			Skip("Does not work on remote client")
+		}
+		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=docker.io*"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(2))
+
+		retapline := podmanTest.Podman([]string{"images", "-f", "reference=a*pine"})
+		retapline.WaitWithDefaultTimeout()
+		Expect(retapline.ExitCode()).To(Equal(0))
+		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
+		Expect(retapline.LineInOutputContains("alpine"))
+
+		retapline = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
+		retapline.WaitWithDefaultTimeout()
+		Expect(retapline.ExitCode()).To(Equal(0))
+		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
+		Expect(retapline.LineInOutputContains("alpine"))
+
+		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
+		retnone.WaitWithDefaultTimeout()
+		Expect(retnone.ExitCode()).To(Equal(0))
+		Expect(len(retnone.OutputToStringArray())).To(Equal(0))
+	})
+
 	It("podman images filter before image", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")

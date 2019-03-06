@@ -2,11 +2,14 @@ package imagefilters
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/sirupsen/logrus"
 )
 
 // ResultFilter is a mock function for image filtering
@@ -58,6 +61,27 @@ func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 			return true
 		}
 		return labels[key] == value
+	}
+}
+
+// ReferenceFilter allows you to filter by image name
+// Replacing all '/' with '|' so that filepath.Match() can work
+// '|' character is not valid in image name, so this is safe
+func ReferenceFilter(ctx context.Context, referenceFilter string) ResultFilter {
+	filter := fmt.Sprintf("*%s*", referenceFilter)
+	filter = strings.Replace(filter, "/", "|", -1)
+	return func(i *adapter.ContainerImage) bool {
+		for _, name := range i.Names() {
+			newName := strings.Replace(name, "/", "|", -1)
+			match, err := filepath.Match(filter, newName)
+			if err != nil {
+				logrus.Errorf("failed to match %s and %s, %q", name, referenceFilter, err)
+			}
+			if match {
+				return true
+			}
+		}
+		return false
 	}
 }
 

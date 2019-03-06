@@ -375,6 +375,9 @@ func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []s
 		case "label":
 			labelFilter := strings.Join(splitFilter[1:], "=")
 			filterFuncs = append(filterFuncs, imagefilters.LabelFilter(ctx, labelFilter))
+		case "reference":
+			referenceFilter := strings.Join(splitFilter[1:], "=")
+			filterFuncs = append(filterFuncs, imagefilters.ReferenceFilter(ctx, referenceFilter))
 		default:
 			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
 		}
