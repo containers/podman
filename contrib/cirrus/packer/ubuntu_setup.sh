@@ -45,6 +45,7 @@ ooe.sh sudo -E apt-get -qq install \
     golang \
     iproute2 \
     iptables \
+    jq \
     libaio-dev \
     libapparmor-dev \
     libcap-dev \
@@ -100,6 +101,8 @@ install_cni_plugins
 install_buildah
 
 install_packer_copied_files
+
+sudo /tmp/libpod/hack/install_catatonit.sh
 
 install_varlink
 

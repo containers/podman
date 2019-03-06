@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -e
-source $HOME/.bash_profile
+set -ex
 
+source "$HOME/.bash_profile"
+source $GOSRC/$SCRIPT_BASE/lib.sh
 cd $GOSRC
-source $(dirname $0)/lib.sh
 
 req_env_var GOSRC OS_RELEASE_ID OS_RELEASE_VER
 

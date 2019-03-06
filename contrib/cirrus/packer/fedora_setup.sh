@@ -36,6 +36,7 @@ ooe.sh sudo dnf install -y \
     gpgme-devel \
     iptables \
     iproute \
+    jq \
     libassuan-devel \
     libcap-devel \
     libnet \
@@ -77,6 +78,8 @@ install_buildah
 install_conmon
 
 install_packer_copied_files
+
+sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize # N/B: Halts system!
 

@@ -99,43 +99,64 @@ contents of the ``$SPECIALMODE`` environment variable.
    then execute `make localsystem` from the repository root.
 
 
-### ``cache_images`` Task
+### ``test_build_cache_images_task`` Task
 
-Modifying the contents of cache-images is done by making changes to
-one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Testing
-those changes currently requires adding a temporary commit to a PR that
-updates ``.cirrus.yml``:
-
-* Remove all task sections except ``cache_images_task``.
-* Remove the ``only_if`` condition and ``depends_on`` dependencies
-
-The new image names will be displayed at the end of output, assuming the build
-is successful, at that point the temporary commit may be removed.  Finally,
-the new names may be used as ``image_name`` values in ``.cirrus.yml``.
+Modifying the contents of cache-images is tested by making changes to
+one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Then
+in the PR description, add the magic string:  ``***CIRRUS: TEST IMAGES***``
 
 ***N/B: Steps below are performed by automation***
 
-1. When a PR is merged (``$CIRRUS_BRANCH`` == ``master``), run another
-   round of the ``gating`` and ``testing`` tasks (above).
+1. ``setup_environment.sh``: Same as for other tasks.
 
-2. Assuming tests pass, if the commit message contains the magic string
-   ``***CIRRUS: REBUILD IMAGES***``, then this task continues.  Otherwise
-   simply mark the master branch as 'passed'.
-
-3. ``setup_environment.sh``: Same as for other tasks.
-
-4. ``build_vm_images.sh``: Utilize [the packer tool](http://packer.io/docs/)
+2. ``build_vm_images.sh``: Utilize [the packer tool](http://packer.io/docs/)
    to produce new VM images.  Create a new VM from each base-image, connect
    to them with ``ssh``, and perform the steps as defined by the
-   ``$PACKER_BASE/libpod_images.json`` file:
+   ``$PACKER_BASE/libpod_images.yml`` file:
 
     1. On a base-image VM, as root, copy the current state of the repository
        into ``/tmp/libpod``.
     2. Execute distribution-specific scripts to prepare the image for
-       use by the ``integration_testing`` task (above).  For example,
-       ``fedora_setup.sh``.
-    3. If successful, shut down each VM and create a new GCE Image
-       named with the base image, and the commit sha of the merge.
+       use.  For example, ``fedora_setup.sh``.
+    3. If successful, shut down each VM and record the names, and dates
+       into a json manifest file.
+    4. Move the manifest file, into a google storage bucket object.
+       This is a retained as a secondary method for tracking/auditing
+       creation of VM images, should it ever be needed.
+
+***Manual Steps:***  In order to utilize built images, their names must be upated
+in ``.cirrus.yml``.  For example, if the image ``blah-1234`` was produced above:
+
+```yaml
+env:
+    ####
+    #### Cache-image names to test with
+    ###
+    BLAH_CACHE_IMAGE_NAME: "blah-1234"
+```
+
+A new pull-request with that change, will run tasks utilizing that image.
+
+
+### ``test_built_images`` Task
+
+Only runs following successful ``test_build_cache_images_task`` task.  Uses
+images following the standard naming format, with execution of
+the 'gate', 'testing' and 'rootless_testing' scripts.  Validating the images
+suitability for wide-spread use.
+
+
+### ``cache_images`` Task
+
+Exactly the same as ``test_build_cache_images_task`` task, but only runs on
+the master branch.  Requires a magic string to be in the `HEAD`
+commit message: ``***CIRRUS: BUILD IMAGES***``
+
+When successful, the manifest file along with all VM disks, are moved
+into a dedicated google storage bucket, separate from the one used by
+`test_build_cache_images_task`.  These may be used to create new cache-images for
+PR testing by manually importing them as described above.
+
 
 ### Base-images
 

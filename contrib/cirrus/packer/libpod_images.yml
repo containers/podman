@@ -98,8 +98,4 @@ provisioners:
           - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
 
 post-processors:
-    # Store VM disk in GCP storage, where it will expire based on a defined
-    # lifecycle. This prevents GCE from filling with disused images.
-    - - type: 'googlecompute-export'
-        paths: ['gs://packer-import{{user `POST_MERGE_BUCKET_SUFFIX`}}/{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}.tar.gz']
-      - type: 'manifest'  # writes packer-manifest.json
+    - - type: 'manifest'  # writes packer-manifest.json

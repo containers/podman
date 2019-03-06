@@ -19,6 +19,9 @@ CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
 CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
 SPECIALMODE="${SPECIALMODE:-none}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
+ROOTLESS_USER="${ROOTLESS_USER:-}"
+ROOTLESS_UID="${ROOTLESS_UID:-}"
+ROOTLESS_GID="${ROOTLESS_GID:-}"
 
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
@@ -200,7 +203,7 @@ setup_rootless() {
     su --login --command 'go env' $ROOTLESS_USER | \
         while read envline
         do
-            X=$(echo "export $envline" | tee -a "/home/$ROOTLESS_USER/$ENVLIB") && echo "$X"
+            X=$(echo "export $envline" | tee -a "/home/$ROOTLESS_USER/.bash_profile") && echo "$X"
         done
 }
 

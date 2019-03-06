@@ -36,6 +36,7 @@ ooe.sh sudo yum -y install \
     golang-github-cpuguy83-go-md2man \
     gpgme-devel \
     iptables \
+    jq \
     libassuan-devel \
     libcap-devel \
     libnet \
@@ -76,6 +77,8 @@ install_conmon
 install_criu
 
 install_packer_copied_files
+
+sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize
 

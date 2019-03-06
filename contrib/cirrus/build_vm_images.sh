@@ -46,7 +46,4 @@ make libpod_images \
 URI="gs://packer-import${POST_MERGE_BUCKET_SUFFIX}/manifest${BUILT_IMAGE_SUFFIX}.json"
 gsutil cp packer-manifest.json "$URI"
 
-echo "Finished."
-echo "Any tarball URI's referenced above at at $URI"
-echo "may be used to create VM images suitable for use in"
-echo ".cirrus.yml as values for the 'image_name' keys."
+echo "Finished. A JSON manifest of produced images is available at $URI"
