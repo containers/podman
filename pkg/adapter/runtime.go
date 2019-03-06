@@ -332,3 +332,8 @@ func IsImageNotFound(err error) bool {
 	}
 	return false
 }
+
+// HealthCheck is a wrapper to same named function in libpod
+func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
+	return r.Runtime.HealthCheck(c.InputArgs[0])
+}

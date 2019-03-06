@@ -1151,3 +1151,32 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 
 	return nil
 }
+
+// GetConfigBlob returns a schema2image.  If the image is not a schema2, then
+// it will return an error
+func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, error) {
+	imageRef, err := i.toImageRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b, err := imageRef.ConfigBlob(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get config blob for %s", i.ID())
+	}
+	blob := manifest.Schema2Image{}
+	if err := json.Unmarshal(b, &blob); err != nil {
+		return nil, errors.Wrapf(err, "unable to parse image blob for %s", i.ID())
+	}
+	return &blob, nil
+
+}
+
+// GetHealthCheck returns a HealthConfig for an image.  This function only works with
+// schema2 images.
+func (i *Image) GetHealthCheck(ctx context.Context) (*manifest.Schema2HealthConfig, error) {
+	configBlob, err := i.GetConfigBlob(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return configBlob.ContainerConfig.Healthcheck, nil
+}

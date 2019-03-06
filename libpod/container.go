@@ -10,6 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
@@ -365,6 +366,9 @@ type ContainerConfig struct {
 
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
+
+	// HealtchCheckConfig has the health check command and related timings
+	HealthCheckConfig *manifest.Schema2HealthConfig
 }
 
 // ContainerStatus returns a string representation for users
@@ -1084,4 +1088,15 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 	returnConfig := new(ContainerState)
 	deepcopier.Copy(c.state).To(returnConfig)
 	return c.state, nil
+}
+
+// HasHealthCheck returns bool as to whether there is a health check
+// defined for the container
+func (c *Container) HasHealthCheck() bool {
+	return c.config.HealthCheckConfig != nil
+}
+
+// HealthCheckConfig returns the command and timing attributes of the health check
+func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
+	return c.config.HealthCheckConfig
 }

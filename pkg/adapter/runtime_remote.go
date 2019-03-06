@@ -746,3 +746,8 @@ func IsImageNotFound(err error) bool {
 	}
 	return false
 }
+
+// HealthCheck executes a container's healthcheck over a varlink connection
+func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
+	return -1, libpod.ErrNotImplemented
+}

@@ -121,3 +121,10 @@ func getSystemSubCommands() []*cobra.Command {
 		_renumberCommand,
 	}
 }
+
+// Commands that the local client implements
+func getHealtcheckSubCommands() []*cobra.Command {
+	return []*cobra.Command{
+		_healthcheckrunCommand,
+	}
+}

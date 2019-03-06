@@ -217,6 +217,10 @@ type PauseValues struct {
 	All bool
 }
 
+type HealthCheckValues struct {
+	PodmanCommand
+}
+
 type KubePlayValues struct {
 	PodmanCommand
 	Authfile        string

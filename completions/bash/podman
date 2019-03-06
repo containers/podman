@@ -888,6 +888,26 @@ _podman_container_wait() {
      _podman_wait
 }
 
+_podman_healthcheck() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	run
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
+
 _podman_generate() {
     local boolean_options="
 	--help
@@ -2338,6 +2358,27 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_healtcheck_run() {
+    local options_with_args=""
+
+    local boolean_options="
+    -h
+    --help
+    "
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    COMPREPLY=( $( compgen -W "
+			  $(__podman_containers --all)
+			  " -- "$cur" ) )
+	    __ltrim_colon_completions "$cur"
+	    ;;
+    esac
+}
+
 _podman_generate_kube() {
     local options_with_args=""
 
@@ -2979,6 +3020,7 @@ _podman_podman() {
     exec
     export
     generate
+    healthcheck
     history
     image
     images
