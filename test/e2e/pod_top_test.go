@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -119,13 +120,15 @@ var _ = Describe("Podman top", func() {
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
+		session := podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "sleep", "2000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "top", "-d", "2"})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podid, ALPINE, "sleep", "2000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		// Make containers have time to start
+		time.Sleep(1 * time.Second)
 
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
