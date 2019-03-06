@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/containers/libpod/pkg/adapter"
 	"os"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -50,8 +49,9 @@ func init() {
 }
 
 func podTopCmd(c *cliconfig.PodTopValues) error {
-	var pod *libpod.Pod
-	var err error
+	var (
+		descriptors []string
+	)
 	args := c.InputArgs
 
 	if c.ListDescriptors {
@@ -67,39 +67,22 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		return errors.Errorf("you must provide the name or id of a running pod")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var descriptors []string
 	if c.Latest {
 		descriptors = args
-		pod, err = runtime.GetLatestPod()
 	} else {
 		descriptors = args[1:]
-		pod, err = runtime.LookupPod(args[0])
 	}
-
-	if err != nil {
-		return errors.Wrapf(err, "unable to lookup requested container")
-	}
-
-	podStatus, err := shared.GetPodStatus(pod)
-	if err != nil {
-		return err
-	}
-	if podStatus != "Running" {
-		return errors.Errorf("pod top can only be used on pods with at least one running container")
-	}
-
-	psOutput, err := pod.GetPodPidInformation(descriptors)
-	if err != nil {
-		return err
-	}
-
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
+	psOutput, err := runtime.PodTop(c, descriptors)
+	if err != nil {
+		return err
+	}
 	for _, proc := range psOutput {
 		fmt.Fprintln(w, proc)
 	}

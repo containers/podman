@@ -552,3 +552,54 @@ func (i *LibpodAPI) ContainerStateData(call iopodman.VarlinkCall, name string) e
 	}
 	return call.ReplyContainerStateData(string(b))
 }
+
+// GetContainerStatsWithHistory is a varlink endpoint that returns container stats based on current and
+// previous statistics
+func (i *LibpodAPI) GetContainerStatsWithHistory(call iopodman.VarlinkCall, prevStats iopodman.ContainerStats) error {
+	con, err := i.Runtime.LookupContainer(prevStats.Id)
+	if err != nil {
+		return call.ReplyContainerNotFound(prevStats.Id, err.Error())
+	}
+	previousStats := ContainerStatsToLibpodContainerStats(prevStats)
+	stats, err := con.GetContainerStats(&previousStats)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	cStats := iopodman.ContainerStats{
+		Id:           stats.ContainerID,
+		Name:         stats.Name,
+		Cpu:          stats.CPU,
+		Cpu_nano:     int64(stats.CPUNano),
+		System_nano:  int64(stats.SystemNano),
+		Mem_usage:    int64(stats.MemUsage),
+		Mem_limit:    int64(stats.MemLimit),
+		Mem_perc:     stats.MemPerc,
+		Net_input:    int64(stats.NetInput),
+		Net_output:   int64(stats.NetOutput),
+		Block_input:  int64(stats.BlockInput),
+		Block_output: int64(stats.BlockOutput),
+		Pids:         int64(stats.PIDs),
+	}
+	return call.ReplyGetContainerStatsWithHistory(cStats)
+}
+
+// ContainerStatsToLibpodContainerStats converts the varlink containerstats to a libpod
+// container stats
+func ContainerStatsToLibpodContainerStats(stats iopodman.ContainerStats) libpod.ContainerStats {
+	cstats := libpod.ContainerStats{
+		ContainerID: stats.Id,
+		Name:        stats.Name,
+		CPU:         stats.Cpu,
+		CPUNano:     uint64(stats.Cpu_nano),
+		SystemNano:  uint64(stats.System_nano),
+		MemUsage:    uint64(stats.Mem_usage),
+		MemLimit:    uint64(stats.Mem_limit),
+		MemPerc:     stats.Mem_perc,
+		NetInput:    uint64(stats.Net_input),
+		NetOutput:   uint64(stats.Net_output),
+		BlockInput:  uint64(stats.Block_input),
+		BlockOutput: uint64(stats.Block_output),
+		PIDs:        uint64(stats.Pids),
+	}
+	return cstats
+}

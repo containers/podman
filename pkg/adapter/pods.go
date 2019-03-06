@@ -4,6 +4,7 @@ package adapter
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -15,6 +16,13 @@ import (
 // Pod ...
 type Pod struct {
 	*libpod.Pod
+}
+
+// PodContainerStats is struct containing an adapter Pod and a libpod
+// ContainerStats and is used primarily for outputing pod stats.
+type PodContainerStats struct {
+	Pod            *Pod
+	ContainerStats map[string]*libpod.ContainerStats
 }
 
 // RemovePods ...
@@ -320,4 +328,56 @@ func (r *LocalRuntime) RestartPods(ctx context.Context, c *cliconfig.PodRestartV
 	}
 	return restartIDs, containerErrors, restartErrors
 
+}
+
+// PodTop is a wrapper function to call GetPodPidInformation in libpod and return its results
+// for output
+func (r *LocalRuntime) PodTop(c *cliconfig.PodTopValues, descriptors []string) ([]string, error) {
+	var (
+		pod *Pod
+		err error
+	)
+
+	if c.Latest {
+		pod, err = r.GetLatestPod()
+	} else {
+		pod, err = r.LookupPod(c.InputArgs[0])
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to lookup requested container")
+	}
+	podStatus, err := pod.GetPodStatus()
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to get status for pod %s", pod.ID())
+	}
+	if podStatus != "Running" {
+		return nil, errors.Errorf("pod top can only be used on pods with at least one running container")
+	}
+	return pod.GetPodPidInformation(descriptors)
+}
+
+// GetStatPods returns pods for use in pod stats
+func (r *LocalRuntime) GetStatPods(c *cliconfig.PodStatsValues) ([]*Pod, error) {
+	var (
+		adapterPods []*Pod
+		pods        []*libpod.Pod
+		err         error
+	)
+
+	if len(c.InputArgs) > 0 || c.Latest || c.All {
+		pods, err = shortcuts.GetPodsByContext(c.All, c.Latest, c.InputArgs, r.Runtime)
+	} else {
+		pods, err = r.Runtime.GetRunningPods()
+	}
+	if err != nil {
+		return nil, err
+	}
+	// convert libpod pods to adapter pods
+	for _, p := range pods {
+		adapterPod := Pod{
+			p,
+		}
+		adapterPods = append(adapterPods, &adapterPod)
+	}
+	return adapterPods, nil
 }

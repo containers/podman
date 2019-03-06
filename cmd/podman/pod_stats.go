@@ -13,8 +13,8 @@ import (
 	tm "github.com/buger/goterm"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/ulule/deepcopier"
@@ -51,10 +51,6 @@ func init() {
 }
 
 func podStatsCmd(c *cliconfig.PodStatsValues) error {
-	var (
-		podFunc func() ([]*libpod.Pod, error)
-	)
-
 	format := c.Format
 	all := c.All
 	latest := c.Latest
@@ -76,7 +72,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		all = true
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -87,29 +83,12 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		times = 1
 	}
 
-	if len(c.InputArgs) > 0 {
-		podFunc = func() ([]*libpod.Pod, error) { return getPodsByList(c.InputArgs, runtime) }
-	} else if latest {
-		podFunc = func() ([]*libpod.Pod, error) {
-			latestPod, err := runtime.GetLatestPod()
-			if err != nil {
-				return nil, err
-			}
-			return []*libpod.Pod{latestPod}, err
-		}
-	} else if all {
-		podFunc = runtime.GetAllPods
-	} else {
-		podFunc = runtime.GetRunningPods
-	}
-
-	pods, err := podFunc()
+	pods, err := runtime.GetStatPods(c)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get a list of pods")
 	}
-
 	// First we need to get an initial pass of pod/ctr stats (these are not printed)
-	var podStats []*libpod.PodContainerStats
+	var podStats []*adapter.PodContainerStats
 	for _, p := range pods {
 		cons, err := p.AllContainersByID()
 		if err != nil {
@@ -120,7 +99,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		for _, c := range cons {
 			emptyStats[c] = &libpod.ContainerStats{}
 		}
-		ps := libpod.PodContainerStats{
+		ps := adapter.PodContainerStats{
 			Pod:            p,
 			ContainerStats: emptyStats,
 		}
@@ -128,10 +107,10 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	}
 
 	// Create empty container stat results for our first pass
-	var previousPodStats []*libpod.PodContainerStats
+	var previousPodStats []*adapter.PodContainerStats
 	for _, p := range pods {
 		cs := make(map[string]*libpod.ContainerStats)
-		pcs := libpod.PodContainerStats{
+		pcs := adapter.PodContainerStats{
 			Pod:            p,
 			ContainerStats: cs,
 		}
@@ -164,7 +143,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	}
 
 	for i := 0; i < times; i += step {
-		var newStats []*libpod.PodContainerStats
+		var newStats []*adapter.PodContainerStats
 		for _, p := range pods {
 			prevStat := getPreviousPodContainerStats(p.ID(), previousPodStats)
 			newPodStats, err := p.GetPodStats(prevStat)
@@ -174,7 +153,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 			if err != nil {
 				return err
 			}
-			newPod := libpod.PodContainerStats{
+			newPod := adapter.PodContainerStats{
 				Pod:            p,
 				ContainerStats: newPodStats,
 			}
@@ -202,7 +181,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		time.Sleep(time.Second)
 		previousPodStats := new([]*libpod.PodContainerStats)
 		deepcopier.Copy(newStats).To(previousPodStats)
-		pods, err = podFunc()
+		pods, err = runtime.GetStatPods(c)
 		if err != nil {
 			return err
 		}
@@ -211,7 +190,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	return nil
 }
 
-func podContainerStatsToPodStatOut(stats []*libpod.PodContainerStats) []*podStatOut {
+func podContainerStatsToPodStatOut(stats []*adapter.PodContainerStats) []*podStatOut {
 	var out []*podStatOut
 	for _, p := range stats {
 		for _, c := range p.ContainerStats {
@@ -295,7 +274,7 @@ func outputToStdOut(stats []*podStatOut) {
 	w.Flush()
 }
 
-func getPreviousPodContainerStats(podID string, prev []*libpod.PodContainerStats) map[string]*libpod.ContainerStats {
+func getPreviousPodContainerStats(podID string, prev []*adapter.PodContainerStats) map[string]*libpod.ContainerStats {
 	for _, p := range prev {
 		if podID == p.Pod.ID() {
 			return p.ContainerStats
@@ -304,7 +283,7 @@ func getPreviousPodContainerStats(podID string, prev []*libpod.PodContainerStats
 	return map[string]*libpod.ContainerStats{}
 }
 
-func outputJson(stats []*libpod.PodContainerStats) error {
+func outputJson(stats []*adapter.PodContainerStats) error {
 	b, err := json.MarshalIndent(&stats, "", "     ")
 	if err != nil {
 		return err

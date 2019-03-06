@@ -29,12 +29,13 @@ var podSubCommands = []*cobra.Command{
 	_podRestartCommand,
 	_podRmCommand,
 	_podStartCommand,
+	_podStatsCommand,
 	_podStopCommand,
+	_podTopCommand,
 	_podUnpauseCommand,
 }
 
 func init() {
 	podCommand.AddCommand(podSubCommands...)
-	podCommand.AddCommand(getPodSubCommands()...)
 	podCommand.SetUsageTemplate(UsageTemplate())
 }

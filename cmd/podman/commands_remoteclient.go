@@ -29,11 +29,6 @@ func getContainerSubCommands() []*cobra.Command {
 }
 
 // commands that only the remoteclient implements
-func getPodSubCommands() []*cobra.Command {
-	return []*cobra.Command{}
-}
-
-// commands that only the remoteclient implements
 func getGenerateSubCommands() []*cobra.Command {
 	return []*cobra.Command{}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/pkg/errors"
 	"github.com/ulule/deepcopier"
 )
@@ -19,6 +20,13 @@ import (
 // Pod ...
 type Pod struct {
 	remotepod
+}
+
+// PodContainerStats is struct containing an adapter Pod and a libpod
+// ContainerStats and is used primarily for outputing pod stats.
+type PodContainerStats struct {
+	Pod            *Pod
+	ContainerStats map[string]*libpod.ContainerStats
 }
 
 type remotepod struct {
@@ -398,4 +406,104 @@ func (r *LocalRuntime) RestartPods(ctx context.Context, c *cliconfig.PodRestartV
 		restartIDs = append(restartIDs, reply)
 	}
 	return restartIDs, nil, restartErrors
+}
+
+// PodTop gets top statistics for a pod
+func (r *LocalRuntime) PodTop(c *cliconfig.PodTopValues, descriptors []string) ([]string, error) {
+	var (
+		latest  bool
+		podName string
+	)
+	if c.Latest {
+		latest = true
+	} else {
+		podName = c.InputArgs[0]
+	}
+	return iopodman.TopPod().Call(r.Conn, podName, latest, descriptors)
+}
+
+// GetStatPods returns pods for use in pod stats
+func (r *LocalRuntime) GetStatPods(c *cliconfig.PodStatsValues) ([]*Pod, error) {
+	var (
+		pods    []*Pod
+		err     error
+		podIDs  []string
+		running bool
+	)
+
+	if len(c.InputArgs) > 0 || c.Latest || c.All {
+		podIDs, err = iopodman.GetPodsByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	} else {
+		podIDs, err = iopodman.GetPodsByContext().Call(r.Conn, true, false, []string{})
+		running = true
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range podIDs {
+		pod, err := r.Inspect(p)
+		if err != nil {
+			return nil, err
+		}
+		if running {
+			status, err := pod.GetPodStatus()
+			if err != nil {
+				// if we cannot get the status of the pod, skip and move on
+				continue
+			}
+			if strings.ToUpper(status) != "RUNNING" {
+				// if the pod is not running, skip and move on as well
+				continue
+			}
+		}
+		pods = append(pods, pod)
+	}
+	return pods, nil
+}
+
+// GetPodStats returns the stats for each of its containers
+func (p *Pod) GetPodStats(previousContainerStats map[string]*libpod.ContainerStats) (map[string]*libpod.ContainerStats, error) {
+	var (
+		ok       bool
+		prevStat *libpod.ContainerStats
+	)
+	newContainerStats := make(map[string]*libpod.ContainerStats)
+	containers, err := p.AllContainers()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range containers {
+		if prevStat, ok = previousContainerStats[c.ID()]; !ok {
+			prevStat = &libpod.ContainerStats{ContainerID: c.ID()}
+		}
+		cStats := iopodman.ContainerStats{
+			Id:           prevStat.ContainerID,
+			Name:         prevStat.Name,
+			Cpu:          prevStat.CPU,
+			Cpu_nano:     int64(prevStat.CPUNano),
+			System_nano:  int64(prevStat.SystemNano),
+			Mem_usage:    int64(prevStat.MemUsage),
+			Mem_limit:    int64(prevStat.MemLimit),
+			Mem_perc:     prevStat.MemPerc,
+			Net_input:    int64(prevStat.NetInput),
+			Net_output:   int64(prevStat.NetOutput),
+			Block_input:  int64(prevStat.BlockInput),
+			Block_output: int64(prevStat.BlockOutput),
+			Pids:         int64(prevStat.PIDs),
+		}
+		stats, err := iopodman.GetContainerStatsWithHistory().Call(p.Runtime.Conn, cStats)
+		if err != nil {
+			return nil, err
+		}
+		newStats := varlinkapi.ContainerStatsToLibpodContainerStats(stats)
+		// If the container wasn't running, don't include it
+		// but also suppress the error
+		if err != nil && errors.Cause(err) != libpod.ErrCtrStateInvalid {
+			return nil, err
+		}
+		if err == nil {
+			newContainerStats[c.ID()] = &newStats
+		}
+	}
+	return newContainerStats, nil
 }
