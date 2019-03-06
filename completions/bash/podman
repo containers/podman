@@ -2328,6 +2328,15 @@ _podman_load() {
     _complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_cp() {
+	local boolean_options="
+	  --help
+	  -h
+	  --extract
+     "
+	_complete_ "$boolean_options"
+}
+
 _podman_login() {
      local options_with_args="
      --username
@@ -3015,6 +3024,7 @@ _podman_podman() {
     build
     commit
     container
+    cp
     create
     diff
     exec

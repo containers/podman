@@ -43,6 +43,8 @@ var (
 
 func init() {
 	cpCommand.Command = _cpCommand
+	flags := cpCommand.Flags()
+	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
 	rootCmd.AddCommand(cpCommand.Command)
 }
 
@@ -61,10 +63,11 @@ func cpCmd(c *cliconfig.CpValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	return copyBetweenHostAndContainer(runtime, args[0], args[1])
+	extract := c.Flag("extract").Changed
+	return copyBetweenHostAndContainer(runtime, args[0], args[1], extract)
 }
 
-func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string) error {
+func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool) error {
 
 	srcCtr, srcPath := parsePath(runtime, src)
 	destCtr, destPath := parsePath(runtime, dest)
@@ -166,7 +169,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	var lastError error
 	for _, src := range glob {
-		err := copy(src, destPath, dest, idMappingOpts, &containerOwner)
+		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, extract)
 		if lastError != nil {
 			logrus.Error(lastError)
 		}
@@ -219,7 +222,7 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 	return path, srcfi, nil
 }
 
-func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair) error {
+func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract bool) error {
 	srcPath, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
@@ -240,6 +243,7 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	// return functions for copying items
 	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 	copyWithTar := chrootarchive.CopyWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	untarPath := chrootarchive.UntarPathAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 
 	if srcfi.IsDir() {
 
@@ -262,6 +266,15 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		if destfi != nil && destfi.IsDir() {
 			destPath = filepath.Join(destPath, filepath.Base(srcPath))
 		}
+	}
+
+	if extract {
+		// We're extracting an archive into the destination directory.
+		logrus.Debugf("extracting contents of %q into %q", srcPath, destPath)
+		if err = untarPath(srcPath, destPath); err != nil {
+			return errors.Wrapf(err, "error extracting %q into %q", srcPath, destPath)
+		}
+		return nil
 	}
 	// Copy the file, preserving attributes.
 	logrus.Debugf("copying %q to %q", srcPath, destPath)
