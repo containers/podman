@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -168,6 +170,30 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 			failures[id] = err
 		} else {
 			ok = append(ok, killed)
+		}
+	}
+	return ok, failures, nil
+}
+
+// WaitOnContainers waits for all given container(s) to stop.
+// interval is currently ignored.
+func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.WaitValues, interval time.Duration) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, false, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, id := range ids {
+		stopped, err := iopodman.WaitContainer().Call(r.Conn, id, int64(interval))
+		if err != nil {
+			failures[id] = err
+		} else {
+			ok = append(ok, strconv.FormatInt(stopped, 10))
 		}
 	}
 	return ok, failures, nil

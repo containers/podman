@@ -621,10 +621,10 @@ method UnpauseContainer(name: string) -> (container: string)
 # ~~~
 method GetAttachSockets(name: string) -> (sockets: Sockets)
 
-# WaitContainer takes the name or ID of a container and waits until the container stops.  Upon stopping, the return
-# code of the container is returned. If the container container cannot be found by ID or name,
-# a [ContainerNotFound](#ContainerNotFound) error is returned.
-method WaitContainer(name: string) -> (exitcode: int)
+# WaitContainer takes the name or ID of a container and waits the given interval in milliseconds until the container
+# stops.  Upon stopping, the return code of the container is returned. If the container container cannot be found by ID
+# or name, a [ContainerNotFound](#ContainerNotFound) error is returned.
+method WaitContainer(name: string, interval: int) -> (exitcode: int)
 
 # RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
 # indicating whether to remove builtin volumes. Upon successful removal of the

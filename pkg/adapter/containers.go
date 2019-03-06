@@ -4,7 +4,9 @@ package adapter
 
 import (
 	"context"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
@@ -102,4 +104,26 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 		}
 	}
 	return ok, failures, nil
+}
+
+// WaitOnContainers waits for all given container(s) to stop
+func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.WaitValues, interval time.Duration) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ctrs, err := shortcuts.GetContainersByContext(false, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, c := range ctrs {
+		if returnCode, err := c.WaitWithInterval(interval); err == nil {
+			ok = append(ok, strconv.Itoa(int(returnCode)))
+		} else {
+			failures[c.ID()] = err
+		}
+	}
+	return ok, failures, err
 }
