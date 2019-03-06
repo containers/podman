@@ -15,13 +15,9 @@ import (
 
 var (
 	stopCommand     cliconfig.StopValues
-	stopDescription = `
-   podman stop
+	stopDescription = `Stops one or more running containers.  The container name or ID can be used.
 
-   Stops one or more running containers.  The container name or ID can be used.
-   A timeout to forcibly stop the container can also be set but defaults to 10
-   seconds otherwise.
-`
+  A timeout to forcibly stop the container can also be set but defaults to 10 seconds otherwise.`
 	_stopCommand = &cobra.Command{
 		Use:   "stop [flags] CONTAINER [CONTAINER...]",
 		Short: "Stop one or more containers",
@@ -42,6 +38,7 @@ var (
 
 func init() {
 	stopCommand.Command = _stopCommand
+	stopCommand.SetHelpTemplate(HelpTemplate())
 	stopCommand.SetUsageTemplate(UsageTemplate())
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")

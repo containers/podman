@@ -11,11 +11,7 @@ import (
 
 var (
 	volumeCreateCommand     cliconfig.VolumeCreateValues
-	volumeCreateDescription = `
-podman volume create
-
-Creates a new volume. If using the default driver, "local", the volume will
-be created at.`
+	volumeCreateDescription = `If using the default driver, "local", the volume will be created on the host in the volumes directory under container storage.`
 
 	_volumeCreateCommand = &cobra.Command{
 		Use:   "create [flags] [NAME]",
@@ -34,6 +30,7 @@ be created at.`
 
 func init() {
 	volumeCreateCommand.Command = _volumeCreateCommand
+	volumeCommand.SetHelpTemplate(HelpTemplate())
 	volumeCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeCreateCommand.Flags()
 	flags.StringVar(&volumeCreateCommand.Driver, "driver", "", "Specify volume driver name (default local)")

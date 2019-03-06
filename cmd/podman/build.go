@@ -18,8 +18,7 @@ import (
 
 var (
 	buildCommand     cliconfig.BuildValues
-	buildDescription = "Builds an OCI or Docker image using instructions from one\n" +
-		"or more Dockerfiles and a specified build context directory."
+	buildDescription = "Builds an OCI or Docker image using instructions from one or more Dockerfiles and a specified build context directory."
 	layerValues      buildahcli.LayerResults
 	budFlagsValues   buildahcli.BudResults
 	fromAndBudValues buildahcli.FromAndBudResults
@@ -48,6 +47,7 @@ var (
 
 func init() {
 	buildCommand.Command = _buildCommand
+	buildCommand.SetHelpTemplate(HelpTemplate())
 	buildCommand.SetUsageTemplate(UsageTemplate())
 	flags := buildCommand.Flags()
 	flags.SetInterspersed(false)

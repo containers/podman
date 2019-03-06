@@ -40,6 +40,7 @@ var (
 
 func init() {
 	checkpointCommand.Command = _checkpointCommand
+	checkpointCommand.SetHelpTemplate(HelpTemplate())
 	checkpointCommand.SetUsageTemplate(UsageTemplate())
 
 	flags := checkpointCommand.Flags()

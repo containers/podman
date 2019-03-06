@@ -134,6 +134,7 @@ var (
 
 func init() {
 	podPsCommand.Command = _podPsCommand
+	podPsCommand.SetHelpTemplate(HelpTemplate())
 	podPsCommand.SetUsageTemplate(UsageTemplate())
 	flags := podPsCommand.Flags()
 	flags.BoolVar(&podPsCommand.CtrNames, "ctr-names", false, "Display the container names")

@@ -38,6 +38,7 @@ Executes a command as described by a container image label.
 
 func init() {
 	runlabelCommand.Command = _runlabelCommand
+	runlabelCommand.SetHelpTemplate(HelpTemplate())
 	runlabelCommand.SetUsageTemplate(UsageTemplate())
 	flags := runlabelCommand.Flags()
 	flags.StringVar(&runlabelCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

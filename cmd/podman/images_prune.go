@@ -11,11 +11,9 @@ import (
 
 var (
 	pruneImagesCommand     cliconfig.PruneImagesValues
-	pruneImagesDescription = `
-	podman image prune
+	pruneImagesDescription = `Removes all unnamed images from local storage.
 
-	Removes all unnamed images from local storage
-`
+  If an image is not being used by a container, it will be removed from the system.`
 	_pruneImagesCommand = &cobra.Command{
 		Use:   "prune",
 		Args:  noSubArgs,
@@ -31,6 +29,7 @@ var (
 
 func init() {
 	pruneImagesCommand.Command = _pruneImagesCommand
+	pruneImagesCommand.SetHelpTemplate(HelpTemplate())
 	pruneImagesCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneImagesCommand.Flags()
 	flags.BoolVarP(&pruneImagesCommand.All, "all", "a", false, "Remove all unused images, not just dangling ones")

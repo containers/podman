@@ -11,8 +11,10 @@ import (
 
 var (
 	podPauseCommand     cliconfig.PodPauseValues
-	podPauseDescription = `Pauses one or more pods.  The pod name or ID can be used.`
-	_podPauseCommand    = &cobra.Command{
+	podPauseDescription = `The pod name or ID can be used.
+
+  All running containers within each specified pod will then be paused.`
+	_podPauseCommand = &cobra.Command{
 		Use:   "pause [flags] POD [POD...]",
 		Short: "Pause one or more pods",
 		Long:  podPauseDescription,
@@ -32,6 +34,7 @@ var (
 
 func init() {
 	podPauseCommand.Command = _podPauseCommand
+	podPauseCommand.SetHelpTemplate(HelpTemplate())
 	podPauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := podPauseCommand.Flags()
 	flags.BoolVarP(&podPauseCommand.All, "all", "a", false, "Pause all running pods")

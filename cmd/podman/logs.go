@@ -15,8 +15,10 @@ import (
 
 var (
 	logsCommand     cliconfig.LogsValues
-	logsDescription = "The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.  This does not guarantee execution" +
-		"order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs"
+	logsDescription = `Retrieves logs for a container.
+
+  This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs.
+`
 	_logsCommand = &cobra.Command{
 		Use:   "logs [flags] CONTAINER",
 		Short: "Fetch the logs of a container",
@@ -34,6 +36,7 @@ var (
 
 func init() {
 	logsCommand.Command = _logsCommand
+	logsCommand.SetHelpTemplate(HelpTemplate())
 	logsCommand.SetUsageTemplate(UsageTemplate())
 	flags := logsCommand.Flags()
 	flags.BoolVar(&logsCommand.Details, "details", false, "Show extra details provided to the logs")

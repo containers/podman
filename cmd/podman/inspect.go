@@ -24,8 +24,10 @@ const (
 var (
 	inspectCommand cliconfig.InspectValues
 
-	inspectDescription = "This displays the low-level information on containers and images identified by name or ID. By default, this will render all results in a JSON array. If the container and image have the same name, this will return container JSON for unspecified type."
-	_inspectCommand    = &cobra.Command{
+	inspectDescription = `This displays the low-level information on containers and images identified by name or ID.
+
+  If given a name that matches both a container and an image, this command inspects the container.  By default, this will render all results in a JSON array.`
+	_inspectCommand = &cobra.Command{
 		Use:   "inspect [flags] CONTAINER | IMAGE",
 		Short: "Display the configuration of a container or image",
 		Long:  inspectDescription,
@@ -42,6 +44,7 @@ var (
 
 func init() {
 	inspectCommand.Command = _inspectCommand
+	inspectCommand.SetHelpTemplate(HelpTemplate())
 	inspectCommand.SetUsageTemplate(UsageTemplate())
 	flags := inspectCommand.Flags()
 	flags.StringVarP(&inspectCommand.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (e.g image, container or task)")

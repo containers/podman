@@ -39,6 +39,7 @@ var (
 
 func init() {
 	runCommand.Command = _runCommand
+	runCommand.SetHelpTemplate(HelpTemplate())
 	runCommand.SetUsageTemplate(UsageTemplate())
 	flags := runCommand.Flags()
 	flags.SetInterspersed(false)

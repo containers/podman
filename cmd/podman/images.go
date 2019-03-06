@@ -85,7 +85,7 @@ func (a imagesSortedSize) Less(i, j int) bool {
 
 var (
 	imagesCommand     cliconfig.ImagesValues
-	imagesDescription = "lists locally stored images."
+	imagesDescription = "Lists images previously pulled to the system or created on the system."
 
 	_imagesCommand = cobra.Command{
 		Use:   "images [flags] [IMAGE]",
@@ -103,6 +103,7 @@ var (
 )
 
 func imagesInit(command *cliconfig.ImagesValues) {
+	command.SetHelpTemplate(HelpTemplate())
 	command.SetUsageTemplate(UsageTemplate())
 
 	flags := command.Flags()

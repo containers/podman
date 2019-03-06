@@ -16,12 +16,15 @@ import (
 var (
 	infoCommand cliconfig.InfoValues
 
-	infoDescription = "Display podman system information"
-	_infoCommand    = &cobra.Command{
+	infoDescription = `Display information pertaining to the host, current storage stats, and build of podman.
+
+  Useful for the user and when reporting issues.
+`
+	_infoCommand = &cobra.Command{
 		Use:   "info",
 		Args:  noSubArgs,
 		Long:  infoDescription,
-		Short: `Display information pertaining to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
+		Short: "Display podman system information",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			infoCommand.InputArgs = args
 			infoCommand.GlobalFlags = MainGlobalOpts
@@ -33,6 +36,7 @@ var (
 
 func init() {
 	infoCommand.Command = _infoCommand
+	infoCommand.SetHelpTemplate(HelpTemplate())
 	infoCommand.SetUsageTemplate(UsageTemplate())
 	flags := infoCommand.Flags()
 

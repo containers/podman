@@ -14,10 +14,7 @@ import (
 var (
 	waitCommand cliconfig.WaitValues
 
-	waitDescription = `
-	podman wait
-
-	Block until one or more containers stop and then print their exit codes
+	waitDescription = `Block until one or more containers stop and then print their exit codes.
 `
 	_waitCommand = &cobra.Command{
 		Use:   "wait [flags] CONTAINER [CONTAINER...]",
@@ -36,6 +33,7 @@ var (
 
 func init() {
 	waitCommand.Command = _waitCommand
+	waitCommand.SetHelpTemplate(HelpTemplate())
 	waitCommand.SetUsageTemplate(UsageTemplate())
 	flags := waitCommand.Flags()
 	flags.UintVarP(&waitCommand.Interval, "interval", "i", 250, "Milliseconds to wait before polling for completion")

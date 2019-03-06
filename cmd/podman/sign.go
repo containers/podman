@@ -22,7 +22,7 @@ import (
 
 var (
 	signCommand     cliconfig.SignValues
-	signDescription = "Create a signature file that can be used later to verify the image"
+	signDescription = "Create a signature file that can be used later to verify the image."
 	_signCommand    = &cobra.Command{
 		Use:   "sign [flags] IMAGE [IMAGE...]",
 		Short: "Sign an image",
@@ -39,6 +39,7 @@ var (
 
 func init() {
 	signCommand.Command = _signCommand
+	signCommand.SetHelpTemplate(HelpTemplate())
 	signCommand.SetUsageTemplate(UsageTemplate())
 	flags := signCommand.Flags()
 	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")

@@ -12,8 +12,10 @@ import (
 
 var (
 	podUnpauseCommand     cliconfig.PodUnpauseValues
-	podUnpauseDescription = `Unpauses one or more pods.  The pod name or ID can be used.`
-	_podUnpauseCommand    = &cobra.Command{
+	podUnpauseDescription = `The podman unpause command will unpause all "paused" containers assigned to the pod.
+
+  The pod name or ID can be used.`
+	_podUnpauseCommand = &cobra.Command{
 		Use:   "unpause [flags] POD [POD...]",
 		Short: "Unpause one or more pods",
 		Long:  podUnpauseDescription,
@@ -33,6 +35,7 @@ var (
 
 func init() {
 	podUnpauseCommand.Command = _podUnpauseCommand
+	podUnpauseCommand.SetHelpTemplate(HelpTemplate())
 	podUnpauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := podUnpauseCommand.Flags()
 	flags.BoolVarP(&podUnpauseCommand.All, "all", "a", false, "Unpause all running pods")

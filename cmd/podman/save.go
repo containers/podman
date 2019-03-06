@@ -23,9 +23,7 @@ var validFormats = []string{ociManifestDir, ociArchive, v2s2ManifestDir, v2s2Arc
 
 var (
 	saveCommand     cliconfig.SaveValues
-	saveDescription = `
-	Save an image to docker-archive or oci-archive on the local machine.
-	Default is docker-archive`
+	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
 
 	_saveCommand = &cobra.Command{
 		Use:   "save [flags] IMAGE",
@@ -54,6 +52,7 @@ var (
 
 func init() {
 	saveCommand.Command = _saveCommand
+	saveCommand.SetHelpTemplate(HelpTemplate())
 	saveCommand.SetUsageTemplate(UsageTemplate())
 	flags := saveCommand.Flags()
 	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")

@@ -14,12 +14,8 @@ import (
 
 var (
 	pauseCommand     cliconfig.PauseValues
-	pauseDescription = `
-   podman pause
-
-   Pauses one or more running containers.  The container name or ID can be used.
-`
-	_pauseCommand = &cobra.Command{
+	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
+	_pauseCommand    = &cobra.Command{
 		Use:   "pause [flags] CONTAINER [CONTAINER...]",
 		Short: "Pause all the processes in one or more containers",
 		Long:  pauseDescription,
@@ -36,6 +32,7 @@ var (
 
 func init() {
 	pauseCommand.Command = _pauseCommand
+	pauseCommand.SetHelpTemplate(HelpTemplate())
 	pauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := pauseCommand.Flags()
 	flags.BoolVarP(&pauseCommand.All, "all", "a", false, "Pause all running containers")

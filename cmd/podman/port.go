@@ -14,10 +14,7 @@ import (
 
 var (
 	portCommand     cliconfig.PortValues
-	portDescription = `
-   podman port
-
-	List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
+	portDescription = `List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	_portCommand = &cobra.Command{
 		Use:   "port [flags] CONTAINER",
@@ -39,6 +36,7 @@ var (
 
 func init() {
 	portCommand.Command = _portCommand
+	portCommand.SetHelpTemplate(HelpTemplate())
 	portCommand.SetUsageTemplate(UsageTemplate())
 	flags := portCommand.Flags()
 

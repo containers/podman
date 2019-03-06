@@ -30,6 +30,7 @@ var (
 
 func init() {
 	loadCommand.Command = _loadCommand
+	loadCommand.SetHelpTemplate(HelpTemplate())
 	loadCommand.SetUsageTemplate(UsageTemplate())
 	flags := loadCommand.Flags()
 	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file, default is STDIN")

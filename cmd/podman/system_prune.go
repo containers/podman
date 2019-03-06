@@ -36,6 +36,7 @@ var (
 
 func init() {
 	pruneSystemCommand.Command = _pruneSystemCommand
+	pruneSystemCommand.SetHelpTemplate(HelpTemplate())
 	pruneSystemCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneSystemCommand.Flags()
 	flags.BoolVarP(&pruneSystemCommand.All, "all", "a", false, "Remove all unused data")

@@ -16,12 +16,10 @@ import (
 
 var (
 	volumePruneCommand     cliconfig.VolumePruneValues
-	volumePruneDescription = `
-podman volume prune
+	volumePruneDescription = `Volumes that are not currently owned by a container will be removed.
 
-Remove all unused volumes. Will prompt for confirmation if not
-using force.
-`
+  The command prompts for confirmation which can be overridden with the --force flag.
+  Note all data will be destroyed.`
 	_volumePruneCommand = &cobra.Command{
 		Use:   "prune",
 		Args:  noSubArgs,
@@ -37,6 +35,7 @@ using force.
 
 func init() {
 	volumePruneCommand.Command = _volumePruneCommand
+	volumePruneCommand.SetHelpTemplate(HelpTemplate())
 	volumePruneCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumePruneCommand.Flags()
 

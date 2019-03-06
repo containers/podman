@@ -5,9 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var volumeDescription = `Manage volumes.
-
-Volumes are created in and can be shared between containers.`
+var volumeDescription = `Volumes are created in and can be shared between containers.`
 
 var volumeCommand = cliconfig.PodmanCommand{
 	Command: &cobra.Command{

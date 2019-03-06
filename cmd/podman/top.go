@@ -18,20 +18,20 @@ func getDescriptorString() string {
 	descriptors, err := libpod.GetContainerPidInformationDescriptors()
 	if err == nil {
 		return fmt.Sprintf(`
-Format Descriptors:
-%s`, strings.Join(descriptors, ","))
+  Format Descriptors:
+    %s`, strings.Join(descriptors, ","))
 	}
 	return ""
 }
 
 var (
 	topCommand     cliconfig.TopValues
-	topDescription = fmt.Sprintf(`Display the running processes of the container.  Specify format descriptors
-to alter the output.  You may run "podman top -l pid pcpu seccomp" to print
-the process ID, the CPU percentage and the seccomp mode of each process of
-the latest container.
-%s
-`, getDescriptorString())
+	topDescription = fmt.Sprintf(`Similar to system "top" command.
+
+  Specify format descriptors to alter the output.
+
+  Running "podman top -l pid pcpu seccomp" will print the process ID, the CPU percentage and the seccomp mode of each process of the latest container.
+%s`, getDescriptorString())
 
 	_topCommand = &cobra.Command{
 		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTIOS]",
@@ -50,6 +50,7 @@ the latest container.
 
 func init() {
 	topCommand.Command = _topCommand
+	topCommand.SetHelpTemplate(HelpTemplate())
 	topCommand.SetUsageTemplate(UsageTemplate())
 	flags := topCommand.Flags()
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")

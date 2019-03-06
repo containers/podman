@@ -37,6 +37,7 @@ var (
 
 func init() {
 	loginCommand.Command = _loginCommand
+	loginCommand.SetHelpTemplate(HelpTemplate())
 	loginCommand.SetUsageTemplate(UsageTemplate())
 	flags := loginCommand.Flags()
 

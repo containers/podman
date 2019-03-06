@@ -40,6 +40,7 @@ var (
 
 func init() {
 	restoreCommand.Command = _restoreCommand
+	restoreCommand.SetHelpTemplate(HelpTemplate())
 	restoreCommand.SetUsageTemplate(UsageTemplate())
 	flags := restoreCommand.Flags()
 	flags.BoolVarP(&restoreCommand.All, "all", "a", false, "Restore all checkpointed containers")

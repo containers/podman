@@ -37,6 +37,7 @@ var (
 
 func init() {
 	cleanupCommand.Command = _cleanupCommand
+	cleanupCommand.SetHelpTemplate(HelpTemplate())
 	cleanupCommand.SetUsageTemplate(UsageTemplate())
 	flags := cleanupCommand.Flags()
 

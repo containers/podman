@@ -31,6 +31,7 @@ var (
 
 func init() {
 	renumberCommand.Command = _renumberCommand
+	renumberCommand.SetHelpTemplate(HelpTemplate())
 	renumberCommand.SetUsageTemplate(UsageTemplate())
 }
 

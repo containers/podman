@@ -18,9 +18,9 @@ const (
 
 var (
 	searchCommand     cliconfig.SearchValues
-	searchDescription = `
-	Search registries for a given image. Can search all the default registries or a specific registry.
-	Can limit the number of results, and filter the output based on certain conditions.`
+	searchDescription = `Search registries for a given image. Can search all the default registries or a specific registry.
+
+  Users can limit the number of results, and filter the output based on certain conditions.`
 	_searchCommand = &cobra.Command{
 		Use:   "search [flags] TERM",
 		Short: "Search registry for image",
@@ -38,6 +38,7 @@ var (
 
 func init() {
 	searchCommand.Command = _searchCommand
+	searchCommand.SetHelpTemplate(HelpTemplate())
 	searchCommand.SetUsageTemplate(UsageTemplate())
 	flags := searchCommand.Flags()
 	flags.StringVar(&searchCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

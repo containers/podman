@@ -9,12 +9,9 @@ import (
 
 var (
 	volumeInspectCommand     cliconfig.VolumeInspectValues
-	volumeInspectDescription = `
-podman volume inspect
+	volumeInspectDescription = `Display detailed information on one or more volumes.
 
-Display detailed information on one or more volumes. Can change the format
-from JSON to a Go template.
-`
+  Use a Go template to change the format from JSON.`
 	_volumeInspectCommand = &cobra.Command{
 		Use:   "inspect [flags] VOLUME [VOLUME...]",
 		Short: "Display detailed information on one or more volumes",
@@ -32,6 +29,7 @@ from JSON to a Go template.
 
 func init() {
 	volumeInspectCommand.Command = _volumeInspectCommand
+	volumeInspectCommand.SetHelpTemplate(HelpTemplate())
 	volumeInspectCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeInspectCommand.Flags()
 	flags.BoolVarP(&volumeInspectCommand.All, "all", "a", false, "Inspect all volumes")
