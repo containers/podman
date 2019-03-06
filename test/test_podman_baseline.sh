@@ -91,6 +91,52 @@ podman run $image java 2>&1 || echo $?
 podman rm --all
 
 ########
+# pull and run many containers in parallel, test locks ..etc.
+########
+podman rmi docker.io/library/busybox:latest > /dev/null || :
+for i in `seq 10`
+do ( podman run -d --name b$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+done
+echo -e "\nwaiting for creation...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 10 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x10" ] || { echo "was expecting 10 running containers"; exit -1; }
+
+for i in `seq 10`; do ( podman stop -t=1 b$i; podman rm b$i )& done
+echo -e "\nwaiting for deletion...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 0 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x0" ] || { echo "was expecting 0 running containers"; exit -1; }
+
+
+########
+# run many containers in parallel for an existing image, test locks ..etc.
+########
+podman pull docker.io/library/busybox:latest > /dev/null || :
+for i in `seq 10`
+do ( podman run -d --name c$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+done
+echo -e "\nwaiting for creation...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 10 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x10" ] || { echo "was expecting 10 running containers"; exit -1; }
+
+for i in `seq 10`; do ( podman stop -t=1 c$i; podman rm c$i )& done
+echo -e "\nwaiting for deletion...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 0 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x0" ] || { echo "was expecting 0 running containers"; exit -1; }
+
+
+########
 # Install java onto the container, commit it, then run it showing java usage
 ########
 podman run --net=host $image dnf -y install java
