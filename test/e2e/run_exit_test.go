@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -24,14 +23,15 @@ var _ = Describe("Podman run exit", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run exit 125", func() {
@@ -59,8 +59,7 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run exit 50", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
-		result := podmanTest.Podman([]string{"run", "registry.fedoraproject.org/fedora-minimal", "bash", "-c", "exit 50"})
+		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(50))
 	})

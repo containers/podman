@@ -177,7 +177,7 @@ localunit: test/goecho/goecho varlink_generate
 	$(MAKE) -C contrib/cirrus/packer test
 
 ginkgo:
-	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 test/e2e/.
 
 ginkgo-remote:
 	ginkgo -v -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.

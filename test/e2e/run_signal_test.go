@@ -32,14 +32,15 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tmpdir)
+		podmanTest.Setup()
 		podmanTest.RestoreArtifact(fedoraMinimal)
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	Specify("signals are forwarded to container using sig-proxy", func() {

@@ -26,14 +26,15 @@ var _ = Describe("Podman push", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman push to containers/storage", func() {
@@ -62,6 +63,8 @@ var _ = Describe("Podman push", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
@@ -100,6 +103,8 @@ var _ = Describe("Podman push", func() {
 				}()
 			}
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", registry, "-Bbn", "podmantest", "test"})
 		session.WaitWithDefaultTimeout()

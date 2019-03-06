@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -24,6 +23,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 		// Cleanup the CNI networks used by the tests
 		os.RemoveAll("/var/lib/cni/networks/podman")
@@ -32,8 +32,8 @@ var _ = Describe("Podman create with --ip flag", func() {
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("Podman create --ip with garbage address", func() {
