@@ -368,7 +368,7 @@ type ContainerConfig struct {
 	Systemd bool `json:"systemd"`
 
 	// HealtchCheckConfig has the health check command and related timings
-	HealthCheckConfig *manifest.Schema2HealthConfig
+	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 }
 
 // ContainerStatus returns a string representation for users

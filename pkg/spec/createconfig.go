@@ -87,7 +87,6 @@ type CreateConfig struct {
 	Env                map[string]string //env
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []string // group-add
-	HasHealthCheck     bool
 	HealthCheck        *manifest.Schema2HealthConfig
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
@@ -562,7 +561,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	// Always use a cleanup process to clean up Podman after termination
 	options = append(options, libpod.WithExitCommand(c.createExitCommand()))
 
-	if c.HasHealthCheck {
+	if c.HealthCheck != nil {
 		options = append(options, libpod.WithHealthCheck(c.HealthCheck))
 		logrus.Debugf("New container has a health check")
 	}

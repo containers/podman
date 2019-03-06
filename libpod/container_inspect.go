@@ -127,6 +127,17 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		IsInfra: c.IsInfra(),
 	}
 
+	if c.config.HealthCheckConfig != nil {
+		//	This container has a healthcheck defined in it; we need to add it's state
+		healthCheckState, err := c.GetHealthCheckLog()
+		if err != nil {
+			// An error here is not considered fatal; no health state will be displayed
+			logrus.Error(err)
+		} else {
+			data.State.Healthcheck = healthCheckState
+		}
+	}
+
 	// Copy port mappings into network settings
 	if config.PortMappings != nil {
 		data.NetworkSettings.Ports = config.PortMappings

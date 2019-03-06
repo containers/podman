@@ -48,6 +48,6 @@ func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
 		}
 		return err
 	}
-	fmt.Println("\nhealthy")
+	fmt.Println("healthy")
 	return nil
 }
