@@ -6,9 +6,7 @@ import (
 )
 
 var (
-	podDescription = `Manage container pods.
-
-Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.`
+	podDescription = `Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.`
 )
 var podCommand = cliconfig.PodmanCommand{
 	Command: &cobra.Command{
@@ -37,5 +35,6 @@ var podSubCommands = []*cobra.Command{
 
 func init() {
 	podCommand.AddCommand(podSubCommands...)
+	podCommand.SetHelpTemplate(HelpTemplate())
 	podCommand.SetUsageTemplate(UsageTemplate())
 }

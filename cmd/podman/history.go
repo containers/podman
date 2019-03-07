@@ -37,8 +37,9 @@ type historyOptions struct {
 var (
 	historyCommand cliconfig.HistoryValues
 
-	historyDescription = "Displays the history of an image. The information can be printed out in an easy to read, " +
-		"or user specified format, and can be truncated."
+	historyDescription = `Displays the history of an image.
+
+  The information can be printed out in an easy to read, or user specified format, and can be truncated.`
 	_historyCommand = &cobra.Command{
 		Use:   "history [flags] IMAGE",
 		Short: "Show history of a specified image",
@@ -53,6 +54,7 @@ var (
 
 func init() {
 	historyCommand.Command = _historyCommand
+	historyCommand.SetHelpTemplate(HelpTemplate())
 	historyCommand.SetUsageTemplate(UsageTemplate())
 	flags := historyCommand.Flags()
 	flags.StringVar(&historyCommand.Format, "format", "", "Change the output to JSON or a Go template")

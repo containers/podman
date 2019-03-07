@@ -15,11 +15,9 @@ import (
 
 var (
 	rmCommand     cliconfig.RmValues
-	rmDescription = fmt.Sprintf(`
-Podman rm will remove one or more containers from the host.
-The container name or ID can be used. This does not remove images.
-Running containers will not be removed without the -f option.
-`)
+	rmDescription = fmt.Sprintf(`Removes one or more containers from the host. The container name or ID can be used.
+
+  Command does not remove images. Running containers will not be removed without the -f option.`)
 	_rmCommand = &cobra.Command{
 		Use:   "rm [flags] CONTAINER [CONTAINER...]",
 		Short: "Remove one or more containers",
@@ -40,6 +38,7 @@ Running containers will not be removed without the -f option.
 
 func init() {
 	rmCommand.Command = _rmCommand
+	rmCommand.SetHelpTemplate(HelpTemplate())
 	rmCommand.SetUsageTemplate(UsageTemplate())
 	flags := rmCommand.Flags()
 	flags.BoolVarP(&rmCommand.All, "all", "a", false, "Remove all containers")

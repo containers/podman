@@ -17,12 +17,11 @@ import (
 var (
 	mountCommand cliconfig.MountValues
 
-	mountDescription = `
-   podman mount
-   Lists all mounted containers mount points
+	mountDescription = `podman mount
+    Lists all mounted containers mount points if no container is specified
 
-   podman mount CONTAINER-NAME-OR-ID
-   Mounts the specified container and outputs the mountpoint
+  podman mount CONTAINER-NAME-OR-ID
+    Mounts the specified container and outputs the mountpoint
 `
 
 	_mountCommand = &cobra.Command{
@@ -42,6 +41,7 @@ var (
 
 func init() {
 	mountCommand.Command = _mountCommand
+	mountCommand.SetHelpTemplate(HelpTemplate())
 	mountCommand.SetUsageTemplate(UsageTemplate())
 	flags := mountCommand.Flags()
 	flags.BoolVarP(&mountCommand.All, "all", "a", false, "Mount all containers")

@@ -15,11 +15,8 @@ import (
 
 var (
 	startCommand     cliconfig.StartValues
-	startDescription = `
-   podman start
+	startDescription = `Starts one or more containers.  The container name or ID can be used.`
 
-   Starts one or more containers.  The container name or ID can be used.
-`
 	_startCommand = &cobra.Command{
 		Use:   "start [flags] CONTAINER [CONTAINER...]",
 		Short: "Start one or more containers",
@@ -37,6 +34,7 @@ var (
 
 func init() {
 	startCommand.Command = _startCommand
+	startCommand.SetHelpTemplate(HelpTemplate())
 	startCommand.SetUsageTemplate(UsageTemplate())
 	flags := startCommand.Flags()
 	flags.BoolVarP(&startCommand.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")

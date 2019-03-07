@@ -15,10 +15,12 @@ import (
 
 var (
 	containerKubeCommand     cliconfig.GenerateKubeValues
-	containerKubeDescription = "Generate Kubernetes Pod YAML"
-	_containerKubeCommand    = &cobra.Command{
+	containerKubeDescription = `Command generates Kubernetes Pod YAML (v1 specification) from a podman container or pod.
+
+  Whether the input is for a container or pod, Podman will always generate the specification as a Pod. The input may be in the form of a pod or container name or ID.`
+	_containerKubeCommand = &cobra.Command{
 		Use:   "kube [flags] CONTAINER | POD",
-		Short: "Generate Kubernetes pod YAML for a container or pod",
+		Short: "Generate Kubernetes pod YAML from a container or pod",
 		Long:  containerKubeDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			containerKubeCommand.InputArgs = args
@@ -33,6 +35,7 @@ var (
 
 func init() {
 	containerKubeCommand.Command = _containerKubeCommand
+	containerKubeCommand.SetHelpTemplate(HelpTemplate())
 	containerKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := containerKubeCommand.Flags()
 	flags.BoolVarP(&containerKubeCommand.Service, "service", "s", false, "Generate YAML for kubernetes service object")

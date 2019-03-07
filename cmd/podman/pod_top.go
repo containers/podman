@@ -16,12 +16,10 @@ import (
 var (
 	podTopCommand cliconfig.PodTopValues
 
-	podTopDescription = fmt.Sprintf(`Display the running processes containers in a pod.  Specify format descriptors
-to alter the output.  You may run "podman pod top -l pid pcpu seccomp" to print
-the process ID, the CPU percentage and the seccomp mode of each process of
-the latest pod.
-%s
-`, getDescriptorString())
+	podTopDescription = fmt.Sprintf(`Specify format descriptors to alter the output.
+
+  You may run "podman pod top -l pid pcpu seccomp" to print the process ID, the CPU percentage and the seccomp mode of each process of the latest pod.
+%s`, getDescriptorString())
 
 	_podTopCommand = &cobra.Command{
 		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS]",
@@ -40,6 +38,7 @@ the latest pod.
 
 func init() {
 	podTopCommand.Command = _podTopCommand
+	podTopCommand.SetHelpTemplate(HelpTemplate())
 	podTopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podTopCommand.Flags()
 	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")

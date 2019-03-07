@@ -34,8 +34,7 @@ func (so stdoutStruct) Out() error {
 
 var (
 	diffCommand     cliconfig.DiffValues
-	diffDescription = fmt.Sprint(`Displays changes on a container or image's filesystem.  The
-	container or image will be compared to its parent layer`)
+	diffDescription = fmt.Sprint(`Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`)
 
 	_diffCommand = &cobra.Command{
 		Use:   "diff [flags] CONTAINER | IMAGE",
@@ -54,6 +53,7 @@ var (
 
 func init() {
 	diffCommand.Command = _diffCommand
+	diffCommand.SetHelpTemplate(HelpTemplate())
 	diffCommand.SetUsageTemplate(UsageTemplate())
 	flags := diffCommand.Flags()
 

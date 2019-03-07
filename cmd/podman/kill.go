@@ -38,6 +38,7 @@ var (
 
 func init() {
 	killCommand.Command = _killCommand
+	killCommand.SetHelpTemplate(HelpTemplate())
 	killCommand.SetUsageTemplate(UsageTemplate())
 	flags := killCommand.Flags()
 

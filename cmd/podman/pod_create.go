@@ -17,10 +17,9 @@ var (
 	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
 	podCreateCommand        cliconfig.PodCreateValues
 
-	podCreateDescription = "Creates a new empty pod. The pod ID is then" +
-		" printed to stdout. You can then start it at any time with the" +
-		" podman pod start <pod_id> command. The pod will be created with the" +
-		" initial state 'created'."
+	podCreateDescription = `After creating the pod, the pod ID is printed to stdout.
+
+  You can then start it at any time with the  podman pod start <pod_id> command. The pod will be created with the initial state 'created'.`
 
 	_podCreateCommand = &cobra.Command{
 		Use:   "create",
@@ -37,6 +36,7 @@ var (
 
 func init() {
 	podCreateCommand.Command = _podCreateCommand
+	podCreateCommand.SetHelpTemplate(HelpTemplate())
 	podCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := podCreateCommand.Flags()
 	flags.SetInterspersed(false)

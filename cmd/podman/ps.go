@@ -174,6 +174,7 @@ var (
 )
 
 func psInit(command *cliconfig.PsValues) {
+	command.SetHelpTemplate(HelpTemplate())
 	command.SetUsageTemplate(UsageTemplate())
 	flags := command.Flags()
 	flags.BoolVarP(&command.All, "all", "a", false, "Show all the containers, default is only running containers")

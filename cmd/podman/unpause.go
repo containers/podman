@@ -15,12 +15,8 @@ import (
 var (
 	unpauseCommand cliconfig.UnpauseValues
 
-	unpauseDescription = `
-   podman unpause
-
-   Unpauses one or more running containers.  The container name or ID can be used.
-`
-	_unpauseCommand = &cobra.Command{
+	unpauseDescription = `Unpauses one or more previously paused containers.  The container name or ID can be used.`
+	_unpauseCommand    = &cobra.Command{
 		Use:   "unpause [flags] CONTAINER [CONTAINER...]",
 		Short: "Unpause the processes in one or more containers",
 		Long:  unpauseDescription,
@@ -36,6 +32,7 @@ var (
 
 func init() {
 	unpauseCommand.Command = _unpauseCommand
+	unpauseCommand.SetHelpTemplate(HelpTemplate())
 	unpauseCommand.SetUsageTemplate(UsageTemplate())
 	flags := unpauseCommand.Flags()
 	flags.BoolVarP(&unpauseCommand.All, "all", "a", false, "Unpause all paused containers")

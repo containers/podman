@@ -34,6 +34,7 @@ var (
 
 func init() {
 	pruneContainersCommand.Command = _pruneContainersCommand
+	pruneContainersCommand.SetHelpTemplate(HelpTemplate())
 	pruneContainersCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneContainersCommand.Flags()
 	flags.BoolVarP(&pruneContainersCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")

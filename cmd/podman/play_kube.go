@@ -32,8 +32,10 @@ const (
 
 var (
 	playKubeCommand     cliconfig.KubePlayValues
-	playKubeDescription = "Play a Pod and its containers based on a Kubrernetes YAML"
-	_playKubeCommand    = &cobra.Command{
+	playKubeDescription = `Command reads in a structured file of Kubernetes YAML.
+
+  It creates the pod and containers described in the YAML.  The containers within the pod are then started and the ID of the new Pod is output.`
+	_playKubeCommand = &cobra.Command{
 		Use:   "kube [flags] KUBEFILE",
 		Short: "Play a pod based on Kubernetes YAML",
 		Long:  playKubeDescription,
@@ -49,6 +51,7 @@ var (
 
 func init() {
 	playKubeCommand.Command = _playKubeCommand
+	playKubeCommand.SetHelpTemplate(HelpTemplate())
 	playKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := playKubeCommand.Flags()
 	flags.StringVar(&playKubeCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")

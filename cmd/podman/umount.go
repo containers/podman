@@ -14,12 +14,11 @@ import (
 
 var (
 	umountCommand cliconfig.UmountValues
-	description   = `
-Container storage increments a mount counter each time a container is mounted.
-When a container is unmounted, the mount counter is decremented and the
-container's root filesystem is physically unmounted only when the mount
-counter reaches zero indicating no other processes are using the mount.
-An unmount can be forced with the --force flag.
+	description   = `Container storage increments a mount counter each time a container is mounted.
+
+  When a container is unmounted, the mount counter is decremented. The container's root filesystem is physically unmounted only when the mount counter reaches zero indicating no other processes are using the mount.
+
+  An unmount can be forced with the --force flag.
 `
 	_umountCommand = &cobra.Command{
 		Use:     "umount [flags] CONTAINER [CONTAINER...]",
@@ -42,6 +41,7 @@ An unmount can be forced with the --force flag.
 
 func init() {
 	umountCommand.Command = _umountCommand
+	umountCommand.SetHelpTemplate(HelpTemplate())
 	umountCommand.SetUsageTemplate(UsageTemplate())
 	flags := umountCommand.Flags()
 	flags.BoolVarP(&umountCommand.All, "all", "a", false, "Umount all of the currently mounted containers")

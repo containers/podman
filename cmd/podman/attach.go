@@ -30,6 +30,7 @@ var (
 
 func init() {
 	attachCommand.Command = _attachCommand
+	attachCommand.SetHelpTemplate(HelpTemplate())
 	attachCommand.SetUsageTemplate(UsageTemplate())
 	flags := attachCommand.Flags()
 	flags.StringVar(&attachCommand.DetachKeys, "detach-keys", "", "Override the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")

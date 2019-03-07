@@ -16,21 +16,12 @@ var (
 	containerExistsCommand cliconfig.ContainerExistsValues
 	podExistsCommand       cliconfig.PodExistsValues
 
-	imageExistsDescription = `
-	podman image exists
+	imageExistsDescription = `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`
 
-	Check if an image exists in local storage
-`
-	containerExistsDescription = `
-	podman container exists
+	containerExistsDescription = `If the named container exists in local storage, podman container exists exits with 0, otherwise the exit code will be 1.`
 
-	Check if a container exists in local storage
-`
-	podExistsDescription = `
-	podman pod exists
+	podExistsDescription = `If the named pod exists in local storage, podman pod exists exits with 0, otherwise the exit code will be 1.`
 
-	Check if a pod exists in local storage
-`
 	_imageExistsCommand = &cobra.Command{
 		Use:   "exists IMAGE",
 		Short: "Check if an image exists in local storage",
@@ -75,12 +66,15 @@ var (
 func init() {
 	imageExistsCommand.Command = _imageExistsCommand
 	imageExistsCommand.DisableFlagsInUseLine = true
+	imageExistsCommand.SetHelpTemplate(HelpTemplate())
 	imageExistsCommand.SetUsageTemplate(UsageTemplate())
 	containerExistsCommand.Command = _containerExistsCommand
 	containerExistsCommand.DisableFlagsInUseLine = true
+	containerExistsCommand.SetHelpTemplate(HelpTemplate())
 	containerExistsCommand.SetUsageTemplate(UsageTemplate())
 	podExistsCommand.Command = _podExistsCommand
 	podExistsCommand.DisableFlagsInUseLine = true
+	podExistsCommand.SetHelpTemplate(HelpTemplate())
 	podExistsCommand.SetUsageTemplate(UsageTemplate())
 }
 

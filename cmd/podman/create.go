@@ -37,11 +37,9 @@ import (
 
 var (
 	createCommand     cliconfig.CreateValues
-	createDescription = "Creates a new container from the given image or" +
-		" storage and prepares it for running the specified command. The" +
-		" container ID is then printed to stdout. You can then start it at" +
-		" any time with the podman start <container_id> command. The container" +
-		" will be created with the initial state 'created'."
+	createDescription = `Creates a new container from the given image or storage and prepares it for running the specified command.
+
+  The container ID is then printed to stdout. You can then start it at any time with the podman start <container_id> command. The container will be created with the initial state 'created'.`
 	_createCommand = &cobra.Command{
 		Use:   "create [flags] IMAGE [COMMAND [ARG...]]",
 		Short: "Create but do not start a container",
@@ -64,6 +62,7 @@ var (
 
 func init() {
 	createCommand.PodmanCommand.Command = _createCommand
+	createCommand.SetHelpTemplate(HelpTemplate())
 	createCommand.SetUsageTemplate(UsageTemplate())
 
 	getCreateFlags(&createCommand.PodmanCommand)

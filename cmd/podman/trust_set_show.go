@@ -50,8 +50,10 @@ var (
 
 func init() {
 	setTrustCommand.Command = _setTrustCommand
+	setTrustCommand.SetHelpTemplate(HelpTemplate())
 	setTrustCommand.SetUsageTemplate(UsageTemplate())
 	showTrustCommand.Command = _showTrustCommand
+	showTrustCommand.SetHelpTemplate(HelpTemplate())
 	showTrustCommand.SetUsageTemplate(UsageTemplate())
 	setFlags := setTrustCommand.Flags()
 	setFlags.StringVar(&setTrustCommand.PolicyPath, "policypath", "", "")

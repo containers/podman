@@ -17,6 +17,7 @@ var (
 
 func init() {
 	playCommand.Command = _playCommand
+	playCommand.SetHelpTemplate(HelpTemplate())
 	playCommand.SetUsageTemplate(UsageTemplate())
 	playCommand.AddCommand(getPlaySubCommands()...)
 }

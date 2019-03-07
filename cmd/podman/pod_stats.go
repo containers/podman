@@ -22,10 +22,11 @@ import (
 
 var (
 	podStatsCommand     cliconfig.PodStatsValues
-	podStatsDescription = "Display a live stream of resource usage statistics for the containers in or more pods"
-	_podStatsCommand    = &cobra.Command{
+	podStatsDescription = `For each specified pod this command will display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one the pods.`
+
+	_podStatsCommand = &cobra.Command{
 		Use:   "stats [flags] POD [POD...]",
-		Short: "Display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one or more pods",
+		Short: "Display a live stream of resource usage statistics for the containers in one or more pods",
 		Long:  podStatsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podStatsCommand.InputArgs = args
@@ -40,6 +41,7 @@ var (
 
 func init() {
 	podStatsCommand.Command = _podStatsCommand
+	podStatsCommand.SetHelpTemplate(HelpTemplate())
 	podStatsCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStatsCommand.Flags()
 	flags.BoolVarP(&podStatsCommand.All, "all", "a", false, "Provide stats for all running pods")

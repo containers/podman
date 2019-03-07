@@ -12,8 +12,11 @@ import (
 
 var (
 	refreshCommand     cliconfig.RefreshValues
-	refreshDescription = "The refresh command resets the state of all containers to handle database changes after a Podman upgrade. All running containers will be restarted."
-	_refreshCommand    = &cobra.Command{
+	refreshDescription = `Resets the state of all containers to handle database changes after a Podman upgrade.
+
+  All running containers will be restarted.
+`
+	_refreshCommand = &cobra.Command{
 		Use:   "refresh",
 		Args:  noSubArgs,
 		Short: "Refresh container state",
@@ -29,6 +32,7 @@ var (
 func init() {
 	_refreshCommand.Hidden = true
 	refreshCommand.Command = _refreshCommand
+	refreshCommand.SetHelpTemplate(HelpTemplate())
 	refreshCommand.SetUsageTemplate(UsageTemplate())
 }
 

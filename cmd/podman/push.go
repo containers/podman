@@ -20,10 +20,9 @@ import (
 
 var (
 	pushCommand     cliconfig.PushValues
-	pushDescription = fmt.Sprintf(`
-   Pushes an image to a specified location.
-   The Image "DESTINATION" uses a "transport":"details" format.
-   See podman-push(1) section "DESTINATION" for the expected format`)
+	pushDescription = fmt.Sprintf(`Pushes an image to a specified location.
+
+  The Image "DESTINATION" uses a "transport":"details" format. See podman-push(1) section "DESTINATION" for the expected format.`)
 
 	_pushCommand = &cobra.Command{
 		Use:   "push [flags] IMAGE REGISTRY",
@@ -42,6 +41,7 @@ var (
 
 func init() {
 	pushCommand.Command = _pushCommand
+	pushCommand.SetHelpTemplate(HelpTemplate())
 	pushCommand.SetUsageTemplate(UsageTemplate())
 	flags := pushCommand.Flags()
 	flags.MarkHidden("signature-policy")

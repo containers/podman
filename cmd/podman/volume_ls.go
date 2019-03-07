@@ -44,8 +44,7 @@ var (
 podman volume ls
 
 List all available volumes. The output of the volumes can be filtered
-and the output format can be changed to JSON or a user specified Go template.
-`
+and the output format can be changed to JSON or a user specified Go template.`
 	_volumeLsCommand = &cobra.Command{
 		Use:     "ls",
 		Aliases: []string{"list"},
@@ -62,6 +61,7 @@ and the output format can be changed to JSON or a user specified Go template.
 
 func init() {
 	volumeLsCommand.Command = _volumeLsCommand
+	volumeLsCommand.SetHelpTemplate(HelpTemplate())
 	volumeLsCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeLsCommand.Flags()
 

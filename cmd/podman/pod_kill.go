@@ -14,8 +14,10 @@ import (
 
 var (
 	podKillCommand     cliconfig.PodKillValues
-	podKillDescription = "The main process of each container inside the specified pod will be sent SIGKILL, or any signal specified with option --signal."
-	_podKillCommand    = &cobra.Command{
+	podKillDescription = `Signals are sent to the main process of each container inside the specified pod.
+
+  The default signal is SIGKILL, or any signal specified with option --signal.`
+	_podKillCommand = &cobra.Command{
 		Use:   "kill [flags] POD [POD...]",
 		Short: "Send the specified signal or SIGKILL to containers in pod",
 		Long:  podKillDescription,
@@ -35,6 +37,7 @@ var (
 
 func init() {
 	podKillCommand.Command = _podKillCommand
+	podKillCommand.SetHelpTemplate(HelpTemplate())
 	podKillCommand.SetUsageTemplate(UsageTemplate())
 	flags := podKillCommand.Flags()
 	flags.BoolVarP(&podKillCommand.All, "all", "a", false, "Kill all containers in all pods")

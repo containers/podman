@@ -18,10 +18,9 @@ import (
 
 var (
 	varlinkCommand     cliconfig.VarlinkValues
-	varlinkDescription = `
-	podman varlink
+	varlinkDescription = `Run varlink interface.  Podman varlink listens on the specified unix domain socket for incoming connects.
 
-	run varlink interface
+  Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	_varlinkCommand = &cobra.Command{
 		Use:   "varlink [flags] URI",
@@ -39,6 +38,7 @@ var (
 
 func init() {
 	varlinkCommand.Command = _varlinkCommand
+	varlinkCommand.SetHelpTemplate(HelpTemplate())
 	varlinkCommand.SetUsageTemplate(UsageTemplate())
 	flags := varlinkCommand.Flags()
 	flags.Int64VarP(&varlinkCommand.Timeout, "timeout", "t", 1000, "Time until the varlink session expires in milliseconds.  Use 0 to disable the timeout")

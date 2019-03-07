@@ -12,8 +12,10 @@ import (
 
 var (
 	podRestartCommand     cliconfig.PodRestartValues
-	podRestartDescription = `Restarts one or more pods. The pod ID or name can be used.`
-	_podRestartCommand    = &cobra.Command{
+	podRestartDescription = `The pod ID or name can be used.
+
+  All of the containers within each of the specified pods will be restarted. If a container in a pod is not currently running it will be started.`
+	_podRestartCommand = &cobra.Command{
 		Use:   "restart [flags] POD [POD...]",
 		Short: "Restart one or more pods",
 		Long:  podRestartDescription,
@@ -33,6 +35,7 @@ var (
 
 func init() {
 	podRestartCommand.Command = _podRestartCommand
+	podRestartCommand.SetHelpTemplate(HelpTemplate())
 	podRestartCommand.SetUsageTemplate(UsageTemplate())
 	flags := podRestartCommand.Flags()
 	flags.BoolVarP(&podRestartCommand.All, "all", "a", false, "Restart all running pods")

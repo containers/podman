@@ -12,11 +12,9 @@ import (
 
 var (
 	podStartCommand     cliconfig.PodStartValues
-	podStartDescription = `
-   podman pod start
+	podStartDescription = `The pod name or ID can be used.
 
-   Starts one or more pods.  The pod name or ID can be used.
-`
+  All containers defined in the pod will be started.`
 	_podStartCommand = &cobra.Command{
 		Use:   "start [flags] POD [POD...]",
 		Short: "Start one or more pods",
@@ -37,6 +35,7 @@ var (
 
 func init() {
 	podStartCommand.Command = _podStartCommand
+	podStartCommand.SetHelpTemplate(HelpTemplate())
 	podStartCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStartCommand.Flags()
 	flags.BoolVarP(&podStartCommand.All, "all", "a", false, "Start all pods")

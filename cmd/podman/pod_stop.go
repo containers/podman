@@ -12,11 +12,9 @@ import (
 
 var (
 	podStopCommand     cliconfig.PodStopValues
-	podStopDescription = `
-   podman pod stop
+	podStopDescription = `The pod name or ID can be used.
 
-   Stops one or more running pods.  The pod name or ID can be used.
-`
+  This command will stop all running containers in each of the specified pods.`
 
 	_podStopCommand = &cobra.Command{
 		Use:   "stop [flags] POD [POD...]",
@@ -38,6 +36,7 @@ var (
 
 func init() {
 	podStopCommand.Command = _podStopCommand
+	podStopCommand.SetHelpTemplate(HelpTemplate())
 	podStopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStopCommand.Flags()
 	flags.BoolVarP(&podStopCommand.All, "all", "a", false, "Stop all running pods")

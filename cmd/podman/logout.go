@@ -30,6 +30,7 @@ var (
 
 func init() {
 	logoutCommand.Command = _logoutCommand
+	logoutCommand.SetHelpTemplate(HelpTemplate())
 	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
 	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")

@@ -521,6 +521,18 @@ func scrubServer(server string) string {
 	return strings.TrimPrefix(server, "http://")
 }
 
+// HelpTemplate returns the help template for podman commands
+// This uses the short and long options.
+// command should not use this.
+func HelpTemplate() string {
+	return `{{.Short}}
+
+Description:
+  {{.Long}}
+
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+}
+
 // UsageTemplate returns the usage template for podman commands
 // This blocks the desplaying of the global options. The main podman
 // command should not use this.

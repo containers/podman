@@ -11,13 +11,9 @@ import (
 
 var (
 	volumeRmCommand     cliconfig.VolumeRmValues
-	volumeRmDescription = `
-podman volume rm
+	volumeRmDescription = `Remove one or more existing volumes.
 
-Remove one or more existing volumes. Will only remove volumes that are
-not being used by any containers. To remove the volumes anyways, use the
---force flag.
-`
+  By default only volumes that are not being used by any containers will be removed. To remove the volumes anyways, use the --force flag.`
 	_volumeRmCommand = &cobra.Command{
 		Use:     "rm [flags] VOLUME [VOLUME...]",
 		Aliases: []string{"remove"},
@@ -36,6 +32,7 @@ not being used by any containers. To remove the volumes anyways, use the
 
 func init() {
 	volumeRmCommand.Command = _volumeRmCommand
+	volumeRmCommand.SetHelpTemplate(HelpTemplate())
 	volumeRmCommand.SetUsageTemplate(UsageTemplate())
 	flags := volumeRmCommand.Flags()
 	flags.BoolVarP(&volumeRmCommand.All, "all", "a", false, "Remove all volumes")

@@ -23,11 +23,9 @@ import (
 
 var (
 	pullCommand     cliconfig.PullValues
-	pullDescription = `
-Pulls an image from a registry and stores it locally.
-An image can be pulled using its tag or digest. If a tag is not
-specified, the image with the 'latest' tag (if it exists) is pulled
-`
+	pullDescription = `Pulls an image from a registry and stores it locally.
+
+  An image can be pulled using its tag or digest. If a tag is not specified, the image with the 'latest' tag (if it exists) is pulled.`
 	_pullCommand = &cobra.Command{
 		Use:   "pull [flags] IMAGE-PATH",
 		Short: "Pull an image from a registry",
@@ -45,6 +43,7 @@ specified, the image with the 'latest' tag (if it exists) is pulled
 
 func init() {
 	pullCommand.Command = _pullCommand
+	pullCommand.SetHelpTemplate(HelpTemplate())
 	pullCommand.SetUsageTemplate(UsageTemplate())
 	flags := pullCommand.Flags()
 	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images inthe repository will be pulled")

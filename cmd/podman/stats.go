@@ -31,10 +31,10 @@ type statsOutputParams struct {
 var (
 	statsCommand cliconfig.StatsValues
 
-	statsDescription = "display a live stream of one or more containers' resource usage statistics"
+	statsDescription = "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers."
 	_statsCommand    = &cobra.Command{
 		Use:   "stats [flags] CONTAINER [CONTAINER...]",
-		Short: "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers",
+		Short: "Display a live stream of container resource usage statistics",
 		Long:  statsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			statsCommand.InputArgs = args
@@ -52,6 +52,7 @@ var (
 
 func init() {
 	statsCommand.Command = _statsCommand
+	statsCommand.SetHelpTemplate(HelpTemplate())
 	statsCommand.SetUsageTemplate(UsageTemplate())
 	flags := statsCommand.Flags()
 	flags.BoolVarP(&statsCommand.All, "all", "a", false, "Show all containers. Only running containers are shown by default. The default is false")

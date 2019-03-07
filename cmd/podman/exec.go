@@ -17,10 +17,7 @@ import (
 var (
 	execCommand cliconfig.ExecValues
 
-	execDescription = `
-	podman exec
-
-	Run a command in a running container
+	execDescription = `Execute the specified command inside a running container.
 `
 	_execCommand = &cobra.Command{
 		Use:   "exec [flags] CONTAINER [COMMAND [ARG...]]",
@@ -39,6 +36,7 @@ var (
 
 func init() {
 	execCommand.Command = _execCommand
+	execCommand.SetHelpTemplate(HelpTemplate())
 	execCommand.SetUsageTemplate(UsageTemplate())
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)

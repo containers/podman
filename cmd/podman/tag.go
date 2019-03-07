@@ -10,7 +10,7 @@ import (
 var (
 	tagCommand cliconfig.TagValues
 
-	tagDescription = "Adds one or more additional names to locally-stored image"
+	tagDescription = "Adds one or more additional names to locally-stored image."
 	_tagCommand    = &cobra.Command{
 		Use:   "tag [flags] IMAGE TAG [TAG...]",
 		Short: "Add an additional name to a local image",
@@ -28,6 +28,7 @@ var (
 
 func init() {
 	tagCommand.Command = _tagCommand
+	tagCommand.SetHelpTemplate(HelpTemplate())
 	tagCommand.SetUsageTemplate(UsageTemplate())
 }
 

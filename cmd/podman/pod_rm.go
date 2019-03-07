@@ -12,11 +12,9 @@ import (
 
 var (
 	podRmCommand     cliconfig.PodRmValues
-	podRmDescription = fmt.Sprintf(`
-podman rm will remove one or more pods from the host. The pod name or ID can
-be used.  A pod with containers will not be removed without --force.
-If --force is specified, all containers will be stopped, then removed.
-`)
+	podRmDescription = fmt.Sprintf(`podman rm will remove one or more pods from the host.
+
+  The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
 	_podRmCommand = &cobra.Command{
 		Use:   "rm [flags] POD [POD...]",
 		Short: "Remove one or more pods",
@@ -37,6 +35,7 @@ If --force is specified, all containers will be stopped, then removed.
 
 func init() {
 	podRmCommand.Command = _podRmCommand
+	podRmCommand.SetHelpTemplate(HelpTemplate())
 	podRmCommand.SetUsageTemplate(UsageTemplate())
 	flags := podRmCommand.Flags()
 	flags.BoolVarP(&podRmCommand.All, "all", "a", false, "Remove all running pods")

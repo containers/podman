@@ -13,9 +13,9 @@ var (
 	importCommand cliconfig.ImportValues
 
 	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
-	 Note remote tar balls can be specified, via web address.
-	 Optionally tag the image. You can specify the instructions using the --change option.
-	`
+
+  Note remote tar balls can be specified, via web address.
+  Optionally tag the image. You can specify the instructions using the --change option.`
 	_importCommand = &cobra.Command{
 		Use:   "import [flags] PATH [REFERENCE]",
 		Short: "Import a tarball to create a filesystem image",
@@ -33,6 +33,7 @@ var (
 
 func init() {
 	importCommand.Command = _importCommand
+	importCommand.SetHelpTemplate(HelpTemplate())
 	importCommand.SetUsageTemplate(UsageTemplate())
 	flags := importCommand.Flags()
 	flags.StringSliceVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")

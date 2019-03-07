@@ -19,10 +19,7 @@ import (
 
 var (
 	commitCommand     cliconfig.CommitValues
-	commitDescription = `Create an image from a container's changes.
-	 Optionally tag the image created, set the author with the --author flag,
-	 set the commit message with the --message flag,
-	 and make changes to the instructions with the --change flag.`
+	commitDescription = `Create an image from a container's changes. Optionally tag the image created, set the author with the --author flag, set the commit message with the --message flag, and make changes to the instructions with the --change flag.`
 
 	_commitCommand = &cobra.Command{
 		Use:   "commit [flags] CONTAINER IMAGE",
@@ -41,6 +38,7 @@ var (
 
 func init() {
 	commitCommand.Command = _commitCommand
+	commitCommand.SetHelpTemplate(HelpTemplate())
 	commitCommand.SetUsageTemplate(UsageTemplate())
 	flags := commitCommand.Flags()
 	flags.StringSliceVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")))

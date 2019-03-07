@@ -16,8 +16,10 @@ import (
 
 var (
 	restartCommand     cliconfig.RestartValues
-	restartDescription = `Restarts one or more running containers. The container ID or name can be used. A timeout before forcibly stopping can be set, but defaults to 10 seconds`
-	_restartCommand    = &cobra.Command{
+	restartDescription = `Restarts one or more running containers. The container ID or name can be used.
+
+  A timeout before forcibly stopping can be set, but defaults to 10 seconds.`
+	_restartCommand = &cobra.Command{
 		Use:   "restart [flags] CONTAINER [CONTAINER...]",
 		Short: "Restart one or more containers",
 		Long:  restartDescription,
@@ -37,6 +39,7 @@ var (
 
 func init() {
 	restartCommand.Command = _restartCommand
+	restartCommand.SetHelpTemplate(HelpTemplate())
 	restartCommand.SetUsageTemplate(UsageTemplate())
 	flags := restartCommand.Flags()
 	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
