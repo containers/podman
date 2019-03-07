@@ -266,3 +266,87 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 
 	return
 }
+
+// Visit a node on a container graph and start the container, or set an error if
+// a dependency failed to start. if restart is true, startNode will restart the node instead of starting it.
+func stopNode(ctx context.Context, node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool, requestedTimeout int, cleanup bool) {
+	// First, check if we have already visited the node
+	if ctrsVisited[node.id] {
+		return
+	}
+
+	// If setError is true, a someone we depend on failed
+	// Mark us as failed and recurse
+	if setError {
+		// Mark us as visited, and set an error
+		ctrsVisited[node.id] = true
+		ctrErrors[node.id] = errors.Wrapf(ErrCtrStateInvalid, "a container that depends on %s failed to stop", node.id)
+
+		// Hit anyone who depends on us, and set errors on them too
+		for _, predecessor := range node.dependsOn {
+			stopNode(ctx, predecessor, setError, ctrErrors, ctrsVisited, requestedTimeout, cleanup)
+		}
+
+		return
+	}
+
+	// Have all that depend on us stopped
+	// If not, don't visit the node yet
+	depsOnMeVisited := true
+	for _, dep := range node.dependedOn {
+		depsOnMeVisited = depsOnMeVisited && ctrsVisited[dep.id]
+	}
+	if !depsOnMeVisited {
+		// Don't visit us yet, all dependencies are not up
+		// We'll hit those that depend on us eventually, and when we do it will
+		// recurse here
+		return
+	}
+
+	// Going to try to start the container, mark us as visited
+	ctrsVisited[node.id] = true
+
+	ctrErrored := false
+
+	// Lock before we stop
+	node.container.lock.Lock()
+
+	// Sync the container to pick up current state
+	if !ctrErrored {
+		if err := node.container.syncContainer(); err != nil {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
+	}
+
+	// Stop the container (only if it is not running)
+	if !ctrErrored {
+		if node.container.state.State == ContainerStateRunning ||
+			node.container.state.State == ContainerStateCreated {
+
+			stopTimeout := node.container.config.StopTimeout
+			if requestedTimeout > -1 {
+				stopTimeout = uint(requestedTimeout)
+			}
+			if err := node.container.stop(stopTimeout); err != nil {
+				ctrErrored = true
+				ctrErrors[node.id] = err
+			}
+			if cleanup {
+				if err := node.container.cleanup(ctx); err != nil {
+					ctrErrors[node.id] = err
+					ctrErrored = true
+				}
+			}
+		}
+	}
+
+	node.container.lock.Unlock()
+
+	// Recurse to anyone we depend on and stop them
+	for _, predecessor := range node.dependsOn {
+		stopNode(ctx, predecessor, ctrErrored, ctrErrors, ctrsVisited, requestedTimeout, cleanup)
+	}
+
+	return
+}

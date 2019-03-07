@@ -96,43 +96,56 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		return nil, err
 	}
 
+	// Build a dependency graph of containers in the pod
+	graph, err := buildContainerGraph(allCtrs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
+	}
+
 	ctrErrors := make(map[string]error)
 
-	// TODO: There may be cases where it makes sense to order stops based on
-	// dependencies. Should we bother with this?
+	// If there are no containers without dependencies, we can just stop iteratively
+	if len(graph.notDependedOnNodes) == 0 {
+		// Stop to all containers
+		for _, ctr := range allCtrs {
+			ctr.lock.Lock()
 
-	// Stop to all containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-
-		if err := ctr.syncContainer(); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
-			ctr.lock.Unlock()
-			continue
-		}
-		stopTimeout := ctr.config.StopTimeout
-		if timeout > -1 {
-			stopTimeout = uint(timeout)
-		}
-		if err := ctr.stop(stopTimeout); err != nil {
-			ctr.lock.Unlock()
-			ctrErrors[ctr.ID()] = err
-			continue
-		}
-
-		if cleanup {
-			if err := ctr.cleanup(ctx); err != nil {
+			if err := ctr.syncContainer(); err != nil {
+				ctr.lock.Unlock()
 				ctrErrors[ctr.ID()] = err
+				continue
 			}
+
+			// Ignore containers that are not running
+			if ctr.state.State != ContainerStateRunning {
+				ctr.lock.Unlock()
+				continue
+			}
+			stopTimeout := ctr.config.StopTimeout
+			if timeout > -1 {
+				stopTimeout = uint(timeout)
+			}
+			if err := ctr.stop(stopTimeout); err != nil {
+				ctr.lock.Unlock()
+				ctrErrors[ctr.ID()] = err
+				continue
+			}
+
+			if cleanup {
+				if err := ctr.cleanup(ctx); err != nil {
+					ctrErrors[ctr.ID()] = err
+				}
+			}
+
+			ctr.lock.Unlock()
 		}
 
-		ctr.lock.Unlock()
+	} else {
+		ctrsVisited := make(map[string]bool)
+		// Traverse the graph beginning at nodes with no dependencies
+		for _, node := range graph.notDependedOnNodes {
+			stopNode(ctx, node, false, ctrErrors, ctrsVisited, timeout, cleanup)
+		}
 	}
 
 	if len(ctrErrors) > 0 {
