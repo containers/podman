@@ -78,17 +78,25 @@ echo $image
 ########
 # Run container and display contents in /etc
 ########
-podman run $image ls -alF /etc
+podman run --rm $image ls -alF /etc
 
 ########
-# Run Java in the container - should ERROR but never stop
+# Test networking, bind mounting a file, stdin/stdout redirect
 ########
-podman run $image java 2>&1 || echo $?
-
-########
-# Clean out containers
-########
-podman rm --all
+txt1="Hello, Podman"
+echo "$txt" > /tmp/hello.txt
+podman run -d --name myweb -p 8080:80 -w /var/www -v /tmp/hello.txt:/var/www/index.txt busybox httpd -f -p 80
+echo $txt | podman exec -i myweb sh -c "cat > /var/www/index2.txt"
+txt2=$( podman exec myweb cat /var/www/index2.txt )
+[ "x$txt1"=="x$txt2" ] && echo "PASS"
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:8080/index.txt )
+[ "x$txt1"=="x$txt2" ] && echo "PASS"
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:8080/index2.txt )
+[ "x$txt1"=="x$txt2" ] && echo "PASS"
+# poadman run --rm --net container:myweb --add-host myweb:127.0.0.1 busybox wget -qO - http://myweb/index.txt
+rm /tmp/hello.txt
+podman stop myweb
+podman rm myweb
 
 ########
 # pull and run many containers in parallel, test locks ..etc.
@@ -135,6 +143,16 @@ echo -e "\ndone\n"
 count=$( podman ps -q  | wc -l )
 [ "x$count" == "x0" ] || { echo "was expecting 0 running containers"; exit -1; }
 
+
+########
+# Run Java in the container - should ERROR but never stop
+########
+podman run $image java 2>&1 || echo $?
+
+########
+# Clean out containers
+########
+podman rm --all
 
 ########
 # Install java onto the container, commit it, then run it showing java usage
