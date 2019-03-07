@@ -5,7 +5,7 @@ load helpers
 
 @test "podman mount - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
-    skip_if_rootless
+    skip_if_rootless "mount does not work rootless"
 
     f_path=/tmp/tmpfile_$(random_string 8)
     f_content=$(random_string 30)

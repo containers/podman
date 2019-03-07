@@ -46,14 +46,33 @@ function check_help() {
         # Confirm that by running with 'invalid-arg' and expecting failure.
         if expr "$usage" : '.*\[flags\]$' >/dev/null; then
             if [ "$cmd" != "help" ]; then
+                dprint "podman $@ $cmd invalid-arg"
                 run_podman 125 "$@" $cmd invalid-arg
                 is "$output" "Error: .* takes no arguments" \
                    "'podman $@ $cmd' with extra (invalid) arguments"
             fi
         fi
 
+        # If usage has required arguments, try running without them
+        if expr "$usage" : '.*\[flags\] [A-Z]' >/dev/null; then
+            dprint "podman $@ $cmd (without required args)"
+            run_podman 125 "$@" $cmd
+            is "$output" "Error:"
+        fi
+
         count=$(expr $count + 1)
     done
+
+    # Any command that takes subcommands, must throw error if called
+    # without one.
+    dprint "podman $@"
+    run_podman 125 "$@"
+    is "$output" "Error: missing command .*$@ COMMAND"
+
+    # Assume that 'NoSuchCommand' is not a command
+    dprint "podman $@ NoSuchCommand"
+    run_podman 125 "$@" NoSuchCommand
+    is "$output" "Error: unrecognized command .*$@ NoSuchCommand"
 
     # This can happen if the output of --help changes, such as between
     # the old command parser and cobra.
