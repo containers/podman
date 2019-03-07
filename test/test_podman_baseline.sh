@@ -19,6 +19,7 @@
 #######
 # See if we want to stop on errors and/or install and then remove Docker.
 #######
+HOST_PORT="${HOST_PORT:-8080}"
 showerror=0
 installdocker=0
 usedocker=1
@@ -83,24 +84,32 @@ podman run --rm $image ls -alF /etc
 ########
 # Test networking, bind mounting a file, stdin/stdout redirect
 ########
+echo "Testing networking: ..."
+port_test_failed=0
 txt1="Hello, Podman"
-echo "$txt" > /tmp/hello.txt
-podman run -d --name myweb -p 8080:80 -w /var/www -v /tmp/hello.txt:/var/www/index.txt busybox httpd -f -p 80
-echo $txt | podman exec -i myweb sh -c "cat > /var/www/index2.txt"
+echo "$txt1" > /tmp/hello.txt
+podman run -d --name myweb -p "$HOST_PORT:80" -w /var/www -v /tmp/hello.txt:/var/www/index.txt busybox httpd -f -p 80
+echo "$txt1" | podman exec -i myweb sh -c "cat > /var/www/index2.txt"
 txt2=$( podman exec myweb cat /var/www/index2.txt )
-[ "x$txt1"=="x$txt2" ] && echo "PASS"
-txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:8080/index.txt )
-[ "x$txt1"=="x$txt2" ] && echo "PASS"
-txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:8080/index2.txt )
-[ "x$txt1"=="x$txt2" ] && echo "PASS"
-# poadman run --rm --net container:myweb --add-host myweb:127.0.0.1 busybox wget -qO - http://myweb/index.txt
+[ "x$txt1" == "x$txt2" ] && echo "PASS1" || { echo "FAIL1"; port_test_failed=1; }
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:$HOST_PORT/index.txt )
+[ "x$txt1" == "x$txt2" ] && echo "PASS2" || { echo "FAIL2"; port_test_failed=1; }
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:$HOST_PORT/index2.txt )
+[ "x$txt1" == "x$txt2" ] && echo "PASS3" || { echo "FAIL3"; port_test_failed=1; }
+# podman run --rm --net container:myweb --add-host myweb:127.0.0.1 busybox wget -qO - http://myweb/index.txt
 rm /tmp/hello.txt
 podman stop myweb
 podman rm myweb
+[ "0$port_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "networking test failed";
+  exit -1;
+}
+
 
 ########
 # pull and run many containers in parallel, test locks ..etc.
 ########
+prun_test_failed=0
 podman rmi docker.io/library/busybox:latest > /dev/null || :
 for i in `seq 10`
 do ( podman run -d --name b$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
@@ -110,20 +119,31 @@ wait
 echo -e "\ndone\n"
 # assert we have 10 running containers
 count=$( podman ps -q  | wc -l )
-[ "x$count" == "x10" ] || { echo "was expecting 10 running containers"; exit -1; }
+[ "x$count" == "x10" ] && echo "PASS" || { echo "FAIL, expecting 10 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 10 running containers";
+  exit -1;
+}
 
+prun_test_failed=0
 for i in `seq 10`; do ( podman stop -t=1 b$i; podman rm b$i )& done
 echo -e "\nwaiting for deletion...\n"
 wait
 echo -e "\ndone\n"
 # assert we have 0 running containers
 count=$( podman ps -q  | wc -l )
-[ "x$count" == "x0" ] || { echo "was expecting 0 running containers"; exit -1; }
+[ "x$count" == "x0" ] && echo "PASS" || { echo "FAIL, expecting 0 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 0 running containers";
+  exit -1;
+}
+
 
 
 ########
 # run many containers in parallel for an existing image, test locks ..etc.
 ########
+prun_test_failed=0
 podman pull docker.io/library/busybox:latest > /dev/null || :
 for i in `seq 10`
 do ( podman run -d --name c$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
@@ -133,7 +153,12 @@ wait
 echo -e "\ndone\n"
 # assert we have 10 running containers
 count=$( podman ps -q  | wc -l )
-[ "x$count" == "x10" ] || { echo "was expecting 10 running containers"; exit -1; }
+[ "x$count" == "x10" ] && echo "PASS" || { echo "FAIL, expecting 10 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 10 running containers";
+  exit -1;
+}
+
 
 for i in `seq 10`; do ( podman stop -t=1 c$i; podman rm c$i )& done
 echo -e "\nwaiting for deletion...\n"
@@ -141,7 +166,11 @@ wait
 echo -e "\ndone\n"
 # assert we have 0 running containers
 count=$( podman ps -q  | wc -l )
-[ "x$count" == "x0" ] || { echo "was expecting 0 running containers"; exit -1; }
+[ "x$count" == "x0" ] && echo "PASS" || { echo "FAIL, expecting 0 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 0 running containers";
+  exit -1;
+}
 
 
 ########
