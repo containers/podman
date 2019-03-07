@@ -10,7 +10,6 @@ import (
 
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -56,15 +55,8 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if err := os.MkdirAll(fullVolPath, 0755); err != nil {
 		return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
 	}
-	_, mountLabel, err := label.InitLabels([]string{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting default mountlabels")
-	}
-	if err := label.ReleaseLabel(mountLabel); err != nil {
-		return nil, errors.Wrapf(err, "error releasing label %q", mountLabel)
-	}
-	if err := label.Relabel(fullVolPath, mountLabel, true); err != nil {
-		return nil, errors.Wrapf(err, "error setting selinux label to %q", fullVolPath)
+	if err := LabelVolumePath(fullVolPath, true); err != nil {
+		return nil, err
 	}
 	volume.config.MountPoint = fullVolPath
 

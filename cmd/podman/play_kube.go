@@ -168,7 +168,13 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 						return errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
 					}
 				}
+				// unconditionally label a newly created volume as private
+				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+					return errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+				}
+				break
 			case v1.HostPathDirectory:
+			case v1.HostPathUnset:
 				// do nothing here because we will verify the path exists in validateVolumeHostDir
 				break
 			default:
@@ -178,7 +184,6 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		if err := shared.ValidateVolumeHostDir(hostPath.Path); err != nil {
 			return errors.Wrapf(err, "Error in parsing HostPath in YAML")
 		}
-		fmt.Println(volume.Name)
 		volumes[volume.Name] = hostPath.Path
 	}
 

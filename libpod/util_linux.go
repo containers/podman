@@ -9,6 +9,7 @@ import (
 	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -90,4 +91,24 @@ func GetV1CGroups(excludes []string) cgroups.Hierarchy {
 		}
 		return filtered, nil
 	}
+}
+
+// LabelVolumePath takes a mount path for a volume and gives it an
+// selinux label of either shared or not
+func LabelVolumePath(path string, shared bool) error {
+	_, mountLabel, err := label.InitLabels([]string{})
+	if err != nil {
+		return errors.Wrapf(err, "error getting default mountlabels")
+	}
+	if err := label.ReleaseLabel(mountLabel); err != nil {
+		return errors.Wrapf(err, "error releasing label %q", mountLabel)
+	}
+	if err := label.Relabel(path, mountLabel, shared); err != nil {
+		permString := "private"
+		if shared {
+			permString = "shared"
+		}
+		return errors.Wrapf(err, "error setting selinux label for %s to %q as %s", path, mountLabel, permString)
+	}
+	return nil
 }
