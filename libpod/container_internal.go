@@ -34,8 +34,8 @@ const (
 )
 
 var (
-	// localeToLanguage maps from locale values to language tags.
-	localeToLanguage = map[string]string{
+	// localeToLanguageMap maps from locale values to language tags.
+	localeToLanguageMap = map[string]string{
 		"":      "und-u-va-posix",
 		"c":     "und-u-va-posix",
 		"posix": "und-u-va-posix",
@@ -1281,6 +1281,16 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
+// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
+func localeToLanguage(locale string) string {
+	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
+	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
+	if !ok {
+		langString = locale
+	}
+	return langString
+}
+
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
 	var locale string
@@ -1296,11 +1306,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 		}
 	}
 
-	langString, ok := localeToLanguage[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-
+	langString := localeToLanguage(locale)
 	lang, err := language.Parse(langString)
 	if err != nil {
 		logrus.Warnf("failed to parse language %q: %s", langString, err)
