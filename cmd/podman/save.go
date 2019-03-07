@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -85,7 +86,7 @@ func saveCmd(c *cliconfig.SaveValues) error {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
 	}
-	if err := validateFileName(output); err != nil {
+	if err := parse.ValidateFileName(output); err != nil {
 		return err
 	}
 	return runtime.SaveImage(getContext(), c)

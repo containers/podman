@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/go-units"
@@ -19,9 +20,10 @@ const (
 	linuxMinMemory = 4194304
 )
 
-func getAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
+// GetAllLabels ...
+func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 	labels := make(map[string]string)
-	labelErr := readKVStrings(labels, labelFile, inputLabels)
+	labelErr := parse.ReadKVStrings(labels, labelFile, inputLabels)
 	if labelErr != nil {
 		return labels, errors.Wrapf(labelErr, "unable to process labels from --label and label-file")
 	}
@@ -149,12 +151,12 @@ func parseMounts(mounts []string) ([]spec.Mount, error) {
 				if mountInfo.Type == "tmpfs" {
 					return nil, errors.Errorf("cannot use src= on a tmpfs file system")
 				}
-				if err := validateVolumeHostDir(kv[1]); err != nil {
+				if err := ValidateVolumeHostDir(kv[1]); err != nil {
 					return nil, err
 				}
 				mountInfo.Source = kv[1]
 			case "target", "dst", "destination":
-				if err := validateVolumeCtrDir(kv[1]); err != nil {
+				if err := ValidateVolumeCtrDir(kv[1]); err != nil {
 					return nil, err
 				}
 				mountInfo.Destination = kv[1]
@@ -173,10 +175,10 @@ func parseVolumes(volumes []string) error {
 		if len(arr) < 2 {
 			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
 		}
-		if err := validateVolumeHostDir(arr[0]); err != nil {
+		if err := ValidateVolumeHostDir(arr[0]); err != nil {
 			return err
 		}
-		if err := validateVolumeCtrDir(arr[1]); err != nil {
+		if err := ValidateVolumeCtrDir(arr[1]); err != nil {
 			return err
 		}
 		if len(arr) > 2 {
@@ -203,7 +205,8 @@ func parseVolumesFrom(volumesFrom []string) error {
 	return nil
 }
 
-func validateVolumeHostDir(hostDir string) error {
+// ValidateVolumeHostDir ...
+func ValidateVolumeHostDir(hostDir string) error {
 	if len(hostDir) == 0 {
 		return errors.Errorf("host directory cannot be empty")
 	}
@@ -217,7 +220,8 @@ func validateVolumeHostDir(hostDir string) error {
 	return nil
 }
 
-func validateVolumeCtrDir(ctrDir string) error {
+// ValidateVolumeCtrDir ...
+func ValidateVolumeCtrDir(ctrDir string) error {
 	if len(ctrDir) == 0 {
 		return errors.Errorf("container directory cannot be empty")
 	}

@@ -1,4 +1,4 @@
-package main
+package shared
 
 import (
 	"io/ioutil"
@@ -42,20 +42,20 @@ func TestValidateSysctlBadSysctl(t *testing.T) {
 
 func TestGetAllLabels(t *testing.T) {
 	fileLabels := []string{}
-	labels, _ := getAllLabels(fileLabels, Var1)
+	labels, _ := GetAllLabels(fileLabels, Var1)
 	assert.Equal(t, len(labels), 2)
 }
 
 func TestGetAllLabelsBadKeyValue(t *testing.T) {
 	inLabels := []string{"=badValue", "="}
 	fileLabels := []string{}
-	_, err := getAllLabels(fileLabels, inLabels)
+	_, err := GetAllLabels(fileLabels, inLabels)
 	assert.Error(t, err, assert.AnError)
 }
 
 func TestGetAllLabelsBadLabelFile(t *testing.T) {
 	fileLabels := []string{"/foobar5001/be"}
-	_, err := getAllLabels(fileLabels, Var1)
+	_, err := GetAllLabels(fileLabels, Var1)
 	assert.Error(t, err, assert.AnError)
 }
 
@@ -65,6 +65,6 @@ func TestGetAllLabelsFile(t *testing.T) {
 	defer os.Remove(tFile)
 	assert.NoError(t, err)
 	fileLabels := []string{tFile}
-	result, _ := getAllLabels(fileLabels, Var1)
+	result, _ := GetAllLabels(fileLabels, Var1)
 	assert.Equal(t, len(result), 3)
 }

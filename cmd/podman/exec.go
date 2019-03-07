@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"strconv"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -130,7 +131,7 @@ func execCmd(c *cliconfig.ExecValues) error {
 	// ENVIRONMENT VARIABLES
 	env := map[string]string{}
 
-	if err := readKVStrings(env, []string{}, c.Env); err != nil {
+	if err := parse.ReadKVStrings(env, []string{}, c.Env); err != nil {
 		return errors.Wrapf(err, "unable to process environment variables")
 	}
 	envs := []string{}

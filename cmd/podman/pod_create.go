@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
@@ -14,8 +15,8 @@ import (
 
 var (
 	// Kernel namespaces shared by default within a pod
-	DefaultKernelNamespaces = "cgroup,ipc,net,uts"
-	podCreateCommand        cliconfig.PodCreateValues
+
+	podCreateCommand cliconfig.PodCreateValues
 
 	podCreateDescription = `After creating the pod, the pod ID is printed to stdout.
 
@@ -50,7 +51,7 @@ func init() {
 	flags.StringVarP(&podCreateCommand.Name, "name", "n", "", "Assign a name to the pod")
 	flags.StringVar(&podCreateCommand.PodIDFile, "pod-id-file", "", "Write the pod ID to the file")
 	flags.StringSliceVarP(&podCreateCommand.Publish, "publish", "p", []string{}, "Publish a container's port, or a range of ports, to the host (default [])")
-	flags.StringVar(&podCreateCommand.Share, "share", DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
+	flags.StringVar(&podCreateCommand.Share, "share", shared.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 
 }
 
@@ -87,7 +88,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		defer podIdFile.Sync()
 	}
 
-	labels, err := getAllLabels(c.LabelFile, c.Labels)
+	labels, err := shared.GetAllLabels(c.LabelFile, c.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}

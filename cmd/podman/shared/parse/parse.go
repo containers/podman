@@ -1,7 +1,7 @@
 //nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
-package main
+package parse
 
 import (
 	"bufio"
@@ -50,7 +50,7 @@ var (
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
 // ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6).
 // for add-host flag
-func validateExtraHost(val string) (string, error) { //nolint
+func ValidateExtraHost(val string) (string, error) { //nolint
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
@@ -140,10 +140,10 @@ func validateDNSSearch(val string) (string, error) { //nolint
 	if val = strings.Trim(val, " "); val == "." {
 		return val, nil
 	}
-	return validateDomain(val)
+	return ValidateDomain(val)
 }
 
-func validateDomain(val string) (string, error) {
+func ValidateDomain(val string) (string, error) {
 	if alphaRegexp.FindString(val) == "" {
 		return "", fmt.Errorf("%s is not a valid domain", val)
 	}
@@ -181,7 +181,7 @@ func doesEnvExist(name string) bool {
 // reads a file of line terminated key=value pairs, and overrides any keys
 // present in the file with additional pairs specified in the override parameter
 // for env-file and labels-file flags
-func readKVStrings(env map[string]string, files []string, override []string) error {
+func ReadKVStrings(env map[string]string, files []string, override []string) error {
 	for _, ef := range files {
 		if err := parseEnvFile(env, ef); err != nil {
 			return err
@@ -494,9 +494,9 @@ func stringSlicetoUint32Slice(inputSlice []string) ([]uint32, error) {
 	return outputSlice, nil
 }
 
-// validateFileName returns an error if filename contains ":"
+// ValidateFileName returns an error if filename contains ":"
 // as it is currently not supported
-func validateFileName(filename string) error {
+func ValidateFileName(filename string) error {
 	if strings.Contains(filename, ":") {
 		return errors.Errorf("invalid filename (should not contain ':') %q", filename)
 	}

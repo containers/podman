@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -66,7 +67,7 @@ func runCmd(c *cliconfig.RunValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	ctr, createConfig, err := createContainer(&c.PodmanCommand, runtime)
+	ctr, createConfig, err := shared.CreateContainer(getContext(), &c.PodmanCommand, runtime)
 	if err != nil {
 		return err
 	}
