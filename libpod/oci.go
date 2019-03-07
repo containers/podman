@@ -805,6 +805,12 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
+	}
+
 	if err := execCmd.Start(); err != nil {
 		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
