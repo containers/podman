@@ -13,6 +13,7 @@ var podCommand = cliconfig.PodmanCommand{
 		Use:   "pod",
 		Short: "Manage pods",
 		Long:  podDescription,
+		RunE:  commandRunE(),
 	},
 }
 

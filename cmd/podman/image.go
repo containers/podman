@@ -14,6 +14,7 @@ var (
 			Use:   "image",
 			Short: "Manage images",
 			Long:  imageDescription,
+			RunE:  commandRunE(),
 		},
 	}
 	imagesSubCommand  cliconfig.ImagesValues

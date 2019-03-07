@@ -12,6 +12,7 @@ var (
 		Use:   "generate",
 		Short: "Generated structured data",
 		Long:  generateDescription,
+		RunE:  commandRunE(),
 	}
 )
 

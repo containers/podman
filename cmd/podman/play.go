@@ -12,6 +12,7 @@ var (
 		Use:   "play",
 		Short: "Play a pod",
 		Long:  playDescription,
+		RunE:  commandRunE(),
 	}
 )
 
